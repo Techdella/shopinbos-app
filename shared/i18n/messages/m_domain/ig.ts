@@ -54,8 +54,6 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "check.later": "Anyị enweghị ike ilele ya ugbu a. Anyị ga-anọgide na-anwa n'onwe anyị.",
   "continue": "Gaa n'ihu",
   "cancel": "Kagbuo",
-  "buy.title": "Zụta domain ọhụrụ na weebụsaịtị",
-  "buy.sub": "Chọọ aha ma kwụọ ụgwọ n'ebe ahụ. Anyị ga-edozi ya maka gị.",
 };
 
 export default ig;

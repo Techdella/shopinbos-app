@@ -28,7 +28,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "photos.adding": "E dey add…",
   "photos.allow": "Allow Shopinbos to use your photos for your phone settings, then try again.",
   "photos.problem": "That photo no upload. Try another one.",
-  "shots.credits": "You don use today free pictures. You go get more tomorrow.",
+  "shots.credits": "Your AI credits for pictures don finish for now. Your plan credits go full again every month.",
   "shots.done": "{count, plural, one {Your shot don ready} other {Your # shots don ready}}.",
   "words.language": "Language",
   "words.write": "Write the words with Rex",

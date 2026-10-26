@@ -187,9 +187,7 @@ const en = {
   "w.last30Line": "Last 30 days: {amount}",
   "w.recent": "Recent",
   "bal.title": "Wallet balance",
-  "bal.sub": "Pays for AI credits and other Shopinbos services. Sales still go straight to your bank.",
-  "bal.topUp": "Top up",
-  "bal.topUpSent": "We've emailed you how to top up on the Shopinbos website. Your new balance shows here once it's confirmed.",
+  "bal.sub": "Your Shopinbos balance. Sales still go straight to your bank.",
   "bal.withdraw": "Withdraw",
   "bal.amountTo": "Amount to send to {bank}",
   "bal.amountToYours": "Amount to send to your bank",
@@ -211,6 +209,7 @@ const en = {
   "w.steps.bank": "Add your bank",
   "w.steps.check": "Paystack checks the account",
   "w.steps.cards": "Take card payments",
+  "owed.payOwed": "Pay {amount} owed",
 } satisfies Record<string, string>;
 
 export default en;

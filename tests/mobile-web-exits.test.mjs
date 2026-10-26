@@ -34,7 +34,6 @@ const ALLOWED = [
   { file: "lib/web.ts", line: "onPress: () => void openWeb(path)", reason: "openPath's fallback asks first; the Alert button reads web.badge" },
   { file: "app/channels.tsx", line: "await openWeb(GMAIL_CONNECT_PATH)", reason: "Google's sign-in; the Gmail button below renders <WebButtonLabel>" },
   { file: "app/video/studio.tsx", line: "await openWeb(webStudioPath(id))", reason: "the final render; the footer button renders <WebButtonLabel>" },
-  { file: "app/templates.tsx", line: "openWeb(PLANS_PATH)", reason: "plans and billing (paid); templates.tsx is owned by the store-editing agent (listed in the report)" },
 ];
 
 const mobileSrc = join(root, "apps/mobile/src");
@@ -148,8 +147,8 @@ test("verification documents upload from the phone; add-city opens the app's set
   assert.match(trust, /router\.push\("\/settings"\)/);
 });
 
-test("what stays on the website carries the badge: buying a domain, the video render, admin, Gmail and WhatsApp sign-up", () => {
-  assert.match(app("app/domain.tsx"), /right=\{<WebBadge \/>\} onPress=\{\(\) => void openWeb\("\/home\/domain"\)\}/);
+test("what stays on the website carries the badge: the video render, admin, Gmail and WhatsApp sign-up (never a purchase)", () => {
+  assert.doesNotMatch(app("app/domain.tsx"), /openWeb\(/, "buying a domain isn't in the app (tests/store-payments.test.mjs)");
   assert.match(app("app/video/studio.tsx"), /<WebButtonLabel title=\{t\("finish\.button"\)\} \/>/);
   assert.match(app("app/web-only.tsx"), /<WebButtonLabel title="Open the admin panel" \/>/);
   const channels = app("app/channels.tsx");

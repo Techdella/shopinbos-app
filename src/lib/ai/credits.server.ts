@@ -301,7 +301,7 @@ async function autoTopUp(userId: string, need: number, have: number): Promise<bo
  * expires soonest), topping up from the saved card first when auto top-up is on. Returns what's left, or null when
  * there weren't enough credits. Never goes below zero.
  */
-export async function spendCredits(userId: string, cost: number): Promise<number | null> {
+export async function spendCredits(userId: string, cost: number, options: { autoTopUp?: boolean } = {}): Promise<number | null> {
   const amount = Math.max(0, Math.round(cost));
   await ensureCreditAccount(userId);
   const plan = await planCreditsFor(userId);
@@ -325,7 +325,9 @@ export async function spendCredits(userId: string, cost: number): Promise<number
       return after.planCredits + after.balance;
     });
   let left = await take();
-  if (left === null) {
+  // No auto top-up for a request from the phone app: charging the saved card for credits there would be a digital
+  // purchase outside Google Play billing and Apple in-app purchase (shared/store-payments.ts).
+  if (left === null && options.autoTopUp !== false) {
     const have = await creditBalance(userId);
     if (await autoTopUp(userId, amount, have)) left = await take();
   }

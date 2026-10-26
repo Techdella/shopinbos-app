@@ -147,7 +147,6 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "set.more": "Ntọala ndị ọzọ na weebụ",
   "set.tips": "Ndụmọdụ na nkọwa nta",
   "set.tipsHint": "Nkọwa okwu na mmalite na-emepe onwe ha",
-  "set.moreHint": "Otu, ịkwụ ụgwọ, nchekwa na imechi ụlọ ahịa gị. Ọ ga-emepe na browser gị",
   // Payment logos and the 'Built with Shopinbos' badge (shared/payment-badges.ts, src/lib/store-badges.ts).
   "money.badgesTitle": "Logo ịkwụ ụgwọ n'ụlọ ahịa gị",
   "money.badgesHint": "Pịa ka o gosi ma ọ bụ zoo ya. Ndị ahịa ga-ahụ ha n'okpuru ụlọ ahịa gị na n'ebe checkout.",
@@ -174,7 +173,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "set.photoRemoveFailed": "Anyị enweghị ike iwepụ ya. Nwaa ọzọ.",
   "money.wallet": "Shopinbos Wallet",
   "money.walletHint": "Ego kaadị na-aga ozugbo n'akaụntụ ụlọ akụ gị",
-  "del.payFee": "Kwụọ {amount} site na kaadị",
+  "del.payFee": "Kwụọ ụgwọ nnyefe {amount} site na kaadị",
   "del.feePaid": "A kwụọla ego delivery",
   "del.feeNotSeen": "Anyị ahụbeghị ịkwụ ụgwọ ahụ. Ọ bụrụ na ị kwụọla, ọ ga-apụta ebe a n'otu nkeji.",
   "money.state.card.needs_bank": "Tinye ụlọ akụ gị ka ị nara ịkwụ ụgwọ kaadị",

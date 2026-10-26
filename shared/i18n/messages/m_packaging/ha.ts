@@ -12,7 +12,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "format.sleeve": "Sleeve na kewayewa",
   "format.bag": "Jakar siyayya",
   "order.howMany": "Guda nawa?",
-  "order.pay": "Biya {total}",
+  "order.pay": "Biya {total} na bugawa",
   "order.title": "Yi order na print",
   "order.min": "Mafi ƙaranci {count} ne ga wannan pack. Yawan da ka buga, ƙarancin kuɗin kowanne.",
   "order.delivery": "Delivery",

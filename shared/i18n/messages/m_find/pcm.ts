@@ -124,6 +124,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "wholesale.q.accepted": "Accepted",
   "wholesale.q.rejected": "Dem decline am",
   "wholesale.q.expired": "E don expire",
+  "ws.payOrder": "Pay {total} for this order",
 };
 
 export default pcm;

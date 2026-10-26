@@ -127,8 +127,8 @@ export const levelProgress = (rewards: Pick<Rewards, "xp" | "xpForNext"> | null 
 // ─── Credits (shown, never sold in the app) ──────────────────────────────────
 
 export const fetchCredits = () => optional(api<{ balance: number; note: string | null }>("/api/mobile/credits"));
-/** Emails how to top up on the website (App Store / Play rules: no digital sales in the app). */
-export const emailTopUp = () => api<{ sent: true }>("/api/mobile/credits/topup-email", { method: "POST" });
+// Credits are never sold in the app, and nothing emails or links to the website to buy them: AI credits are digital
+// goods (Google Play Payments; Apple 3.1.1 and 3.1.3). docs/store-payments-audit.md.
 
 // ─── Ask Peggy (every role) ──────────────────────────────────────────────────
 

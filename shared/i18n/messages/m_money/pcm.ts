@@ -182,9 +182,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "w.last30Line": "Last 30 days: {amount}",
   "w.recent": "Recent",
   "bal.title": "Wallet balance",
-  "bal.sub": "E dey pay for AI credits and other Shopinbos services. Sales still dey go your bank straight.",
-  "bal.topUp": "Top up",
-  "bal.topUpSent": "We don email you how to top up for Shopinbos website. Your new balance go show here once e confirm.",
+  "bal.sub": "Your Shopinbos balance. Sales still dey go straight to your bank.",
   "bal.withdraw": "Withdraw",
   "bal.amountTo": "How much to send to {bank}",
   "bal.amountToYours": "How much to send to your bank",
@@ -206,6 +204,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "w.steps.bank": "Add your bank",
   "w.steps.check": "Paystack go check the account",
   "w.steps.cards": "Collect card payment",
+  "owed.payOwed": "Pay the {amount} wey you owe",
 };
 
 export default pcm;

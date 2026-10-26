@@ -139,8 +139,8 @@ test("partner app, Familiar design: Jobs has the level ring, Peggy, Status and r
   assert.doesNotMatch(money, /withdraw|\bpin\b|held by/i);
   const words = read("shared/i18n/messages/m_partner/en.ts");
   assert.doesNotMatch(words.slice(words.indexOf('"fam.')), /withdraw|held by/i);
-  // Credits are shown; "Top up" only emails how to do it on the website (no sale in the app).
-  assert.match(read("apps/mobile/src/app/logistics/(tabs)/more.tsx"), /emailTopUp\(\)/);
+  // Credits are shown, never sold or pointed to (no Top up, no email with the website steps).
+  assert.doesNotMatch(read("apps/mobile/src/app/logistics/(tabs)/more.tsx"), /emailTopUp|fam\.biz\.topUp/);
   assert.match(read("apps/mobile/src/app/logistics/(tabs)/messages.tsx"), /filters/);
   // Android: the active tab icon sits on the prototype's teal pill.
   assert.match(read("apps/mobile/src/app/logistics/(tabs)/_layout.tsx"), /tint=\{PARTNER_TINT\}/);

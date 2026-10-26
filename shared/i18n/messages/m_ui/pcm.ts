@@ -33,7 +33,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "error.tooMany": "You don try too many times for short time. Wait one minute, then try again.",
   "error.form": "Something for the form need another look. Check am, then try again.",
   "error.server": "Shopinbos get small wahala now. Wait one minute and try again, or tap Help.",
-  "error.aiAllowance": "You don use today free AI finish. E go reset tomorrow.",
+  "error.aiAllowance": "Your AI credits don finish for now. Your plan credits go full again every month.",
   "account.delete": "Delete my account",
   "account.deleteTitle": "You wan delete your account?",
   "account.deleteBody": "Your shop go close now and we go log you out. Inside 30 days we go delete your account and your data, after any money wey dem owe you don reach you. We go keep the payment records wey the law say make we keep.",
@@ -115,6 +115,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "verify.uploadFailed": "E no go. Try again.",
   "verify.photosOff": "Allow photos for your phone settings make you fit add document.",
   "verify.missing": "Add {docs} before you send for review.",
+  "error.notOnPlan": "Dat one no dey your plan.",
+  "credits.refill": "Your plan credits go full again every month.",
 };
 
 export default pcm;

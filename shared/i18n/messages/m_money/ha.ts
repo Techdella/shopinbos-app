@@ -182,9 +182,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "w.last30Line": "Kwanaki 30 da suka wuce: {amount}",
   "w.recent": "Na baya-bayan nan",
   "bal.title": "Kuɗin cikin Wallet",
-  "bal.sub": "Yana biyan kiredit na AI da sauran ayyukan Shopinbos. Kuɗin kayan da ka sayar yana zuwa bankinka kai tsaye.",
-  "bal.topUp": "Ƙara kuɗi",
-  "bal.topUpSent": "Mun aika maka email kan yadda za ka ƙara kuɗi a yanar gizon Shopinbos. Sabon kuɗinka zai bayyana a nan da zarar an tabbatar.",
+  "bal.sub": "Ma'aunin kuɗinka na Shopinbos. Kuɗin sayarwa har yanzu suna zuwa kai tsaye bankinka.",
   "bal.withdraw": "Cire kuɗi",
   "bal.amountTo": "Adadin da za a aika zuwa {bank}",
   "bal.amountToYours": "Adadin da za a aika zuwa bankinka",
@@ -206,6 +204,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "w.steps.bank": "Ƙara bankinka",
   "w.steps.check": "Paystack ya duba asusun",
   "w.steps.cards": "Karɓi biyan kati",
+  "owed.payOwed": "Biya {amount} da ake bin ka",
 };
 
 export default ha;

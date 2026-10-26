@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import { tNow } from "./app-locale";
+import { APP_CLIENT_HEADER, APP_CLIENT_VALUE, storeSafeKind } from "@shared/store-payments";
 
 // Calls the Shopinbos Next.js API (the same backend as the web app) with the Supabase access token.
 export const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? "https://app.shopinbos.com").replace(/\/$/, "");
@@ -31,17 +32,22 @@ export function plainMessage(message: string | null | undefined, status: number)
 }
 
 /**
- * The server's message for an error code, as the phone shows it. Out of AI credits: the server says to buy more,
- * but app store rules don't allow pointing to a purchase outside in-app purchase, so the phone says when it resets.
+ * The server's message for an error code, as the phone shows it (app store payment rules, shared/store-payments.ts;
+ * docs/store-payments-audit.md). Out of AI credits: the server says to buy more, so the phone says the plan's credits
+ * refill each month. Not on the plan (PLAN_LIMIT, UPGRADE_REQUIRED, 402) or any message that says to upgrade or top
+ * up: "That isn't on your plan.", with no upgrade link or price.
  */
-function phoneMessage(message: string | null | undefined, status: number, code?: string): string {
-  if (code === "AI_CREDITS_NEEDED") return tNow("m_ui")("error.aiAllowance");
+export function phoneMessage(message: string | null | undefined, status: number, code?: string): string {
+  const kind = storeSafeKind(code, status, message);
+  if (kind === "credits") return tNow("m_ui")("error.aiAllowance");
+  if (kind === "plan") return tNow("m_ui")("error.notOnPlan");
   return plainMessage(message, status);
 }
 
+/** The token, and the header that tells the server this is the phone app (it keeps its answers store-safe). */
 async function authHeader(): Promise<Record<string, string>> {
   const { data } = await supabase.auth.getSession();
-  return data.session ? { Authorization: `Bearer ${data.session.access_token}` } : {};
+  return { [APP_CLIENT_HEADER]: APP_CLIENT_VALUE, ...(data.session ? { Authorization: `Bearer ${data.session.access_token}` } : {}) };
 }
 
 export async function api<T>(path: string, init: RequestInit & { json?: unknown } = {}): Promise<T> {

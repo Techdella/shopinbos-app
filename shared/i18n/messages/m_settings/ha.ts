@@ -147,7 +147,6 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "set.more": "Ƙarin saituna a yanar gizo",
   "set.tips": "Shawarwari da bayanai",
   "set.tipsHint": "Bayanin kalmomi da gabatarwa da ke buɗewa da kansu",
-  "set.moreHint": "Ƙungiya, biyan kuɗi, tsaro da rufe shagonka. Zai buɗe a browser ɗinka",
   // Payment logos and the 'Built with Shopinbos' badge (shared/payment-badges.ts, src/lib/store-badges.ts).
   "money.badgesTitle": "Tambarin biyan kuɗi a shagonka",
   "money.badgesHint": "Taɓa don nunawa ko ɓoyewa. Masu saye za su gan su a ƙasan shagonka da wurin biya.",
@@ -174,7 +173,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "set.photoRemoveFailed": "Ba mu iya cire shi ba. Sake gwadawa.",
   "money.wallet": "Shopinbos Wallet",
   "money.walletHint": "Kuɗin kati suna tafiya kai tsaye zuwa bankinka",
-  "del.payFee": "Biya {amount} da kati",
+  "del.payFee": "Biya kuɗin isarwa {amount} da kati",
   "del.feePaid": "An biya kuɗin isarwa",
   "del.feeNotSeen": "Ba mu ga biyan ba tukuna. Idan ka biya, zai bayyana a nan cikin minti ɗaya.",
   "money.state.card.needs_bank": "Ƙara bankinka don karɓar biyan kati",

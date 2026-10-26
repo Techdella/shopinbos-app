@@ -10,7 +10,7 @@ const en = {
   "format.sleeve": "Wrap sleeve",
   "format.bag": "Shopping bag",
   "order.howMany": "How many?",
-  "order.pay": "Pay {total}",
+  "order.pay": "Pay {total} for prints",
   "order.title": "Order prints",
   "order.min": "Minimum {count} for this pack. The more you print, the less each costs.",
   "order.delivery": "Delivery",

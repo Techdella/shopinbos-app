@@ -6,6 +6,7 @@ import { API_URL } from "./api";
 import { supabase } from "./supabase";
 import { appRouteFor } from "@shared/notifications";
 import { videoScreenFor } from "./video-pure";
+import { isDigitalPurchasePath } from "@shared/store-payments";
 
 // Fresh enough that the web session (which borrows this token, see src/app/auth/handoff) lasts a while.
 const MIN_TOKEN_LIFE_SECONDS = 15 * 60;
@@ -21,12 +22,14 @@ async function freshAccessToken() {
 }
 
 /**
- * Opens a page of the website, signed in as the app's user. Only for advanced or paid tools (buying AI credits or a
- * plan or a domain, wallet top-ups, the full store builder, the video studio's final render), Google's Gmail sign-in
- * and admin; everything else has a screen here. The button or row that calls it shows "Opens website ↗"
- * (components/WebBadge.tsx; tests/mobile-web-exits.test.mjs checks every call).
+ * Opens a page of the website, signed in as the app's user. Only for advanced tools (the video studio's final render,
+ * importing products), Google's Gmail sign-in and admin; everything else has a screen here. The button or row that
+ * calls it shows "Opens website ↗" (components/WebBadge.tsx; tests/mobile-web-exits.test.mjs checks every call).
+ * Never a page that sells AI credits, plans, themes or wallet top-ups: app store payment rules
+ * (shared/store-payments.ts, docs/store-payments-audit.md), so those paths don't open at all.
  */
 export async function openWeb(path: string) {
+  if (isDigitalPurchasePath(path)) return null;
   return WebBrowser.openBrowserAsync(await signedInUrl(path));
 }
 
@@ -166,6 +169,9 @@ export function openPath(path: string) {
   if (video) return router.push({ pathname: video.pathname, params: video.params });
   const own = appScreenFor(path) ?? appRouteFor(path);
   if (own) return router.push((own.params ? { pathname: own.pathname, params: own.params } : own.pathname) as never);
+  // A link to buy AI credits, a plan or a wallet top-up (a notification, a Rex card) does nothing in the app: no
+  // "Open the website?" either, which would point to another way to pay (Google Play Payments, Apple 3.1.3).
+  if (isDigitalPurchasePath(path)) return;
   const t = tNow("m_ui", "common");
   Alert.alert(t("web.askTitle"), t("web.askBody"), [
     { text: t("cancel"), style: "cancel" },

@@ -10,8 +10,6 @@ const en = {
   "clear": "Clear filters",
   "showCount": "Show {count}",
   "search": "Search, like hair or shoes",
-  "plan": "Plan",
-  "any": "Any",
   "colours": "Colours",
   "tone.all": "Any",
   "tone.light": "Light",
@@ -22,9 +20,6 @@ const en = {
   "new": "New",
   "current": "Your look",
   "rexPick": "Rex's pick",
-  "needsPlan": "Needs the {plan} plan",
-  "needsPlanBody": "Get the plan on the website, then come back to use this look.",
-  "seePlans": "See plans on the website",
   "noMatch": "No looks match",
   "previewTitle": "Preview",
   "keeps": "{blurb}. Your products, prices and delivery stay the same.",
@@ -39,6 +34,7 @@ const en = {
   "isCurrent": "This is your shop's look now.",
   "askRexChange": "Ask Rex to change it",
   "appliedNew": "Saved. Put your shop live so shoppers can see it.",
+  "notOnPlan": "Not on your plan",
 } satisfies Record<string, string>;
 
 export default en;

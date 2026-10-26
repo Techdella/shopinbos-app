@@ -124,6 +124,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "wholesale.q.accepted": "An karɓa",
   "wholesale.q.rejected": "An ƙi",
   "wholesale.q.expired": "Ya ƙare",
+  "ws.payOrder": "Biya {total} na wannan oda",
 };
 
 export default ha;

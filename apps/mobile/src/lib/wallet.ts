@@ -156,11 +156,9 @@ export interface WalletBalance {
 
 export const fetchWalletBalance = () => api<WalletBalance>("/api/app/wallet");
 
-/**
- * "Top up": the wallet pays for Shopinbos services (digital goods), so the app can't take that money (Apple 3.1.1,
- * Google Play payments). We email the steps for the website instead, like AI credits.
- */
-export const emailWalletTopUp = () => api<{ sent: true }>("/api/mobile/wallet/topup-email", { method: "POST" });
+// Nothing adds money to the balance from the app, not even an email with the website steps: the balance pays for
+// Shopinbos services (digital goods), and an in-app button that emails how to pay elsewhere still steers people to
+// another way to pay (Google Play Payments; Apple 3.1.1 and 3.1.3). docs/store-payments-audit.md.
 
 /** Send part of the balance to the checked bank. */
 export const withdrawFromWallet = (naira: number) => api<{ reference: string; status: "done" | "pending" }>("/api/app/wallet/withdraw", { method: "POST", json: { naira } });

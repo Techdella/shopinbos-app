@@ -124,6 +124,7 @@ const en = {
   "wholesale.q.accepted": "Accepted",
   "wholesale.q.rejected": "Declined",
   "wholesale.q.expired": "Expired",
+  "ws.payOrder": "Pay {total} for this order",
 } satisfies Record<string, string>;
 
 export default en;

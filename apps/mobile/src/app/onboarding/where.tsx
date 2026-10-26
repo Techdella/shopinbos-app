@@ -47,7 +47,6 @@ export default function WhereYouSell() {
   // The plan's states are known once the delivery settings load (a failed load counts as one state, like Free).
   const [ready, setReady] = useState(false);
   const limit = hub ? hub.sellLimit?.states ?? null : 1;
-  const plan = hub?.sellLimit?.nationwidePlan ?? "Growth";
 
   useEffect(() => {
     let alive = true;
@@ -110,7 +109,7 @@ export default function WhereYouSell() {
   const choices: Array<{ key: OnboardingSellArea; title: string; sub: string }> = [
     { key: "one_state", title: t("where.one"), sub: home ? stateName(home) : t("where.oneSub") },
     ...(limit === 1 ? [] : [{ key: "selected" as const, title: t("where.some"), sub: limit ? t("where.someUpTo", { count: limit }) : t("where.someSub") }]),
-    { key: "nationwide", title: t("where.all"), sub: nationwideLocked ? t("where.allPlan", { plan }) : t("where.allSub") },
+    { key: "nationwide", title: t("where.all"), sub: nationwideLocked ? t("where.allPlan") : t("where.allSub") },
   ];
 
   return (
@@ -122,7 +121,7 @@ export default function WhereYouSell() {
       </View>
       {note ? (
         <T style={{ color: colors.inkSoft, fontSize: 14.5, lineHeight: 20, marginTop: 12 }} accessibilityLiveRegion="polite">
-          {note === "nationwide" ? t("where.nationwideNote", { plan }) : t("where.statesNote", { count: limit ?? 1 })}
+          {note === "nationwide" ? t("where.nationwideNote") : t("where.statesNote", { count: limit ?? 1 })}
         </T>
       ) : null}
       {ready && choice.area !== "nationwide" ? (

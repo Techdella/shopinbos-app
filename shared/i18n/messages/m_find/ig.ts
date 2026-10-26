@@ -124,6 +124,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "wholesale.q.accepted": "Anabatala",
   "wholesale.q.rejected": "Ajụrụ ya",
   "wholesale.q.expired": "Ọ gwụla",
+  "ws.payOrder": "Kwụọ {total} maka order a",
 };
 
 export default ig;

@@ -153,7 +153,7 @@ export default function WholesaleOrders() {
                     ) : null}
                     {order.canPay && !paid ? (
                       <PillButton
-                        title={t("ws.pay", { total: money(order.totalPrice, order.currency) })}
+                        title={tw("ws.payOrder", { total: money(order.totalPrice, order.currency) })}
                         accessibilityLabel={t("ws.payLabel", { ref: ref(order.id) })}
                         tone="accent"
                         size="sm"

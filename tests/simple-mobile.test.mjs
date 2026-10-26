@@ -129,7 +129,8 @@ test("supplier app, familiar design: Home pieces, product grid, city on orders, 
   assert.doesNotMatch(readFileSync(new URL("../shared/i18n/messages/m_supplier/en.ts", import.meta.url), "utf8"), /"money\.[^"]*": "[^"]*(withdraw|held by)/i);
   assert.match(money, /weekSummary\(/);
   const account = read("app/supplier/account.tsx");
-  for (const piece of ["emailTopUp", "fetchCredits", '"/posts"', '"/rewards"']) assert.ok(account.includes(piece), piece);
+  for (const piece of ["fetchCredits", '"/posts"', '"/rewards"']) assert.ok(account.includes(piece), piece);
+  assert.doesNotMatch(account, /emailTopUp/, "credits are shown, never sold or pointed to");
 });
 
 test("every screen frame has Help, and Help offers a person and Peggy", () => {

@@ -5,8 +5,8 @@ import { Image } from "expo-image";
 import { AppIcon } from "@/components/icons";
 import { Bubble, ChatScreen, Composer } from "@/components/ChatScreen";
 import { ShareSheet } from "@/components/familiar/ShareSheet";
-import { Chip, Mascot, Notice, T } from "@/components/ui";
-import { emailTopUp, fetchCredits } from "@/lib/familiar";
+import { Chip, Mascot, T } from "@/components/ui";
+import { fetchCredits } from "@/lib/familiar";
 import { askRex, cardNote, REX_MAX_PHOTOS, REX_STARTERS, type RexCard } from "@/lib/rex";
 import { pickPhotos, uploadPhoto, type PhotoSource, type PickedPhoto } from "@/lib/photos";
 import { PhotoSourceSheet } from "@/components/PhotoSourceSheet";
@@ -19,7 +19,7 @@ import { useT } from "@/lib/i18n";
 import { colors, radii } from "@/theme";
 
 // Ask Rex ("Familiar app" prototype `askRex`; Rex Studio chat, web /studio), like Peggy's screen: "I build and
-// change your shop", the credits with Top up (an email, never a sale in the app), three suggestions and the rest
+// change your shop", the credits left (never sold or pointed to in the app), three suggestions and the rest
 // of what Rex can do. Rex changes the draft store, makes pictures, logos, descriptions and campaigns. Cards show
 // what he made; a reel opens the phone's video studio as a draft with his words; his pictures share from the phone's share sheet; "Use it" and tapping a logo ask Rex
 // to apply it; a changed draft is published here and the shop opens in the phone's browser. Nothing opens the web app.
@@ -174,13 +174,11 @@ function CardView({ card, ask, share }: { card: RexCard; ask: (text: string) => 
   }
 }
 
-/** "120 credits · Top up": the shared AI credit balance (never sold in the app: Top up emails how to buy more on the
- * website, App Store and Play rules). Hidden on a server without credits. */
+/** "120 credits": the shared AI credit balance and that the plan's credits refill each month. Never sold or pointed
+ * to in the app (app store payment rules, docs/store-payments-audit.md). Hidden on a server without credits. */
 function CreditsLine() {
-  const t = useT("m_rex");
+  const t = useT("m_rex", "m_ui");
   const [credits, setCredits] = useState<{ balance: number } | null>(null);
-  const [sending, setSending] = useState(false);
-  const [note, setNote] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   useEffect(() => {
     let alive = true;
     fetchCredits()
@@ -192,28 +190,12 @@ function CreditsLine() {
   }, []);
   if (!credits) return null;
 
-  async function topUp() {
-    setSending(true);
-    setNote(null);
-    try {
-      await emailTopUp();
-      setNote({ tone: "success", text: t("credits.emailed") });
-    } catch (topUpError) {
-      setNote({ tone: "error", text: topUpError instanceof Error ? topUpError.message : t("credits.emailFailed") });
-    } finally {
-      setSending(false);
-    }
-  }
-
   return (
-    <View style={{ gap: 8, alignItems: "center" }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: colors.surface, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.line, paddingLeft: 14, paddingRight: 4, minHeight: 44 }}>
+    <View style={{ gap: 4, alignItems: "center" }}>
+      <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: colors.surface, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 14, minHeight: 36 }}>
         <T weight="bold" style={{ fontSize: 14 }}>{t("credits.count", { count: credits.balance })}</T>
-        <Pressable testID="rex-top-up" accessibilityRole="button" accessibilityLabel={t("credits.topUpLabel")} disabled={sending} onPress={() => void topUp()} style={{ minHeight: 36, borderRadius: radii.pill, paddingHorizontal: 12, justifyContent: "center", backgroundColor: colors.canvas, opacity: sending ? 0.6 : 1 }}>
-          <T weight="extrabold" style={{ fontSize: 14 }}>{t("credits.topUp")}</T>
-        </Pressable>
       </View>
-      {note ? <Notice tone={note.tone}>{note.text}</Notice> : null}
+      <T style={{ fontSize: 13, color: colors.inkSoft, textAlign: "center" }}>{t("credits.refill")}</T>
     </View>
   );
 }

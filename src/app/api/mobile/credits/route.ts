@@ -7,8 +7,9 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 // The AI credit balance for the phone app (one shared balance, AiCreditAccount, for Peggy and Rex): { balance, note }.
-// Credits are never sold in the app (app store rules): "Top up" is POST /api/mobile/credits/topup-email.
+// Credits are never sold or pointed to in the app (app store rules; docs/store-payments-audit.md).
 export const GET = withAuth(async (_req: NextRequest, { user }) => {
   const balance = await creditBalance(user.id);
-  return ok({ balance, note: balance > 0 ? null : "You're out of credits. Your daily allowance still works, and you can top up on the website." });
+  // No "top up on the website" here: app store rules (shared/store-payments.ts).
+  return ok({ balance, note: balance > 0 ? null : "You're out of AI credits for now. Your plan's credits refill each month." });
 }, ["seller", "supplier", "logistics_partner"]);

@@ -28,7 +28,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "photos.adding": "Ana ƙarawa…",
   "photos.allow": "Ba Shopinbos izinin amfani da hotunanka a saitunan wayarka, sannan ka sake gwadawa.",
   "photos.problem": "Hoton bai ɗoru ba. Gwada wani.",
-  "shots.credits": "Ka yi amfani da hotunan kyauta na yau. Za ka sami ƙari gobe.",
+  "shots.credits": "Kiredit ɗin AI na hotuna sun ƙare a yanzu. Kiredit ɗin tsarinka suna cika kowane wata.",
   "shots.done": "{count, plural, one {Hotonka ya shirya} other {Hotunanka # sun shirya}}.",
   "words.language": "Harshe",
   "words.write": "Bari Rex ya rubuta kalmomin",

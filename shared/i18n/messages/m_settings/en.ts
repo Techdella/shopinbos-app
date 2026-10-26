@@ -150,7 +150,6 @@ const en = {
   "set.more": "More settings on the web",
   "set.tips": "Tips and tooltips",
   "set.tipsHint": "Word explanations and intros that open by themselves",
-  "set.moreHint": "Team, billing, security and closing your shop. Opens in your browser",
   // Payment logos and the 'Built with Shopinbos' badge (shared/payment-badges.ts, src/lib/store-badges.ts).
   "money.badgesTitle": "Payment logos on your store",
   "money.badgesHint": "Tap to show or hide. Shoppers see these at the bottom of your store and at checkout.",
@@ -177,7 +176,7 @@ const en = {
   "set.photoRemoveFailed": "Couldn't remove that. Try again.",
   "money.wallet": "Shopinbos Wallet",
   "money.walletHint": "Card payments go straight to your bank",
-  "del.payFee": "Pay {amount} by card",
+  "del.payFee": "Pay {amount} delivery fee by card",
   "del.feePaid": "Fee paid",
   "del.feeNotSeen": "We haven't seen the payment yet. If you paid, it shows here in a minute.",
   "money.state.card.needs_bank": "Add your bank to take card payments",

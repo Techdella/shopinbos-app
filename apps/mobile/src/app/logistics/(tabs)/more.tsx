@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { Alert, Linking, Pressable, View } from "react-native";
+import { Linking, Pressable, View } from "react-native";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { NATIONWIDE } from "@shared/delivery-market";
@@ -13,8 +12,8 @@ import { CardButton, Initial, StatCard } from "@/components/PartnerKit";
 import { useHelpSection } from "@/components/PartnerMore";
 import { TabScreen } from "@/components/TabScreen";
 import { DeleteAccountButton } from "@/components/DeleteAccountButton";
-import { Card, LinkButton, PillButton, T } from "@/components/ui";
-import { emailTopUp, fetchCredits, fetchRewards } from "@/lib/familiar";
+import { Card, LinkButton, T } from "@/components/ui";
+import { fetchCredits, fetchRewards } from "@/lib/familiar";
 import { useT } from "@/lib/i18n";
 import { fetchLogisticsOverview, fetchMarket, fetchRiders } from "@/lib/logistics";
 import { SERVICE_KEYS, stateLabel } from "@/lib/logistics-pure";
@@ -26,8 +25,8 @@ import { colors } from "@/theme";
 
 // Business ("Delivery partner app" prototype `business`): the company with its Verified pill, rating / on time /
 // failed from in-app deliveries, then Coverage, Services, Pickup points, Rate card, Riders and Payout account, the
-// posts and Status, Rex and Peggy credits (shown; "Top up" emails how to do it on the website, never a sale in the
-// app) and Rewards, the profile as sellers see it and Help. Credits hide when their API isn't there. Below: everything the old menu had (businesses you work with, notifications,
+// posts and Status, Rex and Peggy credits (shown only: never sold or pointed to in the app, app store
+// payment rules) and Rewards, the profile as sellers see it and Help. Credits hide when their API isn't there. Below: everything the old menu had (businesses you work with, notifications,
 // verification, price requests, connecting delivery software), language, sign out and
 // delete my account.
 
@@ -40,6 +39,7 @@ function go(path: string) {
 
 export default function LogisticsBusiness() {
   const t = useT("m_partner", "common");
+  const tu = useT("m_ui");
   const callPeggy = useCanCallPeggy();
   const overview = useLoad(fetchLogisticsOverview);
   const market = useLoad(fetchMarket);
@@ -47,7 +47,6 @@ export default function LogisticsBusiness() {
   const wallet = useLoad(fetchWallet);
   const credits = useLoad(fetchCredits);
   const rewards = useLoad(fetchRewards);
-  const [toppingUp, setToppingUp] = useState(false);
   const help = useHelpSection();
   const partner = market.data?.partner;
   const stats = market.data?.stats;
@@ -72,18 +71,6 @@ export default function LogisticsBusiness() {
     void wallet.reload();
     void credits.reload();
     void rewards.reload();
-  }
-
-  async function topUp() {
-    setToppingUp(true);
-    try {
-      await emailTopUp();
-      Alert.alert(t("fam.biz.credits"), t("fam.biz.topUpSent"));
-    } catch {
-      Alert.alert(t("fam.biz.credits"), t("fam.biz.topUpFailed"));
-    } finally {
-      setToppingUp(false);
-    }
   }
 
   const more: { key: string; icon: AppIconName; path: string }[] = [
@@ -135,8 +122,7 @@ export default function LogisticsBusiness() {
           <Row
             lead={<Tile icon="sparkle" tone="butter" />}
             title={t("fam.biz.credits")}
-            sub={t("fam.biz.creditsSub", { count: credits.data.balance })}
-            right={<PillButton title={t("fam.biz.topUp")} size="sm" tone="white" busy={toppingUp} accessibilityLabel={t("fam.biz.topUpLabel")} onPress={() => void topUp()} />}
+            sub={`${t("fam.biz.creditsSub", { count: credits.data.balance })} · ${tu("credits.refill")}`}
           />
         ) : null}
         <Row

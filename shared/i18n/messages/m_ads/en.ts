@@ -43,6 +43,7 @@ const en = {
   "start.7": "In a week",
   "requestPaid": "Paid. The team will call you within one working day.",
   "requestUnpaid": "Your request is saved, but the setup fee wasn't paid, so the team hasn't started.",
+  "c.payFee": "Pay the team's {fee} setup fee",
 } satisfies Record<string, string>;
 
 export default en;

@@ -182,9 +182,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "w.last30Line": "Ọjọ́ 30 sẹ́yìn: {amount}",
   "w.recent": "Èyí tó ṣẹ̀ṣẹ̀ wáyé",
   "bal.title": "Owó inú Wallet",
-  "bal.sub": "Ó ń sanwó fún AI credits àti àwọn iṣẹ́ Shopinbos míì. Owó ọjà tí o tà ṣì ń lọ tààrà sí bánkì rẹ.",
-  "bal.topUp": "Fi owó kún un",
-  "bal.topUpSent": "A ti fi ìmeèlì ránṣẹ́ sí ọ bí o ṣe lè fi owó kún un lórí wẹ́ẹ̀bù Shopinbos. Owó tuntun rẹ yóò hàn níbí tí wọ́n bá ti jẹ́rìísí rẹ̀.",
+  "bal.sub": "Iye owó Shopinbos rẹ. Owó títà ṣì ń lọ tààrà sí báńkì rẹ.",
   "bal.withdraw": "Gba owó jáde",
   "bal.amountTo": "Iye owó tí o fẹ́ fi ránṣẹ́ sí {bank}",
   "bal.amountToYours": "Iye owó tí o fẹ́ fi ránṣẹ́ sí bánkì rẹ",
@@ -206,6 +204,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "w.steps.bank": "Fi báǹkì rẹ kún un",
   "w.steps.check": "Paystack ṣàyẹ̀wò àkáǹtì náà",
   "w.steps.cards": "Gba ìsanwó káàdì",
+  "owed.payOwed": "San {amount} tí o jẹ",
 };
 
 export default yo;

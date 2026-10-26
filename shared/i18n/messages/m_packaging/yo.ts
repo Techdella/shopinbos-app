@@ -12,7 +12,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "format.sleeve": "Wrap sleeve",
   "format.bag": "Àpò ìrajà",
   "order.howMany": "Mélòó?",
-  "order.pay": "San {total}",
+  "order.pay": "San {total} fún ìtẹ̀wé",
   "order.title": "Ṣe order print",
   "order.min": "Ó kéré jù {count} fún pack yìí. Bí o ṣe ń tẹ̀ púpọ̀ sí i, bẹ́ẹ̀ ni ọ̀kọ̀ọ̀kan ṣe ń dín owó kù.",
   "order.delivery": "Delivery",

@@ -33,7 +33,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "error.tooMany": "Ka gwada sau da yawa cikin ɗan lokaci. Jira minti ɗaya, sannan ka sake gwadawa.",
   "error.form": "Wani abu a fom ɗin yana buƙatar a sake duba. Duba shi ka sake gwadawa.",
   "error.server": "Shopinbos yana da ɗan matsala yanzu. Jira minti ɗaya ka sake gwadawa, ko ka taɓa Help.",
-  "error.aiAllowance": "Ka yi amfani da AI na kyauta na yau. Zai sake farawa gobe.",
+  "error.aiAllowance": "Kiredit ɗin AI ɗinka sun ƙare a yanzu. Kiredit ɗin tsarinka suna cika kowane wata.",
   "account.delete": "Goge asusuna",
   "account.deleteTitle": "Kana so ka goge asusunka?",
   "account.deleteBody": "Shagonka zai rufe yanzu kuma za mu fitar da kai. Cikin kwanaki 30 za mu goge asusunka da bayananka, bayan an biya ka duk kuɗin da ya rage maka. Za mu ajiye bayanan biyan kuɗi da doka ta buƙata.",
@@ -115,6 +115,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "verify.uploadFailed": "Bai tafi ba. Sake gwadawa.",
   "verify.photosOff": "Ba da izinin hotuna a saitunan wayarka don ƙara takarda.",
   "verify.missing": "Ƙara {docs} kafin ka aika don dubawa.",
+  "error.notOnPlan": "Wannan ba ya cikin tsarinka.",
+  "credits.refill": "Kiredit ɗin tsarinka suna cika kowane wata.",
 };
 
 export default ha;

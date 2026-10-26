@@ -111,7 +111,7 @@ export function MoneyOwedCard({ owed, role, onChanged }: { owed: MoneyOwed; role
             )
           ) : debt.status === "open" && debt.remainingKobo > 0 ? (
             debt.payable ? (
-              <PillButton title={t("owed.pay", { amount: nairaFromKobo(debt.remainingKobo) })} size="sm" busy={busy === `pay:${debt.id}`} disabled={busy !== null} onPress={() => void pay(debt)} />
+              <PillButton title={t("owed.payOwed", { amount: nairaFromKobo(debt.remainingKobo) })} size="sm" busy={busy === `pay:${debt.id}`} disabled={busy !== null} onPress={() => void pay(debt)} />
             ) : (
               <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{t("owed.noWallet", { name: party(debt) })}</T>
             )

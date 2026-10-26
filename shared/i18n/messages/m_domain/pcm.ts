@@ -54,8 +54,6 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "check.later": "We no fit check am now. We go dey try by ourself.",
   "continue": "Continue",
   "cancel": "Cancel",
-  "buy.title": "Buy new domain for the website",
-  "buy.sub": "Search for name and pay there. We go set am up for you.",
 };
 
 export default pcm;

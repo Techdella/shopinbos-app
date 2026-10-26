@@ -33,7 +33,7 @@ const en = {
   "error.tooMany": "That's a lot of tries in a short time. Wait a minute, then try again.",
   "error.form": "Something in the form needs another look. Check it and try again.",
   "error.server": "Shopinbos is having a problem right now. Wait a minute and try again, or tap Help.",
-  "error.aiAllowance": "You've used today's free AI. It resets tomorrow.",
+  "error.aiAllowance": "You're out of AI credits for now. Your plan's credits refill each month.",
   "account.delete": "Delete my account",
   "account.deleteTitle": "Delete your account?",
   "account.deleteBody": "Your shop closes now and you're logged out. Within 30 days we delete your account and data, after paying out any money owed to you. We keep the payment records the law requires.",
@@ -118,6 +118,8 @@ const en = {
   "verify.uploadFailed": "That didn't go through. Try again.",
   "verify.photosOff": "Allow photos in your phone settings to add a document.",
   "verify.missing": "Add {docs} before sending for review.",
+  "error.notOnPlan": "That isn't on your plan.",
+  "credits.refill": "Your plan's credits refill each month.",
 } satisfies Record<string, string>;
 
 export default en;

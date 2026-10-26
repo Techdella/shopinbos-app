@@ -9,6 +9,7 @@ import { computeStoreHealth } from "@/lib/store-health";
 import { loadBrandContext } from "@/lib/ai/brand-context.server";
 import { buildSellerSnapshot } from "@/lib/ai/peggy/context";
 import { brandContextForAi } from "@shared/brand-context";
+import { IN_APP_PAYMENTS_RULE } from "@shared/store-payments";
 import { naira } from "@shared/onboarding";
 import { rexPreferencesBlock } from "@shared/rex-preferences";
 import { isRexWriteTool, parseRexToolInput, providerSchema, REX_TOOL_NAMES, REX_TOOL_SPECS, type RexToolName, type RexTurn } from "./agent-pure";
@@ -219,7 +220,7 @@ async function viaOpenAI(client: OpenAI, context: string, turns: RexTurn[], phot
 const URL_PATTERN = /https:\/\/[^\s)\]"',]+/g;
 
 /** Rex's answer to a conversation (oldest turn first, ending with the seller's message). */
-export async function runRex(userId: string, turns: RexTurn[], imageUrls: string[]): Promise<RexReply | { error: string; status?: number }> {
+export async function runRex(userId: string, turns: RexTurn[], imageUrls: string[], options: { inApp?: boolean } = {}): Promise<RexReply | { error: string; status?: number }> {
   const anthropic = getAnthropicClient();
   const openai = getOpenAIClient();
   if (!anthropic && !openai) return { error: "Rex's AI isn't switched on yet. Add ANTHROPIC_API_KEY or OPENAI_API_KEY to the server.", status: 503 };
@@ -266,7 +267,9 @@ export async function runRex(userId: string, turns: RexTurn[], imageUrls: string
   });
   // The seller's Rex settings (Settings > Peggy & Rex): style, photo look, voice. Empty until they save them.
   const preferences = rexPreferencesBlock(store.brandSettings);
-  const context = preferences ? `${baseContext}\n\n${preferences}` : baseContext;
+  const withPreferences = preferences ? `${baseContext}\n\n${preferences}` : baseContext;
+  // From the phone app: app store payment rules (shared/store-payments.ts), no buying credits, plans or themes.
+  const context = options.inApp ? `${withPreferences}\n\n${IN_APP_PAYMENTS_RULE}` : withPreferences;
 
   const history = turns.slice(0, -1).map((turn) => ({ role: turn.role, content: turn.content.slice(0, 4000) }));
   const ctx: RexToolContext = { userId, storeId: store.id, storeName: store.name, attachments, newPhotos, history, draft: null, versions: null };

@@ -12,7 +12,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "format.sleeve": "Sleeve na-ekechi",
   "format.bag": "Akpa shopping",
   "order.howMany": "Ole?",
-  "order.pay": "Kwụọ {total}",
+  "order.pay": "Kwụọ {total} maka mbipụta",
   "order.title": "Nye order print",
   "order.min": "Opekata mpe bụ {count} maka pack a. Ka ị na-ebipụta ọtụtụ, ka otu nke ọ bụla na-adị ọnụ ala.",
   "order.delivery": "Delivery",

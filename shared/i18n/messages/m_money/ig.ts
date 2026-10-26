@@ -182,9 +182,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "w.last30Line": "Ụbọchị 30 gara aga: {amount}",
   "w.recent": "Ndị ọhụrụ",
   "bal.title": "Ego dị na Wallet",
-  "bal.sub": "Ọ na-akwụ ụgwọ AI credits na ọrụ Shopinbos ndị ọzọ. Ego ahịa ị rere ka na-aga ozugbo n'akaụntụ ụlọ akụ gị.",
-  "bal.topUp": "Tinye ego",
-  "bal.topUpSent": "Anyị ezitela gị email otú ị ga-esi tinye ego na weebụsaịtị Shopinbos. Ego ọhụrụ gị ga-egosi ebe a ozugbo e kwadoro ya.",
+  "bal.sub": "Ego Shopinbos gị fọdụrụ. Ego ire ka na-aga ozugbo n'ụlọ akụ gị.",
   "bal.withdraw": "Wepụ ego",
   "bal.amountTo": "Ego ole a ga-eziga na {bank}",
   "bal.amountToYours": "Ego ole a ga-eziga n'akaụntụ ụlọ akụ gị",
@@ -206,6 +204,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "w.steps.bank": "Tinye ụlọ akụ gị",
   "w.steps.check": "Paystack na-enyocha akaụntụ ahụ",
   "w.steps.cards": "Nara ịkwụ ụgwọ kaadị",
+  "owed.payOwed": "Kwụọ {amount} ị ji",
 };
 
 export default ig;

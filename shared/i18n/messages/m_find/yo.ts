@@ -124,6 +124,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "wholesale.q.accepted": "A ti gbà á",
   "wholesale.q.rejected": "Wọ́n kọ̀ ọ́",
   "wholesale.q.expired": "Ó ti parí",
+  "ws.payOrder": "San {total} fún àṣẹ yìí",
 };
 
 export default yo;

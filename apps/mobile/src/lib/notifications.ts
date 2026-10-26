@@ -1,5 +1,6 @@
 import { router } from "expo-router";
 import { appRouteFor, type NotifyCategory, type NotifyChannel } from "@shared/notifications";
+import { sellsDigitalGoods } from "@shared/store-payments";
 import { api } from "./api";
 import { openPath } from "./web";
 
@@ -26,7 +27,9 @@ export interface NotificationPage {
 
 export async function fetchNotifications(tab = "all", page = 1): Promise<NotificationPage> {
   const data = await api<{ items: AppNotification[]; unreadCount: number; pagination: { hasNextPage: boolean } }>(`/api/notifications?tab=${encodeURIComponent(tab)}&page=${page}&limit=30`);
-  return { items: data.items, unreadCount: data.unreadCount, hasNextPage: data.pagination.hasNextPage };
+  // A bell item that sells AI credits, a plan or a top-up ("Running low? Top up credits") isn't shown in the app (app
+  // store payment rules, shared/store-payments.ts); the website's bell still has it.
+  return { items: data.items.filter((item) => !sellsDigitalGoods(item)), unreadCount: data.unreadCount, hasNextPage: data.pagination.hasNextPage };
 }
 
 export async function fetchUnreadCount(): Promise<number> {
