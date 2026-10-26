@@ -158,6 +158,28 @@ async function lookupCac(rcNumber: string, companyType: CacCompanyType): Promise
   }
 }
 
+/**
+ * Looks a BN/RC number up with the first provider that answers: Korapay first (CAC's own premium lookup costs ₦7,500
+ * a check from the VAS wallet, October 2026 pricing); a provider that's unavailable (not set up, refusing, down)
+ * hands over to the next one.
+ */
+export async function lookupCacRecord(number: string, companyType: CacCompanyType): Promise<{ lookup: LookupResult; provider: string }> {
+  let lookup: LookupResult = { ok: false, reason: "unavailable" };
+  let provider: string = cacProvider();
+  for (const [name, ready, run] of [
+    ["korapay", korapayIdentityReady(), lookupKorapayCac],
+    ["cac", Boolean(cacVasKey()), lookupCacVas],
+    ["youverify", youverifyReady(), lookupYouverifyCac],
+    ["dojah", dojahReady(), lookupCac],
+  ] as const) {
+    if (!ready) continue;
+    lookup = await run(number, companyType);
+    provider = name;
+    if (lookup.ok || lookup.reason === "busy") break;
+  }
+  return { lookup, provider };
+}
+
 export type CacCheckResponse =
   | { ok: true; outcome: CacOutcome; message: string; registeredName?: string; doc?: VerificationDoc; attemptsLeft: number }
   | { ok: false; code: "DISABLED" | "INVALID" | "LIMIT" | "LOCKED" | "UNAVAILABLE" | "NOT_FOUND"; message: string; status: number };
@@ -202,21 +224,7 @@ export async function runCacCheck(
   await model.update({ where: { id: entity.id }, data: { onboardingState: { ...state, cacChecks: [...attempts, now] } } });
   const attemptsLeft = CAC_DAILY_ATTEMPTS - attempts.length - 1;
 
-  // Korapay first; a provider that's unavailable (not set up, refusing, down) hands over to the next one.
-  let lookup: LookupResult = { ok: false, reason: "unavailable" };
-  let provider = cacProvider();
-  for (const [name, ready, run] of [
-    // Korapay first: CAC's own premium lookup costs ₦7,500 a check from the VAS wallet (October 2026 pricing).
-    ["korapay", korapayIdentityReady(), lookupKorapayCac],
-    ["cac", Boolean(cacVasKey()), lookupCacVas],
-    ["youverify", youverifyReady(), lookupYouverifyCac],
-    ["dojah", dojahReady(), lookupCac],
-  ] as const) {
-    if (!ready) continue;
-    lookup = await run(parsed.number, companyType);
-    provider = name;
-    if (lookup.ok || lookup.reason === "busy") break;
-  }
+  const { lookup, provider } = await lookupCacRecord(parsed.number, companyType);
   if (!lookup.ok) {
     return {
       ok: false,
