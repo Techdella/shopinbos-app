@@ -9,6 +9,8 @@ import { initializePaystackTransaction, verifyPaystackTransaction } from "@/lib/
 import { createPaystackTransferRecipient } from "@/lib/payout-bank";
 import { readDedicatedAccount } from "@/lib/logistics/payin-rules";
 import { dvaBank, dvaUnavailableMessage } from "@/lib/logistics/paystack-dva";
+import { appBase, sendPlatformEmail } from "@/lib/email/compliance.server";
+import { html } from "@/lib/email/shell";
 import { ensurePaystackModeSynced } from "@/lib/paystack-mode.server";
 import { BALANCE_LIMITS, WALLET_REFERENCE, validAmountNaira } from "./balance-rules";
 
@@ -151,11 +153,73 @@ export async function ensureTopUpAccount(userId: string) {
   }
   const created = await paystack("/dedicated_account", { customer: customerCode, preferred_bank: dvaBank() });
   if (!created.ok) return markTopUpProblem(wallet.id, created.message);
-  const account = readDedicatedAccount(created.data);
-  return db.wallet.update({
-    where: { id: wallet.id },
-    data: { topUpAccountNumber: account.accountNumber, topUpAccountName: account.accountName, topUpBankName: account.bankName, topUpStatus: account.accountNumber ? "ready" : "pending", topUpError: null },
+  await saveTopUpAccount(wallet.id, readDedicatedAccount(created.data));
+  return db.wallet.findUniqueOrThrow({ where: { id: wallet.id } });
+}
+
+/**
+ * Stores the account Paystack assigned. The call that turns the wallet "ready" (a conditional update, so only one
+ * wins even when the API answer and the webhook arrive together) sends the "your wallet is ready" email, once.
+ */
+async function saveTopUpAccount(walletId: string, account: ReturnType<typeof readDedicatedAccount>) {
+  const details = { topUpAccountNumber: account.accountNumber, topUpAccountName: account.accountName, topUpBankName: account.bankName, topUpError: null };
+  if (!account.accountNumber) {
+    await db.wallet.updateMany({ where: { id: walletId, topUpStatus: { not: "ready" } }, data: { ...details, topUpStatus: "pending" } });
+    return;
+  }
+  const turnedReady = await db.wallet.updateMany({ where: { id: walletId, topUpStatus: { not: "ready" } }, data: { ...details, topUpStatus: "ready" } });
+  if (!turnedReady.count) {
+    await db.wallet.update({ where: { id: walletId }, data: details });
+    return;
+  }
+  await sendWalletReadyEmail(walletId).catch((error) => console.error(`[wallet] ready email for ${walletId}`, error));
+}
+
+function walletPath(role: string) {
+  return role === "supplier" ? "/supplier/wallet" : role === "logistics_partner" ? "/logistics/wallet" : "/home/wallet";
+}
+
+async function sendWalletReadyEmail(walletId: string) {
+  const wallet = await db.wallet.findUnique({
+    where: { id: walletId },
+    select: { role: true, topUpAccountNumber: true, topUpAccountName: true, topUpBankName: true, user: { select: { id: true, email: true, name: true, role: true } } },
   });
+  const user = wallet?.user;
+  if (!wallet?.topUpAccountNumber || !user?.email || user.role === "admin") return;
+  const first = (user.name ?? "").trim().split(/\s+/)[0];
+  await sendPlatformEmail({
+    to: user.email,
+    user: { id: user.id, role: user.role },
+    kind: "transactional",
+    subject: "Your Shopinbos Wallet is ready",
+    eyebrow: "Wallet",
+    heading: "Your Shopinbos Wallet is ready",
+    preheader: `Your own wallet account number: ${wallet.topUpAccountNumber}.`,
+    bodyHtml: [
+      html.p(first ? `Hi ${first}, your Shopinbos Wallet is set up.` : "Your Shopinbos Wallet is set up."),
+      html.p("This account number is yours alone. Transfer to it from any bank app and the money lands in your wallet balance within a minute or two:"),
+      html.code(wallet.topUpAccountNumber, `${wallet.topUpBankName ?? "Bank"} · ${wallet.topUpAccountName ?? ""}`),
+      html.p("Use your balance for AI credits and other Shopinbos services, and withdraw what's left to your bank whenever you like. Card payments from your customers are still split at checkout and paid straight into your bank."),
+    ].join(""),
+    cta: { label: "Open your wallet", url: `${appBase()}${walletPath(wallet.role)}` },
+    reason: "Your Shopinbos Wallet account number was just set up.",
+  });
+}
+
+/**
+ * Sets up wallets for businesses that haven't been back since wallets came in (hourly, with the lifecycle job), a
+ * few at a time so Paystack isn't flooded. Each gets its "wallet is ready" email when its account number arrives.
+ */
+export async function provisionPendingWallets(limit = 40) {
+  if (!topUpAccountsReady()) return { checked: 0 };
+  const users = await db.user.findMany({
+    where: { role: { in: ["seller", "supplier", "logistics_partner"] }, OR: [{ wallet: null }, { wallet: { topUpStatus: { in: ["none", "pending", "failed"] } } }] },
+    orderBy: { createdAt: "asc" },
+    take: limit,
+    select: { id: true },
+  });
+  for (const user of users) await provisionWallet(user.id);
+  return { checked: users.length };
 }
 
 /**
@@ -225,8 +289,7 @@ export async function handleWalletAccountAssign(eventType: string, data: unknown
   const wallet = await db.wallet.findUnique({ where: { topUpCustomerCode: code }, select: { id: true } });
   if (!wallet) return false;
   if (eventType.endsWith(".success")) {
-    const account = readDedicatedAccount(d.dedicated_account ?? d);
-    await db.wallet.update({ where: { id: wallet.id }, data: { topUpAccountNumber: account.accountNumber, topUpAccountName: account.accountName, topUpBankName: account.bankName, topUpStatus: account.accountNumber ? "ready" : "pending", topUpError: null } });
+    await saveTopUpAccount(wallet.id, readDedicatedAccount(d.dedicated_account ?? d));
   } else {
     await db.wallet.update({ where: { id: wallet.id }, data: { topUpStatus: "failed", topUpError: "Paystack couldn't assign the account." } });
   }
