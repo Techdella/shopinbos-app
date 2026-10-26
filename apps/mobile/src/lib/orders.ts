@@ -11,6 +11,8 @@ export interface OrderItem {
   price: number;
   quantity: number;
   image?: string;
+  /** Its product's short code ("BAG2"), when the product still has one. */
+  shortCode?: string;
 }
 
 export interface OrderDetail {

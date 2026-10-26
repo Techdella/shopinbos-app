@@ -298,6 +298,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "inv.pages": "Shafukan invoices",
   "inv.allOrders": "Duk orders ɗinka",
   "method.korapay": "Kati ko banki (online)",
+  "sale.codeFind": "Nemo da kodi",
+  "sale.codePlaceholder": "Kodi, kamar BAG2",
+  "sale.codeNone": "Babu kayan da ke da kodi {code}.",
 };
 
 export default ha;

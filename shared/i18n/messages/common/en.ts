@@ -89,6 +89,9 @@ const en = {
   "page.of": "Page {page} of {pages}",
   "page.number": "Page {page}",
   "page.showing": "Showing {from}–{to} of {total}",
+  "product.code": "Code",
+  "product.orderHere": "Order here",
+  "product.shareWhatsapp": "Share to WhatsApp",
 } satisfies Record<string, string>;
 
 export default en;

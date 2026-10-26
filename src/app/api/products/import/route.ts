@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { Prisma } from "@prisma/client";
 import { withSeller } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
+import { withShortCode } from "@/lib/products/short-code.server";
 import { ok, apiError } from "@/lib/api/response";
 import type { AuthUser } from "@/lib/auth/types";
 import { markCatalogDirty } from "@/lib/whatsapp-catalog/dirty";
@@ -111,11 +112,12 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
       continue;
     }
     try {
-      await db.storeProduct.create({
+      await withShortCode(store.id, { name: product.name, categoryId, productType: typeof product.extra?.productType === "string" ? product.extra.productType : null }, (shortCode) => db.storeProduct.create({
         data: {
           storeId: store.id,
           userId: user.id,
           name: product.name,
+          shortCode,
           description: product.description,
           retailPrice: product.retailPrice,
           costPrice: product.costPrice,
@@ -134,7 +136,7 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
           ...(categoryId ? { categoryId } : {}),
           ...(product.extra as Partial<Prisma.StoreProductUncheckedCreateInput>),
         },
-      });
+      }));
       imported++;
       if (images.length) withImages++;
       if (accepted[String(i)]) enhanced++;

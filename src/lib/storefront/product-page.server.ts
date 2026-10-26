@@ -130,6 +130,8 @@ export const loadProductPage = cache(async (slug: string, productId: string, pre
         storeId: true,
         status: true,
         sku: true,
+        // The short code customers quote on WhatsApp ("Code: BAG2" under the name).
+        shortCode: true,
         barcode: true,
         longDescription: true,
         specifications: true,

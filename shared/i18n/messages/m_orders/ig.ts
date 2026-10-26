@@ -172,6 +172,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "filters.pay.unpaid": "Akwụbeghị",
   "filters.pay.toSend": "Akwụọla, iji zipu",
   "list.wholesale": "Order ọtụtụ",
+  "sale.codeFind": "Chọọ site na koodu",
+  "sale.codePlaceholder": "Koodu, dịka BAG2",
+  "sale.codeNone": "Ọ dịghị ngwaahịa nwere koodu {code}.",
 };
 
 export default ig;

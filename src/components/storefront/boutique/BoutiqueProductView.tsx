@@ -20,6 +20,8 @@ export interface ProductReviewEntry {
 
 export interface BoutiqueProductDetail extends ShopperProduct {
   sku?: string | null;
+  /** The code customers quote when ordering on WhatsApp ("BAG2"). */
+  shortCode?: string | null;
   longDescription?: string | null;
   specifications?: unknown;
   careInstructions?: string | null;

@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import { naira } from "@shared/onboarding";
 import { Row, Stepper } from "@/components/design";
 import { Thumb } from "@/components/seller/bits";
+import { CodeBadge, ShareProductIcon } from "@/components/seller/ProductCode";
 import { T } from "@/components/ui";
 import type { ProductItem } from "@/lib/dashboard";
 import { saveProduct } from "@/lib/products";
@@ -73,11 +74,14 @@ export function StockRow({ product, onStock }: { product: ProductItem; onStock: 
       sub={
         // The stepper sits under the name and price, so both get the row's full width.
         <View style={{ gap: 8 }}>
+          {product.shortCode ? <CodeBadge code={product.shortCode} /> : null}
           <T style={{ fontSize: 14, lineHeight: 19, color: low && own ? colors.accentInk : colors.inkSoft }}>{words}</T>
           {own ? <Stepper value={product.currentStock} label={product.name} onChange={(next) => onStock(product, next)} /> : null}
         </View>
       }
-      accessibilityLabel={`${product.name}. ${words}`}
+      // Share to WhatsApp (live products: the link opens their page).
+      right={product.status === "published" && product.url ? <ShareProductIcon product={product} /> : undefined}
+      accessibilityLabel={`${product.name}. ${product.shortCode ? `${product.shortCode}. ` : ""}${words}`}
       onPress={() => router.push({ pathname: "/product/[id]", params: { id: product.id } })}
     />
   );

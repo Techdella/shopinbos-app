@@ -4,6 +4,7 @@ import { z } from "zod";
 import { withSeller } from "@/lib/auth/middleware";
 import { apiError, ok } from "@/lib/api/response";
 import { db } from "@/lib/db/client";
+import { withShortCode } from "@/lib/products/short-code.server";
 import { mergeBrandSettings } from "@/lib/workspace";
 import { VISIBLE_SUPPLIER, listingCheck } from "@/lib/marketplace/agreements.server";
 
@@ -65,12 +66,13 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
   const dropship = product.dropshipAvailable;
   const planLimit = await productLimitProblem(user.id, store.id, 1, dropship);
   if (planLimit) return apiError("PLAN_LIMIT", planLimit, 402);
-  const storeProduct = await db.storeProduct.create({
+  const storeProduct = await withShortCode(store.id, { name: product.name, categoryId: product.categoryId }, (shortCode) => db.storeProduct.create({
     data: {
       storeId: store.id,
       userId: user.id,
       supplierProductId: product.id,
       name: product.name,
+      shortCode,
       description: product.description,
       images: product.images,
       retailPrice,
@@ -85,7 +87,7 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
       supplierLastSync: new Date(),
       status: "draft",
     },
-  });
+  }));
   void import("@/lib/rewards/rewards.server").then((rewards) => rewards.recordRewardEvent({ userId: user.id, kind: "product_added", ref: storeProduct.id })).catch(() => undefined);
   if (dropship) {
     await db.dropshipRelationship.create({

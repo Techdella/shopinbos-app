@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { productLimitProblem } from "@/lib/plans/gates.server";
 import { db } from "@/lib/db/client";
+import { withShortCode } from "@/lib/products/short-code.server";
 import { getCurrentAppUser } from "@/lib/server-auth";
 import { mergeBrandSettings, parseBrandSettings, slugify } from "@/lib/workspace";
 import { gaMeasurementId, googleSiteVerification } from "@/lib/security/html";
@@ -130,22 +131,25 @@ export async function addMarketplaceProduct(formData: FormData) {
     redirect("/home/settings?tab=Billing&limit=products");
   }
 
-  await db.storeProduct.create({
-    data: {
-      storeId: store.id,
-      userId: user.id,
-      supplierProductId: supplierProduct.id,
-      name: supplierProduct.name,
-      description: supplierProduct.description,
-      images: supplierProduct.images,
-      retailPrice: supplierProduct.suggestedRetailPrice,
-      costPrice: supplierProduct.wholesalePrice,
-      currency: supplierProduct.currency,
-      margin: supplierProduct.suggestedRetailPrice - supplierProduct.wholesalePrice,
-      fulfillmentType: supplierProduct.dropshipAvailable ? "dropship" : "merchant_fulfilled",
-      status: "draft",
-    },
-  });
+  await withShortCode(store.id, { name: supplierProduct.name }, (shortCode) =>
+    db.storeProduct.create({
+      data: {
+        storeId: store.id,
+        userId: user.id,
+        supplierProductId: supplierProduct.id,
+        name: supplierProduct.name,
+        shortCode,
+        description: supplierProduct.description,
+        images: supplierProduct.images,
+        retailPrice: supplierProduct.suggestedRetailPrice,
+        costPrice: supplierProduct.wholesalePrice,
+        currency: supplierProduct.currency,
+        margin: supplierProduct.suggestedRetailPrice - supplierProduct.wholesalePrice,
+        fulfillmentType: supplierProduct.dropshipAvailable ? "dropship" : "merchant_fulfilled",
+        status: "draft",
+      },
+    }),
+  );
 
   await db.store.update({
     where: { id: store.id },

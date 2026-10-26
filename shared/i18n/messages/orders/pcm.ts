@@ -298,6 +298,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "inv.pages": "Invoice pages",
   "inv.allOrders": "All your orders",
   "method.korapay": "Card or bank (online)",
+  "sale.codeFind": "Find am by code",
+  "sale.codePlaceholder": "Code, like BAG2",
+  "sale.codeNone": "No product get the code {code}.",
 };
 
 export default pcm;

@@ -258,6 +258,12 @@ const en = {
   "importAi.showMore": "Show more",
   "list.pages": "Product pages",
   "inv.pages": "Stock pages",
+  "code.label": "Product code",
+  "code.hint": "Customers quote it to order: “Comment BAG2 to order”. 2–8 letters and numbers.",
+  "code.auto": "Made for you",
+  "code.invalid": "A product code is 2 to 8 letters and numbers, like BAG2.",
+  "code.taken": "Another product already uses {code}. Pick a different code.",
+  "code.sub": "Code {code}. Edit details, visibility, stock and how the product page looks.",
 } satisfies Record<string, string>;
 
 export default en;

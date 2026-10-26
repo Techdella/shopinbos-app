@@ -260,6 +260,12 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "importAi.showMore": "Fi púpọ̀ sí i hàn",
   "list.pages": "Àwọn ojú-ewé ọjà",
   "inv.pages": "Àwọn ojú-ewé stock",
+  "code.label": "Kóòdù ọjà",
+  "code.hint": "Àwọn oníbàárà yóò fi ra ọjà: “Comment BAG2 to order”. Lẹ́tà àti nọ́ńbà 2–8.",
+  "code.auto": "A ó ṣe é fún ọ",
+  "code.invalid": "Kóòdù ọjà jẹ́ lẹ́tà àti nọ́ńbà 2 sí 8, bíi BAG2.",
+  "code.taken": "Ọjà mìíràn ti ń lo {code}. Yan kóòdù mìíràn.",
+  "code.sub": "Kóòdù {code}. Ṣàtúnṣe àlàyé, ìfarahàn, ọjà àti bí ojú-ìwé ọjà ṣe rí.",
 };
 
 export default yo;

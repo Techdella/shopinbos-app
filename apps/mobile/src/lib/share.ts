@@ -1,4 +1,5 @@
-import { Share } from "react-native";
+import { Linking, Share } from "react-native";
+import { whatsappAppLink } from "@shared/product-codes";
 import * as WebBrowser from "expo-web-browser";
 import { fetchSetup, patchSetup } from "./setup";
 import { tNow } from "./app-locale";
@@ -24,4 +25,16 @@ export function openShop(url: string) {
 export async function shareText(message: string): Promise<boolean> {
   const result = await Share.share({ message }).catch(() => null);
   return Boolean(result && result.action !== Share.dismissedAction);
+}
+
+/**
+ * Share to WhatsApp: opens WhatsApp with the message ready (the whatsapp:// link, no API). When WhatsApp isn't
+ * installed the phone's share sheet opens instead.
+ */
+export async function shareOnWhatsApp(message: string): Promise<void> {
+  try {
+    await Linking.openURL(whatsappAppLink(message));
+  } catch {
+    await shareText(message);
+  }
 }

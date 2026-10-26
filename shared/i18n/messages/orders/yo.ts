@@ -298,6 +298,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "inv.pages": "Àwọn ojú-ewé invoice",
   "inv.allOrders": "Gbogbo order yín",
   "method.korapay": "Káàdì tàbí báńkì (lórí ayélujára)",
+  "sale.codeFind": "Wá pẹ̀lú kóòdù",
+  "sale.codePlaceholder": "Kóòdù, bíi BAG2",
+  "sale.codeNone": "Kò sí ọjà tó ní kóòdù {code}.",
 };
 
 export default yo;

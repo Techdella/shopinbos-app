@@ -260,6 +260,12 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "importAi.showMore": "Show more",
   "list.pages": "Product pages",
   "inv.pages": "Stock pages",
+  "code.label": "Product code",
+  "code.hint": "Customers go use am order: “Comment BAG2 to order”. 2–8 letters and numbers.",
+  "code.auto": "We go make am for you",
+  "code.invalid": "Product code na 2 to 8 letters and numbers, like BAG2.",
+  "code.taken": "Another product don already use {code}. Pick another code.",
+  "code.sub": "Code {code}. Edit details, visibility, stock and how the product page dey look.",
 };
 
 export default pcm;

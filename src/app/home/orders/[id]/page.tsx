@@ -19,6 +19,8 @@ import { cancelAndRefundExpiredOrder, undoSupplierSwitchAction } from "./supplie
 import { sellerPartsView } from "@/lib/supplier-orders/parts.server";
 import { readDeliveryPlan } from "@shared/delivery-market";
 import { DeliveryPlanCard } from "./DeliveryPlanCard";
+import { shortCodesById } from "@/lib/products/short-code.server";
+import { ProductCodeBadge } from "@/components/products/ProductCodeBadge";
 
 type OrderItem = { name?: string; title?: string; quantity?: number; price?: number; image?: string | null; variant?: string; productId?: string };
 
@@ -69,6 +71,8 @@ export default async function OrderDetailPage({ params, searchParams }: { params
   const items = (Array.isArray(order.items) ? order.items : []) as OrderItem[];
   // Suppliers behind the products on this order (dropshipped or bought wholesale), to message about it.
   const itemProductIds = [...new Set(items.map((item) => item.productId).filter((value): value is string => typeof value === "string"))];
+  // Each line's product short code (BAG2), as the seller says it on lives and Status.
+  const itemCodes = await shortCodesById(store.id, itemProductIds);
   const orderSuppliers = itemProductIds.length
     ? await db.storeProduct
         .findMany({
@@ -150,7 +154,10 @@ export default async function OrderDetailPage({ params, searchParams }: { params
                       <li key={index} className="flex items-center gap-3 py-3">
                         <Thumb src={item.image} label={name} />
                         <div className="min-w-0 flex-1">
-                          <div className="truncate text-[15px] font-bold">{name}</div>
+                          <div className="flex min-w-0 items-center gap-2">
+                            <span className="truncate text-[15px] font-bold">{name}</span>
+                            {item.productId && itemCodes[item.productId] ? <ProductCodeBadge code={itemCodes[item.productId]!} /> : null}
+                          </div>
                           <div className="text-[13px] text-app-ink-soft">
                             {/* Newer orders name the size / colour in the item name ("Ankara dress · L / Red"). */}
                             {item.variant && !name.includes(item.variant) ? `${item.variant} · ` : ""}

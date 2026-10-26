@@ -19,10 +19,14 @@ import {
   type VariantEdits,
 } from "@shared/product-edit";
 import { PRODUCT_TYPES, productTypeDef, type ProductTypeKey } from "@shared/product-types";
+import { checkShortCode, normalizeShortCode } from "@shared/product-codes";
 import type { ProductVariant } from "@shared/product-variants";
 import { Eyebrow, Heading, Stepper, Sub } from "@/components/design";
 import { AppIcon } from "@/components/icons";
 import { ErrorState, LoadingBlock } from "@/components/kit";
+import { IconButton } from "@/components/seller/bits";
+import { CodeBadge, ShareProductButton } from "@/components/seller/ProductCode";
+import { ApiError } from "@/lib/api";
 import { Screen } from "@/components/Screen";
 import { ChoiceRow, Sheet } from "@/components/Sheet";
 import { Card, Field, Label, LinkButton, Notice, PillButton, Segmented, T, Toggle } from "@/components/ui";
@@ -55,7 +59,7 @@ import { archiveProduct, createCategory, fetchAllCategories, fetchEditProduct, f
 import { fetchSetup } from "@/lib/setup";
 import { shareText } from "@/lib/share";
 import { useT } from "@/lib/i18n";
-import { colors, radii } from "@/theme";
+import { colors, fonts, radii } from "@/theme";
 
 // Edit product (web /products/[id]): everything the web product form fills in. Always open: photos (order, main
 // photo), name, price, old price, stock (count it or not), description, category and whether customers see it.
@@ -204,6 +208,8 @@ export default function EditProductScreen() {
   const [creating, setCreating] = useState(false);
   // The shop's link, for Share this product (its page is <shop link>/product/<id>).
   const [storeUrl, setStoreUrl] = useState<string | null>(null);
+  // The short code customers quote ("BAG2"), editable: 2–8 letters and numbers, unique in the shop.
+  const [code, setCode] = useState("");
   const stockTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     void fetchSetup()
@@ -222,6 +228,7 @@ export default function EditProductScreen() {
       setVariantEdits(variantEditsFrom(next.variants));
       setDetails({ ...next.productDetails });
       setMore(moreFormFrom(next));
+      setCode(next.shortCode ?? "");
       setProductType(next.productType);
       const shape = versionStateOf(next);
       setVersions(shape);
@@ -317,11 +324,19 @@ export default function EditProductScreen() {
       if (versions.problem === "versions") return setError(t("more.problem.versions"));
       return setError(t(versions.problem === "variantPrice" ? "edit.problem.variantPrice" : "edit.problem.variantStock", { name: versions.name }));
     }
+    const typedCode = normalizeShortCode(code);
+    let codePatch: { shortCode: string } | null = null;
+    if (typedCode !== (product.shortCode ?? "")) {
+      const checked = checkShortCode(typedCode);
+      if (!checked.ok) return setError(t("code.format"));
+      codePatch = { shortCode: checked.code };
+    }
     const changedDetails = detailsPatch(product.productDetails, details);
     const extra: Record<string, unknown> = {
       ...extraFields.patch,
       ...(versions.full ? versions.full : versions.updates.length ? { variantUpdates: versions.updates } : {}),
       ...(changedDetails ? { productDetails: changedDetails } : {}),
+      ...(codePatch ?? {}),
       ...(productType !== product.productType ? { productType } : {}),
       ...(category && category.id !== (product.categoryId ?? product.category?.id ?? null) ? { categoryId: category.id } : {}),
     };
@@ -337,6 +352,7 @@ export default function EditProductScreen() {
       await load();
       setSaved(true);
     } catch (e) {
+      if (e instanceof ApiError && e.code === "CODE_TAKEN") return setError(t("code.taken", { code: typedCode }));
       setError(e instanceof Error ? e.message : t("edit.saveFailed"));
     } finally {
       setBusy(null);
@@ -459,6 +475,7 @@ export default function EditProductScreen() {
       <View style={{ gap: 4 }}>
         <Heading>{form.name.trim() || product.name}</Heading>
         {typedPrice ? <Sub>{naira(typedPrice)}</Sub> : null}
+        {product.shortCode ? <CodeBadge code={product.shortCode} /> : null}
       </View>
       {stepStock ? (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20 }}>
@@ -471,11 +488,14 @@ export default function EditProductScreen() {
           <Stepper value={stockNow} label={t("edit.stock")} onChange={bumpStock} />
         </View>
       ) : null}
+      {/* Share to WhatsApp (name, price, code and link, in the seller's language), and the share sheet. */}
       {shareUrl ? (
-        <PillButton tone="white" accessibilityLabel={t("view.share")} onPress={() => void shareText(`${form.name.trim() || product.name} ${shareUrl}`)}>
-          <AppIcon name="share" size={20} color={colors.ink} />
-          <T weight="extrabold" style={{ fontSize: 17 }}>{t("view.share")}</T>
-        </PillButton>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <View style={{ flex: 1 }}>
+            <ShareProductButton product={{ name: product.name, retailPrice: product.retailPrice, shortCode: product.shortCode, url: product.url ?? shareUrl }} />
+          </View>
+          <IconButton icon="share" label={t("view.share")} onPress={() => void shareText(`${form.name.trim() || product.name} ${shareUrl}`)} />
+        </View>
       ) : null}
       <Eyebrow>{t("view.editDetails")}</Eyebrow>
 
@@ -540,6 +560,24 @@ export default function EditProductScreen() {
       <View>
         <Label>{t("edit.name")}</Label>
         <Field value={form.name} onChangeText={(name) => edit({ name })} maxLength={200} accessibilityLabel={t("edit.name")} />
+      </View>
+
+      <View>
+        <Label>{t("code.label")}</Label>
+        <Field
+          value={code}
+          onChangeText={(value) => {
+            setCode(value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8));
+            setSaved(false);
+          }}
+          autoCapitalize="characters"
+          autoCorrect={false}
+          maxLength={8}
+          placeholder="BAG2"
+          style={{ fontFamily: fonts.mono, letterSpacing: 1 }}
+          accessibilityLabel={t("code.label")}
+        />
+        <T style={{ color: colors.inkSoft, fontSize: 14, marginTop: 6 }}>{t("code.hint")}</T>
       </View>
 
       <View>

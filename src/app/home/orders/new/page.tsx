@@ -23,7 +23,7 @@ export default async function RecordSalePage() {
         where: { storeId: store.id, status: { not: "archived" } },
         orderBy: [{ soldStock: "desc" }, { createdAt: "desc" }],
         take: 200,
-        select: { id: true, name: true, retailPrice: true, images: true, currentStock: true, trackStock: true },
+        select: { id: true, name: true, shortCode: true, retailPrice: true, images: true, currentStock: true, trackStock: true },
       })
     : [];
 
@@ -44,6 +44,7 @@ export default async function RecordSalePage() {
           image: product.images[0] ?? null,
           // Null: the seller doesn't count this product's stock.
           stock: product.trackStock ? product.currentStock : null,
+          shortCode: product.shortCode,
         }))}
       />
     </SellerPage>
