@@ -15,7 +15,7 @@ type View = {
   bank: string | null;
   topUpAccount: { number: string; name: string; bank: string } | null;
   /** Older servers don't send it. */
-  topUpAccountStatus?: "ready" | "setting_up" | "off";
+  topUpAccountStatus?: "ready" | "setting_up" | "needs_phone" | "off";
   transactions: Array<{ id: string; kind: string; naira: number; status: string; description: string; error: string | null; at: string }>;
 };
 
@@ -98,6 +98,10 @@ export function WalletBalanceCard({ returnTo, notice }: { returnTo: string; noti
           <div className="text-[13px] text-app-ink-soft">{view.topUpAccount.bank} · {view.topUpAccount.name}</div>
           <div className="mt-1 text-[12.5px] text-app-ink-soft">It's yours alone and lands in your balance within a minute or two.</div>
         </div>
+      ) : view.topUpAccountStatus === "needs_phone" ? (
+        <p className="mb-0 mt-4 rounded-[18px] border border-app-line bg-app-canvas px-4 py-3 text-[13.5px] text-app-ink-soft">
+          Add your phone number to your account to get your own wallet account number. The bank needs it to open the account.
+        </p>
       ) : view.topUpAccountStatus === "setting_up" ? (
         <p className="mb-0 mt-4 rounded-[18px] border border-app-line bg-app-canvas px-4 py-3 text-[13.5px] text-app-ink-soft">
           Your wallet account number is being created. It shows here in a few minutes; until then you can top up by card.

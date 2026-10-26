@@ -4228,7 +4228,7 @@ model Wallet {
   topUpAccountNumber String?
   topUpAccountName   String?
   topUpBankName      String?
-  topUpStatus        String    @default("none") // none | pending | ready | failed | unavailable
+  topUpStatus        String    @default("none") // none | pending | ready | failed | unavailable | needs_phone
   topUpError         String?
   // Paystack transfer recipient for withdrawals (made from the checked bank above).
   transferRecipient  String?
