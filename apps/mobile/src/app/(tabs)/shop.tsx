@@ -17,7 +17,8 @@ import { latestPicture, useChangedIdentity } from "@/lib/identity";
 import { fetchSetup, type SetupOverview } from "@/lib/setup";
 import { openShop, shareShop } from "@/lib/share";
 import { shopIsLive } from "@/lib/publish";
-import { PublishButton } from "@/components/seller/PublishShop";
+import { PublishButton, ShopLiveSheet } from "@/components/seller/PublishShop";
+import type { PublishedShop } from "@/lib/publish";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 import { DeleteAccountButton } from "@/components/DeleteAccountButton";
@@ -112,6 +113,8 @@ export default function MyShop() {
   const t = useT("m_shop", "m_products", "m_onboarding", "nav", "common");
   const [notSeller, setNotSeller] = useState(false);
   const [setup, setSetup] = useState<SetupOverview | null>(null);
+  // Held here, not in the button: once the shop is live the button (and anything inside it) goes away.
+  const [justPublished, setJustPublished] = useState<PublishedShop | null>(null);
   const [products, setProducts] = useState<ProductItem[] | null>(null);
   const [shareNote, setShareNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -180,11 +183,12 @@ export default function MyShop() {
           {shopIsLive(setup) === false ? (
             <View style={{ gap: 8, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 14 }}>
               <T weight="extrabold" style={{ fontSize: 16 }}>{t("publish.notLive")}</T>
-              <PublishButton testID="shop-publish" onPublished={() => void fetchSetup().then(setSetup).catch(() => null)} />
+              <PublishButton testID="shop-publish" sheet={false} onPublished={(shop) => { setJustPublished(shop); void fetchSetup().then(setSetup).catch(() => null); }} />
             </View>
           ) : null}
         </View>
       ) : null}
+      <ShopLiveSheet shop={justPublished} onClose={() => setJustPublished(null)} />
 
       {/* Money, Delivery, Posts, Web address: a 2×2 grid as rows of two equal tiles (flex: 1). A percentage width
           plus the gap tipped over 100% on 360px phones and wrapped into one narrow column. */}

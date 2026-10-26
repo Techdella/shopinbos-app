@@ -65,12 +65,15 @@ export function PublishButton({
   size = "lg",
   onPublished,
   testID = "publish-shop",
+  sheet = true,
 }: {
   title?: string;
   tone?: "ink" | "accent" | "white";
   size?: "lg" | "md" | "sm";
   onPublished?: (shop: PublishedShop) => void;
   testID?: string;
+  /** False when the screen shows "Your shop is live" itself (the button goes away once the shop is live). */
+  sheet?: boolean;
 }) {
   const t = useT("m_shop");
   const { busy, error, live, publish, closeLive } = usePublishShop(onPublished);
@@ -78,7 +81,7 @@ export function PublishButton({
     <View style={{ gap: 8 }}>
       <PillButton testID={testID} tone={tone} size={size} title={title ?? t("publish.button")} busy={busy} onPress={() => void publish()} />
       {error ? <Notice>{error}</Notice> : null}
-      <ShopLiveSheet shop={live} onClose={closeLive} />
+      {sheet ? <ShopLiveSheet shop={live} onClose={closeLive} /> : null}
     </View>
   );
 }

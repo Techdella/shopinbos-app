@@ -181,3 +181,11 @@ test("no competitor names in the import flows, in any of the five languages", ()
   assert.equal(doors.label, "Import from a CSV or Excel file");
   assert.doesNotMatch(`${doors.label} ${doors.hint} ${doors.note}`, builders);
 });
+
+test("My shop keeps the 'Your shop is live' sheet after the publish button goes away", async () => {
+  const { readFileSync } = await import("node:fs");
+  const { default: assert } = await import("node:assert/strict");
+  const shop = readFileSync(new URL("../apps/mobile/src/app/(tabs)/shop.tsx", import.meta.url), "utf8");
+  assert.match(shop, /<PublishButton testID="shop-publish" sheet=\{false\}/);
+  assert.match(shop, /<ShopLiveSheet shop=\{justPublished\}/);
+});
