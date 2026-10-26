@@ -1,5 +1,5 @@
-import * as WebBrowser from "expo-web-browser";
 import { api } from "./api";
+import { payInApp, type PayResult, type StartedPayment } from "./pay";
 
 // The Shopinbos Wallet (web /home/wallet, /supplier/wallet, /logistics/wallet) for sellers, suppliers and delivery
 // partners: add the bank Paystack settles to (then a supplier's or delivery partner's CAC or BN registration), then see what Paystack paid in. Shopinbos
@@ -23,6 +23,8 @@ export interface WalletView {
   owed?: MoneyOwed;
   /** Sellers: Shopinbos's fee on their store sales (null = none). */
   fee?: { rate: number; minFee: number; maxFee: number } | null;
+  /** Paystack is on for Shopinbos, so an active wallet takes card payments (older servers don't send it: true). */
+  cardsReady?: boolean;
 }
 
 export interface Debt {
@@ -99,39 +101,25 @@ export interface SellerCash {
 
 export const fetchSellersCash = () => api<{ sellers: SellerCash[] }>("/api/mobile/logistics/sellers-cash");
 
-interface Started {
-  reference: string;
-  authorizationUrl: string | null;
-}
-
-/**
- * Opens Paystack's payment page for a payment the server started, then asks the server whether it went through
- * (the server asks Paystack; the webhook confirms it too if the page is closed before it returns).
- */
-async function payInBrowser(start: () => Promise<Started>, confirmPath: string): Promise<{ paid: boolean; message?: string }> {
-  const started = await start();
-  if (!started.authorizationUrl) return { paid: false };
-  await WebBrowser.openBrowserAsync(started.authorizationUrl);
-  return api<{ paid: boolean; message?: string }>(confirmPath, { method: "POST", json: { reference: started.reference } });
-}
+// Card payments straight to another business's bank (lib/pay.ts: Paystack in an in-app browser that closes by
+// itself, then confirmed). Each resolves to paid, pending (a transfer on its way) or cancelled.
 
 /** A delivery partner pays one seller the cash their riders collected, straight to the seller's bank. */
-export const paySellerCash = (sellerId: string) =>
-  payInBrowser(() => api<Started>("/api/mobile/logistics/sellers-cash/pay", { method: "POST", json: { sellerId } }), "/api/mobile/logistics/sellers-cash/confirm");
+export const paySellerCash = (sellerId: string): Promise<PayResult> =>
+  payInApp((app) => api<StartedPayment>("/api/mobile/logistics/sellers-cash/pay", { method: "POST", json: { sellerId, app } }));
 
 /** A seller pays a booking's delivery fee by card, straight to the delivery partner's bank. */
-export const payDeliveryFee = (bookingId: string) =>
-  payInBrowser(() => api<Started>(`/api/mobile/deliveries/${encodeURIComponent(bookingId)}/pay-fee`, { method: "POST" }), "/api/mobile/deliveries/fee-confirm");
+export const payDeliveryFee = (bookingId: string): Promise<PayResult> =>
+  payInApp((app) => api<StartedPayment>(`/api/mobile/deliveries/${encodeURIComponent(bookingId)}/pay-fee`, { method: "POST", json: { app } }));
+
+/** A seller pays a wholesale order the supplier accepted, straight to the supplier's bank. */
+export const payWholesaleOrder = (orderId: string): Promise<PayResult> =>
+  payInApp((app) => api<StartedPayment>(`/api/app/wholesale/${encodeURIComponent(orderId)}`, { method: "PATCH", json: { action: "pay", app } }));
 
 const owedAction = <T,>(json: Record<string, unknown>) => api<T>("/api/mobile/wallet/owed", { method: "POST", json });
 
 /** Pay what's left of a debt by card, straight to the other business's bank. */
-export async function payDebt(debtId: string): Promise<{ paid: boolean; message?: string }> {
-  const started = await owedAction<Started>({ action: "pay", debtId });
-  if (!started.authorizationUrl) return { paid: false };
-  await WebBrowser.openBrowserAsync(started.authorizationUrl);
-  return owedAction<{ paid: boolean; message?: string }>({ action: "pay-confirm", reference: started.reference });
-}
+export const payDebt = (debtId: string): Promise<PayResult> => payInApp((app) => owedAction<StartedPayment>({ action: "pay", debtId, app }));
 
 /** Accept a claim (it's owed from now), or dispute it for the Shopinbos team to decide. */
 export const answerClaim = (debtId: string, accept: boolean, response?: string) => owedAction<{ ok: true; message?: string }>({ action: "respond", debtId, accept, response });

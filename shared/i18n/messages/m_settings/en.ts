@@ -180,6 +180,15 @@ const en = {
   "del.payFee": "Pay {amount} by card",
   "del.feePaid": "Fee paid",
   "del.feeNotSeen": "We haven't seen the payment yet. If you paid, it shows here in a minute.",
+  "money.state.card.needs_bank": "Add your bank to take card payments",
+  "money.state.transfer.needs_bank": "Add your bank so customers can pay by transfer",
+  "money.state.bank_review": "We're checking your bank. This starts once it's approved.",
+  "money.state.bank_failed": "Your bank couldn't be set up. Try another account.",
+  "money.state.paused": "Paused by the Shopinbos team. Contact support.",
+  "money.state.needs_team": "Starts within a day, once we've connected your bank to it.",
+  "money.state.unavailable": "Card payments are paused on Shopinbos right now.",
+  "money.state.needs_whatsapp": "Add your WhatsApp number to turn this on.",
+  "money.bankRecheck": "Add this bank again so Paystack can check it. Then card payments go straight to it.",
 } satisfies Record<string, string>;
 
 export default en;

@@ -76,6 +76,8 @@ const en = {
   "style.clinical": "Clinical clean",
   "style.playful": "Playful blobs",
   "style.luxe": "Black & gold",
+  "order.paid": "Paid. We'll print and send it, and message you on WhatsApp.",
+  "order.unpaid": "The payment wasn't finished, so nothing was taken. Order again when you're ready.",
 } satisfies Record<string, string>;
 
 export default en;

@@ -5,6 +5,7 @@ import { db } from "@/lib/db/client";
 import { appBase } from "@/lib/email/compliance.server";
 import { initializePaystackTransaction, verifyPaystackTransaction } from "@/lib/paystack";
 import { paystackSecretReady } from "@shared/checkout-payments";
+import { paystackOutcome } from "@shared/paystack-return";
 import { createNotification } from "@/lib/notifications/create";
 import { readSplitPlan, type DebtToDeduct, type PaymentSplitPlan, type SplitDeduction, type SplitGateway } from "@/lib/wallet/rules";
 import {
@@ -296,10 +297,13 @@ export async function applyDeductions(input: { key: string; deductions: SplitDed
 
 // ─── Paying in the app ────────────────────────────────────────────────────────
 
+/** callbackUrl: where Paystack sends the payer back (the phone app passes shared/paystack-return appPaidCallbackUrl). */
+export type StartOptions = { callbackUrl?: string };
+
 export type StartResult = { ok: true; accessCode: string; reference: string; authorizationUrl: string | null } | { ok: false; error: string };
 
 /** Starts the Paystack payment of what's left of a debt, split straight to the creditor's bank. */
-export async function startDebtPayment(user: { id: string; email: string | null }, debtId: string): Promise<StartResult> {
+export async function startDebtPayment(user: { id: string; email: string | null }, debtId: string, options: StartOptions = {}): Promise<StartResult> {
   if (!paystackSecretReady(process.env.PAYSTACK_SECRET_KEY)) return { ok: false, error: "Card payments aren't set up yet. Pay them directly and ask them to confirm it in the app." };
   const debt = await db.businessDebt.findFirst({ where: { id: debtId, debtorUserId: user.id } });
   if (!debt) return { ok: false, error: "We couldn't find this." };
@@ -321,7 +325,7 @@ export async function startDebtPayment(user: { id: string; email: string | null 
       email: user.email || "payments@shopinbos.com",
       amountKobo,
       reference,
-      callbackUrl: `${appBase()}${walletLink(role)}`,
+      callbackUrl: options.callbackUrl ?? `${appBase()}${walletLink(role)}`,
       metadata: { kind: "debt_payment", debtId: debt.id, debtorUserId: user.id },
       split,
     });
@@ -344,7 +348,7 @@ function readMetadata(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
 }
 
-export type ConfirmResult = { ok: true; fresh: boolean } | { ok: false; error: string; retry?: boolean };
+export type ConfirmResult = { ok: true; fresh: boolean } | { ok: false; error: string; retry?: boolean; pending?: boolean };
 
 /**
  * Records a debt payment once Paystack (never the browser or the webhook body) says it succeeded. Safe from the
@@ -358,7 +362,9 @@ export async function confirmDebtPayment(reference: string, expectedUserId?: str
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : "Paystack could not check this payment.", retry: true };
   }
-  if (payment.status !== "success") return { ok: false, error: "The payment didn't go through." };
+  // Still on its way (a transfer or USSD) is "pending"; the webhook finishes it.
+  if (payment.status !== "success") return { ok: false, error: "The payment didn't go through.", pending: paystackOutcome(payment.status) === "pending" };
+  if (payment.currency && payment.currency !== "NGN") return { ok: false, error: "This payment wasn't in naira." };
   const meta = readMetadata(payment.metadata);
   const debtId = typeof meta.debtId === "string" ? meta.debtId : "";
   if (meta.kind !== "debt_payment" || !debtId) return { ok: false, error: "This payment isn't for money owed." };

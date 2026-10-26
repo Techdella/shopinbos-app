@@ -1,5 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db/client";
+import { paystackKeyProblems } from "@shared/paystack-return";
 import { jobStatus, settingStatus, type CronRow } from "./pure";
 
 // Admin › Developers › Launch settings: keys this deployment has (set or not) and the Supabase pg_cron jobs with
@@ -43,6 +44,8 @@ export async function launchCheck() {
   const [rows, http] = await Promise.all([cronRows(), httpSummary()]);
   return {
     settings: settingStatus(process.env),
+    // Keys from different modes, test keys on the live site, Paystack's test DVA bank with live keys.
+    paystack: paystackKeyProblems(process.env, process.env.VERCEL_ENV === "production"),
     jobs: rows ? jobStatus(rows) : null,
     http,
     qstash: Boolean(process.env.QSTASH_CURRENT_SIGNING_KEY && process.env.QSTASH_NEXT_SIGNING_KEY),

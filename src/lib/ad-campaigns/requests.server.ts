@@ -19,7 +19,8 @@ export class AdRequestError extends Error {}
 
 const PLATFORM_NAME = { tiktok: "TikTok", meta: "Facebook & Instagram" } as const;
 
-export async function createAdRequest(input: { user: { id: string; email: string | null }; storeId: string; request: AdRequestInput; returnTo: string }) {
+/** callbackUrl: the phone app's Paystack return (src/lib/payments/app-return.server.ts); the web page otherwise. */
+export async function createAdRequest(input: { user: { id: string; email: string | null }; storeId: string; request: AdRequestInput; returnTo: string; callbackUrl?: string }) {
   const fee = adSetupFees(await getPriceBook())[input.request.platform];
   const reference = `${AD_SETUP_REFERENCE_PREFIX}${crypto.randomUUID()}`;
   const { campaignId, ...details } = input.request;
@@ -41,10 +42,10 @@ export async function createAdRequest(input: { user: { id: string; email: string
     email: billingEmail(input.user),
     amountKobo: fee * 100,
     reference,
-    callbackUrl: callback.toString(),
+    callbackUrl: input.callbackUrl ?? callback.toString(),
     metadata: { purpose: "ad_setup", request_id: row.id, platform: row.platform, user_id: input.user.id },
   });
-  return { id: row.id, authorizationUrl: session.authorization_url };
+  return { id: row.id, reference, authorizationUrl: session.authorization_url };
 }
 
 /** Marks a verified setup fee paid once (callback and webhook may both call this) and tells the team. */

@@ -90,8 +90,10 @@ test("Packaging: pick a template, preview with the shop's name and logo, save, o
   // Peggy's words spend AI credits: out of credits shows the balance and Top up (an email), like Create with Rex.
   assert.match(screen, /error\.code === "AI_CREDITS_NEEDED"/);
   assert.match(screen, /<CreditsLine balance=\{credits\}/);
-  // Paystack's own checkout page is the only page it opens; nothing opens the web app.
-  assert.match(screen, /WebBrowser\.openBrowserAsync\(result\.authorizationUrl\)/);
+  // Paystack's own checkout page is the only page it opens (an in-app auth session that comes back by itself,
+  // lib/pay.ts); nothing opens the web app.
+  assert.match(app("lib/packaging.ts"), /payInApp\(\(app\) => api<[^>]+>\("\/api\/app\/print-orders"/);
+  assert.match(screen, /result\.outcome === "cancelled"/);
   assert.doesNotMatch(screen, /openWeb\(/);
   // Template tiles: rows of two equal tiles.
   assert.match(screen, /flex: 1, backgroundColor: colors\.surface/);

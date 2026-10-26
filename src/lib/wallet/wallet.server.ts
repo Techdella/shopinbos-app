@@ -21,7 +21,9 @@ import {
   type PlatformFee,
   type SplitGateway,
   type WalletRole,
+  walletWaitingForPaystack,
 } from "./rules";
+import { paystackSecretReady } from "@shared/checkout-payments";
 
 // Shopinbos Wallet, server side. A business links the bank Paystack should settle to and gets a Paystack subaccount
 // (an account in another name waits for the team). Nobody is asked for an ID: sellers have no check, and a supplier's
@@ -384,6 +386,8 @@ export interface WalletView {
   kyc: { status: string; idType: string | null; idLast4: string | null; name: string | null; verifiedAt: string | null; checksReady: boolean };
   bank: { bankName: string; accountName: string; accountEnding: string } | null;
   settlement: { status: string; error: string | null; frozen: boolean; frozenReason: string | null; korapay: boolean };
+  /** Paystack's keys are set, so an active wallet takes card payments (false only while payments are off). */
+  cardsReady: boolean;
   /** Kobo. */
   totals: { paidKobo: number; last30Kobo: number; refundedKobo: number };
   entries: Array<{ id: string; kind: string; description: string; amountKobo: number; status: string; createdAt: string; orderId: string | null }>;
@@ -404,8 +408,33 @@ export interface WalletView {
   commissionPct: number | null;
 }
 
+/**
+ * A bank saved while Paystack was off is set up now that the keys are on (rules.ts walletWaitingForPaystack): the
+ * business sees "Receiving payments" without adding it again. Returns the wallet as it now stands. Never throws.
+ */
+async function finishWalletSavedWhilePaystackOff(wallet: WalletRow): Promise<WalletRow> {
+  if (!walletWaitingForPaystack(wallet, paystackSecretReady(process.env.PAYSTACK_SECRET_KEY))) return wallet;
+  try {
+    // One load at a time sets it up (two at once could open two subaccounts); the marker still reads as "not
+    // configured", so a load that dies half way is tried again next time.
+    const claimed = await db.wallet.updateMany({ where: { id: wallet.id, subaccountStatus: "failed", subaccountError: wallet.subaccountError }, data: { subaccountError: "Paystack is not configured (setting up now)." } });
+    if (!claimed.count) return wallet;
+    await openSubaccount(wallet, wallet.nameCheck === "approved" ? "approved" : "auto");
+    return (await findWallet(wallet.userId)) ?? wallet;
+  } catch (error) {
+    console.error(`[wallet] couldn't finish setting up wallet ${wallet.id} now that Paystack is on`, error);
+    return wallet;
+  }
+}
+
+/** The same for screens that don't load the whole wallet (the phone's Money page). Never throws. */
+export async function finishWalletSetUpIfPaystackWasOff(userId: string) {
+  const wallet = await findWallet(userId).catch(() => null);
+  if (wallet) await finishWalletSavedWhilePaystackOff(wallet);
+}
+
 export async function loadWalletView(user: { id: string; role: WalletRole }): Promise<WalletView> {
-  const wallet = await ensureWallet(user);
+  const wallet = await finishWalletSavedWhilePaystackOff(await ensureWallet(user));
   const since = new Date(Date.now() - 30 * 24 * 60 * 60_000);
   const [entries, paid, last30, refunded, settlements, owed] = await Promise.all([
     db.walletEntry.findMany({ where: { walletId: wallet.id }, orderBy: { createdAt: "desc" }, take: 50 }),
@@ -434,6 +463,7 @@ export async function loadWalletView(user: { id: string; role: WalletRole }): Pr
     kyc: { status: "not_required", idType: null, idLast4: null, name: null, verifiedAt: null, checksReady: false },
     bank: wallet.bankName && wallet.accountName ? { bankName: wallet.bankName, accountName: wallet.accountName, accountEnding: maskAccountNumber(wallet.accountNumber) } : null,
     settlement: { status: wallet.subaccountStatus, error: wallet.subaccountError, frozen: wallet.status === "frozen", frozenReason: wallet.frozenReason, korapay: false },
+    cardsReady: paystackSecretReady(process.env.PAYSTACK_SECRET_KEY),
     totals: { paidKobo: paid._sum.amountKobo ?? 0, last30Kobo: last30._sum.amountKobo ?? 0, refundedKobo: refunded._sum.amountKobo ?? 0 },
     entries: entries.map((entry) => ({ id: entry.id, kind: entry.kind, description: entry.description, amountKobo: entry.amountKobo, status: entry.status, createdAt: entry.createdAt.toISOString(), orderId: entry.orderId })),
     settlements: settlements.map((row) => ({ id: row.id, status: row.status, amountKobo: row.totalAmount, date: row.settlementDate })),

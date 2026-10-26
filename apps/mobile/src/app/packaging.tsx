@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Pressable, useWindowDimensions, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
 import { Image } from "expo-image";
 import { naira } from "@shared/onboarding";
 import { PACK_STYLE_INFO, type PackDesign, type PackFormat, type PackStyle } from "@shared/packaging";
@@ -206,9 +205,9 @@ export default function Packaging() {
         city: zone === "pickup" ? null : city.trim(),
         state: zone === "pickup" ? null : region.trim() || null,
       });
-      // Paystack's own checkout page (card, transfer or USSD); the order shows as paid once Paystack confirms it.
-      await WebBrowser.openBrowserAsync(result.authorizationUrl);
-      setNote(t("order.afterPay"));
+      // Paystack's own checkout page (card, transfer or USSD) in an in-app browser that comes back by itself.
+      if (result.outcome === "cancelled") return setProblem(t("order.unpaid"));
+      setNote(result.outcome === "paid" ? t("order.paid") : t("order.afterPay"));
       setMode("design");
     } catch (error) {
       setProblem(error instanceof Error ? error.message : t("err.pay"));

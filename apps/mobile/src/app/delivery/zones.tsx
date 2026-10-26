@@ -122,18 +122,22 @@ export default function Delivery() {
 }
 
 function BookingRow({ booking, first, onPaid }: { booking: DeliveryBooking; first: boolean; onPaid: () => void }) {
-  const t = useT("m_settings", "shipping");
+  const t = useT("m_settings", "shipping", "m_money");
   const tone = BOOKING_TONE[booking.status] ?? "muted";
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
+  const [payNote, setPayNote] = useState<string | null>(null);
 
   // Card payment of the fee, split by Paystack straight to the delivery partner's bank.
   async function pay() {
     setPaying(true);
     setPayError(null);
     try {
+      setPayNote(null);
       const result = await payDeliveryFee(booking.id);
-      if (!result.paid) setPayError(result.message ?? t("del.feeNotSeen"));
+      // Paid (the row shows "Fee paid" once reloaded), a transfer still on its way, or closed before paying.
+      if (result.outcome === "pending") setPayNote(t("pay.pending"));
+      else if (result.outcome === "cancelled") setPayError(t("pay.cancelled"));
       onPaid();
     } catch (failure) {
       setPayError(failure instanceof Error ? failure.message : t("del.feeNotSeen"));
@@ -158,6 +162,7 @@ function BookingRow({ booking, first, onPaid }: { booking: DeliveryBooking; firs
         <PillButton title={t("del.payFee", { amount: naira(booking.deliveryFee) })} size="sm" tone="white" busy={paying} style={{ alignSelf: "flex-start", marginTop: 4 }} onPress={() => void pay()} />
       ) : null}
       {payError ? <Notice>{payError}</Notice> : null}
+      {payNote ? <Notice tone="info">{payNote}</Notice> : null}
     </View>
   );
 }

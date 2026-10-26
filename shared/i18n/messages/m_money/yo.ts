@@ -196,6 +196,16 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "bal.pending": "ó ń bọ̀",
   "bal.didntGo": "kò lọ",
   "bal.failed": "Kò ṣiṣẹ́. Gbìyànjú lẹ́ẹ̀kan sí i.",
+  "pay.paid": "A ti san án. Owó náà lọ tààrà sí báǹkì wọn.",
+  "pay.pending": "Ìsanwó rẹ ń bọ̀. Yóò yí padà ní kété tí Paystack bá fìdí rẹ̀ múlẹ̀.",
+  "pay.cancelled": "Ìsanwó náà kò parí, nítorí náà a kò gba nǹkankan. Gbìyànjú lẹ́ẹ̀kan sí i nígbà tí o bá ṣetán.",
+  "w.cards.needsBank": "Fi báǹkì rẹ kún un láti gba ìsanwó káàdì. Títí di ìgbà náà, àwọn oníbàárà lè sanwó nípa transfer tàbí nígbà tí ọjà bá dé.",
+  "w.cards.off": "Ìsanwó káàdì ti dúró fún ìgbà díẹ̀ lórí Shopinbos. Àwọn oníbàárà lè sanwó nípa transfer tàbí nígbà tí ọjà bá dé.",
+  "w.cards.live.seller": "Ilé ìtajà rẹ ń gba ìsanwó káàdì. Ọ̀kọ̀ọ̀kan ń lọ tààrà sí báǹkì rẹ.",
+  "w.cards.live.business": "Àwọn oníṣòwò lè sanwó fún ọ pẹ̀lú káàdì nínú Shopinbos, tààrà sí báǹkì rẹ.",
+  "w.steps.bank": "Fi báǹkì rẹ kún un",
+  "w.steps.check": "Paystack ṣàyẹ̀wò àkáǹtì náà",
+  "w.steps.cards": "Gba ìsanwó káàdì",
 };
 
 export default yo;

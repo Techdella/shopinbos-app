@@ -14,10 +14,24 @@ import type { Zone } from "./settings-pure";
 
 // ─── Payments ────────────────────────────────────────────────────────────────
 
+export type PaymentMethodState = "live" | "needs_bank" | "bank_review" | "bank_failed" | "paused" | "needs_team" | "unavailable" | "needs_whatsapp" | "hidden";
+
+/** The words under a way to pay that doesn't reach customers yet (m_settings money.state.*), or null when it does. */
+export function methodStateKey(method: PaymentMethodKey, state: PaymentMethodState | undefined): string | null {
+  if (!state || state === "live" || state === "hidden") return null;
+  if (state === "needs_bank") return method === "transfer" ? "money.state.transfer.needs_bank" : "money.state.card.needs_bank";
+  return `money.state.${state}`;
+}
+
 export interface PaymentsOverview {
   hasStore: boolean;
   currency: string;
   methods: Record<PaymentMethodKey, boolean>;
+  /**
+   * Whether each way to pay reaches customers now (shared/seller-payments.ts paymentMethodStates): card is "live" once
+   * the wallet is active and Paystack is on, "needs_bank" before a bank is added. Older servers don't send it.
+   */
+  states?: Partial<Record<PaymentMethodKey, PaymentMethodState>>;
   transferWindow: { hours: number | null; defaultHours: number; choices: number[] };
   bank: PayoutBankSummary | null;
   banks: string[];

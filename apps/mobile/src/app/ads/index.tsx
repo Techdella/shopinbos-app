@@ -107,7 +107,7 @@ export default function Ads() {
   const params = useLocalSearchParams<{ done?: string }>();
   const data = useLoad(fetchAds);
   const [note, setNote] = useState<{ tone: "success" | "error" | "info"; text: string } | null>(() =>
-    params.done === "launched" ? { tone: "success", text: t("c.launched") } : params.done === "draft" ? { tone: "info", text: t("c.saved") } : params.done === "request" ? { tone: "info", text: t("requestSent") } : null,
+    params.done === "launched" ? { tone: "success", text: t("c.launched") } : params.done === "draft" ? { tone: "info", text: t("c.saved") } : params.done === "request" ? { tone: "info", text: t("requestSent") } : params.done === "requestPaid" ? { tone: "success", text: t("requestPaid") } : params.done === "requestUnpaid" ? { tone: "info", text: t("requestUnpaid") } : null,
   );
   const overview = data.data;
   const openRequests = overview ? overview.requests.filter((request) => request.status !== "done" && request.status !== "cancelled") : [];

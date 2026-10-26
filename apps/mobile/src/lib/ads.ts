@@ -2,6 +2,7 @@ import * as WebBrowser from "expo-web-browser";
 import { makeRedirectUri } from "expo-auth-session";
 import { api } from "./api";
 import { signedInUrl } from "./web";
+import { payInApp } from "./pay";
 import type { AdObjective, AdProduct, CampaignAction, CampaignRow, MetaStatus } from "./ads-pure";
 
 /**
@@ -77,7 +78,9 @@ export const saveCampaignDraft = (body: unknown) => api<{ id: string }>("/api/ap
 export const writeAdCopy = (productIds: string[], objective: AdObjective) =>
   api<{ productId: string; headline: string; primaryText: string }[]>("/api/app/ads/copy", { method: "POST", json: { productIds, objective } });
 
-export const sendAdRequest = (body: unknown) => api<{ authorizationUrl: string }>("/api/app/ads/requests", { method: "POST", json: body });
+/** The team request and its setup fee: Paystack in an in-app browser that comes back by itself (lib/pay.ts). */
+export const sendAdRequest = (body: object) =>
+  payInApp((app) => api<{ id: string; reference?: string; authorizationUrl: string }>("/api/app/ads/requests", { method: "POST", json: { ...body, app } }));
 
 export interface MetaChoice {
   id: string;

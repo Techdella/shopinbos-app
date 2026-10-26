@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { Pressable, View } from "react-native";
 import { Image } from "expo-image";
-import * as WebBrowser from "expo-web-browser";
 import { router, useLocalSearchParams } from "expo-router";
 import { naira } from "@shared/onboarding";
 import { adMoney } from "@/components/ads";
@@ -158,9 +157,8 @@ export default function NewAdCampaign() {
         router.replace({ pathname: "/ads", params: { done: launch ? "launched" : "draft" } });
         return;
       }
-      const request = await sendAdRequest(requestBody(saved.id, chosenMode, objective, audience, dailyBudget, days, details!));
-      await WebBrowser.openBrowserAsync(request.authorizationUrl);
-      router.replace({ pathname: "/ads", params: { done: "request" } });
+      const paid = await sendAdRequest(requestBody(saved.id, chosenMode, objective, audience, dailyBudget, days, details!));
+      router.replace({ pathname: "/ads", params: { done: paid.outcome === "paid" ? "requestPaid" : paid.outcome === "pending" ? "request" : "requestUnpaid" } });
     } catch (finishError) {
       setProblem(finishError instanceof Error ? finishError.message : t("c.err.save"));
       setBusy(null);

@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db/client";
 import { paystackSecretReady } from "@shared/checkout-payments";
+import { paystackDvaBank } from "@shared/paystack-return";
 import { isDedicatedCharge, readDedicatedAccount } from "./payin-rules";
 
 // Each delivery partner's own pay-in account: a Paystack Dedicated Virtual Account (a real bank account number in
@@ -41,10 +42,9 @@ export function payInAccountsConfigured() {
   return paystackSecretReady(secret()) && process.env.PAYSTACK_DVA_ENABLED?.trim().toLowerCase() === "true";
 }
 
+/** The bank for new accounts: PAYSTACK_DVA_BANK, never Paystack's test bank on live keys (shared/paystack-return.ts). */
 export function dvaBank() {
-  const configured = process.env.PAYSTACK_DVA_BANK?.trim();
-  if (configured) return configured;
-  return secret().startsWith("sk_test_") ? "test-bank" : "wema-bank";
+  return paystackDvaBank(secret(), process.env.PAYSTACK_DVA_BANK);
 }
 
 type PaystackJson = { status?: boolean; message?: string; data?: unknown };

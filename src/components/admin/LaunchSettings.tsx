@@ -14,7 +14,7 @@ const JOB_PILL = {
 
 const when = (date: Date | null) => (date ? date.toLocaleString("en-NG", { dateStyle: "medium", timeStyle: "short", timeZone: "Africa/Lagos" }) : null);
 
-export function LaunchSettings({ settings, jobs, http, qstash }: { settings: SettingStatus[]; jobs: JobStatus[] | null; http: CronHttpSummary | null; qstash: boolean }) {
+export function LaunchSettings({ settings, paystack = [], jobs, http, qstash }: { settings: SettingStatus[]; paystack?: string[]; jobs: JobStatus[] | null; http: CronHttpSummary | null; qstash: boolean }) {
   const groups = [...new Set(settings.map((s) => s.group))];
   const missingRequired = settings.filter((s) => s.level === "required" && !s.set).length;
   const missingRecommended = settings.filter((s) => s.level === "recommended" && !s.set).length;
@@ -29,6 +29,9 @@ export function LaunchSettings({ settings, jobs, http, qstash }: { settings: Set
           action={missingRequired ? <Pill tone="danger" dot>{missingRequired} required missing</Pill> : <Pill tone="success" dot>Required keys set</Pill>}
         />
         {missingRecommended ? <p className="m-0 mt-2 text-[13px] text-app-ink-soft">{missingRecommended} recommended {missingRecommended === 1 ? "key falls" : "keys fall"} back to a shared secret. It works, but give each its own value before launch.</p> : null}
+        {paystack.map((problem) => (
+          <p key={problem} className="m-0 mt-2 text-[13px] font-semibold text-app-danger">{problem}</p>
+        ))}
       </Card>
       {groups.map((group) => (
         <div key={group} className="mb-4">

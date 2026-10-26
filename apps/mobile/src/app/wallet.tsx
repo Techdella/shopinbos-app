@@ -17,7 +17,9 @@ import { MoneyOwedCard } from "@/components/MoneyOwedCard";
 import { WalletBalanceCard } from "@/components/WalletBalanceCard";
 
 // Shopinbos Wallet (web /home/wallet, /supplier/wallet, /logistics/wallet), the same screen for sellers, suppliers
-// and delivery partners: two steps to set up (verify a BVN or NIN, then the bank Paystack settles to), then what
+// and delivery partners: set up in steps (add the bank, Paystack checks it and opens the subaccount, then card
+// payments are on; suppliers and delivery partners also verify their CAC or BN; nobody is asked for a BVN or NIN
+// now, src/lib/wallet/wallet.server.ts), then what
 // Paystack paid in and settled. Shopinbos never holds the money: each card payment is split at checkout and every
 // share settles straight to the business's own bank. Sellers also see cash on delivery a partner still owes them,
 // and everyone sees money owed between businesses (components/MoneyOwedCard.tsx).
@@ -80,8 +82,11 @@ function WalletBody({ data, t, reload }: { data: WalletData; t: TFn; reload: () 
           <T weight="extrabold" style={{ fontSize: 22 }}>{t("w.weekLine", { amount: nairaFromKobo(weekKobo), count: week.length })}</T>
           <T style={{ color: colors.inkSoft, fontSize: 13.5 }}>{t("w.last30Line", { amount: nairaFromKobo(view.totals.last30Kobo) })}</T>
         </Card>
-      ) : role === "seller" ? (
-        <Notice tone="info">{t("w.sellerNotReady")}</Notice>
+      ) : view.cardsReady === false ? (
+        // Only while Paystack is off for Shopinbos (older servers don't say: then it's on).
+        <Notice tone="info">{t("w.cards.off")}</Notice>
+      ) : role === "seller" && !view.bank ? (
+        <Notice tone="info">{t("w.cards.needsBank")}</Notice>
       ) : null}
 
       {view.bank ? (
@@ -103,6 +108,7 @@ function WalletBody({ data, t, reload }: { data: WalletData; t: TFn; reload: () 
           {statusBadge(view, t)}
         </View>
         {view.settlement.frozen ? <Notice>{view.settlement.frozenReason ? t("w.pausedWhy", { reason: view.settlement.frozenReason }) : t("w.pausedSupport")}</Notice> : null}
+        {!view.settlement.frozen ? <SetupSteps view={view} role={role} t={t} /> : null}
 
         {/* Getting paid comes first (like Shopify Payments): the bank, then a supplier's or delivery partner's CAC or BN. */}
         <View style={{ gap: 8, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 12 }}>
@@ -189,6 +195,33 @@ function WalletBody({ data, t, reload }: { data: WalletData; t: TFn; reload: () 
       ) : null}
 
       <Small>{t("w.sub")}</Small>
+    </View>
+  );
+}
+
+/**
+ * Where getting paid by card stands, step by step: the bank is added, Paystack checked it (the subaccount is active),
+ * card payments are on. The step still to do is in bold; done steps are ticked.
+ */
+function SetupSteps({ view, role, t }: { view: WalletData["view"]; role: WalletData["role"]; t: TFn }) {
+  const active = view.settlement.status === "active";
+  const steps = [
+    { key: "bank", label: t("w.steps.bank"), done: Boolean(view.bank) },
+    { key: "check", label: t("w.steps.check"), done: active },
+    { key: "cards", label: t("w.steps.cards"), done: active && view.cardsReady !== false },
+  ];
+  const next = steps.findIndex((step) => !step.done);
+  return (
+    <View style={{ gap: 8 }} accessibilityRole="list">
+      {steps.map((step, index) => (
+        <View key={step.key} style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <View style={{ width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: step.done ? colors.successTint : index === next ? colors.ink : colors.canvas }}>
+            <T weight="extrabold" style={{ fontSize: 12.5, color: step.done ? colors.success : index === next ? "#FFFFFF" : colors.inkSoft }}>{step.done ? "✓" : String(index + 1)}</T>
+          </View>
+          <T weight={index === next ? "extrabold" : "semibold"} style={{ flex: 1, fontSize: 15, color: step.done || index === next ? colors.ink : colors.inkSoft }}>{step.label}</T>
+        </View>
+      ))}
+      {next === -1 ? <T style={{ color: colors.success, fontSize: 14, lineHeight: 20 }}>{role === "seller" ? t("w.cards.live.seller") : t("w.cards.live.business")}</T> : null}
     </View>
   );
 }

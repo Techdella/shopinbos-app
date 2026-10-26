@@ -78,6 +78,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "style.clinical": "Ọcha dịka ụlọ ọgwụ",
   "style.playful": "Agba egwuregwu",
   "style.luxe": "Oji na ọlaedo",
+  "order.paid": "Akwụọla ya. Anyị ga-ebipụta ma ziga ya, ma zitere gị ozi na WhatsApp.",
+  "order.unpaid": "Ịkwụ ụgwọ ahụ emechaghị, ya mere ewepụghị ihe ọ bụla. Tinye iwu ọzọ mgbe ị dị njikere.",
 };
 
 export default ig;

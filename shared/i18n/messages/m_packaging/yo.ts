@@ -78,6 +78,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "style.clinical": "Mímọ́ bíi ti ilé ìwòsàn",
   "style.playful": "Àwọ̀ eré",
   "style.luxe": "Dúdú àti wúrà",
+  "order.paid": "A ti san án. A ó tẹ̀ ẹ́, a ó sì fi ránṣẹ́, a ó sì fi ọ̀rọ̀ ránṣẹ́ sí ọ lórí WhatsApp.",
+  "order.unpaid": "Ìsanwó náà kò parí, nítorí náà a kò gba nǹkankan. Pàṣẹ lẹ́ẹ̀kan sí i nígbà tí o bá ṣetán.",
 };
 
 export default yo;

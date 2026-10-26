@@ -201,6 +201,16 @@ const en = {
   "bal.pending": "on its way",
   "bal.didntGo": "didn't go through",
   "bal.failed": "That didn't work. Try again.",
+  "pay.paid": "Paid. It went straight to their bank.",
+  "pay.pending": "Your payment is on its way. This updates once Paystack confirms it.",
+  "pay.cancelled": "The payment wasn't finished, so nothing was taken. Try again when you're ready.",
+  "w.cards.needsBank": "Add your bank to take card payments. Until then customers can pay by transfer or on delivery.",
+  "w.cards.off": "Card payments are paused on Shopinbos right now. Customers can pay by transfer or on delivery.",
+  "w.cards.live.seller": "Your store takes card payments. Each one goes straight to your bank.",
+  "w.cards.live.business": "Businesses can pay you by card in Shopinbos, straight to your bank.",
+  "w.steps.bank": "Add your bank",
+  "w.steps.check": "Paystack checks the account",
+  "w.steps.cards": "Take card payments",
 } satisfies Record<string, string>;
 
 export default en;

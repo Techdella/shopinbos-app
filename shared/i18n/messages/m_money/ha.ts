@@ -196,6 +196,16 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "bal.pending": "yana kan hanya",
   "bal.didntGo": "bai yi nasara ba",
   "bal.failed": "Bai yi aiki ba. Sake gwadawa.",
+  "pay.paid": "An biya. Kuɗin ya tafi kai tsaye zuwa bankinsu.",
+  "pay.pending": "Biyan kuɗinka yana kan hanya. Zai sabunta da zarar Paystack ya tabbatar.",
+  "pay.cancelled": "Ba a kammala biyan ba, don haka ba a cire komai ba. Sake gwadawa idan ka shirya.",
+  "w.cards.needsBank": "Ƙara bankinka don karɓar biyan kati. Kafin nan abokan ciniki za su iya biya ta transfer ko lokacin isarwa.",
+  "w.cards.off": "An dakatar da biyan kati a Shopinbos a yanzu. Abokan ciniki za su iya biya ta transfer ko lokacin isarwa.",
+  "w.cards.live.seller": "Shagonka yana karɓar biyan kati. Kowanne yana tafiya kai tsaye zuwa bankinka.",
+  "w.cards.live.business": "Kasuwanci za su iya biyan ka da kati a Shopinbos, kai tsaye zuwa bankinka.",
+  "w.steps.bank": "Ƙara bankinka",
+  "w.steps.check": "Paystack ya duba asusun",
+  "w.steps.cards": "Karɓi biyan kati",
 };
 
 export default ha;

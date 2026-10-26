@@ -177,6 +177,15 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "del.payFee": "Pay {amount} by card",
   "del.feePaid": "You don pay the fee",
   "del.feeNotSeen": "We never see the payment. If you don pay, e go show here inside one minute.",
+  "money.state.card.needs_bank": "Add your bank make you fit collect card payment",
+  "money.state.transfer.needs_bank": "Add your bank make customers fit pay by transfer",
+  "money.state.bank_review": "We dey check your bank. E go start once we approve am.",
+  "money.state.bank_failed": "We no fit set up your bank. Try another account.",
+  "money.state.paused": "Shopinbos team don pause am. Contact support.",
+  "money.state.needs_team": "E go start inside one day, once we don connect your bank.",
+  "money.state.unavailable": "Card payment don pause for Shopinbos for now.",
+  "money.state.needs_whatsapp": "Add your WhatsApp number make this one start.",
+  "money.bankRecheck": "Add this bank again make Paystack check am. Then card payment go dey go straight enter am.",
 };
 
 export default pcm;

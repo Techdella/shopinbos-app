@@ -78,6 +78,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "style.clinical": "Clinic clean",
   "style.playful": "Play-play blobs",
   "style.luxe": "Black & gold",
+  "order.paid": "E don pay. We go print am send am, and we go message you for WhatsApp.",
+  "order.unpaid": "The payment no finish, so dem no collect anything. Order again when you ready.",
 };
 
 export default pcm;

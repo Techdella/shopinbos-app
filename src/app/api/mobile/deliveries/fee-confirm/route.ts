@@ -11,5 +11,5 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return apiError("VALIDATION_ERROR", "Missing the payment reference.", 400);
   const result = await confirmDeliveryFeePayment(parsed.data.reference, user.id);
-  return ok(result.ok ? { paid: true } : { paid: false, message: result.error });
+  return ok(result.ok ? { paid: true } : { paid: false, pending: Boolean(result.retry || result.pending), message: result.error });
 });

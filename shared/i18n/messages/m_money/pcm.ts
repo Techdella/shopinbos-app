@@ -196,6 +196,16 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "bal.pending": "e dey road",
   "bal.didntGo": "e no go through",
   "bal.failed": "E no work. Try again.",
+  "pay.paid": "E don pay. The money go straight enter their bank.",
+  "pay.pending": "Your payment dey come. E go update once Paystack confirm am.",
+  "pay.cancelled": "The payment no finish, so dem no collect anything. Try again when you ready.",
+  "w.cards.needsBank": "Add your bank make you fit collect card payment. Before then, customers fit pay by transfer or when dem receive am.",
+  "w.cards.off": "Card payment don pause for Shopinbos for now. Customers fit pay by transfer or when dem receive am.",
+  "w.cards.live.seller": "Your store dey collect card payment. Each one dey go straight enter your bank.",
+  "w.cards.live.business": "Businesses fit pay you by card inside Shopinbos, straight enter your bank.",
+  "w.steps.bank": "Add your bank",
+  "w.steps.check": "Paystack go check the account",
+  "w.steps.cards": "Collect card payment",
 };
 
 export default pcm;

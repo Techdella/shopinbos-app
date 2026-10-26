@@ -196,6 +196,16 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "bal.pending": "ọ na-abịa",
   "bal.didntGo": "ọ gaghị",
   "bal.failed": "Ọ rụghị ọrụ. Nwaa ọzọ.",
+  "pay.paid": "Akwụọla ya. Ego ahụ gara ozugbo n'ụlọ akụ ha.",
+  "pay.pending": "Ịkwụ ụgwọ gị na-abịa. Ọ ga-emelite ozugbo Paystack kwadoro ya.",
+  "pay.cancelled": "Ịkwụ ụgwọ ahụ emechaghị, ya mere ewepụghị ihe ọ bụla. Nwaa ọzọ mgbe ị dị njikere.",
+  "w.cards.needsBank": "Tinye ụlọ akụ gị ka ị nwee ike ịnara ịkwụ ụgwọ kaadị. Ruo mgbe ahụ, ndị ahịa nwere ike ịkwụ site na transfer ma ọ bụ mgbe e wetara ya.",
+  "w.cards.off": "Akwụsịtụla ịkwụ ụgwọ kaadị na Shopinbos ugbu a. Ndị ahịa nwere ike ịkwụ site na transfer ma ọ bụ mgbe e wetara ya.",
+  "w.cards.live.seller": "Ụlọ ahịa gị na-anara ịkwụ ụgwọ kaadị. Nke ọ bụla na-aga ozugbo n'ụlọ akụ gị.",
+  "w.cards.live.business": "Azụmahịa nwere ike ịkwụ gị ụgwọ site na kaadị na Shopinbos, ozugbo n'ụlọ akụ gị.",
+  "w.steps.bank": "Tinye ụlọ akụ gị",
+  "w.steps.check": "Paystack na-enyocha akaụntụ ahụ",
+  "w.steps.cards": "Nara ịkwụ ụgwọ kaadị",
 };
 
 export default ig;

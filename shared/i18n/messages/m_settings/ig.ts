@@ -177,6 +177,15 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "del.payFee": "Kwụọ {amount} site na kaadị",
   "del.feePaid": "A kwụọla ego delivery",
   "del.feeNotSeen": "Anyị ahụbeghị ịkwụ ụgwọ ahụ. Ọ bụrụ na ị kwụọla, ọ ga-apụta ebe a n'otu nkeji.",
+  "money.state.card.needs_bank": "Tinye ụlọ akụ gị ka ị nara ịkwụ ụgwọ kaadị",
+  "money.state.transfer.needs_bank": "Tinye ụlọ akụ gị ka ndị ahịa nwee ike ịkwụ site na transfer",
+  "money.state.bank_review": "Anyị na-enyocha ụlọ akụ gị. Ọ ga-amalite ozugbo akwadoro ya.",
+  "money.state.bank_failed": "Enweghị ike ịhazi ụlọ akụ gị. Nwaa akaụntụ ọzọ.",
+  "money.state.paused": "Ndị otu Shopinbos akwụsịtụla ya. Kpọtụrụ ndị nkwado.",
+  "money.state.needs_team": "Ọ ga-amalite n'ime otu ụbọchị, ozugbo anyị jikọtara ụlọ akụ gị.",
+  "money.state.unavailable": "Akwụsịtụla ịkwụ ụgwọ kaadị na Shopinbos ugbu a.",
+  "money.state.needs_whatsapp": "Tinye nọmba WhatsApp gị ka ị gbanye nke a.",
+  "money.bankRecheck": "Tinye ụlọ akụ a ọzọ ka Paystack nyochaa ya. Mgbe ahụ ịkwụ ụgwọ kaadị ga-aga ozugbo n'ime ya.",
 };
 
 export default ig;

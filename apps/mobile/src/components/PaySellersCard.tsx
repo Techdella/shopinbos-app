@@ -12,10 +12,10 @@ import { colors } from "@/theme";
 // it over and the seller confirms it in their app (web: /logistics/cash, PaySellerList).
 
 export function PaySellersCard({ onPaid }: { onPaid: () => void }) {
-  const t = useT("m_partner", "common");
+  const t = useT("m_partner", "m_money", "common");
   const loaded = useLoad(fetchSellersCash);
   const [busy, setBusy] = useState<string | null>(null);
-  const [message, setMessage] = useState<{ tone: "error" | "success"; text: string } | null>(null);
+  const [message, setMessage] = useState<{ tone: "error" | "success" | "info"; text: string } | null>(null);
   const sellers = loaded.data?.sellers ?? [];
   if (!sellers.length) return null;
 
@@ -24,7 +24,14 @@ export function PaySellersCard({ onPaid }: { onPaid: () => void }) {
     setMessage(null);
     try {
       const result = await paySellerCash(sellerId);
-      setMessage(result.paid ? { tone: "success", text: t("money.paidSeller", { name: sellerName }) } : { tone: "error", text: t("money.notSeenYet") });
+      // Paid, a transfer still on its way (the webhook settles it), or closed before paying.
+      setMessage(
+        result.outcome === "paid"
+          ? { tone: "success", text: t("money.paidSeller", { name: sellerName }) }
+          : result.outcome === "pending"
+            ? { tone: "info", text: t("pay.pending") }
+            : { tone: "error", text: t("pay.cancelled") },
+      );
       await loaded.reload();
       onPaid();
     } catch (failure) {
@@ -54,7 +61,7 @@ export function PaySellersCard({ onPaid }: { onPaid: () => void }) {
           )}
         </View>
       ))}
-      {message ? <Notice tone={message.tone === "error" ? "error" : "success"}>{message.text}</Notice> : null}
+      {message ? <Notice tone={message.tone}>{message.text}</Notice> : null}
     </Card>
   );
 }
