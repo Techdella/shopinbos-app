@@ -19,9 +19,11 @@ export interface RegistrationLaunch {
   changedAt: string | null;
   /** The product news email sent when it first went live. */
   announcementId: string | null;
+  /** Accounts (user ids) it's open for while it isn't live for everyone yet: the team testing it end to end. */
+  testers: string[];
 }
 
-const OFF: RegistrationLaunch = { live: false, changedAt: null, announcementId: null };
+const OFF: RegistrationLaunch = { live: false, changedAt: null, announcementId: null, testers: [] };
 
 function readLaunch(value: unknown): RegistrationLaunch {
   const v = value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
@@ -29,6 +31,7 @@ function readLaunch(value: unknown): RegistrationLaunch {
     live: v.live === true,
     changedAt: typeof v.changedAt === "string" ? v.changedAt : null,
     announcementId: typeof v.announcementId === "string" ? v.announcementId : null,
+    testers: Array.isArray(v.testers) ? v.testers.filter((id): id is string => typeof id === "string" && id.length > 0).slice(0, 50) : [],
   };
 }
 
@@ -39,6 +42,12 @@ export async function getRegistrationLaunch(): Promise<RegistrationLaunch> {
 
 export async function registrationLaunched() {
   return (await getRegistrationLaunch()).live;
+}
+
+/** Live for everyone, or this account is one of the testers. */
+export async function registrationOpenFor(userId: string | null | undefined) {
+  const launch = await getRegistrationLaunch();
+  return launch.live || Boolean(userId && launch.testers.includes(userId));
 }
 
 /** What has to be in place before it can go live: the CAC VAS key and Paystack (it's paid first). */
@@ -85,7 +94,7 @@ export async function setRegistrationLaunch(input: { live: boolean; announce?: b
     if (!ready.cacVas) throw new RegistrationLaunchError("Add the CAC VAS API key (CAC_VAS_API_KEY) before switching registration on.");
     if (!ready.paystack) throw new RegistrationLaunchError("Add the Paystack secret key before switching registration on (applications are paid first).");
   }
-  const after: RegistrationLaunch = { live: input.live, changedAt: new Date().toISOString(), announcementId: before.announcementId };
+  const after: RegistrationLaunch = { live: input.live, changedAt: new Date().toISOString(), announcementId: before.announcementId, testers: before.testers };
   const json = JSON.parse(JSON.stringify(after));
   await db.$transaction([
     db.platformSetting.upsert({ where: { key: REGISTRATION_LAUNCH_KEY }, create: { key: REGISTRATION_LAUNCH_KEY, value: json, updatedById: by.userId }, update: { value: json, updatedById: by.userId } }),

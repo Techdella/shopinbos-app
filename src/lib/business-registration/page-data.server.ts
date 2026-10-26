@@ -8,7 +8,7 @@ import type { RegistrationForm } from "@shared/business-registration";
 /** What the registration page needs: whether it's on, the price, the owner's applications, and details to prefill. */
 export async function registrationPageData(user: { id: string; email?: string | null; name?: string | null; role: RegistrationRole }) {
   const [enabled, registrations, priceNgn, account, wallet] = await Promise.all([
-    registrationEnabled(),
+    registrationEnabled(user.id),
     listRegistrations(user.id),
     registrationPrice(),
     db.user.findUnique({ where: { id: user.id }, select: { phone: true, email: true, name: true } }),
