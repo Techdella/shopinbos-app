@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import Svg, { Path } from "react-native-svg";
@@ -8,19 +8,18 @@ import { AppIcon } from "@/components/icons";
 import { T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
+import { KeyboardShift } from "@/components/KeyboardShift";
 
 // Supplier-only pieces of the "Simple app, end to end" supplier prototype (E2E-Supplier) that the shared
 // components/design.tsx doesn't have: the set-up frame ("‹" and "1 of 4"), the big green tick screen, the two
 // round −/+ buttons on a product row, and the tinted note cards on an order.
-
-const IOS = Platform.OS === "ios";
 
 /** A set-up step (`.scr.flow` with `.hdr`): a round back button and "1 of 4", a big title, the body, a pinned footer. */
 export function FlowFrame({ step, onBack, title, sub, children, footer, aside }: { step?: string; onBack?: () => void; title?: string; sub?: string; children?: ReactNode; footer?: ReactNode; aside?: ReactNode }) {
   const t = useT("common");
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={IOS ? "padding" : undefined}>
+      <KeyboardShift>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 32, gap: 20, flexGrow: 1 }}>
           {onBack || step ? (
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 46 }}>
@@ -44,7 +43,7 @@ export function FlowFrame({ step, onBack, title, sub, children, footer, aside }:
           {children}
         </ScrollView>
         {footer ? <View style={{ paddingHorizontal: 20, paddingBottom: 12, paddingTop: 10, gap: 10, backgroundColor: colors.canvas }}>{footer}</View> : null}
-      </KeyboardAvoidingView>
+      </KeyboardShift>
     </SafeAreaView>
   );
 }

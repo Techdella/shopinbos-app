@@ -16,6 +16,7 @@ import { PdpDetails } from "./PdpDetails";
 import { PdpGallery } from "./PdpGallery";
 import { PdpReviews, Stars } from "./PdpReviews";
 import { PDP_CSS } from "./pdp-css";
+import { useT } from "@/components/i18n/I18nProvider";
 import {
   productVideo,
   pushRecentlyViewed,
@@ -75,6 +76,7 @@ function readRecent(slug: string): string[] {
 /** The 2026 themes' product page: gallery, buy box, trust badges, details, reviews and product rails, laid out per settings. */
 export function BoutiquePdp(props: Props) {
   const { product, look, shopper, interactive, settings } = props;
+  const words = useT("common");
   const t = look.tokens;
   const editor = !interactive;
   const uid = useId().replace(/:/g, "");
@@ -448,6 +450,12 @@ export function BoutiquePdp(props: Props) {
           <p className="mb-2 text-[11.5px] uppercase tracking-[0.14em]" style={{ color: t.muted, fontFamily: look.eyebrowFont }}>{product.category.name}</p>
         ) : null}
         <h1 className="bq-h text-[28px] @3xl:text-[36px]" style={{ ...look.headingStyle, lineHeight: 1.12 }}>{product.name}</h1>
+        {/* The code customers quote when they order on WhatsApp ("Comment BAG2 to order"). */}
+        {product.shortCode ? (
+          <p className="mt-1.5 text-[12.5px]" style={{ color: t.muted }}>
+            {words("product.code")}: <span className="font-mono font-semibold tracking-[0.06em]" style={{ color: t.ink }}>{product.shortCode}</span>
+          </p>
+        ) : null}
       </div>
       {settings.buyBox.map((id) => {
         const node = blocks[id]();

@@ -48,10 +48,6 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "suggest.3": "Make 20% off banner for the weekend",
   "more": "Other things Rex fit do",
   "credits.count": "{count, plural, one {# credit} other {# credits}}",
-  "credits.topUp": "Top up",
-  "credits.topUpLabel": "Top up credits: we go email you how",
-  "credits.emailed": "We don email you how to top up for the website.",
-  "credits.emailFailed": "We no fit send the email now. Try again after small time.",
   "card.useIt": "Use am",
   "card.useImageAsk": "Use this picture: {title}.",
   "card.useCopyAsk": "Use this description for {name}.",
@@ -60,6 +56,14 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "card.publish": "Publish am",
   "card.published": "E don publish. Customers dey see the new look now.",
   "card.publishFailed": "We no fit publish now. Try again.",
+  "photos.add": "Add photos",
+  "photos.attached": "Photo wey you attach",
+  "photos.remove": "Remove photo",
+  "photos.placeholder": "Wetin Rex go do with them?",
+  "photos.useThese": "Use these photos for my shop.",
+  "photos.uploadFailed": "That photo no upload. Try another one.",
+  "photos.allowCamera": "Allow camera for your phone settings to snap photo.",
+  "photos.allowGallery": "Allow photos for your phone settings to pick them.",
 };
 
 export default pcm;

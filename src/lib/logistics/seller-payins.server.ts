@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { appBase } from "@/lib/email/compliance.server";
 import { initializePaystackTransaction, verifyPaystackTransaction } from "@/lib/paystack";
 import { paystackSecretReady } from "@shared/checkout-payments";
+import { paystackOutcome } from "@shared/paystack-return";
 import { createNotification } from "@/lib/notifications/create";
 import { refreshPayInStandingSafely, UNPAID_CASH_WHERE } from "./payin-standing.server";
 
@@ -53,10 +54,13 @@ export async function cashOwedBySeller(partnerId: string): Promise<SellerCashOwe
   return [...bySeller.values()];
 }
 
+/** callbackUrl: where Paystack sends the payer back (the phone app passes shared/paystack-return appPaidCallbackUrl). */
+export type StartOptions = { callbackUrl?: string };
+
 export type StartResult = { ok: true; accessCode: string; reference: string; authorizationUrl: string | null } | { ok: false; error: string };
 
 /** Starts the Paystack payment of this seller's cash, split straight to the seller's bank. */
-export async function startSellerPayIn(partner: { id: string; email: string | null }, sellerId: string): Promise<StartResult> {
+export async function startSellerPayIn(partner: { id: string; email: string | null }, sellerId: string, options: StartOptions = {}): Promise<StartResult> {
   if (!paystackSecretReady(process.env.PAYSTACK_SECRET_KEY)) return { ok: false, error: "Card payments aren't set up yet. Hand the cash to the seller for now." };
   const owed = (await cashOwedBySeller(partner.id)).find((row) => row.sellerId === sellerId);
   if (!owed || owed.amount <= 0) return { ok: false, error: "There's no cash to pass on to this seller." };
@@ -68,7 +72,7 @@ export async function startSellerPayIn(partner: { id: string; email: string | nu
       email: partner.email || "payins@shopinbos.com",
       amountKobo: Math.round(owed.amount * 100),
       reference,
-      callbackUrl: `${appBase()}/logistics/cash`,
+      callbackUrl: options.callbackUrl ?? `${appBase()}/logistics/cash`,
       metadata: { kind: "cod_payin", partnerId: partner.id, sellerId, jobIds: owed.jobIds },
       // The seller's subaccount gets it all; Shopinbos's charge is zero and the seller bears Paystack's fee.
       split: { subaccount: wallet.subaccountCode, transaction_charge: 0, bearer: "subaccount" },
@@ -81,7 +85,7 @@ export async function startSellerPayIn(partner: { id: string; email: string | nu
   }
 }
 
-export type ConfirmResult = { ok: true; settled: number } | { ok: false; error: string; retry?: boolean };
+export type ConfirmResult = { ok: true; settled: number } | { ok: false; error: string; retry?: boolean; pending?: boolean };
 
 function readMetadata(value: unknown): { kind?: unknown; partnerId?: unknown; sellerId?: unknown; jobIds?: unknown } {
   if (typeof value === "string") {
@@ -107,7 +111,9 @@ export async function confirmSellerPayIn(reference: string, expectedPartnerId?: 
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : "Paystack could not check this payment.", retry: true };
   }
-  if (payment.status !== "success") return { ok: false, error: "The payment didn't go through." };
+  // Still on its way (a transfer or USSD) is "pending"; the webhook finishes it.
+  if (payment.status !== "success") return { ok: false, error: "The payment didn't go through.", pending: paystackOutcome(payment.status) === "pending" };
+  if (payment.currency && payment.currency !== "NGN") return { ok: false, error: "This payment wasn't in naira." };
   const meta = readMetadata(payment.metadata);
   const partnerId = typeof meta.partnerId === "string" ? meta.partnerId : "";
   const sellerId = typeof meta.sellerId === "string" ? meta.sellerId : "";

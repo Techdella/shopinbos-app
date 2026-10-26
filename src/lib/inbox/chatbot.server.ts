@@ -15,6 +15,7 @@ import { normalizeVariants } from "@shared/product-variants";
 import { detectStoreIntent, STORE_IDS } from "@/lib/whatsapp-store/pure";
 import { catalogProductList, saleProducts, whatsappStoreAnswer } from "@/lib/whatsapp-store/server";
 import type { WhatsAppCartOrder } from "./pure";
+import { codesInText, normalizeShortCode, productsByCodeInText } from "@shared/product-codes";
 
 // Peggy as the storefront's shopping assistant on live chat. She answers only from what the shop has told us
 // (products and prices, delivery zones, published returns/delivery pages, the seller's FAQs), never invents
@@ -44,9 +45,10 @@ async function knowledge(storeId: string, bot: ChatbotSettings, rules: AutoReply
   const parts: string[] = [`Shop: ${store.name}${store.city ? ` in ${store.city}` : ""}.`, store.description ? `About: ${store.description.slice(0, 400)}` : ""];
   if (bot.sources.products) {
     const products = await db.storeProduct
-      .findMany({ where: { storeId, status: "published" }, orderBy: { soldStock: "desc" }, take: 40, select: { id: true, name: true, retailPrice: true, currentStock: true } })
+      .findMany({ where: { storeId, status: "published" }, orderBy: { soldStock: "desc" }, take: 40, select: { id: true, name: true, shortCode: true, retailPrice: true, currentStock: true } })
       .catch(() => []);
-    parts.push(products.length ? `Products (name | price | stock):\n${products.map((p) => `${p.name} | ${naira(Number(p.retailPrice) || 0)} | ${p.currentStock > 0 ? "in stock" : "out of stock"}`).join("\n")}` : "No products are listed yet.");
+    // Each product's short code too: customers write "BAG2" from the seller's live video or Status.
+    parts.push(products.length ? `Products (code | name | price | stock; customers may name a product by its code):\n${products.map((p) => `${p.shortCode ?? "-"} | ${p.name} | ${naira(Number(p.retailPrice) || 0)} | ${p.currentStock > 0 ? "in stock" : "out of stock"}`).join("\n")}` : "No products are listed yet.");
   }
   if (bot.sources.delivery) {
     const owner = await db.user.findUnique({ where: { id: store.userId }, select: { email: true, phone: true } }).catch(() => null);
@@ -85,12 +87,14 @@ export async function payLinkText(input: { storeId: string; conversationId: stri
   return null;
 }
 
-/** The store's published product a customer named (exact name, any case), and its option if they named one. */
+/** The store's published product a customer named (exact name or short code, any case), and its option if they named one. */
 async function productNamed(storeId: string, name: string, option?: string | null) {
   const wanted = name.trim().toLowerCase();
   if (!wanted) return null;
-  const products = await db.storeProduct.findMany({ where: { storeId, status: "published" }, take: 1000, select: { id: true, name: true, variants: true } }).catch(() => []);
-  const matches = products.filter((product) => product.name.trim().toLowerCase() === wanted);
+  const products = await db.storeProduct.findMany({ where: { storeId, status: "published" }, take: 1000, select: { id: true, name: true, shortCode: true, variants: true } }).catch(() => []);
+  const byName = products.filter((product) => product.name.trim().toLowerCase() === wanted);
+  const code = normalizeShortCode(name).replace(/\s+/g, "");
+  const matches = byName.length ? byName : products.filter((product) => product.shortCode === code);
   if (matches.length !== 1) return null;
   const opt = option?.trim().toLowerCase();
   const variant = opt ? normalizeVariants(matches[0].variants).find((v) => v.enabled && v.name.toLowerCase() === opt) : null;
@@ -171,7 +175,16 @@ export async function whatsappBotAnswer(
 ): Promise<WhatsAppBotReply> {
   const wa = bot.whatsapp;
   const last = [...thread].reverse().find((turn) => turn.from === "shopper")?.body ?? "";
-  const intent = detectWhatsAppIntent({ text: last, replyId: ctx.replyId, handoffKeywords: bot.handoff.keywords, features: wa });
+  let intent = detectWhatsAppIntent({ text: last, replyId: ctx.replyId, handoffKeywords: bot.handoff.keywords, features: wa });
+  // "I want BAG2": a product's short code (from the seller's live video or Status) opens that product.
+  if (intent.kind === "question") {
+    const codes = codesInText(last);
+    if (codes.length) {
+      const coded = await db.storeProduct.findMany({ where: { storeId, status: "published", shortCode: { in: codes } }, select: { id: true, shortCode: true } }).catch(() => []);
+      const named = productsByCodeInText(coded, last)[0];
+      if (named) intent = { kind: "product", productId: named.id };
+    }
+  }
   const store = await db.store.findUnique({ where: { id: storeId }, select: { name: true, slug: true, customDomain: true, currency: true } });
   if (!store) return { body: bot.handoff.message, interactive: null, handoff: true, source: "handoff" };
 

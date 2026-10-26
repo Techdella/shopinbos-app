@@ -242,7 +242,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "shareP.nothing": "Ọ dịbeghị ihe ikesa",
   "shareP.nothingBody": "Reviews e bipụtara ga-apụta ebe a ozugbo ndị ahịa dere ha.",
   "shareP.widget": "Reviews widget",
-  "shareP.widgetSub": "Mado nke a na website ọ bụla (Wix, WordPress, Shopify, blog gị) ebe reviews kwesịrị ịpụta.",
+  "shareP.widgetSub": "Mado nke a na website ma ọ bụ blog ọ bụla ebe reviews kwesịrị ịpụta.",
   "shareP.embed": "Embed code",
   "shareP.widgetNote": "Ọ na-egosi nkezi gị na ruo reviews 6 (tinye ?limit=12 na link maka ọtụtụ). Ọ na-emelite n'onwe ya mgbe ị bipụtara ma ọ bụ zoo reviews.",
   "shareP.preview": "Lelee",

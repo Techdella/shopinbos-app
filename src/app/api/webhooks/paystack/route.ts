@@ -198,17 +198,21 @@ export async function POST(req: NextRequest) {
   if (eventType === "charge.success") {
     const ref = event.data?.reference as string | undefined;
     if (ref) {
+      // Ads setup fees and print orders (both can be paid from the phone app): idempotent on the reference, so when
+      // Paystack or the database can't be reached a 500 asks Paystack to send the event again.
       if (ref.startsWith(AD_SETUP_REFERENCE_PREFIX)) {
-        await completeAdSetupPayment(ref).catch((error) => {
+        const done = await completeAdSetupPayment(ref).catch((error) => {
           console.error("Ad setup payment completion failed:", error);
+          return "retry" as const;
         });
-        return NextResponse.json({ received: true });
+        return done === "retry" ? new NextResponse("Retry later", { status: 500 }) : NextResponse.json({ received: true });
       }
       if (ref.startsWith(PRINT_ORDER_REFERENCE_PREFIX)) {
-        await completePrintOrderPayment(ref).catch((error) => {
+        const done = await completePrintOrderPayment(ref).catch((error) => {
           console.error("Print order payment completion failed:", error);
+          return "retry" as const;
         });
-        return NextResponse.json({ received: true });
+        return done === "retry" ? new NextResponse("Retry later", { status: 500 }) : NextResponse.json({ received: true });
       }
       if (ref.startsWith(THEME_REFERENCE_PREFIX)) {
         await completeThemePurchase(ref).catch((error) => {

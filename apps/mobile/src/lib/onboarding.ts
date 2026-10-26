@@ -10,7 +10,7 @@ export interface OnboardingMemory {
   templateId?: string;
   category?: string;
   languages?: string[];
-  screen?: "chat" | "brand" | "products" | "payments";
+  screen?: "chat" | "brand" | "products" | "where" | "payments";
   palette?: { id?: string; name?: string; colors?: Record<string, string> } | null;
 }
 
@@ -75,7 +75,7 @@ export async function createProducts(drafts: ProductDraft[]) {
 }
 
 export const savePayments = (methods: Record<PaymentMethodKey, boolean>, zones: DeliveryZone[]) =>
-  api("/api/app/onboarding/payments", { method: "PUT", json: { methods, zones } });
+  api<{ zonesNote?: string | null }>("/api/app/onboarding/payments", { method: "PUT", json: { methods, zones } });
 
 export const fetchPayoutBank = () =>
   api<{ banks: string[]; current: { bankName: string | null; accountName: string | null; accountNumberMask: string | null } | null }>("/api/app/payout-bank");

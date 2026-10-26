@@ -294,3 +294,22 @@ export function readSplitPlan(value: unknown): PaymentSplitPlan | null {
   if (plan.version !== 1 || typeof plan.sellerSubaccount !== "string" || typeof plan.sellerKobo !== "number" || !Array.isArray(plan.suppliers)) return null;
   return { ...plan, sellerSettles: Array.isArray(plan.sellerSettles) ? plan.sellerSettles : [], deductions: Array.isArray(plan.deductions) ? plan.deductions : [] } as PaymentSplitPlan;
 }
+
+// ─── Banks saved while Paystack was switched off ─────────────────────────────
+
+/** What src/lib/paystack.ts says when no key is set: the subaccount was never really tried. */
+const PAYSTACK_OFF_ERRORS = [/paystack is not configured/i, /secret key is not configured/i];
+
+/**
+ * A bank saved while Paystack had no keys: its subaccount "failed" only because Paystack was off. Once the keys are
+ * set it is opened again by itself (loadWalletView), so nobody has to add the same bank twice. Only a wallet that
+ * isn't paused and has a bank; a real refusal from Paystack (a wrong account) is left for the person to fix.
+ */
+export function walletWaitingForPaystack(
+  wallet: { status: string; subaccountStatus: string; subaccountError: string | null; bankCode: string | null; accountNumber: string | null; nameCheck: string | null },
+  secretReady: boolean,
+): boolean {
+  if (!secretReady || wallet.status !== "active" || !wallet.bankCode || !wallet.accountNumber) return false;
+  if (wallet.nameCheck !== "auto" && wallet.nameCheck !== "approved") return false;
+  return wallet.subaccountStatus === "failed" && PAYSTACK_OFF_ERRORS.some((pattern) => pattern.test(wallet.subaccountError ?? ""));
+}

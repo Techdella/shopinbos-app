@@ -90,6 +90,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "page.of": "Ojú-ewé {page} nínú {pages}",
   "page.number": "Ojú-ewé {page}",
   "page.showing": "À ń fi {from}–{to} hàn nínú {total}",
+  "product.code": "Kóòdù",
+  "product.orderHere": "Ra á níbí",
+  "product.shareWhatsapp": "Pín sí WhatsApp",
 };
 
 export default yo;

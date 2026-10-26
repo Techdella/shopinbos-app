@@ -1,4 +1,5 @@
 import type { VerificationDoc } from "@shared/verification-docs";
+import type { TakingBlock } from "@shared/taking-jobs";
 import { api, apiBody } from "./api";
 
 // The delivery partner (dispatch) side of the app: /api/mobile/logistics/** on the web backend, made for the app
@@ -64,7 +65,8 @@ export interface PayInOverdue {
 }
 
 export interface LogisticsOverview {
-  partner: { name: string; city: string; areas: string; logoUrl: string | null; verificationStatus: string; onboarded: boolean; taking: boolean };
+  /** takingBlock: why "Taking new jobs" can't go on yet (shared/taking-jobs.ts); missing from older servers. */
+  partner: { name: string; city: string; areas: string; logoUrl: string | null; verificationStatus: string; onboarded: boolean; taking: boolean; takingBlock?: TakingBlock | null };
   firstName: string;
   deliveredToday: number;
   earnedToday: number;
@@ -317,3 +319,30 @@ export async function submitVerification() {
   if (result.success === false) throw new Error(result.error || "");
   return result;
 }
+
+/** Take a rider off the team (their Riders app link stops working) or bring them back (PATCH …/riders/[id]). */
+export const setRiderActive = (id: string, active: boolean) =>
+  api<{ id: string; active: boolean }>(`/api/mobile/logistics/riders/${encodeURIComponent(id)}`, { method: "PATCH", json: { active } });
+
+/** A shop's request for a delivery price (GET /api/mobile/logistics/quotes). */
+export interface PriceRequest {
+  id: string;
+  from: string;
+  to: string;
+  status: string;
+  price: number | null;
+  note: string | null;
+  wantedOn: string | null;
+  replyBy: string | null;
+  createdAt: string;
+  shop: string;
+  city: string | null;
+  parcel: string;
+  declaredValue: number | null;
+}
+
+export const fetchPriceRequests = () => api<{ waiting: PriceRequest[]; answered: PriceRequest[]; basePrice: number | null }>("/api/mobile/logistics/quotes");
+
+/** Send a price for a request, or say no to it. */
+export const answerPriceRequest = (id: string, body: { intent: "respond"; price: number; note?: string } | { intent: "decline"; note?: string }) =>
+  api<{ id: string; status: string }>(`/api/mobile/logistics/quotes/${encodeURIComponent(id)}`, { method: "POST", json: body });

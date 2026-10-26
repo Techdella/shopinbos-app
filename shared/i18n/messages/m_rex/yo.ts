@@ -48,10 +48,6 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "suggest.3": "Ṣe àsíá ẹ̀dinwó 20% fún òpin ọ̀sẹ̀",
   "more": "Àwọn nǹkan míì tí Rex lè ṣe",
   "credits.count": "{count, plural, other {credits #}}",
-  "credits.topUp": "Fi kún un",
-  "credits.topUpLabel": "Fi credits kún un: a máa fi email ránṣẹ́ sí ọ bí o ṣe máa ṣe é",
-  "credits.emailed": "A ti fi email ránṣẹ́ sí ọ nípa bí o ṣe máa fi credits kún un lórí wẹ́ẹ̀bù.",
-  "credits.emailFailed": "A kò lè fi email ránṣẹ́ báyìí. Gbìyànjú lẹ́ẹ̀kan sí i láìpẹ́.",
   "card.useIt": "Lò ó",
   "card.useImageAsk": "Lo àwòrán yìí: {title}.",
   "card.useCopyAsk": "Lo àpèjúwe yìí fún {name}.",
@@ -60,6 +56,14 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "card.publish": "Tẹ̀ ẹ́ jáde",
   "card.published": "A ti tẹ̀ ẹ́ jáde. Àwọn oníbàárà ń rí ìrísí tuntun báyìí.",
   "card.publishFailed": "A kò lè tẹ̀ ẹ́ jáde báyìí. Gbìyànjú lẹ́ẹ̀kan sí i.",
+  "photos.add": "Fi àwọn àwòrán kún un",
+  "photos.attached": "Àwòrán tí a so mọ́",
+  "photos.remove": "Yọ àwòrán kúrò",
+  "photos.placeholder": "Kí ni kí Rex fi wọ́n ṣe?",
+  "photos.useThese": "Lo àwọn àwòrán yìí nínú ṣọ́ọ̀bù mi.",
+  "photos.uploadFailed": "Àwòrán yẹn kò gòkè. Gbìyànjú òmíràn.",
+  "photos.allowCamera": "Gba kámẹ́rà láàyè nínú ètò fóònù rẹ láti ya àwòrán.",
+  "photos.allowGallery": "Gba àwọn àwòrán láàyè nínú ètò fóònù rẹ láti yàn wọ́n.",
 };
 
 export default yo;

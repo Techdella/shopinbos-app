@@ -28,7 +28,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "photos.adding": "E dey add…",
   "photos.allow": "Allow Shopinbos to use your photos for your phone settings, then try again.",
   "photos.problem": "That photo no upload. Try another one.",
-  "shots.credits": "You don use today free pictures. You go get more tomorrow.",
+  "shots.credits": "Your AI credits for pictures don finish for now. Your plan credits go full again every month.",
   "shots.done": "{count, plural, one {Your shot don ready} other {Your # shots don ready}}.",
   "words.language": "Language",
   "words.write": "Write the words with Rex",
@@ -46,12 +46,13 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "watch.on": "For {place}",
   "watch.useIt": "Use your video",
   "watch.save": "Save am for my phone",
-  "watch.saveHint": "The video go open. Press am and hold, or tap the download button, to keep am for your phone.",
+  "watch.saveHint": "Your phone share menu go open. Pick \"Save video\" to keep am.",
   "watch.onProduct": "For the product page",
   "watch.posted": "You don post am",
   "watch.change": "Change am",
   "watch.adHint": "Run this video as ad for Facebook and Instagram.",
   "watch.adOnWeb": "Make the ad for web",
+  "watch.saveFailed": "We no fit put the video for your phone. Check your network and try again.",
 };
 
 export default pcm;

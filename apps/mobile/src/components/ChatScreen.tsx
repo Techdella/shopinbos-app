@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, TextInput, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, TextInput, View } from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppIcon } from "@/components/icons";
@@ -9,6 +9,7 @@ import { HeaderBack } from "@/components/Screen";
 import { T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
 import { colors, fonts, radii } from "@/theme";
+import { KeyboardShift, useScrollToEndOnKeyboard } from "@/components/KeyboardShift";
 
 // The frame shared by the conversation screens (customer thread, partner chat, Rex): header, scrolling
 // messages that stick to the bottom, and a composer. Peggy's screen predates it and keeps its own copy.
@@ -40,10 +41,11 @@ export function ChatScreen({
     const timer = setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 60);
     return () => clearTimeout(timer);
   }, [scrollKey]);
+  useScrollToEndOnKeyboard(scroll);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <KeyboardShift>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingLeft: 12, paddingRight: 20, paddingVertical: 8 }}>
           <HeaderBack onPress={() => (router.canGoBack() ? router.back() : router.replace(backTo as never))} />
           {header}
@@ -58,7 +60,7 @@ export function ChatScreen({
           {children}
         </ScrollView>
         {composer}
-      </KeyboardAvoidingView>
+      </KeyboardShift>
     </SafeAreaView>
   );
 }
@@ -84,6 +86,8 @@ export function Composer({
   placeholder,
   disabled,
   above,
+  attach,
+  ready,
   voice = true,
 }: {
   value: string;
@@ -93,15 +97,20 @@ export function Composer({
   placeholder: string;
   disabled?: boolean;
   above?: ReactNode;
+  /** A button before the text box (Rex: attach photos). */
+  attach?: ReactNode;
+  /** Send works without words (photos attached). */
+  ready?: boolean;
   /** The mic for voice typing (build spec 8A), next to Send. */
   voice?: boolean;
 }) {
-  const off = disabled || busy || !value.trim();
+  const off = disabled || busy || !(value.trim() || ready);
   const t = useT("common");
   return (
     <View style={{ paddingHorizontal: 16, paddingBottom: 10, paddingTop: 6, gap: 8 }}>
       {above}
       <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8 }}>
+        {attach}
         <TextInput
           value={value}
           onChangeText={onChange}

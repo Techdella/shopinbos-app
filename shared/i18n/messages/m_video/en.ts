@@ -29,7 +29,7 @@ const en = {
   "photos.adding": "Adding…",
   "photos.allow": "Allow Shopinbos to use your photos in your phone's settings, then try again.",
   "photos.problem": "That photo didn't upload. Try another one.",
-  "shots.credits": "You've used today's free pictures. You get more tomorrow.",
+  "shots.credits": "You're out of AI credits for pictures for now. Your plan's credits refill each month.",
   "shots.done": "{count, plural, one {Your shot is ready} other {Your # shots are ready}}.",
   "words.language": "Language",
   "words.write": "Write the words with Rex",
@@ -48,12 +48,13 @@ const en = {
   "watch.on": "On {place}",
   "watch.useIt": "Use your video",
   "watch.save": "Save to my phone",
-  "watch.saveHint": "The video opens. Press and hold it, or tap the download button, to keep it on your phone.",
+  "watch.saveHint": "Your phone's share menu opens. Pick \"Save video\" to keep it.",
   "watch.onProduct": "On the product page",
   "watch.posted": "Posted",
   "watch.change": "Change it",
   "watch.adHint": "Run this video as an ad on Facebook and Instagram.",
   "watch.adOnWeb": "Make the ad on the web",
+  "watch.saveFailed": "Couldn't get the video onto your phone. Check your connection and try again.",
 } satisfies Record<string, string>;
 
 export default en;

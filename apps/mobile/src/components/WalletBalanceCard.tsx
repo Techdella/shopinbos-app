@@ -6,14 +6,15 @@ import { ErrorState, LoadingBlock } from "@/components/kit";
 import { useLoad } from "@/lib/useLoad";
 import { ApiError } from "@/lib/api";
 import { useLocale, useT } from "@/lib/i18n";
-import { emailWalletTopUp, fetchWalletBalance, WALLET_ACCOUNT_IN_APP, withdrawFromWallet } from "@/lib/wallet";
+import { fetchWalletBalance, WALLET_ACCOUNT_IN_APP, withdrawFromWallet } from "@/lib/wallet";
 import { WalletAccountNumber } from "@/components/WalletAccountNumber";
 import { colors } from "@/theme";
 
 // The prepaid wallet on the phone (twin of the web's src/components/wallet/WalletBalanceCard.tsx): the balance,
-// withdraw to their bank, and what moved. Topping up happens on the website only: the balance pays for Shopinbos
-// services (digital goods), which an app can't sell outside the stores' own payments (Apple 3.1.1, Google Play), so
-// "Top up" emails the steps, like AI credits. Their own account number shows only in builds that allow it. Sales don't come here: they go straight to the bank.
+// withdraw to their bank, and what moved. Only shown when EXPO_PUBLIC_PREPAID_BALANCE=true (off in store builds).
+// Nothing here adds money, emails how to, or links to the website: the balance pays for Shopinbos services (digital
+// goods), which the app can't sell or point to outside the stores' own billing (Google Play Payments, Apple 3.1.1
+// and 3.1.3; docs/store-payments-audit.md). Sales don't come here: they go straight to the bank.
 
 export function WalletBalanceCard() {
   const t = useT("m_money");
@@ -21,26 +22,13 @@ export function WalletBalanceCard() {
   const loaded = useLoad(fetchWalletBalance);
   const [withdrawing, setWithdrawing] = useState(false);
   const [amount, setAmount] = useState("");
-  const [busy, setBusy] = useState<"topup" | "withdraw" | null>(null);
+  const [busy, setBusy] = useState<"withdraw" | null>(null);
   const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const view = loaded.data;
   if (loaded.loading && !view) return <LoadingBlock />;
   if (!view) return loaded.error ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} /> : null;
 
   const failed = (error: unknown) => setMessage({ tone: "error", text: error instanceof ApiError ? error.message : t("bal.failed") });
-
-  const topUp = async () => {
-    setBusy("topup");
-    setMessage(null);
-    try {
-      await emailWalletTopUp();
-      setMessage({ tone: "success", text: t("bal.topUpSent") });
-    } catch (error) {
-      failed(error);
-    } finally {
-      setBusy(null);
-    }
-  };
 
   const withdraw = async () => {
     setBusy("withdraw");
@@ -64,10 +52,7 @@ export function WalletBalanceCard() {
       <T weight="extrabold" style={{ fontSize: 34 }}>{naira(view.balanceNaira)}</T>
       <T style={{ color: colors.inkSoft, fontSize: 14 }}>{t("bal.sub")}</T>
       {WALLET_ACCOUNT_IN_APP ? <WalletAccountNumber view={view} /> : null}
-      <View style={{ flexDirection: "row", gap: 10 }}>
-        <PillButton size="md" title={t("bal.topUp")} busy={busy === "topup"} disabled={busy !== null} onPress={() => void topUp()} style={{ flex: 1 }} />
-        <PillButton size="md" tone="white" title={t("bal.withdraw")} disabled={busy !== null || !view.ready || !view.canWithdraw || view.balanceNaira < view.limits.withdrawMin} onPress={() => setWithdrawing(!withdrawing)} style={{ flex: 1 }} />
-      </View>
+      <PillButton size="md" tone="white" title={t("bal.withdraw")} disabled={busy !== null || !view.ready || !view.canWithdraw || view.balanceNaira < view.limits.withdrawMin} onPress={() => setWithdrawing(!withdrawing)} />
       {withdrawing ? (
         <View style={{ gap: 10 }}>
           <Label>{view.bank ? t("bal.amountTo", { bank: view.bank }) : t("bal.amountToYours")}</Label>

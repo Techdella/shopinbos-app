@@ -28,7 +28,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "photos.adding": "Ọ na-etinye…",
   "photos.allow": "Kwe ka Shopinbos jiri foto gị na ntọala ekwentị gị, wee nwaa ọzọ.",
   "photos.problem": "Ebugoghị foto ahụ. Nwaa nke ọzọ.",
-  "shots.credits": "I jirila foto n'efu nke taa gwụchaa. Ị ga-enweta ndị ọzọ echi.",
+  "shots.credits": "Kredit AI maka foto agwụla ugbu a. Kredit nke atụmatụ gị na-ejupụta kwa ọnwa.",
   "shots.done": "{count, plural, other {Shot # gị adịla njikere}}.",
   "words.language": "Asụsụ",
   "words.write": "Ka Rex dee okwu ndị ahụ",
@@ -46,12 +46,13 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "watch.on": "Na {place}",
   "watch.useIt": "Jiri vidiyo gị",
   "watch.save": "Chekwaa ya na ekwentị m",
-  "watch.saveHint": "Vidiyo ahụ ga-emepe. Pịa ma jide ya, ma ọ bụ pịa bọtịnụ download, iji debe ya na ekwentị gị.",
+  "watch.saveHint": "Menu nkesa ekwentị gị ga-emepe. Họrọ \"Save video\" iji chekwaa ya.",
   "watch.onProduct": "Ọ dị na peeji ngwaahịa",
   "watch.posted": "I tinyela ya",
   "watch.change": "Gbanwee ya",
   "watch.adHint": "Jiri vidiyo a mee mgbasa ozi na Facebook na Instagram.",
   "watch.adOnWeb": "Mee mgbasa ozi ahụ na weebụ",
+  "watch.saveFailed": "Enweghị ike itinye vidiyo ahụ na ekwentị gị. Lelee njikọ gị ma nwaa ọzọ.",
 };
 
 export default ig;

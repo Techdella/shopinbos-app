@@ -21,6 +21,7 @@ export const dynamic = "force-dynamic";
 //   GET  → rider (with bike plate and language), today's earnings, drops done, cash in hand, this week's earnings
 //          and deliveries, and the runs (one per pickup) with their drops (each says whether it has a pickup code)
 //   POST { action: "online", online } | { action: "start_run", jobIds, codes? } | { action: "delivered", jobId, code, recipientName?, codCollected?, codMethod? }
+//        (no code from the customer: code "" once the proof photo is uploaded, with recipientName; see riderProofInstead)
 //        | { action: "failed", jobId, reason } | { action: "stage", jobId, to }
 //        | { action: "skip", jobId }            hand back a job not picked up yet (the partner is told)
 //        | { action: "help", jobId, reason }    tell the partner what's wrong; the job keeps its status
@@ -197,7 +198,7 @@ export async function POST(req: NextRequest) {
     : input.action === "start_run" ? await startRun(token, input.jobIds, input.codes ?? null)
     : input.action === "failed" ? await markFailed(token, { jobId: input.jobId, reason: input.reason })
     : input.action === "stage" ? await markStage(token, { jobId: input.jobId, to: input.to })
-    : await markDelivered(token, { jobId: input.jobId, code: input.code, codCollected: input.codCollected ?? null, codMethod: input.codMethod ?? null });
+    : await markDelivered(token, { jobId: input.jobId, code: input.code, recipientName: input.recipientName ?? null, codCollected: input.codCollected ?? null, codMethod: input.codMethod ?? null });
   if (!result.ok) {
     if (result.error === WRONG_PICKUP_CODE) return apiError("WRONG_PICKUP_CODE", result.error, 409);
     return apiError(result.error === LINK_ERROR ? "UNAUTHORIZED" : "CONFLICT", result.error, result.error === LINK_ERROR ? 401 : 409);

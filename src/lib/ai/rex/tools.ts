@@ -83,7 +83,8 @@ async function meter(ctx: RexToolContext, kind: AiKind, units = 1, action?: Cred
   const metered = await meterAiCharged(ctx.userId, kind, units, action);
   if (metered.blocked) {
     const body = (await metered.blocked.json().catch(() => null)) as { error?: { code?: string; message?: string } } | null;
-    throw new (body?.error?.code === "AI_CREDITS_NEEDED" ? RexCreditsError : RexToolError)(`${body?.error?.message ?? "The seller is out of AI credits."} Tell the seller plainly; nothing was made.`);
+    if (body?.error?.code === "AI_CREDITS_NEEDED") throw new RexCreditsError("The seller is out of AI credits for this. Nothing was made. Tell them plainly in one short line; don't say where or how to get more (the screen shows that).");
+    throw new RexToolError(`${body?.error?.message ?? "That's over today's limit."} Tell the seller plainly; nothing was made.`);
   }
   return () => refundAi(ctx.userId, kind, units, metered.credits);
 }

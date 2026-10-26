@@ -48,10 +48,6 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "suggest.3": "Mee banner mbelata 20% maka ngwụcha izu",
   "more": "Ihe ndị ọzọ Rex nwere ike ime",
   "credits.count": "{count, plural, other {credits #}}",
-  "credits.topUp": "Tinye credits",
-  "credits.topUpLabel": "Tinye credits: anyị ga-ezitere gị email otú ị ga-esi eme ya",
-  "credits.emailed": "Anyị ezitela gị email otú ị ga-esi tinye credits na website.",
-  "credits.emailFailed": "Anyị enweghị ike izipu email ugbu a. Nwaa ọzọ n'oge na-adịghị anya.",
   "card.useIt": "Jiri ya",
   "card.useImageAsk": "Jiri foto a: {title}.",
   "card.useCopyAsk": "Jiri nkọwa a maka {name}.",
@@ -60,6 +56,14 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "card.publish": "Bipụta ya",
   "card.published": "Ebipụtala ya. Ndị ahịa na-ahụ ọdịdị ọhụrụ ugbu a.",
   "card.publishFailed": "Anyị enweghị ike ibipụta ya ugbu a. Nwaa ọzọ.",
+  "photos.add": "Tinye foto",
+  "photos.attached": "Foto etinyere",
+  "photos.remove": "Wepụ foto",
+  "photos.placeholder": "Gịnị ka Rex ga-eji ha mee?",
+  "photos.useThese": "Jiri foto ndị a n'ụlọ ahịa m.",
+  "photos.uploadFailed": "Foto ahụ ebugoghị. Nwaa nke ọzọ.",
+  "photos.allowCamera": "Kwe ka igwefoto rụọ ọrụ na ntọala ekwentị gị iji see foto.",
+  "photos.allowGallery": "Kwe ka foto rụọ ọrụ na ntọala ekwentị gị iji họrọ ha.",
 };
 
 export default ig;

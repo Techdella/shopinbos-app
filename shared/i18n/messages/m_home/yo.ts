@@ -96,7 +96,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "ai.peggySub": "Títà, èsì",
   "needs.title": "Ó nílò rẹ",
   "tour.1.title": "Fi nǹkan kún un pẹ̀lú +",
-  "tour.1.body": "Tẹ + láti fi ọjà kún un, kọ títà sílẹ̀, tàbí fi pay link ránṣẹ́.",
+  "tour.1.body": "Tẹ + láti ṣe post, fi ọjà kún un, kọ títà sílẹ̀, tàbí fi pay link ránṣẹ́.",
   "tour.2.title": "Owó àti àwọn ọ̀nà àbùjá",
   "tour.2.body": "Tẹ káàdì dúdú láti rí owó rẹ. Ní ìsàlẹ̀ rẹ̀: ṣe post, delivery, wá stock láti tà, pín ṣọ́ọ̀bù rẹ.",
   "tour.3.title": "Béèrè lọ́wọ́ Rex tàbí Peggy",

@@ -5,6 +5,7 @@ import { chinaImportProblem, productLimitProblem } from "@/lib/plans/gates.serve
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/lib/db/client";
+import { withShortCode } from "@/lib/products/short-code.server";
 import { getCurrentAppUser } from "@/lib/server-auth";
 import { mergeBrandSettings } from "@/lib/workspace";
 import { createNotification } from "@/lib/notifications/create";
@@ -82,12 +83,13 @@ export async function addSupplierProductToStore(input: { supplierProductId: stri
   const planLimit = await productLimitProblem(user.id, store.id, 1, dropship);
   if (planLimit) return { ok: false, error: planLimit, code: "PLAN_LIMIT" };
   const retailPrice = clampSellingPrice(parsed.data.retailPrice ?? product.suggestedRetailPrice, product.wholesalePrice);
-  const storeProduct = await db.storeProduct.create({
+  const storeProduct = await withShortCode(store.id, { name: product.name, categoryId: product.categoryId }, (shortCode) => db.storeProduct.create({
     data: {
       storeId: store.id,
       userId: user.id,
       supplierProductId: product.id,
       name: product.name,
+      shortCode,
       description: product.description,
       images: product.images,
       retailPrice,
@@ -102,7 +104,7 @@ export async function addSupplierProductToStore(input: { supplierProductId: stri
       supplierLastSync: new Date(),
       status: "draft",
     },
-  });
+  }));
   if (dropship) {
     await db.dropshipRelationship.create({
       data: { sellerId: user.id, storeId: store.id, supplierId: product.supplierId, supplierProductId: product.id, storeProductId: storeProduct.id },

@@ -29,6 +29,8 @@ export async function transitionJob(input: {
   /** Riders can only move jobs assigned to them. */
   riderId?: string;
   code?: string | null;
+  /** Who took the parcel (a rider closing a drop with a proof photo instead of the customer's code). */
+  recipientName?: string | null;
   failedReason?: string | null;
   /** Why the partner can't take a new job (logistics marketplace). */
   declineReason?: string | null;

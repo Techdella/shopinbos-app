@@ -48,10 +48,6 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "suggest.3": "Yi tutar rangwamen 20% don ƙarshen mako",
   "more": "Sauran abubuwan da Rex zai iya yi",
   "credits.count": "{count, plural, one {Kiredit #} other {Kiredit #}}",
-  "credits.topUp": "Ƙara",
-  "credits.topUpLabel": "Ƙara kiredit: za mu aiko maka da email kan yadda ake yi",
-  "credits.emailed": "Mun aiko maka da email kan yadda za ka ƙara a shafin yanar gizo.",
-  "credits.emailFailed": "Ba mu iya aika email ɗin yanzu ba. Sake gwadawa nan ba da jimawa ba.",
   "card.useIt": "Yi amfani da shi",
   "card.useImageAsk": "Yi amfani da wannan hoton: {title}.",
   "card.useCopyAsk": "Yi amfani da wannan bayanin don {name}.",
@@ -60,6 +56,14 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "card.publish": "Wallafa",
   "card.published": "An wallafa. Abokan ciniki suna ganin sabon kamannin yanzu.",
   "card.publishFailed": "Ba mu iya wallafawa yanzu ba. Sake gwadawa.",
+  "photos.add": "Ƙara hotuna",
+  "photos.attached": "Hoton da aka haɗa",
+  "photos.remove": "Cire hoto",
+  "photos.placeholder": "Me Rex zai yi da su?",
+  "photos.useThese": "Yi amfani da waɗannan hotuna a shagona.",
+  "photos.uploadFailed": "Wannan hoton bai loda ba. Gwada wani.",
+  "photos.allowCamera": "Ba da izinin kyamara a saitunan wayarka don ɗaukar hoto.",
+  "photos.allowGallery": "Ba da izinin hotuna a saitunan wayarka don zaɓar su.",
 };
 
 export default ha;

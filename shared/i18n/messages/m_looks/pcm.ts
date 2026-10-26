@@ -12,8 +12,6 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "clear": "Clear filters",
   "showCount": "Show {count}",
   "search": "Search, like hair or shoe",
-  "plan": "Plan",
-  "any": "Any one",
   "colours": "Colours",
   "tone.all": "Any one",
   "tone.light": "Light",
@@ -24,9 +22,6 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "new": "New",
   "current": "Your look",
   "rexPick": "Rex pick am",
-  "needsPlan": "E need {plan} plan",
-  "needsPlanBody": "Get the plan for the website, then come back come use this look.",
-  "seePlans": "See plans for the website",
   "noMatch": "No look match",
   "previewTitle": "Preview",
   "keeps": "{blurb}. Your products, prices and delivery go remain the same.",
@@ -40,6 +35,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "seeMyShop": "See my shop",
   "isCurrent": "Na this one be your shop look now.",
   "askRexChange": "Ask Rex make e change am",
+  "appliedNew": "E don save. Put your shop live make customers fit see am.",
+  "notOnPlan": "E no dey your plan",
 };
 
 export default pcm;

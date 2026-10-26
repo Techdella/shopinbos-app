@@ -37,6 +37,7 @@ import {
   type VideoRow,
   type VideoStatus,
 } from "@/lib/video-pure";
+import { WebButtonLabel } from "@/components/WebBadge";
 import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
@@ -253,7 +254,12 @@ function Studio({ products, project, startPurpose, startProduct }: { products: S
     <Screen
       title={t("studio.title")}
       sub={t("studio.sub")}
-      footer={<PillButton title={t("finish.button")} busy={step === "finishing"} disabled={busy && step !== "finishing"} onPress={() => void finishOnWeb()} />}
+      footer={
+        // The final render runs on the website (an advanced tool), and the button says so.
+        <PillButton accessibilityLabel={t("finish.button")} busy={step === "finishing"} disabled={busy && step !== "finishing"} onPress={() => void finishOnWeb()}>
+          <WebButtonLabel title={t("finish.button")} />
+        </PillButton>
+      }
     >
       <Card style={{ gap: 10 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>

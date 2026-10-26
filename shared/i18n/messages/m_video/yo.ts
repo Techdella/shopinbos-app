@@ -28,7 +28,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "photos.adding": "Ó ń fi kún un…",
   "photos.allow": "Gba Shopinbos láàyè láti lo fọ́tò rẹ nínú ètò fóònù rẹ, lẹ́yìn náà gbìyànjú lẹ́ẹ̀kan sí i.",
   "photos.problem": "Fọ́tò yẹn kò gòkè. Gbìyànjú òmíràn.",
-  "shots.credits": "O ti lo àwọn àwòrán ọ̀fẹ́ ti òní. Wàá rí míì gbà lọ́la.",
+  "shots.credits": "Kirẹ́dítì AI fún àwòrán ti tán fún báyìí. Kirẹ́dítì ètò rẹ máa ń kún padà lóṣooṣù.",
   "shots.done": "{count, plural, one {Shot rẹ ti ṣetán} other {Àwọn shot # rẹ ti ṣetán}}.",
   "words.language": "Èdè",
   "words.write": "Jẹ́ kí Rex kọ àwọn ọ̀rọ̀",
@@ -46,12 +46,13 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "watch.on": "Lórí {place}",
   "watch.useIt": "Lo fídíò rẹ",
   "watch.save": "Fi pamọ́ sí fóònù mi",
-  "watch.saveHint": "Fídíò náà yóò ṣí. Tẹ̀ ẹ́ mọ́lẹ̀, tàbí tẹ bọ́tìnì download, láti tọ́jú rẹ̀ sí fóònù rẹ.",
+  "watch.saveHint": "Àkójọ ìpínlẹ̀ fóònù rẹ yóò ṣí. Yan \"Save video\" láti fi pamọ́.",
   "watch.onProduct": "Ó wà lórí ojú-ìwé ọjà",
   "watch.posted": "O ti post rẹ̀",
   "watch.change": "Yí i padà",
   "watch.adHint": "Lo fídíò yìí fún ìpolówó lórí Facebook àti Instagram.",
   "watch.adOnWeb": "Ṣe ìpolówó náà lórí wẹ́ẹ̀bù",
+  "watch.saveFailed": "A kò rí fídíò náà fi sí fóònù rẹ. Ṣàyẹ̀wò ìsopọ̀ rẹ kí o tún gbìyànjú.",
 };
 
 export default yo;

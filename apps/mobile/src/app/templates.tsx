@@ -11,22 +11,23 @@ import { AppIcon } from "@/components/icons";
 import { EmptyState, ErrorState, LoadingBlock } from "@/components/kit";
 import { Screen, ScreenHeader } from "@/components/Screen";
 import { Chip, Field, LinkButton, Mascot, Notice, PillButton, T } from "@/components/ui";
-import { publishStore } from "@/lib/onboarding";
+import { ShopLiveSheet, usePublishShop } from "@/components/seller/PublishShop";
 import { applyLook, fetchLookLibrary, lookDemoUrl, lookFilterCount, NO_LOOK_FILTERS, recommendLook, shownLooks, type LookFilters, type LookTone, type ShopLook } from "@/lib/templates";
 import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
-import { themeTierPlanName } from "@shared/plans";
+import { WebBadge } from "@/components/WebBadge";
+import { ALL_THEMES_FREE } from "@shared/plans";
 import { useT } from "@/lib/i18n";
 import { colors, fonts } from "@/theme";
 
 // Shop looks ("Familiar app" prototype `on.templates` and `tplView`): the web gallery's themes (/builder/templates)
 // as a grid of little shops in each theme's own colours and sample photos, filtered like the web (category chips,
-// plus plan, light or dark, search, "ones I can use" and "new" in the Filters sheet). A look opens full screen:
+// plus light or dark, search, "ones I can use" and "new" in the Filters sheet). A look opens full screen:
 // a big preview, "See it live" (the theme's live demo with its sample store, in the in-app browser), "Use this
-// look" (POST /api/store/templates/apply, the web's route) and "Ask Rex to change it". A look the seller's plan
-// doesn't include names that plan and sends them to the website for it; the app never sells a plan.
-
-const PLANS_PATH = "/home/settings?tab=Billing";
+// look" (POST /api/store/templates/apply, the web's route) and "Ask Rex to change it". Every look is free while
+// ALL_THEMES_FREE is on, so no lock shows at all; otherwise a look the plan doesn't include says "Not on your plan"
+// and nothing more: no plan name, cost, upgrade link or website (app store payment rules,
+// docs/store-payments-audit.md).
 
 /** A little shop in the look's colours: its sample store's name, banner photo and two products. */
 function MiniShop({ look, height, big = false }: { look: ShopLook; height: number; big?: boolean }) {
@@ -77,7 +78,7 @@ function LookCard({ look, width, rexPick, onPress }: { look: ShopLook; width: nu
     <Pressable
       testID={`look-${look.id}`}
       accessibilityRole="button"
-      accessibilityLabel={[look.name, meaning, look.current ? t("current") : null, look.lockedPlan ? t("needsPlan", { plan: look.lockedPlan }) : null].filter(Boolean).join(". ")}
+      accessibilityLabel={[look.name, meaning, look.current ? t("current") : null, look.lockedPlan ? t("notOnPlan") : null].filter(Boolean).join(". ")}
       onPress={onPress}
       style={({ pressed }) => ({ width, borderRadius: 22, padding: 8, gap: 8, backgroundColor: colors.surface, borderWidth: look.current ? 2.5 : 1, borderColor: look.current ? colors.ink : colors.line, opacity: pressed ? 0.88 : 1 })}
     >
@@ -86,7 +87,7 @@ function LookCard({ look, width, rexPick, onPress }: { look: ShopLook; width: nu
         <View style={{ position: "absolute", left: 6, top: 30, right: 6, flexDirection: "row", flexWrap: "wrap", gap: 4 }}>
           {look.current ? <Tag label={t("current")} dark icon="check" /> : null}
           {rexPick && !look.current ? <Tag label={t("rexPick")} dark icon="sparkle" /> : null}
-          {look.lockedPlan ? <Tag label={look.lockedPlan} icon="lock" /> : null}
+          {look.lockedPlan ? <Tag label={t("notOnPlan")} icon="lock" /> : null}
           {look.isNew && !look.current && !rexPick ? <Tag label={t("new")} /> : null}
         </View>
       </View>
@@ -104,7 +105,8 @@ type Applied = { id: string; slug: string; draftOnly: boolean; live: boolean };
 function LookPreview({ look, rexReason, applied, onClose, onApplied }: { look: ShopLook; rexReason: string | null; applied: Applied | null; onClose: () => void; onApplied: (result: Applied) => void }) {
   const t = useT("m_looks");
   const tb = useT("builder");
-  const [busy, setBusy] = useState<"use" | "publish" | null>(null);
+  const tm = useT("m_shop");
+  const [busy, setBusy] = useState<"use" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const done = applied?.id === look.id ? applied : null;
   const blurb = tb.dynamic(`theme.${look.id}.blurb`, look.blurb).replace(/[.\s]+$/, "");
@@ -114,7 +116,9 @@ function LookPreview({ look, rexReason, applied, onClose, onApplied }: { look: S
     setError(null);
     try {
       const result = await applyLook(look.id);
-      onApplied({ id: look.id, slug: result.storeSlug, draftOnly: result.draftOnly, live: !result.draftOnly });
+      // A switched look only changes the draft: it's live once the seller publishes ("Put it live"), whether or not
+      // the shop was live before (draftOnly only says shoppers still see the old look meanwhile).
+      onApplied({ id: look.id, slug: result.storeSlug, draftOnly: result.draftOnly, live: false });
     } catch (applyError) {
       setError(applyError instanceof Error ? applyError.message : t("applyFailed"));
     } finally {
@@ -122,41 +126,46 @@ function LookPreview({ look, rexReason, applied, onClose, onApplied }: { look: S
     }
   }
 
-  async function putLive() {
-    if (!done) return;
-    setBusy("publish");
-    setError(null);
-    try {
-      await publishStore();
-      onApplied({ ...done, live: true });
-    } catch (publishError) {
-      setError(publishError instanceof Error ? publishError.message : t("publishFailed"));
-    } finally {
-      setBusy(null);
-    }
-  }
+  const publishing = usePublishShop(() => done && onApplied({ ...done, live: true }));
 
   const askRex = () => {
     onClose();
     router.push({ pathname: "/rex", params: { prompt: t("rexChangePrompt", { name: look.name }) } });
   };
 
+  const editShop = () => {
+    onClose();
+    router.push("/shop-edit" as never);
+  };
+
   let action;
   if (done) {
     action = (
       <>
-        <Notice tone="success">{done.live ? t("applied") : t("appliedDraft")}</Notice>
-        {!done.live ? <PillButton testID="look-publish" tone="accent" title={t("putLive")} busy={busy === "publish"} onPress={() => void putLive()} /> : null}
-        {done.slug ? <LinkButton title={t("seeMyShop")} onPress={() => void openWeb(`/s/${encodeURIComponent(done.slug)}/preview`)} /> : null}
+        <Notice tone="success">{done.live ? t("applied") : done.draftOnly ? t("appliedDraft") : t("appliedNew")}</Notice>
+        {!done.live ? <PillButton testID="look-publish" tone="accent" title={t("putLive")} busy={publishing.busy} onPress={() => void publishing.publish()} /> : null}
+        {publishing.error ? <Notice>{publishing.error}</Notice> : null}
+        <PillButton testID="look-edit" tone="white" size="md" title={tm("editShop.open")} onPress={editShop} />
+        {done.slug ? (
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            <LinkButton title={t("seeMyShop")} onPress={() => void openWeb(`/s/${encodeURIComponent(done.slug)}/preview`)} />
+            <WebBadge />
+          </View>
+        ) : null}
+        <ShopLiveSheet shop={publishing.live} onClose={publishing.closeLive} />
       </>
     );
   } else if (look.current) {
-    action = <Notice tone="info">{t("isCurrent")}</Notice>;
+    action = (
+      <>
+        <Notice tone="info">{t("isCurrent")}</Notice>
+        <PillButton testID="look-edit" tone="accent" title={tm("editShop.open")} onPress={editShop} />
+      </>
+    );
   } else if (look.lockedPlan) {
     action = (
       <>
-        <Banner tone="warn" icon="lock" title={t("needsPlan", { plan: look.lockedPlan })}>{t("needsPlanBody")}</Banner>
-        <PillButton testID="look-plans" title={t("seePlans")} onPress={() => void openWeb(PLANS_PATH)} />
+        <Banner tone="warn" icon="lock" title={t("notOnPlan")} />
       </>
     );
   } else {
@@ -216,7 +225,7 @@ export default function ShopLooks() {
 
   // After a switch the new look is the current one, before the list reloads.
   const currentId = applied?.id ?? library?.currentThemeId ?? null;
-  const withCurrent = useMemo(() => (library ? { ...library, looks: library.looks.map((look) => ({ ...look, current: look.id === currentId, lockedPlan: look.id === currentId ? null : look.lockedPlan })) } : null), [library, currentId]);
+  const withCurrent = useMemo(() => (library ? { ...library, looks: library.looks.map((look) => ({ ...look, current: look.id === currentId, lockedPlan: ALL_THEMES_FREE || look.id === currentId ? null : look.lockedPlan })) } : null), [library, currentId]);
   const looks = useMemo(() => shownLooks(withCurrent, category, filters, pick?.themeId ?? null), [withCurrent, category, filters, pick]);
   const opened = withCurrent?.looks.find((look) => look.id === open) ?? null;
   const set = (patch: Partial<LookFilters>) => setFilters((now) => ({ ...now, ...patch }));
@@ -262,19 +271,14 @@ export default function ShopLooks() {
 
       <FilterSheet visible={sheet} onClose={() => setSheet(false)} title={t("filters")} doneLabel={t("showCount", { count: looks.length })} clearLabel={t("clear")} onClear={clear}>
         <Field value={filters.q} onChangeText={(q) => set({ q })} placeholder={t("search")} accessibilityLabel={t("search")} returnKeyType="search" autoCorrect={false} style={{ height: 48 }} />
-        <FilterGroup label={t("plan")}>
-          <Chip label={t("any")} on={filters.tier === "all"} onPress={() => set({ tier: "all" })} />
-          {(withCurrent?.tiers ?? []).map((tier) => (
-            <Chip key={tier} label={themeTierPlanName(tier)} on={filters.tier === tier} onPress={() => set({ tier: filters.tier === tier ? "all" : tier })} />
-          ))}
-        </FilterGroup>
+        {/* No plan filter: plan names next to themes read as an upsell (app store payment rules). */}
         <FilterGroup label={t("colours")}>
           {(["all", "light", "dark"] as LookTone[]).map((tone) => (
             <Chip key={tone} label={t(`tone.${tone}`)} on={filters.tone === tone} onPress={() => set({ tone })} />
           ))}
         </FilterGroup>
         <FilterGroup label={t("show")}>
-          <Chip label={t("usable")} on={filters.usable} onPress={() => set({ usable: !filters.usable })} />
+          {ALL_THEMES_FREE ? null : <Chip label={t("usable")} on={filters.usable} onPress={() => set({ usable: !filters.usable })} />}
           <Chip label={t("newOnes")} on={filters.isNew} onPress={() => set({ isNew: !filters.isNew })} />
         </FilterGroup>
       </FilterSheet>

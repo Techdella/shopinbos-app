@@ -130,7 +130,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "call.screen.chats": "Mkparịta ụka",
   "call.screen.connections": "Ndị na-ere ahịa ị na-ebugara ngwa",
   "call.screen.coverage": "Ebe ị na-ebuga ngwa",
-  "call.screen.create": "Mepụta na Rex",
+  "call.screen.create": "Mee mbipụta",
   "call.screen.customers": "Ndị ahịa",
   "call.screen.delivery": "Nnyefe",
   "call.screen.delivery_areas": "Ebe ị na-ebuga ngwa",
@@ -149,7 +149,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "call.screen.payout": "Ụlọ akụ maka ịkwụ ụgwọ",
   "call.screen.pickup": "Adreesị ebe a na-anara ngwa",
   "call.screen.pickup_points": "Ebe a na-anara ngwa",
-  "call.screen.posts": "Mbipụta",
+  "call.screen.posts": "Kalịnda mbipụta",
   "call.screen.products": "Ngwaahịa",
   "call.screen.profile": "Nkọwa ụlọ ọrụ",
   "call.screen.quotes": "Ọnụahịa a rịọrọ",
@@ -165,6 +165,13 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "call.screen.wallet": "Obere akpa ego",
   "call.screen.where": "Ebe ị na-ere ahịa",
   "call.peggyEnded": "Peggy kwụsịrị oku ahụ",
+  "call.screen.rex": "Dezie ụlọ ahịa m na Rex",
+  "call.screen.shop_edit": "Dezie ụlọ ahịa m",
+  "call.screen.team": "Ndị otu",
+  "call.screen.tiers": "Ọkwa ọnụahịa wholesale",
+  "call.screen.agreements": "Nkwekọrịta dropship",
+  "call.screen.status": "Tinye Status",
+  "call.screen.rewards": "Ihe nrite",
 };
 
 export default ig;

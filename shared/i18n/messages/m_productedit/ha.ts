@@ -182,6 +182,10 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "more.problem.seoTitle": "Taken Google ya yi tsawo. Rage shi.",
   "more.problem.seoDescription": "Rubutun Google ya yi tsawo. Rage shi.",
   "more.problem.versions": "Duba girma da launukanka: kowanne sau ɗaya, kuma iri 100 a mafi yawa.",
+  "code.label": "Kodin kaya",
+  "code.hint": "Faɗe shi a live da Status: “Comment BAG2 to order”.",
+  "code.format": "Kodin kaya haruffa da lambobi ne guda 2 zuwa 8, kamar BAG2.",
+  "code.taken": "Wani kaya yana amfani da {code} tuni. Zaɓi wata kodi.",
 };
 
 export default ha;

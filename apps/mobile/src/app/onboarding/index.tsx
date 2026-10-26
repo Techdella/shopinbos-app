@@ -69,6 +69,7 @@ export default function Chat() {
   return (
     <OnboardingFrame
       step="chat"
+      chat
       footer={
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <TextInput

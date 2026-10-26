@@ -62,12 +62,12 @@ test("Chats: All / Customers / Partners / Unread, and Peggy's draft reply with S
   assert.match(mobile("lib/inbox.ts"), /\/suggest`, \{ method: "POST"/);
 });
 
-test("Shop looks are an app screen; Rex's credits top up by email, never a sale", () => {
+test("Shop looks are an app screen; Rex's credits are shown, never sold or pointed to", () => {
   assert.match(mobile("app/(tabs)/shop.tsx"), /id: "themes"[^\n]+path: "app:\/templates"/);
   const looks = mobile("lib/templates.ts");
   for (const route of ['"/api/mobile/looks"', '"/api/store/templates/apply"', '"/api/store/templates/recommend"']) assert.ok(looks.includes(route), route);
   const rex = mobile("app/rex.tsx");
-  assert.match(rex, /emailTopUp\(\)/);
+  assert.doesNotMatch(rex, /emailTopUp|rex-top-up/);
   assert.match(rex, /fetchCredits\(\)/);
   assert.doesNotMatch(rex, /price list|₦\d/);
 });

@@ -8,6 +8,7 @@ import { buildSellerSnapshot } from "./context";
 import { loadBrandContext } from "@/lib/ai/brand-context.server";
 import { brandContextForAi } from "@shared/brand-context";
 import { PEGGY_INSTRUCTIONS, peggyContextBlock } from "./prompt";
+import { IN_APP_PAYMENTS_RULE } from "@shared/store-payments";
 import {
   issuedConfirmationCodes,
   parseToolInput,
@@ -187,7 +188,7 @@ async function viaOpenAI(client: OpenAI, context: string, turns: PeggyTurn[], st
 // ─── Entry point ─────────────────────────────────────────────────────────────
 
 /** Peggy's answer to a conversation (oldest turn first, ending with the seller's message). */
-export async function runPeggy(user: { id: string; phone?: string | null }, turns: PeggyTurn[]): Promise<PeggyReply | { error: string }> {
+export async function runPeggy(user: { id: string; phone?: string | null }, turns: PeggyTurn[], options: { inApp?: boolean } = {}): Promise<PeggyReply | { error: string }> {
   const anthropic = getAnthropicClient();
   const openai = getOpenAIClient();
   if (!anthropic && !openai) return { error: "Peggy isn't connected yet. Add ANTHROPIC_API_KEY or OPENAI_API_KEY." };
@@ -197,7 +198,9 @@ export async function runPeggy(user: { id: string; phone?: string | null }, turn
     db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, currency: true } }),
   ]);
   const brand = store ? await loadBrandContext(store.id).catch(() => null) : null;
-  const context = peggyContextBlock(snapshot, new Date(), brand ? brandContextForAi(brand) : null);
+  const base = peggyContextBlock(snapshot, new Date(), brand ? brandContextForAi(brand) : null);
+  // In the phone app, app store payment rules (shared/store-payments.ts): no buying credits or plans in her words.
+  const context = options.inApp ? `${base}\n\n${IN_APP_PAYMENTS_RULE}` : base;
   const state: RunState = {
     ctx: store ? { userId: user.id, userPhone: user.phone ?? null, store } : null,
     actions: [],

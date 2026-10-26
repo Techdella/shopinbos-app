@@ -1,5 +1,6 @@
 import type { VerificationDoc } from "@shared/verification-docs";
 import type { PickupSlot } from "@shared/supplier-pickup";
+import type { ContractDocument } from "@shared/contracts";
 import { api, apiBody } from "./api";
 
 // The supplier side of the app. Reads and writes go to the same backend as the web supplier portal:
@@ -202,6 +203,29 @@ export interface SupplierMe {
 
 export const fetchSupplierMe = () => api<SupplierMe>("/api/supplier/me");
 
+/** A shop that wants to dropship this supplier's products (GET /api/mobile/supplier/agreements). */
+export interface DropshipAgreement {
+  id: string;
+  status: "requested" | "active" | "declined" | string;
+  shopName: string;
+  shopCity: string | null;
+  phone: string | null;
+  stockCheck: string;
+  sellerNote: string | null;
+  supplierNote: string | null;
+  createdAt: string;
+  products: number;
+  contractId: string | null;
+  /** The written Dropship agreement the shop signed, to read before signing. */
+  document: ContractDocument | null;
+}
+
+export const fetchAgreements = () => api<{ agreements: DropshipAgreement[] }>("/api/mobile/supplier/agreements").then((body) => body.agreements);
+
+/** Sign (accept) with the typed name, or decline saying why. Answers the server's own message. */
+export const answerAgreement = (id: string, answer: { accept: true; signedName: string } | { accept: false; note: string }) =>
+  api<{ message: string }>(`/api/mobile/supplier/agreements/${encodeURIComponent(id)}`, { method: "POST", json: answer });
+
 export const fetchSupplierProduct = (id: string) => api<SupplierProduct & { description: string }>(`/api/supplier/products/${encodeURIComponent(id)}`);
 
 /** "When can a rider pick it up?" and the rider booked for a packed order (/api/supplier/orders/[id]/pickup). */
@@ -281,3 +305,70 @@ export interface DeliveryWhere {
 export const fetchDeliveryWhere = () => api<{ settings: DeliveryWhere }>("/api/mobile/delivery").then((body) => body.settings);
 
 export const saveDeliveryWhere = (input: Partial<DeliveryWhere>) => api<{ settings: DeliveryWhere }>("/api/mobile/delivery/settings", { method: "PUT", json: input });
+
+// ─── The people on the account (/api/mobile/supplier/team) ───────────────────
+
+export const TEAM_ROLES = ["manager", "inventory", "support", "sales"] as const;
+export type TeamRole = (typeof TEAM_ROLES)[number];
+
+export interface TeamMember {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  role: string;
+  status: string;
+  invitedAt: string;
+}
+
+export interface TeamView {
+  members: TeamMember[];
+  /** Null: no limit on this plan. */
+  limit: number | null;
+  canAdd: boolean;
+  verified?: boolean;
+}
+
+export const fetchTeam = () => api<TeamView>("/api/mobile/supplier/team");
+
+export const addTeamMember = (input: { name: string; email: string; phone?: string; role: TeamRole }) => api<TeamView>("/api/mobile/supplier/team", { method: "POST", json: input });
+
+export const setTeamMemberActive = (id: string, active: boolean) =>
+  api<{ id: string; status: string }>(`/api/mobile/supplier/team/${encodeURIComponent(id)}`, { method: "PATCH", json: { active } });
+
+export const removeTeamMember = (id: string) => api<{ id: string }>(`/api/mobile/supplier/team/${encodeURIComponent(id)}`, { method: "DELETE" });
+
+// ─── The business profile shops see (GET / PATCH /api/supplier/profile) ──────
+
+export interface SupplierPublicProfile {
+  displayName: string;
+  description: string | null;
+  whatsappNumber: string | null;
+  website: string | null;
+  logoUrl: string | null;
+  slug: string;
+}
+
+export const fetchSupplierProfile = () => api<SupplierPublicProfile>("/api/supplier/profile");
+
+export const savePublicProfile = (input: { description?: string; whatsappNumber?: string; website?: string; logoUrl?: string }) =>
+  api<SupplierPublicProfile>("/api/supplier/profile", { method: "PATCH", json: input });
+
+// ─── Full product edit (PATCH /api/supplier/products/[id], the web editor's call) ─
+
+export type PriceTier = { minQty: number; maxQty?: number; price: number };
+
+export interface ProductEdit {
+  name?: string;
+  description?: string;
+  images?: string[];
+  moq?: number;
+  processingTime?: string;
+  deliveryRegions?: string[];
+  dropshipAvailable?: boolean;
+  bulkOrderAvailable?: boolean;
+  pricingTiers?: PriceTier[];
+}
+
+export const editSupplierProduct = (id: string, patch: ProductEdit) =>
+  api<SupplierProduct & { description: string }>(`/api/supplier/products/${encodeURIComponent(id)}`, { method: "PATCH", json: patch });

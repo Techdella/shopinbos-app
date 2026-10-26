@@ -52,8 +52,6 @@ const en = {
   "check.later": "We couldn't check just now. We'll keep trying by ourselves.",
   "continue": "Continue",
   "cancel": "Cancel",
-  "buy.title": "Buy a new domain on the website",
-  "buy.sub": "Search for a name and pay there. We set it up for you.",
 } satisfies Record<string, string>;
 
 export default en;

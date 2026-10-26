@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Modal, Pressable, Share, View } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import * as Clipboard from "expo-clipboard";
 import { SafeAreaView } from "react-native-safe-area-context";
 import QRCode from "react-native-qrcode-svg";
@@ -12,6 +12,8 @@ import { finishOnboarding } from "@/lib/onboarding";
 import { useT } from "@/lib/i18n";
 import { colors, fonts, radii } from "@/theme";
 import { HelpButton } from "@/components/Help";
+import { AppIcon } from "@/components/icons";
+import { PublishButton } from "@/components/seller/PublishShop";
 
 // "Your shop is live!" ("Familiar app" prototype `on.live`): the link, Share on WhatsApp as the one main button
 // (Status first, that's where customers are), the Instagram bio and QR poster, and "Go to my shop", which finishes
@@ -19,7 +21,9 @@ import { HelpButton } from "@/components/Help";
 
 export default function Live() {
   const t = useT("m_onboarding", "m_home");
-  const { status, palette } = useOnboarding();
+  const { status, palette, refresh } = useOnboarding();
+  // From payments: why the shop didn't go live there (shown until it does), and fees kept because of the plan.
+  const params = useLocalSearchParams<{ publishError?: string; zonesKept?: string }>();
   const [toast, setToast] = useState<string | null>(null);
   const [qr, setQr] = useState(false);
   const [leaving, setLeaving] = useState(false);
@@ -37,6 +41,14 @@ export default function Live() {
     setLeaving(true);
     await finishOnboarding(status!.store.live).catch(() => null);
     router.replace("/home");
+  }
+
+  // "Let Peggy answer WhatsApp?": finish onboarding, then open the Peggy chatbot settings over Home.
+  async function setUpPeggy() {
+    setLeaving(true);
+    await finishOnboarding(status!.store.live).catch(() => null);
+    router.replace("/home");
+    router.push("/inbox/chatbot" as never);
   }
 
   return (
@@ -77,17 +89,29 @@ export default function Live() {
             </Pressable>
           ))}
         </View>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 12, backgroundColor: colors.mintTint, borderRadius: 24, paddingVertical: 8, paddingLeft: 6, paddingRight: 16 }}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t("live.peggyTitle")} onPress={() => void setUpPeggy()} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 12, backgroundColor: colors.mintTint, borderRadius: 24, paddingVertical: 8, paddingLeft: 6, paddingRight: 16, opacity: pressed ? 0.85 : 1 })}>
           {/* The transparent sticker: Peggy waves (animated WebP at 96 px and up). */}
           <Mascot who="peggy" mood="wave" size={96} label="" style={{ marginVertical: -6 }} />
           <View style={{ flex: 1 }}>
             <T weight="extrabold" style={{ fontSize: 15 }}>{t("live.peggyTitle")}</T>
             <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 18 }}>{t("live.peggyBody")}</T>
           </View>
-        </View>
+          <AppIcon name="chevron" size={18} color={colors.inkSoft} />
+        </Pressable>
         <View style={{ flex: 1 }} />
-        <T style={{ color: colors.inkSoft, fontSize: 14.5, lineHeight: 20, textAlign: "center", marginBottom: 10 }}>{t("live.statusFirst")}</T>
-        <PillButton title={t("live.shareWhatsApp")} tone="accent" onPress={() => void Share.share({ message: t("start.shareMessage", { name: status.store.name, url: withChannelRef(url, "whatsapp") }) })} />
+        {params.zonesKept ? <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 19, textAlign: "center", marginBottom: 8 }}>{t("pay.zonesKept")}</T> : null}
+        {live ? (
+          <>
+            <T style={{ color: colors.inkSoft, fontSize: 14.5, lineHeight: 20, textAlign: "center", marginBottom: 10 }}>{t("live.statusFirst")}</T>
+            <PillButton title={t("live.shareWhatsApp")} tone="accent" onPress={() => void Share.share({ message: t("start.shareMessage", { name: status.store.name, url: withChannelRef(url, "whatsapp") }) })} />
+          </>
+        ) : (
+          <>
+            {/* It didn't go live on the payments step: the reason, and the one button to try again here. */}
+            {params.publishError?.trim() ? <T style={{ color: colors.danger, fontSize: 14.5, lineHeight: 20, textAlign: "center", marginBottom: 10 }}>{params.publishError}</T> : null}
+            <PublishButton title={t("pay.goLive")} onPublished={() => void refresh()} />
+          </>
+        )}
         <LinkButton title={leaving ? t("live.opening") : t("live.goToShop")} style={{ marginTop: 4, marginBottom: 6 }} onPress={() => void goToShop()} />
       </SafeAreaView>
       {toast && (

@@ -15,6 +15,10 @@ import { linkProductView } from "@/lib/payment-links/pure";
 import { paymentReadiness } from "@/lib/payment-links/service.server";
 import { pageSlice } from "@/lib/pagination";
 import { Pagination } from "@/components/seller/Pagination";
+import { ProductCodeBadge } from "@/components/products/ProductCodeBadge";
+import { ShareWhatsAppButton } from "@/components/products/ShareWhatsAppButton";
+import { storefrontProductUrl } from "@shared/product-codes";
+import { storeUrl } from "@/lib/marketing/brand";
 
 export const dynamic = "force-dynamic";
 
@@ -88,6 +92,7 @@ export default async function ProductsPage({
       id: true,
       name: true,
       sku: true,
+      shortCode: true,
       images: true,
       retailPrice: true,
       compareAtPrice: true,
@@ -116,7 +121,7 @@ export default async function ProductsPage({
     (p) =>
       filter.test(p) &&
       (visibilityKey === "all" || p.visibility === visibilityKey) &&
-      (!needle || p.name.toLowerCase().includes(needle) || (p.sku ?? "").toLowerCase().includes(needle)),
+      (!needle || p.name.toLowerCase().includes(needle) || (p.sku ?? "").toLowerCase().includes(needle) || (p.shortCode ?? "").toLowerCase() === needle.replace(/\s+/g, "")),
   );
 
   // The filters run over every product, then one page of the matches is shown.
@@ -233,8 +238,16 @@ export default async function ProductsPage({
               <ListRow
                 key={p.id}
                 href={`/products/${p.id}`}
-                // A payment link to send in a chat (published products only: the pay page shows public products).
-                aside={p.status === "published" ? <PaymentLinkButton compact product={linkProductView(p)} storeName={workspace.store!.name} ready={readiness.ready} /> : undefined}
+                // Share to WhatsApp, and a payment link to send in a chat (published products only: the pay page shows
+                // public products).
+                aside={
+                  p.status === "published" ? (
+                    <span className="flex items-center gap-2">
+                      <ShareWhatsAppButton compact product={{ name: p.name, price: p.retailPrice, currency: p.currency, shortCode: p.shortCode, url: storefrontProductUrl(storeUrl(workspace.store!), p.id) }} />
+                      <PaymentLinkButton compact product={linkProductView(p)} storeName={workspace.store!.name} ready={readiness.ready} />
+                    </span>
+                  ) : undefined
+                }
               >
                 <div className="flex w-full min-w-0 items-start gap-3.5 md:items-center md:gap-4">
                   <Thumb src={p.images[0]} label={p.name} />
@@ -242,6 +255,7 @@ export default async function ProductsPage({
                     <div className="min-w-0">
                       <div className="flex min-w-0 items-center gap-2">
                         <span className="truncate text-[15px] font-extrabold">{p.name}</span>
+                        {p.shortCode ? <ProductCodeBadge code={p.shortCode} /> : null}
                         {p.featured && <span className="shrink-0 text-app-accent" title={t("list.featured")}><Icon name="star" size={14} /><span className="sr-only">{t("list.featured")}</span></span>}
                         {campaignTimers[p.id] ? <ProductCampaignBadge campaign={campaignTimers[p.id]!} serverNow={campaignNow.toISOString()} /> : null}
                       </div>

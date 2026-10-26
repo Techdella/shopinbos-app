@@ -130,7 +130,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "call.screen.chats": "Ìfọ̀rọ̀wérọ̀",
   "call.screen.connections": "Àwọn olùtajà tí o ń kó ọjà fún",
   "call.screen.coverage": "Ibi tí o ń kó ọjà dé",
-  "call.screen.create": "Ṣẹ̀dá pẹ̀lú Rex",
+  "call.screen.create": "Ṣe àtẹ̀jáde",
   "call.screen.customers": "Àwọn oníbàárà",
   "call.screen.delivery": "Ìfijíṣẹ́",
   "call.screen.delivery_areas": "Ibi tí o ń kó ọjà dé",
@@ -149,7 +149,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "call.screen.payout": "Báǹkì fún owó",
   "call.screen.pickup": "Àdírẹ́sì ìgbẹ́rù",
   "call.screen.pickup_points": "Àwọn ibùdó ìgbẹ́rù",
-  "call.screen.posts": "Àwọn àtẹ̀jáde",
+  "call.screen.posts": "Kàlẹ́ńdà àtẹ̀jáde",
   "call.screen.products": "Àwọn ọjà",
   "call.screen.profile": "Àlàyé ilé-iṣẹ́",
   "call.screen.quotes": "Àwọn ìdíyelé",
@@ -165,6 +165,13 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "call.screen.wallet": "Àpò owó",
   "call.screen.where": "Ibi tí o ń tà sí",
   "call.peggyEnded": "Peggy parí ìpè náà",
+  "call.screen.rex": "Ṣàtúnṣe ṣọ́ọ̀bù mi pẹ̀lú Rex",
+  "call.screen.shop_edit": "Ṣàtúnṣe ṣọ́ọ̀bù mi",
+  "call.screen.team": "Ẹgbẹ́ òṣìṣẹ́",
+  "call.screen.tiers": "Ìpele owó ọjà ẹ̀yàwọ̀",
+  "call.screen.agreements": "Àdéhùn dropship",
+  "call.screen.status": "Fi Status ránṣẹ́",
+  "call.screen.rewards": "Ẹ̀bùn",
 };
 
 export default yo;

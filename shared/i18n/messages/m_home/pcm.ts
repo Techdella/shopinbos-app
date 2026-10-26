@@ -96,7 +96,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "ai.peggySub": "Sales, replies",
   "needs.title": "E need you",
   "tour.1.title": "Add things with +",
-  "tour.1.body": "Tap + to add product, record sale, or send pay link.",
+  "tour.1.body": "Tap + to make post, add product, record sale or send pay link.",
   "tour.2.title": "Money and shortcuts",
   "tour.2.body": "Tap the black card to see your money. Under am: make post, delivery, find goods to sell, share your shop.",
   "tour.3.title": "Ask Rex or Peggy",

@@ -506,7 +506,7 @@ test("supplier and logistics starter limits are enforced and shown in billing UI
   assert.match(supplierActions, /atLimit\(productCount, supplierPlanLimits\(dbUser \?\? \{\}\)\.listings\)/);
   assert.match(supplierActions, /Billing%20%26%20Plan&limit=products/);
   assert.match(supplierActions, /atLimit\(teamMemberCount, supplierPlanLimits\(dbUser \?\? \{\}\)\.teamMembers\)/);
-  assert.match(supplierProductsRoute, /VERIFICATION_REQUIRED/);
+  assert.match(supplierProductsRoute, /&& !unverified \? "pending_review" : "draft"/, "unverified suppliers save drafts");
   assert.match(supplierProductsRoute, /atLimit\(productCount, listings\)/);
   assert.match(supplierProductsRoute, /PLAN_LIMIT/);
   assert.match(logisticsActions, /stateCount > limit/);

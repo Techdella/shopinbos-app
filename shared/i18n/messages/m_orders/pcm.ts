@@ -171,6 +171,10 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "filters.pay.any": "All",
   "filters.pay.unpaid": "Never pay",
   "filters.pay.toSend": "Don pay, never send",
+  "list.wholesale": "Wholesale orders",
+  "sale.codeFind": "Find am by code",
+  "sale.codePlaceholder": "Code, like BAG2",
+  "sale.codeNone": "No product get the code {code}.",
 };
 
 export default pcm;

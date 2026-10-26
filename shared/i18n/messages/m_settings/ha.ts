@@ -147,7 +147,6 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "set.more": "Ƙarin saituna a yanar gizo",
   "set.tips": "Shawarwari da bayanai",
   "set.tipsHint": "Bayanin kalmomi da gabatarwa da ke buɗewa da kansu",
-  "set.moreHint": "Ƙungiya, biyan kuɗi, tsaro da rufe shagonka. Zai buɗe a browser ɗinka",
   // Payment logos and the 'Built with Shopinbos' badge (shared/payment-badges.ts, src/lib/store-badges.ts).
   "money.badgesTitle": "Tambarin biyan kuɗi a shagonka",
   "money.badgesHint": "Taɓa don nunawa ko ɓoyewa. Masu saye za su gan su a ƙasan shagonka da wurin biya.",
@@ -174,9 +173,18 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "set.photoRemoveFailed": "Ba mu iya cire shi ba. Sake gwadawa.",
   "money.wallet": "Shopinbos Wallet",
   "money.walletHint": "Kuɗin kati suna tafiya kai tsaye zuwa bankinka",
-  "del.payFee": "Biya {amount} da kati",
+  "del.payFee": "Biya kuɗin isarwa {amount} da kati",
   "del.feePaid": "An biya kuɗin isarwa",
   "del.feeNotSeen": "Ba mu ga biyan ba tukuna. Idan ka biya, zai bayyana a nan cikin minti ɗaya.",
+  "money.state.card.needs_bank": "Ƙara bankinka don karɓar biyan kati",
+  "money.state.transfer.needs_bank": "Ƙara bankinka don abokan ciniki su iya biya ta transfer",
+  "money.state.bank_review": "Muna duba bankinka. Zai fara da zarar an amince da shi.",
+  "money.state.bank_failed": "Ba a iya saita bankinka ba. Gwada wani asusu.",
+  "money.state.paused": "Ƙungiyar Shopinbos ta dakatar da shi. Tuntuɓi tallafi.",
+  "money.state.needs_team": "Zai fara cikin kwana ɗaya, da zarar mun haɗa bankinka.",
+  "money.state.unavailable": "An dakatar da biyan kati a Shopinbos a yanzu.",
+  "money.state.needs_whatsapp": "Ƙara lambar WhatsApp ɗinka don kunna wannan.",
+  "money.bankRecheck": "Sake ƙara wannan banki don Paystack ya duba shi. Sannan biyan kati zai tafi kai tsaye zuwa gare shi.",
 };
 
 export default ha;

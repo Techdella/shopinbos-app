@@ -1,6 +1,7 @@
 import type { PackContent, PackDesign, PackFormat, ProductType } from "@shared/packaging";
 import { api } from "./api";
 import type { DeliveryZone } from "./packaging-pure";
+import { payInApp } from "./pay";
 
 export * from "./packaging-pure";
 
@@ -43,8 +44,9 @@ export interface PrintOrderInput {
 }
 
 /** Default material, matte; proofOk: the screen says paying confirms the design was checked. */
+/** Prints are physical goods, paid on Paystack in an in-app browser that comes back by itself (lib/pay.ts). */
 export const orderPrints = (input: PrintOrderInput) =>
-  api<{ id: string; authorizationUrl: string }>("/api/app/print-orders", { method: "POST", json: { ...input, finish: "matte", material: null, proofOk: true } });
+  payInApp((app) => api<{ id: string; reference?: string; authorizationUrl: string }>("/api/app/print-orders", { method: "POST", json: { ...input, finish: "matte", material: null, proofOk: true, app } }));
 
 export const askTeam = (input: { designId: string | null; productName: string; productType: ProductType; packType: PackFormat; quantity: number; details: string; contactName: string; contactPhone: string }) =>
   api<{ id: string; status: string }>("/api/app/packaging/requests", { method: "POST", json: { ...input, services: ["design", "print"], referenceUrls: [] } });

@@ -2,15 +2,15 @@ import { useState } from "react";
 import { View } from "react-native";
 import { router } from "expo-router";
 import { NG_STATES } from "@shared/delivery-market";
-import { Choice, Heading, Seg, Small, Sub } from "@/components/design";
+import { Choice, Heading, Small, Sub } from "@/components/design";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { Screen } from "@/components/Screen";
-import { Chips } from "@/components/seller/bits";
 import { Field, Label, Notice, PillButton } from "@/components/ui";
 import { fetchDeliveryHub, saveDeliverySettings, type DeliverySettings } from "@/lib/delivery";
 import { stateName } from "@/lib/delivery-pure";
 import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
+import { StatePicker } from "@/components/StatePicker";
 
 // Where I sell (the prototype's dvWhere): one state, selected states or all of Nigeria, and where parcels leave
 // from (partners pick up there). Sellers and suppliers; PUT /api/mobile/delivery/settings checks it all again.
@@ -90,9 +90,14 @@ function WhereForm({ settings }: { settings: DeliverySettings }) {
       {area !== "nationwide" ? (
         <View style={{ gap: 10 }}>
           <Small>{area === "one_state" ? t("where.pickOne") : t("where.pickMany")}</Small>
-          <Chips>
-            {NG_STATES.map((state) => <Seg key={state} label={stateName(state)} on={states.includes(state)} onPress={() => toggleState(state)} />)}
-          </Chips>
+          <StatePicker
+            testID="delivery-states"
+            options={NG_STATES.map((state) => ({ value: state, label: stateName(state) }))}
+            selected={states}
+            onToggle={toggleState}
+            single={area === "one_state"}
+            title={area === "one_state" ? t("where.pickOne") : t("where.pickMany")}
+          />
         </View>
       ) : null}
 
@@ -102,9 +107,14 @@ function WhereForm({ settings }: { settings: DeliverySettings }) {
       </View>
       <View style={{ gap: 10 }}>
         <Small>{t("origin.state")}</Small>
-        <Chips>
-          {NG_STATES.map((state) => <Seg key={state} label={stateName(state)} on={originState === state} onPress={() => setOriginState(originState === state ? "" : state)} />)}
-        </Chips>
+        <StatePicker
+          testID="origin-state"
+          options={NG_STATES.map((state) => ({ value: state, label: stateName(state) }))}
+          selected={originState ? [originState] : []}
+          onToggle={(state) => setOriginState(originState === state ? "" : state)}
+          single
+          title={t("origin.state")}
+        />
       </View>
       <View>
         <Label>{t("origin.area")}</Label>

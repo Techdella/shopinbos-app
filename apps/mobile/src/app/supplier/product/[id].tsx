@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ScrollView, View } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
 import { naira } from "@shared/onboarding";
 import { Heading, List, Pill, Row, Stepper, Sub, Tile } from "@/components/design";
@@ -12,13 +12,12 @@ import { parseAmount, productStage } from "@/lib/partner-pure";
 import { fetchSupplierProduct, quickEditProduct } from "@/lib/supplier";
 import { bestWholesale, LOW_STOCK } from "@/lib/supplier-pure";
 import { useLoad } from "@/lib/useLoad";
-import { openWeb } from "@/lib/web";
 import { colors } from "@/theme";
 
 // One supplier product ("Simple app, end to end" supplier prototype): the photo, name and price to shops, "In stock"
 // with − / + (saved a moment after the last tap; no new review), and rows for the wholesale price (tap to change the
-// price; a live product goes back for review) and dropship. Below: show it to shops or hide it, and the web editor
-// for photos, price tiers and regions.
+// price; a live product goes back for review) and dropship. Below: show it to shops or hide it, and the full editor
+// (supplier/product/edit: photos, details, price tiers, regions, dropship).
 
 const SAVE_AFTER_MS = 700;
 
@@ -37,6 +36,19 @@ export default function SupplierProductScreen() {
   useEffect(() => () => {
     if (timer.current) clearTimeout(timer.current);
   }, []);
+
+  // Back from the editor: show what was saved.
+  const reload = useRef(product.reload);
+  useEffect(() => {
+    reload.current = product.reload;
+  });
+  const shown = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (shown.current) void reload.current();
+      shown.current = true;
+    }, []),
+  );
 
   if (!data) {
     return (
@@ -156,7 +168,7 @@ export default function SupplierProductScreen() {
           lead={<Tile icon="truck" tone="gray" />}
           title={t("kind.dropship")}
           sub={data.dropshipAvailable ? t("product.dropshipOn") : t("product.dropshipOff")}
-          onPress={() => void openWeb(`/supplier/products/${data.id}/edit`)}
+          onPress={() => router.push({ pathname: "/supplier/product/edit", params: { id: data.id } })}
         />
       </List>
 
@@ -171,7 +183,7 @@ export default function SupplierProductScreen() {
             <Field value={retail ?? String(data.suggestedRetailPrice)} onChangeText={setRetail} keyboardType="decimal-pad" accessibilityLabel={t("suggestedRetail")} />
             <T style={{ color: colors.inkSoft, fontSize: 14, marginTop: 6, lineHeight: 20 }}>{t("product.now", { wholesale: naira(data.wholesalePrice), retail: naira(data.suggestedRetailPrice) })}</T>
           </View>
-          <LinkButton title={t("product.tiersOnWeb")} color={colors.inkSoft} onPress={() => void openWeb("/supplier/wholesale")} />
+          <LinkButton title={t("money.tiers")} color={colors.inkSoft} onPress={() => router.push({ pathname: "/supplier/product/edit", params: { id: data.id, focus: "tiers" } })} />
         </View>
       ) : null}
 
@@ -181,7 +193,7 @@ export default function SupplierProductScreen() {
         <PillButton title={hidden ? t("showToShops") : t("product.hide")} tone="white" size="md" busy={busy === "publish"} disabled={Boolean(busy)} onPress={() => void publish(hidden)} />
       </View>
 
-      <LinkButton title={t("product.editOnWeb")} color={colors.inkSoft} onPress={() => void openWeb(`/supplier/products/${data.id}/edit`)} />
+      <LinkButton title={t("product.editAll")} color={colors.inkSoft} onPress={() => router.push({ pathname: "/supplier/product/edit", params: { id: data.id } })} />
     </Screen>
   );
 }

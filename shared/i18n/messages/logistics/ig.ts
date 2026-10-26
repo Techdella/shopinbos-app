@@ -72,7 +72,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "connect.helpTitle": "Jikọọ delivery software gị",
   "connect.helpDescription": "Gwa anyị software ị na-eji na otú anyị ga-esi kpọtụrụ gị. Anyị ga-eme ndị fọdụrụ.",
   "connect.softwareQuestion": "Kedu software ma ọ bụ app ị na-eji?",
-  "connect.softwarePlaceholder": "dị ka Shipbubble, sistemụ nke anyị",
+  "connect.softwarePlaceholder": "dị ka sistemụ nke anyị, spreadsheet",
   "connect.noSoftware": "Ị nweghị delivery software?",
   "connect.noSoftwareBody": "Ị chọghị nke ọ bụla. Ndị rider gị nwere ike iji Shopinbos Riders app n'efu n'ekwentị ha.",
   "connect.seeRiders": "Lee ndị rider gị",

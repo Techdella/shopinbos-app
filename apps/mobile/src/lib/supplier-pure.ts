@@ -5,6 +5,15 @@
 export type SupplierOrderGroup = "new" | "pack" | "sent";
 
 /**
+ * What a new product's save turned out to be. The server keeps a "show it to shops" save as a draft until the
+ * business is verified (POST /api/supplier/products), and its answer's status says so ("unverified").
+ */
+export function savedAs(asked: "draft" | "pending_review", status: string | undefined): "draft" | "pending_review" | "unverified" {
+  if (asked === "pending_review" && status === "draft") return "unverified";
+  return asked;
+}
+
+/**
  * The app-language translator (useT("m_supplier", …) on the phone). Optional: without it the words are English, so
  * the root tests get the same text. Keys live in shared/i18n/messages/m_supplier.
  */

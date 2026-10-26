@@ -10,7 +10,7 @@ const en = {
   "format.sleeve": "Wrap sleeve",
   "format.bag": "Shopping bag",
   "order.howMany": "How many?",
-  "order.pay": "Pay {total}",
+  "order.pay": "Pay {total} for prints",
   "order.title": "Order prints",
   "order.min": "Minimum {count} for this pack. The more you print, the less each costs.",
   "order.delivery": "Delivery",
@@ -76,6 +76,8 @@ const en = {
   "style.clinical": "Clinical clean",
   "style.playful": "Playful blobs",
   "style.luxe": "Black & gold",
+  "order.paid": "Paid. We'll print and send it, and message you on WhatsApp.",
+  "order.unpaid": "The payment wasn't finished, so nothing was taken. Order again when you're ready.",
 } satisfies Record<string, string>;
 
 export default en;

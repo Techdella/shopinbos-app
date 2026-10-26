@@ -43,6 +43,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "start.0": "Taa",
   "start.1": "Echi",
   "start.7": "Mgbe otu izu gasịrị",
+  "requestPaid": "Akwụọla ya. Ndị otu ga-akpọ gị n'ime otu ụbọchị ọrụ.",
+  "requestUnpaid": "Edebela arịrịọ gị, mana akwụghị ụgwọ nhazi, ya mere ndị otu amalitebeghị.",
+  "c.payFee": "Kwụọ ụgwọ nhazi {fee} nke otu ahụ",
 };
 
 export default ig;

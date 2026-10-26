@@ -776,6 +776,9 @@ model StoreProduct {
   supportInfo       String?
   sku               String?
   barcode           String?
+  // Short code sellers say on live videos and Status ("Comment BAG2 to order"): shared/product-codes.ts, unique in the
+  // store, set on every create (src/lib/products/short-code.server.ts) and editable by the seller.
+  shortCode         String?
   images            String[]
   videoUrl          String?
   has360View        Boolean         @default(false)
@@ -858,6 +861,7 @@ model StoreProduct {
   @@index([storeId, productType])
   @@index([supplierProductId])
   @@index([categoryId])
+  @@unique([storeId, shortCode])
   @@index([sku])
   @@index([status])
   @@index([visibility])

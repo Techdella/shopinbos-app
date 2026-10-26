@@ -171,6 +171,10 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "filters.pay.any": "Duka",
   "filters.pay.unpaid": "Ba a biya ba",
   "filters.pay.toSend": "An biya, don turawa",
+  "list.wholesale": "Odar jumla",
+  "sale.codeFind": "Nemo da kodi",
+  "sale.codePlaceholder": "Kodi, kamar BAG2",
+  "sale.codeNone": "Babu kayan da ke da kodi {code}.",
 };
 
 export default ha;

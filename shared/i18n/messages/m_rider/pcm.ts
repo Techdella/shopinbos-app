@@ -174,6 +174,16 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "wk.4": "Fri",
   "wk.5": "Sat",
   "wk.6": "Sun",
+  "noCode.link": "No code? Use photo",
+  "noCode.title": "Customer no get code",
+  "noCode.sub": "Snap the parcel with the person wey collect am, and type their name.",
+  "noCode.photo": "Snap the photo",
+  "noCode.photoAgain": "Photo don enter · snap again",
+  "noCode.who": "Who collect am?",
+  "noCode.next": "Next",
+  "noCode.useCode": "Use the code instead",
+  "startJob": "Start this job",
+  "offer.assigned": "{company} give you this job. Skip am if you no fit do am.",
 };
 
 export default pcm;

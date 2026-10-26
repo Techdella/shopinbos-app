@@ -12,8 +12,6 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "clear": "Hichapụ nzacha",
   "showCount": "Gosi {count}",
   "search": "Chọọ, dịka ntutu ma ọ bụ akpụkpọ ụkwụ",
-  "plan": "Atụmatụ",
-  "any": "Nke ọ bụla",
   "colours": "Agba",
   "tone.all": "Nke ọ bụla",
   "tone.light": "Na-acha ọcha",
@@ -24,9 +22,6 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "new": "Ọhụrụ",
   "current": "Ọdịdị gị",
   "rexPick": "Nhọrọ Rex",
-  "needsPlan": "Ọ chọrọ atụmatụ {plan}",
-  "needsPlanBody": "Nweta atụmatụ ahụ na weebụsaịtị, wee lọghachi jiri ọdịdị a.",
-  "seePlans": "Lee atụmatụ na weebụsaịtị",
   "noMatch": "Ọ dịghị ọdịdị dabara",
   "previewTitle": "Nlele",
   "keeps": "{blurb}. Ngwaahịa gị, ọnụahịa na delivery ga-anọgide otú ha dị.",
@@ -40,6 +35,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "seeMyShop": "Lee ụlọ ahịa m",
   "isCurrent": "Nke a bụ ọdịdị ụlọ ahịa gị ugbu a.",
   "askRexChange": "Gwa Rex ka ọ gbanwee ya",
+  "appliedNew": "Echekwala ya. Mee ka ụlọ ahịa gị dị ndụ ka ndị ahịa hụ ya.",
+  "notOnPlan": "Ọ dịghị n'atụmatụ gị",
 };
 
 export default ig;

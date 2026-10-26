@@ -64,14 +64,16 @@ test("packaging: the sample follows what the shop sells, as the web guesses it",
   assert.doesNotMatch(screen, /item\.name\.slice\(0, 21\)/, "long names wrap instead of being cut");
 });
 
-test("shop looks: the plan filter, the lock tags and the banner use the same plan names", () => {
+test("shop looks: the server's lock names the plan, but the phone shows no plan names (app store payment rules)", () => {
   assert.equal(plans.themeTierPlanName("basic"), "Free");
   assert.equal(plans.themeTierPlanName("premium"), "Starter");
   assert.equal(plans.themeTierPlanName("platinum"), "Growth");
   const library = looks.mobileLooks({ tier: "basic", owned: [] }, null);
   for (const look of library.looks) if (look.lockedPlan) assert.equal(look.lockedPlan, plans.themeTierPlanName(look.tier));
   const screen = app("app/templates.tsx");
-  assert.match(screen, /label=\{themeTierPlanName\(tier\)\}/);
+  // No plan filter chips or plan-named lock tags in the app: "Not on your plan" only (tests/store-payments.test.mjs).
+  assert.doesNotMatch(screen, /themeTierPlanName/);
+  assert.match(screen, /<Tag label=\{t\("notOnPlan"\)\} icon="lock" \/>/);
   assert.match(screen, /<LinearGradient/, "a scrim under the theme name");
 });
 

@@ -19,6 +19,7 @@
     },
     "android": {
       "package": "com.shopinbos.app",
+      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "backgroundColor": "#0C4A44",
         "foregroundImage": "./assets/android-icon-foreground.png",

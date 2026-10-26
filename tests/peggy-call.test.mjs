@@ -390,8 +390,8 @@ test("avatar: no P letter mark left in the call UI; Peggy's avatar pulses while 
   assert.match(views, /<Mascot who="peggy"/);
   assert.match(views, /Animated\.loop/);
   assert.match(views, /isReduceMotionEnabled/);
-  // The sheet, the minimized bar, the toast and the summary all show her.
-  assert.equal((views.match(/<PeggyAvatar /g) ?? []).length, 4);
+  // The sheet, the minimized bar (which also carries the "Peggy opened …" line) and the summary all show her.
+  assert.equal((views.match(/<PeggyAvatar /g) ?? []).length, 3);
   const web = read("src/components/peggy/PeggyCall.tsx");
   assert.match(web, /<Mascot who="peggy"/);
   assert.match(web, /speaking && "animate-ping"/);

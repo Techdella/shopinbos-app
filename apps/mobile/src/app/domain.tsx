@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Alert, Pressable, View } from "react-native";
 import * as Clipboard from "expo-clipboard";
-import { Heading, List, Pill, Row, Seg, Small, Tile } from "@/components/design";
+import { Heading, List, Pill, Seg, Small, Tile } from "@/components/design";
 import { AppIcon } from "@/components/icons";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { Screen } from "@/components/Screen";
@@ -12,13 +12,13 @@ import { checkKey, claimDomain, claimErrorKey, fetchDomain, recordsToAdd, remove
 import { useT } from "@/lib/i18n";
 import { openShop, shareText } from "@/lib/share";
 import { useLoad } from "@/lib/useLoad";
-import { openWeb } from "@/lib/web";
 import { colors, fonts, radii } from "@/theme";
 
 // Web address ("Familiar app" prototype, My shop › Web address): the free <slug>.mybos.store address with Copy and
 // Share; the own domain's status; and connecting a domain the seller already owns: type it, add the DNS records
-// shown here (each with Copy), then Check. Buying a new domain is a Paystack checkout, so it stays on the website
-// behind one clearly labelled button (only when buying is switched on).
+// shown here (each with Copy), then Check. Buying a new domain isn't in the app at all, not even a link to the
+// website: a domain is a digital service, so pointing to a payment elsewhere breaks Google Play Payments and Apple
+// 3.1.1 / 3.1.3 (docs/store-payments-audit.md). Connecting one they already own is free and stays.
 
 function CopyButton({ value, label, iconOnly = false }: { value: string; label: string; iconOnly?: boolean }) {
   const t = useT("m_domain");
@@ -262,11 +262,6 @@ export default function DomainScreen() {
 
       {problem ? <Notice>{problem}</Notice> : null}
 
-      {data?.canBuy && !pending ? (
-        <List>
-          <Row lead={<Tile icon="bag" tone="blue" />} title={t("buy.title")} sub={t("buy.sub")} right={<AppIcon name="share" size={18} color={colors.inkSoft} />} onPress={() => void openWeb("/home/domain")} accessibilityLabel={t("buy.title")} />
-        </List>
-      ) : null}
     </Screen>
   );
 }

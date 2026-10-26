@@ -8,12 +8,13 @@ import { saveTipsOn, useTipsOnPhone } from "./prefs";
 
 // Settings row: tips and tooltips on or off (word explanations and intros that open by themselves). Same switch
 // as the web's Customise your menu → Tips and tooltips.
-export function TipsRow() {
+// Also on the supplier Account and the delivery partner's Business screens (`first`: no line above it).
+export function TipsRow({ first = false }: { first?: boolean }) {
   const t = useT("m_settings");
   const on = useTipsOnPhone();
   const [failed, setFailed] = useState(false);
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 14, borderTopWidth: 1, borderTopColor: colors.line }}>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 14, borderTopWidth: first ? 0 : 1, borderTopColor: colors.line }}>
       <AppIcon name="help" size={20} />
       <View style={{ flex: 1 }}>
         <T weight="semibold" style={{ fontSize: 16 }}>{t("set.tips")}</T>

@@ -113,8 +113,14 @@ export function FeatureIntroSheet({ intro: source, role, path, onClose }: { intr
   const playing = !paused && !finished && !still && tab === "intro";
   const boardWidth = Math.min(screenWidth - 32, 560);
   const locale = useLocale();
-  const sound = useIntroSound({ introKey: intro.key, sceneCount: scenes.length, locale: isNarrationLocale(locale) ? locale : "en" });
-  const { playScene, finish: finishSound, stopVoice, pause: pauseSound, resume: resumeSound } = sound;
+  // The app going to the background or a Peggy call stops the sound (lib/intro-audio.ts): the intro shows as paused.
+  const sound = useIntroSound({ introKey: intro.key, sceneCount: scenes.length, locale: isNarrationLocale(locale) ? locale : "en", onInterrupt: () => setPaused(true) });
+  const { playScene, finish: finishSound, stopVoice, pause: pauseSound, resume: resumeSound, stopAll: stopSound } = sound;
+  // Every way out stops and frees the narrator and the music first, then closes.
+  const close = (reason: "done" | "skip" | "close") => {
+    stopSound();
+    onClose(reason);
+  };
   const voiceBusy = useRef(false);
   voiceBusy.current = sound.voiceBusy;
 
@@ -125,6 +131,7 @@ export function FeatureIntroSheet({ intro: source, role, path, onClose }: { intr
       pauseSound();
     } else if (finished) finishSound();
     else void playScene(index);
+    // A scene change while paused reads nothing until Play (playScene checks the pause).
   }, [tab, finished, index, run, playScene, finishSound, stopVoice, pauseSound]);
 
   useEffect(() => {
@@ -190,7 +197,7 @@ export function FeatureIntroSheet({ intro: source, role, path, onClose }: { intr
   const seconds = Math.round(introDurationMs(intro) / 1000);
 
   return (
-    <Modal visible transparent animationType="slide" onRequestClose={() => onClose(finished ? "done" : "close")} statusBarTranslucent>
+    <Modal visible transparent animationType="slide" onRequestClose={() => close(finished ? "done" : "close")} statusBarTranslucent>
       <View testID="feature-intro" accessibilityViewIsModal style={{ flex: 1, backgroundColor: LC.navy, paddingTop: insets.top + 10, paddingBottom: Math.max(insets.bottom, 12) }}>
         <Svg style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }} width="100%" height="100%" pointerEvents="none">
           <Defs>
@@ -219,11 +226,11 @@ export function FeatureIntroSheet({ intro: source, role, path, onClose }: { intr
               <Glyph name="music" size={17} color={sound.prefs.music ? LC.mint : LC.cream} />
             </Pressable>
             {!finished && (
-              <Pressable accessibilityRole="button" onPress={() => onClose("skip")} hitSlop={8} style={{ minHeight: 40, paddingHorizontal: 12, justifyContent: "center" }}>
+              <Pressable accessibilityRole="button" onPress={() => close("skip")} hitSlop={8} style={{ minHeight: 40, paddingHorizontal: 12, justifyContent: "center" }}>
                 <Text style={{ fontFamily: fonts.bold, fontSize: 15, color: "rgba(244,241,234,0.75)" }}>{tl("skip")}</Text>
               </Pressable>
             )}
-            <Pressable accessibilityRole="button" accessibilityLabel={tl("close")} onPress={() => onClose(finished ? "done" : "close")} hitSlop={6} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(244,241,234,0.1)", alignItems: "center", justifyContent: "center" }}>
+            <Pressable accessibilityRole="button" accessibilityLabel={tl("close")} onPress={() => close(finished ? "done" : "close")} hitSlop={6} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(244,241,234,0.1)", alignItems: "center", justifyContent: "center" }}>
               <Glyph name="x" size={16} />
             </Pressable>
           </View>
@@ -301,7 +308,7 @@ export function FeatureIntroSheet({ intro: source, role, path, onClose }: { intr
                 <Text style={{ fontFamily: fonts.bold, fontSize: 15, color: LC.cream }}>{tl("replay")}</Text>
               </Pressable>
               <View style={{ flex: 1 }} />
-              <Pressable testID="feature-intro-done" accessibilityRole="button" onPress={() => onClose("done")} style={{ minHeight: 48, paddingHorizontal: 26, borderRadius: 999, backgroundColor: LC.mint, justifyContent: "center" }}>
+              <Pressable testID="feature-intro-done" accessibilityRole="button" onPress={() => close("done")} style={{ minHeight: 48, paddingHorizontal: 26, borderRadius: 999, backgroundColor: LC.mint, justifyContent: "center" }}>
                 <Text style={{ fontFamily: fonts.extrabold, fontSize: 16, color: LC.navy }}>{tl("gotIt")}</Text>
               </Pressable>
             </>

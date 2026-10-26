@@ -225,7 +225,7 @@ export const socialChannels: Array<{
   { key: "whatsapp", label: "WhatsApp", icon: "whatsapp", color: "#25D366", help: "Reply faster and share store links." },
   { key: "facebook", label: "Facebook", icon: "facebook", color: "#1877F2", help: "Reach repeat buyers in groups and pages." },
   { key: "google", label: "Google Shop", icon: "search", color: "#4285F4", help: "Capture high-intent product searches." },
-  { key: "shopify", label: "Shopify Import", icon: "shop", color: "#95BF47", help: "Mirror catalog data from a Shopify store." },
+  { key: "shopify", label: "Import from a file", icon: "shop", color: "#95BF47", help: "Bring in products from a CSV or Excel file." },
   { key: "website", label: "Shopinbos Storefront", icon: "store", color: "#0E2A38", help: "Sell directly from your store link." },
 ];
 

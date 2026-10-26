@@ -260,6 +260,12 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "importAi.showMore": "Gosi ọzọ",
   "list.pages": "Peeji ngwaahịa",
   "inv.pages": "Peeji stock",
+  "code.label": "Koodu ngwaahịa",
+  "code.hint": "Ndị ahịa na-akpọ ya iji zụta: “Comment BAG2 to order”. Mkpụrụedemede na nọmba 2–8.",
+  "code.auto": "Anyị ga-emere gị ya",
+  "code.invalid": "Koodu ngwaahịa bụ mkpụrụedemede na nọmba 2 ruo 8, dịka BAG2.",
+  "code.taken": "Ngwaahịa ọzọ na-eji {code} ugbu a. Họrọ koodu ọzọ.",
+  "code.sub": "Koodu {code}. Dezie nkọwa, ọhụhụ, ngwaahịa na otú peeji ngwaahịa si dị.",
 };
 
 export default ig;

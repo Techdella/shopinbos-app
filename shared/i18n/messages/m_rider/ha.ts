@@ -174,6 +174,16 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "wk.4": "Jum",
   "wk.5": "Asa",
   "wk.6": "Lah",
+  "noCode.link": "Babu lamba? Yi amfani da hoto",
+  "noCode.title": "Abokin ciniki ba shi da lamba",
+  "noCode.sub": "Ɗauki hoton kayan tare da wanda ya karɓa, ka rubuta sunansa.",
+  "noCode.photo": "Ɗauki hoton",
+  "noCode.photoAgain": "An ƙara hoto · sake ɗauka",
+  "noCode.who": "Wa ya karɓa?",
+  "noCode.next": "Gaba",
+  "noCode.useCode": "Yi amfani da lambar maimakon",
+  "startJob": "Fara wannan aikin",
+  "offer.assigned": "{company} ne ya ba ka wannan aikin. Tsallake shi idan ba za ka iya ba.",
 };
 
 export default ha;

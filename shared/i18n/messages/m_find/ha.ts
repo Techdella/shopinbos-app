@@ -114,6 +114,17 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "filters.verified": "Waɗanda aka tabbatar kawai",
   "tab.all": "Duka",
   "barTitle": "Nemo kaya",
+  "wholesale.row": "Odar jumla",
+  "wholesale.rowSub": "Buƙatun farashinka da kayan da ka saya",
+  "wholesale.see": "Duba buƙatun farashina",
+  "wholesale.requests": "Buƙatun farashi",
+  "wholesale.each": "{price} kowanne",
+  "wholesale.q.pending": "Ana jiran mai kawowa",
+  "wholesale.q.responded": "An aiko farashi",
+  "wholesale.q.accepted": "An karɓa",
+  "wholesale.q.rejected": "An ƙi",
+  "wholesale.q.expired": "Ya ƙare",
+  "ws.payOrder": "Biya {total} na wannan oda",
 };
 
 export default ha;

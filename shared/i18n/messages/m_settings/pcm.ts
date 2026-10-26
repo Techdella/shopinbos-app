@@ -147,7 +147,6 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "set.more": "More settings for web",
   "set.tips": "Tips and tooltips",
   "set.tipsHint": "Word explanations and intros wey dey open by demself",
-  "set.moreHint": "Team, billing, security and how to close your shop. E go open for your browser",
   // Payment logos and the 'Built with Shopinbos' badge (shared/payment-badges.ts, src/lib/store-badges.ts).
   "money.badgesTitle": "Payment logos for your shop",
   "money.badgesHint": "Tap to show or hide. Shoppers go see dem for the bottom of your shop and for checkout.",
@@ -174,9 +173,18 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "set.photoRemoveFailed": "We no fit remove am. Try again.",
   "money.wallet": "Shopinbos Wallet",
   "money.walletHint": "Card payments dey enter your bank straight",
-  "del.payFee": "Pay {amount} by card",
+  "del.payFee": "Pay {amount} delivery fee with card",
   "del.feePaid": "You don pay the fee",
   "del.feeNotSeen": "We never see the payment. If you don pay, e go show here inside one minute.",
+  "money.state.card.needs_bank": "Add your bank make you fit collect card payment",
+  "money.state.transfer.needs_bank": "Add your bank make customers fit pay by transfer",
+  "money.state.bank_review": "We dey check your bank. E go start once we approve am.",
+  "money.state.bank_failed": "We no fit set up your bank. Try another account.",
+  "money.state.paused": "Shopinbos team don pause am. Contact support.",
+  "money.state.needs_team": "E go start inside one day, once we don connect your bank.",
+  "money.state.unavailable": "Card payment don pause for Shopinbos for now.",
+  "money.state.needs_whatsapp": "Add your WhatsApp number make this one start.",
+  "money.bankRecheck": "Add this bank again make Paystack check am. Then card payment go dey go straight enter am.",
 };
 
 export default pcm;

@@ -90,6 +90,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "page.of": "Peeji {page} n'ime {pages}",
   "page.number": "Peeji {page}",
   "page.showing": "Anyị na-egosi {from}–{to} n'ime {total}",
+  "product.code": "Koodu",
+  "product.orderHere": "Zụta ya ebe a",
+  "product.shareWhatsapp": "Kesaa na WhatsApp",
 };
 
 export default ig;

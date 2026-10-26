@@ -12,8 +12,6 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "clear": "Pa àwọn àlẹ̀mọ́ rẹ́",
   "showCount": "Fi {count} hàn",
   "search": "Wá, bí irun tàbí bàtà",
-  "plan": "Ètò",
-  "any": "Èyíkéyìí",
   "colours": "Àwọ̀",
   "tone.all": "Èyíkéyìí",
   "tone.light": "Àwọ̀ fẹ́ẹ́rẹ́",
@@ -24,9 +22,6 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "new": "Tuntun",
   "current": "Ìrísí rẹ",
   "rexPick": "Rex ló yàn án",
-  "needsPlan": "Ó nílò ètò {plan}",
-  "needsPlanBody": "Gba ètò náà lórí wẹ́ẹ̀bù, lẹ́yìn náà padà wá lo ìrísí yìí.",
-  "seePlans": "Wo àwọn ètò lórí wẹ́ẹ̀bù",
   "noMatch": "Kò sí ìrísí tó bá a mu",
   "previewTitle": "Àwòtẹ́lẹ̀",
   "keeps": "{blurb}. Àwọn ọjà rẹ, iye owó àti ìfijíṣẹ́ yóò wà bí wọ́n ṣe wà.",
@@ -40,6 +35,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "seeMyShop": "Wo ṣọ́ọ̀bù mi",
   "isCurrent": "Èyí ni ìrísí ṣọ́ọ̀bù rẹ báyìí.",
   "askRexChange": "Ní kí Rex yí i padà",
+  "appliedNew": "A ti fi pamọ́. Fi ṣọ́ọ̀bù rẹ sórí ayélujára kí àwọn oníbàárà lè rí i.",
+  "notOnPlan": "Kò sí nínú ètò rẹ",
 };
 
 export default yo;

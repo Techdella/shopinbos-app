@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, View } from "react-native";
+import { Platform, Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { router, usePathname } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
@@ -8,6 +8,7 @@ import { Sub, Title } from "@/components/design";
 import { T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
+import { KeyboardShift } from "@/components/KeyboardShift";
 
 const IOS = Platform.OS === "ios";
 
@@ -89,7 +90,7 @@ export function Screen({
 }) {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={IOS ? "padding" : undefined}>
+      <KeyboardShift>
         <ScreenHeader title={title} help={help} onBack={onBack} right={headerRight} fallback={fallback} />
         <ScrollView
           keyboardShouldPersistTaps="handled"
@@ -105,7 +106,7 @@ export function Screen({
           {children}
         </ScrollView>
         {footer ? <View style={{ paddingHorizontal: 20, paddingBottom: 12, paddingTop: 10, gap: 10, backgroundColor: colors.canvas }}>{footer}</View> : null}
-      </KeyboardAvoidingView>
+      </KeyboardShift>
     </SafeAreaView>
   );
 }

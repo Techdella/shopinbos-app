@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { appBase } from "@/lib/email/compliance.server";
 import { initializePaystackTransaction, verifyPaystackTransaction } from "@/lib/paystack";
 import { paystackSecretReady } from "@shared/checkout-payments";
+import { paystackOutcome } from "@shared/paystack-return";
 import { createNotification } from "@/lib/notifications/create";
 import { buildSplitPlan, paystackSplitParams } from "@/lib/wallet/rules";
 import { applyDeductions, debtsToDeduct, holdPlannedDeductions, readDeductions } from "@/lib/money-owed/money-owed.server";
@@ -36,10 +37,13 @@ export async function payableWholesaleOrders(orders: Array<{ id: string; status:
   return new Set(open.filter((order) => ready.has(order.supplier.userId)).map((order) => order.id));
 }
 
+/** callbackUrl: where Paystack sends the payer back (the phone app passes shared/paystack-return appPaidCallbackUrl). */
+export type StartOptions = { callbackUrl?: string };
+
 export type StartResult = { ok: true; accessCode: string; reference: string; authorizationUrl: string | null } | { ok: false; error: string };
 
 /** Starts the card payment of this wholesale order, split straight to the supplier's bank. */
-export async function startWholesalePayment(seller: { id: string; email: string | null }, orderId: string): Promise<StartResult> {
+export async function startWholesalePayment(seller: { id: string; email: string | null }, orderId: string, options: StartOptions = {}): Promise<StartResult> {
   if (!paystackSecretReady(process.env.PAYSTACK_SECRET_KEY)) return { ok: false, error: "Card payments aren't set up yet. Pay the supplier directly for now." };
   const order = await db.wholesaleOrder.findFirst({
     where: { id: orderId, sellerId: seller.id },
@@ -63,7 +67,7 @@ export async function startWholesalePayment(seller: { id: string; email: string 
       amountKobo,
       reference,
       // The web page confirms the reference Paystack adds; the phone app confirms when its browser closes.
-      callbackUrl: `${appBase()}/marketplace/wholesale`,
+      callbackUrl: options.callbackUrl ?? `${appBase()}/marketplace/wholesale`,
       metadata: { kind: "wholesale", orderId: order.id, sellerId: seller.id, supplierId: order.supplierId, ...(deductions.length ? { deductions } : {}) },
       split: paystackSplitParams(plan),
     });
@@ -75,7 +79,7 @@ export async function startWholesalePayment(seller: { id: string; email: string 
   }
 }
 
-export type ConfirmResult = { ok: true; fresh: boolean; orderId: string } | { ok: false; error: string; retry?: boolean };
+export type ConfirmResult = { ok: true; fresh: boolean; orderId: string } | { ok: false; error: string; retry?: boolean; pending?: boolean };
 
 function readMetadata(value: unknown): Record<string, unknown> {
   if (typeof value === "string") {
@@ -101,7 +105,9 @@ export async function confirmWholesalePayment(reference: string, expectedSellerI
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : "Paystack could not check this payment.", retry: true };
   }
-  if (payment.status !== "success") return { ok: false, error: "The payment didn't go through." };
+  // Still on its way (a transfer or USSD) is "pending"; the webhook finishes it.
+  if (payment.status !== "success") return { ok: false, error: "The payment didn't go through.", pending: paystackOutcome(payment.status) === "pending" };
+  if (payment.currency && payment.currency !== "NGN") return { ok: false, error: "This payment wasn't in naira." };
   const meta = readMetadata(payment.metadata);
   const orderId = typeof meta.orderId === "string" ? meta.orderId : "";
   if (meta.kind !== "wholesale" || !orderId) return { ok: false, error: "This payment isn't for a wholesale order." };

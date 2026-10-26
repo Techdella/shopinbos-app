@@ -54,8 +54,6 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "check.later": "A kò lè ṣàyẹ̀wò báyìí. A ó máa gbìyànjú fúnra wa.",
   "continue": "Tẹ̀síwájú",
   "cancel": "Fagilé",
-  "buy.title": "Ra domain tuntun lórí wẹ́ẹ̀bùsáìtì",
-  "buy.sub": "Wá orúkọ kan kí o sì sanwó níbẹ̀. A ó ṣètò rẹ̀ fún ọ.",
 };
 
 export default yo;

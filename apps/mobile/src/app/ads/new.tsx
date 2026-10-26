@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
 import { Pressable, View } from "react-native";
 import { Image } from "expo-image";
-import * as WebBrowser from "expo-web-browser";
 import { router, useLocalSearchParams } from "expo-router";
 import { naira } from "@shared/onboarding";
 import { adMoney } from "@/components/ads";
+import { MetaCard } from "@/components/MetaAdsCard";
 import { AppIcon, type AppIconName } from "@/components/icons";
 import { ErrorState, LoadingBlock, SectionTitle } from "@/components/kit";
 import { Screen } from "@/components/Screen";
@@ -40,6 +40,7 @@ import {
 import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
+import { StatePicker } from "@/components/StatePicker";
 
 // Start a campaign (web /home/ads/new), step by step: how it runs (your own Meta ad account when it's connected,
 // or the Shopinbos ads team on Meta or TikTok for the setup fee), the products, goal and audience, budget and
@@ -80,7 +81,6 @@ export default function NewAdCampaign() {
   const [query, setQuery] = useState("");
   const [objective, setObjective] = useState<AdObjective>("traffic");
   const [audience, setAudience] = useState<AdAudience>({ countries: ["NG"], states: [], ageMin: 18, ageMax: 55, gender: "all", interests: [] });
-  const [showStates, setShowStates] = useState(false);
   const [interest, setInterest] = useState("");
   const [dailyBudget, setDailyBudget] = useState(5000);
   const [startIn, setStartIn] = useState<number>(0);
@@ -157,9 +157,8 @@ export default function NewAdCampaign() {
         router.replace({ pathname: "/ads", params: { done: launch ? "launched" : "draft" } });
         return;
       }
-      const request = await sendAdRequest(requestBody(saved.id, chosenMode, objective, audience, dailyBudget, days, details!));
-      await WebBrowser.openBrowserAsync(request.authorizationUrl);
-      router.replace({ pathname: "/ads", params: { done: "request" } });
+      const paid = await sendAdRequest(requestBody(saved.id, chosenMode, objective, audience, dailyBudget, days, details!));
+      router.replace({ pathname: "/ads", params: { done: paid.outcome === "paid" ? "requestPaid" : paid.outcome === "pending" ? "request" : "requestUnpaid" } });
     } catch (finishError) {
       setProblem(finishError instanceof Error ? finishError.message : t("c.err.save"));
       setBusy(null);
@@ -189,13 +188,15 @@ export default function NewAdCampaign() {
           <RadioCard icon="users" title={t("c.mode.managedMeta")} sub={t("c.mode.managedMetaHint", { fee: naira(setupFees.meta) })} on={chosenMode === "managed_meta"} onPress={() => setMode("managed_meta")} />
           <RadioCard icon="play" title={t("c.mode.tiktok")} sub={t("c.mode.tiktokHint", { fee: naira(setupFees.tiktok) })} on={chosenMode === "managed_tiktok"} onPress={() => setMode("managed_tiktok")} />
           {chosenMode === "meta" ? (
-            meta.status === "connected" ? (
+            meta.status === "needs_account" && meta.configured ? (
+              // Pick the ad account and Page right here, without leaving the wizard.
+              <MetaCard meta={meta} onChanged={data.reload} />
+            ) : meta.status === "connected" ? (
               <Notice tone="success">{t("m.connected", { account: meta.accountName ?? meta.accountId ?? "", page: meta.pageName ?? "" })}</Notice>
             ) : (
               <Card style={{ gap: 8 }}>
                 <T style={{ fontSize: 15, lineHeight: 22 }}>{!meta.configured ? t("m.notReady") : meta.status === "needs_account" ? t("meta.pickFirst") : t("m.off")}</T>
                 {meta.configured && meta.status !== "needs_account" ? <PillButton title={t("m.connect")} size="sm" style={{ alignSelf: "flex-start" }} onPress={() => void connectMetaAds().then(() => data.reload())} /> : null}
-                {meta.status === "needs_account" ? <PillButton title={t("m.use")} size="sm" style={{ alignSelf: "flex-start" }} onPress={() => router.back()} /> : null}
               </Card>
             )
           ) : (
@@ -246,12 +247,13 @@ export default function NewAdCampaign() {
           </View>
           {audience.countries.includes("NG") ? (
             <>
-              <LinkButton title={audience.states.length ? t("c.statesChosen", { count: audience.states.length }) : t("c.allNigeria")} onPress={() => setShowStates(!showStates)} />
-              {showStates ? (
-                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-                  {NG_STATES.map((place) => <Chip key={place} label={place === "Federal Capital Territory" ? "Abuja (FCT)" : place} on={audience.states.includes(place)} onPress={() => setAudience((a) => ({ ...a, states: toggle(a.states, place) }))} />)}
-                </View>
-              ) : null}
+              <StatePicker
+                testID="ad-states"
+                options={NG_STATES.map((place) => ({ value: place, label: place === "Federal Capital Territory" ? "Abuja (FCT)" : place }))}
+                selected={audience.states}
+                onToggle={(place) => setAudience((a) => ({ ...a, states: toggle(a.states, place) }))}
+                placeholder={t("c.allNigeria")}
+              />
             </>
           ) : null}
           <Label>{t("c.age")}</Label>

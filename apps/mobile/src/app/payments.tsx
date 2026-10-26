@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } from "react-native";
+import { Modal, Pressable, ScrollView, View } from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { naira, PAYMENT_METHODS, type PaymentMethodKey } from "@shared/onboarding";
@@ -11,11 +11,12 @@ import { Card, Chip, Field, Label, LinkButton, Notice, PillButton, T, Toggle } f
 import { ApiError } from "@/lib/api";
 import { TONE_COLORS } from "@/lib/dashboard";
 import { friendlyTime } from "@/lib/friendly";
-import { fetchPayments, resolveAccount, savePaymentSettings, savePayoutBank, type PaymentsOverview } from "@/lib/seller-settings";
+import { fetchPayments, methodStateKey, resolveAccount, savePaymentSettings, savePayoutBank, type PaymentsOverview } from "@/lib/seller-settings";
 import { accountDigits, filterBanks } from "@/lib/settings-pure";
 import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
+import { KeyboardShift } from "@/components/KeyboardShift";
 
 // Payments and payouts (web /home/payments): money in over the last 30 days, the payout bank (add or change it,
 // with the account name looked up and confirmed before saving), which ways customers can pay, and the latest
@@ -130,18 +131,33 @@ export default function Payments() {
           <T style={{ fontSize: 15, lineHeight: 22 }}>{t("money.bankNone")}</T>
         )}
         {bank?.status === "failed" ? <T style={{ color: colors.danger, fontSize: 15, lineHeight: 21 }}>{t("money.bankFailedNote")}</T> : null}
+        {/* Saved before Paystack could check it: adding it again sets up card payments to it. */}
+        {bank?.status === "unconfigured" ? <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>{t("money.bankRecheck")}</T> : null}
         <PillButton title={bank ? t("money.changeBank") : t("money.addBank")} tone={bank ? "white" : "ink"} size="md" onPress={() => setBankOpen(true)} />
       </Card>
 
       <SectionTitle action={saving ? <T style={{ color: colors.inkSoft, fontSize: 14 }}>{t("saving")}</T> : undefined}>{t("money.ways")}</SectionTitle>
       <Card style={{ paddingVertical: 2 }}>
-        {PAYMENT_METHODS.map((method, index) => {
+        {/* A way to pay the server says can't reach checkout at all ("hidden") isn't offered. */}
+        {PAYMENT_METHODS.filter((method) => data.states?.[method.key] !== "hidden").map((method, index) => {
           const label = t.dynamic(`method.${method.key}.label`, method.label);
+          // Switched on but not reaching customers yet: say why ("Add your bank to take card payments"), only while true.
+          const stateKey = data.methods[method.key] ? methodStateKey(method.key, data.states?.[method.key]) : null;
+          const bankFix = data.states?.[method.key] === "needs_bank" || data.states?.[method.key] === "bank_failed";
           return (
             <View key={method.key} style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 14, borderTopWidth: index ? 1 : 0, borderTopColor: colors.line }}>
               <View style={{ flex: 1 }}>
                 <T weight="bold" style={{ fontSize: 15.5 }}>{label}</T>
                 <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 19, marginTop: 2 }}>{t.dynamic(`method.${method.key}.hint`, method.hint)}</T>
+                {stateKey ? (
+                  bankFix ? (
+                    <Pressable accessibilityRole="button" onPress={() => setBankOpen(true)} style={{ minHeight: 32, justifyContent: "center" }}>
+                      <T weight="semibold" style={{ color: colors.accentInk, fontSize: 14, lineHeight: 19 }}>{t.dynamic(stateKey, "")}</T>
+                    </Pressable>
+                  ) : (
+                    <T weight="semibold" style={{ color: "#8A5A00", fontSize: 14, lineHeight: 19, marginTop: 4 }}>{t.dynamic(stateKey, "")}</T>
+                  )
+                ) : null}
               </View>
               <Toggle on={data.methods[method.key]} label={label} onChange={(on) => setMethod(method.key, on)} />
             </View>
@@ -319,7 +335,7 @@ function BankFlow({ visible, banks, current, onClose, onSaved }: { visible: bool
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={close}>
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <KeyboardShift>
           <View style={{ paddingHorizontal: 18, paddingVertical: 12, flexDirection: "row", alignItems: "center", gap: 12 }}>
             <T weight="extrabold" style={{ flex: 1, fontSize: 22, lineHeight: 28 }} accessibilityRole="header">{title}</T>
             <Pressable accessibilityRole="button" onPress={close} hitSlop={8} style={{ minHeight: 44, paddingHorizontal: 14, borderRadius: 22, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, flexDirection: "row", alignItems: "center", gap: 6 }}>
@@ -420,7 +436,7 @@ function BankFlow({ visible, banks, current, onClose, onSaved }: { visible: bool
               </>
             ) : null}
           </ScrollView>
-        </KeyboardAvoidingView>
+        </KeyboardShift>
       </SafeAreaView>
     </Modal>
   );

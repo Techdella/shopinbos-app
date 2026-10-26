@@ -34,7 +34,7 @@ export const GET = withSupplier(async (req: NextRequest, { user }: { user: AuthU
         id: true, name: true, slug: true, images: true,
         wholesalePrice: true, suggestedRetailPrice: true,
         currency: true, moq: true, stockQuantity: true,
-        dropshipAvailable: true, status: true, trendScore: true,
+        dropshipAvailable: true, status: true, trendScore: true, pricingTiers: true,
         createdAt: true, updatedAt: true,
         category: { select: { id: true, name: true, slug: true } },
         _count: { select: { storeProducts: true, quoteRequests: true } },
@@ -57,11 +57,9 @@ export const POST = withSupplier(async (req: NextRequest, { user }: { user: Auth
   if (!isOnboardingComplete(supplier)) {
     return apiError("ONBOARDING_REQUIRED", "Complete supplier onboarding before adding products.", 403);
   }
-  // Unverified suppliers can build their catalogue as drafts; nothing is public or sent for review until approval.
+  // Unverified suppliers build their catalogue as drafts: a "send for review" save is kept as a draft (the answer's
+  // status says so), and only showing it to shops (sending it for review) waits for verification.
   const unverified = supplier.verificationStatus !== "verified";
-  if (unverified && parsed.data.status && parsed.data.status !== "draft") {
-    return apiError("VERIFICATION_REQUIRED", "Save it as a draft for now. You can send products for review once your business is verified.", 403);
-  }
 
   const [dbUser, productCount] = await Promise.all([
     db.user.findUnique({ where: { id: user.id }, select: { aiCredits: true } }),
@@ -87,7 +85,7 @@ export const POST = withSupplier(async (req: NextRequest, { user }: { user: Auth
       ...parsed.data,
       supplierId: supplier.id,
       slug,
-      status: parsed.data.status === "pending_review" ? "pending_review" : "draft",
+      status: parsed.data.status === "pending_review" && !unverified ? "pending_review" : "draft",
     },
   });
   void import("@/lib/rewards/rewards.server").then((rewards) => rewards.recordRewardEvent({ userId: user.id, kind: "product_added", ref: product.id })).catch(() => undefined);

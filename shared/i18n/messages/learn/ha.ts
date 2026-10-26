@@ -69,6 +69,10 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "rexhelp.act.domainIdeas": "Sami ra'ayoyin suna",
   "rexhelp.act.templatesPick": "Zaɓi theme ɗina",
   "rexhelp.act.storeRebrand": "Sabunta kamannina",
+  "tipsButton": "Shawarwari",
+  "tipsOpen": "Nuna shawarar wannan shafin",
+  "tipsHideHint": "Danna ka riƙe don ɓoye shi a nan",
+  "tipsHide": "Ɓoye Shawarwari a wannan shafin",
 };
 
 export default ha;

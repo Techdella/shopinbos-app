@@ -11,6 +11,7 @@ import { capitalise, friendlyTime } from "@/lib/friendly";
 import { Screen } from "@/components/Screen";
 import { ChoiceRow, Sheet } from "@/components/Sheet";
 import { Thumb } from "@/components/seller/bits";
+import { CodeBadge } from "@/components/seller/ProductCode";
 import { TONE_COLORS, type Tone } from "@/lib/dashboard";
 import { fetchOrderDelivery, fetchReassignOptions, jobAction, openPartnerChat, type OrderDelivery, type Parcel, type ReassignOption } from "@/lib/delivery";
 import { daysWords, ownTimeline, timelineStates, timelineWordKey, whatsappNumber } from "@/lib/delivery-pure";
@@ -454,6 +455,7 @@ export default function OrderScreen() {
             <View style={{ flex: 1 }}>
               <T weight="bold" numberOfLines={2}>{line.name}</T>
               <T style={{ color: colors.inkSoft, fontSize: 14 }}>{line.quantity} × {naira(line.price)}</T>
+              {line.shortCode ? <CodeBadge code={line.shortCode} /> : null}
             </View>
             <T weight="extrabold">{naira(line.price * line.quantity)}</T>
           </View>

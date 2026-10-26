@@ -12,7 +12,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "format.sleeve": "Wrap sleeve",
   "format.bag": "Shopping bag",
   "order.howMany": "How many?",
-  "order.pay": "Pay {total}",
+  "order.pay": "Pay {total} for the prints",
   "order.title": "Order prints",
   "order.min": "Minimum na {count} for this pack. The more you print, the less each one go cost.",
   "order.delivery": "Delivery",
@@ -78,6 +78,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "style.clinical": "Clinic clean",
   "style.playful": "Play-play blobs",
   "style.luxe": "Black & gold",
+  "order.paid": "E don pay. We go print am send am, and we go message you for WhatsApp.",
+  "order.unpaid": "The payment no finish, so dem no collect anything. Order again when you ready.",
 };
 
 export default pcm;

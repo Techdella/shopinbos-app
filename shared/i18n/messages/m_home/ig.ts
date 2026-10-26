@@ -96,7 +96,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "ai.peggySub": "Ahịa, nzaghachi",
   "needs.title": "Ihe chọrọ gị",
   "tour.1.title": "Tinye ihe site na +",
-  "tour.1.body": "Pịa + iji tinye ngwaahịa, dekọọ ahịa, ma ọ bụ zipu pay link.",
+  "tour.1.body": "Pịa + iji mee post, tinye ngwaahịa, dekọọ ahịa, ma ọ bụ zipu pay link.",
   "tour.2.title": "Ego na ụzọ mkpirisi",
   "tour.2.body": "Pịa kaadị ojii iji hụ ego gị. N'okpuru ya: mee post, delivery, chọta stock ị ga-ere, kesaa ụlọ ahịa gị.",
   "tour.3.title": "Jụọ Rex ma ọ bụ Peggy",

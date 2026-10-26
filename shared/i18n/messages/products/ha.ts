@@ -260,6 +260,12 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "importAi.showMore": "Nuna ƙari",
   "list.pages": "Shafukan kayayyaki",
   "inv.pages": "Shafukan stock",
+  "code.label": "Kodin kaya",
+  "code.hint": "Abokan ciniki za su ambace shi don yin oda: “Comment BAG2 to order”. Haruffa da lambobi 2–8.",
+  "code.auto": "Za mu yi maka shi",
+  "code.invalid": "Kodin kaya haruffa da lambobi ne guda 2 zuwa 8, kamar BAG2.",
+  "code.taken": "Wani kaya yana amfani da {code} tuni. Zaɓi wata kodi.",
+  "code.sub": "Kodi {code}. Gyara bayanai, ganuwa, kaya da yadda shafin kaya yake.",
 };
 
 export default ha;

@@ -16,11 +16,15 @@ import { fetchProducts, type ProductItem } from "@/lib/dashboard";
 import { latestPicture, useChangedIdentity } from "@/lib/identity";
 import { fetchSetup, type SetupOverview } from "@/lib/setup";
 import { openShop, shareShop } from "@/lib/share";
+import { shopIsLive } from "@/lib/publish";
+import { PublishButton, ShopLiveSheet } from "@/components/seller/PublishShop";
+import type { PublishedShop } from "@/lib/publish";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 import { DeleteAccountButton } from "@/components/DeleteAccountButton";
 
-// My shop ("Familiar app" prototype `on.shop`): the shop's logo, name and link with Edit look and Share; four tiles
+// My shop ("Familiar app" prototype `on.shop`): the shop's logo, name and link with Edit my shop and Share (and Put my
+// shop live while it isn't); four tiles
 // (Money, Delivery, Posts, Web address); the products with their stock and − / +, Find more to sell and Add a
 // product; one card with Packaging and labels and Settings and help. Under that, every other tool the seller had, in
 // four short groups (Sell; Money and delivery; Look; You), titles only, each tool once: anything already on the
@@ -109,6 +113,8 @@ export default function MyShop() {
   const t = useT("m_shop", "m_products", "m_onboarding", "nav", "common");
   const [notSeller, setNotSeller] = useState(false);
   const [setup, setSetup] = useState<SetupOverview | null>(null);
+  // Held here, not in the button: once the shop is live the button (and anything inside it) goes away.
+  const [justPublished, setJustPublished] = useState<PublishedShop | null>(null);
   const [products, setProducts] = useState<ProductItem[] | null>(null);
   const [shareNote, setShareNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -150,9 +156,9 @@ export default function MyShop() {
             <Picture uri={latestPicture(changedPictures, "logoUrl", store.logoUrl)} name={store.name} size={64} shape="square" />
             {/* The two buttons wrap under each other on narrow phones instead of running off the screen. */}
             <View style={{ flex: 1, minWidth: 0, flexDirection: "row", flexWrap: "wrap", justifyContent: "flex-end", gap: 8 }}>
-            <PillButton testID="edit-look" tone="white" size="sm" accessibilityLabel={t("card.editLook")} onPress={() => router.push("/templates" as never)}>
+            <PillButton testID="edit-shop" tone="white" size="sm" accessibilityLabel={t("editShop.open")} onPress={() => router.push("/shop-edit" as never)}>
               <AppIcon name="sparkle" size={16} />
-              <T weight="bold" style={{ fontSize: 15 }}>{t("card.editLook")}</T>
+              <T weight="bold" style={{ fontSize: 15 }}>{t("editShop.open")}</T>
             </PillButton>
             {store.url ? (
               <PillButton testID="share-shop" size="sm" accessibilityLabel={t("share")} onPress={() => void share()}>
@@ -173,8 +179,16 @@ export default function MyShop() {
             )}
           </View>
           {shareNote ? <T style={{ color: colors.danger, fontSize: 15 }}>{shareNote}</T> : null}
+          {/* Not live yet: one obvious button puts it live (then "Your shop is live" with View shop and Share). */}
+          {shopIsLive(setup) === false ? (
+            <View style={{ gap: 8, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 14 }}>
+              <T weight="extrabold" style={{ fontSize: 16 }}>{t("publish.notLive")}</T>
+              <PublishButton testID="shop-publish" sheet={false} onPublished={(shop) => { setJustPublished(shop); void fetchSetup().then(setSetup).catch(() => null); }} />
+            </View>
+          ) : null}
         </View>
       ) : null}
+      <ShopLiveSheet shop={justPublished} onClose={() => setJustPublished(null)} />
 
       {/* Money, Delivery, Posts, Web address: a 2×2 grid as rows of two equal tiles (flex: 1). A percentage width
           plus the gap tipped over 100% on 360px phones and wrapped into one narrow column. */}

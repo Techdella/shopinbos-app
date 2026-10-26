@@ -96,7 +96,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "ai.peggySub": "Ciniki, amsoshi",
   "needs.title": "Yana buƙatarka",
   "tour.1.title": "Ƙara abubuwa da +",
-  "tour.1.body": "Danna + don ƙara kaya, rubuta ciniki, ko aika link na biya.",
+  "tour.1.body": "Danna + don yin post, ƙara kaya, rubuta ciniki, ko aika link na biya.",
   "tour.2.title": "Kuɗi da gajerun hanyoyi",
   "tour.2.body": "Danna baƙin katin don ganin kuɗinka. A ƙasansa: yi post, isar da kaya, nemo kayan sayarwa, raba shagonka.",
   "tour.3.title": "Tambayi Rex ko Peggy",

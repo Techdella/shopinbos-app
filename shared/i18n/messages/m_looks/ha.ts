@@ -12,8 +12,6 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "clear": "Share matattara",
   "showCount": "Nuna {count}",
   "search": "Bincika, kamar gashi ko takalmi",
-  "plan": "Tsari",
-  "any": "Kowane",
   "colours": "Launuka",
   "tone.all": "Kowane",
   "tone.light": "Haske",
@@ -24,9 +22,6 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "new": "Sabo",
   "current": "Kamanninka",
   "rexPick": "Zaɓin Rex",
-  "needsPlan": "Yana buƙatar tsarin {plan}",
-  "needsPlanBody": "Samu tsarin a shafin yanar gizo, sannan ka dawo ka yi amfani da wannan kamanni.",
-  "seePlans": "Duba tsare-tsare a shafin yanar gizo",
   "noMatch": "Babu kamannin da ya dace",
   "previewTitle": "Dubawa",
   "keeps": "{blurb}. Kayayyakinka, farashi da isarwa za su kasance yadda suke.",
@@ -40,6 +35,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "seeMyShop": "Duba shagona",
   "isCurrent": "Wannan ne kamannin shagonka yanzu.",
   "askRexChange": "Ka ce Rex ya canza shi",
+  "appliedNew": "An ajiye. Buɗe shagonka don masu siyayya su gani.",
+  "notOnPlan": "Ba ya cikin tsarinka",
 };
 
 export default ha;

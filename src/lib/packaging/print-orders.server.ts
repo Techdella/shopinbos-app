@@ -18,7 +18,8 @@ import { DELIVERY_ZONES, PRINT_ORDER_REFERENCE_PREFIX, quotePrint, type PrintOrd
 
 export class PrintOrderError extends Error {}
 
-export async function createPrintOrder(input: { user: { id: string; email: string | null }; storeId: string; order: PrintOrderInput }) {
+/** callbackUrl: the phone app's Paystack return (src/lib/payments/app-return.server.ts); the web page otherwise. */
+export async function createPrintOrder(input: { user: { id: string; email: string | null }; storeId: string; order: PrintOrderInput; callbackUrl?: string }) {
   const row = await db.printDesign.findFirst({ where: { id: input.order.designId, storeId: input.storeId, kind: "packaging" } });
   if (!row) throw new PrintOrderError("That design isn't here any more. Save it again and retry.");
   const design = cleanDesign(row.data);
@@ -58,10 +59,10 @@ export async function createPrintOrder(input: { user: { id: string; email: strin
     email: billingEmail(input.user),
     amountKobo: quote.total * 100,
     reference,
-    callbackUrl: callback.toString(),
+    callbackUrl: input.callbackUrl ?? callback.toString(),
     metadata: { purpose: "print_order", order_id: order.id, user_id: input.user.id },
   });
-  return { id: order.id, authorizationUrl: session.authorization_url };
+  return { id: order.id, reference, authorizationUrl: session.authorization_url };
 }
 
 /** Marks a verified payment once (callback and webhook may both call this) and tells the team. */

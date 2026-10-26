@@ -77,7 +77,7 @@ const en = {
   "connect.helpTitle": "Connect your delivery software",
   "connect.helpDescription": "Tell us which software you use and how to reach you. We'll do the rest.",
   "connect.softwareQuestion": "Which software or app do you use?",
-  "connect.softwarePlaceholder": "e.g. Shipbubble, our own system",
+  "connect.softwarePlaceholder": "e.g. our own system, a spreadsheet",
   "connect.noSoftware": "No delivery software?",
   "connect.noSoftwareBody": "You don't need any. Your riders can use the free Shopinbos Riders app on their phones.",
   "connect.seeRiders": "See your riders",

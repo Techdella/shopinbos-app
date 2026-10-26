@@ -4,8 +4,8 @@ import { apiError, ok } from "@/lib/api/response";
 import { db } from "@/lib/db/client";
 import { TRANSFER_WINDOW_CHOICES } from "@shared/checkout-payments";
 import type { PaymentsSettingsError } from "@shared/seller-payments";
-import { saveSellerPaymentBadges, saveSellerPaymentMethods, saveSellerTransferWindow, sellerMoneyOverview } from "@/lib/seller-payments.server";
-import { walletBankNames } from "@/lib/wallet/wallet.server";
+import { saveSellerPaymentBadges, saveSellerPaymentMethods, saveSellerTransferWindow, sellerMoneyOverview, sellerPaymentStates } from "@/lib/seller-payments.server";
+import { finishWalletSetUpIfPaystackWasOff, walletBankNames } from "@/lib/wallet/wallet.server";
 import { PaymentsPatchSchema } from "@/lib/seller-settings-rules";
 
 export const dynamic = "force-dynamic";
@@ -25,11 +25,14 @@ const ERRORS: Record<PaymentsSettingsError, { code: string; message: string; sta
 
 async function overview(userId: string) {
   const store = await db.store.findUnique({ where: { userId }, select: { id: true, currency: true, brandSettings: true } });
-  const { summary, waiting, latestPaid, methods, transferWindow, bank, paymentBadges } = await sellerMoneyOverview(store);
+  const [{ summary, waiting, latestPaid, methods, transferWindow, bank, paymentBadges }, states] = await Promise.all([sellerMoneyOverview(store), sellerPaymentStates(userId, store)]);
   return {
     hasStore: Boolean(store),
     currency: store?.currency ?? "NGN",
     methods,
+    // Whether each way to pay reaches customers now (card: the wallet is active and Paystack is on), so the app says
+    // "Add your bank to take card payments" only while that's still true for this business.
+    states,
     transferWindow: { ...transferWindow, choices: [...TRANSFER_WINDOW_CHOICES] },
     bank,
     banks: await walletBankNames(),
@@ -46,7 +49,11 @@ async function overview(userId: string) {
   };
 }
 
-export const GET = withSeller(async (_req, { user }) => ok(await overview(user.id)));
+export const GET = withSeller(async (_req, { user }) => {
+  // A bank saved while Paystack was off is set up now (src/lib/wallet/wallet.server.ts), so the page shows it live.
+  await finishWalletSetUpIfPaystackWasOff(user.id);
+  return ok(await overview(user.id));
+});
 
 export const PATCH = withSeller(async (req: NextRequest, { user }) => {
   const parsed = PaymentsPatchSchema.safeParse(await req.json().catch(() => null));

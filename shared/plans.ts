@@ -190,6 +190,14 @@ export const PLAN_NAMES: Record<PlanKey, string> = {
   logistics_pro: "Logistics Pro",
 };
 
+/**
+ * THE launch switch for storefront themes: while it is true every theme is free for every seller, on the web and the
+ * phone, and the server's switch checks (apply, editor save, Rex) allow them all. The gallery hides its lock badges,
+ * plan filters and "Needs the X plan" lines. Set it to false to bring the plan tiers below back everywhere at once
+ * (src/lib/theme-access.ts reads it; nothing else needs to change).
+ */
+export const ALL_THEMES_FREE: boolean = true;
+
 /** Storefront theme tiers (src/lib/store-templates/theme-library.ts) and the seller plan that unlocks each. */
 export type ThemeTierName = "basic" | "premium" | "platinum";
 export const THEME_TIER_PLAN: Record<ThemeTierName, SellerPlanKey> = { basic: "seller_free", premium: "seller_starter", platinum: "seller_growth" };

@@ -12,7 +12,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "format.sleeve": "Sleeve na-ekechi",
   "format.bag": "Akpa shopping",
   "order.howMany": "Ole?",
-  "order.pay": "Kwụọ {total}",
+  "order.pay": "Kwụọ {total} maka mbipụta",
   "order.title": "Nye order print",
   "order.min": "Opekata mpe bụ {count} maka pack a. Ka ị na-ebipụta ọtụtụ, ka otu nke ọ bụla na-adị ọnụ ala.",
   "order.delivery": "Delivery",
@@ -78,6 +78,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "style.clinical": "Ọcha dịka ụlọ ọgwụ",
   "style.playful": "Agba egwuregwu",
   "style.luxe": "Oji na ọlaedo",
+  "order.paid": "Akwụọla ya. Anyị ga-ebipụta ma ziga ya, ma zitere gị ozi na WhatsApp.",
+  "order.unpaid": "Ịkwụ ụgwọ ahụ emechaghị, ya mere ewepụghị ihe ọ bụla. Tinye iwu ọzọ mgbe ị dị njikere.",
 };
 
 export default ig;

@@ -4,17 +4,19 @@ import { withLogistics } from "@/lib/auth/middleware";
 import { apiError, ok } from "@/lib/api/response";
 import { startSellerPayIn } from "@/lib/logistics/seller-payins.server";
 import { partnerForUser } from "../../_shared";
+import { appCallbackUrl } from "@/lib/payments/app-return.server";
 
-const Body = z.object({ sellerId: z.string().min(1).max(40) });
+const Body = z.object({ sellerId: z.string().min(1).max(40), app: z.string().max(300).optional() });
 
 // Starts the Paystack payment of one seller's cash (split to that seller's bank). The app opens authorizationUrl,
-// then calls ../confirm with the reference; Paystack's webhook confirms it too.
+// then calls ../confirm (or /api/mobile/payments/confirm) with the reference; Paystack's webhook confirms it too.
+// With `app` (its return address) Paystack comes back through /api/mobile/paid, which closes the app's browser.
 export const POST = withLogistics(async (req: NextRequest, { user }) => {
   const partner = await partnerForUser(user.id);
   if (!partner) return apiError("NOT_FOUND", "Delivery partner profile not found", 404);
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return apiError("VALIDATION_ERROR", "Choose the seller.", 400);
-  const started = await startSellerPayIn({ id: partner.id, email: user.email }, parsed.data.sellerId);
+  const started = await startSellerPayIn({ id: partner.id, email: user.email }, parsed.data.sellerId, { callbackUrl: appCallbackUrl(parsed.data.app) });
   if (!started.ok) return apiError("NOT_STARTED", started.error, 409);
   return ok({ reference: started.reference, authorizationUrl: started.authorizationUrl });
 });

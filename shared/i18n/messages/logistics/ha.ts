@@ -72,7 +72,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "connect.helpTitle": "Haɗa software ɗinka na isar da kaya",
   "connect.helpDescription": "Faɗa mana wane software kake amfani da shi da yadda za mu same ka. Za mu yi sauran.",
   "connect.softwareQuestion": "Wane software ko app kake amfani da shi?",
-  "connect.softwarePlaceholder": "misali Shipbubble, tsarinmu",
+  "connect.softwarePlaceholder": "misali tsarinmu, spreadsheet",
   "connect.noSoftware": "Ba ka da software na isar da kaya?",
   "connect.noSoftwareBody": "Ba ka buƙatar ko ɗaya. Riders ɗinka za su iya amfani da Shopinbos Riders app kyauta a wayoyinsu.",
   "connect.seeRiders": "Duba riders ɗinka",

@@ -55,9 +55,9 @@ test("web paths open the app's own screens; customer chats always open Chats or 
 test("Web address: free address with copy and share, own domain status, connect with the DNS records, check", () => {
   const screen = app("app/domain.tsx");
   for (const call of ["fetchDomain", "claimDomain(", "verifyDomain(", "removeDomain(", "Clipboard.setStringAsync", "shareText(", "recordsToAdd(", "SetupHelpRequest"]) assert.ok(screen.includes(call), call);
-  // Buying a domain is a paid checkout: one clearly labelled button to the website, only when buying is on.
-  assert.deepEqual([...screen.matchAll(/openWeb\("([^"]+)"\)/g)].map((match) => match[1]), ["/home/domain"]);
-  assert.match(screen, /data\?\.canBuy/);
+  // Buying a domain isn't in the app, not even a link to the website (app store payment rules,
+  // docs/store-payments-audit.md, tests/store-payments.test.mjs). Connecting one they own stays.
+  assert.doesNotMatch(screen, /openWeb\(|canBuy/);
   const route = read("src/app/api/mobile/domain/route.ts");
   assert.match(route, /export const GET = withSeller/);
   assert.match(route, /getDomainSettings\(user\.id\)/);
@@ -87,11 +87,13 @@ test("Web address: records required first, plain words for each check and claim 
 test("Packaging: pick a template, preview with the shop's name and logo, save, order prints or ask the team", () => {
   const screen = app("app/packaging.tsx");
   for (const call of ["templatesFor(", "startDesign(", "<PackFront", "saveDesign(", "orderPrints(", "askTeam(", "writeWords(", "quotePrint("]) assert.ok(screen.includes(call), call);
-  // Peggy's words spend AI credits: out of credits shows the balance and Top up (an email), like Create with Rex.
+  // Peggy's words spend AI credits: out of credits shows the balance and that it refills monthly, nothing to buy.
   assert.match(screen, /error\.code === "AI_CREDITS_NEEDED"/);
   assert.match(screen, /<CreditsLine balance=\{credits\}/);
-  // Paystack's own checkout page is the only page it opens; nothing opens the web app.
-  assert.match(screen, /WebBrowser\.openBrowserAsync\(result\.authorizationUrl\)/);
+  // Paystack's own checkout page is the only page it opens (an in-app auth session that comes back by itself,
+  // lib/pay.ts); nothing opens the web app.
+  assert.match(app("lib/packaging.ts"), /payInApp\(\(app\) => api<[^>]+>\("\/api\/app\/print-orders"/);
+  assert.match(screen, /result\.outcome === "cancelled"/);
   assert.doesNotMatch(screen, /openWeb\(/);
   // Template tiles: rows of two equal tiles.
   assert.match(screen, /flex: 1, backgroundColor: colors\.surface/);
@@ -151,7 +153,8 @@ test("seller screens no longer open the web app", () => {
   ];
   for (const file of files) assert.doesNotMatch(app(file), /openWeb\(|web-only/, file);
   // Ads: Meta's sign-in runs in an in-app browser and comes back to the app (shopinbos://ads).
-  assert.match(app("app/ads/index.tsx"), /connectMetaAds\(\)/);
+  // The Meta connection card (connect, pick the account and Page) moved to components/MetaAdsCard.tsx (Ads and the ad wizard).
+  assert.match(app("components/MetaAdsCard.tsx"), /connectMetaAds\(\)/);
   assert.match(app("lib/ads.ts"), /openAuthSessionAsync\(url, returnUrl\)/);
   assert.match(read("src/app/api/app/ads/meta/connect/route.ts"), /appReturnUrl\(req\.nextUrl\.searchParams\.get\("app"\)\)/);
   assert.match(read("src/app/api/app/ads/meta/callback/route.ts"), /appReturnUrl\(req\.cookies\.get\(META_ADS_APP_COOKIE\)\?\.value\)/);
@@ -159,7 +162,7 @@ test("seller screens no longer open the web app", () => {
   const start = app("app/start.tsx");
   assert.match(start, /domain: "\/domain"/);
   assert.match(start, /look: "\/templates"/);
-  assert.match(start, /publishStore\(\)/);
+  assert.match(start, /publishing\.publish\(\)/, "Go live publishes here (components/seller/PublishShop.tsx)");
   // The chatbot's questions and answers are edited here; legal pages are added here.
   assert.match(app("app/inbox/chatbot.tsx"), /<PairsEditor/);
   assert.match(app("app/legal.tsx"), /api<\{ key: string \}>\("\/api\/app\/legal", \{ method: "POST"/);

@@ -35,7 +35,6 @@ const PARTNER_UI = [
   ...files("src/components/logistics"),
   ...files("apps/mobile/src/app/logistics"),
   ...files("apps/mobile/src/app/rider"),
-  "apps/mobile/src/components/LogisticsMenu.tsx",
   "apps/mobile/src/components/JobCard.tsx",
   "apps/mobile/src/components/SetupHelpRequest.tsx",
   "apps/mobile/src/lib/rider-strings.ts",
@@ -78,7 +77,7 @@ test("Connect your system is a request to the team, on the web and in the app", 
   assert.match(mobile, /<SetupHelpRequest/);
   assert.match(mobile, /feature="logistics_api"/);
   // The phone menu reads its words from the app-language catalog (m_partner "menu.connect").
-  assert.match(read("apps/mobile/src/components/LogisticsMenu.tsx"), /key: "connect", icon: "send", path: "app:\/logistics\/connect"/);
+  assert.match(read("apps/mobile/src/app/logistics/(tabs)/more.tsx"), /key: "connect", icon: "send", path: "app:\/logistics\/connect"/);
   assert.match(read("shared/i18n/messages/m_partner/en.ts"), /"menu\.connect": "Connect your system"/);
 
   const component = read("apps/mobile/src/components/SetupHelpRequest.tsx");
@@ -140,8 +139,8 @@ test("partner app, Familiar design: Jobs has the level ring, Peggy, Status and r
   assert.doesNotMatch(money, /withdraw|\bpin\b|held by/i);
   const words = read("shared/i18n/messages/m_partner/en.ts");
   assert.doesNotMatch(words.slice(words.indexOf('"fam.')), /withdraw|held by/i);
-  // Credits are shown; "Top up" only emails how to do it on the website (no sale in the app).
-  assert.match(read("apps/mobile/src/app/logistics/(tabs)/more.tsx"), /emailTopUp\(\)/);
+  // Credits are shown, never sold or pointed to (no Top up, no email with the website steps).
+  assert.doesNotMatch(read("apps/mobile/src/app/logistics/(tabs)/more.tsx"), /emailTopUp|fam\.biz\.topUp/);
   assert.match(read("apps/mobile/src/app/logistics/(tabs)/messages.tsx"), /filters/);
   // Android: the active tab icon sits on the prototype's teal pill.
   assert.match(read("apps/mobile/src/app/logistics/(tabs)/_layout.tsx"), /tint=\{PARTNER_TINT\}/);

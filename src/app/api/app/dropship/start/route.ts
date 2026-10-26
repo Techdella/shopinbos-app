@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { productLimitProblem } from "@/lib/plans/gates.server";
 import { withSeller } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
+import { withShortCode } from "@/lib/products/short-code.server";
 import { ok, apiError } from "@/lib/api/response";
 import { StartDropshipSchema } from "@/lib/schemas";
 import type { AuthUser } from "@/lib/auth/types";
@@ -40,12 +41,13 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
   const costPrice = supplierProduct.wholesalePrice;
   const margin = Math.round(((retailPrice - costPrice) / retailPrice) * 100);
 
-  const storeProduct = await db.storeProduct.create({
+  const storeProduct = await withShortCode(store.id, { name: supplierProduct.name, categoryId: supplierProduct.categoryId }, (shortCode) => db.storeProduct.create({
     data: {
       storeId: store.id,
       userId: user.id,
       supplierProductId,
       name: supplierProduct.name,
+      shortCode,
       description: supplierProduct.description,
       images: supplierProduct.images,
       retailPrice,
@@ -55,7 +57,7 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
       fulfillmentType: "dropship",
       status: "draft",
     },
-  });
+  }));
   void import("@/lib/rewards/rewards.server").then((rewards) => rewards.recordRewardEvent({ userId: user.id, kind: "product_added", ref: storeProduct.id })).catch(() => undefined);
 
   const relationship = await db.dropshipRelationship.create({

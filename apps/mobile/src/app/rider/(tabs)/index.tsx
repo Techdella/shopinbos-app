@@ -19,8 +19,9 @@ import { useRiderStrings } from "@/lib/rider-strings";
 import { useLoad } from "@/lib/useLoad";
 import { colors } from "@/theme";
 
-// Riders app, Today (E2E-Rider "today"): the online switch, a new job from the company (tap → "Take this job" /
-// "Skip" sheet), the job in hand, or "No jobs right now", and deliveries done today. First run on this phone goes
+// Riders app, Today (E2E-Rider "today"): the online switch, a new job from the company (tap → "Start this job" /
+// "Skip" sheet; the company already gave the job to this rider, there's no "take" to send it, so starting only opens
+// the steps and the company sees the pickup; Skip is sent), the job in hand, or "No jobs right now", and deliveries done today. First run on this phone goes
 // to the welcome and language screens. Every word comes from the m_rider catalog (lib/rider-strings.ts).
 
 export default function RiderToday() {
@@ -197,9 +198,10 @@ export default function RiderToday() {
               sub={offer.run.pickupKm != null ? say("kmAway", { km: offer.run.pickupKm }) : offer.run.pickupAddress}
             />
           </List>
+          <Small>{say("offer.assigned", { company })}</Small>
           <PillButton tone="forest" onPress={() => { markJobTaken(offer.drop.id); openJob(offer.drop.id); }}>
             <AppIcon name="check" size={20} color="#FFFFFF" />
-            <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 17 }}>{say("take")}</T>
+            <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 17 }}>{say("startJob")}</T>
           </PillButton>
           <PillButton
             tone="white"

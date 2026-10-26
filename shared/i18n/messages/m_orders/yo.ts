@@ -171,6 +171,10 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "filters.pay.any": "Gbogbo",
   "filters.pay.unpaid": "Kò tíì san",
   "filters.pay.toSend": "Ti san, láti fi ránṣẹ́",
+  "list.wholesale": "Order ọ̀pọ̀",
+  "sale.codeFind": "Wá pẹ̀lú kóòdù",
+  "sale.codePlaceholder": "Kóòdù, bíi BAG2",
+  "sale.codeNone": "Kò sí ọjà tó ní kóòdù {code}.",
 };
 
 export default yo;

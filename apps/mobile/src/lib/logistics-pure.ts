@@ -1,6 +1,35 @@
 import { NATIONWIDE, NG_STATES, cleanAreas, parseArea } from "@shared/delivery-market";
 import { nameWords } from "@shared/identity-images";
+import { LOGISTICS_DOC_TYPES } from "@shared/verification-docs";
+import type { TakingBlock } from "@shared/taking-jobs";
 import type { MarketRateRow, RateService, RiderRow, SizeBand } from "./logistics";
+
+/** The documents the server needs before "Send for review" (LOGISTICS_DOC_TYPES required: CAC and insurance). */
+export function requiredDocsMissing(done: string[]) {
+  return LOGISTICS_DOC_TYPES.filter((doc) => doc.required && !done.includes(doc.type));
+}
+
+/**
+ * Why the "Taking new jobs" switch can't go on, for Jobs: the server's answer (overview takingBlock) when it sends
+ * one, else read from what the phone has (an older server: set-up and verification only).
+ */
+export function takingBlockOf(partner: { takingBlock?: TakingBlock | null; verificationStatus: string; onboarded: boolean }): TakingBlock | null {
+  if (partner.takingBlock !== undefined) return partner.takingBlock;
+  if (partner.verificationStatus === "suspended") return "hold";
+  if (partner.verificationStatus === "verified") return null;
+  if (!partner.onboarded) return "setup";
+  if (partner.verificationStatus === "rejected") return "rejected";
+  return partner.verificationStatus === "pending" ? "checking" : "documents";
+}
+
+/** What the line under the switch offers for each reason: a screen to open, Help, or nothing (we're checking). */
+export const TAKING_BLOCK_ACTION: Record<TakingBlock, { path: string | null; key: string }> = {
+  setup: { path: "/logistics/setup", key: "taking.go.setup" },
+  documents: { path: "/logistics/verification", key: "taking.go.documents" },
+  checking: { path: null, key: "" },
+  rejected: { path: "/logistics/verification", key: "taking.go.rejected" },
+  hold: { path: "/help", key: "taking.go.hold" },
+};
 
 // Pure helpers for the delivery partner screens ("Delivery partner app" prototype): the words and buttons for each
 // job status, the job timeline, coverage choices ("same states / all of Nigeria / selected states") as area tokens,

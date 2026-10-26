@@ -147,7 +147,6 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "set.more": "Ètò mìíràn lórí wẹ́ẹ̀bù",
   "set.tips": "Àwọn ìmọ̀ràn àti àlàyé kékeré",
   "set.tipsHint": "Àlàyé ọ̀rọ̀ àti ìfihàn tí ó ń ṣí fúnra rẹ̀",
-  "set.moreHint": "Ẹgbẹ́, billing, ààbò àti títi ṣọ́ọ̀bù rẹ. Yóò ṣí nínú browser rẹ",
   // Payment logos and the 'Built with Shopinbos' badge (shared/payment-badges.ts, src/lib/store-badges.ts).
   "money.badgesTitle": "Àwọn logo ìsanwó lórí ṣọ́ọ̀bù rẹ",
   "money.badgesHint": "Tẹ̀ ẹ́ láti fi hàn tàbí kí ó má hàn. Oníbàárà máa rí wọn nísàlẹ̀ ṣọ́ọ̀bù rẹ àti níbi checkout.",
@@ -174,9 +173,18 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "set.photoRemoveFailed": "A kò lè yọ ọ́ kúrò. Tún gbìyànjú.",
   "money.wallet": "Shopinbos Wallet",
   "money.walletHint": "Owó káàdì ń lọ tààrà sí bánkì rẹ",
-  "del.payFee": "San {amount} pẹ̀lú káàdì",
+  "del.payFee": "San owó ìfijíṣẹ́ {amount} pẹ̀lú káàdì",
   "del.feePaid": "A ti san owó náà",
   "del.feeNotSeen": "A kò tíì rí owó náà. Bí o bá ti san án, yóò hàn níbí láàrin ìṣẹ́jú kan.",
+  "money.state.card.needs_bank": "Fi báǹkì rẹ kún un láti gba ìsanwó káàdì",
+  "money.state.transfer.needs_bank": "Fi báǹkì rẹ kún un kí àwọn oníbàárà lè sanwó nípa transfer",
+  "money.state.bank_review": "A ń ṣàyẹ̀wò báǹkì rẹ. Yóò bẹ̀rẹ̀ ní kété tí a bá fọwọ́ sí i.",
+  "money.state.bank_failed": "A kò lè ṣètò báǹkì rẹ. Gbìyànjú àkáǹtì mìíràn.",
+  "money.state.paused": "Ẹgbẹ́ Shopinbos ti dá a dúró. Kàn sí ìrànlọ́wọ́.",
+  "money.state.needs_team": "Yóò bẹ̀rẹ̀ láàárín ọjọ́ kan, ní kété tí a bá so báǹkì rẹ mọ́ ọn.",
+  "money.state.unavailable": "Ìsanwó káàdì ti dúró fún ìgbà díẹ̀ lórí Shopinbos.",
+  "money.state.needs_whatsapp": "Fi nọ́ńbà WhatsApp rẹ kún un láti tan èyí.",
+  "money.bankRecheck": "Fi báǹkì yìí kún un lẹ́ẹ̀kan sí i kí Paystack lè ṣàyẹ̀wò rẹ̀. Lẹ́yìn náà ìsanwó káàdì yóò máa lọ tààrà sí i.",
 };
 
 export default yo;

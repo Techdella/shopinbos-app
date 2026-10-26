@@ -142,19 +142,29 @@ export function riderAmount(rule: RiderPayRule | null | undefined, job: { delive
 export type TransitionCheck = { ok: true } | { ok: false; error: string };
 
 /**
+ * A rider whose customer has no code can still close the drop with a proof-of-delivery photo already on the job and
+ * the name of the person who took the parcel (the partner sees both). Two letters at least, so it's a real name.
+ */
+export function riderProofInstead(job: { proofUrl?: string | null }, input: { actor: JobActor; recipientName?: string | null }) {
+  return input.actor === "rider" && Boolean(job.proofUrl?.trim()) && (input.recipientName?.trim().length ?? 0) >= 2;
+}
+
+/**
  * Checks a status change before it's saved. Riders and API callers must give the buyer's delivery code
- * (when the job has one) to mark it delivered; the partner's dispatcher can override from the portal.
+ * (when the job has one) to mark it delivered; the partner's dispatcher can override from the portal, and a rider
+ * can instead show a proof photo plus who received it (riderProofInstead).
  * Failing a job needs a reason; pay-on-delivery jobs need the cash/transfer amount when delivered.
  */
 export function checkTransition(
-  job: { status: string; deliveryCode: string | null; codAmount: number | null },
-  input: { to: string; actor: JobActor; code?: string | null; failedReason?: string | null; declineReason?: string | null; codCollected?: number | null; codMethod?: string | null },
+  job: { status: string; deliveryCode: string | null; codAmount: number | null; proofUrl?: string | null },
+  input: { to: string; actor: JobActor; code?: string | null; recipientName?: string | null; failedReason?: string | null; declineReason?: string | null; codCollected?: number | null; codMethod?: string | null },
 ): TransitionCheck {
   if (!canMove(job.status, input.to)) return { ok: false, error: "This job has already moved on, so that step isn't possible now. Refresh to see where it is." };
   if (input.to === "declined" && !input.declineReason?.trim()) return { ok: false, error: "Say why you can't take this job, so the shop can send it to another partner." };
   if (input.to === "failed" && !input.failedReason?.trim()) return { ok: false, error: "Say why you couldn't deliver it, for example \"Customer not picking calls\"." };
   if (input.to === "delivered") {
-    if (job.deliveryCode && input.actor !== "partner" && input.code?.trim() !== job.deliveryCode) {
+    if (job.deliveryCode && input.actor !== "partner" && input.code?.trim() !== job.deliveryCode && !riderProofInstead(job, input)) {
+      if (input.actor === "rider" && !input.code?.trim()) return { ok: false, error: "No code? Take a photo of the parcel at the door and type who received it." };
       return { ok: false, error: "That code doesn't match. Ask the customer for the 4-digit code on their phone." };
     }
     if (job.codAmount && job.codAmount > 0) {

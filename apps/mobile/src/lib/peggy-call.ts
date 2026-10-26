@@ -59,9 +59,11 @@ export interface CallState {
   error: string | null;
   /** Who ended the last call: Peggy herself (her end_call tool), the person, or a dropped line. */
   endedBy: "agent" | "user" | "error" | null;
+  /** When Peggy last opened a screen (open_screen), so tips stay away from the screen she opened. */
+  openedAt: number | null;
 }
 
-const INITIAL: CallState = { available: null, engine: false, phase: "idle", minimized: false, saved: [], status: null, error: null, endedBy: null };
+const INITIAL: CallState = { available: null, engine: false, phase: "idle", minimized: false, saved: [], status: null, error: null, endedBy: null, openedAt: null };
 let state: CallState = INITIAL;
 const listeners = new Set<() => void>();
 const saveListeners = new Set<(item: SavedItem) => void>();
@@ -81,7 +83,8 @@ export function patchCall(patch: Partial<CallState>) {
 
 export const callState = () => state;
 
-function subscribe(listener: () => void) {
+/** Listens to every change of the call (the tips' audio guard stops sound when a call starts). */
+export function subscribeCall(listener: () => void) {
   listeners.add(listener);
   return () => {
     listeners.delete(listener);
@@ -90,7 +93,18 @@ function subscribe(listener: () => void) {
 
 /** The call's state, re-rendering when it changes. */
 export function usePeggyCall() {
-  return useSyncExternalStore(subscribe, callState, callState);
+  return useSyncExternalStore(subscribeCall, callState, callState);
+}
+
+/** A call is going on: connecting, live (open or minimized) or its summary is showing. */
+export const callOn = (current: CallState) => current.phase !== "idle";
+
+/** The minimized call bar is showing (the app keeps a strip free for it, so it never covers the screen). */
+export const callBarShown = (current: CallState) => current.engine && current.minimized && (current.phase === "connecting" || current.phase === "live");
+
+/** Peggy opened a screen on the call. */
+export function notePeggyOpened(now = Date.now()) {
+  patchCall({ openedAt: now });
 }
 
 /** Whether "Call Peggy" can be offered here (for rows in a List, which shouldn't hold an empty row). */

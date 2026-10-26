@@ -54,8 +54,6 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "check.later": "Ba mu iya dubawa yanzu ba. Za mu ci gaba da gwadawa da kanmu.",
   "continue": "Ci gaba",
   "cancel": "Soke",
-  "buy.title": "Sayi sabon domain a shafin yanar gizo",
-  "buy.sub": "Nemi suna ka biya a can. Za mu saita maka shi.",
 };
 
 export default ha;

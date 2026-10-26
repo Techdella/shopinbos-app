@@ -5,6 +5,7 @@ import { AppIcon } from "@/components/icons";
 import { ErrorState, LoadingBlock, SectionTitle } from "@/components/kit";
 import { ChoiceRow } from "@/components/Sheet";
 import { Screen } from "@/components/Screen";
+import { WebButtonLabel } from "@/components/WebBadge";
 import { Card, LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { ApiError } from "@/lib/api";
 import { canDisconnect, canDisconnectEmail, emailCardState, gmailAvailable, GMAIL_CONNECT_PATH } from "@/lib/channels-pure";
@@ -39,6 +40,7 @@ function Mark({ platform, faded }: { platform: LivePlatform; faded?: boolean }) 
 
 function PlatformCard({ card, onChanged, onNote }: { card: ChannelCard; onChanged: () => Promise<void>; onNote: (note: Note | null) => void }) {
   const t = useT("m_channels", "common");
+  const tWeb = useT("m_ui");
   const [busy, setBusy] = useState<"connect" | "retry" | "disconnect" | null>(null);
   const { state, platform, name } = card;
 
@@ -58,7 +60,8 @@ function PlatformCard({ card, onChanged, onNote }: { card: ChannelCard; onChange
   function askWhatsAppSignup() {
     Alert.alert(t("wa.title"), t("wa.body"), [
       { text: t("cancel"), style: "cancel" },
-      { text: t("wa.open"), onPress: () => void openWeb("/channels") },
+      // Meta's WhatsApp sign-up only runs on the website; the button reads "Opens website ↗" (the WebBadge words).
+      { text: tWeb("web.badge"), onPress: () => void openWeb("/channels") },
     ]);
   }
 
@@ -98,7 +101,8 @@ function PlatformCard({ card, onChanged, onNote }: { card: ChannelCard; onChange
   let body: React.ReactNode = null;
   switch (state.kind) {
     case "soon":
-      body = <PillButton title={t("card.soon")} size="md" tone="white" disabled />;
+      // Never shown (the list leaves these channels out): no "Coming soon" button.
+      body = null;
       break;
     case "connect":
       body = connectButton(t("card.connect"));
@@ -235,13 +239,10 @@ function EmailCard({ email, onNote }: { email: ReturnType<typeof useLoad<EmailSe
       {view && state && (state.kind !== "connected" || state.provider !== "gmail") ? (
         gmailAvailable(view) ? (
           <>
-            <PillButton
-              title={busy === "gmail" ? t("card.connecting") : usingGmail || view.gmail ? t("email.gmailAgain") : t("email.gmail")}
-              size="md"
-              busy={busy === "gmail"}
-              disabled={working}
-              onPress={() => void connectGmail()}
-            />
+            {/* Google's sign-in runs in the browser, on the website: the button says so. */}
+            <PillButton size="md" busy={busy === "gmail"} disabled={working} onPress={() => void connectGmail()} accessibilityLabel={usingGmail || view.gmail ? t("email.gmailAgain") : t("email.gmail")}>
+              <WebButtonLabel title={usingGmail || view.gmail ? t("email.gmailAgain") : t("email.gmail")} size="md" />
+            </PillButton>
             <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{t("email.gmailHint")}</T>
           </>
         ) : (

@@ -5,7 +5,7 @@
 // editor and Rex). Only relative imports, so tests/theme-tiers.test.mjs loads it directly.
 
 import { planTierOf, type PlanTier } from "../../shared/plan-catalog.ts";
-import { themeTierPlanName } from "../../shared/plans.ts";
+import { ALL_THEMES_FREE, themeTierPlanName } from "../../shared/plans.ts";
 import { hasPaidPlanTime } from "./store-badges.ts";
 import type { SellerPlanState } from "./seller-plan.ts";
 import { THEME_TIERS, themeLibraryEntry, themeTier, tierIncludes, type ThemeTier } from "./store-templates/theme-library.ts";
@@ -29,6 +29,15 @@ export function sellerThemeTier(user: Pick<SellerPlanState, "planCode" | "planSt
   if (!user || !hasPaidPlanTime(user, now)) return "basic";
   const plan = planTierOf(user.planCode);
   return (plan && TIER_BY_PLAN[plan]) || "basic";
+}
+
+/**
+ * The tier a seller actually gets: every theme while the launch switch (shared/plans.ts ALL_THEMES_FREE) is on, else
+ * their plan's tier. Every check reads the tier through here (src/lib/theme-access.server.ts loadSellerThemeTier),
+ * so the apply route, the editor, Rex, the web gallery and the phone's Shop looks all follow the one switch.
+ */
+export function launchThemeTier(planTier: ThemeTier, allFree: boolean = ALL_THEMES_FREE): ThemeTier {
+  return allFree ? THEME_TIERS[THEME_TIERS.length - 1] : planTier;
 }
 
 export interface ThemeSwitchCheck {

@@ -10,6 +10,7 @@ import { creditBalance } from "@/lib/ai/credits.server";
 import { buildSellerSnapshot, greetingFor, parsePeggyBody, runPeggy } from "@/lib/ai/peggy";
 import { buildSupplierSnapshot } from "@/lib/ai/peggy/supplier-context.server";
 import { buildPartnerSnapshot } from "@/lib/ai/peggy/partner-context.server";
+import { IN_APP_PAYMENTS_RULE } from "@shared/store-payments";
 import { peggyRoleOf, rolePeggyIntro, rolePeggySuggestions, rolePeggySystem } from "@/lib/ai/peggy/roles";
 
 export const runtime = "nodejs";
@@ -23,7 +24,8 @@ export const maxDuration = 120;
 // Sellers get the same Peggy as /api/app/peggy (runPeggy, with her tools and confirmations; `actions` lists what she
 // did). Suppliers and delivery partners get a read-only Peggy: no tools, their own numbers in the context
 // (src/lib/ai/peggy/roles.ts). Every reply is metered like seller Peggy (meterAi "text": the day's allowance, then
-// AI credits; out of both → 402 AI_CREDITS_NEEDED).
+// AI credits; out of both → 402 AI_CREDITS_NEEDED). This is the phone app, so her instructions carry the app store
+// payment rule (IN_APP_PAYMENTS_RULE, shared/store-payments.ts): she never tells anyone to buy credits or plans.
 
 const ROLES = ["seller", "supplier", "logistics_partner"] as const;
 
@@ -67,13 +69,13 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
 
   const role = peggyRoleOf(user.role);
   if (role === "seller") {
-    const result = await runPeggy({ id: user.id, phone: user.phone ?? null }, parsed.turns);
+    const result = await runPeggy({ id: user.id, phone: user.phone ?? null }, parsed.turns, { inApp: true });
     if ("error" in result) return apiError("UNAVAILABLE", result.error, 503);
     return ok({ reply: result.text, creditsLeft: await creditBalance(user.id).catch(() => null), actions: result.actions });
   }
 
   const { snapshot } = role === "supplier" ? await buildSupplierSnapshot(user.id) : await buildPartnerSnapshot(user.id);
-  const system = `${rolePeggySystem(role, snapshot)}${settingUp && setup ? `\n\nThey're still setting up. Help them finish, one step at a time, and say which screen to open:\n${setupText(setup)}` : ""}`;
+  const system = `${rolePeggySystem(role, snapshot)}${settingUp && setup ? `\n\nThey're still setting up. Help them finish, one step at a time, and say which screen to open:\n${setupText(setup)}` : ""}\n\n${IN_APP_PAYMENTS_RULE}`;
   const result = await aiText({ system, messages: parsed.turns, maxTokens: 4000 }).catch((error) => {
     console.error("[mobile/peggy] reply failed", error);
     return null;

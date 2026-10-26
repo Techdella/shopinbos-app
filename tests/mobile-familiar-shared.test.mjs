@@ -129,14 +129,15 @@ test("polling backs off and stops", () => {
   assert.ok(pure.POLL_LIMIT > 10);
 });
 
-test("credits are shown, never sold: Top up emails how to top up on the website", () => {
+test("credits are shown, never sold or pointed to: the balance and that it refills monthly", () => {
   const credits = read("apps/mobile/src/components/familiar/Credits.tsx");
-  assert.match(credits, /emailTopUp\(\)/);
+  assert.doesNotMatch(credits, /emailTopUp|onPress/);
+  assert.match(credits, /t\("credits\.refill"\)/);
   for (const path of [...SCREENS, "apps/mobile/src/components/familiar/Credits.tsx"]) {
     const source = read(path);
     assert.doesNotMatch(source, /₦\s?\d|price list|Pay now|buyCredits|purchase/i, `${path} sells nothing`);
   }
-  assert.match(en, /"credits\.emailed": "We've emailed you how to top up on the website\."/);
+  assert.doesNotMatch(en, /"credits\.(topUp|emailed)/);
 });
 
 test("posting is share sheet plus reminders: no copy claims we post for anyone", () => {

@@ -47,10 +47,6 @@ const en = {
   "suggest.3": "Make a 20% off banner for the weekend",
   "more": "More things Rex can do",
   "credits.count": "{count, plural, one {# credit} other {# credits}}",
-  "credits.topUp": "Top up",
-  "credits.topUpLabel": "Top up credits: we email you how",
-  "credits.emailed": "We’ve emailed you how to top up on the website.",
-  "credits.emailFailed": "We couldn't send the email just now. Try again in a moment.",
   "card.useIt": "Use it",
   "card.useImageAsk": "Use this picture: {title}.",
   "card.useCopyAsk": "Use this description for {name}.",
@@ -59,6 +55,14 @@ const en = {
   "card.publish": "Publish",
   "card.published": "Published. Customers see the new look now.",
   "card.publishFailed": "We couldn't publish just now. Try again.",
+  "photos.add": "Add photos",
+  "photos.attached": "Attached photo",
+  "photos.remove": "Remove photo",
+  "photos.placeholder": "What should Rex do with them?",
+  "photos.useThese": "Use these photos in my shop.",
+  "photos.uploadFailed": "That photo didn't upload. Try another one.",
+  "photos.allowCamera": "Allow the camera in your phone's settings to take a photo.",
+  "photos.allowGallery": "Allow photos in your phone's settings to choose them.",
 } satisfies Record<string, string>;
 
 export default en;

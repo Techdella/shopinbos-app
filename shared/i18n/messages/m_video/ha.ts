@@ -28,7 +28,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "photos.adding": "Ana ƙarawa…",
   "photos.allow": "Ba Shopinbos izinin amfani da hotunanka a saitunan wayarka, sannan ka sake gwadawa.",
   "photos.problem": "Hoton bai ɗoru ba. Gwada wani.",
-  "shots.credits": "Ka yi amfani da hotunan kyauta na yau. Za ka sami ƙari gobe.",
+  "shots.credits": "Kiredit ɗin AI na hotuna sun ƙare a yanzu. Kiredit ɗin tsarinka suna cika kowane wata.",
   "shots.done": "{count, plural, one {Hotonka ya shirya} other {Hotunanka # sun shirya}}.",
   "words.language": "Harshe",
   "words.write": "Bari Rex ya rubuta kalmomin",
@@ -46,12 +46,13 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "watch.on": "A {place}",
   "watch.useIt": "Yi amfani da bidiyonka",
   "watch.save": "Ajiye a wayata",
-  "watch.saveHint": "Bidiyon zai buɗe. Danna ka riƙe shi, ko danna maɓallin download, don ajiye shi a wayarka.",
+  "watch.saveHint": "Menu na rabawa na wayarka zai buɗe. Zaɓi \"Save video\" don ajiye shi.",
   "watch.onProduct": "Yana shafin kaya",
   "watch.posted": "An wallafa",
   "watch.change": "Canja shi",
   "watch.adHint": "Yi amfani da wannan bidiyon a matsayin talla a Facebook da Instagram.",
   "watch.adOnWeb": "Yi tallan a yanar gizo",
+  "watch.saveFailed": "Ba a iya saka bidiyon a wayarka ba. Duba haɗinka ka sake gwadawa.",
 };
 
 export default ha;

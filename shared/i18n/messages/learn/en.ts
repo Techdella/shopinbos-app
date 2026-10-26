@@ -68,6 +68,10 @@ const en = {
   "rexhelp.act.domainIdeas": "Get name ideas",
   "rexhelp.act.templatesPick": "Pick my theme",
   "rexhelp.act.storeRebrand": "Refresh my look",
+  "tipsButton": "Tips",
+  "tipsOpen": "Show the tip for this screen",
+  "tipsHideHint": "Long-press to hide it here",
+  "tipsHide": "Hide Tips on this screen",
 } satisfies Record<string, string>;
 
 export default en;

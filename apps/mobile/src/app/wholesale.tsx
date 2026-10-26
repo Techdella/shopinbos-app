@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { ActivityIndicator, Image, View } from "react-native";
 import { router } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
 import { Screen } from "@/components/Screen";
 import { List, Pill, Row, type PillTone } from "@/components/design";
 import { Notice, PillButton, T } from "@/components/ui";
@@ -9,11 +8,12 @@ import { api } from "@/lib/api";
 import { money } from "@/lib/customers-pure";
 import { useT } from "@/lib/i18n";
 import { useLoad } from "@/lib/useLoad";
+import { payWholesaleOrder } from "@/lib/wallet";
 import { colors } from "@/theme";
 
 // The seller's wholesale orders (stock bought from suppliers). Once the supplier accepts, the seller can pay here
-// by card: Paystack opens in the browser and the money goes straight to the supplier's bank (physical goods, so it
-// isn't an in-app purchase). When the browser closes the app asks the server to confirm with Paystack.
+// by card: Paystack opens in an in-app browser that closes by itself once paid (lib/pay.ts), and the money goes
+// straight to the supplier's bank (physical goods, so it isn't an in-app purchase). The app then confirms it.
 
 type WholesaleOrder = {
   id: string;
@@ -43,26 +43,42 @@ const STAGE: Record<string, { key: string; tone: PillTone }> = {
 
 const ref = (id: string) => `W-${id.slice(-6).toUpperCase()}`;
 
+/** A price request the seller sent from Find ("Request a quote"), and the supplier's answer (GET /api/app/supplier-quotes). */
+type PriceRequest = {
+  id: string;
+  quantity: number;
+  status: string;
+  quotedPrice: number | null;
+  supplierResponse: string | null;
+  supplier: { displayName: string };
+  supplierProduct: { id: string; name: string; slug: string } | null;
+};
+
+const QUOTE_TONE: Record<string, PillTone> = { pending: "warn", responded: "ok", accepted: "teal", rejected: "gray", expired: "gray" };
+
 export default function WholesaleOrders() {
   const t = useT("marketplace");
   const { data, error, refreshing, refresh, reload } = useLoad(() => api<WholesaleOrder[]>("/api/app/wholesale"));
+  const tw = useT("m_find");
+  const tp = useT("m_money");
+  // Price requests: an extra; hidden when the server can't answer.
+  const quotes = useLoad(() => api<PriceRequest[]>("/api/app/supplier-quotes?limit=20").catch(() => null));
   const [paying, setPaying] = useState<string | null>(null);
-  const [notice, setNotice] = useState<{ tone: "error" | "success"; text: string } | null>(null);
+  const [notice, setNotice] = useState<{ tone: "error" | "success" | "info"; text: string } | null>(null);
 
   async function pay(order: WholesaleOrder) {
     setPaying(order.id);
     setNotice(null);
     try {
-      const started = await api<{ reference: string; authorizationUrl: string | null }>(`/api/app/wholesale/${order.id}`, { method: "PATCH", json: { action: "pay" } });
-      if (!started.authorizationUrl) throw new Error(t("ws.payError"));
-      await WebBrowser.openBrowserAsync(started.authorizationUrl);
-      // Back from the browser: Paystack's answer decides (an unfinished payment just stays unpaid).
-      try {
-        await api("/api/app/wholesale/pay-confirm", { method: "POST", json: { reference: started.reference } });
-        setNotice({ tone: "success", text: t("ws.paidNotice") });
-      } catch {
-        // Not paid (closed early) or Paystack is slow: the webhook marks it paid if it went through.
-      }
+      // Paid, a transfer still on its way (the webhook marks it paid), or closed before paying.
+      const result = await payWholesaleOrder(order.id);
+      setNotice(
+        result.outcome === "paid"
+          ? { tone: "success", text: t("ws.paidNotice") }
+          : result.outcome === "pending"
+            ? { tone: "info", text: tp("pay.pending") }
+            : { tone: "error", text: tp("pay.cancelled") },
+      );
       await reload();
     } catch (cause) {
       setNotice({ tone: "error", text: cause instanceof Error && cause.message ? cause.message : t("ws.payError") });
@@ -72,8 +88,34 @@ export default function WholesaleOrders() {
   }
 
   return (
-    <Screen title={t("ws.title")} sub={t("ws.sub")} refreshing={refreshing} onRefresh={refresh}>
+    <Screen title={t("ws.title")} sub={t("ws.sub")} refreshing={refreshing} onRefresh={() => { void quotes.reload(); return refresh(); }}>
       {notice ? <Notice tone={notice.tone}>{notice.text}</Notice> : null}
+      {quotes.data?.length ? (
+        <View style={{ gap: 8 }}>
+          <T weight="extrabold" style={{ fontSize: 16 }}>{tw("wholesale.requests")}</T>
+          <List>
+            {quotes.data.map((quote) => {
+              const slug = quote.supplierProduct?.slug;
+              return (
+                <Row
+                  key={quote.id}
+                  title={`${quote.quantity} × ${quote.supplierProduct?.name ?? ""}`}
+                  sub={
+                    <View style={{ gap: 6 }}>
+                      <T style={{ fontSize: 14, color: colors.inkSoft }}>
+                        {[quote.supplier.displayName, quote.quotedPrice != null ? tw("wholesale.each", { price: money(quote.quotedPrice, "NGN") }) : null].filter(Boolean).join(" · ")}
+                      </T>
+                      <Pill tone={QUOTE_TONE[quote.status] ?? "gray"} label={tw.dynamic(`wholesale.q.${quote.status}`, quote.status)} />
+                      {quote.supplierResponse ? <T style={{ fontSize: 13, color: colors.inkSoft }}>{`“${quote.supplierResponse}”`}</T> : null}
+                    </View>
+                  }
+                  onPress={slug ? () => router.push({ pathname: "/find/[slug]", params: { slug } }) : undefined}
+                />
+              );
+            })}
+          </List>
+        </View>
+      ) : null}
       {error && !data ? <Notice>{error}</Notice> : null}
       {!data && !error ? <ActivityIndicator color={colors.ink} style={{ marginTop: 24 }} /> : null}
       {data && !data.length ? (
@@ -111,7 +153,7 @@ export default function WholesaleOrders() {
                     ) : null}
                     {order.canPay && !paid ? (
                       <PillButton
-                        title={t("ws.pay", { total: money(order.totalPrice, order.currency) })}
+                        title={tw("ws.payOrder", { total: money(order.totalPrice, order.currency) })}
                         accessibilityLabel={t("ws.payLabel", { ref: ref(order.id) })}
                         tone="accent"
                         size="sm"

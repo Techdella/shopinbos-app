@@ -28,9 +28,9 @@ function statusText(debt: Debt, mine: boolean, t: WalletT) {
 }
 
 export function MoneyOwedCard({ owed, role, onChanged }: { owed: MoneyOwed; role: WalletRole; onChanged: () => void }) {
-  const t = useT("wallet");
+  const t = useT("wallet", "m_money");
   const [busy, setBusy] = useState<string | null>(null);
-  const [message, setMessage] = useState<{ tone: "error" | "success"; text: string } | null>(null);
+  const [message, setMessage] = useState<{ tone: "error" | "success" | "info"; text: string } | null>(null);
   const [disputing, setDisputing] = useState<string | null>(null);
   const [response, setResponse] = useState("");
   const party = (debt: Debt) => (debt.otherParty === "Shopinbos" ? t("owed.shopinbos") : debt.otherParty);
@@ -56,7 +56,13 @@ export function MoneyOwedCard({ owed, role, onChanged }: { owed: MoneyOwed; role
     setMessage(null);
     try {
       const result = await payDebt(debt.id);
-      setMessage(result.paid ? { tone: "success", text: t("owed.paidThem", { name: party(debt) }) } : { tone: "error", text: result.message ?? t("owed.paidPending") });
+      setMessage(
+        result.outcome === "paid"
+          ? { tone: "success", text: t("owed.paidThem", { name: party(debt) }) }
+          : result.outcome === "pending"
+            ? { tone: "info", text: t("pay.pending") }
+            : { tone: "error", text: t("pay.cancelled") },
+      );
       onChanged();
     } catch (failure) {
       setMessage({ tone: "error", text: failure instanceof Error ? failure.message : t("owed.failed") });
@@ -105,7 +111,7 @@ export function MoneyOwedCard({ owed, role, onChanged }: { owed: MoneyOwed; role
             )
           ) : debt.status === "open" && debt.remainingKobo > 0 ? (
             debt.payable ? (
-              <PillButton title={t("owed.pay", { amount: nairaFromKobo(debt.remainingKobo) })} size="sm" busy={busy === `pay:${debt.id}`} disabled={busy !== null} onPress={() => void pay(debt)} />
+              <PillButton title={t("owed.payOwed", { amount: nairaFromKobo(debt.remainingKobo) })} size="sm" busy={busy === `pay:${debt.id}`} disabled={busy !== null} onPress={() => void pay(debt)} />
             ) : (
               <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{t("owed.noWallet", { name: party(debt) })}</T>
             )

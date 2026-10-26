@@ -5,6 +5,7 @@ import { naira } from "@shared/onboarding";
 import { Eyebrow, List, Row, Sub, Tile, Title } from "@/components/design";
 import { Screen } from "@/components/Screen";
 import { Thumb } from "@/components/seller/bits";
+import { ShareProductButton, ShareProductIcon } from "@/components/seller/ProductCode";
 import { Mascot, Notice, PillButton } from "@/components/ui";
 import { ProductDraftsCard, useProductDrafts } from "@/components/ProductDrafts";
 import { fetchProducts, type ProductItem } from "@/lib/dashboard";
@@ -69,6 +70,8 @@ export default function AddProducts() {
         </View>
       ) : null}
       {saved > 0 ? <Notice tone="success">{t("add.saved", { count: saved })}</Notice> : null}
+      {/* Just added: share the newest one on WhatsApp straight away. */}
+      {saved > 0 && recent[0]?.status === "published" && recent[0].url ? <ShareProductButton product={recent[0]} /> : null}
       <ProductDraftsCard state={drafts} />
 
       {count === 0 ? (
@@ -88,6 +91,7 @@ export default function AddProducts() {
                 lead={<Thumb uri={product.images[0]} size={44} radius={12} fallback={product.name} />}
                 title={product.name}
                 sub={naira(product.retailPrice)}
+                right={product.status === "published" && product.url ? <ShareProductIcon product={product} /> : undefined}
                 onPress={() => router.push({ pathname: "/product/[id]", params: { id: product.id } })}
               />
             ))}

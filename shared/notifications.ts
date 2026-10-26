@@ -385,6 +385,7 @@ const SIMPLE_SCREENS: Array<[RegExp, string]> = [
   [/^\/home\/marketing(\/.*)?$/, "/marketing"],
   [/^\/home\/(inventory|products)(\/.*)?$/, "/products"],
   [/^\/products(\/.*)?$/, "/products"],
+  [/^\/marketplace\/wholesale$/, "/wholesale"],
   [/^\/marketplace(\/.*)?$/, "/find"],
   [/^\/home\/notifications(\/.*)?$/, "/notifications"],
   [/^\/home\/(payments|payouts)(\/.*)?$/, "/payments"],
@@ -398,11 +399,16 @@ const SIMPLE_SCREENS: Array<[RegExp, string]> = [
   [/^\/supplier\/(payouts|wholesale)$/, "/supplier/money"],
   [/^\/supplier\/products$/, "/supplier/products"],
   [/^\/supplier\/verification$/, "/supplier/verification"],
+  [/^\/supplier\/agreements$/, "/supplier/agreements"],
   [/^\/supplier(\/dashboard)?$/, "/supplier/home"],
   [/^\/logistics\/(bookings|jobs)$/, "/logistics/jobs"],
-  [/^\/logistics\/(cash|payouts|billing)$/, "/logistics/earnings"],
+  [/^\/logistics\/cash$/, "/logistics/cash"],
+  [/^\/logistics\/(payouts|billing)$/, "/logistics/earnings"],
+  [/^\/logistics\/wallet$/, "/logistics/wallet"],
+  [/^\/logistics\/connections$/, "/logistics/connections"],
   [/^\/logistics\/inbox$/, "/logistics/messages"],
   [/^\/logistics\/verification$/, "/logistics/verification"],
+  [/^\/logistics\/quotes$/, "/logistics/quotes"],
   [/^\/logistics(\/dashboard)?$/, "/logistics/home"],
   [/^\/rider$/, "/rider"],
 ];
@@ -457,6 +463,8 @@ export function appRouteFor(link: string | null | undefined): AppRoute | null {
   const job = queryParam(query, "job");
   if (/^\/logistics\/(bookings|jobs)$/.test(pathname) && job) return { pathname: "/logistics/job/[id]", params: { id: job } };
   if ((match = /^\/rider\/drop\/([\w-]+)$/.exec(pathname))) return { pathname: "/rider/drop/[id]", params: { id: match[1] } };
+  // A supplier answered a seller's price request: the phone's Wholesale screen (price requests and orders, with Pay).
+  if (/^\/marketplace\/(product\/[\w-]+|wholesale)$/.test(pathname) && queryParam(query, "quote")) return { pathname: "/wholesale" };
   // A seller's Social posts are the phone's posts calendar: "Your post is ready for WhatsApp" opens it with Share.
   if ((match = /^\/home\/marketing\/social\/([\w-]+)$/.exec(pathname)) && !["new", "designs", "accounts"].includes(match[1])) return { pathname: "/posts/[id]", params: { id: match[1] } };
   if (pathname === "/home/marketing/social" || pathname === "/home/marketing/social/accounts") return { pathname: "/posts" };

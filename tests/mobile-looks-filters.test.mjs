@@ -55,9 +55,10 @@ test("Shop looks screen: grid, filters, full-screen preview, live demo, Use this
   assert.match(screen, /WebBrowser\.openBrowserAsync\(lookDemoUrl\(look\)\)/, "the live demo in the in-app browser");
   assert.match(screen, /await applyLook\(look\.id\)/);
   assert.match(screen, /pathname: "\/rex"/, "Let Rex build one opens Rex");
-  // A locked look names its plan and sends the seller to the website for it; no prices, no paying in the app.
-  assert.match(screen, /t\("needsPlan", \{ plan: look\.lockedPlan \}\)/);
-  assert.match(screen, /openWeb\(PLANS_PATH\)/);
+  // A locked look only says "Not on your plan": no plan name, price, upgrade link or website (app store payment
+  // rules, tests/store-payments.test.mjs). While every theme is free, nothing is locked.
+  assert.match(screen, /t\("notOnPlan"\)/);
+  assert.doesNotMatch(screen, /openWeb\(PLANS_PATH\)|needsPlan/);
   assert.doesNotMatch(screen, /purchase|Paystack|₦|buyTheme|price/i);
   assert.doesNotMatch(screen, /openWeb\("\/builder/, "no trip to the web builder");
   const lib = mobile("lib/templates.ts");

@@ -8,8 +8,11 @@ import { Picture } from "@/components/kit";
 import { AppIcon } from "@/components/icons";
 import { LinkButton, PillButton, T } from "@/components/ui";
 import { TILE } from "@/components/design";
+import { WebButtonLabel } from "@/components/WebBadge";
 import { likeStatus, markStatusSeen, type StatusAuthor, type StatusPost } from "@/lib/familiar";
 import { useT } from "@/lib/i18n";
+import { useIntroAudioStop } from "@/lib/intro-audio";
+import { callOn, usePeggyCall } from "@/lib/peggy-call";
 import { hideShopinbosStatus, markShopinbosSeen, runShopinbosCta, watchOutside } from "@/lib/shopinbos";
 import { colors, fonts } from "@/theme";
 import { Mascot } from "@/components/Mascot";
@@ -41,7 +44,16 @@ export function storyByline(author: Pick<StatusAuthor, "name" | "roleLabel">, ro
 /** A post's video, full screen behind the words; `onEnd` moves on. */
 function StoryVideo({ url, onEnd }: { url: string; onEnd: () => void }) {
   const player = useVideoPlayer(url, (created) => {
+    created.staysActiveInBackground = false;
     created.play();
+  });
+  // The app going to the background or a Peggy call starting pauses it (lib/intro-audio.ts); closing frees it.
+  useIntroAudioStop(() => {
+    try {
+      player.pause();
+    } catch {
+      // Already released.
+    }
   });
   const end = useRef(onEnd);
   useEffect(() => {
@@ -93,6 +105,16 @@ export function StoryViewer({
       setPostIndex(startPost);
     }
   }
+
+  // A Peggy call starting closes the viewer, so the screens she opens show clearly (no tip over them).
+  const calling = callOn(usePeggyCall());
+  const closeRef = useRef(onClose);
+  useEffect(() => {
+    closeRef.current = onClose;
+  });
+  useEffect(() => {
+    if (visible && calling) closeRef.current();
+  }, [visible, calling]);
 
   const author = authors[authorIndex];
   const post = author?.posts[postIndex];
@@ -243,7 +265,12 @@ export function StoryViewer({
                 <T weight="bold" style={{ color: ink }}>{String(like.likes)}</T>
               </Pressable>
             )}
-            {hasCta && post.cta ? <PillButton tone="accent" title={post.cta.label} style={{ flex: 1 }} onPress={action} /> : null}
+            {hasCta && post.cta ? (
+              // "See their shop" opens the shop's website, so it says so.
+              <PillButton tone="accent" title={post.cta.label} style={{ flex: 1 }} onPress={action} accessibilityLabel={post.cta.label}>
+                {!official && post.cta.kind === "view_shop" ? <WebButtonLabel title={post.cta.label} tone="accent" /> : undefined}
+              </PillButton>
+            ) : null}
           </View>
           {official ? (
             <LinkButton

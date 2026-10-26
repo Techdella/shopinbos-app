@@ -72,7 +72,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "connect.helpTitle": "So delivery software rẹ pọ̀",
   "connect.helpDescription": "Sọ software tí o ń lò fún wa àti bí a ṣe lè kàn sí ọ. A máa ṣe ìyókù.",
   "connect.softwareQuestion": "Software tàbí app wo ni o ń lò?",
-  "connect.softwarePlaceholder": "àpẹẹrẹ Shipbubble, system tiwa",
+  "connect.softwarePlaceholder": "àpẹẹrẹ system tiwa, spreadsheet",
   "connect.noSoftware": "O kò ní delivery software?",
   "connect.noSoftwareBody": "O kò nílò rẹ̀. Àwọn rider rẹ lè lo Shopinbos Riders app ọ̀fẹ́ lórí fóònù wọn.",
   "connect.seeRiders": "Wo àwọn rider rẹ",

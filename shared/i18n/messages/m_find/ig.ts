@@ -114,6 +114,17 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "filters.verified": "Naanị ndị a kwadoro",
   "tab.all": "Niile",
   "barTitle": "Chọọ ngwaahịa",
+  "wholesale.row": "Order ọtụtụ",
+  "wholesale.rowSub": "Arịrịọ ọnụahịa gị na ngwaahịa ị zụtara",
+  "wholesale.see": "Hụ arịrịọ ọnụahịa m",
+  "wholesale.requests": "Arịrịọ ọnụahịa",
+  "wholesale.each": "{price} nke ọ bụla",
+  "wholesale.q.pending": "Na-eche onye na-ebubata",
+  "wholesale.q.responded": "Ezitere ọnụahịa",
+  "wholesale.q.accepted": "Anabatala",
+  "wholesale.q.rejected": "Ajụrụ ya",
+  "wholesale.q.expired": "Ọ gwụla",
+  "ws.payOrder": "Kwụọ {total} maka order a",
 };
 
 export default ig;

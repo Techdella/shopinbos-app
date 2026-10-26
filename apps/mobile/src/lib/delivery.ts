@@ -75,6 +75,8 @@ export interface DeliveryException {
 export interface DeliveryHub {
   role: OwnerRole;
   settings: DeliverySettings;
+  /** Sellers: how many states the plan sells in (null: all of Nigeria) and the plan that sells everywhere. */
+  sellLimit?: { states: number | null; nationwidePlan: string | null };
   city: string | null;
   address: string | null;
   connections: Connection[];
