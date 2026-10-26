@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { naira } from "@shared/onboarding";
-import { Banner, Seg, Small, Sub } from "@/components/design";
+import { Seg, Small, Sub } from "@/components/design";
 import { Checklist, type ChecklistItem } from "@/components/familiar/Checklist";
 import { GettingStartedCard } from "@/components/familiar/GettingStarted";
 import { LevelPill } from "@/components/familiar/LevelPill";
@@ -22,7 +22,8 @@ import { fetchEarnings, fetchJobs, fetchLogisticsOverview, fetchMarket, setTakin
 import { STATUS_WORD } from "@/lib/logistics-pure";
 import { dayWord, shortPlace, timeAgo, verificationStage } from "@/lib/partner-pure";
 import { useLoad } from "@/lib/useLoad";
-import { openWeb } from "@/lib/web";
+import * as WebBrowser from "expo-web-browser";
+import { API_URL } from "@/lib/api";
 import { colors, fonts } from "@/theme";
 import { FilterBar } from "@/components/FilterBar";
 
@@ -111,7 +112,8 @@ export default function LogisticsJobs() {
   function openCta(post: StatusPost, author: StatusAuthor) {
     const slug = post.cta?.target?.slug;
     if (post.cta?.kind === "view_shop" && author.role === "seller" && slug) {
-      void openWeb(`/s/${encodeURIComponent(slug)}`);
+      // The shop's own website (the story's button says "Opens website ↗", components/familiar/StoryViewer.tsx).
+      void WebBrowser.openBrowserAsync(`${API_URL}/s/${encodeURIComponent(slug)}`);
       return;
     }
     router.push({ pathname: "/logistics/chat/[id]", params: { id: post.cta?.target?.userId ?? author.userId, name: author.name, role: author.role } });
@@ -214,9 +216,7 @@ export default function LogisticsJobs() {
       ) : null}
 
       {data && data.counts.quotes > 0 ? (
-        <Banner title={t("today.quotes", { count: data.counts.quotes })} tone="mint" icon="tag">
-          <T weight="bold" style={{ fontSize: 14, color: colors.forest, textDecorationLine: "underline" }} onPress={() => void openWeb("/logistics/quotes")}>{t("openOnWeb")}</T>
-        </Banner>
+        <CardButton icon="tag" tint={colors.mintTint} iconBg="#FFFFFF" title={t("today.quotes", { count: data.counts.quotes })} sub={t("quotes.bannerSub")} onPress={() => router.push("/logistics/quotes")} />
       ) : null}
 
       <FilterBar>

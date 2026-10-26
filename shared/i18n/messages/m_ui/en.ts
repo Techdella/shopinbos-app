@@ -108,6 +108,15 @@ const en = {
   "stepper.more": "One more {label}",
   "chat.keepTitle": "Keep it on Shopinbos",
   "chat.keepBody": "Jobs paid outside the app aren’t tracked, can’t be reported and don’t count toward ratings. Agree a price here and send it as a private rate.",
+  "web.badge": "Opens website ↗",
+  "web.askTitle": "Open the website?",
+  "web.askBody": "This page is on the Shopinbos website. It opens in your browser.",
+  "verify.addPhoto": "Add a photo",
+  "verify.replace": "Change photo",
+  "verify.send": "Send for review",
+  "verify.sentNote": "Sent. We'll tell you when your documents are checked.",
+  "verify.uploadFailed": "That didn't go through. Try again.",
+  "verify.photosOff": "Allow photos in your phone settings to add a document.",
 } satisfies Record<string, string>;
 
 export default en;

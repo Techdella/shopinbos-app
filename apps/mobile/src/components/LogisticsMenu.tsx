@@ -9,12 +9,11 @@ import { useHelpSection } from "@/components/PartnerMore";
 import { Screen } from "@/components/Screen";
 import { Card, LinkButton, T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
-import { openWeb } from "@/lib/web";
 import { colors } from "@/theme";
 import { DeleteAccountButton } from "@/components/DeleteAccountButton";
 
 // The delivery partner's menu, opened from "Menu" on Today (the app has four tabs: Today, Jobs, Riders, Money).
-// "app:" paths are screens in the app; anything else opens that page of the web console, signed in.
+// "app:" paths are screens in the app, "url:" a public page, "mailto:" the mail app; nothing opens the web console.
 
 type Row = { label: string; icon: AppIconName; path: string; hint?: string };
 type MenuKey = "messages" | "quotes" | "coverage" | "notifications" | "verification" | "profile" | "connect";
@@ -25,8 +24,8 @@ const SECTIONS: { title: "work" | "company"; links: { key: MenuKey; icon: AppIco
     title: "work",
     links: [
       { key: "messages", icon: "chat", path: "app:/logistics/messages" },
-      { key: "quotes", icon: "tag", path: "/logistics/quotes" },
-      { key: "coverage", icon: "pin", path: "/logistics/coverage" },
+      { key: "quotes", icon: "tag", path: "app:/logistics/quotes" },
+      { key: "coverage", icon: "pin", path: "app:/logistics/coverage" },
     ],
   },
   {
@@ -34,7 +33,7 @@ const SECTIONS: { title: "work" | "company"; links: { key: MenuKey; icon: AppIco
     links: [
       { key: "notifications", icon: "bell", path: "app:/notifications" },
       { key: "verification", icon: "shield", path: "app:/logistics/verification" },
-      { key: "profile", icon: "store", path: "/logistics/profile" },
+      { key: "profile", icon: "store", path: "app:/logistics/profile" },
       { key: "connect", icon: "send", path: "app:/logistics/connect" },
     ],
   },
@@ -44,7 +43,6 @@ function go(path: string) {
   if (path.startsWith("app:")) router.push(path.slice(4) as never);
   else if (path.startsWith("url:")) void WebBrowser.openBrowserAsync(path.slice(4));
   else if (path.startsWith("mailto:")) void Linking.openURL(path);
-  else void openWeb(path);
 }
 
 export function LogisticsMenu() {

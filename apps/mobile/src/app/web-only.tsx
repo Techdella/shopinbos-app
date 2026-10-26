@@ -2,6 +2,7 @@ import { View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { confirmSignOut } from "@/components/partner";
 import { LinkButton, Mascot, PillButton, T, Wordmark } from "@/components/ui";
+import { WebButtonLabel } from "@/components/WebBadge";
 import { openWeb } from "@/lib/web";
 import { colors } from "@/theme";
 
@@ -22,7 +23,9 @@ export default function WebOnly() {
           This account is a Shopinbos admin. Open the admin panel in your browser to review suppliers, partners and payouts.
         </T>
       </View>
-      <PillButton title="Open the admin panel" onPress={() => void openWeb("/admin/dashboard")} />
+      <PillButton accessibilityLabel="Open the admin panel" onPress={() => void openWeb("/admin/dashboard")}>
+        <WebButtonLabel title="Open the admin panel" />
+      </PillButton>
       <LinkButton title="Log out" color={colors.danger} style={{ marginTop: 6 }} onPress={() => confirmSignOut()} />
     </SafeAreaView>
   );

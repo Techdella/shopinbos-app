@@ -8,6 +8,7 @@ import { Picture } from "@/components/kit";
 import { AppIcon } from "@/components/icons";
 import { LinkButton, PillButton, T } from "@/components/ui";
 import { TILE } from "@/components/design";
+import { WebButtonLabel } from "@/components/WebBadge";
 import { likeStatus, markStatusSeen, type StatusAuthor, type StatusPost } from "@/lib/familiar";
 import { useT } from "@/lib/i18n";
 import { useIntroAudioStop } from "@/lib/intro-audio";
@@ -264,7 +265,12 @@ export function StoryViewer({
                 <T weight="bold" style={{ color: ink }}>{String(like.likes)}</T>
               </Pressable>
             )}
-            {hasCta && post.cta ? <PillButton tone="accent" title={post.cta.label} style={{ flex: 1 }} onPress={action} /> : null}
+            {hasCta && post.cta ? (
+              // "See their shop" opens the shop's website, so it says so.
+              <PillButton tone="accent" title={post.cta.label} style={{ flex: 1 }} onPress={action} accessibilityLabel={post.cta.label}>
+                {!official && post.cta.kind === "view_shop" ? <WebButtonLabel title={post.cta.label} tone="accent" /> : undefined}
+              </PillButton>
+            ) : null}
           </View>
           {official ? (
             <LinkButton

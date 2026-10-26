@@ -14,17 +14,16 @@ import { emailTopUp, fetchCredits } from "@/lib/familiar";
 import { useLocale, useT } from "@/lib/i18n";
 import { languageOf } from "@shared/i18n";
 import { verificationStage } from "@/lib/partner-pure";
-import { fetchSupplierOverview, fetchSupplierSetup } from "@/lib/supplier";
+import { fetchSupplierOverview, fetchSupplierSetup, fetchTeam } from "@/lib/supplier";
 import { SUPPLY_CATEGORIES } from "@/lib/supplier-pure";
 import { openSupportWhatsApp } from "@/lib/support";
 import { useLoad } from "@/lib/useLoad";
-import { openWeb } from "@/lib/web";
 import { colors } from "@/theme";
 
 // Account ("Simple app, end to end" supplier prototype, the gear on Home): the business, where parcels leave from,
 // Delivery (the shared Delivery hub at /delivery), the bank, the people on the account, then help, language and
 // signing out. The rows that used to sit under Money ("Your business") live here too: verification, price requests,
-// wholesale price tiers, the business profile and settings on the web. "Familiar app": Rewards, the posts calendar,
+// wholesale price tiers, the business profile and notifications, all in the app. "Familiar app": Rewards, the posts calendar,
 // and the Rex and Peggy credit balance with Top up (an email with how to top up on the website).
 
 export default function SupplierAccount() {
@@ -47,6 +46,8 @@ export default function SupplierAccount() {
   // Rex and Peggy credits: shown, never sold in the app (Top up emails how to do it on the website). Hidden when
   // the server doesn't have credits yet.
   const credits = useLoad(() => fetchCredits().catch(() => null));
+  // The people on the account; the row hides on a server without the team route.
+  const team = useLoad(() => fetchTeam().catch(() => null));
   const [topUp, setTopUp] = useState<{ busy: boolean; note: string | null }>({ busy: false, note: null });
 
   async function emailMe() {
@@ -73,7 +74,7 @@ export default function SupplierAccount() {
         <Row lead={<Tile icon="pin" tone="gray" />} title={t("account.sendFrom")} sub={setup ? [setup.address, setup.city].filter(Boolean).join(", ") || t("account.addAddress") : undefined} onPress={() => router.push({ pathname: "/supplier/setup", params: { edit: "pickup" } })} />
         <Row lead={<Tile icon="truck" tone="gray" />} title={t("account.delivery")} sub={t("account.deliverySub")} onPress={() => router.push("/delivery")} />
         <Row lead={<Tile icon="wallet" tone="gray" />} title={t("account.bank")} sub={bank ? `${bank.bankName} ${bank.account}` : t("account.addBank")} onPress={() => router.push(bank ? "/supplier/wallet" : { pathname: "/supplier/setup", params: { edit: "bank" } })} />
-        <Row lead={<Tile icon="users" tone="gray" />} title={t("account.people")} sub={t("money.teamHint")} onPress={() => void openWeb("/supplier/team")} />
+        {team.data ? <Row lead={<Tile icon="users" tone="gray" />} title={t("account.people")} sub={t("team.count", { count: team.data.members.length })} onPress={() => router.push("/supplier/team")} /> : null}
       </List>
 
       <List>
@@ -94,9 +95,9 @@ export default function SupplierAccount() {
       <List>
         <Row lead={<Tile icon="shield" tone="gray" />} title={t("money.verification")} sub={verification.label} onPress={() => router.push("/supplier/verification")} />
         <Row lead={<Tile icon="tag" tone="gray" />} title={t("account.priceRequests")} sub={t("money.quotesHint")} onPress={() => router.push("/supplier/quotes")} />
-        <Row lead={<Tile icon="coin" tone="gray" />} title={t("money.tiers")} sub={t("opensInBrowser")} onPress={() => void openWeb("/supplier/wholesale")} />
-        <Row lead={<Tile icon="image" tone="gray" />} title={t("money.profile")} sub={t("money.profileHint")} onPress={() => void openWeb("/supplier/profile")} />
-        <Row lead={<Tile icon="settings" tone="gray" />} title={t("settings")} sub={t("money.settingsHint")} onPress={() => void openWeb("/supplier/settings")} />
+        <Row lead={<Tile icon="coin" tone="gray" />} title={t("money.tiers")} sub={t("tiers.sub")} onPress={() => router.push("/supplier/tiers")} />
+        <Row lead={<Tile icon="image" tone="gray" />} title={t("money.profile")} sub={t("profile.sub")} onPress={() => router.push("/supplier/profile")} />
+        <Row lead={<Tile icon="bell" tone="gray" />} title={t("account.notifications")} onPress={() => router.push("/notifications/settings")} />
         <Row lead={<Tile icon="globe" tone="gray" />} title={t("language.title")} sub={languageOf(locale).nativeName} onPress={() => setLanguage(true)} />
       </List>
 

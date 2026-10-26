@@ -34,7 +34,7 @@ export const GET = withSupplier(async (req: NextRequest, { user }: { user: AuthU
         id: true, name: true, slug: true, images: true,
         wholesalePrice: true, suggestedRetailPrice: true,
         currency: true, moq: true, stockQuantity: true,
-        dropshipAvailable: true, status: true, trendScore: true,
+        dropshipAvailable: true, status: true, trendScore: true, pricingTiers: true,
         createdAt: true, updatedAt: true,
         category: { select: { id: true, name: true, slug: true } },
         _count: { select: { storeProducts: true, quoteRequests: true } },

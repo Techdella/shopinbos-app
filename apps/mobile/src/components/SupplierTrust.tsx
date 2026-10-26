@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { Linking, Pressable, View } from "react-native";
+import { router } from "expo-router";
 import { AGREEMENT_POINTS, type StockCheck } from "@shared/supplier-trust";
 import { cleanSignedName, dropshipDocument } from "@shared/contracts";
 import { Badge } from "@/components/kit";
 import { Card, Field, Notice, PillButton, T, Toggle } from "@/components/ui";
 import { sendAgreement, type FindProduct, type Listing } from "@/lib/marketplace";
 import { useT } from "@/lib/i18n";
-import { openWeb } from "@/lib/web";
 import { colors, radii } from "@/theme";
 
 // What a seller should know about a supplier before selling their products (the web's SupplierTrust and
@@ -124,7 +124,7 @@ export function BeforeYouList({ product, listing, onSent }: { product: FindProdu
       {listing.step === "noPlace" ? (
         <>
           <Notice tone="info">{t("trust.addCity")}</Notice>
-          <PillButton title={t("trust.addCityBtn")} tone="white" size="md" onPress={() => void openWeb("/home/settings")} />
+          <PillButton title={t("trust.addCityBtn")} tone="white" size="md" onPress={() => router.push("/settings")} />
         </>
       ) : listing.step === "far" ? (
         <Notice tone="info">{t("trust.tooFar", { name })}</Notice>

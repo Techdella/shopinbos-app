@@ -281,3 +281,70 @@ export interface DeliveryWhere {
 export const fetchDeliveryWhere = () => api<{ settings: DeliveryWhere }>("/api/mobile/delivery").then((body) => body.settings);
 
 export const saveDeliveryWhere = (input: Partial<DeliveryWhere>) => api<{ settings: DeliveryWhere }>("/api/mobile/delivery/settings", { method: "PUT", json: input });
+
+// ─── The people on the account (/api/mobile/supplier/team) ───────────────────
+
+export const TEAM_ROLES = ["manager", "inventory", "support", "sales"] as const;
+export type TeamRole = (typeof TEAM_ROLES)[number];
+
+export interface TeamMember {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  role: string;
+  status: string;
+  invitedAt: string;
+}
+
+export interface TeamView {
+  members: TeamMember[];
+  /** Null: no limit on this plan. */
+  limit: number | null;
+  canAdd: boolean;
+  verified?: boolean;
+}
+
+export const fetchTeam = () => api<TeamView>("/api/mobile/supplier/team");
+
+export const addTeamMember = (input: { name: string; email: string; phone?: string; role: TeamRole }) => api<TeamView>("/api/mobile/supplier/team", { method: "POST", json: input });
+
+export const setTeamMemberActive = (id: string, active: boolean) =>
+  api<{ id: string; status: string }>(`/api/mobile/supplier/team/${encodeURIComponent(id)}`, { method: "PATCH", json: { active } });
+
+export const removeTeamMember = (id: string) => api<{ id: string }>(`/api/mobile/supplier/team/${encodeURIComponent(id)}`, { method: "DELETE" });
+
+// ─── The business profile shops see (GET / PATCH /api/supplier/profile) ──────
+
+export interface SupplierPublicProfile {
+  displayName: string;
+  description: string | null;
+  whatsappNumber: string | null;
+  website: string | null;
+  logoUrl: string | null;
+  slug: string;
+}
+
+export const fetchSupplierProfile = () => api<SupplierPublicProfile>("/api/supplier/profile");
+
+export const savePublicProfile = (input: { description?: string; whatsappNumber?: string; website?: string; logoUrl?: string }) =>
+  api<SupplierPublicProfile>("/api/supplier/profile", { method: "PATCH", json: input });
+
+// ─── Full product edit (PATCH /api/supplier/products/[id], the web editor's call) ─
+
+export type PriceTier = { minQty: number; maxQty?: number; price: number };
+
+export interface ProductEdit {
+  name?: string;
+  description?: string;
+  images?: string[];
+  moq?: number;
+  processingTime?: string;
+  deliveryRegions?: string[];
+  dropshipAvailable?: boolean;
+  bulkOrderAvailable?: boolean;
+  pricingTiers?: PriceTier[];
+}
+
+export const editSupplierProduct = (id: string, patch: ProductEdit) =>
+  api<SupplierProduct & { description: string }>(`/api/supplier/products/${encodeURIComponent(id)}`, { method: "PATCH", json: patch });

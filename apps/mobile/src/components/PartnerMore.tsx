@@ -8,13 +8,12 @@ import { confirmSignOut } from "@/components/partner";
 import { TabScreen } from "@/components/TabScreen";
 import { Card, LinkButton, T } from "@/components/ui";
 import { PRIVACY_URL, TERMS_URL } from "@/lib/support";
-import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 import { DeleteAccountButton } from "@/components/DeleteAccountButton";
 
 // The More tab for suppliers and delivery partners. "app:" paths are screens in the app, "url:" opens a public
-// page, "mailto:" the mail app; anything else opens that page of the web portal, signed in.
+// page, "mailto:" the mail app. Nothing here opens the web portal.
 
 export type MoreLink = { label: string; icon: AppIconName; path: string; hint?: string };
 
@@ -22,7 +21,6 @@ function go(path: string) {
   if (path.startsWith("app:")) router.push(path.slice(4) as never);
   else if (path.startsWith("url:")) void WebBrowser.openBrowserAsync(path.slice(4));
   else if (path.startsWith("mailto:")) void Linking.openURL(path);
-  else void openWeb(path);
 }
 
 export const HELP_SECTION: { title: string; links: MoreLink[] } = {
