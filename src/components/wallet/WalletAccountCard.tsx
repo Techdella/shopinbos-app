@@ -42,7 +42,7 @@ function CopyButton({ value, tone = "dark", className }: { value: string; tone?:
   );
 }
 
-export function WalletAccountCard({ account, aside, footer }: { account: { number: string; bank: string; name: string }; aside?: ReactNode; footer?: ReactNode }) {
+export function WalletAccountCard({ account, aside, footer, goesTo }: { account: { number: string; bank: string; name: string }; aside?: ReactNode; footer?: ReactNode; goesTo?: string | null }) {
   return (
     <div className="relative overflow-hidden rounded-[20px] bg-app-ink p-5 text-white">
       <div aria-hidden className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/[0.06]" />
@@ -60,7 +60,9 @@ export function WalletAccountCard({ account, aside, footer }: { account: { numbe
         <span className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-white/60">Account name</span>
         <span className="text-[14.5px] font-bold">{account.name}</span>
       </div>
-      <p className="relative mb-0 mt-3 text-[12.5px] leading-[1.5] text-white/70">Transfer from any bank app. It lands in your wallet balance within a minute or two.</p>
+      <p className="relative mb-0 mt-3 text-[12.5px] leading-[1.5] text-white/70">
+        {goesTo ? `Transfer from any bank app. It goes straight to your bank, ${goesTo}, usually the next working day.` : "Transfer from any bank app. It lands in your wallet balance within a minute or two."}
+      </p>
       {footer ? <div className="relative mt-3">{footer}</div> : null}
     </div>
   );
