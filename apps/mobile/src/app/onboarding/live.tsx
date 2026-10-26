@@ -12,6 +12,7 @@ import { finishOnboarding } from "@/lib/onboarding";
 import { useT } from "@/lib/i18n";
 import { colors, fonts, radii } from "@/theme";
 import { HelpButton } from "@/components/Help";
+import { AppIcon } from "@/components/icons";
 import { PublishButton } from "@/components/seller/PublishShop";
 
 // "Your shop is live!" ("Familiar app" prototype `on.live`): the link, Share on WhatsApp as the one main button
@@ -40,6 +41,14 @@ export default function Live() {
     setLeaving(true);
     await finishOnboarding(status!.store.live).catch(() => null);
     router.replace("/home");
+  }
+
+  // "Let Peggy answer WhatsApp?": finish onboarding, then open the Peggy chatbot settings over Home.
+  async function setUpPeggy() {
+    setLeaving(true);
+    await finishOnboarding(status!.store.live).catch(() => null);
+    router.replace("/home");
+    router.push("/inbox/chatbot" as never);
   }
 
   return (
@@ -80,14 +89,15 @@ export default function Live() {
             </Pressable>
           ))}
         </View>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 12, backgroundColor: colors.mintTint, borderRadius: 24, paddingVertical: 8, paddingLeft: 6, paddingRight: 16 }}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t("live.peggyTitle")} onPress={() => void setUpPeggy()} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 12, backgroundColor: colors.mintTint, borderRadius: 24, paddingVertical: 8, paddingLeft: 6, paddingRight: 16, opacity: pressed ? 0.85 : 1 })}>
           {/* The transparent sticker: Peggy waves (animated WebP at 96 px and up). */}
           <Mascot who="peggy" mood="wave" size={96} label="" style={{ marginVertical: -6 }} />
           <View style={{ flex: 1 }}>
             <T weight="extrabold" style={{ fontSize: 15 }}>{t("live.peggyTitle")}</T>
             <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 18 }}>{t("live.peggyBody")}</T>
           </View>
-        </View>
+          <AppIcon name="chevron" size={18} color={colors.inkSoft} />
+        </Pressable>
         <View style={{ flex: 1 }} />
         {params.zonesKept ? <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 19, textAlign: "center", marginBottom: 8 }}>{t("pay.zonesKept")}</T> : null}
         {live ? (
