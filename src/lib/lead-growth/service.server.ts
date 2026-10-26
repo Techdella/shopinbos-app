@@ -448,13 +448,42 @@ export async function addWhatsAppContent() {
   });
 }
 
+/** Adds the partnership outreach sequences (switched off) that aren't there yet. */
+export async function addOutreachContent() {
+  const { OUTREACH_AUTOMATIONS } = await import("./whatsapp-content");
+  return guardGrowth(async () => {
+    const have = new Set((await db.leadAutomation.findMany({ select: { name: true } })).map((a) => a.name));
+    let added = 0;
+    for (const automation of OUTREACH_AUTOMATIONS) {
+      if (have.has(automation.name)) continue;
+      await createAutomation(automation);
+      added += 1;
+    }
+    return { added };
+  });
+}
+
+/** Someone on an outreach list wrote back: no more "just following up", the team takes it from here in the inbox. */
+export async function stopOutreachOnReply(leadId: string) {
+  const { OUTREACH_AUTOMATIONS } = await import("./whatsapp-content");
+  return guardGrowth(async () => {
+    const result = await db.leadEnrollment.updateMany({
+      where: { leadId, status: "active", automation: { name: { in: OUTREACH_AUTOMATIONS.map((a) => a.name) } } },
+      data: { status: "stopped", stopReason: "replied" },
+    });
+    if (result.count) await db.websiteLead.updateMany({ where: { id: leadId, status: "new" }, data: { status: "contacted" } });
+    return result.count;
+  });
+}
+
 /** Who WhatsApp can reach, by role, and how lead WhatsApp messages have gone lately. */
 export function whatsappOverview() {
   return guardGrowth(async () => {
     const reachable = { status: { in: ["new", "contacted"] }, convertedAt: null, phone: { not: null }, NOT: { optedOut: { has: "whatsapp" } } } satisfies Prisma.WebsiteLeadWhereInput;
     const since = new Date(Date.now() - 30 * 86_400_000);
-    const [byRole, consented, optedOut, statuses, recent] = await Promise.all([
+    const [byRole, outreachByRole, consented, optedOut, statuses, recent] = await Promise.all([
       db.websiteLead.groupBy({ by: ["role"], where: reachable, _count: { _all: true } }),
+      db.websiteLead.groupBy({ by: ["role"], where: { ...reachable, source: { contains: "outreach", mode: "insensitive" } }, _count: { _all: true } }),
       db.websiteLead.count({ where: { ...reachable, consent: true } }),
       db.websiteLead.count({ where: { optedOut: { has: "whatsapp" } } }),
       db.leadMessage.groupBy({ by: ["status"], where: { channel: "whatsapp", createdAt: { gte: since } }, _count: { _all: true } }),
@@ -467,6 +496,8 @@ export function whatsappOverview() {
     ]);
     return {
       reachableByRole: Object.fromEntries(byRole.map((row) => [row.role, row._count._all])) as Record<string, number>,
+      /** People on the imported partnership outreach lists still to reach (source "outreach"). */
+      outreachByRole: Object.fromEntries(outreachByRole.map((row) => [row.role, row._count._all])) as Record<string, number>,
       consented,
       optedOut,
       last30: Object.fromEntries(statuses.map((row) => [row.status, row._count._all])) as Record<string, number>,

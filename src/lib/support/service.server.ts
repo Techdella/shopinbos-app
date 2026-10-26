@@ -993,6 +993,10 @@ export async function ingestSupportWhatsApp(input: {
   if (lead && isStopMessage(input.text)) {
     const { optOutLead } = await import("@/lib/lead-growth/service.server");
     await optOutLead(lead.id, "whatsapp").catch(() => null);
+  } else if (lead) {
+    // A reply to partnership outreach: stop its follow-ups.
+    const { stopOutreachOnReply } = await import("@/lib/lead-growth/service.server");
+    await stopOutreachOnReply(lead.id).catch(() => 0);
   }
 
   try {

@@ -13,6 +13,12 @@
 // moments that matter (registration opening on 22 October for partners, launch on 1 November) and one reminder.
 // They go out at 10:00 Lagos, an hour after the matching email. The campaign templates (Rex, products, Peggy's
 // inbox, Seller School, the season) are for one-off WhatsApp campaigns.
+//
+// The partnership outreach templates ("outreach") are first contact with people who never came to the website:
+// Nigerian suppliers and delivery companies we'd like to partner with, and well-known sellers without an online
+// store yet (a free store on us). Admin imports their numbers as a CSV with the source "outreach"; the three
+// OUTREACH_AUTOMATIONS send an introduction, a follow-up three days later and a last note four days after that. A
+// reply (or STOP) ends the follow-ups for that person, and the conversation carries on in Admin › Inbox.
 
 import { LAUNCH_AT, PARTNER_REGISTRATION_AT, banner } from "./launch-sequences.ts";
 import type { LeadAudienceType, LeadRole, LeadStepType } from "./pure.ts";
@@ -27,8 +33,8 @@ export type WhatsAppTemplate = {
   role: LeadRole;
   /** What it's for, shown in the admin list. */
   purpose: string;
-  /** "sequence" templates are used by the launch sequences; "campaign" ones are for one-off sends. */
-  use: "sequence" | "campaign";
+  /** "sequence" templates are used by the launch sequences, "outreach" ones by the partnership outreach sequences; "campaign" ones are for one-off sends. */
+  use: "sequence" | "campaign" | "outreach";
   category: "MARKETING" | "UTILITY";
   language: string;
   /** Header image: a banner in public/brand/launch/ (without .jpg). */
@@ -43,6 +49,8 @@ const utm = (url: string, campaign: string) => `${url}${url.includes("?") ? "&" 
 const SIGNUP = `${APP}/signup`;
 const SUPPLIER_SIGNUP = `${APP}/supplier/signup`;
 const LOGISTICS_SIGNUP = `${APP}/logistics/signup`;
+/** Where partners can write to us instead of replying on WhatsApp. */
+export const OUTREACH_EMAIL = "hello@shopinbos.com";
 
 export const WHATSAPP_TEMPLATES: WhatsAppTemplate[] = [
   // ─── Sellers: launch sequence ───
@@ -168,6 +176,108 @@ export const WHATSAPP_TEMPLATES: WhatsAppTemplate[] = [
     image: "wa-16-delivery-call",
     body: `Hi {{1}}, Shopinbos is live and sellers are taking their first orders.\n\nYou can still join as a delivery partner: register, set your areas and prices, and sellers in your areas can book you once you're verified.\n\n${optOut}`,
     button: { text: "Register as a partner", url: utm(LOGISTICS_SIGNUP, "delivery-live") },
+  },
+  // ─── Partnership outreach: suppliers ───
+  {
+    name: "shopinbos_partner_supplier_intro",
+    role: "supplier",
+    use: "outreach",
+    purpose: "Outreach 1: introduce Shopinbos and invite them to partner as a supplier",
+    category: "MARKETING",
+    language: "en",
+    image: "wa-15-supplier-call",
+    body: `Hi {{1}}, this is the partnerships team at Shopinbos. We'd love to have you as a supplier partner.\n\nShopinbos helps businesses across Nigeria sell online. On our supplier marketplace, sellers find your products and add them to their online stores, to dropship or to buy wholesale. You list once, sellers bring the orders, and you get paid for each one. Joining is free; we only take a small commission when you sell.\n\nInterested? Reply to this message or email ${OUTREACH_EMAIL} and we'll set up your listing with you.\n\n${optOut}`,
+    button: { text: "See the supplier side", url: utm(SUPPLIER_SIGNUP, "partner-supplier-intro") },
+  },
+  {
+    name: "shopinbos_partner_supplier_follow_up",
+    role: "supplier",
+    use: "outreach",
+    purpose: "Outreach 2 (3 days later): a short follow-up",
+    category: "MARKETING",
+    language: "en",
+    image: "wa-15-supplier-call",
+    body: `Hi {{1}}, just following up on our message about partnering with Shopinbos.\n\nSellers on Shopinbos are looking for reliable Nigerian suppliers to stock their stores. Our team will help you list your products and get verified, so sellers can find you and start ordering.\n\nReply "Interested" here, or email ${OUTREACH_EMAIL}, and we'll call you at a time that suits you.\n\n${optOut}`,
+    button: { text: "Register as a supplier", url: utm(SUPPLIER_SIGNUP, "partner-supplier-follow-up") },
+  },
+  {
+    name: "shopinbos_partner_supplier_last",
+    role: "supplier",
+    use: "outreach",
+    purpose: "Outreach 3 (a week in): last note, the door stays open",
+    category: "MARKETING",
+    language: "en",
+    image: "wa-15-supplier-call",
+    body: `Hi {{1}}, one last note from Shopinbos. We won't keep messaging you about this.\n\nIf you'd like more sellers stocking your products, our supplier partnership is open whenever you're ready. Register in a few minutes, reply here, or email ${OUTREACH_EMAIL} and we'll take it from there.\n\n${optOut}`,
+    button: { text: "Register as a supplier", url: utm(SUPPLIER_SIGNUP, "partner-supplier-last") },
+  },
+  // ─── Partnership outreach: delivery / logistics companies ───
+  {
+    name: "shopinbos_partner_delivery_intro",
+    role: "delivery",
+    use: "outreach",
+    purpose: "Outreach 1: introduce Shopinbos and invite them to partner on deliveries",
+    category: "MARKETING",
+    language: "en",
+    image: "wa-16-delivery-call",
+    body: `Hi {{1}}, this is the partnerships team at Shopinbos. We'd love to partner with you on deliveries.\n\nShopinbos helps businesses across Nigeria sell online, and every order needs to get to a customer. As a logistics partner, you set your areas and prices, sellers book you for their orders, and you get paid for each delivery. Joining is free.\n\nInterested? Reply to this message or email ${OUTREACH_EMAIL} and we'll get you set up.\n\n${optOut}`,
+    button: { text: "See the partner side", url: utm(LOGISTICS_SIGNUP, "partner-delivery-intro") },
+  },
+  {
+    name: "shopinbos_partner_delivery_follow_up",
+    role: "delivery",
+    use: "outreach",
+    purpose: "Outreach 2 (3 days later): a short follow-up",
+    category: "MARKETING",
+    language: "en",
+    image: "wa-16-delivery-call",
+    body: `Hi {{1}}, just following up on our message about delivering for sellers on Shopinbos.\n\nSellers are taking orders every day and need dependable delivery partners in their cities. Our team will help you set up your areas, prices and riders, so sellers can book you straight from their orders.\n\nReply "Interested" here, or email ${OUTREACH_EMAIL}, and we'll call you at a time that suits you.\n\n${optOut}`,
+    button: { text: "Register as a partner", url: utm(LOGISTICS_SIGNUP, "partner-delivery-follow-up") },
+  },
+  {
+    name: "shopinbos_partner_delivery_last",
+    role: "delivery",
+    use: "outreach",
+    purpose: "Outreach 3 (a week in): last note, the door stays open",
+    category: "MARKETING",
+    language: "en",
+    image: "wa-16-delivery-call",
+    body: `Hi {{1}}, one last note from Shopinbos. We won't keep messaging you about this.\n\nIf you'd like more delivery jobs from online sellers, our logistics partnership is open whenever you're ready. Register in a few minutes, reply here, or email ${OUTREACH_EMAIL} and we'll take it from there.\n\n${optOut}`,
+    button: { text: "Register as a partner", url: utm(LOGISTICS_SIGNUP, "partner-delivery-last") },
+  },
+  // ─── Partnership outreach: well-known sellers without an online store ───
+  {
+    name: "shopinbos_partner_seller_intro",
+    role: "seller",
+    use: "outreach",
+    purpose: "Outreach 1: offer a free online store to a well-known seller",
+    category: "MARKETING",
+    language: "en",
+    image: "wa-06-rex-build",
+    body: `Hi {{1}}, this is the partnerships team at Shopinbos. We love what you're building, and we'd like to give you a free online store.\n\nYour own store with your own web address, where fans can shop your products and pay online. You manage your products, orders, payments and deliveries in one place, and Peggy, our AI assistant, answers your customers on WhatsApp day and night. Our team will set it up with you.\n\nInterested? Reply to this message or email ${OUTREACH_EMAIL} and we'll get started.\n\n${optOut}`,
+    button: { text: "See your store", url: utm(SIGNUP, "partner-seller-intro") },
+  },
+  {
+    name: "shopinbos_partner_seller_follow_up",
+    role: "seller",
+    use: "outreach",
+    purpose: "Outreach 2 (3 days later): a short follow-up",
+    category: "MARKETING",
+    language: "en",
+    image: "wa-05-claim-domain",
+    body: `Hi {{1}}, just following up on the free online store we'd like to give you.\n\nTell us what you sell and our team, with Rex, our AI store builder, will have your store ready in minutes: your products, your prices, your brand. You keep the sales, and your customers get a proper place to shop you.\n\nReply "Interested" here, or email ${OUTREACH_EMAIL}, and we'll set it up with you.\n\n${optOut}`,
+    button: { text: "Claim my free store", url: utm(SIGNUP, "partner-seller-follow-up") },
+  },
+  {
+    name: "shopinbos_partner_seller_last",
+    role: "seller",
+    use: "outreach",
+    purpose: "Outreach 3 (a week in): last note, the offer stays open",
+    category: "MARKETING",
+    language: "en",
+    image: "wa-05-claim-domain",
+    body: `Hi {{1}}, one last note from Shopinbos. We won't keep messaging you about this.\n\nYour free online store is still here whenever you're ready. Claim it in a minute, reply here, or email ${OUTREACH_EMAIL} and our team will set it up for you.\n\n${optOut}`,
+    button: { text: "Claim my free store", url: utm(SIGNUP, "partner-seller-last") },
   },
   // ─── Sellers: campaigns ───
   {
@@ -357,6 +467,25 @@ export const WHATSAPP_AUTOMATIONS: Array<{ name: string; audience: LeadAudienceT
       step("shopinbos_delivery_live", { at: LAUNCH_10AM }),
     ],
   },
+];
+
+/** The source an outreach list is imported with (Admin › Leads › Import, or the outreach card on the WhatsApp page). */
+export const OUTREACH_SOURCE = "outreach";
+
+// People on an outreach list never asked to hear from us, so the audience can't require the form's consent tick;
+// the source keeps these sequences to the imported list, never website leads. Everyone gets the opt-out link.
+const outreachAudience = (role: LeadRole): LeadAudienceType => ({ roles: [role], kinds: [], statuses: ["new", "contacted"], consentOnly: false, sinceDays: 0, source: OUTREACH_SOURCE });
+
+const outreachSteps = (role: LeadRole) => [
+  step(`shopinbos_partner_${role}_intro`, { delayHours: 0 }),
+  step(`shopinbos_partner_${role}_follow_up`, { delayHours: 72 }),
+  step(`shopinbos_partner_${role}_last`, { delayHours: 96 }),
+];
+
+export const OUTREACH_AUTOMATIONS: Array<{ name: string; audience: LeadAudienceType; steps: LeadStepType[]; includeExisting: boolean }> = [
+  { name: "WhatsApp outreach: supplier partners", audience: outreachAudience("supplier"), includeExisting: true, steps: outreachSteps("supplier") },
+  { name: "WhatsApp outreach: delivery partners", audience: outreachAudience("delivery"), includeExisting: true, steps: outreachSteps("delivery") },
+  { name: "WhatsApp outreach: sellers (free store)", audience: outreachAudience("seller"), includeExisting: true, steps: outreachSteps("seller") },
 ];
 
 /** Which templates an automation needs (to warn when one isn't approved yet). */
