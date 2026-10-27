@@ -14,7 +14,7 @@ export function HelpButton({ className = "" }: { className?: string }) {
     <button
       type="button"
       onClick={() => window.dispatchEvent(new Event(OPEN_HELP_EVENT))}
-      className={`inline-flex min-h-[44px] items-center gap-2 rounded-full border border-app-line bg-white px-3.5 text-[14px] font-extrabold text-app-ink hover:border-app-line-strong sm:px-4 ${className}`}
+      className={`inline-flex min-h-[44px] items-center gap-2 rounded-full border border-app-line bg-white px-3.5 text-[14px] font-bold text-app-ink hover:border-app-line-strong sm:px-4 ${className}`}
     >
       <Icon name="chat" size={16} /> {t("help")}
     </button>

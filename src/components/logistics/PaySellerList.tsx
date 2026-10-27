@@ -64,7 +64,7 @@ export function PaySellerList({ rows }: { rows: SellerCashRow[] }) {
               <div className="text-[13.5px] text-app-ink-soft">{naira(row.amount)} · {row.jobs} job{row.jobs === 1 ? "" : "s"}</div>
             </div>
             {row.payable ? (
-              <button type="button" onClick={() => pay(row)} disabled={busy !== null} className="inline-flex min-h-[40px] items-center rounded-full bg-app-ink px-4 text-[13.5px] font-extrabold text-white disabled:opacity-55">
+              <button type="button" onClick={() => pay(row)} disabled={busy !== null} className="inline-flex min-h-[40px] items-center rounded-full bg-app-ink px-4 text-[13.5px] font-bold text-white disabled:opacity-55">
                 {busy === row.sellerId ? "Opening…" : `Pay ${naira(row.amount)}`}
               </button>
             ) : (

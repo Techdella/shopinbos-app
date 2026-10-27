@@ -49,7 +49,7 @@ export function ShareStory(props: {
           <div className="mt-4 flex flex-wrap gap-2">
             {live && (
               <form action={withdrawMyStory}>
-                <button type="submit" className="inline-flex min-h-[40px] items-center rounded-full border border-app-line px-4 text-[13.5px] font-extrabold hover:border-app-line-strong">Stop using my story</button>
+                <button type="submit" className="inline-flex min-h-[40px] items-center rounded-full border border-app-line px-4 text-[13.5px] font-bold hover:border-app-line-strong">Stop using my story</button>
               </form>
             )}
             <form action={deleteMyStory}>
@@ -98,7 +98,7 @@ export function ShareStory(props: {
         <p className="m-0 text-[12.5px] text-app-ink-soft">
           Consent {CONSENT_VERSION}. We keep your story, this wording and the time you agreed. It&apos;s handled under the Nigeria Data Protection Act 2023; ask Support to see or delete anything we hold.
         </p>
-        <button type="submit" className="inline-flex min-h-[46px] w-fit items-center gap-2 rounded-full bg-app-ink px-5 text-[14.5px] font-extrabold text-white hover:bg-black">
+        <button type="submit" className="inline-flex min-h-[46px] w-fit items-center gap-2 rounded-full bg-app-ink px-5 text-[14.5px] font-bold text-white hover:bg-black">
           <Icon name="send" size={15} /> {story ? "Send the new version" : "Send my story"}
         </button>
       </form>

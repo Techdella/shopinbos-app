@@ -151,11 +151,11 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
-          <button type="button" onClick={save} disabled={pending} aria-pressed={saved} className="inline-flex min-h-[42px] items-center gap-2 rounded-full border border-app-line bg-white px-4 text-[14px] font-extrabold hover:border-app-line-strong disabled:opacity-60">
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={save} disabled={pending} aria-pressed={saved} className="inline-flex min-h-[42px] items-center gap-2 rounded-full border border-app-line bg-white px-4 text-[14px] font-bold hover:border-app-line-strong disabled:opacity-60">
             <Icon name="heart" size={15} fill={saved ? "currentColor" : "none"} className={saved ? "text-app-accent" : ""} /> {saved ? t("pd.saved") : t("pd.save")}
           </button>
-          <button type="button" onClick={() => guard(() => setMessageOpen(true))} className="inline-flex min-h-[42px] items-center gap-2 rounded-full border border-app-line bg-white px-4 text-[14px] font-extrabold hover:border-app-line-strong">
+          <button type="button" onClick={() => guard(() => setMessageOpen(true))} className="inline-flex min-h-[42px] items-center gap-2 rounded-full border border-app-line bg-white px-4 text-[14px] font-bold hover:border-app-line-strong">
             <Icon name="chat" size={15} /> {t("pd.message")}
           </button>
         </div>
@@ -213,7 +213,7 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
                   aria-selected={mode === value}
                   disabled={disabled}
                   onClick={() => setMode(value)}
-                  className={cx("min-h-[40px] rounded-full px-3 text-[13.5px] font-extrabold disabled:cursor-not-allowed disabled:opacity-40", mode === value ? "bg-app-ink text-white" : "text-app-ink hover:bg-app-canvas")}
+                  className={cx("min-h-[40px] rounded-full px-3 text-[13.5px] font-bold disabled:cursor-not-allowed disabled:opacity-40", mode === value ? "bg-app-ink text-white" : "text-app-ink hover:bg-app-canvas")}
                 >
                   {label}
                 </button>
@@ -269,7 +269,7 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
                   <Link href="/products" className="text-app-success underline-offset-2 hover:underline">{t("pd.viewProducts")}</Link>
                 </div>
               ) : (
-                <button type="button" onClick={add} disabled={pending} className="inline-flex min-h-[54px] w-full items-center justify-center rounded-full bg-app-accent px-5 text-[15.5px] font-extrabold text-white hover:brightness-95 disabled:opacity-60">
+                <button type="button" onClick={add} disabled={pending} className="inline-flex min-h-[54px] w-full items-center justify-center rounded-full bg-app-accent px-5 text-[15.5px] font-bold text-white hover:brightness-95 disabled:opacity-60">
                   {pending ? t("pd.adding") : t("pd.addAt", { price: ` ${money(price)}` }).replace("  ", " ")}
                 </button>
               )}
@@ -338,7 +338,7 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
                     {t("pd.sent", { name: supplier.name })}
                   </p>
                 )}
-                <button type="button" onClick={placeWholesale} disabled={pending || quantity < product.moq} className="inline-flex min-h-[54px] w-full items-center justify-center rounded-full bg-app-ink px-5 text-[15.5px] font-extrabold text-white hover:bg-black disabled:opacity-60">
+                <button type="button" onClick={placeWholesale} disabled={pending || quantity < product.moq} className="inline-flex min-h-[54px] w-full items-center justify-center rounded-full bg-app-ink px-5 text-[15.5px] font-bold text-white hover:bg-black disabled:opacity-60">
                   {pending ? t("pd.sending") : t("pd.orderFor", { count: num(quantity), total: ` ${money(unit * quantity)}` }).replace("  ", " ")}
                 </button>
                 {quoted ? (
@@ -346,7 +346,7 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
                     {t("pd.quoted", { name: supplier.name, count: num(quantity) })}
                   </p>
                 ) : (
-                  <button type="button" onClick={quote} disabled={pending} className="inline-flex min-h-[44px] w-full items-center justify-center rounded-full border border-app-line bg-white px-5 text-[14px] font-extrabold hover:border-app-line-strong disabled:opacity-60">
+                  <button type="button" onClick={quote} disabled={pending} className="inline-flex min-h-[44px] w-full items-center justify-center rounded-full border border-app-line bg-white px-5 text-[14px] font-bold hover:border-app-line-strong disabled:opacity-60">
                     {t("pd.betterPrice")}
                   </button>
                 )}
@@ -481,10 +481,10 @@ function MessageDialog({ open, supplierName, productName, onClose, onSend }: { o
         <VoiceInputButton value={text} onChange={setText} maxLength={2000} context="a message to a supplier" className="mt-2" />
         {error && <p role="alert" className="mb-0 mt-2 text-[13.5px] font-bold text-app-danger">{error}</p>}
         <div className="mt-4 flex flex-wrap gap-2">
-          <button type="submit" disabled={pending || !text.trim()} className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-app-ink px-5 text-[14px] font-extrabold text-white hover:bg-black disabled:opacity-60">
+          <button type="submit" disabled={pending || !text.trim()} className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-app-ink px-5 text-[14px] font-bold text-white hover:bg-black disabled:opacity-60">
             <Icon name="send" size={15} /> {pending ? t("pd.sending") : t("pd.send")}
           </button>
-          <button type="button" onClick={onClose} className="inline-flex min-h-[44px] items-center rounded-full border border-app-line bg-white px-5 text-[14px] font-extrabold">{t("pd.cancel")}</button>
+          <button type="button" onClick={onClose} className="inline-flex min-h-[44px] items-center rounded-full border border-app-line bg-white px-5 text-[14px] font-bold">{t("pd.cancel")}</button>
         </div>
       </form>
     </dialog>

@@ -102,13 +102,13 @@ export default async function PagesPage({ searchParams }: PagesPageProps) {
                   <span className="hidden w-[110px] shrink-0 text-[13px] text-app-ink-soft lg:block">
                     {formatDate(p.updatedAt, locale, { day: "numeric", month: "short", year: "numeric" })}
                   </span>
-                  <div className="flex shrink-0 gap-2">
+                  <div className="flex shrink-0 flex-wrap gap-2">
                     <PillLink href={`/home/pages/${p.id}`} size="sm" icon="edit">{t("edit")}</PillLink>
                     <a
                       href={previewHref}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex min-h-[34px] items-center gap-1.5 rounded-full border border-app-line bg-white px-3.5 text-[13px] font-extrabold text-app-ink no-underline hover:border-app-line-strong"
+                      className="inline-flex min-h-[34px] items-center gap-1.5 rounded-full border border-app-line bg-white px-3.5 text-[13px] font-bold text-app-ink no-underline hover:border-app-line-strong"
                     >
                       <Icon name="eye" size={14} /> {t("pages.preview")}
                     </a>

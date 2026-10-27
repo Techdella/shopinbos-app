@@ -17,7 +17,7 @@ export function PrintButton({ disabled, label = "Print" }: { disabled?: boolean;
       type="button"
       disabled={disabled}
       onClick={() => window.print()}
-      className="inline-flex min-h-[44px] items-center rounded-full bg-app-ink px-5 text-[14px] font-extrabold text-white disabled:opacity-50"
+      className="inline-flex min-h-[44px] items-center rounded-full bg-app-ink px-5 text-[14px] font-bold text-white disabled:opacity-50"
     >
       {label}
     </button>

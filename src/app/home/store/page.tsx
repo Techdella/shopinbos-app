@@ -120,7 +120,7 @@ export default async function YourStorePage() {
             href={openUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full border border-app-line bg-white px-5 text-[14px] font-extrabold text-app-ink no-underline transition hover:border-app-line-strong max-sm:w-11 max-sm:px-0"
+            className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full border border-app-line bg-white px-5 text-[14px] font-bold text-app-ink no-underline transition hover:border-app-line-strong max-sm:w-11 max-sm:px-0"
           >
             <Icon name="eye" size={16} /> <span className="max-sm:sr-only">{t("hub.view")}</span>
           </a>

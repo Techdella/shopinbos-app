@@ -179,9 +179,9 @@ export default async function HomePage() {
             <span className="font-extrabold">{t("soldToday", { amount: naira(dashboard.sales.today) })}</span>
           </h1>
           <div className="mt-6 flex flex-wrap gap-2.5">
-            <Link href="/products/new" className="inline-flex min-h-[44px] items-center rounded-full bg-app-ink px-5 text-[14px] font-extrabold text-white no-underline">{t("addProduct")}</Link>
-            <Link href="/home/orders/new" className="inline-flex min-h-[44px] items-center rounded-full border border-app-line bg-white px-5 text-[14px] font-extrabold text-app-ink no-underline">{t("recordSale")}</Link>
-            <Link href="/marketplace" className="inline-flex min-h-[44px] items-center rounded-full border border-app-line bg-white px-5 text-[14px] font-extrabold text-app-ink no-underline">{t("findStock")}</Link>
+            <Link href="/products/new" className="inline-flex min-h-[44px] items-center rounded-full bg-app-ink px-5 text-[14px] font-bold text-white no-underline">{t("addProduct")}</Link>
+            <Link href="/home/orders/new" className="inline-flex min-h-[44px] items-center rounded-full border border-app-line bg-white px-5 text-[14px] font-bold text-app-ink no-underline">{t("recordSale")}</Link>
+            <Link href="/marketplace" className="inline-flex min-h-[44px] items-center rounded-full border border-app-line bg-white px-5 text-[14px] font-bold text-app-ink no-underline">{t("findStock")}</Link>
           </div>
           <div className="mt-6 flex flex-wrap gap-2">
             <Stat label={t("stat.orders")} value={dashboard.counts.ordersToday} locale={locale} />
@@ -256,7 +256,7 @@ export default async function HomePage() {
               <span className="block text-[16px] font-extrabold">{t("yourShop")}</span>
               <span className="block truncate text-[13px] text-app-ink-soft">{storeHost ?? dashboard.store.name}</span>
             </span>
-            <Link href="/home/store" className="shrink-0 rounded-full border border-app-line px-3.5 py-2 text-[13px] font-extrabold text-app-ink no-underline hover:border-app-line-strong">{t("manage")}</Link>
+            <Link href="/home/store" className="shrink-0 rounded-full border border-app-line px-3.5 py-2 text-[13px] font-bold text-app-ink no-underline hover:border-app-line-strong">{t("manage")}</Link>
           </Card>
         )}
 

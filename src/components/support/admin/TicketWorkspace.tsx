@@ -356,7 +356,7 @@ function Composer({ ticket, macros, me, now }: { ticket: DeskTicket; macros: Des
               placeholder="Tell Peggy anything to include (optional), e.g. offer a setup call"
               className="min-h-[38px] min-w-0 flex-1 basis-[220px] rounded-full border border-app-line bg-white px-3.5 text-[13.5px] outline-none placeholder:text-app-ink-faint focus:border-app-ink"
             />
-            <button type="button" onClick={draftWithPeggy} disabled={drafting} className="inline-flex min-h-[38px] items-center gap-1.5 rounded-full bg-app-forest px-4 text-[13px] font-extrabold text-white hover:brightness-110 disabled:opacity-60">
+            <button type="button" onClick={draftWithPeggy} disabled={drafting} className="inline-flex min-h-[38px] items-center gap-1.5 rounded-full bg-app-forest px-4 text-[13px] font-bold text-white hover:brightness-110 disabled:opacity-60">
               {drafting ? <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-r-transparent" /> : <Icon name="sparkle" size={14} />}
               {drafting ? "Peggy is writing…" : text.trim() && asPeggy ? "Rewrite with Peggy" : "Draft with Peggy"}
             </button>
@@ -422,7 +422,7 @@ function Composer({ ticket, macros, me, now }: { ticket: DeskTicket; macros: Des
             type="button"
             onClick={submit}
             disabled={busy}
-            className={cx("inline-flex min-h-[44px] items-center gap-2 rounded-full px-5 text-[14px] font-extrabold text-white disabled:opacity-55", mode === "note" ? "bg-[#8A5A00] hover:brightness-110" : "bg-app-accent hover:brightness-95")}
+            className={cx("inline-flex min-h-[44px] items-center gap-2 rounded-full px-5 text-[14px] font-bold text-white disabled:opacity-55", mode === "note" ? "bg-[#8A5A00] hover:brightness-110" : "bg-app-accent hover:brightness-95")}
           >
             {busy ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-r-transparent" /> : <Icon name={mode === "note" ? "edit" : "send"} size={15} />}
             {mode === "note" ? "Add note" : "Send reply"}

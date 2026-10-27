@@ -128,12 +128,12 @@ function CreatorCard({ affiliate, storeName, payday, onChange }: { affiliate: Af
 
       <div className="mt-3 flex flex-wrap items-center gap-2 rounded-[14px] bg-app-canvas p-2 pl-3">
         <code className="min-w-0 flex-1 truncate text-[13px]">{affiliate.link}</code>
-        <button type="button" onClick={() => void copy()} className="rounded-full border border-app-line bg-white px-3.5 py-1.5 text-[13px] font-extrabold">{copied ? t("copied") : t("copy")}</button>
+        <button type="button" onClick={() => void copy()} className="rounded-full border border-app-line bg-white px-3.5 py-1.5 text-[13px] font-bold">{copied ? t("copied") : t("copy")}</button>
         <a
           href={affiliate.phone ? `https://wa.me/${waNumber(affiliate.phone)}?text=${encodeURIComponent(invite)}` : `https://wa.me/?text=${encodeURIComponent(invite)}`}
           target="_blank"
           rel="noreferrer"
-          className="rounded-full bg-app-success px-3.5 py-1.5 text-[13px] font-extrabold text-white no-underline"
+          className="rounded-full bg-app-success px-3.5 py-1.5 text-[13px] font-bold text-white no-underline"
         >
           {t("sendWhatsApp")}
         </a>

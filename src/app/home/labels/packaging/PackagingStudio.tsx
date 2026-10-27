@@ -769,7 +769,7 @@ function CustomCta({ t }: { t: T }) {
         <p className="m-0 text-[15.5px] font-extrabold">{t("custom.title")}</p>
         <p className="m-0 mt-1 max-w-[520px] text-[13.5px] text-white/75">{t("custom.sub")}</p>
       </div>
-      <Link href="/home/labels/request" className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-white px-5 text-[14px] font-extrabold text-app-ink no-underline">
+      <Link href="/home/labels/request" className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-white px-5 text-[14px] font-bold text-app-ink no-underline">
         {t("custom.cta")} <Icon name="arrow" size={14} />
       </Link>
     </div>

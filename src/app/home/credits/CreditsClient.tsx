@@ -145,7 +145,7 @@ export function CreditsClient({
                 {overview.autoTopUp ? t("cr.autoOnLine", { pack: packName(overview.autoPackId)?.credits ?? "" }) : out ? t("cr.outLine") : low ? t("cr.lowLine") : t("cr.okLine")}
               </p>
             </div>
-            <a href="#packs" className="inline-flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-full bg-white px-5 text-[14px] font-extrabold text-app-ink no-underline hover:bg-app-canvas">
+            <a href="#packs" className="inline-flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-full bg-white px-5 text-[14px] font-bold text-app-ink no-underline hover:bg-app-canvas">
               <Icon name="sparkle" size={15} /> {t("cr.buy")}
             </a>
           </div>

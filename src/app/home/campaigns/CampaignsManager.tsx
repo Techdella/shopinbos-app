@@ -78,7 +78,7 @@ function Row({ campaign, onAction, busy }: { campaign: CampaignSummary; onAction
         <span className="font-bold">{t("list.revenue", { amount: formatMoney(Math.round(campaign.revenue), locale) })}</span>
       </div>
       <div className="flex items-center gap-2 lg:justify-end">
-        <Link href={`/home/campaigns/${campaign.id}`} className="inline-flex min-h-[38px] items-center rounded-full border border-app-line px-4 text-[13px] font-extrabold text-app-ink no-underline hover:border-app-line-strong">{t("action.edit")}</Link>
+        <Link href={`/home/campaigns/${campaign.id}`} className="inline-flex min-h-[38px] items-center rounded-full border border-app-line px-4 text-[13px] font-bold text-app-ink no-underline hover:border-app-line-strong">{t("action.edit")}</Link>
         <button type="button" aria-haspopup="menu" aria-expanded={menu} aria-label={t("action.more", { name: campaign.name })} disabled={busy} onClick={() => setMenu((open) => !open)} className="grid h-[38px] w-[38px] place-items-center rounded-full border border-app-line bg-white hover:border-app-line-strong disabled:opacity-50">
           <Icon name="moreHorizontal" size={16} />
         </button>

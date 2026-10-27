@@ -120,7 +120,7 @@ export function StartHere({ firstName, overview, launchResult, launchError, open
           </div>
           <div className="flex flex-wrap gap-2">
             {checklist.complete ? (
-              <Link href="/home" className="inline-flex min-h-[44px] items-center rounded-full bg-app-ink px-5 text-[14px] font-extrabold text-white no-underline">{t("start.goHome")}</Link>
+              <Link href="/home" className="inline-flex min-h-[44px] items-center rounded-full bg-app-ink px-5 text-[14px] font-bold text-white no-underline">{t("start.goHome")}</Link>
             ) : checklist.next ? (
               <PillButton
                 tone="accent"
@@ -246,12 +246,12 @@ function StepRow({
             <button type="button" disabled={busy} onClick={onSkip} className="min-h-[40px] rounded-full px-3 text-[13.5px] font-bold text-app-ink-soft hover:text-app-ink">{t("skip")}</button>
           ) : null}
           {step.key === "store" ? (
-            <Link href="/home/store" className="inline-flex min-h-[40px] items-center rounded-full border border-app-line bg-white px-4 text-[13.5px] font-extrabold text-app-ink no-underline hover:border-app-line-strong">{t("view")}</Link>
+            <Link href="/home/store" className="inline-flex min-h-[40px] items-center rounded-full border border-app-line bg-white px-4 text-[13.5px] font-bold text-app-ink no-underline hover:border-app-line-strong">{t("view")}</Link>
           ) : step.action.kind === "link" ? (
             <Link
               href={step.action.href}
               className={cx(
-                "inline-flex min-h-[40px] items-center gap-1.5 rounded-full px-4 text-[13.5px] font-extrabold no-underline",
+                "inline-flex min-h-[40px] items-center gap-1.5 rounded-full px-4 text-[13.5px] font-bold no-underline",
                 step.done || step.skipped ? "border border-app-line bg-white text-app-ink hover:border-app-line-strong" : "bg-app-ink text-white",
               )}
             >
@@ -264,7 +264,7 @@ function StepRow({
               aria-controls={panelId}
               onClick={onToggle}
               className={cx(
-                "inline-flex min-h-[40px] items-center gap-1.5 rounded-full px-4 text-[13.5px] font-extrabold",
+                "inline-flex min-h-[40px] items-center gap-1.5 rounded-full px-4 text-[13.5px] font-bold",
                 step.done || step.skipped || expanded ? "border border-app-line bg-white text-app-ink hover:border-app-line-strong" : "bg-app-ink text-white",
               )}
             >

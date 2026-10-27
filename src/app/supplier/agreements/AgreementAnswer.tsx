@@ -33,8 +33,8 @@ export function AgreementAnswer({ agreementId, shopName, contractId }: { agreeme
         <>
           <textarea value={note} onChange={(event) => setNote(event.target.value)} rows={2} maxLength={600} placeholder={t("agr.whyPh")} className="w-full rounded-[12px] border border-app-line bg-white px-3 py-2 text-[13.5px]" />
           <div className="flex flex-wrap gap-2">
-            <button type="button" disabled={pending} onClick={() => answer(false)} className="inline-flex min-h-[40px] items-center rounded-full bg-app-ink px-4 text-[13.5px] font-extrabold text-white disabled:opacity-55">{t("agr.sendDecline")}</button>
-            <button type="button" onClick={() => setDeclining(false)} className="inline-flex min-h-[40px] items-center rounded-full border border-app-line bg-white px-4 text-[13.5px] font-extrabold">{t("agr.back")}</button>
+            <button type="button" disabled={pending} onClick={() => answer(false)} className="inline-flex min-h-[40px] items-center rounded-full bg-app-ink px-4 text-[13.5px] font-bold text-white disabled:opacity-55">{t("agr.sendDecline")}</button>
+            <button type="button" onClick={() => setDeclining(false)} className="inline-flex min-h-[40px] items-center rounded-full border border-app-line bg-white px-4 text-[13.5px] font-bold">{t("agr.back")}</button>
           </div>
         </>
       ) : (
@@ -42,8 +42,8 @@ export function AgreementAnswer({ agreementId, shopName, contractId }: { agreeme
           {contractId ? <Link href={`/supplier/contracts/${contractId}`} className="text-[13.5px] font-extrabold text-app-ink">{tc("sign.readSigned")} ›</Link> : null}
           <SignatureFields name={signedName} onName={setSignedName} confirmed={confirmed} onConfirmed={setConfirmed} />
           <div className="flex flex-wrap gap-2">
-            <button type="button" disabled={pending || !signatureReady(signedName, confirmed)} onClick={() => answer(true)} className="inline-flex min-h-[40px] items-center rounded-full bg-app-accent px-4 text-[13.5px] font-extrabold text-white disabled:opacity-55">{tc("sign.signAndAccept")}</button>
-            <button type="button" disabled={pending} onClick={() => setDeclining(true)} className="inline-flex min-h-[40px] items-center rounded-full border border-app-line bg-white px-4 text-[13.5px] font-extrabold">{t("agr.decline")}</button>
+            <button type="button" disabled={pending || !signatureReady(signedName, confirmed)} onClick={() => answer(true)} className="inline-flex min-h-[40px] items-center rounded-full bg-app-accent px-4 text-[13.5px] font-bold text-white disabled:opacity-55">{tc("sign.signAndAccept")}</button>
+            <button type="button" disabled={pending} onClick={() => setDeclining(true)} className="inline-flex min-h-[40px] items-center rounded-full border border-app-line bg-white px-4 text-[13.5px] font-bold">{t("agr.decline")}</button>
           </div>
         </div>
       )}

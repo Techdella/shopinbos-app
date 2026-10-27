@@ -91,8 +91,8 @@ export function BeforeYouList({ supplier, listing }: { supplier: FindSupplier; l
               <span className="text-[14px] font-extrabold">1. {t("trust.step.call", { name })}</span>
               {listing.phone ? (
                 <div className="flex flex-wrap gap-2">
-                  <a href={phoneHref!} className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full bg-app-ink px-4 text-[13.5px] font-extrabold text-white no-underline"><Icon name="phone" size={15} /> {listing.phone}</a>
-                  <a href={whatsappHref!} target="_blank" rel="noreferrer" className="inline-flex min-h-[40px] items-center rounded-full border border-app-line bg-white px-4 text-[13.5px] font-extrabold text-app-ink no-underline">WhatsApp</a>
+                  <a href={phoneHref!} className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full bg-app-ink px-4 text-[13.5px] font-bold text-white no-underline"><Icon name="phone" size={15} /> {listing.phone}</a>
+                  <a href={whatsappHref!} target="_blank" rel="noreferrer" className="inline-flex min-h-[40px] items-center rounded-full border border-app-line bg-white px-4 text-[13.5px] font-bold text-app-ink no-underline">WhatsApp</a>
                 </div>
               ) : (
                 <span className="text-[13px] text-app-ink-soft">{t("trust.noPhone")}</span>
@@ -107,7 +107,7 @@ export function BeforeYouList({ supplier, listing }: { supplier: FindSupplier; l
               {listing.address ? <span className="text-[13px]">{t("trust.where", { address: listing.address })}</span> : null}
               <div className="flex flex-wrap gap-2">
                 {(["visit", "video"] as const).map((value) => (
-                  <button key={value} type="button" onClick={() => setStockCheck(value)} aria-pressed={stockCheck === value} className={cx("min-h-[40px] rounded-full border px-4 text-[13.5px] font-extrabold", stockCheck === value ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink")}>
+                  <button key={value} type="button" onClick={() => setStockCheck(value)} aria-pressed={stockCheck === value} className={cx("min-h-[40px] rounded-full border px-4 text-[13.5px] font-bold", stockCheck === value ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink")}>
                     {value === "visit" ? t("trust.visit") : t("trust.video")}
                   </button>
                 ))}
@@ -135,7 +135,7 @@ export function BeforeYouList({ supplier, listing }: { supplier: FindSupplier; l
             </li>
           </ol>
           {error ? <p role="alert" className="m-0 text-[13.5px] font-bold text-app-danger">{error}</p> : null}
-          <button type="button" onClick={send} disabled={pending || !called || !stockCheck || !agreed || !signatureReady(signedName, confirmed)} className="inline-flex min-h-[50px] w-full items-center justify-center rounded-full bg-app-accent px-5 text-[15px] font-extrabold text-white disabled:opacity-50">
+          <button type="button" onClick={send} disabled={pending || !called || !stockCheck || !agreed || !signatureReady(signedName, confirmed)} className="inline-flex min-h-[50px] w-full items-center justify-center rounded-full bg-app-accent px-5 text-[15px] font-bold text-white disabled:opacity-50">
             {pending ? t("trust.sending") : t("trust.send", { name })}
           </button>
         </>

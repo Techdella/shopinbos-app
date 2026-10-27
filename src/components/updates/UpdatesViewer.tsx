@@ -230,7 +230,7 @@ export function UpdatesViewer({ updates, startAt = 0, onSeen, onClose }: { updat
               href={update.cta.url}
               onClick={onClose}
               {...(update.cta.url.startsWith("/") ? {} : { target: "_blank", rel: "noopener noreferrer" })}
-              className="pointer-events-auto inline-flex min-h-[46px] items-center gap-2 rounded-full bg-[#73D8C8] px-5 text-[14.5px] font-extrabold text-[#0E2A38] no-underline shadow-lg"
+              className="pointer-events-auto inline-flex min-h-[46px] items-center gap-2 rounded-full bg-[#73D8C8] px-5 text-[14.5px] font-bold text-[#0E2A38] no-underline shadow-lg"
             >
               {update.cta.label} <Icon name="arrow" size={15} />
             </Link>

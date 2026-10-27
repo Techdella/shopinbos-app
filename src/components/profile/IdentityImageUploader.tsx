@@ -125,7 +125,7 @@ export function IdentityImageUploader({
             type="button"
             onClick={() => inputRef.current?.click()}
             disabled={busy !== null}
-            className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full bg-app-ink px-4 text-[13.5px] font-extrabold text-white transition hover:brightness-110 disabled:opacity-60"
+            className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full bg-app-ink px-4 text-[13.5px] font-bold text-white transition hover:brightness-110 disabled:opacity-60"
           >
             <Icon name="upload" size={14} /> {current ? t("img.change") : round ? t("img.addPhoto") : t("img.addLogo")}
           </button>

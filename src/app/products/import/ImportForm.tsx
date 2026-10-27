@@ -192,7 +192,7 @@ export function ImportForm() {
             </div>
           )}
           <div>
-            <Link href="/products" className="inline-flex min-h-[44px] items-center rounded-full bg-app-ink px-5 text-[14px] font-extrabold text-white no-underline hover:bg-black">
+            <Link href="/products" className="inline-flex min-h-[44px] items-center rounded-full bg-app-ink px-5 text-[14px] font-bold text-white no-underline hover:bg-black">
               {t("import.view")}
             </Link>
           </div>

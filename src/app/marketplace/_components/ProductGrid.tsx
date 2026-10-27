@@ -81,7 +81,7 @@ export function ProductGrid({ products, addedIds, chips, notified, emptyText }: 
         <div className="rounded-[22px] border border-app-line bg-white px-6 py-12 text-center">
           <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-app-peach text-app-accent-ink"><Icon name="search" size={22} /></span>
           <p className="mx-auto mb-0 mt-4 max-w-[420px] text-[14.5px] leading-[1.55] text-app-ink-soft">{emptyText}</p>
-          <Link href="/marketplace" className="mt-4 inline-flex min-h-[40px] items-center rounded-full bg-app-ink px-4 text-[14px] font-extrabold text-white no-underline">{t("grid.seeEverything")}</Link>
+          <Link href="/marketplace" className="mt-4 inline-flex min-h-[40px] items-center rounded-full bg-app-ink px-4 text-[14px] font-bold text-white no-underline">{t("grid.seeEverything")}</Link>
         </div>
       ) : (
         <ul className="m-0 grid list-none grid-cols-2 gap-3 p-0 lg:grid-cols-3 xl:grid-cols-4 sm:gap-4">
@@ -116,7 +116,7 @@ export function ProductGrid({ products, addedIds, chips, notified, emptyText }: 
                       <p className="m-0 flex min-h-[40px] items-center justify-center gap-1.5 text-[14px] font-extrabold text-app-success"><Icon name="check" size={16} /> {t("grid.addedToStore")}</p>
                     ) : !product.sample && product.dropship && !product.supplier.agreed ? (
                       // Dropship from a supplier the seller hasn't agreed with yet: call, check the stock and agree first.
-                      <Link href={`${href}#before-you-list`} className="inline-flex min-h-[40px] w-full items-center justify-center rounded-full border border-app-ink bg-white px-3 text-center text-[13px] font-extrabold text-app-ink no-underline sm:min-h-[42px]">
+                      <Link href={`${href}#before-you-list`} className="inline-flex min-h-[40px] w-full items-center justify-center rounded-full border border-app-ink bg-white px-3 text-center text-[13px] font-bold text-app-ink no-underline sm:min-h-[42px]">
                         {t("trust.checkFirst")}
                       </Link>
                     ) : (
@@ -125,12 +125,12 @@ export function ProductGrid({ products, addedIds, chips, notified, emptyText }: 
                           type="button"
                           onClick={() => add(product)}
                           disabled={busy === product.id}
-                          className="inline-flex min-h-[40px] flex-1 items-center justify-center whitespace-nowrap rounded-full bg-app-ink px-3 text-[13.5px] font-extrabold text-white hover:bg-black disabled:opacity-60 sm:min-h-[42px] sm:text-[14px]"
+                          className="inline-flex min-h-[40px] flex-1 items-center justify-center whitespace-nowrap rounded-full bg-app-ink px-3 text-[13.5px] font-bold text-white hover:bg-black disabled:opacity-60 sm:min-h-[42px] sm:text-[14px]"
                           aria-label={t("grid.addLabel", { name: product.name })}
                         >
                           {busy === product.id ? t("grid.adding") : t("grid.add")}
                         </button>
-                        <Link href={href} className="inline-flex min-h-[40px] items-center justify-center rounded-full border border-app-line bg-white px-4 text-[13.5px] font-extrabold text-app-ink no-underline hover:border-app-line-strong sm:min-h-[42px] sm:text-[14px]">
+                        <Link href={href} className="inline-flex min-h-[40px] items-center justify-center rounded-full border border-app-line bg-white px-4 text-[13.5px] font-bold text-app-ink no-underline hover:border-app-line-strong sm:min-h-[42px] sm:text-[14px]">
                           {t("grid.detailsBtn")}
                         </Link>
                       </div>

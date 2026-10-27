@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+/* Pill buttons and links across the app stay on one line on every screen: a label never breaks onto a second row
+   (PillButton, PillLink and Btn also truncate with "…" when a row is too tight — src/components/app-ui/pill-label.tsx).
+   In the base layer so a page that really wants wrapping can still say `whitespace-normal`. Stores keep their own. */
+@layer base {
+  :where(button, a, [role="button"], [role="tab"]).rounded-full:not(.template-store-root *) { white-space: nowrap; }
+  :where(button, a).dbtn, :where(button, a).btn { white-space: nowrap; }
+}
+
 @theme {
   /* ── Brand palette ── */
   --color-navy:        #0E2A38;
@@ -289,7 +297,7 @@ body {
 
 /* Onboarding mockup primitives */
 .stage { width: 100%; min-height: 100vh; background: var(--canvas); overflow: hidden; display: flex; flex-direction: column; color: var(--ink-900); }
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 9px 14px; min-height: 38px; font-size: 13.5px; font-weight: 650; line-height: 1; border-radius: 10px; border: 1px solid transparent; cursor: pointer; transition: background .12s ease, border-color .12s ease, transform .12s ease, box-shadow .12s ease; font-family: inherit; text-decoration: none; white-space: nowrap; }
+.btn { display: inline-flex; align-items: center; justify-content: center; max-width: 100%; gap: 7px; padding: 9px 14px; min-height: 38px; font-size: 13.5px; font-weight: 650; line-height: 1; border-radius: 10px; border: 1px solid transparent; cursor: pointer; transition: background .12s ease, border-color .12s ease, transform .12s ease, box-shadow .12s ease; font-family: inherit; text-decoration: none; white-space: nowrap; }
 .btn:hover { transform: translateY(-1px); }
 .btn:focus-visible { outline: 3px solid rgba(42, 174, 160, 0.22); outline-offset: 2px; }
 .btn-mint { background: var(--teal-700); color: white; box-shadow: var(--shd-sm); }
@@ -350,7 +358,6 @@ body {
   .onb-step-header > :last-child { justify-self: start; }
   .onb-progress { width: 100%; }
   .onb-title { font-size: 38px; }
-  .btn { white-space: normal; }
 }
 
 /* Currency / money rendering */

@@ -74,7 +74,7 @@ export async function FindProductsView({ tab, country, q, cat, categories, produ
               href={hrefFor(item.id)}
               aria-current={tab === item.id ? "page" : undefined}
               className={cx(
-                "inline-flex min-h-[40px] shrink-0 items-center rounded-full border px-4 text-[14px] font-extrabold no-underline",
+                "inline-flex min-h-[40px] shrink-0 items-center rounded-full border px-4 text-[14px] font-bold no-underline",
                 tab === item.id ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink hover:border-app-line-strong",
               )}
             >
@@ -168,7 +168,7 @@ export async function FindProductsView({ tab, country, q, cat, categories, produ
             <p className="m-0 mt-2 max-w-[560px] text-[14.5px] leading-[1.55] text-app-ink-soft">
               {t("find.china.body", { country })}
             </p>
-            <Link href={hrefFor("nigeria")} className="mt-4 inline-flex min-h-[44px] items-center rounded-full bg-app-ink px-5 text-[14.5px] font-extrabold text-white no-underline">
+            <Link href={hrefFor("nigeria")} className="mt-4 inline-flex min-h-[44px] items-center rounded-full bg-app-ink px-5 text-[14.5px] font-bold text-white no-underline">
               {t("find.china.shop", { country })}
             </Link>
           </section>

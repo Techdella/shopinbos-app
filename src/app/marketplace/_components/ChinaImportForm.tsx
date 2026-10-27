@@ -24,7 +24,7 @@ async function shrink(file: File): Promise<File> {
 function FindButton() {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" disabled={pending} className="inline-flex min-h-[46px] shrink-0 items-center justify-center rounded-full bg-app-ink px-5 text-[14.5px] font-extrabold text-white hover:bg-black disabled:opacity-60">
+    <button type="submit" disabled={pending} className="inline-flex min-h-[46px] shrink-0 items-center justify-center rounded-full bg-app-ink px-5 text-[14.5px] font-bold text-white hover:bg-black disabled:opacity-60">
       {pending ? "Sending…" : "Find it"}
     </button>
   );
@@ -120,7 +120,7 @@ export function ChinaImportForm({ examples, error, focusPhoto }: { examples: str
               setQuery(example);
               inputRef.current?.focus();
             }}
-            className="inline-flex min-h-[34px] items-center rounded-full bg-app-canvas px-3.5 text-[13px] font-extrabold hover:bg-app-line"
+            className="inline-flex min-h-[34px] items-center whitespace-normal rounded-[18px] bg-app-canvas px-3.5 py-1.5 text-left text-[13px] font-extrabold leading-snug hover:bg-app-line"
           >
             {example}
           </button>

@@ -210,7 +210,7 @@ export function DomainPartnersManager({ initialPartners }: { initialPartners: Do
                 <span className={cx("w-[52px] text-[13px] font-bold", p.active ? "text-app-success" : "text-app-ink-soft")}>{p.active ? "Shown" : "Hidden"}</span>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <PillButton tone="white" size="sm" onClick={() => openEdit(p)} aria-label={`Edit ${p.name}`}>
                   <Icon name="edit" size={14} /> Edit
                 </PillButton>

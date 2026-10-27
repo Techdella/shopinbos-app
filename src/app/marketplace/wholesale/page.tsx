@@ -158,7 +158,7 @@ export default async function SellerWholesaleOrdersPage({ searchParams }: { sear
                       {product.stockQuantity > 0 ? ` · ${t("ws.inStock", { count: product.stockQuantity.toLocaleString("en-NG") })}` : ""}
                     </p>
                     <div className="mt-auto pt-2">
-                      <Link href={href} className="inline-flex min-h-[40px] w-full items-center justify-center whitespace-nowrap rounded-full bg-app-ink px-3 text-[13.5px] font-extrabold text-white no-underline hover:bg-black">
+                      <Link href={href} className="inline-flex min-h-[40px] w-full items-center justify-center whitespace-nowrap rounded-full bg-app-ink px-3 text-[13.5px] font-bold text-white no-underline hover:bg-black">
                         {t("ws.buy")}
                       </Link>
                     </div>

@@ -87,8 +87,8 @@ export function MacroManager({ macros }: { macros: MacroRow[] }) {
             Fills in: <code>{"{{first_name}}"}</code>, <code>{"{{name}}"}</code>, <code>{"{{ticket}}"}</code> (SB-1042), <code>{"{{agent}}"}</code> (your first name).
           </p>
           {error && <p role="alert" className="m-0 mt-3 rounded-[14px] bg-app-danger-tint px-4 py-2.5 text-[13.5px] font-semibold text-app-danger">{error}</p>}
-          <div className="mt-3 flex gap-2">
-            <button type="button" onClick={save} disabled={busy} className="min-h-[44px] rounded-full bg-app-ink px-5 text-[14px] font-extrabold text-white hover:bg-black disabled:opacity-55">
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="button" onClick={save} disabled={busy} className="min-h-[44px] rounded-full bg-app-ink px-5 text-[14px] font-bold text-white hover:bg-black disabled:opacity-55">
               {busy ? "Saving…" : "Save reply"}
             </button>
             <button type="button" onClick={() => setDraft(null)} className="min-h-[44px] rounded-full border border-app-line px-5 text-[14px] font-bold">Cancel</button>
@@ -96,7 +96,7 @@ export function MacroManager({ macros }: { macros: MacroRow[] }) {
         </section>
       ) : (
         <div>
-          <button type="button" onClick={() => setDraft(EMPTY)} className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-app-accent px-5 text-[14px] font-extrabold text-white hover:brightness-95">
+          <button type="button" onClick={() => setDraft(EMPTY)} className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-app-accent px-5 text-[14px] font-bold text-white hover:brightness-95">
             <Icon name="plus" size={15} /> New saved reply
           </button>
         </div>

@@ -43,7 +43,7 @@ export function SupplierCoverUpload({ bannerUrl }: { bannerUrl: string | null })
         type="button"
         onClick={open}
         disabled={busy}
-        className="absolute right-3 top-3 inline-flex min-h-[40px] items-center gap-1.5 rounded-full border border-app-line bg-white px-4 text-[13px] font-extrabold text-app-ink shadow-sm transition hover:border-app-line-strong disabled:opacity-60"
+        className="absolute right-3 top-3 inline-flex min-h-[40px] items-center gap-1.5 rounded-full border border-app-line bg-white px-4 text-[13px] font-bold text-app-ink shadow-sm transition hover:border-app-line-strong disabled:opacity-60"
       >
         {busy ? <Spinner /> : <Icon name="upload" size={14} />} {bannerUrl ? t("uploads.changeCover") : t("uploads.addCover")}
       </button>
@@ -62,7 +62,7 @@ export function SupplierPhotoUpload() {
         type="button"
         onClick={open}
         disabled={busy}
-        className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full border border-app-line bg-white px-4 text-[13px] font-extrabold text-app-ink transition hover:border-app-line-strong disabled:opacity-60"
+        className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full border border-app-line bg-white px-4 text-[13px] font-bold text-app-ink transition hover:border-app-line-strong disabled:opacity-60"
       >
         {busy ? <Spinner /> : <Icon name="upload" size={14} />} {t("uploads.addPhoto")}
       </button>
