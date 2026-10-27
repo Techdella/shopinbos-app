@@ -183,6 +183,7 @@ const en = {
   "admin.leads-all": "All leads",
   "admin.lead-campaigns": "Campaigns & automations",
   "admin.lead-whatsapp": "WhatsApp",
+  "admin.pilot": "Pilot testing",
   "admin.pricing": "Pricing",
   "admin.logistics-partners-all": "Logistics partners",
   "admin.pricing-prices": "Prices and fees",

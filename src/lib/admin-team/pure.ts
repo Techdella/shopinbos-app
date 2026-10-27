@@ -52,6 +52,7 @@ const SEGMENT_SECTION: Record<string, AdminSection> = {
   leads: "leads",
   "lead-campaigns": "leads",
   "website-leads": "leads",
+  pilot: "leads",
   referrals: "leads",
   "member-tips": "leads",
   "member-stories": "leads",
