@@ -11,6 +11,8 @@ test("friendly errors: technical messages become plain words", () => {
   assert.equal(f.friendlyText(storage).text, f.FRIENDLY_TEXT.storage);
   assert.equal(f.errorKind(new TypeError("Failed to fetch")), "network");
   assert.equal(f.errorKind(new Error("Load failed")), "network");
+  // Chrome's words when a response (a page's server-rendered stream) is cut off halfway.
+  assert.equal(f.errorKind(new TypeError("network error")), "network");
   assert.equal(f.errorKind(new Error("Loading chunk 9114 failed.")), "update");
   assert.equal(f.errorKind(new Error("NotAllowedError: Permission denied")), "permission");
   assert.equal(f.errorKind(new TypeError("Cannot read properties of undefined (reading 'id')")), "code");

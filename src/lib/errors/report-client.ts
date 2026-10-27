@@ -64,12 +64,13 @@ export function reportClientError(error: unknown, options: { source?: Source; sh
   try {
     if (typeof window === "undefined") return;
     const details = errorDetails(error);
+    const kind = errorKind(error);
     const key = `${details.message}|${location.pathname}`;
     if (sent.has(key) || sent.size >= MAX_PER_PAGE) return;
     sent.add(key);
     const body = JSON.stringify({
       ...details,
-      kind: errorKind(error) ?? "code",
+      kind: kind ?? "code",
       source: options.source ?? "shown",
       shown: options.shown?.slice(0, 500) ?? null,
       digest: options.digest ?? null,
@@ -77,7 +78,8 @@ export function reportClientError(error: unknown, options: { source?: Source; sh
       path: `${location.pathname}${location.search}`.slice(0, 500),
     });
     // Error pages and bugs also go to Sentry, which keeps a replay of the session (it records uncaught errors itself).
-    if (options.source === "boundary" || (options.source !== "unhandled" && errorKind(error) === "code")) {
+    // A dropped connection isn't a bug: it stays in Admin › App errors only.
+    if ((options.source === "boundary" && kind !== "network") || (options.source !== "unhandled" && kind === "code")) {
       Sentry.captureException(error, { tags: { source: options.source ?? "shown", page: location.pathname }, extra: { trail: trailText(), digest: options.digest } });
     }
     void fetch("/api/public/client-errors", { method: "POST", headers: { "Content-Type": "application/json" }, body, keepalive: true, credentials: "same-origin" }).catch(() => undefined);
