@@ -16,8 +16,13 @@ export function supplierOrderKey(retailOrderId: string, supplierId: string) {
 /** Store order statuses that mean "paid": the supplier can ship. */
 export const PAID_RETAIL_STATUSES = ["paid", "processing", "packed", "shipped", "delivered"] as const;
 
-/** A store order is sent to its suppliers once paid, or once placed when the buyer pays on delivery. */
-export function readyForSuppliers(order: { status: string; paymentMethod: string | null }) {
+/**
+ * A store order is sent to its suppliers once paid, or once placed when the buyer pays on delivery. A preorder paid
+ * with a deposit (shared/preorder.ts) only once the balance is in too (depositKobo and balanceKobo set, no
+ * balancePaidAt): the deposit confirms it, suppliers and delivery wait for the rest.
+ */
+export function readyForSuppliers(order: { status: string; paymentMethod: string | null; depositKobo?: number | null; balanceKobo?: number | null; balancePaidAt?: Date | string | null }) {
+  if ((order.depositKobo ?? 0) > 0 && (order.balanceKobo ?? 0) > 0 && !order.balancePaidAt) return false;
   if ((PAID_RETAIL_STATUSES as readonly string[]).includes(order.status)) return true;
   return order.paymentMethod === "pay_on_delivery" && ["pending", "awaiting_payment"].includes(order.status);
 }

@@ -120,6 +120,8 @@ interface CreatedOrder {
   currency: string;
   /** The Paystack transaction the server started (split to the businesses' banks), reopened in the popup. */
   paystackAccessCode?: string | null;
+  /** A preorder deposit: the card payment is payNow; the rest is due once the stock is ready. */
+  deposit?: { payNow: number; balance: number } | null;
 }
 
 interface Quote {
@@ -130,6 +132,8 @@ interface Quote {
   points?: { points: number; amount: number; balance: number; max: number } | null;
   /** The delivery options for the address (delivery partners' options when `partners`). */
   delivery?: unknown;
+  /** Preorder lines with a deposit (shared/preorder.ts): paying by card charges payNow, the balance when it ships. */
+  deposit?: { payNow: number; balance: number } | null;
 }
 
 const EMPTY_DETAILS: CheckoutDetails = { name: "", email: "", phone: "", street: "", city: "", state: "", country: "", landmark: "" };
@@ -483,7 +487,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
         return;
       }
 
-      const order = { ...(data.data.order as CreatedOrder), paystackAccessCode: (data.data.paystack?.access_code as string | null | undefined) ?? null };
+      const order = { ...(data.data.order as CreatedOrder), paystackAccessCode: (data.data.paystack?.access_code as string | null | undefined) ?? null, deposit: (data.data.deposit as CreatedOrder["deposit"]) ?? null };
       setCreatedOrder(order);
       rememberCartToken(store.slug, null);
       rememberBagDiscount(store.slug, null);
@@ -657,6 +661,17 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
     returns: Boolean(summaryData.returnsHref),
   });
 
+  // Preorder lines with a deposit: paying by card takes the deposit (with the other lines and delivery) now and the
+  // rest when it ships. Other ways to pay take the whole total.
+  const deposit = createdOrder ? createdOrder.deposit ?? null : isPaystack ? liveQuote?.deposit ?? null : null;
+  const depositBox = deposit ? (
+    <div role="note" data-deposit className="grid gap-1.5 rounded-[14px] border p-3 text-[14px]" style={{ borderColor: theme.border, background: theme.paper }}>
+      <span className="font-semibold">Pre-order deposit</span>
+      <span className="flex items-baseline justify-between gap-3"><span>Pay now</span><strong className="tabular-nums">{formatStoreMoney(deposit.payNow, store.currency)}</strong></span>
+      <span className="flex items-baseline justify-between gap-3" style={{ color: theme.muted }}><span>When it&apos;s ready to ship</span><span className="tabular-nums">{formatStoreMoney(deposit.balance, store.currency)}</span></span>
+      <span className="text-[12.5px] leading-[1.5]" style={{ color: theme.muted }}>You pay a deposit on pre-order items now, and other items and delivery in full. We&apos;ll email you a link to pay the rest when it&apos;s ready.</span>
+    </div>
+  ) : null;
   const summary = (
     <OrderSummary
       theme={theme}
@@ -667,6 +682,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
       pointsAmount={liveQuote?.points?.amount ?? 0}
       rewards={rewardsBar}
       extras={<>
+        {depositBox}
         {settings.enableCoupon && !createdOrder ? <WonCodeBanner storeSlug={store.slug} appliedCode={applied?.code} onApply={(value) => void applyCode(value)} colors={{ ink: theme.ink, border: theme.border, card: theme.paper, muted: theme.muted }} currency={store.currency} /> : null}
         {pointsBox}
       </>}
@@ -785,7 +801,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
     </div>
   ) : null;
 
-  const finalLabel = placeOrderLabel(layout, { paystack: isPaystack || paymentMethod === "korapay", total: totals.total, currency: store.currency });
+  const finalLabel = placeOrderLabel(layout, { paystack: isPaystack || paymentMethod === "korapay", total: deposit ? deposit.payNow : totals.total, currency: store.currency });
   const nextStep = stepped ? steps[stepIndex + 1] : undefined;
   const actions = (
     <div className="mt-6 flex flex-col-reverse gap-3 @2xl:flex-row @2xl:items-center">
@@ -812,7 +828,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
         ) : finalStep && createdOrder && isPaystack ? (
           <PaystackCheckoutButton
             accessCode={createdOrder.paystackAccessCode}
-            amount={createdOrder.total}
+            amount={createdOrder.deposit ? createdOrder.deposit.payNow : createdOrder.total}
             email={details.email}
             firstName={nameParts[0]}
             lastName={nameParts.slice(1).join(" ")}
@@ -821,7 +837,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
             onSuccess={handlePaymentSuccess}
             onClose={() => setPayClosed(true)}
             disabled={paying}
-            label={paying ? "Confirming payment…" : `Pay ${formatStoreMoney(createdOrder.total, createdOrder.currency)}`}
+            label={paying ? "Confirming payment…" : `Pay ${formatStoreMoney(createdOrder.deposit ? createdOrder.deposit.payNow : createdOrder.total, createdOrder.currency)}${createdOrder.deposit ? " deposit" : ""}`}
             className="inline-flex min-h-12 w-full items-center justify-center rounded-full px-6 text-[16px] font-semibold disabled:opacity-60"
             style={{ background: theme.cta, color: theme.ctaText, border: "none", borderRadius: theme.buttonRadius }}
           />

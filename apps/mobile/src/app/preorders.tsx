@@ -7,10 +7,10 @@ import { ErrorState, LoadingBlock } from "@/components/kit";
 import { OneLine } from "@/components/Preorder";
 import { Screen } from "@/components/Screen";
 import { Sheet } from "@/components/Sheet";
-import { Card, Notice, PillButton, Segmented, T, Toggle } from "@/components/ui";
+import { ButtonRow, Card, Notice, PillButton, Segmented, T, Toggle } from "@/components/ui";
 import { useT } from "@/lib/i18n";
-import { paidText, payButtonText, shipDayText, stageText, storeStageText, type PreorderStage, type StorePreorderStage } from "@/lib/preorder-pure";
-import { fetchSellerWholesalePreorders, fetchStorePreorders, storePreorderAction, type SellerWholesalePreorder, type StorePreorderGroup } from "@/lib/preorders";
+import { balanceDueText, paidText, payButtonText, shipDayText, stageText, storeStageText, type PreorderStage, type StorePreorderStage } from "@/lib/preorder-pure";
+import { fetchSellerWholesalePreorders, fetchStorePreorders, storeBalanceAction, storePreorderAction, toAsk, type SellerWholesalePreorder, type StorePreorderGroup } from "@/lib/preorders";
 import { useLoad } from "@/lib/useLoad";
 import { payWholesaleOrder } from "@/lib/wallet";
 import { colors } from "@/theme";
@@ -19,6 +19,9 @@ import { colors } from "@/theme";
 //   My shop         their store's preorders from shoppers, one card per product (ship-by date, units, each order);
 //                   "Stock is ready" asks first, then moves the paid orders to processing (the usual status change
 //                   tells each customer it's being prepared) and can end the preorder. Unpaid orders stay as they are.
+//                   Customers who paid a deposit show "Balance due": "Stock is ready" asks them for the rest (email
+//                   and text, 7 days to pay); the seller can mark it "Paid another way", or cancel once it's overdue
+//                   (the deposit is then owed back; src/lib/commerce/store-balance.server.ts).
 //   From suppliers  bulk preorders they placed: stage, deposit paid / balance due, and Pay deposit / Pay balance
 //                   (the same Paystack path as any bulk order, straight to the supplier's bank).
 // Reached from Orders (Preorders chip), Wholesale (Preorders chip) and Find after placing a preorder (?view=suppliers).
@@ -26,7 +29,9 @@ import { colors } from "@/theme";
 type View_ = "shop" | "suppliers";
 
 const STAGE_TONE: Record<PreorderStage, PillTone> = { waiting: "warn", pay_balance: "org", ready: "ok", shipped: "teal", delivered: "ok", cancelled: "gray" };
-const STORE_TONE: Record<StorePreorderStage, PillTone> = { unpaid: "gray", waiting: "warn", preparing: "ok" };
+const STORE_TONE: Record<StorePreorderStage, PillTone> = { unpaid: "gray", waiting: "warn", balance_due: "org", preparing: "ok" };
+
+type StoreOrderRow = StorePreorderGroup["orders"][number];
 
 function Thumb({ uri }: { uri: string | null }) {
   return uri ? (
@@ -67,8 +72,24 @@ function ShopPreorders() {
   const [endToo, setEndToo] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ tone: "success" | "error"; text: string } | null>(null);
+  const [cancelling, setCancelling] = useState<StoreOrderRow | null>(null);
   const shown = groups ?? loaded.data?.groups ?? null;
   const now = new Date();
+
+  async function settle(order: StoreOrderRow, action: "balance_paid" | "cancel_unpaid") {
+    setBusy(`${action}:${order.id}`);
+    setNotice(null);
+    try {
+      const result = await storeBalanceAction(order.id, action);
+      setGroups(result.groups);
+      setNotice({ tone: "success", text: action === "balance_paid" ? t("preorders.markedPaid") : t("preorders.cancelledUnpaid") });
+    } catch (error) {
+      setNotice({ tone: "error", text: error instanceof Error && error.message ? error.message : t("preorders.failed") });
+    } finally {
+      setBusy(null);
+      setCancelling(null);
+    }
+  }
 
   async function act(group: StorePreorderGroup, action: "ready" | "end", end?: boolean) {
     setBusy(`${action}:${group.productId}`);
@@ -80,7 +101,7 @@ function ShopPreorders() {
         tone: "success",
         text:
           action === "ready"
-            ? [t("preorders.movedDone", { count: result.moved ?? 0 }), result.unpaid ? t("preorders.unpaidLeft", { count: result.unpaid }) : null, result.ended ? t("preorders.endedDone") : null].filter(Boolean).join(" ")
+            ? [t("preorders.movedDone", { count: result.moved ?? 0 }), result.asked ? t("preorders.askedDone", { count: result.asked }) : null, result.unpaid ? t("preorders.unpaidLeft", { count: result.unpaid }) : null, result.ended ? t("preorders.endedDone") : null].filter(Boolean).join(" ")
             : t("preorders.endedDone"),
       });
     } catch (error) {
@@ -116,7 +137,7 @@ function ShopPreorders() {
             <T style={{ color: colors.inkSoft, fontSize: 14.5, lineHeight: 21 }}>
               {[group.shipsOn ? t("preorders.shipBy", { date: shipDayText(group.shipsOn, now, t) }) : t("preorders.noDate"), t("preorders.orders", { count: group.orders.length }), t("preorders.units", { count: group.units })].join(" · ")}
             </T>
-            {group.waiting > 0 ? (
+            {group.waiting > 0 || toAsk(group) > 0 ? (
               <PillButton size="md" busy={busy === `ready:${group.productId}`} disabled={Boolean(busy)} accessibilityLabel={t("preorders.stockReady")} onPress={() => setAsking(group)}>
                 <OneLine text={t("preorders.stockReady")} color="#FFFFFF" size={16} />
               </PillButton>
@@ -136,6 +157,23 @@ function ShopPreorders() {
                   <View style={{ gap: 6 }}>
                     <T style={{ fontSize: 14, color: colors.inkSoft }}>{t("preorders.units", { count: order.quantity })}</T>
                     <Pill tone={STORE_TONE[order.stage]} label={storeStageText(order.stage, t)} />
+                    {order.stage === "balance_due" ? (
+                      <>
+                        <T weight={order.overdue ? "bold" : "regular"} style={{ fontSize: 14, lineHeight: 20, color: order.overdue ? colors.danger : colors.inkSoft }}>
+                          {balanceDueText({ dueKobo: order.dueKobo ?? 0, balanceDueOn: order.balanceDueOn ?? null, overdue: Boolean(order.overdue) }, naira, now, t)}
+                        </T>
+                        <ButtonRow labels={order.overdue ? [t("preorders.markPaid"), t("preorders.cancelUnpaid")] : [t("preorders.markPaid")]} size="sm">
+                          <PillButton size="sm" tone="white" accessibilityLabel={t("preorders.markPaid")} busy={busy === `balance_paid:${order.id}`} disabled={Boolean(busy)} onPress={() => void settle(order, "balance_paid")}>
+                            <OneLine text={t("preorders.markPaid")} size={15} />
+                          </PillButton>
+                          {order.overdue ? (
+                            <PillButton size="sm" tone="white" accessibilityLabel={t("preorders.cancelUnpaid")} disabled={Boolean(busy)} onPress={() => setCancelling(order)}>
+                              <OneLine text={t("preorders.cancelUnpaid")} size={15} color={colors.danger} />
+                            </PillButton>
+                          ) : null}
+                        </ButtonRow>
+                      </>
+                    ) : null}
                   </View>
                 }
                 onPress={() => router.push({ pathname: "/order/[id]", params: { id: order.id } })}
@@ -147,7 +185,8 @@ function ShopPreorders() {
 
       {asking ? (
         <Sheet visible onClose={() => { setAsking(null); setEndToo(false); }} title={t("preorders.confirmTitle")}>
-          <T style={{ fontSize: 16, lineHeight: 23 }}>{t("preorders.shopConfirm", { count: asking.waiting, name: asking.name })}</T>
+          {asking.waiting > 0 ? <T style={{ fontSize: 16, lineHeight: 23 }}>{t("preorders.shopConfirm", { count: asking.waiting, name: asking.name })}</T> : null}
+          {toAsk(asking) > 0 ? <T style={{ fontSize: 16, lineHeight: 23 }}>{t("preorders.balanceAskConfirm", { count: toAsk(asking) })}</T> : null}
           {asking.unpaid ? <T style={{ fontSize: 14.5, lineHeight: 21, color: colors.inkSoft }}>{t("preorders.unpaidStay", { count: asking.unpaid })}</T> : null}
           {asking.product?.on ? (
             <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
@@ -159,6 +198,18 @@ function ShopPreorders() {
             <OneLine text={t("preorders.confirmYes")} color="#FFFFFF" />
           </PillButton>
           <PillButton tone="white" size="md" accessibilityLabel={t("preorders.notYet")} onPress={() => { setAsking(null); setEndToo(false); }}>
+            <OneLine text={t("preorders.notYet")} size={16} />
+          </PillButton>
+        </Sheet>
+      ) : null}
+
+      {cancelling ? (
+        <Sheet visible onClose={() => setCancelling(null)} title={t("preorders.cancelUnpaid")}>
+          <T style={{ fontSize: 16, lineHeight: 23 }}>{t("preorders.cancelUnpaidConfirm", { number: cancelling.orderNumber })}</T>
+          <PillButton accessibilityLabel={t("preorders.cancelUnpaidYes")} busy={busy === `cancel_unpaid:${cancelling.id}`} onPress={() => void settle(cancelling, "cancel_unpaid")}>
+            <OneLine text={t("preorders.cancelUnpaidYes")} color="#FFFFFF" />
+          </PillButton>
+          <PillButton tone="white" size="md" accessibilityLabel={t("preorders.notYet")} onPress={() => setCancelling(null)}>
             <OneLine text={t("preorders.notYet")} size={16} />
           </PillButton>
         </Sheet>

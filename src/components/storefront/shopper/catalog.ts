@@ -38,7 +38,7 @@ export interface ShopperProduct {
   /** Tracked stock (shared/product-stock.ts forShoppers); null or absent when the seller doesn't track it. */
   stock?: ShopperStock | null;
   /** Taking preorders (shared/preorder.ts forShoppers); null when not. */
-  preorder?: PreorderState | null;
+  preorder?: (PreorderState & { depositPct?: number }) | null;
 }
 
 export function readVariants(value: unknown): ShopperVariant[] {

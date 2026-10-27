@@ -843,6 +843,9 @@ model StoreProduct {
   preorderLimit          Int?
   preorderTaken          Int        @default(0)
   preorderNote           String?
+  // Part paid now (shared/preorder.ts storeOrderDeposit): shoppers pay this percent of a preorder line at checkout and
+  // the rest once the seller says the stock is ready. 0 = the whole price at checkout (as before deposits).
+  preorderDepositPct     Int        @default(0)
 
   // Product page builder
   // Per-product page settings: { override: true, layout?, buyBox?, sections? } overrides the store's product page
@@ -2395,6 +2398,23 @@ model RetailOrder {
   // straight to its own bank through its Paystack subaccount; Shopinbos receives nothing. Null: no split (older
   // orders, offline payments).
   paymentSplit       Json?
+  // Preorder deposits (shared/preorder.ts, src/lib/commerce/store-balance.server.ts). A card checkout holding a preorder
+  // line with a deposit charges depositKobo (deposits + every other line + delivery, in full) under the order id as
+  // reference, split by paymentSplit; balanceKobo is the rest, paid later under its own reference (balanceRef) and
+  // split by balanceSplit (the seller's share of those lines, worked out at checkout). depositKobo 0: no deposit.
+  // The order is "paid" (confirmed, stock held) once the deposit is in; suppliers and delivery only start, and it
+  // only moves past "paid", once the balance is in (balancePaidAt; balancePaidVia "paystack" or "offline").
+  depositKobo        Int       @default(0)
+  balanceKobo        Int       @default(0)
+  depositPaidAt      DateTime?
+  balanceSplit       Json?
+  balanceRef         String?   @unique
+  balancePaidAt      DateTime?
+  balancePaidVia     String?
+  // The seller said the stock is ready and the shopper was asked for the balance; due by balanceDueAt, after which
+  // the seller may cancel (the deposit is then owed back to the shopper: refundStatus manual).
+  balanceRequestedAt DateTime?
+  balanceDueAt       DateTime?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 

@@ -13,6 +13,7 @@ import { ProductTile } from "../ProductTile";
 import { FaqList } from "../faq/FaqList";
 import { productFaqItems } from "../faq/faq-logic";
 import { PdpDetails } from "./PdpDetails";
+import { productDepositKobo } from "../../../../../shared/preorder.ts";
 import { PdpGallery } from "./PdpGallery";
 import { PdpReviews, Stars } from "./PdpReviews";
 import { PDP_CSS } from "./pdp-css";
@@ -92,6 +93,8 @@ export function BoutiquePdp(props: Props) {
   // A version without its own count uses the product's tracked stock (or the supplier's for dropship).
   // Taking preorders: buyable up to the cap whatever the counts say (shared/preorder.ts).
   const preorder = product.preorder?.on ? product.preorder : null;
+  // A deposit on the seller's preorder (paid by card at checkout; the rest once the stock is ready).
+  const deposit = preorder ? productDepositKobo(price, preorder.depositPct) : null;
   const stockInput = { soldOut: picker.soldOut, variantStock, supplierStock: product.supplierProduct?.stockQuantity ?? null, stock: product.stock ?? null, preorder };
   const availability = pdpAvailability(stockInput);
   const status = stockStatus(stockInput);
@@ -251,6 +254,11 @@ export function BoutiquePdp(props: Props) {
             {status.tone === "preorder" ? <><strong>Preorder</strong> · {status.text}</> : status.text}
           </p>
           {/* The seller's own promise (when it ships, what happens if it's late): they run the preorder, not Shopinbos. */}
+          {deposit ? (
+            <p className="m-0 text-[13.5px] leading-[1.5]" data-preorder-deposit>
+              <strong>Pre-order:</strong> pay {formatStoreMoney(deposit.depositKobo / 100, props.currency)} deposit now, the rest when it ships.
+            </p>
+          ) : null}
           {preorder?.note ? <p className="m-0 text-[13px] leading-[1.5]" style={{ color: t.muted }}>{preorder.note}</p> : null}
         </div>
       ) : null,

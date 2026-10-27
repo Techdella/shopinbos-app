@@ -99,7 +99,7 @@ test("the phone's other routes carry preorder states and order flags, never othe
   assert.doesNotMatch(detail, /\.\.\.row,/, "the raw row (with preorderTaken) isn't spread");
 
   const seller = read("src/app/api/app/store-products/[id]/route.ts");
-  assert.match(seller, /preorder: \{ enabled: preorderEnabled, shipsOn: preorderDay\(preorderShipsAt\), limit: preorderLimit, taken: preorderTaken, note: preorderNote \}/);
+  assert.match(seller, /preorder: \{ enabled: preorderEnabled, shipsOn: preorderDay\(preorderShipsAt\), limit: preorderLimit, taken: preorderTaken, note: preorderNote(, depositPct: preorderDepositPct)? \}/);
   assert.match(seller, /preorder: supplierListing\?\.preorderEnabled\s+\? preorderState\(/, "a dropship product carries the supplier's state");
 
   assert.match(read("src/app/api/app/orders/[id]/route.ts"), /preorder: preorderOf\(order\.items\)/);

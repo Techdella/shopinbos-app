@@ -67,6 +67,7 @@ function storeSelect(productStatuses: readonly string[]) {
         preorderLimit: true,
         preorderTaken: true,
         preorderNote: true,
+        preorderDepositPct: true,
       },
       orderBy: { createdAt: "desc" as const },
     },

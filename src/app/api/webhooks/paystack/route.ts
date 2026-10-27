@@ -25,6 +25,8 @@ import { SELLER_PAYIN_PREFIX, confirmSellerPayIn } from "@/lib/logistics/seller-
 import { DELIVERY_FEE_PREFIX, confirmDeliveryFeePayment } from "@/lib/logistics/delivery-fee-payments.server";
 import { WHOLESALE_PAY_PREFIX, confirmWholesalePayment } from "@/lib/supplier-orders/wholesale-payments.server";
 import { DEBT_PAYMENT_PREFIX, confirmDebtPayment } from "@/lib/money-owed/money-owed.server";
+import { confirmStoreBalancePayment } from "@/lib/commerce/store-balance.server";
+import { STORE_BALANCE_PREFIX } from "@shared/preorder";
 import { PAID_RETAIL_STATUSES } from "@/lib/supplier-orders/pure";
 import { isDedicatedCharge } from "@/lib/logistics/payin-rules";
 import { handleDedicatedAccountAssign, handleDedicatedAccountCharge } from "@/lib/logistics/payins.server";
@@ -186,6 +188,17 @@ export async function POST(req: NextRequest) {
     return new NextResponse("OK", { status: 200 });
   }
 
+  // ── The rest of a store preorder a shopper paid by card (its own reference; split to the seller's own bank) ──
+  // Idempotent: balanceRef is unique and set once, conditional on the balance still being due, so a replayed event
+  // (or the return page confirming it first) records nothing twice; a 500 (Paystack or the database unreachable) is
+  // safe for Paystack to retry.
+  if (eventType === "charge.success" && typeof event.data?.reference === "string" && event.data.reference.startsWith(STORE_BALANCE_PREFIX)) {
+    const result = await confirmStoreBalancePayment(event.data.reference).catch((error) => ({ ok: false as const, error: String(error), retry: true }));
+    if (!result.ok && "retry" in result && result.retry) return new NextResponse("Retry later", { status: 500 });
+    if (!result.ok) console.warn(`[paystack webhook] store balance ${event.data.reference} not applied: ${result.error}`);
+    return new NextResponse("OK", { status: 200 });
+  }
+
   // ── Money one business owed another, paid in the app (split to the creditor's own bank) ──
   if (eventType === "charge.success" && typeof event.data?.reference === "string" && event.data.reference.startsWith(DEBT_PAYMENT_PREFIX)) {
     const result = await confirmDebtPayment(event.data.reference).catch((error) => ({ ok: false as const, error: String(error), retry: true }));
@@ -254,7 +267,8 @@ export async function POST(req: NextRequest) {
       }
       // Inline payments carry an amount the buyer's browser chose, so check it against the order before
       // marking it paid. Only a pending order moves, so a retried or replayed event can't undo a later status.
-      const pending = await db.retailOrder.findUnique({ where: { id: ref }, select: { id: true, total: true, currency: true, status: true, expiredAt: true } });
+      // A preorder deposit order was charged its deposit part, not the total (retailChargeProblem checks that amount).
+      const pending = await db.retailOrder.findUnique({ where: { id: ref }, select: { id: true, total: true, currency: true, status: true, expiredAt: true, depositKobo: true, balanceKobo: true } });
       const problem = pending ? retailChargeProblem(pending, event.data ?? {}) : "not a retail order";
       // Paid after it expired unpaid (stock already given back): the same checks as an unpaid order, then take the
       // stock again if it's still there, else flag it for a refund (recoverExpiredOrderPayment logs and tells the seller).

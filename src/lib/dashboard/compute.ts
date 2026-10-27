@@ -16,6 +16,10 @@ export interface DashboardOrder {
   channel: string | null;
   deliveryAddress: unknown;
   logisticsDetails: unknown;
+  /** A preorder paid with a deposit (shared/preorder.ts): the parts in kobo, and when the rest was paid. */
+  depositKobo?: number | null;
+  balanceKobo?: number | null;
+  balancePaidAt?: Date | string | null;
 }
 
 export interface DashboardProduct {
@@ -97,6 +101,8 @@ export function orderStage(order: DashboardOrder): { label: string; tone: Tone }
 }
 
 export function paymentState(order: DashboardOrder): { label: string; tone: Tone } {
+  // Deposit paid, the rest still owed (shared/preorder.ts storeBalanceDue).
+  if (order.status === "paid" && (order.depositKobo ?? 0) > 0 && (order.balanceKobo ?? 0) > 0 && !order.balancePaidAt) return { label: "Balance due", tone: "warning" };
   if (PAID.has(order.status)) return { label: "Paid", tone: "success" };
   if (order.status === "pending" || order.status === "awaiting_payment") return { label: "Not paid yet", tone: "warning" };
   if (order.status === "refunded" || order.status === "partially_refunded") return { label: "Refunded", tone: "muted" };
