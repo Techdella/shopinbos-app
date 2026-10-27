@@ -6,7 +6,7 @@ import { Sheet } from "@/components/Sheet";
 import { Card, Chip, Field, Label, PillButton, T, Toggle } from "@/components/ui";
 import { monthGrid, shiftMonth } from "@/lib/campaigns-pure";
 import { useT } from "@/lib/i18n";
-import { PREORDER_NOTE_MAX, SHIP_CHOICES, dayFromNow, preorderLineText, preorderPillText, shipDayText, today, type PreorderForm, type PreorderState } from "@/lib/preorder-pure";
+import { PREORDER_DEPOSIT_CHOICES, PREORDER_NOTE_MAX, SHIP_CHOICES, dayFromNow, preorderLineText, preorderPillText, shipDayText, today, type PreorderForm, type PreorderState } from "@/lib/preorder-pure";
 import { colors, radii } from "@/theme";
 
 // Preorders on the phone (rules in shared/preorder.ts, shaped by lib/preorder-pure.ts; words in m_ui "preorder.*"):
@@ -117,6 +117,18 @@ export function PreorderEditor({ value, onChange, audience, taken }: { value: Pr
               {[t("preorder.limitHint"), taken ? t("preorder.taken", { count: taken }) : null].filter(Boolean).join(" ")}
             </T>
           </View>
+          {audience === "shops" && value.depositPct !== undefined ? (
+            // A deposit the shop pays when it places the preorder; the rest once the stock is ready (shared/preorder.ts).
+            <View>
+              <Label>{t("preorders.deposit")}</Label>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                {[...PREORDER_DEPOSIT_CHOICES, ...(PREORDER_DEPOSIT_CHOICES.includes(value.depositPct as (typeof PREORDER_DEPOSIT_CHOICES)[number]) ? [] : [value.depositPct])].map((pct) => (
+                  <Chip key={pct} label={pct === 0 ? t("preorders.noDeposit") : `${pct}%`} on={value.depositPct === pct} onPress={() => edit({ depositPct: pct })} />
+                ))}
+              </View>
+              <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20, marginTop: 6 }}>{value.depositPct ? t("preorders.depositHint", { pct: value.depositPct }) : t("preorders.noDepositHint")}</T>
+            </View>
+          ) : null}
           <View>
             <Label>{audience === "shops" ? t("preorder.promiseShops") : t("preorder.promiseCustomers")}</Label>
             <Field
@@ -140,11 +152,11 @@ export function PreorderEditor({ value, onChange, audience, taken }: { value: Pr
 }
 
 /** A supplier listing that takes preorders (Find): the ship date and places left, the promise, and the no-escrow line. */
-export function PreorderBox({ state }: { state: PreorderState }) {
+export function PreorderBox({ state, deposit }: { state: PreorderState; /** "Pay 30% now (₦…). The rest when the stock is ready." */ deposit?: string | null }) {
   const t = useT("m_ui");
   const line = preorderLineText(state, new Date(), t);
   return (
-    <View style={{ backgroundColor: PREORDER_BG, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 12, gap: 6 }} accessibilityLabel={[t("preorder.pill"), line, state.note].filter(Boolean).join(". ")}>
+    <View style={{ backgroundColor: PREORDER_BG, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 12, gap: 6 }} accessibilityLabel={[t("preorder.pill"), line, state.note, deposit].filter(Boolean).join(". ")}>
       <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
         <View style={{ backgroundColor: "rgba(255,255,255,0.7)", borderRadius: radii.pill, paddingHorizontal: 9, paddingVertical: 2 }}>
           <T weight="bold" style={{ fontSize: 12.5, color: PREORDER_INK }}>{t("preorder.pill")}</T>
@@ -152,6 +164,7 @@ export function PreorderBox({ state }: { state: PreorderState }) {
         {line ? <T weight="bold" style={{ fontSize: 14, color: PREORDER_INK, flexShrink: 1 }}>{line}</T> : null}
       </View>
       {state.note ? <T style={{ fontSize: 14, lineHeight: 20, color: PREORDER_INK }}>{state.note}</T> : null}
+      {deposit ? <T weight="bold" style={{ fontSize: 14, lineHeight: 20, color: PREORDER_INK }}>{deposit}</T> : null}
       <T style={{ fontSize: 13.5, lineHeight: 19, color: PREORDER_INK }}>{t("preorder.noEscrowBuyer")}</T>
     </View>
   );

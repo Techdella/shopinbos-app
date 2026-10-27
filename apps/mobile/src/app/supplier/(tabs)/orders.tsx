@@ -28,6 +28,7 @@ const SEGMENTS: { key: SupplierOrderSegment; word: string }[] = [
 
 export default function SupplierOrders() {
   const t = useT("m_supplier", "m_partner");
+  const tu = useT("m_ui");
   const { view: asked } = useLocalSearchParams<{ view?: string }>();
   const [view, setView] = useState<SupplierOrderSegment>("new");
   useEffect(() => {
@@ -54,6 +55,7 @@ export default function SupplierOrders() {
     <TabScreen title={t("orders.title")} refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
       <FilterBar>
         {SEGMENTS.map((segment) => <Seg key={segment.key} label={t.dynamic(segment.word)} count={data ? counts[segment.key] : undefined} on={view === segment.key} onPress={() => setView(segment.key)} />)}
+        <Seg label={tu("preorders.title")} on={false} onPress={() => router.push("/supplier/preorders")} />
       </FilterBar>
 
       {loaded.loading && !data ? <LoadingBlock label={t("orders.loading")} /> : null}

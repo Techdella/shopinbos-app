@@ -127,6 +127,8 @@ export interface SupplierProduct {
   preorderLimit?: number | null;
   preorderTaken?: number;
   preorderNote?: string | null;
+  /** The share a shop pays when it places a preorder (0–100). Newer servers. */
+  preorderDepositPct?: number;
 }
 
 export async function fetchSupplierProducts() {

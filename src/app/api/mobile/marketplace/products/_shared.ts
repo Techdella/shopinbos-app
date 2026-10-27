@@ -9,7 +9,7 @@ import { preorderState, type PreorderState } from "@shared/preorder";
 export const productSelect = {
   id: true, name: true, slug: true, description: true, images: true, wholesalePrice: true, suggestedRetailPrice: true, moq: true,
   stockQuantity: true, pricingTiers: true, dropshipAvailable: true, bulkOrderAvailable: true, processingTime: true, trendScore: true,
-  preorderEnabled: true, preorderShipsAt: true, preorderLimit: true, preorderTaken: true, preorderNote: true,
+  preorderEnabled: true, preorderShipsAt: true, preorderLimit: true, preorderTaken: true, preorderNote: true, preorderDepositPct: true,
   category: { select: { name: true } },
   supplier: { select: { id: true, displayName: true, slug: true, city: true, address: true, rating: true, ratingCount: true, description: true, responseTimeLabel: true, verificationStatus: true, returnPolicy: true } },
 } as const satisfies Prisma.SupplierProductSelect;
@@ -20,13 +20,14 @@ export async function sellerStore(userId: string) {
   return db.store.findUnique({ where: { userId }, select: { id: true, city: true, country: true } });
 }
 
-type PreorderColumns = { preorderEnabled: boolean; preorderShipsAt: Date | null; preorderLimit: number | null; preorderTaken: number; preorderNote: string | null };
+type PreorderColumns = { preorderEnabled: boolean; preorderShipsAt: Date | null; preorderLimit: number | null; preorderTaken: number; preorderNote: string | null; preorderDepositPct: number };
 
 /**
  * A row for sellers: the supplier's preorder settings as one `preorder` state (ship date, places left, promise;
  * shared/preorder.ts), null when the listing doesn't take preorders. The raw counts stay on the server.
  */
-export function withPreorderState<R extends PreorderColumns>(row: R): Omit<R, keyof PreorderColumns> & { preorder: PreorderState | null } {
-  const { preorderEnabled, preorderShipsAt, preorderLimit, preorderTaken, preorderNote, ...rest } = row;
-  return { ...rest, preorder: preorderEnabled ? preorderState({ enabled: true, shipsAt: preorderShipsAt, limit: preorderLimit, taken: preorderTaken, note: preorderNote }) : null };
+export function withPreorderState<R extends PreorderColumns>(row: R): Omit<R, keyof PreorderColumns> & { preorder: (PreorderState & { depositPct: number }) | null } {
+  const { preorderEnabled, preorderShipsAt, preorderLimit, preorderTaken, preorderNote, preorderDepositPct, ...rest } = row;
+  // depositPct: the share of a preorder paid when it's placed (shared/preorder.ts depositSplit); 0: paid in full later.
+  return { ...rest, preorder: preorderEnabled ? { ...preorderState({ enabled: true, shipsAt: preorderShipsAt, limit: preorderLimit, taken: preorderTaken, note: preorderNote }), depositPct: preorderDepositPct ?? 0 } : null };
 }

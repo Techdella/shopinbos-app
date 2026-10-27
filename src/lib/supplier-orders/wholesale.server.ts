@@ -6,7 +6,8 @@ import { parsePricingTiers, tierPrice } from "@/lib/marketplace/find";
 import { SELLER_CANCELLABLE_WHOLESALE, SELLER_CANCEL_PREFIX, plainText, wholesaleReleasesStock, wholesaleReservation, wholesaleStatusAfter, type SupplierAction } from "./pure";
 import type { ServiceResult } from "./service.server";
 import { acceptByFor, messageSupplierPhone } from "./deadline.server";
-import { preorderState, shipDateLabel } from "@shared/preorder";
+import { depositSplit, preorderBlocksShipping, preorderState, shipDateLabel, toKobo } from "@shared/preorder";
+import { recordWholesaleRefundOwed } from "./preorders.server";
 
 // Wholesale orders: a seller buys stock from a supplier (at least the minimum order, at the supplier's price tier
 // for the quantity). There's no payment rail for this yet: the supplier sends an invoice and the seller pays them
@@ -64,6 +65,7 @@ export async function placeWholesaleOrder(input: PlaceWholesaleInput): Promise<S
   const deadline = acceptByFor("wholesale", product.supplier);
   // The units are reserved as the order is made (conditionally, so two sellers can't take the same stock and it
   // never goes below zero). They go back if the supplier declines or the seller cancels.
+  const depositKobo = preorder.on && product.currency === "NGN" ? depositSplit(toKobo(totalPrice), product.preorderDepositPct ?? 0).depositKobo : 0;
   const order = await db.$transaction(async (tx) => {
     if (preorder.on) {
       const placed = await tx.$executeRaw`
@@ -94,6 +96,8 @@ export async function placeWholesaleOrder(input: PlaceWholesaleInput): Promise<S
         acceptBy: deadline.acceptBy,
         preorder: preorder.on,
         preorderShipsAt: preorder.on ? product.preorderShipsAt : null,
+        // The supplier's deposit (shared/preorder.ts depositSplit): paid now, the rest once the stock is ready.
+        depositKobo: depositKobo,
       },
       include: { supplierProduct: { select: { id: true, name: true, images: true } } },
     });
@@ -114,7 +118,7 @@ export async function placeWholesaleOrder(input: PlaceWholesaleInput): Promise<S
     type: "suppliers",
     priority: "warning",
     title: `New ${preorder.on ? "preorder" : "wholesale order"} ${wholesaleRef(order.id)}: accept within ${deadline.words}`,
-    description: `A shop wants ${input.quantity.toLocaleString("en-NG")} × ${plainText(product.name)} (${money(totalPrice, product.currency)})${preorder.on ? `, preordered to ship ${preorder.shipsOn ? `from ${shipDateLabel(preorder.shipsOn)}` : "when it arrives"}` : ""}. Accept it within ${deadline.words} and send them your invoice; they pay you directly.`,
+    description: `A shop wants ${input.quantity.toLocaleString("en-NG")} × ${plainText(product.name)} (${money(totalPrice, product.currency)})${preorder.on ? `, preordered to ship ${preorder.shipsOn ? `from ${shipDateLabel(preorder.shipsOn)}` : "when it arrives"}${depositKobo ? `, with a ${money(depositKobo / 100, product.currency)} deposit first` : ""}` : ""}. Accept it within ${deadline.words} and send them your invoice; they pay you directly.`,
     link: `/supplier/orders/${order.id}?kind=wholesale`,
     actionLabel: "Accept order",
     actionUrl: `/supplier/orders/${order.id}?kind=wholesale`,
@@ -140,12 +144,17 @@ export interface MoveWholesaleInput {
 export async function moveWholesaleOrder(input: MoveWholesaleInput): Promise<ServiceResult<{ id: string; status: string }>> {
   const order = await db.wholesaleOrder.findFirst({
     where: { id: input.orderId, supplierId: input.supplierId },
-    select: { id: true, status: true, sellerId: true, quantity: true, supplierProductId: true, expiredAt: true, supplier: { select: { displayName: true } }, supplierProduct: { select: { name: true } } },
+    select: {
+      id: true, status: true, sellerId: true, quantity: true, supplierProductId: true, expiredAt: true, supplier: { select: { displayName: true } }, supplierProduct: { select: { name: true } },
+      totalPrice: true, currency: true, preorder: true, depositKobo: true, depositPaidAt: true, preorderReadyAt: true, paidAt: true, paidOutAt: true,
+    },
   });
   if (!order) return { ok: false, code: "NOT_FOUND", message: "Order not found" };
   if (order.expiredAt) return { ok: false, code: "CONFLICT", message: "Time ran out on this order, so the shop was told. Don't send it." };
   const next = wholesaleStatusAfter(order.status, input.action);
   if (!next) return { ok: false, code: "CONFLICT", message: "This order has already moved on. Refresh to see where it is." };
+  // A preorder with a deposit goes out once it's all paid (shared/preorder.ts).
+  if (next === "shipped" && preorderBlocksShipping(order)) return { ok: false, code: "CONFLICT", message: "The shop hasn't paid the rest of this preorder yet. Send it once it's paid." };
   const reason = input.reason?.trim();
   if (input.action === "reject" && (!reason || reason.length < 3)) return { ok: false, code: "BAD_REQUEST", message: "Say why you can't fill this order." };
 
@@ -165,6 +174,8 @@ export async function moveWholesaleOrder(input: MoveWholesaleInput): Promise<Ser
     return result;
   });
   if (moved.count !== 1) return { ok: false, code: "CONFLICT", message: "This order has already moved on. Refresh to see where it is." };
+  // Declined after the shop paid in the app (a preorder deposit, or the whole order): recorded as owed back.
+  if (next === "cancelled") await recordWholesaleRefundOwed(order.id);
 
   const supplierName = plainText(order.supplier.displayName) || "Your supplier";
   const what = `${order.quantity.toLocaleString("en-NG")} × ${plainText(order.supplierProduct.name)}`;
@@ -225,6 +236,7 @@ export async function cancelWholesaleOrder(input: { sellerId: string; orderId: s
     return result;
   });
   if (moved.count !== 1) return { ok: false, code: "CONFLICT", message: "This order has already moved on. Refresh to see where it is." };
+  await recordWholesaleRefundOwed(order.id);
   await createNotification({
     userId: order.supplier.userId,
     type: "suppliers",

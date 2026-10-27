@@ -276,6 +276,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "supplier.products-import": "Gbé CSV sókè",
   "supplier.followers": "Àwọn olùtẹ̀lé",
   "admin.push": "Ibùdó ìfitónilétí",
+  // Preorder lists, Stock is ready and deposits (shared/preorder.ts)
+  "orders-preorders": "Àwọn àṣẹ ṣáájú",
+  "supplier.preorders": "Àwọn àṣẹ ṣáájú",
 };
 
 export default yo;

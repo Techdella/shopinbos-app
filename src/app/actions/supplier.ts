@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { parsePreorderInput, preorderSaveData } from "@shared/preorder";
+import { parseDepositPct, parsePreorderInput, preorderSaveData } from "@shared/preorder";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db/client";
 import { invalidatePublicMarketplaceCache } from "@/lib/api/cache";
@@ -153,6 +153,8 @@ export async function createSupplierProduct(formData: FormData) {
 
   const preorder = readPreorder(formData);
   if (!preorder.ok) redirect(`/supplier/products/new?error=${encodeURIComponent(preorder.message)}`);
+  const deposit = parseDepositPct(String(formData.get("preorderDepositPct") ?? "").trim());
+  if (!deposit.ok) redirect(`/supplier/products/new?error=${encodeURIComponent(deposit.message)}`);
 
   const category = await db.category.findUnique({ where: { id: parsed.data.categoryId } });
   if (!category) redirect("/supplier/products/new?error=Choose%20a%20valid%20category.");
@@ -161,6 +163,7 @@ export async function createSupplierProduct(formData: FormData) {
     data: {
       ...parsed.data,
       ...preorderSaveData(preorder.value),
+      preorderDepositPct: deposit.value,
       supplierId: supplier.id,
       slug: await getUniqueSupplierProductSlug(parsed.data.name, supplier.id),
     },
@@ -199,13 +202,15 @@ export async function updateSupplierProduct(formData: FormData) {
 
   const preorder = readPreorder(formData, product.preorderShipsAt);
   if (!preorder.ok) redirect(`/supplier/products/${product.id}/edit?error=${encodeURIComponent(preorder.message)}`);
+  const deposit = parseDepositPct(String(formData.get("preorderDepositPct") ?? "").trim());
+  if (!deposit.ok) redirect(`/supplier/products/${product.id}/edit?error=${encodeURIComponent(deposit.message)}`);
 
   const category = await db.category.findUnique({ where: { id: parsed.data.categoryId } });
   if (!category) redirect(`/supplier/products/${product.id}/edit?error=Choose%20a%20valid%20category.`);
 
   const updated = await db.supplierProduct.update({
     where: { id: product.id },
-    data: { ...parsed.data, ...preorderSaveData(preorder.value, { wasEnabled: product.preorderEnabled }), status: nextStatus },
+    data: { ...parsed.data, ...preorderSaveData(preorder.value, { wasEnabled: product.preorderEnabled }), preorderDepositPct: deposit.value, status: nextStatus },
   });
 
   invalidatePublicMarketplaceCache({ productSlug: updated.slug, supplierSlug: supplier.slug, categorySlug: category.slug ?? product.category.slug });

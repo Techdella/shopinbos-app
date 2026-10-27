@@ -61,6 +61,7 @@ export const PATCH = withSupplier(async (
     data: {
       ...fields,
       ...(preorderParsed?.ok ? preorderSaveData(preorderParsed.value, { wasEnabled: product.preorderEnabled }) : {}),
+      ...(preorder?.depositPct !== undefined ? { preorderDepositPct: preorder.depositPct } : {}),
       ...(product.status === "published" && hasPublicFieldChanges ? { status: "pending_review" } : {}),
     },
     include: {

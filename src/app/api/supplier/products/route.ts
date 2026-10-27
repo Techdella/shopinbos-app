@@ -92,6 +92,7 @@ export const POST = withSupplier(async (req: NextRequest, { user }: { user: Auth
     data: {
       ...fields,
       ...(preorderParsed?.ok ? preorderSaveData(preorderParsed.value) : {}),
+      ...(preorder?.depositPct !== undefined ? { preorderDepositPct: preorder.depositPct } : {}),
       supplierId: supplier.id,
       slug,
       status: parsed.data.status === "pending_review" && !unverified ? "pending_review" : "draft",

@@ -62,8 +62,9 @@ export interface FindProduct {
   trendScore: number;
   /** Boosted by the supplier this week (src/lib/plans/extras.server.ts): shown first, with a label. */
   featured?: boolean;
-  /** The supplier takes preorders for stock (shared/preorder.ts); null when not. */
-  preorder?: PreorderState | null;
+  /** The supplier takes preorders for stock (shared/preorder.ts); null when not. `depositPct`: the share paid when
+   * the preorder is placed (0: the whole order is paid once the supplier accepts it). */
+  preorder?: (PreorderState & { depositPct?: number }) | null;
 }
 
 // ─── Money ────────────────────────────────────────────────────────────────────
@@ -182,6 +183,7 @@ export interface SupplierProductRow {
   preorderLimit?: number | null;
   preorderTaken?: number;
   preorderNote?: string | null;
+  preorderDepositPct?: number;
   category: { name: string } | null;
   supplier: { id: string; userId: string; slug: string; displayName: string; city: string; rating: number; ratingCount: number; verificationStatus: string; returnPolicy?: string | null; address?: string | null };
 }
@@ -229,7 +231,7 @@ export function toFindProduct(row: SupplierProductRow): FindProduct {
     wholesale: row.bulkOrderAvailable,
     similar: null,
     trendScore: row.trendScore,
-    preorder: row.preorderEnabled ? preorderState({ enabled: true, shipsAt: row.preorderShipsAt, limit: row.preorderLimit, taken: row.preorderTaken, note: row.preorderNote }) : null,
+    preorder: row.preorderEnabled ? { ...preorderState({ enabled: true, shipsAt: row.preorderShipsAt, limit: row.preorderLimit, taken: row.preorderTaken, note: row.preorderNote }), depositPct: row.preorderDepositPct ?? 0 } : null,
   };
 }
 

@@ -91,8 +91,8 @@ test("supplier JSON APIs take `preorder` and save it with shared/preorder.ts", (
 
 test("the phone's other routes carry preorder states and order flags, never other people's raw counts", () => {
   const shared = read("src/app/api/mobile/marketplace/products/_shared.ts");
-  assert.match(shared, /const \{ preorderEnabled, preorderShipsAt, preorderLimit, preorderTaken, preorderNote, \.\.\.rest \} = row;/);
-  assert.match(shared, /preorder: preorderEnabled \? preorderState\(/);
+  assert.match(shared, /const \{ preorderEnabled, preorderShipsAt, preorderLimit, preorderTaken, preorderNote, preorderDepositPct, \.\.\.rest \} = row;/);
+  assert.match(shared, /preorder: preorderEnabled \? \{ \.\.\.preorderState\(/);
   assert.match(read("src/app/api/mobile/marketplace/products/route.ts"), /\.\.\.withPreorderState\(row\)/);
   const detail = read("src/app/api/mobile/marketplace/products/[slug]/route.ts");
   assert.match(detail, /\.\.\.withPreorderState\(row\)/);
@@ -103,7 +103,8 @@ test("the phone's other routes carry preorder states and order flags, never othe
   assert.match(seller, /preorder: supplierListing\?\.preorderEnabled\s+\? preorderState\(/, "a dropship product carries the supplier's state");
 
   assert.match(read("src/app/api/app/orders/[id]/route.ts"), /preorder: preorderOf\(order\.items\)/);
-  assert.match(read("src/app/api/app/wholesale/route.ts"), /preorder: preorder \? \{ shipsOn: preorderDay\(preorderShipsAt\) \} : null/);
+  assert.match(read("src/app/api/app/wholesale/route.ts"), /sellerWholesaleRows\(user\.id/);
+  assert.match(read("src/lib/supplier-orders/preorders.server.ts"), /preorder: preorder\s+\? \{ shipsOn: preorderDay\(preorderShipsAt\), stage: wholesalePreorderStage\(facts\)/);
   const supplier = read("src/app/api/mobile/supplier/_shared.ts");
   assert.match(supplier, /preorder: true, preorderShipsAt: true/);
   assert.match(supplier, /preorder: order\.preorder \? \{ shipsOn: preorderDay\(order\.preorderShipsAt\) \} : null/);
@@ -129,7 +130,7 @@ test("phone screens: product forms, Find, orders and sharing", () => {
   assert.match(read("apps/mobile/src/lib/supplier.ts"), /preorder\?: PreorderBody;/);
 
   const find = read("apps/mobile/src/app/find/[slug].tsx");
-  assert.match(find, /<PreorderBox state=\{preorder\} \/>/);
+  assert.match(find, /<PreorderBox state=\{preorder\} deposit=\{depositLineText\(preorder\.depositPct, unit \* quantity, naira, tp\)\} \/>/);
   assert.match(find, /preorderButton\(preorder, quantity, naira\(unit \* quantity\), tp\)/);
   assert.match(find, /disabled=\{preorderCta\.disabled\}/);
   assert.match(find, /placeWholesaleOrder\(/);

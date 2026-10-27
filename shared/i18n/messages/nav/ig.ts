@@ -276,6 +276,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "supplier.products-import": "Bulite CSV",
   "supplier.followers": "Ndị na-eso",
   "admin.push": "Ebe ozi ngwa",
+  // Preorder lists, Stock is ready and deposits (shared/preorder.ts)
+  "orders-preorders": "Ịtụ n'ihu oge",
+  "supplier.preorders": "Ịtụ n'ihu oge",
 };
 
 export default ig;
