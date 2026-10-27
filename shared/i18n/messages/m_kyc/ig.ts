@@ -181,7 +181,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "tier.rating": "Rating {have} (achọrọ {need})",
   "tier.disputes": "Nsogbu {have}% (agaghị agafe {max}%)",
   "tier.noLimits": "Enweghị order limits.",
-  "tier.upgrade": "Bụrụ Registered Business",
+  "tier.addCac": "Bụrụ Registered Business",
   "badge.verified_individual": "Verified Individual",
   "badge.registered_business": "Registered Business",
   "badge.licensed_courier": "Licensed Courier",

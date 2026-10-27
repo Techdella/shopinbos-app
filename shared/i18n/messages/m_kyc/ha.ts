@@ -181,7 +181,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "tier.rating": "Rating {have} (ana buƙatar {need})",
   "tier.disputes": "Matsaloli {have}% (kada ya wuce {max}%)",
   "tier.noLimits": "Babu order limits.",
-  "tier.upgrade": "Koma Registered Business",
+  "tier.addCac": "Koma Registered Business",
   "badge.verified_individual": "Verified Individual",
   "badge.registered_business": "Registered Business",
   "badge.licensed_courier": "Licensed Courier",

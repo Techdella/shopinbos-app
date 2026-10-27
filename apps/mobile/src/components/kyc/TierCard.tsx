@@ -41,7 +41,7 @@ export function TierCard() {
       ) : (
         <T style={{ color: colors.inkSoft, fontSize: 14 }}>{t("tier.noLimits")}</T>
       )}
-      {!tier2 ? <PillButton title={t("tier.upgrade")} size="sm" tone="white" style={{ alignSelf: "flex-start" }} onPress={() => router.push({ pathname: "/logistics/verification", params: { step: "cac" } })} /> : null}
+      {!tier2 ? <PillButton title={t("tier.addCac")} size="sm" tone="white" style={{ alignSelf: "flex-start" }} onPress={() => router.push({ pathname: "/logistics/verification", params: { step: "cac" } })} /> : null}
     </Card>
   );
 }

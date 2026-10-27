@@ -202,7 +202,7 @@ const en = {
   "tier.rating": "Rating {have} (need {need})",
   "tier.disputes": "Problems {have}% (at most {max}%)",
   "tier.noLimits": "No order limits.",
-  "tier.upgrade": "Upgrade to Registered Business",
+  "tier.addCac": "Add CAC: become a Registered Business",
   "badge.verified_individual": "Verified Individual",
   "badge.registered_business": "Registered Business",
   "badge.licensed_courier": "Licensed Courier",

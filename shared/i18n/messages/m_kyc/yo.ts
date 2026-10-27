@@ -181,7 +181,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "tier.rating": "Rating {have} (o nílò {need})",
   "tier.disputes": "Ìṣòro {have}% (kò ju {max}% lọ)",
   "tier.noLimits": "Kò sí order limits.",
-  "tier.upgrade": "Di Registered Business",
+  "tier.addCac": "Di Registered Business",
   "badge.verified_individual": "Verified Individual",
   "badge.registered_business": "Registered Business",
   "badge.licensed_courier": "Licensed Courier",

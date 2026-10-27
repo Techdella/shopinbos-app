@@ -181,7 +181,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "tier.rating": "Rating {have} (you need {need})",
   "tier.disputes": "Wahala {have}% (no pass {max}%)",
   "tier.noLimits": "No order limits.",
-  "tier.upgrade": "Upgrade to Registered Business",
+  "tier.addCac": "Add CAC make you be Registered Business",
   "badge.verified_individual": "Verified Individual",
   "badge.registered_business": "Registered Business",
   "badge.licensed_courier": "Licensed Courier",
