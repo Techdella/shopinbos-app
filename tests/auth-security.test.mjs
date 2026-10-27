@@ -345,3 +345,33 @@ test("every log out asks first, in an accessible dialog", () => {
   assert.match(read("shared/i18n/messages/m_auth/en.ts"), /Your session has ended/);
   assert.match(mobileSession, /router\.replace\("\/login"\)/);
 });
+
+test("sign-in codes paste in any shape, and the typed phone or email carries over to sign up / log in", async () => {
+  const { codeFromText, splitE164 } = await import("../shared/phone.ts");
+  assert.equal(codeFromText("123456"), "123456");
+  assert.equal(codeFromText(" 123 456 "), "123456");
+  assert.equal(codeFromText("123-456"), "123456");
+  assert.equal(codeFromText("Your Shopinbos code is 482913. It expires in 10 minutes."), "482913");
+  assert.equal(codeFromText("12"), "12");
+  assert.deepEqual(splitE164("+2348031234567")?.national, "8031234567");
+  assert.equal(splitE164("+2348031234567")?.country.code, "NG");
+  assert.equal(splitE164("+15551234567"), null);
+
+  // Web: every code box takes a paste; the Sign up now / Log in link carries #phone= / #email=.
+  const ui = read("src/components/app-ui/index.tsx");
+  assert.match(ui, /onPaste=\{\(event\) => \{[\s\S]*?paste\(index, event\.clipboardData\.getData\("text"\)\)/);
+  const web = read("src/components/auth/app/AppAuth.tsx");
+  assert.match(web, /carried\.set\("email"/);
+  assert.match(web, /carried\.set\("phone"/);
+
+  // Phone app: "Paste code" on the verify screen; the buttons carry the typed phone or email; no silent carry-on.
+  const verify = read("apps/mobile/src/app/verify.tsx");
+  assert.match(verify, /Clipboard\.getStringAsync\(\)/);
+  assert.match(verify, /codeFromText\(text\)/);
+  const form = read("apps/mobile/src/components/AuthForm.tsx");
+  assert.match(form, /params: \{ step: "role", \.\.\.carried \}/);
+  assert.match(form, /pathname: "\/login", params: carried/);
+  const mobileAuth = read("apps/mobile/src/lib/auth.ts");
+  assert.doesNotMatch(mobileAuth, /send by SMS straight from Supabase below/);
+  assert.match(mobileAuth, /catch \{\n    throw new Error\(tNow\("m_auth"\)\("error\.offline"\)\);/);
+});

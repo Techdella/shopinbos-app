@@ -8,7 +8,7 @@ import { db } from "@/lib/db/client";
 import { chooseCodeChannel, whatsappCodesAvailable } from "@/lib/auth/otp-channel";
 import { channelUsedFor, rememberWantedChannel } from "@/lib/auth/otp-delivery.server";
 import { PHONE_TAKEN, phoneOwner, signsInWithPhone } from "@/lib/auth/phone-owner.server";
-import { accountExistsMessage, accountFor, noAccountMessage } from "@/lib/auth/account-lookup.server";
+import { ACCOUNT_CHECK_UNAVAILABLE, accountExistsMessage, accountFor, noAccountMessage } from "@/lib/auth/account-lookup.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -48,8 +48,8 @@ function fail(message: string, status = 400, code = "BAD_REQUEST") {
  */
 async function accountProblem(request: NextRequest, create: boolean, target: { email: string } | { phone: string }) {
   const usePhone = "phone" in target;
-  // undefined: the database couldn't say, so carry on and let Supabase decide.
   const existing = await accountFor(target);
+  if (existing === undefined) return fail(ACCOUNT_CHECK_UNAVAILABLE, 503, "UNAVAILABLE");
   if (!create && existing === null) {
     await logAuthEvent(request, { type: "login_failure", method: usePhone ? "otp_phone" : "otp_email", detail: { reason: "unknown_identifier" } });
     return fail(noAccountMessage(usePhone), 404, "NO_ACCOUNT");
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
             options: { shouldCreateUser: create, data },
           });
       if (error) {
-        // The lookup above missed it (say, the database was unreachable): Supabase has no account for it either.
+        // Supabase has no account for it either (say, it was deleted between the check above and now).
         if (/signups not allowed|user not found/i.test(error.message)) {
           await logAuthEvent(request, { type: "login_failure", method: usePhone ? "otp_phone" : "otp_email", detail: { reason: "unknown_identifier" } });
           return fail(noAccountMessage(usePhone), 404, "NO_ACCOUNT");

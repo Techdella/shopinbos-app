@@ -4,7 +4,7 @@
 
 import { forwardRef, useEffect, useRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from "react";
 import { Icon } from "@/components/ui/Icon";
-import { DIAL_COUNTRIES, OTP_LENGTH, type DialCountry } from "@shared/phone";
+import { codeFromText, DIAL_COUNTRIES, OTP_LENGTH, type DialCountry } from "@shared/phone";
 
 import { cx, PHONE_SCROLL_ROW } from "./cx";
 import { Mascot as BrandMascot, type MascotProps, type MascotWho } from "@/components/brand/Mascot";
@@ -216,6 +216,16 @@ export function CodeInput({ value, onChange, onComplete, disabled }: { value: st
     if (next.length === OTP_LENGTH) onComplete?.(next);
   }
 
+  // A pasted code ("123456", "123 456" or the whole message) fills every box, whichever box it lands in.
+  function paste(index: number, text: string) {
+    const pasted = codeFromText(text);
+    if (!pasted) return;
+    const next = pasted.length === OTP_LENGTH ? pasted : (value.slice(0, index) + pasted).slice(0, OTP_LENGTH);
+    onChange(next);
+    inputs.current[Math.min(next.length, OTP_LENGTH - 1)]?.focus();
+    if (next.length === OTP_LENGTH) onComplete?.(next);
+  }
+
   return (
     <div className="flex justify-between gap-2" role="group" aria-label={t("verificationCode")}>
       {digits.map((digit, index) => (
@@ -231,6 +241,10 @@ export function CodeInput({ value, onChange, onComplete, disabled }: { value: st
           aria-label={t("digit", { n: index + 1 })}
           maxLength={index === 0 ? OTP_LENGTH : 1}
           onChange={(event) => setAt(index, event.target.value)}
+          onPaste={(event) => {
+            event.preventDefault();
+            paste(index, event.clipboardData.getData("text"));
+          }}
           onKeyDown={(event) => {
             if (event.key === "Backspace" && !digit && index > 0) inputs.current[index - 1]?.focus();
           }}

@@ -25,6 +25,9 @@ export function accountExistsMessage(phone: boolean) {
     : "This email is already used by a Shopinbos account. Log in instead, you don't need to sign up again.";
 }
 
+/** When the database can't say: nobody goes on to a code or password that might not work. */
+export const ACCOUNT_CHECK_UNAVAILABLE = "We couldn't check your account just now. Check your connection and try again.";
+
 export type ExistingAccount = { role: AuthRole | null };
 
 function asRole(value: unknown): AuthRole | null {

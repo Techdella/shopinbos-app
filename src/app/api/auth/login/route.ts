@@ -4,7 +4,7 @@ import { getAuthRouteClient } from "@/lib/auth/session.server";
 import { clearAuthFailures, consumeAuthLimit, lockedForSeconds, recordAuthFailure } from "@/lib/auth/throttle";
 import { clientIp, deviceCookie, logAuthEvent, recordSignIn } from "@/lib/auth/events";
 import { authError, authJson, rateLimited } from "@/lib/auth/responses";
-import { accountFor, noAccountMessage } from "@/lib/auth/account-lookup.server";
+import { ACCOUNT_CHECK_UNAVAILABLE, accountFor, noAccountMessage } from "@/lib/auth/account-lookup.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,7 +27,9 @@ export async function POST(request: NextRequest) {
   const wait = await consumeAuthLimit("login", clientIp(request), email);
   if (wait) return rateLimited(wait);
 
-  if ((await accountFor({ email })) === null) {
+  const existing = await accountFor({ email });
+  if (existing === undefined) return authError("UNAVAILABLE", ACCOUNT_CHECK_UNAVAILABLE, 503);
+  if (existing === null) {
     await logAuthEvent(request, { type: "login_failure", method: "password", detail: { reason: "unknown_identifier" } });
     return authError("NO_ACCOUNT", noAccountMessage(false), 404);
   }

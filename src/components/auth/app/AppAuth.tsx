@@ -26,7 +26,7 @@ import intentRouting from "@/lib/intent-routing";
 import { themeLibraryEntry } from "@/lib/store-templates/theme-library";
 import { safeNextPath } from "@/lib/auth/route-access";
 import { asAccountRole, asSignupRole, withPortalNote } from "@/lib/auth/role-rules";
-import { DEFAULT_DIAL_COUNTRY, DIAL_COUNTRIES, formatE164, isValidEmail, OTP_LENGTH, OTP_RESEND_SECONDS, toE164, type DialCountry } from "@shared/phone";
+import { DEFAULT_DIAL_COUNTRY, DIAL_COUNTRIES, formatE164, isValidEmail, splitE164, OTP_LENGTH, OTP_RESEND_SECONDS, toE164, type DialCountry } from "@shared/phone";
 import { CodeInput, GoogleMark, Mascot, Notice, PillButton, TextInput, Wordmark } from "@/components/app-ui";
 import { AuthShowcasePanel } from "./AuthShowcasePanel";
 import {
@@ -256,17 +256,29 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
   // Told before any code is sent: "no account yet, sign up first" on log in, "already used, log in" on sign up.
   const [nextStep, setNextStep] = useState<null | "signup" | "login">(null);
 
-  // The shopinbos.com hero form passes the typed WhatsApp number as #phone=+234… (a fragment, so it never
-  // reaches a server log). Prefill it once, then drop it from the address bar.
+  // The shopinbos.com hero form passes the typed WhatsApp number as #phone=+234…, and the "Sign up now" / "Log in"
+  // button under "no account" / "already used" passes #phone= or #email= with carry=1 (a fragment, so it never
+  // reaches a server log). Prefill it once, then drop it from the address bar. Carried over, the form opens straight
+  // away with the same role: they already chose it on the other page.
   useEffect(() => {
-    const match = /(?:^|[#&])phone=([^&]+)/.exec(window.location.hash);
-    if (!match) return;
-    const value = decodeURIComponent(match[1]);
-    const dial = DIAL_COUNTRIES.find((item) => value.startsWith(item.dial));
-    if (dial) {
-      setCountry(dial);
-      setPhone(value.slice(dial.dial.length).replace(/\D/g, ""));
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    // A raw "+" (the hero form's #phone=+234…) reads as a space here.
+    const phoneValue = hash.get("phone")?.trim().replace(/^\+?/, "+") ?? null;
+    const emailValue = hash.get("email");
+    if (!phoneValue && !emailValue) return;
+    const split = phoneValue ? splitE164(phoneValue) : null;
+    if (split) {
+      setCountry(split.country);
+      setPhone(split.national);
       setMethod("phone");
+    } else if (emailValue && isValidEmail(emailValue)) {
+      setEmail(emailValue);
+      setMethod("email");
+      setEmailMode("code");
+    }
+    if (hash.get("carry") === "1" && (split || emailValue)) {
+      setPicked(true);
+      setScreen("details");
     }
     window.history.replaceState(null, "", window.location.pathname + window.location.search);
   }, []);
@@ -458,16 +470,14 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
     const path = mode === "login" ? portalSignupPath(role) : portalLoginPath(role);
     return intentQuery ? `${path}?${intentQuery}` : path;
   })();
-  // The "Sign up" / "Log in" link under "no account" or "already used": the other page, with the same phone filled in
-  // (as #phone=, which never reaches a server log) or email chosen.
+  // The "Sign up now" / "Log in" link under "no account" or "already used": the other page, with the same phone or
+  // email filled in (as #phone= / #email=, which never reach a server log).
   const carryOverHref = (() => {
-    if (method === "email") {
-      const query = new URLSearchParams(intentQuery);
-      query.set("method", "email");
-      return `${mode === "login" ? portalSignupPath(role) : portalLoginPath(role)}?${query}`;
-    }
-    const e164 = toE164(phone, country);
-    return e164 ? `${switchHref}#phone=${encodeURIComponent(e164)}` : switchHref;
+    const carried = new URLSearchParams({ carry: "1" });
+    if (method === "email" && isValidEmail(email)) carried.set("email", email.trim().toLowerCase());
+    else if (method === "phone" && toE164(phone, country)) carried.set("phone", toE164(phone, country)!);
+    else return switchHref;
+    return `${switchHref}#${carried}`;
   })();
 
   // ── Pieces ─────────────────────────────────────────────────────────────────

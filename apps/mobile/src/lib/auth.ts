@@ -43,8 +43,9 @@ function accountCheckError(error: ServerError, via: "email" | "phone") {
 
 /**
  * Asks the server (POST /api/auth/otp, action "check") whether this email or phone can log in, or sign up, before a
- * code goes or a password is tried. Throws AccountCheckError, or the server's own message (say, a number another
- * account already uses). When the server can't be reached it doesn't stand in the way: Supabase still decides.
+ * code goes or a password is tried. Throws AccountCheckError, the server's own message (say, a number another
+ * account already uses, or too many tries), or "Couldn't reach Shopinbos" when there's no answer: nobody goes on
+ * to a code or password without being told first whether it can work.
  */
 export async function checkAccount(target: CodeTarget, create: boolean) {
   const via = target.kind;
@@ -56,14 +57,11 @@ export async function checkAccount(target: CodeTarget, create: boolean) {
       body: JSON.stringify({ action: "check", ...(target.kind === "phone" ? { phone: target.phone } : { email: target.email }), create }),
     });
   } catch {
-    return;
+    throw new Error(tNow("m_auth")("error.offline"));
   }
   if (response.ok) return;
   const body = (await response.json().catch(() => null)) as { error?: ServerError } | null;
-  const known = accountCheckError(body?.error, via);
-  if (known) throw known;
-  // Too many tries, or a number another account already uses: say so. Anything else: let Supabase decide.
-  if (response.status === 429 || body?.error?.code === "PHONE_TAKEN") throw new Error(body?.error?.message ?? tNow("m_auth")("form.sendFailed"));
+  throw accountCheckError(body?.error, via) ?? new Error(body?.error?.message ?? tNow("m_auth")("error.offline"));
 }
 
 /** How a code actually went: WhatsApp, SMS (WhatsApp off, failed, or "Send it by SMS") or email. */
@@ -83,13 +81,13 @@ export async function fetchWhatsAppCodes() {
 /**
  * Sends a sign-in code and returns the channel that carried it. WhatsApp codes go through the server
  * (POST /api/auth/otp notes the channel for the Send SMS hook, which falls back to SMS); SMS and email codes go
- * straight to Supabase as before. Supabase itself is only ever asked for SMS (its WhatsApp needs Twilio).
+ * straight to Supabase, after the server's account check. Supabase itself is only ever asked for SMS (its WhatsApp needs Twilio).
  */
 export async function sendCode(target: CodeTarget, options: { create: boolean; fullName?: string; role?: Exclude<AppRole, "admin"> }): Promise<CodeChannel> {
   // Same sign-up metadata as the web's /api/auth/otp: the role picked on the sign-up screen ("I sell / I supply shops / I deliver").
   const data = options.create ? { role: options.role ?? "seller", full_name: options.fullName?.trim() || undefined } : undefined;
   if (target.kind === "phone" && target.via === "whatsapp") {
-    let response: Response | null = null;
+    let response: Response;
     try {
       response = await fetch(`${API_URL}/api/auth/otp`, {
         method: "POST",
@@ -97,13 +95,12 @@ export async function sendCode(target: CodeTarget, options: { create: boolean; f
         body: JSON.stringify({ action: "send", phone: target.phone, via: "whatsapp", create: options.create, profile: options.create ? { role: data?.role, fullName: data?.full_name } : undefined }),
       });
     } catch {
-      response = null; // Can't reach the server: send by SMS straight from Supabase below.
+      // No answer, so no "sign up first" / "log in instead" check either: say so rather than send blind.
+      throw new Error(tNow("m_auth")("error.offline"));
     }
-    if (response) {
-      const body = (await response.json().catch(() => null)) as { data?: { channel?: string }; error?: ServerError } | null;
-      if (!response.ok) throw accountCheckError(body?.error, "phone") ?? new Error(friendly(body?.error?.message ?? tNow("m_auth")("form.sendFailed"), true));
-      return body?.data?.channel === "whatsapp" ? "whatsapp" : "sms";
-    }
+    const body = (await response.json().catch(() => null)) as { data?: { channel?: string }; error?: ServerError } | null;
+    if (!response.ok) throw accountCheckError(body?.error, "phone") ?? new Error(friendly(body?.error?.message ?? tNow("m_auth")("form.sendFailed"), true));
+    return body?.data?.channel === "whatsapp" ? "whatsapp" : "sms";
   }
   // SMS and email codes go straight to Supabase, so ask the server first: "sign up first" or "log in instead".
   await checkAccount(target, options.create);
