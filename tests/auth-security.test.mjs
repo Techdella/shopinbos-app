@@ -46,6 +46,7 @@ const PUBLIC_PAGES = [
   /^\/email\/preferences\//, // email preference center: the signed token is the credential
   /^\/email\/preferences\//, // email preference center, the signed token is the credential
   /^\/rider\/\[token\]$/, // rider job link, the token is the credential
+  /^\/pilot\/\[token\]$/, // pilot testing reply form; the signed token in the invitation is the credential
   /^\/delete-account$/, // account deletion request page Google Play requires; opens a rate-limited support ticket
   /^\/meta-data-deletion$/, // Meta data-deletion status page; the 12-character confirmation code is the credential
   /^\/invite\/\[code\]$/, // Refer & earn invite page (/r/CODE lands here): who invited you and the sign-up links
@@ -200,8 +201,18 @@ test("login, codes and resets are rate-limited, locked after failures, generic a
   assert.match(otp, /lockedForSeconds\(identifier\)/);
   assert.match(otp, /recordAuthFailure\(identifier\)/);
   assert.match(otp, /recordSignIn\(/);
-  assert.doesNotMatch(otp, /couldn't find an account/, "never reveals whether an account exists");
-  assert.match(otp, /Signing in with an email or phone that has no account looks exactly like a sent code/);
+  // Log in with no account says "sign up first", sign up with an existing one says "log in": both before a code is
+  // sent, and only after the otpSend rate limit so the answer can't be used to sweep through numbers.
+  assert.match(otp, /consumeAuthLimit\("otpSend"[\s\S]*?accountProblem\(request, create[\s\S]*?signInWithOtp\(/, "account check is rate-limited and comes before any code is sent");
+  assert.match(otp, /"NO_ACCOUNT"/);
+  assert.match(otp, /"ACCOUNT_EXISTS"/);
+  // An email saved on an account that logs in by phone counts as used at sign up, like a phone number does.
+  assert.match(otp, /if \(create && !usePhone\) \{[\s\S]*?profileEmailOwner\(target\.email\)[\s\S]*?"ACCOUNT_EXISTS"/);
+  // The phone app asks first ("check") before its own SMS, email or password sign-in, under the login rate limit.
+  assert.match(otp, /action === "check"[\s\S]*?consumeAuthLimit\("login"[\s\S]*?accountProblem\(/);
+  const mobileAuth = read("apps/mobile/src/lib/auth.ts");
+  assert.ok(mobileAuth.indexOf("await checkAccount(target, options.create)") < mobileAuth.indexOf("supabase.auth.signInWithOtp("), "mobile checks before sending a code");
+  assert.match(mobileAuth, /signInWithPassword\(email: string, password: string\) \{\n  await checkAccount\(/);
 
   const login = read("src/app/api/auth/login/route.ts");
   assert.match(login, /consumeAuthLimit\("login"/);
@@ -336,4 +347,34 @@ test("every log out asks first, in an accessible dialog", () => {
   assert.match(mobileSession, /"session\.endedBody"/);
   assert.match(read("shared/i18n/messages/m_auth/en.ts"), /Your session has ended/);
   assert.match(mobileSession, /router\.replace\("\/login"\)/);
+});
+
+test("sign-in codes paste in any shape, and the typed phone or email carries over to sign up / log in", async () => {
+  const { codeFromText, splitE164 } = await import("../shared/phone.ts");
+  assert.equal(codeFromText("123456"), "123456");
+  assert.equal(codeFromText(" 123 456 "), "123456");
+  assert.equal(codeFromText("123-456"), "123456");
+  assert.equal(codeFromText("Your Shopinbos code is 482913. It expires in 10 minutes."), "482913");
+  assert.equal(codeFromText("12"), "12");
+  assert.deepEqual(splitE164("+2348031234567")?.national, "8031234567");
+  assert.equal(splitE164("+2348031234567")?.country.code, "NG");
+  assert.equal(splitE164("+15551234567"), null);
+
+  // Web: every code box takes a paste; the Sign up now / Log in link carries #phone= / #email=.
+  const ui = read("src/components/app-ui/index.tsx");
+  assert.match(ui, /onPaste=\{\(event\) => \{[\s\S]*?paste\(index, event\.clipboardData\.getData\("text"\)\)/);
+  const web = read("src/components/auth/app/AppAuth.tsx");
+  assert.match(web, /carried\.set\("email"/);
+  assert.match(web, /carried\.set\("phone"/);
+
+  // Phone app: "Paste code" on the verify screen; the buttons carry the typed phone or email; no silent carry-on.
+  const verify = read("apps/mobile/src/app/verify.tsx");
+  assert.match(verify, /Clipboard\.getStringAsync\(\)/);
+  assert.match(verify, /codeFromText\(text\)/);
+  const form = read("apps/mobile/src/components/AuthForm.tsx");
+  assert.match(form, /params: \{ step: "role", \.\.\.carried \}/);
+  assert.match(form, /pathname: "\/login", params: carried/);
+  const mobileAuth = read("apps/mobile/src/lib/auth.ts");
+  assert.doesNotMatch(mobileAuth, /send by SMS straight from Supabase below/);
+  assert.match(mobileAuth, /catch \{\n    throw new Error\(tNow\("m_auth"\)\("error\.offline"\)\);/);
 });

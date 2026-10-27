@@ -134,7 +134,7 @@ test("web screens: role cards first, unless the link already says; the chosen ro
 test("phone app: cards on Welcome, the picked role is the one sent, and no client-side role writes", () => {
   const welcome = read("apps/mobile/src/app/welcome.tsx");
   assert.match(welcome, /SIGNUP_ROLES\.map/);
-  assert.match(welcome, /pathname: "\/signup", params: \{ method: "phone", role \}/);
+  assert.match(welcome, /pathname: "\/signup", params: \{ method: email && !phone \? "email" : "phone", role, \.\.\.carried \}/);
   const signup = read("apps/mobile/src/app/signup.tsx");
   assert.match(signup, /if \(!picked\) return <Redirect href="\/welcome" \/>/);
   const form = read("apps/mobile/src/components/AuthForm.tsx");

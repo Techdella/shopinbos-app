@@ -54,7 +54,7 @@ test("one account per phone number: compared by the last 10 digits, checked at s
   assert.equal(phoneKey("2348031234567"), "8031234567");
   assert.equal(phoneKey("12345"), null);
   const otp = read("src/app/api/auth/otp/route.ts");
-  assert.match(otp, /if \(create && usePhone\) \{[\s\S]*phoneOwner\(phone\)[\s\S]*signsInWithPhone\(owner\.supabaseId, phone\)[\s\S]*PHONE_TAKEN, 409/);
+  assert.match(otp, /if \(create && usePhone\) \{[\s\S]*phoneOwner\(target\.phone\)[\s\S]*signsInWithPhone\(owner\.supabaseId, target\.phone\)[\s\S]*PHONE_TAKEN, 409/);
   assert.match(read("src/lib/auth/app-user.ts"), /phoneOwner\(phone, existingUser\?\.id \?\? null\)[\s\S]*phone = undefined/);
   assert.match(read("src/lib/seller-settings.server.ts"), /phoneOwner\(me\.phone, userId\)\)\) throw new PhoneTakenError/);
 });

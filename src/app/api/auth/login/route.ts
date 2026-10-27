@@ -4,6 +4,7 @@ import { getAuthRouteClient } from "@/lib/auth/session.server";
 import { clearAuthFailures, consumeAuthLimit, lockedForSeconds, recordAuthFailure } from "@/lib/auth/throttle";
 import { clientIp, deviceCookie, logAuthEvent, recordSignIn } from "@/lib/auth/events";
 import { authError, authJson, rateLimited } from "@/lib/auth/responses";
+import { ACCOUNT_CHECK_UNAVAILABLE, accountFor, noAccountMessage } from "@/lib/auth/account-lookup.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,7 +12,7 @@ export const dynamic = "force-dynamic";
 // Email + password sign-in, done on the server so it can be rate-limited, locked after repeated wrong
 // passwords and logged. Supabase's session cookies are written on this response.
 
-/** Same words whether the email is unknown, unconfirmed or the password is wrong. */
+/** Same words whether the email is unconfirmed or the password is wrong (an unknown email says "sign up first"). */
 const NO_MATCH = "That email and password don't match. Try again or use a code.";
 
 export async function POST(request: NextRequest) {
@@ -25,6 +26,13 @@ export async function POST(request: NextRequest) {
   if (locked) return rateLimited(locked, "wrong passwords");
   const wait = await consumeAuthLimit("login", clientIp(request), email);
   if (wait) return rateLimited(wait);
+
+  const existing = await accountFor({ email });
+  if (existing === undefined) return authError("UNAVAILABLE", ACCOUNT_CHECK_UNAVAILABLE, 503);
+  if (existing === null) {
+    await logAuthEvent(request, { type: "login_failure", method: "password", detail: { reason: "unknown_identifier" } });
+    return authError("NO_ACCOUNT", noAccountMessage(false), 404);
+  }
 
   try {
     const supabase = await getAuthRouteClient();

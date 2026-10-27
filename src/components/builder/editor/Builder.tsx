@@ -80,6 +80,7 @@ import { IconButton, useMediaQuery } from "./ui";
 import { storefrontHost, useBuilder } from "./useBuilder";
 import { useEditorT } from "./i18n";
 import { customPageSlug } from "@shared/storefront-pages";
+import { uploadToFolder } from "@/components/media/media-client";
 
 type Panel = "sections" | "insert" | "theme" | "apps" | "rex";
 
@@ -452,13 +453,7 @@ export function Builder({
 
   const uploadImage = useCallback(async (file: File) => {
     try {
-      const body = new FormData();
-      body.append("file", file);
-      body.append("folder", "store-banners");
-      const response = await fetch("/api/upload", { method: "POST", body });
-      const json = await response.json().catch(() => null) as { data?: { publicUrl?: string }; error?: { message?: string } } | null;
-      if (!response.ok || !json?.data?.publicUrl) throw new Error(json?.error?.message ?? tx("That upload didn't work. Try a smaller image."));
-      return json.data.publicUrl;
+      return await uploadToFolder(file, "store-banners");
     } catch (error) {
       b.showToast(error instanceof Error ? friendlyError(error) : tx("That upload didn't work."), "error");
       return null;
