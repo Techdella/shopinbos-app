@@ -54,6 +54,7 @@ import m_video from "./messages/m_video/index.ts";
 import m_money from "./messages/m_money/index.ts";
 import wallet from "./messages/wallet/index.ts";
 import m_ads from "./messages/m_ads/index.ts";
+import m_kyc from "./messages/m_kyc/index.ts";
 import verification from "./messages/verification/index.ts";
 import partnerKyc from "./messages/partnerKyc/index.ts";
 import contracts from "./messages/contracts/index.ts";
@@ -150,6 +151,7 @@ export const CATALOGS = {
   m_money,
   wallet,
   m_ads,
+  m_kyc,
   verification,
   partnerKyc,
   contracts,

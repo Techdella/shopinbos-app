@@ -5,6 +5,8 @@
 //     { id, verification_consent: true, validation: { first_name, last_name, date_of_birth } }
 //     → { status: true, message, data: { reference, first_name, middle_name, last_name, date_of_birth: "YYYY-MM-DD",
 //         validation: { first_name: { value, match }, … } } }
+//   With validation.selfie ("data:image/jpeg;base64,…") the NIN's photo is compared with it (facial matching):
+//     → data.validation.selfie: { value, match: true, confidence_rating: 94 }
 // Sandbox (test secret key): BVN 22222222222 and NIN 55555555555 are found, 00000000000 is not.
 //
 // Names and the date of birth are compared here, the same way as Youverify's answers (./youverify-rules.ts), rather
@@ -48,6 +50,16 @@ export function readKorapayIdentity(httpStatus: number, body: unknown, typed: { 
         lastName: lastName ? typedNameMatches(typed.lastName, lastName) : null,
         dateOfBirth: dateOfBirth ? dateOfBirth === typed.dateOfBirth : null,
       },
+      ...(selfieOf(data) ? { selfie: selfieOf(data)! } : {}),
     },
   };
+}
+
+/** Korapay's facial match (data.validation.selfie), or null when no selfie result came back. */
+function selfieOf(data: Record<string, unknown>): { match: boolean | null; confidence: number | null } | null {
+  const validation = data.validation && typeof data.validation === "object" ? (data.validation as Record<string, unknown>) : null;
+  const selfie = validation?.selfie && typeof validation.selfie === "object" ? (validation.selfie as Record<string, unknown>) : null;
+  if (!selfie) return null;
+  const confidence = typeof selfie.confidence_rating === "number" ? selfie.confidence_rating : Number(selfie.confidence_rating);
+  return { match: typeof selfie.match === "boolean" ? selfie.match : null, confidence: Number.isFinite(confidence) ? confidence : null };
 }

@@ -113,6 +113,16 @@ test("delivery methods keep truck from the old company setup", () => {
   assert.equal(t.isDeliveryMethod("truck"), true);
 });
 
+test("selfie: a confident match passes, a mismatch is rejected, anything else goes to the team", () => {
+  assert.deepEqual(t.selfieDecision({ match: true, confidence: 94 }), { status: "approved" });
+  assert.deepEqual(t.selfieDecision({ match: true, confidence: null }), { status: "approved" });
+  assert.deepEqual(t.selfieDecision({ match: true, confidence: t.FACE_MATCH_MIN_CONFIDENCE - 1 }), { status: "pending" });
+  assert.equal(t.selfieDecision({ match: false, confidence: 99 }).status, "rejected");
+  assert.equal(t.selfieDecision({ match: false, confidence: 99 }).reason, t.SELFIE_MISMATCH);
+  assert.deepEqual(t.selfieDecision({ match: null, confidence: null }), { status: "pending" });
+  assert.deepEqual(t.selfieDecision(null), { status: "pending" });
+});
+
 test("tier rules: defaults, saved values and out-of-range input", () => {
   assert.deepEqual(t.readTierRules(null), t.DEFAULT_TIER_RULES);
   assert.equal(t.DEFAULT_TIER_RULES.maxOrderValue, 50000);

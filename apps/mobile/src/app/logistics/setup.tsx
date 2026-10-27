@@ -2,29 +2,24 @@ import { useEffect, useState, type ReactNode } from "react";
 import { ScrollView, View } from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import * as ImagePicker from "expo-image-picker";
-import { LOGISTICS_DOC_TYPES } from "@shared/verification-docs";
 import { Eyebrow, List, Row, Seg, Small, Sub, Tile, Title } from "@/components/design";
 import { AppIcon } from "@/components/icons";
 import { CallPeggyButton } from "@/components/CallPeggyButton";
 import { LoadingBlock } from "@/components/kit";
 import { ChipWrap, LabeledInput, StepHeader } from "@/components/PartnerKit";
 import { CoverageEditor, RateCardEditor, ServicesEditor } from "@/components/PartnerSetup";
-import { LinkButton, Notice, PillButton, T } from "@/components/ui";
+import { Notice, PillButton, T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
 import {
-  fetchLogisticsMe,
   fetchMarket,
   fetchOnboarding,
   finishOnboarding,
   saveBusiness,
   saveCoverage,
   saveRateCard,
-  submitVerification,
-  uploadVerificationDoc,
   type MarketData,
 } from "@/lib/logistics";
-import { deliverModeOf, deliveryAreasFor, requiredDocsMissing, draftFromRow, nairaInput, pickupAreasFor, priceText, rowsToSave, starterRates, statesIn, type DeliverMode, type DraftRate } from "@/lib/logistics-pure";
+import { deliverModeOf, deliveryAreasFor, draftFromRow, nairaInput, pickupAreasFor, priceText, rowsToSave, starterRates, statesIn, type DeliverMode, type DraftRate } from "@/lib/logistics-pure";
 import { checkWalletAccount, fetchWallet, linkWalletBank, type WalletData } from "@/lib/wallet";
 import { usePeggyContinue, usePeggySaved } from "@/lib/peggy-call";
 import { partnerWizardStep } from "@/lib/peggy-call-pure";
@@ -32,14 +27,13 @@ import { colors } from "@/theme";
 import { KeyboardShift } from "@/components/KeyboardShift";
 
 // Set-up for a new delivery company ("Delivery partner app" prototype pWelcome … pReview, "N of 6"): the company
-// (PUT market { section: "business" }), documents (the existing verification upload, the existing document types),
-// where you cover and what you offer, the rate card, the bank delivery fees are paid to (Shopinbos Wallet), then
-// "Send for review": set-up is marked done (the web set-up's call), coverage and prices are saved, the bank linked
-// and the documents sent to be checked. The Documents step needs the documents the server needs (CAC and insurance)
-// or an explicit "Add them later"; the last screen says what really happened: sent, refused (the server's reason),
-// or not sent yet, with a way to Verification. Shown while the company isn't set up (/logistics/home sends it here).
-// "Call Peggy" is on every step: while she's on the call, the areas and starting price she saves fill the steps
-// here as she goes, and after the call it opens the first step that's still missing (documents only last).
+// (PUT market { section: "business" }), what verification will ask for (no CAC needed to start: shared/
+// partner-tiers.ts), where you cover and what you offer, the rate card, the bank delivery fees are paid to
+// (Shopinbos Wallet), then "Finish set-up": set-up is marked done (the web set-up's call), coverage and prices are
+// saved and the bank linked. Verification itself (ID, selfie, bank, vehicles, guarantor, optional CAC) is its own
+// stepped screen (/logistics/verification), which the last screen opens. Shown while the company isn't set up
+// (/logistics/home sends it here). "Call Peggy" is on every step: while she's on the call, the areas and starting
+// price she saves fill the steps here as she goes, and after the call it opens the first step that's still missing.
 
 type Step = "welcome" | "biz" | "docs" | "cover" | "services" | "rates" | "payout" | "review";const ORDER: Step[] = ["welcome", "biz", "docs", "cover", "services", "rates", "payout", "review"];
 
@@ -65,7 +59,7 @@ function Frame({ step, onBack, children, footer }: { step: number; onBack?: () =
   );
 }
 
-function Wizard({ market, wallet, docsDone: initialDocs }: { market: MarketData; wallet: WalletData | null; docsDone: string[] }) {
+function Wizard({ market, wallet }: { market: MarketData; wallet: WalletData | null }) {
   const t = useT("m_partner", "common");
   const partner = market.partner;
   const [step, setStep] = useState<Step>("welcome");
@@ -78,12 +72,6 @@ function Wizard({ market, wallet, docsDone: initialDocs }: { market: MarketData;
   const [phone, setPhone] = useState(partner.contactPhone ?? "");
   const [email, setEmail] = useState(partner.contactEmail ?? "");
   const [address, setAddress] = useState(partner.address ?? "");
-  // 2. Documents
-  const [docsDone, setDocsDone] = useState<string[]>(initialDocs);
-  const [docsLater, setDocsLater] = useState(false);
-  // What "Send for review" really did: sent, refused (with the server's reason) or not sent (documents later).
-  const [review, setReview] = useState<{ sent: boolean; reason: string | null }>({ sent: false, reason: null });
-  const missingDocs = requiredDocsMissing(docsDone);
   // 3–4. Coverage and services
   const [pickup, setPickup] = useState<string[]>(statesIn(partner.pickupAreas));
   const [mode, setMode] = useState<DeliverMode>(deliverModeOf(partner.pickupAreas, partner.deliveryAreas));
@@ -162,30 +150,12 @@ function Wizard({ market, wallet, docsDone: initialDocs }: { market: MarketData;
     }
   }
 
-  async function upload(type: string) {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) return setError(t("docs.photosOff"));
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.7 });
-    if (result.canceled) return;
-    const asset = result.assets[0];
-    setBusy(`doc:${type}`);
-    setError(null);
-    try {
-      await uploadVerificationDoc(type, { uri: asset.uri, mimeType: asset.mimeType, fileName: asset.fileName });
-      setDocsDone((was) => [...new Set([...was, type])]);
-    } catch (uploadError) {
-      setError(uploadError instanceof Error && uploadError.message ? uploadError.message : t("docs.failed"));
-    } finally {
-      setBusy(null);
-    }
-  }
-
   function toRates() {
     if (!rows.length) setRows(starterRates(pickup, mode, deliver, services).map((row) => (peggyPrice && row.from === row.to ? { ...row, price: peggyPrice } : row)));
     go("rates");
   }
 
-  async function sendForReview() {
+  async function finishSetup() {
     const priced = rowsToSave(rows);
     if (!priced.length) return setError(t("rates.needOne"));
     setBusy("review");
@@ -204,12 +174,7 @@ function Wizard({ market, wallet, docsDone: initialDocs }: { market: MarketData;
       await saveCoverage({ services, pickupAreas: pickupAreasFor(pickup, savedAreas.pickupAreas), deliveryAreas: deliveryAreasFor(mode, pickup, deliver, savedAreas.deliveryAreas), offersPayOnDelivery: partner.offersPayOnDelivery });
       await saveRateCard({ rows: priced, failedAttemptFee: nairaInput(fail) ?? 0, returnFee: nairaInput(ret) ?? 0, notes });
       if (bank && digits.length === 10) await linkWalletBank({ bankName: bank, accountNumber: digits });
-      // Sent to be checked only with the required documents in; the server's answer is shown as it is.
-      if (requiredDocsMissing(docsDone).length) setReview({ sent: false, reason: null });
-      else {
-        const refused = await submitVerification().then(() => null, (submitError: unknown) => (submitError instanceof Error && submitError.message ? submitError.message : t("error.retry")));
-        setReview({ sent: !refused, reason: refused });
-      }
+      // Verification is sent from its own screen, once the ID, bank, vehicle and guarantor steps are in.
       go("review");
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : t("error.retry"));
@@ -260,40 +225,21 @@ function Wizard({ market, wallet, docsDone: initialDocs }: { market: MarketData;
     );
   }
 
+  // What verification asks for, before the rest of set-up: no CAC needed to start (Tier 1, Verified Individual).
   if (step === "docs") {
+    const needs = ["kyc.need.id", "kyc.need.bank", "kyc.need.vehicle", "kyc.need.guarantor"] as const;
     return (
-      <Frame
-        step={2}
-        onBack={back}
-        footer={
-          <>
-            {next(() => {
-              if (missingDocs.length) return setError(t("docs.needRequired", { docs: missingDocs.map((doc) => t.dynamic(`docs.${doc.type}`, doc.label)).join(", ") }));
-              setDocsLater(false);
-              go("cover");
-            })}
-            {missingDocs.length ? <LinkButton title={t("docs.later")} color={colors.inkSoft} onPress={() => { setDocsLater(true); go("cover"); }} /> : null}
-          </>
-        }
-      >
+      <Frame step={2} onBack={back} footer={next(() => go("cover"))}>
         <View style={{ gap: 8 }}>
-          <Title>{t("docs.title")}</Title>
-          <Sub>{t("docs.sub")}</Sub>
+          <Title>{t("kyc.introTitle")}</Title>
+          <Sub>{t("kyc.introSub")}</Sub>
         </View>
         <List>
-          {LOGISTICS_DOC_TYPES.map((doc) => {
-            const done = docsDone.includes(doc.type);
-            return (
-              <Row
-                key={doc.type}
-                lead={<Tile icon={done ? "check" : "doc"} tone={done ? "ok" : "gray"} />}
-                title={t.dynamic(`docs.${doc.type}`, doc.label)}
-                sub={done ? t("docs.uploaded") : doc.required ? t("docs.photo") : t("docs.optional")}
-                right={done ? undefined : <PillButton tone="white" size="sm" title={t("docs.upload")} busy={busy === `doc:${doc.type}`} disabled={Boolean(busy)} onPress={() => void upload(doc.type)} />}
-              />
-            );
-          })}
+          {needs.map((key) => (
+            <Row key={key} lead={<Tile icon="check" tone="mint" />} title={t(key)} />
+          ))}
         </List>
+        <Small>{t("kyc.introCac")}</Small>
         {note}
       </Frame>
     );
@@ -339,7 +285,7 @@ function Wizard({ market, wallet, docsDone: initialDocs }: { market: MarketData;
   if (step === "payout") {
     const linked = wallet?.view.bank;
     return (
-      <Frame step={6} onBack={back} footer={<PillButton tone="forest" title={docsLater && missingDocs.length ? t("setup.finishNoDocs") : t("setup.sendReview")} busy={busy === "review"} disabled={Boolean(busy)} onPress={() => void sendForReview()} />}>
+      <Frame step={6} onBack={back} footer={<PillButton tone="forest" title={t("setup.finishNoDocs")} busy={busy === "review"} disabled={Boolean(busy)} onPress={() => void finishSetup()} />}>
         <View style={{ gap: 8 }}>
           <Title>{t("setup.payTitle")}</Title>
           <Sub>{t("setup.paySub")}</Sub>
@@ -373,38 +319,23 @@ function Wizard({ market, wallet, docsDone: initialDocs }: { market: MarketData;
     );
   }
 
-  // The last screen says what really happened. Only a sent review is "We're checking your documents".
-  if (!review.sent) {
-    return (
-      <Frame
-        step={6}
-        footer={
-          <>
-            <PillButton tone="forest" title={t("setup.addDocs")} onPress={() => router.replace("/logistics/verification")} />
-            <PillButton tone="white" title={t("setup.toDashboard")} onPress={() => router.replace("/logistics/jobs")} />
-          </>
-        }
-      >
-        <View style={{ alignItems: "center", gap: 14, paddingTop: 60 }}>
-          <View style={{ width: 96, height: 96, borderRadius: 48, backgroundColor: colors.warnTint, alignItems: "center", justifyContent: "center" }}>
-            <AppIcon name="doc" size={44} color={colors.warnInk} strokeWidth={2.2} />
-          </View>
-          <Title style={{ textAlign: "center" }}>{t("setup.notSentTitle")}</Title>
-          <Sub style={{ textAlign: "center" }}>{t("setup.notSentSub")}</Sub>
-        </View>
-        {review.reason ? <Notice>{review.reason}</Notice> : null}
-      </Frame>
-    );
-  }
-
+  // Set-up is done; verification is next (the partner can take jobs once Tier 1 is checked).
   return (
-    <Frame step={6} footer={<PillButton tone="forest" title={t("setup.toDashboard")} onPress={() => router.replace("/logistics/jobs")} />}>
-      <View style={{ alignItems: "center", gap: 14, paddingTop: 80 }}>
+    <Frame
+      step={6}
+      footer={
+        <>
+          <PillButton tone="forest" title={t("kyc.start")} onPress={() => router.replace("/logistics/verification")} />
+          <PillButton tone="white" title={t("setup.toDashboard")} onPress={() => router.replace("/logistics/jobs")} />
+        </>
+      }
+    >
+      <View style={{ alignItems: "center", gap: 14, paddingTop: 60 }}>
         <View style={{ width: 96, height: 96, borderRadius: 48, backgroundColor: colors.successTint, alignItems: "center", justifyContent: "center" }}>
-          <AppIcon name="clock" size={44} color={colors.success} strokeWidth={2.2} />
+          <AppIcon name="shield" size={44} color={colors.success} strokeWidth={2.2} />
         </View>
-        <Title style={{ textAlign: "center" }}>{t("setup.checking")}</Title>
-        <Sub style={{ textAlign: "center" }}>{t("setup.checkingSub")}</Sub>
+        <Title style={{ textAlign: "center" }}>{t("kyc.doneTitle")}</Title>
+        <Sub style={{ textAlign: "center" }}>{t("kyc.doneSub")}</Sub>
       </View>
     </Frame>
   );
@@ -412,16 +343,14 @@ function Wizard({ market, wallet, docsDone: initialDocs }: { market: MarketData;
 
 export default function LogisticsSetup() {
   const t = useT("common");
-  const [state, setState] = useState<{ market: MarketData; wallet: WalletData | null; docs: string[] } | null>(null);
+  const [state, setState] = useState<{ market: MarketData; wallet: WalletData | null } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let live = true;
-    Promise.all([fetchMarket(), fetchWallet().catch(() => null), fetchLogisticsMe().catch(() => null)])
-      .then(([market, wallet, me]) => {
-        if (!live) return;
-        const docs = (me?.partner.verificationDocuments ?? []).filter((doc) => doc.filePath || doc.registry?.verified).map((doc) => doc.type as string);
-        setState({ market, wallet, docs });
+    Promise.all([fetchMarket(), fetchWallet().catch(() => null)])
+      .then(([market, wallet]) => {
+        if (live) setState({ market, wallet });
       })
       .catch((loadError: unknown) => live && setError(loadError instanceof Error ? loadError.message : ""));
     return () => {
@@ -429,7 +358,7 @@ export default function LogisticsSetup() {
     };
   }, []);
 
-  if (state) return <Wizard market={state.market} wallet={state.wallet} docsDone={state.docs} />;
+  if (state) return <Wizard market={state.market} wallet={state.wallet} />;
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas, padding: 20, justifyContent: "center", gap: 14 }}>
       {error !== null ? (

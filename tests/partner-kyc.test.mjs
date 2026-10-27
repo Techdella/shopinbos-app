@@ -143,3 +143,41 @@ test("terms at setup, the CAC banner and link, and the spec's pages", () => {
   assert.match(read("shared/partner-tiers.ts"), /ONBOARDING_STEPS = \["identity", "bank", "vehicles", "coverage", "guarantor", "cac", "review"\]/);
   assert.match(read("src/app/logistics/dashboard/page.tsx"), /<TierCard partnerId=/);
 });
+
+// ─── Selfie (Korapay facial match) ───────────────────────────────────────────
+
+const jpeg = (bytes) => `data:image/jpeg;base64,${Buffer.alloc(bytes, 7).toString("base64")}`;
+
+test("the selfie must be a JPEG, PNG or WebP photo of a sensible size", () => {
+  const good = k.readSelfieDataUri(jpeg(40_000));
+  assert.equal(good.ok, true);
+  assert.equal(good.mimeType, "image/jpeg");
+  assert.equal(good.ext, "jpg");
+  assert.equal(good.bytes.length, 40_000);
+  assert.equal(k.readSelfieDataUri("").ok, false);
+  assert.equal(k.readSelfieDataUri("data:image/gif;base64,R0lGODlh").ok, false);
+  assert.equal(k.readSelfieDataUri("data:application/pdf;base64,JVBERi0=").ok, false);
+  assert.equal(k.readSelfieDataUri(jpeg(100)).ok, false, "too small to check");
+  assert.equal(k.readSelfieDataUri(jpeg(k.SELFIE_MAX_BYTES + 1)).ok, false, "too big");
+});
+
+test("a liveness report keeps only a plain Korapay reference", () => {
+  assert.deepEqual(k.readLivenessReport({ reference: "KPY-LV-123", passed: true }), { reference: "KPY-LV-123", passed: true });
+  assert.deepEqual(k.readLivenessReport({ reference: "KPY-LV-123" }), { reference: "KPY-LV-123", passed: false });
+  assert.equal(k.readLivenessReport({ reference: "<script>" }), null);
+  assert.equal(k.readLivenessReport({ reference: "x".repeat(121), passed: true }), null);
+  assert.equal(k.readLivenessReport(null), null);
+});
+
+test("wiring: the NIN check sends the selfie to Korapay and the generic upload refuses selfies", () => {
+  const route = read("src/app/api/logistics/kyc/nin/route.ts");
+  assert.match(route, /verifyKorapayIdentity\(\{ \.\.\.typed, selfie: selfie\.dataUri \}\)/);
+  assert.match(route, /selfieDecision\(face\)/);
+  assert.match(route, /korapayLivenessReady\(\) && !liveness/, "with liveness on, a selfie without it waits for the team");
+  assert.match(route, /saveSelfie\(/);
+  assert.match(read("src/lib/korapay.ts"), /\.\.\.\(input\.selfie \? \{ selfie: input\.selfie \} : \{\}\)/);
+  assert.match(read("src/app/actions/verification.ts"), /docType === "selfie"/);
+  const config = read("next.config.ts");
+  assert.match(config, /source: "\/logistics\/verification",\s*headers: baseHeaders\(true\)/);
+  assert.match(config, /camera=\(\), microphone=\(self\)/, "the camera stays off everywhere else");
+});

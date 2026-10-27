@@ -43,50 +43,64 @@ const nextConfig: NextConfig = {
         return "";
       }
     })();
+    // Delivery partner verification (/logistics/verification) runs Korapay's liveness check (kora-identity-web-sdk,
+    // src/components/logistics/verification/SelfieCapture.tsx). It loads Youverify's liveness scripts and the
+    // MediaPipe face model, talks to Korapay, Youverify and (passive liveness) Microsoft's face API, and needs the
+    // camera. Only that page gets these hosts and the camera.
+    const LIVENESS_HOSTS = {
+      script: "https://cdn.jsdelivr.net/npm/youverify-liveness-web/ https://cdn.jsdelivr.net/npm/youverify-passive-liveness-web/ https://cdn.jsdelivr.net/npm/@mediapipe/",
+      connect: "https://api.korapay.com https://checkout.koraapi.com https://*.youverify.co https://*.svc.youverify.co https://cdn.jsdelivr.net https://storage.googleapis.com https://virginia.api.cognitive.microsoft.us",
+      img: "https://cdn.youverify.co https://cdn.svc.youverify.co https://cdn.prod.website-files.com",
+    };
+    const contentSecurityPolicy = (liveness: boolean) =>
+      [
+        "default-src 'self'",
+        // connect.facebook.net: Meta's SDK for WhatsApp Embedded Signup (/home/inbox/chatbot?tab=whatsapp), and
+        // the Meta Pixel on live stores. The sellers' own tags (Settings › Connections, loaded only after the
+        // shopper agrees on the cookie banner): Google tag / Tag Manager and the TikTok Pixel.
+        // Call Peggy (ElevenLabs, src/components/peggy/PeggyCall.tsx) loads its audio worklets from blob:/data: URLs and,
+        // where the mic's sample rate needs converting, one pinned resampler worklet from jsDelivr.
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: data: https://cdn.jsdelivr.net/npm/@alexanderolsen/libsamplerate-js@2.1.2/ https://js.paystack.co https://checkout.paystack.com https://*.supabase.co https://va.vercel-scripts.com https://www.googletagmanager.com https://analytics.tiktok.com https://connect.facebook.net https://*.posthog.com https://cdn.mxpnl.com" + (liveness ? ` ${LIVENESS_HOSTS.script}` : ""),
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        // Theme previews show sample products with Unsplash photos (src/lib/store-templates/demo-photos.ts).
+        // The store tags' tracking pixels: Google Analytics, Meta (www.facebook.com/tr) and TikTok.
+        `img-src 'self' data: blob: https://*.supabase.co https://*.paystack.com https://images.unsplash.com https://i.ytimg.com https://i.vimeocdn.com https://*.google-analytics.com https://*.googletagmanager.com https://www.facebook.com https://analytics.tiktok.com ${storageOrigin}${liveness ? ` ${LIVENESS_HOSTS.img}` : ""}`.trim(),
+        "font-src 'self' https://fonts.gstatic.com data:",
+        // Video studio previews its reel (blob:) and product videos are stored on Supabase; so are help videos.
+        `media-src 'self' blob: https://*.supabase.co ${storageOrigin}`.trim(),
+        // Embedded Signup opens its login/consent frames on www/web.facebook.com.
+        // Help videos pasted as YouTube or Vimeo links play in their embeds (shared/help-videos.ts).
+        // Paystack's popup moves to other paystack.com pages for some ways to pay (OPay, bank apps), in the same frame.
+        "frame-src https://js.paystack.co https://checkout.paystack.com https://standard.paystack.co https://paystack.com https://*.paystack.com https://*.paystack.co https://checkout.korapay.com https://www.youtube-nocookie.com https://player.vimeo.com https://www.googletagmanager.com https://www.facebook.com https://web.facebook.com",
+        // Admin help-video uploads go straight to Storage with a signed URL (storageOrigin covers a custom/local one).
+        // Store tags send their hits to Google Analytics / Tag Manager and TikTok (Meta's go to www.facebook.com).
+        // Call Peggy talks to ElevenLabs over a WebSocket (or WebRTC through their LiveKit servers).
+        "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://analytics.tiktok.com https://*.supabase.co https://api.paystack.co https://api.resend.com https://api.openai.com https://api.anthropic.com https://vitals.vercel-insights.com https://va.vercel-scripts.com https://graph.facebook.com https://www.facebook.com https://web.facebook.com https://*.posthog.com https://api-js.mixpanel.com https://api-eu.mixpanel.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io https://api.elevenlabs.io wss://api.elevenlabs.io https://livekit.rtc.elevenlabs.io wss://livekit.rtc.elevenlabs.io" + (storageOrigin ? ` ${storageOrigin}` : "") + (liveness ? ` ${LIVENESS_HOSTS.connect}` : ""),
+        // Sentry session replay compresses in a blob: worker.
+        "worker-src 'self' blob:",
+        "object-src 'none'",
+        // Same as X-Frame-Options DENY, for browsers that only read CSP.
+        "frame-ancestors 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+      ].join("; ");
+    const baseHeaders = (liveness: boolean) => [
+      { key: "X-Content-Type-Options", value: "nosniff" },
+      { key: "X-Frame-Options", value: "DENY" },
+      { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+      { key: "Permissions-Policy", value: liveness ? "camera=(self), microphone=(self), geolocation=()" : "camera=(), microphone=(self), geolocation=()" },
+      { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
+      { key: "Content-Security-Policy", value: contentSecurityPolicy(liveness) },
+    ];
     return [
       {
-        source: "/:path*",
-        headers: [
-          { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "X-Frame-Options", value: "DENY" },
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          { key: "Permissions-Policy", value: "camera=(), microphone=(self), geolocation=()" },
-          { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
-          {
-            key: "Content-Security-Policy",
-            value: [
-              "default-src 'self'",
-              // connect.facebook.net: Meta's SDK for WhatsApp Embedded Signup (/home/inbox/chatbot?tab=whatsapp), and
-              // the Meta Pixel on live stores. The sellers' own tags (Settings › Connections, loaded only after the
-              // shopper agrees on the cookie banner): Google tag / Tag Manager and the TikTok Pixel.
-              // Call Peggy (ElevenLabs, src/components/peggy/PeggyCall.tsx) loads its audio worklets from blob:/data: URLs and,
-              // where the mic's sample rate needs converting, one pinned resampler worklet from jsDelivr.
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: data: https://cdn.jsdelivr.net/npm/@alexanderolsen/libsamplerate-js@2.1.2/ https://js.paystack.co https://checkout.paystack.com https://*.supabase.co https://va.vercel-scripts.com https://www.googletagmanager.com https://analytics.tiktok.com https://connect.facebook.net https://*.posthog.com https://cdn.mxpnl.com",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              // Theme previews show sample products with Unsplash photos (src/lib/store-templates/demo-photos.ts).
-              // The store tags' tracking pixels: Google Analytics, Meta (www.facebook.com/tr) and TikTok.
-              `img-src 'self' data: blob: https://*.supabase.co https://*.paystack.com https://images.unsplash.com https://i.ytimg.com https://i.vimeocdn.com https://*.google-analytics.com https://*.googletagmanager.com https://www.facebook.com https://analytics.tiktok.com ${storageOrigin}`.trim(),
-              "font-src 'self' https://fonts.gstatic.com data:",
-              // Video studio previews its reel (blob:) and product videos are stored on Supabase; so are help videos.
-              `media-src 'self' blob: https://*.supabase.co ${storageOrigin}`.trim(),
-              // Embedded Signup opens its login/consent frames on www/web.facebook.com.
-              // Help videos pasted as YouTube or Vimeo links play in their embeds (shared/help-videos.ts).
-              // Paystack's popup moves to other paystack.com pages for some ways to pay (OPay, bank apps), in the same frame.
-              "frame-src https://js.paystack.co https://checkout.paystack.com https://standard.paystack.co https://paystack.com https://*.paystack.com https://*.paystack.co https://checkout.korapay.com https://www.youtube-nocookie.com https://player.vimeo.com https://www.googletagmanager.com https://www.facebook.com https://web.facebook.com",
-              // Admin help-video uploads go straight to Storage with a signed URL (storageOrigin covers a custom/local one).
-              // Store tags send their hits to Google Analytics / Tag Manager and TikTok (Meta's go to www.facebook.com).
-              // Call Peggy talks to ElevenLabs over a WebSocket (or WebRTC through their LiveKit servers).
-              "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://analytics.tiktok.com https://*.supabase.co https://api.paystack.co https://api.resend.com https://api.openai.com https://api.anthropic.com https://vitals.vercel-insights.com https://va.vercel-scripts.com https://graph.facebook.com https://www.facebook.com https://web.facebook.com https://*.posthog.com https://api-js.mixpanel.com https://api-eu.mixpanel.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io https://api.elevenlabs.io wss://api.elevenlabs.io https://livekit.rtc.elevenlabs.io wss://livekit.rtc.elevenlabs.io" + (storageOrigin ? ` ${storageOrigin}` : ""),
-              // Sentry session replay compresses in a blob: worker.
-              "worker-src 'self' blob:",
-              "object-src 'none'",
-              // Same as X-Frame-Options DENY, for browsers that only read CSP.
-              "frame-ancestors 'none'",
-              "base-uri 'self'",
-              "form-action 'self'",
-            ].join("; "),
-          },
-        ],
+        // Every page but partner verification (which gets the liveness hosts and the camera, below).
+        source: "/:path((?!logistics/verification$).*)",
+        headers: baseHeaders(false),
+      },
+      {
+        source: "/logistics/verification",
+        headers: baseHeaders(true),
       },
       {
         // The tips' music (shared/intro-narration.ts INTRO_TRACKS): a new track gets a new file name.
