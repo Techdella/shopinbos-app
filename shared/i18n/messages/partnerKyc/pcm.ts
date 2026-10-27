@@ -118,6 +118,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "method.bike": "Bike",
   "method.car": "Car",
   "method.van": "Van",
+  "method.truck": "Truck",
   "method.tricycle": "Keke",
   "method.other": "Other",
   "cov.title": "Where and how you dey deliver",

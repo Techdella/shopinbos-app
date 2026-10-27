@@ -118,6 +118,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "method.bike": "Babur",
   "method.car": "Mota",
   "method.van": "Van",
+  "method.truck": "Babbar mota",
   "method.tricycle": "Keke napep",
   "method.other": "Wani",
   "cov.title": "Inda da yadda kake delivery",

@@ -45,7 +45,7 @@ export function partnerVerificationState(partner: { verificationStatus: string; 
 
 // ─── What partners fill in ───────────────────────────────────────────────────
 
-export const DELIVERY_METHODS = ["bike", "car", "van", "tricycle", "other"] as const;
+export const DELIVERY_METHODS = ["bike", "car", "van", "truck", "tricycle", "other"] as const;
 export type DeliveryMethod = (typeof DELIVERY_METHODS)[number];
 
 export function isDeliveryMethod(value: unknown): value is DeliveryMethod {

@@ -118,6 +118,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "method.bike": "Ọ̀kadà",
   "method.car": "Mọ́tò",
   "method.van": "Van",
+  "method.truck": "Trọ́ọ̀kì",
   "method.tricycle": "Kẹ̀kẹ́ Marwa",
   "method.other": "Òmíràn",
   "cov.title": "Ibi àti bí o ṣe ń ṣe delivery",

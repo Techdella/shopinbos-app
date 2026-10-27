@@ -118,6 +118,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "method.bike": "Ọgba tum tum",
   "method.car": "Ụgbọala",
   "method.van": "Van",
+  "method.truck": "Ụgbọ ala ibu",
   "method.tricycle": "Keke",
   "method.other": "Ọzọ",
   "cov.title": "Ebe na otú ị si eme delivery",

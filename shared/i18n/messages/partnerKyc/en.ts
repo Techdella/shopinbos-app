@@ -128,6 +128,7 @@ const en = {
   "method.bike": "Bike",
   "method.car": "Car",
   "method.van": "Van",
+  "method.truck": "Truck",
   "method.tricycle": "Tricycle (keke)",
   "method.other": "Other",
   // Coverage

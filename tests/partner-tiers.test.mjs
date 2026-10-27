@@ -108,6 +108,11 @@ test("name matching: first and last name in any order, middle names optional", (
   assert.equal(t.businessNamesMatch("Swift Riders Ltd", "SWIFT LOGISTICS"), false);
 });
 
+test("delivery methods keep truck from the old company setup", () => {
+  assert.deepEqual([...t.DELIVERY_METHODS], ["bike", "car", "van", "truck", "tricycle", "other"]);
+  assert.equal(t.isDeliveryMethod("truck"), true);
+});
+
 test("tier rules: defaults, saved values and out-of-range input", () => {
   assert.deepEqual(t.readTierRules(null), t.DEFAULT_TIER_RULES);
   assert.equal(t.DEFAULT_TIER_RULES.maxOrderValue, 50000);

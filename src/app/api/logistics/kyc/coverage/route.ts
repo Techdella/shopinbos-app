@@ -7,7 +7,7 @@ import { refreshPartnerTier } from "@/lib/logistics/partner-tiers.server";
 import { readJson, stateResponse, withKycPartner } from "../_partner";
 
 // Coverage step: where the partner delivers (states, "State: LGA" areas, regions or Nationwide, the same tokens as
-// the marketplace's delivery areas) and how (bike, car, van, tricycle, other).
+// the marketplace's delivery areas) and how (bike, car, van, truck, tricycle, other).
 export const PATCH = withKycPartner(async (req, { partner }) => {
   const body = await readJson(req);
   const { areas, unknown } = cleanAreas(body.deliveryAreas);
