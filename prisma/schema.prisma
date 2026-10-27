@@ -1179,10 +1179,33 @@ model LogisticsPartner {
   deliveryAreas      String[]           @default([])
   /// The partner collects pay-on-delivery cash for shops that also opt in, per connection.
   offersPayOnDelivery Boolean           @default(false)
+  /// Tiered verification (shared/partner-tiers.ts). verificationStatus "verified" still means "can take jobs"; the
+  /// tier says how far: none | tier1 (Verified Individual) | tier2 (Registered Business).
+  verificationTier   String             @default("none")
+  /// Tier 1 checks that aren't files (shared/partner-tiers.ts IdentityChecks): name, phone, email, NIN, BVN or bank,
+  /// address. Never a full ID or account number.
+  identityChecks     Json               @default("{}")
+  /// Badges sellers see and filter by: verified_individual | registered_business | licensed_courier | verified_payout.
+  badges             String[]           @default([])
+  /// Why the team rejected or suspended the partner (shown to them).
+  statusReason       String?
+  /// When the partner last sent their verification for review.
+  kycSubmittedAt     DateTime?
+  /// Tier 1 order limits lifted for good (graduation: deliveries, rating, dispute rate; Admin › Tier rules).
+  limitsLiftedAt     DateTime?
+  /// The partner terms they accepted (PARTNER_TERMS_VERSION) and when.
+  termsVersion       String?
+  termsAcceptedAt    DateTime?
+  /// Tier 2: CAC registration type (BN | RC), the registered business name and address (cacNumber is above).
+  cacType            String?
+  registeredName     String?
+  businessAddress    String?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
   user           User                   @relation(fields: [userId], references: [id])
+  vehicles       LogisticsVehicle[]
+  guarantor      LogisticsGuarantor?
   rateCards      LogisticsRateCard[]
   pickupPoints   LogisticsPickupPoint[]
   connections    DeliveryConnection[]
@@ -1201,6 +1224,58 @@ model LogisticsPartner {
 
   @@index([slug])
   @@index([country, city])
+  @@index([verificationStatus, kycSubmittedAt])
+}
+
+// A delivery partner's vehicle (Tier 1 needs one approved): photo and the driver's or rider's licence, checked by the
+// team. Files live in the private verification folder (logistics-verifications/<partnerId>/vehicle/…).
+model LogisticsVehicle {
+  id                 String    @id @default(cuid())
+  logisticsPartnerId String
+  /// bike | car | van | tricycle | other (shared/partner-tiers.ts DELIVERY_METHODS)
+  type               String
+  plateNumber        String
+  photoPath          String
+  licencePath        String
+  /// pending | approved | rejected
+  status             String    @default("pending")
+  rejectionReason    String?
+  reviewedAt         DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  logisticsPartner LogisticsPartner @relation(fields: [logisticsPartnerId], references: [id], onDelete: Cascade)
+
+  @@index([logisticsPartnerId])
+  @@index([status])
+}
+
+// A delivery partner's guarantor (Tier 1). They confirm by the code texted to them (the link opens /guarantor/<token>),
+// or the team confirms after a call. Only hashes of the code and link token are kept.
+model LogisticsGuarantor {
+  id                 String    @id @default(cuid())
+  logisticsPartnerId String    @unique
+  fullName           String
+  phone              String
+  address            String
+  relationship       String
+  /// pending | confirmed | declined
+  status             String    @default("pending")
+  /// otp | call (who confirmed or declined, and how)
+  respondedVia       String?
+  respondedAt        DateTime?
+  codeHash           String?
+  codeExpiresAt      DateTime?
+  codeAttempts       Int       @default(0)
+  tokenHash          String?   @unique
+  lastSentAt         DateTime?
+  sendCount          Int       @default(0)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  logisticsPartner LogisticsPartner @relation(fields: [logisticsPartnerId], references: [id], onDelete: Cascade)
+
+  @@index([status])
 }
 
 model LogisticsReview {

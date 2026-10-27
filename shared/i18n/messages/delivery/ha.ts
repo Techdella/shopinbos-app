@@ -363,6 +363,25 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "exceptions.tip": "Ka yi sauri a nan. Idan abokin isar da kaya ya ce a'a ko bai zo ba, aika kayan ga wani don kada abokin cinikinka ya daɗe yana jira.",
   "an.tip": "Duba wannan sau ɗaya a mako. Idan wani abokin isar da kaya yana yawan makara, ba wanda ke isowa a kan lokaci ƙarin kayanka.",
   "an.moreNumbers": "Ƙarin lambobi",
+  // Partner badges and delivery methods (shared/partner-tiers.ts)
+  "badge.verified_individual": "Verified Individual",
+  "badge.registered_business": "Registered Business",
+  "badge.licensed_courier": "Licensed Courier",
+  "badge.verified_payout": "Verified Payout",
+  "badgeTip.verified_individual": "Shopinbos ta duba ID, bank, abin hawa da guarantor na wannan mutum. Babu CAC tukuna.",
+  "badgeTip.registered_business": "Kasuwanci da aka yi wa rajista a CAC, Shopinbos ta duba shi.",
+  "badgeTip.licensed_courier": "Yana da NIPOST courier licence, Shopinbos ta duba shi.",
+  "badgeTip.verified_payout": "Ana biyan sa a business bank account mai sunan kasuwancin da aka yi wa rajista.",
+  "find.badge": "Badge",
+  "find.anyBadge": "Kowane badge",
+  "find.methodsLabel": "Yana kai kaya da:",
+  "find.trustNote": "Shopinbos tana duba ID da takardun partner. Partners suna aiki da kansu.",
+  "method.bike": "Babur",
+  "method.car": "Mota",
+  "method.van": "Van",
+  "method.tricycle": "Adaidaita sahu",
+  "method.truck": "Babbar mota",
+  "method.other": "Wani",
 };
 
 export default ha;

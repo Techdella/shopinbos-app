@@ -11,6 +11,7 @@ import { partnerJob } from "@/lib/logistics/partner-api-core";
 import { canOfferJob } from "@/lib/logistics/payin-deadline";
 import { notifyJobOffered } from "@/lib/notifications/events.server";
 import { payableDeliveryFees } from "@/lib/logistics/delivery-fee-payments.server";
+import { partnerJobLimitProblem } from "@/lib/logistics/partner-tiers.server";
 
 export const GET = withSeller(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const { page, limit, skip } = parsePagination(req.nextUrl.searchParams);
@@ -76,6 +77,9 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
   if (!canOfferJob({ ...partner, verificationStatus: String(partner.verificationStatus) }, { cod: Boolean(codAmount) })) {
     return apiError("CONFLICT", "This delivery company can't take jobs where the customer pays when it arrives right now. Pick another delivery company.", 409);
   }
+  // Verified Individuals (Tier 1, shared/partner-tiers.ts) work within an order value and open-jobs limit.
+  const limitProblem = await partnerJobLimitProblem(partner.id, order ? Number(order.total) : 0);
+  if (limitProblem) return apiError("PARTNER_LIMIT", limitProblem, 409);
 
   const booking = await db.deliveryBooking.create({
     data: { sellerId: user.id, ...parsed.data, codAmount },

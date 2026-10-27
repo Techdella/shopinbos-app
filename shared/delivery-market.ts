@@ -877,12 +877,13 @@ export function partnerStats(jobs: readonly StatsJob[]): PartnerStats {
  * Order for "Find partners": verified partners first, then a score that rewards in-app volume, on-time delivery
  * and rating, and how closely they cover the shop's selling areas (the ranking boost of spec §7.3).
  */
-export function rankScore(input: { stats: PartnerStats; rating: number; ratingCount: number; match: number; verified: boolean }) {
+/** `registered`: a Registered Business (CAC-checked, shared/partner-tiers.ts) ranks a little above an equal Verified Individual. */
+export function rankScore(input: { stats: PartnerStats; rating: number; ratingCount: number; match: number; verified: boolean; registered?: boolean }) {
   const volume = Math.min(1, Math.log10(1 + input.stats.completed) / 3); // 1,000 jobs = full marks
   const onTime = input.stats.onTimeRate === null ? 0.5 : input.stats.onTimeRate / 100;
   const failed = input.stats.failedRate === null ? 0 : input.stats.failedRate / 100;
   const rating = input.ratingCount > 0 ? input.rating / 5 : 0.5;
-  return (input.verified ? 100 : 0) + input.match * 10 + volume * 25 + onTime * 25 + rating * 15 - failed * 20;
+  return (input.verified ? 100 : 0) + (input.registered ? 5 : 0) + input.match * 10 + volume * 25 + onTime * 25 + rating * 15 - failed * 20;
 }
 
 // ─── Chat guardrails (spec §7.3) ─────────────────────────────────────────────

@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
     return withCors(req, apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Invalid query"));
   }
 
-  const { page, limit, sort, country, city, zone, vehicleType, q, cod, service, state } = parsed.data;
+  const { page, limit, sort, country, city, zone, vehicleType, q, cod, service, state, badge } = parsed.data;
   const skip = (page - 1) * limit;
   // ?state=Lagos: partners whose delivery areas cover the whole state (Nationwide, its region, or the state).
   const stateTokens = state ? deliveryTokensForState(state) : null;
@@ -79,6 +79,7 @@ export async function GET(req: NextRequest) {
     ...(zone ? { coverageZones: { has: zone } } : {}),
     ...(vehicleType ? { vehicleTypes: { has: vehicleType } } : {}),
     ...(service ? { services: { has: service } } : {}),
+    ...(badge ? { badges: { has: badge } } : {}),
     ...(stateTokens ? { deliveryAreas: { hasSome: stateTokens } } : {}),
     ...(q ? {
       OR: [

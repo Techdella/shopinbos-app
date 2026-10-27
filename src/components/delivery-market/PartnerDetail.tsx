@@ -3,7 +3,7 @@ import { pillButton } from "@/components/seller-core";
 import { messagesHref } from "@/lib/conversations/pure";
 import type { partnerDetail } from "@/lib/delivery-market/manage.server";
 import { connectPartnerAction, endConnectionAction, respondRateCardAction } from "@/app/actions/delivery-market";
-import { CardExtras, RateTable, Rating, VerifiedPill, areasSummary } from "./bits";
+import { CardExtras, PartnerBadges, RateTable, Rating, areasSummary, methodsText } from "./bits";
 import { serviceLabel } from "./words";
 import { getT } from "@/lib/i18n/server";
 import { Term } from "@/components/learn/Term";
@@ -50,8 +50,8 @@ export async function PartnerDetail({ detail, role, back }: { detail: Detail; ro
           <h2 className="m-0 text-[20px] font-extrabold">{partner.displayName}</h2>
           {partner.companyName && partner.companyName !== partner.displayName && <div className="text-[13.5px] text-app-ink-soft">{partner.companyName}</div>}
           <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[13.5px]">
-            <VerifiedPill status={partner.verificationStatus} />
-            {partner.cacNumber && <Pill tone="info">{t("detail.cacRegistered")}</Pill>}
+            <PartnerBadges status={partner.verificationStatus} badges={partner.badges} />
+            {partner.cacNumber && !partner.badges.includes("registered_business") && <Pill tone="info">{t("detail.cacRegistered")}</Pill>}
             {connection && <Pill tone="success">{t("connected")}</Pill>}
             <Rating rating={partner.rating} count={partner.ratingCount} />
           </div>
@@ -152,7 +152,14 @@ export async function PartnerDetail({ detail, role, back }: { detail: Detail; ro
                   <dt className="text-[12.5px] text-app-ink-soft">{t("find.deliversTo")}</dt>
                   <dd className="m-0">{areasSummary(partner.deliveryAreas, 30, t)}</dd>
                 </div>
+                {partner.vehicleTypes.length > 0 && (
+                  <div>
+                    <dt className="text-[12.5px] text-app-ink-soft">{t("find.methodsLabel")}</dt>
+                    <dd className="m-0">{methodsText(partner.vehicleTypes, t)}</dd>
+                  </div>
+                )}
               </dl>
+              <p className="mb-0 mt-3 text-[12.5px] text-app-ink-soft">{t("find.trustNote")}</p>
             </Card>
             <Card className="p-5">
               <CardHead title={<Term k="pickup-points">{t("pickupPoints")}</Term>} sub={partner.pickupPoints.length ? t("detail.pointsSub") : undefined} />

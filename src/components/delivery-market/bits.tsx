@@ -6,6 +6,7 @@ import { LgaAreaInput } from "./LgaAreaInput";
 import { getT } from "@/lib/i18n/server";
 import { NG_STATES, SIZE_BANDS, type RateRow } from "@shared/delivery-market";
 import { savedText, serviceLabel, sizeLabel, timeframeLabel, type DeliveryWords } from "./words";
+import { BADGE_LABELS, PARTNER_BADGES, isPartnerBadge, type PartnerBadge } from "@shared/partner-tiers";
 
 // Small server-safe pieces shared by the seller (/home/logistics/*) and supplier (/supplier/delivery) pages of the
 // logistics marketplace. Words: the "delivery" catalog (shared/i18n/messages/delivery), rule words via ./words.ts.
@@ -42,6 +43,43 @@ export async function VerifiedPill({ status }: { status: string }) {
   if (status !== "verified") return null;
   const t = await getT("delivery");
   return <Pill tone="success">{t("verified")}</Pill>;
+}
+
+const BADGE_TONE: Record<PartnerBadge, "success" | "info" | "muted"> = {
+  verified_individual: "success",
+  registered_business: "success",
+  licensed_courier: "info",
+  verified_payout: "info",
+};
+
+/** The English badge name (filters, the API); screens use PartnerBadges. */
+export const badgeWord = (badge: PartnerBadge, t?: DeliveryWords) => (t ?? ENGLISH).dynamic(`badge.${badge}`, BADGE_LABELS[badge]);
+
+/**
+ * A partner's verification badges (shared/partner-tiers.ts), in badge order, each with a one-line explanation on
+ * hover. Replaces VerifiedPill: a verified partner always has Verified Individual or Registered Business, so a bare
+ * "Verified" pill would only repeat it. A verified partner with no badges yet (none stored) still shows "Verified".
+ */
+export async function PartnerBadges({ status, badges }: { status: string; badges: readonly string[] | null | undefined }) {
+  if (status !== "verified") return null;
+  const shown = PARTNER_BADGES.filter((badge) => (badges ?? []).filter(isPartnerBadge).includes(badge));
+  if (!shown.length) return <VerifiedPill status={status} />;
+  const t = await getT("delivery");
+  return (
+    <>
+      {shown.map((badge) => (
+        <span key={badge} title={t.dynamic(`badgeTip.${badge}`, BADGE_LABELS[badge])} className="inline-flex">
+          <Pill tone={BADGE_TONE[badge]}>{badgeWord(badge, t)}</Pill>
+        </span>
+      ))}
+    </>
+  );
+}
+
+/** "Bike, Van": how the partner delivers (LogisticsPartner.vehicleTypes; older rows may say "truck"). */
+export function methodsText(methods: readonly string[], t?: DeliveryWords) {
+  const words = t ?? ENGLISH;
+  return methods.map((method) => words.dynamic(`method.${method}`, method.charAt(0).toUpperCase() + method.slice(1))).join(", ");
 }
 
 export async function Rating({ rating, count }: { rating: number; count: number }) {

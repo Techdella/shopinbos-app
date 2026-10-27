@@ -2,11 +2,12 @@ import { NextRequest } from "next/server";
 import { ok } from "@/lib/api/response";
 import { findPartners } from "@/lib/delivery-market/manage.server";
 import { PARTNER_SERVICES } from "@shared/delivery-market";
+import { isPartnerBadge } from "@shared/partner-tiers";
 import { text, withOwner } from "../_shared";
 
 export const dynamic = "force-dynamic";
 
-// GET /api/mobile/delivery/partners?service=&state=&q=&pickupPoints=1: "Find partners", verified partners that pick
+// GET /api/mobile/delivery/partners?service=&state=&q=&pickupPoints=1&badge=: "Find partners", verified partners that pick
 // up where the business ships from and cover where it sells, best first, with "from" price, time and stats.
 export const GET = withOwner(async (req: NextRequest, { user }) => {
   const params = req.nextUrl.searchParams;
@@ -18,6 +19,7 @@ export const GET = withOwner(async (req: NextRequest, { user }) => {
       state: text(params.get("state"), 40) || null,
       q: text(params.get("q"), 80) || null,
       pickupPoints: params.get("pickupPoints") === "1",
+      badge: isPartnerBadge(params.get("badge")) ? params.get("badge") : null,
     },
   );
   return ok({
@@ -35,6 +37,8 @@ export const GET = withOwner(async (req: NextRequest, { user }) => {
       pickupAreas: row.partner.pickupAreas,
       deliveryAreas: row.partner.deliveryAreas,
       offersPayOnDelivery: row.partner.offersPayOnDelivery,
+      badges: row.partner.badges,
+      deliveryMethods: row.partner.vehicleTypes,
       startingPrice: row.startingPrice,
       timeframe: row.timeframe,
       stats: row.stats,

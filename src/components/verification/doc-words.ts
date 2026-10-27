@@ -16,6 +16,8 @@ const HINT_KEYS: Record<string, string> = {
   "Required for fleet operations": "doc.hint.insuranceFleet",
   "For address verification": "doc.hint.utility",
   "Vehicle registration, road worthiness": "doc.hint.fleet",
+  "A clear photo of your face, looking at the camera": "doc.hint.selfie",
+  "Optional. Shows a Licensed Courier badge": "doc.hint.courierLicence",
 };
 
 /** "Business registration or CAC certificate", translated. Falls back to the English label. */

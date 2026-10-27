@@ -12,6 +12,7 @@ import {
   docMimeType,
   docTypesForRole,
   missingRequiredDocs,
+  uploadableDocTypes,
   submitUploadedDocs,
   validateDocFile,
 } from "@shared/verification-docs";
@@ -31,7 +32,7 @@ export async function uploadVerificationDoc(
 
     const file = formData.get("file");
     if (!(file instanceof File)) return { success: false, error: "No file provided" };
-    if (!docTypesForRole(role).some((config) => config.type === docType)) {
+    if (!uploadableDocTypes(role).includes(docType)) {
       return { success: false, error: "That document type isn't used for this account." };
     }
     const invalid = validateDocFile(file);

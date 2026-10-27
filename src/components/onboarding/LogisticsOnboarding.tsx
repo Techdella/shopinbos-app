@@ -65,6 +65,7 @@ const scopeLabel = (scope: DeliveryScope) => deliveryScopeOptions.find((option) 
 
 export function LogisticsOnboarding({ initialUser }: { initialUser?: InitialUser | null }) {
   const t = useT("onboarding", "common");
+  const tk = useT("partnerKyc");
   const locale = useLocale();
   const naira = (value: number) => formatMoney(Math.round(value), locale);
   const scopeText = (scope: DeliveryScope) => t.dynamic(`scope.${scope}.label`, scopeLabel(scope));
@@ -92,6 +93,9 @@ export function LogisticsOnboarding({ initialUser }: { initialUser?: InitialUser
   const [newZoneRegion, setNewZoneRegion] = useState("");
   const [newZoneScope, setNewZoneScope] = useState<DeliveryScope>("intrastate");
   const [newZonePrice, setNewZonePrice] = useState(900);
+  // Partner terms (shared/partner-tiers.ts): ticked at the last step; already true when they accepted this version.
+  const [termsCurrent, setTermsCurrent] = useState(false);
+  const [agreed, setAgreed] = useState(false);
 
   useEffect(() => {
     fetch("/api/logistics/onboarding")
@@ -115,6 +119,7 @@ export function LogisticsOnboarding({ initialUser }: { initialUser?: InitialUser
         if (Array.isArray(data.deliveryTypes) && data.deliveryTypes.length > 0) setDeliveryTypes(data.deliveryTypes);
         if (data.basePrice) setBasePrice(data.basePrice);
         if (data.estimatedSpeed) setEstimatedSpeed(data.estimatedSpeed);
+        if (data.termsCurrent === true) setTermsCurrent(true);
       })
       .catch(() => null)
       .finally(() => setLoading(false));
@@ -141,6 +146,7 @@ export function LogisticsOnboarding({ initialUser }: { initialUser?: InitialUser
         basePrice: completed ? lowest : basePrice,
         estimatedSpeed: estimatedSpeed || (deliveryTypes.includes("express") ? SPEEDS[1] : SPEEDS[0]),
         completed,
+        ...(completed && agreed ? { acceptTerms: true } : {}),
       }),
     }).catch(() => null);
     if (!response?.ok) {
@@ -171,6 +177,10 @@ export function LogisticsOnboarding({ initialUser }: { initialUser?: InitialUser
     setError("");
     if (!savable) {
       setError(t("lp.needAll"));
+      return;
+    }
+    if (!termsCurrent && !agreed) {
+      setError(tk("terms.mustAccept"));
       return;
     }
     setSaving(true);
@@ -408,6 +418,17 @@ export function LogisticsOnboarding({ initialUser }: { initialUser?: InitialUser
                       ))}
                     </div>
                     {description && <p className="mb-0 mt-4 rounded-[18px] bg-white px-5 py-4 text-[14.5px] leading-[1.55] text-app-ink-soft">{description}</p>}
+                    {!termsCurrent && (
+                      <div className="mt-4 rounded-[18px] bg-white px-5 py-4 text-[14.5px] leading-[1.55]">
+                        <ul className="m-0 mb-3 grid gap-1 pl-5 text-app-ink-soft">
+                          {[tk("terms.point1"), tk("terms.point2"), tk("terms.point3"), tk("terms.point4")].map((point) => <li key={point}>{point}</li>)}
+                        </ul>
+                        <label className="flex items-start gap-3 font-bold">
+                          <input type="checkbox" checked={agreed} onChange={(event) => setAgreed(event.target.checked)} className="mt-0.5 h-[18px] w-[18px] shrink-0 cursor-pointer accent-[#16141F]" />
+                          <span>{tk("terms.accept")}</span>
+                        </label>
+                      </div>
+                    )}
                   </>
                 )}
 

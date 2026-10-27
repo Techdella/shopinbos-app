@@ -366,6 +366,25 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "exceptions.tip": "Mee ngwa ngwa ebe a. Ọ bụrụ na partner kwuru mba ma ọ bụ abịaghị, zigara partner ọzọ ngwugwu ahụ ka onye ahịa gị ghara icherete.",
   "an.tip": "Lelee nke a otu ugboro n'izu. Ọ bụrụ na otu partner na-egbukarị oge, nye onye na-eru n'oge ọtụtụ n'ime ngwugwu gị.",
   "an.moreNumbers": "Nọmba ndị ọzọ",
+  // Partner badges and delivery methods (shared/partner-tiers.ts)
+  "badge.verified_individual": "Verified Individual",
+  "badge.registered_business": "Registered Business",
+  "badge.licensed_courier": "Licensed Courier",
+  "badge.verified_payout": "Verified Payout",
+  "badgeTip.verified_individual": "Shopinbos nyochara ID, bank, ụgbọ na guarantor onye a. O nweghị CAC ka.",
+  "badgeTip.registered_business": "Azụmahịa e debanyere na CAC, Shopinbos nyochara ya.",
+  "badgeTip.licensed_courier": "O nwere NIPOST courier licence, Shopinbos nyochara ya.",
+  "badgeTip.verified_payout": "A na-akwụ ya ụgwọ n'ime business bank account nwere aha azụmahịa e debanyere aha.",
+  "find.badge": "Badge",
+  "find.anyBadge": "Badge ọ bụla",
+  "find.methodsLabel": "Ọ na-eji ebuga:",
+  "find.trustNote": "Shopinbos na-enyocha ID na akwụkwọ partner. Partners na-arụ ọrụ n'onwe ha.",
+  "method.bike": "Ọgba tum tum",
+  "method.car": "Ụgbọ ala",
+  "method.van": "Van",
+  "method.tricycle": "Keke",
+  "method.truck": "Ụgbọ ala ibu",
+  "method.other": "Ọzọ",
 };
 
 export default ig;

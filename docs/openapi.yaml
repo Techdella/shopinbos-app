@@ -317,6 +317,10 @@ paths:
             Nationwide, the state's region, or the state). Accepts names like "Lagos", "lagos state", "Abuja"/"FCT".
             An unknown state returns 400.
           schema: { type: string, maxLength: 60, example: Lagos }
+        - name: badge
+          in: query
+          description: Only partners showing this verification badge.
+          schema: { type: string, enum: [verified_individual, registered_business, licensed_courier, verified_payout] }
       responses:
         "200":
           $ref: "#/components/responses/LogisticsList"
@@ -598,7 +602,16 @@ components:
           items: { type: string }
         vehicleTypes:
           type: array
+          description: How the partner delivers (bike, car, van, tricycle, other; older partners may list truck).
           items: { type: string }
+        badges:
+          type: array
+          description: >
+            Verification badges. Verified Individual (ID, bank, vehicle and guarantor checked, no CAC) or Registered
+            Business (also CAC-checked); Licensed Courier (NIPOST licence checked) and Verified Payout (paid into a
+            business account in the registered name) are optional extras. Shopinbos verifies identity and documents;
+            partners are independent operators.
+          items: { type: string, enum: [verified_individual, registered_business, licensed_courier, verified_payout] }
         deliveryTypes:
           type: array
           items: { type: string }
