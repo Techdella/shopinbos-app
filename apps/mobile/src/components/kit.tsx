@@ -39,7 +39,7 @@ export function ErrorState({ message, onRetry, web }: { message: string; onRetry
   return (
     <View style={{ gap: 10 }}>
       <Notice>{message}</Notice>
-      <View style={{ flexDirection: "row", gap: 8 }}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
         {onRetry ? <PillButton title={t("tryAgain")} size="sm" tone="white" onPress={onRetry} /> : null}
         {web ? <PillButton title={web.label === "Open on web" ? t("openInBrowser") : web.label} size="sm" tone="white" onPress={web.onPress} /> : null}
       </View>
@@ -49,8 +49,8 @@ export function ErrorState({ message, onRetry, web }: { message: string; onRetry
 
 export function Badge({ label, bg = colors.canvas, fg = colors.ink }: { label: string; bg?: string; fg?: string }) {
   return (
-    <View style={{ backgroundColor: bg, borderRadius: radii.pill, paddingHorizontal: 8, paddingVertical: 3, alignSelf: "flex-start" }}>
-      <T weight="bold" style={{ fontSize: 13, color: fg }}>{label}</T>
+    <View style={{ backgroundColor: bg, borderRadius: radii.pill, paddingHorizontal: 8, paddingVertical: 3, alignSelf: "flex-start", maxWidth: "100%" }}>
+      <T weight="bold" numberOfLines={1} style={{ fontSize: 13, color: fg }}>{label}</T>
     </View>
   );
 }

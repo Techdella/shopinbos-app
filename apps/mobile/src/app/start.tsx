@@ -130,7 +130,7 @@ export default function StartHere() {
                     {step.key === "look" ? <PillButton testID="start-edit-shop" title={t("editShop.open")} size="sm" tone="white" onPress={() => router.push("/shop-edit" as never)} /> : null}
                     {open && step.helper ? (
                       <Pressable accessibilityRole="button" onPress={() => ask(step)} style={{ minHeight: 38, borderRadius: radii.pill, paddingHorizontal: 14, justifyContent: "center", backgroundColor: colors.mintTint }}>
-                        <T weight="bold" style={{ fontSize: 14, color: colors.forest }}>{t("start.ask", { name: step.helper.who === "rex" ? "Rex" : "Peggy" })}</T>
+                        <T weight="bold" numberOfLines={1} style={{ flexShrink: 1, fontSize: 14, color: colors.forest }}>{t("start.ask", { name: step.helper.who === "rex" ? "Rex" : "Peggy" })}</T>
                       </Pressable>
                     ) : null}
                   </View>

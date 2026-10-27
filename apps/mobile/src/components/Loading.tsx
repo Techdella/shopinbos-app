@@ -217,7 +217,7 @@ export function HomeSkeleton() {
 
           <Pressable accessibilityRole="button" accessibilityLabel={t("askPeggy")} onPress={() => router.push("/peggy")} style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: colors.surface, borderRadius: radii.pill, paddingHorizontal: 8, height: 54 }}>
             <Mascot name="peggy" size={36} label="" />
-            <T weight="semibold" style={{ fontSize: 14.5, color: colors.inkSoft }}>{t("askPeggy")}</T>
+            <T weight="semibold" numberOfLines={1} style={{ flexShrink: 1, fontSize: 14.5, color: colors.inkSoft }}>{t("askPeggy")}</T>
           </Pressable>
 
           <View style={{ backgroundColor: colors.surface, borderRadius: 24, padding: 16, gap: 14 }} accessible accessibilityRole="progressbar" accessibilityLabel={t("loading.sales")} accessibilityState={{ busy: true }}>
@@ -373,7 +373,7 @@ export function SlowNetwork({
           style={({ pressed }) => ({ minHeight: 52, borderRadius: radii.pill, backgroundColor: colors.ink, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, opacity: pressed ? 0.85 : 1 })}
         >
           {attempting && <ActivityIndicator size="small" color="#FFFFFF" />}
-          <T weight="bold" style={{ fontSize: 16, color: "#FFFFFF" }}>
+          <T weight="bold" numberOfLines={1} style={{ flexShrink: 1, fontSize: 16, color: "#FFFFFF" }}>
             {attempting ? t("offline.tryingDots") : waitSeconds ? t("offline.tryNowIn", { seconds: waitSeconds }) : t("tryAgain")}
           </T>
         </Pressable>
@@ -384,7 +384,7 @@ export function SlowNetwork({
             onPress={onUseCached}
             style={({ pressed }) => ({ minHeight: 52, borderRadius: radii.pill, backgroundColor: pressed ? colors.canvas : colors.surface, borderWidth: 1, borderColor: colors.line, alignItems: "center", justifyContent: "center", paddingHorizontal: 16 })}
           >
-            <T weight="bold" style={{ fontSize: 16 }}>{offline ? t("offline.keepWorking") : t("offline.showSaved", { ago })}</T>
+            <T weight="bold" numberOfLines={1} style={{ flexShrink: 1, fontSize: 16 }}>{offline ? t("offline.keepWorking") : t("offline.showSaved", { ago })}</T>
           </Pressable>
         )}
       </View>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { parseShopinbosPostId, shopinbosMessageKeys } from "@shared/shopinbos-status";
 import { Pressable, ScrollView, View, useWindowDimensions } from "react-native";
 import { Eyebrow, List, Row, TILE, Tile } from "@/components/design";
 import { AppIcon } from "@/components/icons";
@@ -15,6 +16,13 @@ import { StoryViewer } from "./StoryViewer";
 // watched; an X closes it for good (on the account). Help lists the videos again (GettingStartedVideos).
 // A video plays in the Status viewer (a recorded one) or as the 60-second intro; a tip opens in the Status viewer
 // with its button. Hidden when the server doesn't have it (404) or there's nothing to show.
+
+/** A Shopinbos post's headline in the app's language (the server sends it in the language asked for; this covers a
+ * feed fetched before the language changed). */
+function headline(post: StatusPost, t: { dynamic: (key: string, fallback?: string) => string }) {
+  const known = parseShopinbosPostId(post.id);
+  return known ? t.dynamic(shopinbosMessageKeys(known.role, known.key).title, post.headline) : post.headline;
+}
 
 /** The card's side padding, the gap between tiles, and how many tiles show across before the row scrolls (a
  * part of the next tile shows, so it clearly scrolls). Up to three fit across exactly. */
@@ -94,7 +102,7 @@ export function GettingStartedCard() {
             <Pressable
               key={post.id}
               accessibilityRole="button"
-              accessibilityLabel={`${video ? t("start.video") : t("start.tip")}: ${post.headline}`}
+              accessibilityLabel={`${video ? t("start.video") : t("start.tip")}: ${headline(post, t)}`}
               accessibilityState={{ checked: watched }}
               onPress={() => open(author, post, index)}
               style={({ pressed }) => ({ width: tileWidth, minHeight: 118, borderRadius: 18, backgroundColor: tone.bg, padding: 12, gap: 8, justifyContent: "space-between", opacity: pressed ? 0.85 : 1 })}
@@ -109,7 +117,7 @@ export function GettingStartedCard() {
                   </View>
                 ) : null}
               </View>
-              <T weight="bold" numberOfLines={4} style={{ fontSize: 13.5, lineHeight: 17, color: tone.fg }}>{post.headline}</T>
+              <T weight="bold" numberOfLines={4} style={{ fontSize: 13.5, lineHeight: 17, color: tone.fg }}>{headline(post, t)}</T>
             </Pressable>
           );
         })}
@@ -145,7 +153,7 @@ export function GettingStartedVideos() {
           <Row
             key={post.id}
             lead={<Tile icon={post.video ? "play" : "sparkle"} tone={post.tone === "ink" ? "gray" : post.tone} />}
-            title={post.headline}
+            title={headline(post, t)}
             sub={post.video ? t("start.video") : post.cta?.label ?? t("start.tip")}
             right={seenHere(post) ? <AppIcon name="check" size={18} color={colors.success} /> : undefined}
             chevron

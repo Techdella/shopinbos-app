@@ -6,6 +6,7 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
   type PressableProps,
   type StyleProp,
   type TextInputProps,
@@ -17,6 +18,7 @@ import Svg, { Defs, Path, RadialGradient, Rect, Stop } from "react-native-svg";
 import { OTP_LENGTH, type DialCountry } from "@shared/phone";
 import { washStops } from "@shared/tokens";
 import { colors, fonts, radii } from "@/theme";
+import { AppIcon, type AppIconName } from "@/components/icons";
 import { Mascot as SharedMascot, type MascotMood, type MascotWho } from "@/components/Mascot";
 import { useT } from "@/lib/i18n";
 
@@ -74,9 +76,34 @@ export function Mascot({ name, who, mood, size, label, style }: { name?: "rex" |
 }
 
 type Tone = "ink" | "white" | "accent" | "forest";
+type PillSize = "lg" | "md" | "sm";
 
+// One type style for every button label on the phone, like the web's PILL_BASE (src/components/app-ui): bold (700),
+// one line, a small size scale. A label too long for its row shrinks a little (to 80%) and then ends in "…"; it never
+// wraps onto a second line or pushes the button (or its neighbours) off the screen, and the icon stays whole.
+export const BUTTON_TEXT: Record<PillSize, number> = { lg: 16, md: 15, sm: 14 };
+/** lg is the one main button per screen: full width, 56 tall (build spec 8A). Nothing is under 48. */
+export const BUTTON_HEIGHT: Record<PillSize, number> = { lg: 56, md: 50, sm: 48 };
+const BUTTON_ICON: Record<PillSize, number> = { lg: 20, md: 18, sm: 16 };
+
+/** The ink or white a label takes on a button of this tone (orange buttons carry ink text: white on orange fails contrast). */
+export function buttonInk(tone: Tone = "ink") {
+  return tone === "white" || tone === "accent" ? colors.ink : "#FFFFFF";
+}
+
+/** A one-line button label: bold, shrinks a little instead of wrapping on small phones, then ends in "…". */
+export function OneLine({ text, color = colors.ink, size = BUTTON_TEXT.lg, style }: { text: string; color?: string; size?: number; style?: StyleProp<TextStyle> }) {
+  return (
+    <T weight="bold" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={[{ fontSize: size, color, flexShrink: 1, textAlign: "center" }, style]}>
+      {text}
+    </T>
+  );
+}
+
+/** A pill button. Give it a `title` (and an `icon`) so the label keeps the one style; `children` replace both. */
 export function PillButton({
   title,
+  icon,
   tone = "ink",
   size = "lg",
   busy = false,
@@ -84,12 +111,9 @@ export function PillButton({
   style,
   children,
   ...props
-}: { title?: string; tone?: Tone; size?: "lg" | "md" | "sm"; busy?: boolean; style?: StyleProp<ViewStyle>; children?: ReactNode } & Omit<PressableProps, "style" | "children">) {
+}: { title?: string; icon?: AppIconName; tone?: Tone; size?: PillSize; busy?: boolean; style?: StyleProp<ViewStyle>; children?: ReactNode } & Omit<PressableProps, "style" | "children">) {
   const bg = tone === "ink" ? colors.ink : tone === "accent" ? colors.accent : tone === "forest" ? colors.forest : colors.surface;
-  // Orange buttons carry ink text, as in the prototype (white on orange fails contrast).
-  const fg = tone === "white" || tone === "accent" ? colors.ink : "#FFFFFF";
-  // lg is the one main button per screen: full width, 56 tall (build spec 8A).
-  const height = size === "lg" ? 56 : size === "md" ? 50 : 44;
+  const fg = buttonInk(tone);
   const off = disabled || busy;
   return (
     <Pressable
@@ -97,16 +121,39 @@ export function PillButton({
       accessibilityState={{ disabled: Boolean(off), busy }}
       disabled={off}
       style={({ pressed }) => [
-        { minHeight: height, borderRadius: radii.pill, backgroundColor: bg, alignItems: "center", justifyContent: "center", paddingHorizontal: size === "sm" ? 16 : 22, flexDirection: "row", gap: 8 },
+        { minHeight: BUTTON_HEIGHT[size], maxWidth: "100%", flexShrink: 1, borderRadius: radii.pill, backgroundColor: bg, alignItems: "center", justifyContent: "center", paddingHorizontal: size === "sm" ? 16 : 20, flexDirection: "row", gap: 8 },
         tone === "white" && { borderWidth: 1.5, borderColor: colors.line },
         (pressed || off) && { opacity: off ? 0.55 : 0.85 },
         style,
       ]}
       {...props}
     >
-      {busy ? <ActivityIndicator color={fg} /> : children ?? <T weight={size === "lg" ? "extrabold" : "bold"} style={{ color: fg, fontSize: size === "lg" ? 17 : size === "md" ? 16 : 15 }}>{title}</T>}
+      {busy ? (
+        <ActivityIndicator color={fg} />
+      ) : (
+        children ?? (
+          <>
+            {icon ? <View style={{ flexShrink: 0 }}><AppIcon name={icon} size={BUTTON_ICON[size]} color={fg} /></View> : null}
+            {title ? <OneLine text={title} color={fg} size={BUTTON_TEXT[size]} /> : null}
+          </>
+        )
+      )}
     </Pressable>
   );
+}
+
+/**
+ * Buttons side by side while every label fits at that width, else one under the other at full width (Yoruba, often
+ * the longest, usually stacks). Pass the labels shown; each button sets style={{ flex: 1 }}. `primaryLast`: the main
+ * button is the last in the row, so it goes on top when they stack.
+ */
+export function ButtonRow({ labels, size = "md", icons = false, primaryLast = false, gap = 10, style, children }: { labels: string[]; size?: PillSize; icons?: boolean; primaryLast?: boolean; gap?: number; style?: StyleProp<ViewStyle>; children: ReactNode }) {
+  const { width } = useWindowDimensions();
+  const count = Math.max(1, labels.length);
+  // The screen's 20px sides and a card's padding, then each button's own padding (and icon).
+  const room = (Math.min(width, 600) - 72 - gap * (count - 1)) / count - (size === "sm" ? 32 : 40) - (icons ? BUTTON_ICON[size] + 8 : 0);
+  const fits = labels.every((label) => label.length * BUTTON_TEXT[size] * 0.6 <= room);
+  return <View style={[fits ? { flexDirection: "row", gap } : { flexDirection: primaryLast ? "column-reverse" : "column", gap }, style]}>{children}</View>;
 }
 
 export function LinkButton({ title, onPress, style, color = colors.ink, testID }: { title: string; onPress: () => void; style?: StyleProp<ViewStyle>; color?: string; testID?: string }) {
@@ -161,7 +208,7 @@ export function Segmented<V extends string>({ options, value, onChange }: { opti
             onPress={() => onChange(option.value)}
             style={{ flex: 1, minHeight: 42, borderRadius: radii.pill, backgroundColor: on ? colors.ink : "transparent", alignItems: "center", justifyContent: "center" }}
           >
-            <T weight="bold" style={{ color: on ? "#FFFFFF" : colors.ink }}>{option.label}</T>
+            <T weight="bold" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ color: on ? "#FFFFFF" : colors.ink, paddingHorizontal: 8 }}>{option.label}</T>
           </Pressable>
         );
       })}
@@ -176,9 +223,9 @@ export function Chip({ label, on, onPress, disabled }: { label: string; on: bool
       accessibilityState={{ selected: on, disabled: !!disabled }}
       onPress={onPress}
       disabled={disabled}
-      style={{ borderRadius: radii.pill, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: on ? colors.ink : colors.surface, borderWidth: 1, borderColor: on ? colors.ink : colors.line, borderStyle: disabled ? "dashed" : "solid", opacity: disabled ? 0.45 : 1 }}
+      style={{ maxWidth: "100%", borderRadius: radii.pill, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: on ? colors.ink : colors.surface, borderWidth: 1, borderColor: on ? colors.ink : colors.line, borderStyle: disabled ? "dashed" : "solid", opacity: disabled ? 0.45 : 1 }}
     >
-      <T weight="bold" style={{ color: on ? "#FFFFFF" : colors.ink, fontSize: 15 }}>{label}</T>
+      <T weight="bold" numberOfLines={1} style={{ color: on ? "#FFFFFF" : colors.ink, fontSize: 15 }}>{label}</T>
     </Pressable>
   );
 }

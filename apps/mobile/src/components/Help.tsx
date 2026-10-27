@@ -134,7 +134,7 @@ export function HelpButton({ style, testID = "help-button", compact = false }: {
         style={({ pressed }) => [{ minHeight: 44, minWidth: 44, paddingHorizontal: compact ? 0 : 14, borderRadius: 22, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, opacity: pressed ? 0.8 : 1 }, style]}
       >
         <AppIcon name="help" size={compact ? 20 : 18} />
-        {compact ? null : <T weight="bold" style={{ fontSize: 15 }}>{t("help")}</T>}
+        {compact ? null : <T weight="bold" numberOfLines={1} style={{ flexShrink: 1, fontSize: 15 }}>{t("help")}</T>}
       </Pressable>
       <HelpSheet visible={open} onClose={() => setOpen(false)} />
     </>

@@ -4,7 +4,7 @@ import { router } from "expo-router";
 import { lastSeenWords, rankRidersForPickup } from "@shared/delivery-geo";
 import { naira } from "@shared/onboarding";
 import { ChoiceSheet, RouteLine, Thumb, TonePill } from "@/components/partner";
-import { PillButton, T } from "@/components/ui";
+import { ButtonRow, PillButton, T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
 import { moveJob, type DispatchRider, type Job } from "@/lib/logistics";
 import { jobStage, shortPlace, timeAgo, type Say } from "@/lib/partner-pure";
@@ -81,10 +81,10 @@ export function JobCard({ job, riders, onChanged }: { job: Job; riders: Dispatch
       </View>
       {job.collect > 0 ? <TonePill tone="warning" label={t("card.collect", { amount: naira(job.collect) })} /> : null}
       {isNew ? (
-        <View style={{ flexDirection: "row", gap: 8 }}>
+        <ButtonRow labels={[t("decline"), t("acceptAssign")]} primaryLast gap={8}>
           <PillButton title={t("decline")} tone="white" size="md" style={{ flex: 0.7 }} busy={busy === "decline"} disabled={Boolean(busy)} onPress={decline} />
           <PillButton title={t("acceptAssign")} size="md" style={{ flex: 1.3 }} busy={busy === "accept"} disabled={Boolean(busy)} onPress={() => setPicking(true)} />
-        </View>
+        </ButtonRow>
       ) : null}
       <ChoiceSheet
         visible={picking}

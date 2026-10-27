@@ -5,7 +5,6 @@ import { offPlatformSignals } from "@shared/delivery-market";
 import { ChatListScreen, type ChatRowData } from "@/components/ChatList";
 import { Bubble, ChatScreen, Composer } from "@/components/ChatScreen";
 import { Small } from "@/components/design";
-import { AppIcon } from "@/components/icons";
 import { EmptyState, ErrorState, Initials, LoadingBlock } from "@/components/kit";
 import { Notice, PillButton, T } from "@/components/ui";
 import { shortTime } from "@/lib/inbox-pure";
@@ -182,10 +181,7 @@ export function ConversationScreen({ base, quickReplies }: { base: Base; quickRe
         </View>
       ) : null}
       {canRate ? (
-        <PillButton tone="white" onPress={() => router.push({ pathname: "/logistics/private-rate", params: { ownerUserId: String(id), name: title } })}>
-          <AppIcon name="tag" size={20} />
-          <T weight="extrabold" style={{ fontSize: 17 }}>{t("chat.privateRate")}</T>
-        </PillButton>
+        <PillButton tone="white" onPress={() => router.push({ pathname: "/logistics/private-rate", params: { ownerUserId: String(id), name: title } })} icon="tag" title={t("chat.privateRate")} />
       ) : null}
     </ChatScreen>
   );

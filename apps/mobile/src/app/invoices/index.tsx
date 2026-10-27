@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { router } from "expo-router";
 import { naira } from "@shared/onboarding";
-import { AppIcon } from "@/components/icons";
 import { Badge, ChipRow, EmptyState, ErrorState, LoadingBlock } from "@/components/kit";
 import { Screen } from "@/components/Screen";
 import { Sheet } from "@/components/Sheet";
@@ -29,10 +28,7 @@ export default function Invoices() {
 
   return (
     <Screen title={t("inv.title")} sub={t("inv.sub")} refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
-      <PillButton testID="new-invoice" onPress={() => router.push("/invoices/new")} accessibilityLabel={t("inv.new")}>
-        <AppIcon name="plus" size={20} color="#FFFFFF" />
-        <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 17 }}>{t("inv.new")}</T>
-      </PillButton>
+      <PillButton testID="new-invoice" onPress={() => router.push("/invoices/new")} accessibilityLabel={t("inv.new")} icon="plus" title={t("inv.new")} />
 
       {loaded.loading && !data ? <LoadingBlock /> : null}
       {loaded.error && !data ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} /> : null}

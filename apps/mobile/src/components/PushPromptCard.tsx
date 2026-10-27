@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { AppIcon } from "@/components/icons";
-import { Card, PillButton, T } from "@/components/ui";
+import { ButtonRow, Card, PillButton, T } from "@/components/ui";
 import { dismissPushOffer, shouldOfferPush, turnOnPush } from "@/lib/push";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
@@ -48,7 +48,7 @@ export function PushPromptCard({ who = "seller", when = true }: { who?: keyof ty
         </View>
       </View>
       {!blocked ? (
-        <View style={{ flexDirection: "row", gap: 10 }}>
+        <ButtonRow labels={[t("push.turnOn"), t("push.notNow")]} size="sm">
           <PillButton
             title={t("push.turnOn")}
             size="sm"
@@ -72,7 +72,7 @@ export function PushPromptCard({ who = "seller", when = true }: { who?: keyof ty
               setShow(false);
             }}
           />
-        </View>
+        </ButtonRow>
       ) : null}
     </Card>
   );

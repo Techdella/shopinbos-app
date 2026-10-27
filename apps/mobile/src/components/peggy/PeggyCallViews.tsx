@@ -3,7 +3,7 @@ import { AccessibilityInfo, Animated, Easing, Modal, Pressable, ScrollView, View
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppIcon } from "@/components/icons";
 import { Sheet } from "@/components/Sheet";
-import { LinkButton, Mascot, PillButton, T } from "@/components/ui";
+import { ButtonRow, LinkButton, Mascot, PillButton, T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
 import type { CallPhase, SavedEntry } from "@/lib/peggy-call";
 import { callClock, savedKey, stepKey, type SetupView } from "@/lib/peggy-call-pure";
@@ -131,7 +131,7 @@ export function CallSheet({ call, onMinimize, onMute, onEnd }: { call: LiveCall;
             <View style={{ transform: [{ rotate: "90deg" }] }}>
               <AppIcon name="chevron" size={16} color="#FFFFFF" />
             </View>
-            <T weight="bold" style={{ color: "#FFFFFF", fontSize: 15 }}>{t("call.minimize")}</T>
+            <T weight="bold" numberOfLines={1} style={{ flexShrink: 1, color: "#FFFFFF", fontSize: 15 }}>{t("call.minimize")}</T>
           </Pressable>
           <View style={{ flex: 1 }} />
           {clock ? <T weight="bold" style={{ color: "rgba(255,255,255,0.8)", fontSize: 15 }}>{clock}</T> : null}
@@ -160,22 +160,12 @@ export function CallSheet({ call, onMinimize, onMute, onEnd }: { call: LiveCall;
           <SetupTicks status={call.status} dark />
         </ScrollView>
 
-        <View style={{ flexDirection: "row", gap: 12, paddingHorizontal: 20, paddingTop: 8 }}>
+        <ButtonRow labels={live ? [call.muted ? t("call.unmute") : t("call.mute"), t("call.end")] : [t("call.end")]} size="lg" icons gap={12} style={{ paddingHorizontal: 20, paddingTop: 8 }}>
           {live ? (
-            <PillButton tone="white" style={{ flex: 1 }} accessibilityLabel={call.muted ? t("call.unmute") : t("call.mute")} onPress={onMute}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <AppIcon name="mic" size={18} color={colors.ink} />
-                <T weight="extrabold" style={{ fontSize: 16 }}>{call.muted ? t("call.unmute") : t("call.mute")}</T>
-              </View>
-            </PillButton>
+            <PillButton tone="white" style={{ flex: 1 }} accessibilityLabel={call.muted ? t("call.unmute") : t("call.mute")} onPress={onMute} icon="mic" title={call.muted ? t("call.unmute") : t("call.mute")} />
           ) : null}
-          <PillButton style={{ flex: 1, backgroundColor: colors.danger }} accessibilityLabel={t("call.end")} onPress={onEnd}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              <AppIcon name="phone" size={18} color="#FFFFFF" />
-              <T weight="extrabold" style={{ fontSize: 16, color: "#FFFFFF" }}>{t("call.end")}</T>
-            </View>
-          </PillButton>
-        </View>
+          <PillButton style={{ flex: 1, backgroundColor: colors.danger }} accessibilityLabel={t("call.end")} onPress={onEnd} icon="phone" title={t("call.end")} />
+        </ButtonRow>
       </View>
     </Modal>
   );

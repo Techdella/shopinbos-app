@@ -4,7 +4,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { canonicalState } from "@shared/delivery-market";
 import { allowedSellChoice, DEFAULT_PAYMENT_METHODS, PAYMENT_METHODS, zonesForSellChoice, type DeliveryZone, type OnboardingSellArea, type PaymentMethodKey } from "@shared/onboarding";
 import { Title } from "@/components/design";
-import { Card, Field, Label, Notice, PillButton, T, Toggle } from "@/components/ui";
+import { ButtonRow, Card, Field, Label, Notice, PillButton, T, Toggle } from "@/components/ui";
 import { OnboardingFrame } from "@/components/OnboardingFrame";
 import { useOnboarding } from "@/components/OnboardingContext";
 import { ApiError } from "@/lib/api";
@@ -149,10 +149,10 @@ export default function Payments() {
         ) : (
           <>
             <T style={{ fontSize: 15, lineHeight: 22 }}>{t("pay.bankLater")}</T>
-            <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
+            <ButtonRow labels={[t("pay.addBank"), t("pay.later")]} gap={8} style={{ marginTop: 12 }}>
               <PillButton title={t("pay.addBank")} size="md" style={{ flex: 1 }} onPress={() => setBankOpen(true)} />
               <PillButton title={t("pay.later")} tone="white" size="md" style={{ flex: 1 }} onPress={() => setNote(t("pay.noProblem"))} />
-            </View>
+            </ButtonRow>
           </>
         )}
       </Card>

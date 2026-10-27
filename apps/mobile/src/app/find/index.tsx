@@ -237,10 +237,7 @@ export default function FindProducts() {
         onRefresh={() => void loaded.refresh()}
         footer={
           current ? (
-            <PillButton testID="find-add" tone="accent" accessibilityLabel={t("swipe.add")} onPress={() => router.push({ pathname: "/find/[slug]", params: { slug: current.slug } })}>
-              <AppIcon name="plus" size={20} color={colors.ink} />
-              <T weight="extrabold" style={{ fontSize: 17 }}>{added.has(current.id) ? t("swipe.inShop") : t("swipe.add")}</T>
-            </PillButton>
+            <PillButton testID="find-add" tone="accent" accessibilityLabel={t("swipe.add")} onPress={() => router.push({ pathname: "/find/[slug]", params: { slug: current.slug } })} icon="plus" title={added.has(current.id) ? t("swipe.inShop") : t("swipe.add")} />
           ) : undefined
         }
       >

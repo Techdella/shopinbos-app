@@ -165,10 +165,7 @@ export default function NewSupplierProduct() {
         title={t("products.add")}
         footer={
           <>
-            <PillButton tone="accent" onPress={() => void addPhotos("camera")} accessibilityLabel={t("new.takePhoto")}>
-              <AppIcon name="camera" size={20} color={colors.ink} />
-              <T weight="extrabold" style={{ fontSize: 17, color: colors.ink }}>{t("new.takePhoto")}</T>
-            </PillButton>
+            <PillButton tone="accent" onPress={() => void addPhotos("camera")} accessibilityLabel={t("new.takePhoto")} icon="camera" title={t("new.takePhoto")} />
             <PillButton title={t("new.fromGallery")} tone="white" onPress={() => void addPhotos("library")} />
           </>
         }
@@ -190,10 +187,7 @@ export default function NewSupplierProduct() {
       footer={
         <>
           {progress ? <T style={{ color: colors.inkSoft, textAlign: "center", fontSize: 15 }}>{progress}</T> : null}
-          <PillButton tone="accent" busy={busy === "review"} disabled={Boolean(busy)} onPress={() => void save("pending_review")} accessibilityLabel={t("new.save")}>
-            <AppIcon name="check" size={20} color={colors.ink} strokeWidth={2.4} />
-            <T weight="extrabold" style={{ fontSize: 17, color: colors.ink }}>{t("new.save")}</T>
-          </PillButton>
+          <PillButton tone="accent" busy={busy === "review"} disabled={Boolean(busy)} onPress={() => void save("pending_review")} accessibilityLabel={t("new.save")} icon="check" title={t("new.save")} />
           <LinkButton title={busy === "draft" ? t("saving") : t("new.later")} color={colors.inkSoft} onPress={() => !busy && void save("draft")} />
         </>
       }

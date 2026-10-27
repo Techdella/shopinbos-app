@@ -5,7 +5,7 @@ import { Image } from "expo-image";
 import { DECLINE_REASONS } from "@shared/delivery-market";
 import { naira } from "@shared/onboarding";
 import { Choice, Heading, List, Row, Small, Sub, Tile, Timeline } from "@/components/design";
-import { AppIcon } from "@/components/icons";
+import { type AppIconName } from "@/components/icons";
 import { riderOptions } from "@/components/JobCard";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { NoteCard, shopRoleOf } from "@/components/PartnerKit";
@@ -77,12 +77,8 @@ export default function JobScreen() {
   const off = Boolean(busy);
   const open = ["confirmed", "picked_up", "in_transit", "out_for_delivery", "at_pickup_point", "failed"].includes(current.status);
 
-  const check = <AppIcon name="check" size={20} color="#FFFFFF" />;
-  const button = (key: string, label: string, onPress: () => void, icon = check) => (
-    <PillButton tone="forest" busy={busy === key} disabled={off} onPress={onPress}>
-      {icon}
-      <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 17 }}>{label}</T>
-    </PillButton>
+  const button = (key: string, label: string, onPress: () => void, icon: AppIconName = "check") => (
+    <PillButton tone="forest" busy={busy === key} disabled={off} onPress={onPress} icon={icon} title={label} />
   );
   const ghost = (label: string, onPress: () => void) => <PillButton title={label} tone="white" disabled={off} onPress={onPress} />;
 
@@ -104,7 +100,7 @@ export default function JobScreen() {
       </>
     ) : footerKind === "failed" ? (
       <>
-        {button("retry", t("job.tryAgain"), () => void run("retry", { action: "status", to: "out_for_delivery" }), <AppIcon name="route" size={20} color="#FFFFFF" />)}
+        {button("retry", t("job.tryAgain"), () => void run("retry", { action: "status", to: "out_for_delivery" }), "route")}
         {ghost(t("job.returnToSender"), () => void run("returning", { action: "status", to: "returning" }))}
       </>
     ) : footerKind === "returning" ? (
@@ -158,22 +154,18 @@ export default function JobScreen() {
         </>
       ) : null}
 
-      {current.buyer?.phone ? (
-        <View style={{ flexDirection: "row", gap: 8 }}>
-          <PillButton tone="white" size="sm" onPress={() => void Linking.openURL(`tel:${current.buyer!.phone}`)}>
-            <AppIcon name="phone" size={16} />
-            <T weight="bold" style={{ fontSize: 15 }}>{t("job.callCustomer")}</T>
-          </PillButton>
-          <PillButton tone="white" size="sm" onPress={() => void Linking.openURL(`https://wa.me/${current.buyer!.phone!.replace(/\D/g, "")}`)}>
-            <AppIcon name="chat" size={16} />
-            <T weight="bold" style={{ fontSize: 15 }}>WhatsApp</T>
-          </PillButton>
-        </View>
-      ) : null}
-
       {current.proofUrl ? <Image source={{ uri: current.proofUrl }} style={{ width: "100%", height: 200, borderRadius: 24 }} contentFit="cover" accessibilityLabel={t("job.proofPhoto")} /> : null}
 
-      <PillButton title={t("job.messageShop", { shop: current.shop })} tone="white" size="md" onPress={() => router.push({ pathname: "/logistics/chat/[id]", params: { id: current.sellerUserId, name: current.shop } })} />
+      {/* Call, WhatsApp and Message the shop: one stack of full-width buttons, all the same size. */}
+      <View style={{ gap: 10 }}>
+        {current.buyer?.phone ? (
+          <>
+            <PillButton tone="white" size="md" onPress={() => void Linking.openURL(`tel:${current.buyer!.phone}`)} icon="phone" title={t("job.callCustomer")} />
+            <PillButton tone="white" size="md" onPress={() => void Linking.openURL(`https://wa.me/${current.buyer!.phone!.replace(/\D/g, "")}`)} icon="chat" title="WhatsApp" />
+          </>
+        ) : null}
+        <PillButton title={t("job.messageShop", { shop: current.shop })} tone="white" size="md" onPress={() => router.push({ pathname: "/logistics/chat/[id]", params: { id: current.sellerUserId, name: current.shop } })} />
+      </View>
 
       <Sheet visible={sheet === "assign" || sheet === "reassign"} onClose={() => setSheet(null)} title={t("assign.title")}>
         <Sub style={{ marginTop: -6 }}>{t("assign.sub")}</Sub>
@@ -191,11 +183,10 @@ export default function JobScreen() {
           tone="forest"
           busy={busy === "accept" || busy === "assign"}
           disabled={off}
+          icon="send"
+          title={sheet === "assign" ? t("assign.accept") : t("assign.send")}
           onPress={() => (sheet === "assign" ? void run("accept", { action: "accept", riderId: chosen }) : void run("assign", { action: "assign", riderId: chosen }))}
-        >
-          <AppIcon name="send" size={20} color="#FFFFFF" />
-          <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 17 }}>{sheet === "assign" ? t("assign.accept") : t("assign.send")}</T>
-        </PillButton>
+        />
       </Sheet>
 
       <Sheet visible={sheet === "decline"} onClose={() => setSheet(null)} title={t("declineWhy.title")}>

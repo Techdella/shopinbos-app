@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { View } from "react-native";
 import { Sheet } from "@/components/Sheet";
-import { AppIcon } from "@/components/icons";
 import { Notice, PillButton, T } from "@/components/ui";
 import { publishShop, type PublishedShop } from "@/lib/publish";
 import { openShop, shareShop } from "@/lib/share";
@@ -44,15 +43,9 @@ export function ShopLiveSheet({ shop, onClose }: { shop: PublishedShop | null; o
       {/* Stacked: two buttons side by side don't fit their words on a 360px phone. */}
       <View style={{ gap: 10, marginTop: 6 }}>
         {shop?.url ? (
-          <PillButton testID="shop-live-view" tone="white" size="md" accessibilityLabel={t("publish.view")} onPress={() => void openShop(shop.url!)}>
-            <AppIcon name="globe" size={18} />
-            <T weight="bold" style={{ fontSize: 16 }}>{t("publish.view")}</T>
-          </PillButton>
+          <PillButton testID="shop-live-view" tone="white" size="md" accessibilityLabel={t("publish.view")} onPress={() => void openShop(shop.url!)} icon="globe" title={t("publish.view")} />
         ) : null}
-        <PillButton testID="shop-live-share" size="md" accessibilityLabel={t("share")} onPress={() => void shareShop()}>
-          <AppIcon name="share" size={18} color="#FFFFFF" />
-          <T weight="bold" style={{ fontSize: 16, color: "#FFFFFF" }}>{t("share")}</T>
-        </PillButton>
+        <PillButton testID="shop-live-share" size="md" accessibilityLabel={t("share")} onPress={() => void shareShop()} icon="share" title={t("share")} />
       </View>
     </Sheet>
   );

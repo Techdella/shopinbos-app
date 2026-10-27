@@ -5,7 +5,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { DEFAULT_DIAL_COUNTRY, formatE164, toE164 } from "@shared/phone";
 import { Keypad, Small, Sub, Title } from "@/components/design";
 import { HelpButton } from "@/components/Help";
-import { AppIcon } from "@/components/icons";
 import { TextLink } from "@/components/RiderKit";
 import { BackButton, Field, LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { ApiError } from "@/lib/api";
@@ -155,10 +154,7 @@ export default function RiderSignIn() {
           {openLink}
         </ScrollView>
         <View style={{ paddingHorizontal: 20, paddingBottom: 12, paddingTop: 10 }}>
-          <PillButton tone="accent" busy={busy} onPress={() => void send()}>
-            <AppIcon name="chat" size={20} color={colors.ink} />
-            <T weight="extrabold" style={{ color: colors.ink, fontSize: 17 }}>{t("form.sendCode")}</T>
-          </PillButton>
+          <PillButton tone="accent" busy={busy} onPress={() => void send()} icon="chat" title={t("form.sendCode")} />
         </View>
       </KeyboardShift>
     </SafeAreaView>

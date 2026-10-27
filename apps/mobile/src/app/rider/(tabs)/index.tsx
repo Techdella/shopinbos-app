@@ -199,10 +199,7 @@ export default function RiderToday() {
             />
           </List>
           <Small>{say("offer.assigned", { company })}</Small>
-          <PillButton tone="forest" onPress={() => { markJobTaken(offer.drop.id); openJob(offer.drop.id); }}>
-            <AppIcon name="check" size={20} color="#FFFFFF" />
-            <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 17 }}>{say("startJob")}</T>
-          </PillButton>
+          <PillButton tone="forest" onPress={() => { markJobTaken(offer.drop.id); openJob(offer.drop.id); }} icon="check" title={say("startJob")} />
           <PillButton
             tone="white"
             title={say("skip")}
