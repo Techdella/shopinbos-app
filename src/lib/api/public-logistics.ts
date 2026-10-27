@@ -9,6 +9,8 @@ export const PUBLIC_MARKET_SELECT = {
   pickupAreas: true,
   deliveryAreas: true,
   offersPayOnDelivery: true,
+  /** Verification badges (shared/partner-tiers.ts): verified_individual | registered_business | licensed_courier | verified_payout. */
+  badges: true,
   rateCards: { where: { ownerUserId: null, status: "active" }, orderBy: { createdAt: "desc" as const }, take: 1, select: { rows: true } },
   _count: { select: { pickupPoints: { where: { active: true } } } },
 } as const;
@@ -20,13 +22,14 @@ type WithMarket = {
   pickupAreas: string[];
   deliveryAreas: string[];
   offersPayOnDelivery: boolean;
+  badges: string[];
   rateCards: Array<{ rows: unknown }>;
   _count: { pickupPoints: number };
 };
 
 /**
  * The partner as the public API returns it: the existing fields plus services, pickupAreas, deliveryAreas,
- * offersPayOnDelivery, startingPrice and timeframe (from the active public rate card, else basePrice and
+ * offersPayOnDelivery, badges (vehicleTypes are the delivery methods), startingPrice and timeframe (from the active public rate card, else basePrice and
  * estimatedSpeed) and pickupPointCount.
  */
 export function withMarketFields<T extends WithMarket>(partner: T) {

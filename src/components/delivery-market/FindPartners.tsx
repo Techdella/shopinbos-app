@@ -6,7 +6,8 @@ import type { FindFiltersShape } from "./find-filters";
 import type { findPartners } from "@/lib/delivery-market/manage.server";
 import { connectPartnerAction } from "@/app/actions/delivery-market";
 import { NG_STATES, RATE_SERVICES } from "@shared/delivery-market";
-import { areasSummary, naira, Rating, VerifiedPill } from "./bits";
+import { PARTNER_BADGES } from "@shared/partner-tiers";
+import { areasSummary, badgeWord, methodsText, naira, PartnerBadges, Rating } from "./bits";
 import { serviceLabel, timeframeText } from "./words";
 import { Term } from "@/components/learn/Term";
 
@@ -72,6 +73,13 @@ export async function FindPartners({
               <option value="4.5">{t("find.starsUp", { stars: "4.5" })}</option>
             </select>
           </label>
+          <label className="block min-w-0">
+            <span className={field.label}>{t("find.badge")}</span>
+            <select name="badge" defaultValue={filters.badge ?? ""} className={field.select}>
+              <option value="">{t("find.anyBadge")}</option>
+              {PARTNER_BADGES.map((badge) => <option key={badge} value={badge}>{badgeWord(badge, t)}</option>)}
+            </select>
+          </label>
           <label className="flex min-h-12 items-center gap-2 self-end text-[14px] font-bold">
             <input type="checkbox" name="pickupPoints" value="1" defaultChecked={!!filters.pickupPoints} className={field.checkbox} />
             <Term k="pickup-points">{t("find.hasPickupPoints")}</Term>
@@ -100,7 +108,7 @@ export async function FindPartners({
                     <div className="min-w-0 flex-1">
                       <Link href={`${detailBase}/${partner.slug}`} className="text-[15.5px] font-extrabold text-app-ink no-underline hover:underline">{partner.displayName}</Link>
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-[13px]">
-                        <VerifiedPill status={partner.verificationStatus} />
+                        <PartnerBadges status={partner.verificationStatus} badges={partner.badges} />
                         <Rating rating={partner.rating} count={partner.ratingCount} />
                       </div>
                     </div>
@@ -113,6 +121,7 @@ export async function FindPartners({
                   </div>
                   <div className="grid gap-1 text-[13.5px]">
                     <div><span className="text-app-ink-soft">{t("find.deliversToLabel")} </span>{areasSummary(partner.deliveryAreas, 4, t)}</div>
+                    {partner.vehicleTypes.length > 0 && <div><span className="text-app-ink-soft">{t("find.methodsLabel")} </span>{methodsText(partner.vehicleTypes, t)}</div>}
                     <div className="flex flex-wrap gap-x-3 gap-y-1">
                       {row.timeframe && <span><span className="text-app-ink-soft">{t("find.timeframeLabel")} </span>{timeframeText(t, row.timeframe)}</span>}
                       {row.pickupPointCount > 0 && <span>{t("find.pickupPoints", { count: row.pickupPointCount })}</span>}
@@ -140,6 +149,7 @@ export async function FindPartners({
               );
             })}
           </div>
+          <p className="m-0 mt-3 text-[12.5px] text-app-ink-soft">{t("find.trustNote")}</p>
         </>
       )}
     </section>

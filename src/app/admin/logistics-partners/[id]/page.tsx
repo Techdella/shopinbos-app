@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
-import { updateLogisticsVerification } from "@/app/actions/admin";
 import { AppPage, Pill, PillLink, StatTile, Thumb } from "@/components/app-kit";
-import { DecisionButtons, VerificationPill, adminFrame, formatDate, formatMoney } from "@/components/admin/AdminKit";
+import { adminFrame, formatDate, formatMoney } from "@/components/admin/AdminKit";
+import { partnerVerificationState } from "@shared/partner-tiers";
 import { AdminDocumentViewer } from "@/components/verification/AdminDocumentViewer";
 import { PeggyCallNotes } from "@/components/admin/PeggyCallNotes";
 import { db } from "@/lib/db/client";
@@ -11,6 +11,8 @@ import { connectionsForPartner, rateCardsForPartner, statsForPartners } from "@/
 import { adminIssueRows } from "../../delivery-issues/issues.server";
 import { IssueList } from "../../delivery-issues/IssueList";
 import { MarketplacePanel } from "./MarketplacePanel";
+import { STATE_LABELS, STATE_TONES, TierPanel } from "./TierPanel";
+import { TierActionButton } from "./TierActionButton";
 
 export default async function AdminLogisticsDetailPage(props: { params: Promise<{ id: string }>; searchParams?: Promise<{ saved?: string; error?: string }> }) {
   const user = await requireRole(["admin"], "/admin/login");
@@ -30,6 +32,8 @@ export default async function AdminLogisticsDetailPage(props: { params: Promise<
       city: true,
       logoUrl: true,
       verificationStatus: true,
+      verificationTier: true,
+      kycSubmittedAt: true,
       status: true,
       reliabilityScore: true,
       verificationDocuments: true,
@@ -91,21 +95,12 @@ export default async function AdminLogisticsDetailPage(props: { params: Promise<
         <>
           <PillLink href="/admin/logistics-partners" icon="arrowLeft" iconOnlyOnPhone>All partners</PillLink>
           <PillLink href={`/admin/support/new?to=user:${partner.userId}`} icon="chat">Message</PillLink>
-          {partner.verificationStatus !== "verified" && (
-            <DecisionButtons
-              action={updateLogisticsVerification}
-              followUp
-              fields={{ logisticsPartnerId: partner.id, reliabilityScore: String(partner.reliabilityScore ?? 0), redirectTo: `/admin/logistics-partners/${partner.id}` }}
-              approve="verified"
-              reject="rejected"
-              subject={partner.displayName}
-            />
-          )}
+          <PartnerStatusActions partnerId={partner.id} verificationStatus={String(partner.verificationStatus)} name={partner.displayName} />
         </>
       }
     >
       <section aria-label="Partner summary" className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-6">
-        <StatTile tone="card" label="Verification" value={<VerificationPill status={partner.verificationStatus} />} />
+        <StatTile tone="card" label="Verification" value={<Pill tone={STATE_TONES[partnerVerificationState(partner)]} dot>{STATE_LABELS[partnerVerificationState(partner)]}</Pill>} />
         <StatTile tone="card" label="Account" value={<Pill tone={partner.status === "active" ? (partner.codPaused ? "warning" : "success") : partner.status === "paused" ? "warning" : "danger"} dot>{partner.status === "active" ? (partner.codPaused ? "Active · prepaid only" : "Active") : partner.status === "paused" ? "Paused by partner" : partner.status}</Pill>} />
         <StatTile tone="card" label="Reliability score" value={`${partner.reliabilityScore ?? 0}/100`} />
         <StatTile tone="card" label="Base price" value={partner.basePrice ? formatMoney(partner.basePrice) : "-"} />
@@ -120,6 +115,8 @@ export default async function AdminLogisticsDetailPage(props: { params: Promise<
       )}
 
       <PeggyCallNotes userId={partner.userId} />
+
+      <TierPanel partnerId={partner.id} />
 
       <AdminDocumentViewer
         role="logistics_partner"
@@ -160,5 +157,25 @@ export default async function AdminLogisticsDetailPage(props: { params: Promise<
       )}
 
     </AppPage>
+  );
+}
+
+/** The whole-partner decisions: approve (optionally at a tier), reject and suspend with a reason, reinstate. */
+function PartnerStatusActions({ partnerId, verificationStatus, name }: { partnerId: string; verificationStatus: string; name: string }) {
+  const url = `/api/admin/logistics-partners/${partnerId}/status`;
+  if (verificationStatus === "suspended") {
+    return <TierActionButton url={url} body={{ action: "activate" }} label="Reinstate" confirm={`Reinstate ${name}? They can take jobs again if they were verified.`} />;
+  }
+  return (
+    <>
+      {verificationStatus !== "verified" && (
+        <>
+          <TierActionButton url={url} body={{ action: "reject" }} label="Reject" tone="danger" reason={{ title: `Reject ${name}?`, message: "They see this reason and can fix and resubmit." }} />
+          <TierActionButton url={url} body={{ action: "approve" }} label="Approve" confirm={`Approve ${name}? Their tier comes from the checks below.`} />
+          <TierActionButton url={url} body={{ action: "approve", tier: "tier1" }} label="Approve as Tier 1" tone="white" confirm={`Approve ${name} as a Verified Individual without every check? Only if you checked them another way.`} />
+        </>
+      )}
+      <TierActionButton url={url} body={{ action: "suspend" }} label="Suspend" tone="danger" reason={{ title: `Suspend ${name}?`, message: "They leave checkout and discovery at once; jobs they have carry on. They see this reason." }} />
+    </>
   );
 }

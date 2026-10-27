@@ -6,7 +6,7 @@ import { OFFER_SERVICES } from "@shared/delivery-market";
 import { getT } from "@/lib/i18n/server";
 import type { connectionsForOwner, privateCardsForOwner } from "@/lib/delivery-market/manage.server";
 import { endConnectionAction, respondRateCardAction, updateConnectionAction } from "@/app/actions/delivery-market";
-import { CardExtras, RateTable, VerifiedPill } from "./bits";
+import { CardExtras, PartnerBadges, RateTable } from "./bits";
 import { podDisclaimer, serviceLabel } from "./words";
 import { Term } from "@/components/learn/Term";
 
@@ -94,7 +94,7 @@ export async function MyPartners({
                   <div className="min-w-0 flex-1">
                     <Link href={`${detailBase}/${partner.slug}`} className="text-[15.5px] font-extrabold text-app-ink no-underline hover:underline">{partner.displayName}</Link>
                     <div className="mt-1 flex flex-wrap gap-1.5">
-                      <VerifiedPill status={partner.verificationStatus} />
+                      <PartnerBadges status={partner.verificationStatus} badges={partner.badges} />
                       {accepted ? <Pill tone="info">{t("mine.yourPrivateRates")}</Pill> : <Pill tone="muted">{t("mine.publicRates")}</Pill>}
                       {role === "seller" && <PodStatus connection={connection} />}
                     </div>

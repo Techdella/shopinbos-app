@@ -5,6 +5,7 @@ import type { Prisma } from "@prisma/client";
 import type { AuthUser } from "@/lib/auth/types";
 import { parseVerificationDocs, type VerificationDoc } from "@/lib/verification-utils";
 import { revalidatePath } from "next/cache";
+import { refreshPartnerTier } from "@/lib/logistics/partner-tiers.server";
 
 export const GET = withAdmin(async (_req: NextRequest, { user, params }: { user: AuthUser; params: { id: string } }) => {
   const partner = await db.logisticsPartner.findUnique({
@@ -57,7 +58,7 @@ export const PATCH = withAdmin(async (req: NextRequest, { user, params }: { user
   docs[docIndex] = {
     ...docs[docIndex],
     status: action === "approve" ? "approved" : "rejected",
-    ...(action === "reject" && rejectionReason ? { rejectionReason } : {}),
+    rejectionReason: action === "reject" && typeof rejectionReason === "string" && rejectionReason.trim() ? rejectionReason.trim().slice(0, 300) : undefined,
     updatedAt: new Date().toISOString(),
   };
 
@@ -66,8 +67,11 @@ export const PATCH = withAdmin(async (req: NextRequest, { user, params }: { user
     data: { verificationDocuments: docs as unknown as Prisma.InputJsonValue },
   });
 
+  // A selfie, CAC certificate or courier licence decision can complete a tier or change a badge.
+  const tier = await refreshPartnerTier(params.id);
+
   revalidatePath(`/admin/logistics-partners/${params.id}`);
   revalidatePath("/admin/logistics-partners");
 
-  return NextResponse.json({ success: true, document: docs[docIndex] });
+  return NextResponse.json({ success: true, document: docs[docIndex], tier });
 });

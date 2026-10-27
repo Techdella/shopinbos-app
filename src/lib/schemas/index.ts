@@ -9,6 +9,7 @@ import {
   VariantRowsSchema,
 } from "../../../shared/product-variants-schema.ts";
 import { PARTNER_SERVICES, SIZE_BANDS } from "../../../shared/delivery-market.ts";
+import { PARTNER_BADGES } from "../../../shared/partner-tiers.ts";
 import { SHORT_CODE_PATTERN, normalizeShortCode } from "../../../shared/product-codes.ts";
 
 // Request bodies come from JSON, so free-form objects are valid Prisma Json input.
@@ -698,6 +699,8 @@ export const PublicLogisticsQuerySchema = z.object({
   service: z.enum(PARTNER_SERVICES).optional(),
   /** Logistics marketplace: only partners delivering to this state (its name, "lagos state", "Abuja", a big city). */
   state: z.string().max(60).optional(),
+  /** Only partners showing this verification badge (shared/partner-tiers.ts PARTNER_BADGES). */
+  badge: z.enum(PARTNER_BADGES).optional(),
 });
 
 // ─── Notification Enums ────────────────────────────────────────────────────────
