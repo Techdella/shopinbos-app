@@ -187,12 +187,12 @@ function DropshipRow({ order, t }: { order: DropshipView; t: SupplierT }) {
           <ul className="m-0 mt-1 list-none p-0 text-[13px]">
             {order.items.map((item, index) => (
               <li key={`${item.storeProductId}-${index}`} className="flex justify-between gap-3">
-                <span className="min-w-0 truncate">{item.name}{item.variant && !item.name.includes(item.variant) ? ` (${item.variant})` : ""} × {item.quantity}</span>
+                <span className="min-w-0 sm:truncate">{item.name}{item.variant && !item.name.includes(item.variant) ? ` (${item.variant})` : ""} × {item.quantity}</span>
                 <span className="shrink-0 text-app-ink-soft">{money(item.lineCost, order.currency)}</span>
               </li>
             ))}
           </ul>
-          <div className="mt-1 truncate text-[12.5px] text-app-ink-soft">
+          <div className="mt-1 text-[12.5px] text-app-ink-soft sm:truncate">
             {order.ref} · {t("orders.shopOrder", { number: order.orderNumber })} · {timeAgo(order.createdAt, t)}
           </div>
           {order.otherItemsInOrder && <div className="mt-1 text-[12.5px] text-app-ink-soft">{t("orders.otherItems")}</div>}
@@ -212,18 +212,20 @@ function DropshipRow({ order, t }: { order: DropshipView; t: SupplierT }) {
         {order.rejectReason && <div className="mt-1 text-app-ink-soft">{t("orders.youDeclined", { reason: order.rejectReason })}</div>}
         {order.status === "expired" && <div className="mt-1 font-bold text-app-danger">{t("orders.timeRanOut")}</div>}
       </div>
+      {/* Phones: status and amount on the first line, buttons under them. */}
       <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-        {order.status === "pending" && <AcceptCountdown acceptBy={order.acceptBy} />}
+        {order.status === "pending" && <span className="max-lg:order-4"><AcceptCountdown acceptBy={order.acceptBy} /></span>}
         {order.status === "accepted" && (
-          <PillLink href={`/supplier/orders/${order.id}`} size="sm" icon="truck" tone="ink">{order.pickup?.text ? t("orders.riderBooked", { when: order.pickup.text.replace(/^Pick up/, "pick up") }) : order.packedAt ? t("orders.bookRider") : t("orders.packAndBook")}</PillLink>
+          <PillLink href={`/supplier/orders/${order.id}`} size="sm" icon="truck" tone="ink" className="max-lg:order-4">{order.pickup?.text ? t("orders.riderBooked", { when: order.pickup.text.replace(/^Pick up/, "pick up") }) : order.packedAt ? t("orders.bookRider") : t("orders.packAndBook")}</PillLink>
         )}
-        <PillLink href={`/supplier/orders/${order.id}`} size="sm" icon="arrow">{t("open")}</PillLink>
-        <Pill tone={stage.tone} dot>{stage.label}</Pill>
-        <PillLink href={messagesHref("supplier", { with: order.sellerUserId })} size="sm" icon="chat">{t("orders.messageShop")}</PillLink>
-        <span className="min-w-[90px] text-right">
+        <PillLink href={`/supplier/orders/${order.id}`} size="sm" icon="arrow" className="max-lg:order-4">{t("open")}</PillLink>
+        <span className="max-lg:order-1"><Pill tone={stage.tone} dot>{stage.label}</Pill></span>
+        <PillLink href={messagesHref("supplier", { with: order.sellerUserId })} size="sm" icon="chat" className="max-lg:order-4">{t("orders.messageShop")}</PillLink>
+        <span className="min-w-[90px] text-right max-lg:order-2 max-lg:ml-auto">
           <span className="block text-[12px] text-app-ink-soft">{t("orders.youGet")}</span>
           <span className="text-[18px] font-extrabold">{money(order.costTotal, order.currency)}</span>
         </span>
+        <span aria-hidden className="basis-full max-lg:order-3 lg:hidden" />
       </div>
       <OrderActions kind="dropship" orderId={order.id} actions={order.next} defaultTracking={order.trackingCode ?? ""} selfDelivery={order.selfDelivery} t={t} />
     </li>
@@ -311,7 +313,7 @@ export default async function SupplierOrdersPage({ searchParams }: PageProps) {
                         <span className="rounded-full bg-app-canvas px-2 py-0.5 text-[11.5px] font-extrabold uppercase tracking-[0.06em]">{t("productForm.wholesale")}</span>
                         <span className="truncate text-[14.5px] font-extrabold">{order.supplierProduct.name} × {order.quantity.toLocaleString("en-NG")}</span>
                       </div>
-                      <div className="truncate text-[12.5px] text-app-ink-soft">
+                      <div className="text-[12.5px] text-app-ink-soft sm:truncate">
                         {orderRef(order.id)} · {order.seller.name} · {t("orders.each", { amount: money(order.unitPrice, order.currency) })} · {timeAgo(order.createdAt, t)}
                       </div>
                     </div>
@@ -327,17 +329,18 @@ export default async function SupplierOrdersPage({ searchParams }: PageProps) {
                     {order.rejectReason && <div className="mt-1 text-app-ink-soft">{order.expiredAt ? t("orders.timeRanOut") : order.rejectReason.startsWith(SELLER_CANCEL_PREFIX) ? order.rejectReason : t("orders.youDeclined", { reason: order.rejectReason })}</div>}
                   </div>
                   <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-                    {order.status === "pending" && <AcceptCountdown acceptBy={order.acceptBy?.toISOString() ?? null} />}
+                    {order.status === "pending" && <span className="max-lg:order-4"><AcceptCountdown acceptBy={order.acceptBy?.toISOString() ?? null} /></span>}
                     {(order.status === "confirmed" || order.status === "processing") && (
-                      <PillLink href={`/supplier/orders/${order.id}?kind=wholesale`} size="sm" icon="truck" tone="ink">{wholesalePickups.get(order.id)?.text ? t("orders.riderBooked", { when: wholesalePickups.get(order.id)!.text!.replace(/^Pick up/, "pick up") }) : t("orders.packAndBook")}</PillLink>
+                      <PillLink href={`/supplier/orders/${order.id}?kind=wholesale`} size="sm" icon="truck" tone="ink" className="max-lg:order-4">{wholesalePickups.get(order.id)?.text ? t("orders.riderBooked", { when: wholesalePickups.get(order.id)!.text!.replace(/^Pick up/, "pick up") }) : t("orders.packAndBook")}</PillLink>
                     )}
-                    <PillLink href={`/supplier/orders/${order.id}?kind=wholesale`} size="sm" icon="arrow">{t("open")}</PillLink>
-                    <Pill tone={stage.tone} dot>{stage.label}</Pill>
-                    <PillLink href={messagesHref("supplier", { with: order.sellerId, context: { kind: "wholesale_order", id: order.id } })} size="sm" icon="chat">{t("orders.messageShop")}</PillLink>
-                    <span className="min-w-[90px] text-right">
+                    <PillLink href={`/supplier/orders/${order.id}?kind=wholesale`} size="sm" icon="arrow" className="max-lg:order-4">{t("open")}</PillLink>
+                    <span className="max-lg:order-1"><Pill tone={stage.tone} dot>{stage.label}</Pill></span>
+                    <PillLink href={messagesHref("supplier", { with: order.sellerId, context: { kind: "wholesale_order", id: order.id } })} size="sm" icon="chat" className="max-lg:order-4">{t("orders.messageShop")}</PillLink>
+                    <span className="min-w-[90px] text-right max-lg:order-2 max-lg:ml-auto">
                       <span className="block text-[12px] text-app-ink-soft">{t("orders.youGet")}</span>
                       <span className="text-[18px] font-extrabold">{money(order.totalPrice, order.currency)}</span>
                     </span>
+                    <span aria-hidden className="basis-full max-lg:order-3 lg:hidden" />
                   </div>
                   <OrderActions kind="wholesale" orderId={order.id} actions={wholesaleActions(order.status)} defaultTracking={order.trackingCode ?? `SIB-${order.id.slice(0, 8).toUpperCase()}`} t={t} />
                 </li>

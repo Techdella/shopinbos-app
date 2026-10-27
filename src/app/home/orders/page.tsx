@@ -141,7 +141,7 @@ export default async function OrdersPage({
                     <div className="grid min-w-0 flex-1 items-center gap-x-5 gap-y-2 md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_auto] xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_120px_120px_110px_92px]">
                       <div className="min-w-0">
                         <div className="truncate text-[15px] font-extrabold">{row.buyer}</div>
-                        <div className="truncate text-[13px] text-app-ink-soft">
+                        <div className="line-clamp-2 break-words text-[13px] text-app-ink-soft sm:line-clamp-1">
                           {row.summary} · {order.orderNumber}
                         </div>
                       </div>
