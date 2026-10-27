@@ -1,10 +1,11 @@
-import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
 import { getT } from "@/lib/i18n/server";
 import { profileInvitePath, signupPath, type ReferralRole } from "@shared/referrals";
 
 // "Powered by Shopinbos" on a supplier's or delivery partner's public profile. Its join buttons go through the owner's
 // invite link marked src=profile, so whoever joins from the page counts as the owner's referral (shared/referrals.ts).
+// They are plain <a> links, not <Link>: Link prefetches /r/CODE as the buttons scroll into view, and each prefetch
+// sets the referral cookies, so just scrolling past would set them (and the last button prefetched would win).
 
 const JOIN: { role: ReferralRole; icon: "store" | "package" | "truck"; key: "badge.seller" | "badge.supplier" | "badge.partner" }[] = [
   { role: "seller", icon: "store", key: "badge.seller" },
@@ -34,7 +35,7 @@ export async function PoweredByShopinbos({ name, code, isOwner }: { name: string
       <p className="mb-0 mt-3 max-w-[600px] text-pretty text-[14.5px] leading-[1.6] text-white/65">{t("badge.sub")}</p>
       <div className="mt-5 flex flex-wrap gap-2">
         {JOIN.map((item, index) => (
-          <Link
+          <a
             key={item.role}
             href={code ? profileInvitePath(code, item.role) : signupPath(item.role)}
             className={
@@ -44,7 +45,7 @@ export async function PoweredByShopinbos({ name, code, isOwner }: { name: string
             }
           >
             <Icon name={item.icon} size={15} /> {t(item.key)}
-          </Link>
+          </a>
         ))}
       </div>
       {isOwner && <p className="mb-0 mt-4 max-w-[600px] text-[12.5px] leading-[1.5] text-white/55">{t("badge.owner")}</p>}
