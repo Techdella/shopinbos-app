@@ -13,6 +13,9 @@ export interface OrderItem {
   image?: string;
   /** Its product's short code ("BAG2"), when the product still has one. */
   shortCode?: string;
+  /** A preorder line (shared/preorder.ts): it ships from `shipsOn` (YYYY-MM-DD) or soon. */
+  preorder?: boolean;
+  shipsOn?: string | null;
 }
 
 export interface OrderDetail {
@@ -38,6 +41,8 @@ export interface OrderDetail {
   parts?: OrderParts | null;
   /** The customer's order page on the storefront (unguessable id), for "Share tracking". Older servers leave it out. */
   trackingUrl?: string | null;
+  /** A line was preordered: the earliest ship date (or null: soon). Null for an ordinary order; older servers leave it out. */
+  preorder?: { shipsOn: string | null } | null;
 }
 
 /** One parcel: a supplier's, or the seller's own ("You"). */

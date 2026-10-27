@@ -5,10 +5,12 @@ import { Image } from "expo-image";
 import { naira } from "@shared/onboarding";
 import { AppIcon } from "@/components/icons";
 import { Badge, ErrorState, Initials, LoadingBlock } from "@/components/kit";
+import { OneLine, PreorderBox } from "@/components/Preorder";
 import { Screen } from "@/components/Screen";
 import { Card, Field, Label, Notice, PillButton, Segmented, T } from "@/components/ui";
 import { clampSellingPrice, priceStep, saleBreakdown, tierPrice } from "@/lib/find-pure";
-import { addToStore, fetchFindContext, fetchFindProduct, requestQuote, type FindContext, type FindProduct, type Listing } from "@/lib/marketplace";
+import { addToStore, fetchFindContext, fetchFindProduct, placeWholesaleOrder, requestQuote, type FindContext, type FindProduct, type Listing } from "@/lib/marketplace";
+import { preorderButton, preorderPillText } from "@/lib/preorder-pure";
 import { BeforeYouList, SupplierRiskCard, SupplierTrustBadges } from "@/components/SupplierTrust";
 import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
@@ -18,6 +20,9 @@ import { colors, radii } from "@/theme";
 // add it to your store as a draft) or Wholesale (quantity, tier price, request a quote), and Message supplier.
 // The supplier's verification, risk score and distance show first; dropshipping needs the call, the stock check and
 // the Dropship agreement both sides accept (components/SupplierTrust.tsx).
+// A listing that takes preorders opens on Wholesale with a Preorder box (ship date, places left, the supplier's
+// promise, and that Shopinbos holds no preorder money) and "Preorder N for ₦…" (off when full), which places the bulk
+// order (POST /api/app/wholesale/request); the supplier confirms it and the seller pays them on Wholesale.
 
 function Stepper({ label, value, onMinus, onPlus, minusOff, plusOff }: { label: string; value: string; onMinus: () => void; onPlus: () => void; minusOff?: boolean; plusOff?: boolean }) {
   const t = useT("m_find");
@@ -69,7 +74,10 @@ export default function FindProductDetail() {
 
 function ProductView({ product, listing, context, refreshing, onRefresh }: { product: FindProduct; listing: Listing; context: FindContext | null; refreshing: boolean; onRefresh: () => void }) {
   const t = useT("m_find");
-  const [mode, setMode] = useState<"dropship" | "wholesale">(product.dropship ? "dropship" : "wholesale");
+  const tp = useT("m_ui");
+  const preorder = product.preorder?.on ? product.preorder : null;
+  // A listing that takes preorders opens on Wholesale (stock ordered before it arrives), like the web.
+  const [mode, setMode] = useState<"dropship" | "wholesale">(product.dropship && !(preorder && product.wholesale) ? "dropship" : "wholesale");
   const [price, setPrice] = useState(() => clampSellingPrice(product.price || product.cost * 1.5, product.cost));
   const [quantity, setQuantity] = useState(product.moq);
   const [destination, setDestination] = useState(context?.destination ?? "");
@@ -113,6 +121,21 @@ function ProductView({ product, listing, context, refreshing, onRefresh }: { pro
     }
   }
 
+  async function placePreorder() {
+    setBusy(true);
+    setNote(null);
+    try {
+      await placeWholesaleOrder({ supplierId: product.supplier.id, supplierProductId: product.id, quantity, deliveryAddress: destination.trim() });
+      setNote({ tone: "success", text: tp("preorder.placed", { name: product.supplier.name }) });
+    } catch (orderError) {
+      setNote({ tone: "error", text: orderError instanceof Error ? orderError.message : tp("preorder.failed") });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const preorderCta = preorder && product.wholesale ? preorderButton(preorder, quantity, naira(unit * quantity), tp) : null;
+
   // Dropship from a supplier the seller hasn't agreed with yet: the steps below come first, no add button.
   const mustAgree = mode === "dropship" && !already && listing.step !== "ready";
   const footer =
@@ -122,6 +145,10 @@ function ProductView({ product, listing, context, refreshing, onRefresh }: { pro
       ) : mustAgree ? undefined : (
         <PillButton title={t("product.put", { price: naira(price) })} busy={busy} onPress={() => void add()} />
       )
+    ) : preorderCta ? (
+      <PillButton busy={busy} disabled={preorderCta.disabled} accessibilityLabel={preorderCta.label} onPress={() => void placePreorder()}>
+        <OneLine text={preorderCta.label} color="#FFFFFF" />
+      </PillButton>
     ) : (
       <PillButton title={t("product.requestQuote", { quantity })} busy={busy} onPress={() => void quote()} />
     );
@@ -146,7 +173,8 @@ function ProductView({ product, listing, context, refreshing, onRefresh }: { pro
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
         <Badge label={t.dynamic(`category.${product.category}`, product.category)} />
         {product.ships ? <Badge label={product.ships.startsWith("Ships in ") ? t("ships", { time: product.ships.slice(9) }) : product.ships} /> : null}
-        {product.stock > 0 ? <Badge label={t("product.inStock", { count: product.stock })} /> : <Badge label={t("product.outOfStock")} bg={colors.dangerTint} fg={colors.danger} />}
+        {preorder ? <Badge label={preorderPillText(preorder, new Date(), tp) ?? tp("preorder.pill")} bg={colors.warnTint} fg={colors.warnInk} /> : null}
+        {product.stock > 0 ? <Badge label={t("product.inStock", { count: product.stock })} /> : preorder ? null : <Badge label={t("product.outOfStock")} bg={colors.dangerTint} fg={colors.danger} />}
         {already ? <Badge label={t("product.inShop")} bg={colors.successTint} fg={colors.success} /> : null}
       </View>
 
@@ -205,12 +233,14 @@ function ProductView({ product, listing, context, refreshing, onRefresh }: { pro
       ) : (
         <Card style={{ gap: 8 }}>
           <T style={{ color: colors.inkSoft, lineHeight: 20, marginBottom: 6 }}>{t("product.wholesaleIntro", { moq: product.moq })}</T>
+          {preorder ? <PreorderBox state={preorder} /> : null}
           <Stepper
             label={t("product.quantity")}
             value={String(quantity)}
             onMinus={() => setQuantity((current) => Math.max(product.moq, current - qtyStep))}
-            onPlus={() => setQuantity((current) => Math.min(1_000_000, current + qtyStep))}
+            onPlus={() => setQuantity((current) => Math.min(preorder?.left ?? 1_000_000, 1_000_000, current + qtyStep))}
             minusOff={quantity <= product.moq}
+            plusOff={preorder?.left != null && quantity >= preorder.left}
           />
           <View style={{ marginTop: 10, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 8 }}>
             <Line label={t("product.priceEach")} value={naira(unit)} />

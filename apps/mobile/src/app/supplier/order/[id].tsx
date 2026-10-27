@@ -9,6 +9,7 @@ import { Screen } from "@/components/Screen";
 import { Sheet } from "@/components/Sheet";
 import { NoteCard, Pic } from "@/components/SupplierKit";
 import { orderAmount, orderImage, orderItems } from "@/components/SupplierOrderRow";
+import { PreorderPill } from "@/components/Preorder";
 import { Chip, Field, LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { fetchSupplierTrack } from "@/lib/familiar";
 import { useT } from "@/lib/i18n";
@@ -293,6 +294,7 @@ export default function SupplierOrderScreen() {
       <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
         <Pill label={orderKindLabel(data.kind, t)} tone={dropship ? "org" : "teal"} />
         {data.kind === "wholesale" && data.paidAt ? <Pill label={t("order.paidInApp")} tone="ok" icon="check" /> : null}
+        <PreorderPill preorder={data.preorder} />
         <Small style={{ flex: 1 }}>{dropship ? t("order.kindNoteDropship") : t("order.kindNoteWholesale")}</Small>
       </View>
 

@@ -2,6 +2,7 @@ import type { VerificationDoc } from "@shared/verification-docs";
 import type { PickupSlot } from "@shared/supplier-pickup";
 import type { ContractDocument } from "@shared/contracts";
 import { api, apiBody } from "./api";
+import type { PreorderBody } from "./preorder-pure";
 
 // The supplier side of the app. Reads and writes go to the same backend as the web supplier portal:
 //   /api/mobile/supplier/overview · orders · orders/[id] · quotes/[id] · products/[id] · upload  (made for the app)
@@ -35,7 +36,9 @@ export interface DropshipOrder {
   shop: string;
   sellerUserId: string | null;
   label: { from: string; to: string; phone: string | null; address: string[]; collect: number };
-  items: Array<{ name: string; variant: string | null; quantity: number; image: string | null; yourPrice: number }>;
+  items: Array<{ name: string; variant: string | null; quantity: number; image: string | null; yourPrice: number; preorder?: true; shipsOn?: string | null }>;
+  /** Preorder lines: the earliest ship date the supplier gave (newer servers). */
+  preorder?: { shipsOn: string | null } | null;
   yourTotal: number;
   notes: string | null;
   trackingCode: string | null;
@@ -78,6 +81,8 @@ export interface WholesaleOrder {
   packed?: boolean;
   /** The rider booked for it: "Pick up 12–4pm today", or still finding one. */
   pickup?: { status: string; text: string | null } | null;
+  /** A preorder: the shop ordered stock before it arrived; it ships from the date the supplier gave (newer servers). */
+  preorder?: { shipsOn: string | null } | null;
   /** The shop paid by card in Shopinbos (straight to the supplier's bank). */
   paidAt?: string | null;
   createdAt: string;
@@ -116,6 +121,12 @@ export interface SupplierProduct {
   status: string;
   category: { id: string; name: string } | null;
   _count?: { storeProducts: number; quoteRequests: number };
+  /** Preorders (shared/preorder.ts): shops order stock before it arrives. Newer servers send them. */
+  preorderEnabled?: boolean;
+  preorderShipsAt?: string | null;
+  preorderLimit?: number | null;
+  preorderTaken?: number;
+  preorderNote?: string | null;
 }
 
 export async function fetchSupplierProducts() {
@@ -123,8 +134,8 @@ export async function fetchSupplierProducts() {
   return body.data ?? [];
 }
 
-export const quickEditProduct = (id: string, patch: { stockQuantity?: number; wholesalePrice?: number; suggestedRetailPrice?: number; publish?: boolean }) =>
-  api<Pick<SupplierProduct, "id" | "name" | "status" | "stockQuantity" | "wholesalePrice" | "suggestedRetailPrice">>(`/api/mobile/supplier/products/${encodeURIComponent(id)}`, { method: "PATCH", json: patch });
+export const quickEditProduct = (id: string, patch: { stockQuantity?: number; wholesalePrice?: number; suggestedRetailPrice?: number; publish?: boolean; preorder?: PreorderBody }) =>
+  api<Pick<SupplierProduct, "id" | "name" | "status" | "stockQuantity" | "wholesalePrice" | "suggestedRetailPrice" | "preorderEnabled" | "preorderShipsAt" | "preorderLimit" | "preorderTaken" | "preorderNote">>(`/api/mobile/supplier/products/${encodeURIComponent(id)}`, { method: "PATCH", json: patch });
 
 export interface NewSupplierProduct {
   name: string;
@@ -141,6 +152,8 @@ export interface NewSupplierProduct {
   processingTime?: string;
   pricingTiers?: { minQty: number; price: number }[];
   status: "draft" | "pending_review";
+  /** Take preorders (the server checks the date and cap with shared/preorder.ts). */
+  preorder?: PreorderBody;
 }
 
 export const createSupplierProduct = (product: NewSupplierProduct) => api<SupplierProduct>("/api/supplier/products", { method: "POST", json: product });
@@ -368,6 +381,8 @@ export interface ProductEdit {
   dropshipAvailable?: boolean;
   bulkOrderAvailable?: boolean;
   pricingTiers?: PriceTier[];
+  /** Preorder settings (only when they changed); they don't send a live product back for review. */
+  preorder?: PreorderBody;
 }
 
 export const editSupplierProduct = (id: string, patch: ProductEdit) =>

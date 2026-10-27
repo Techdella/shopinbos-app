@@ -8,12 +8,14 @@ import { AppIcon } from "@/components/icons";
 import { ChipRow } from "@/components/kit";
 import { ChoiceSheet } from "@/components/partner";
 import { Screen } from "@/components/Screen";
+import { PreorderEditor } from "@/components/Preorder";
 import { DoneView, FieldLabel } from "@/components/SupplierKit";
 import { Chip, Field, LinkButton, Notice, PillButton, T, Toggle } from "@/components/ui";
 import { VoiceInput } from "@/components/VoiceInput";
 import { ApiError } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { parseAmount, parseCount } from "@/lib/partner-pure";
+import { PREORDER_PROBLEM_KEY, preorderFormFrom, preorderPatch, type PreorderForm } from "@/lib/preorder-pure";
 import { savedAs } from "@/lib/supplier-pure";
 import { createSupplierProduct, fetchCategories, uploadSupplierPhoto } from "@/lib/supplier";
 import { useLoad } from "@/lib/useLoad";
@@ -24,6 +26,7 @@ import { colors, radii } from "@/theme";
 // have. The rest the marketplace needs (suggested retail price, a description and the kind of product) sits below,
 // with MOQ, shipping time, regions and dropship / wholesale folded away. Saved through the portal's own POST
 // /api/supplier/products: "Save" sends it for review (admins publish it), "Save for later" keeps a draft.
+// Under "More": take preorders (stock not here yet: ships from a date, a cap and the promise to shops; shared/preorder.ts).
 
 type Photo = { uri: string; mimeType?: string | null; fileName?: string | null };
 
@@ -34,7 +37,7 @@ const MAX_PHOTOS = 6;
 const BULK_FROM = 20;
 
 export default function NewSupplierProduct() {
-  const t = useT("m_supplier", "common");
+  const t = useT("m_supplier", "common", "m_ui");
   const categories = useLoad(fetchCategories);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [name, setName] = useState("");
@@ -54,6 +57,7 @@ export default function NewSupplierProduct() {
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [more, setMore] = useState(false);
+  const [preorder, setPreorder] = useState<PreorderForm>(() => preorderFormFrom(null));
   // "unverified": asked to show it to shops, but the business isn't verified yet, so the server kept it as a draft.
   const [saved, setSaved] = useState<null | "draft" | "pending_review" | "unverified">(null);
 
@@ -84,6 +88,8 @@ export default function NewSupplierProduct() {
     if (!categoryId) return t("new.needCategory");
     if (!parseCount(moq) || parseCount(moq)! < 1) return t("new.needMoq");
     if (!dropship && !bulk) return t("new.needKind");
+    const preorderResult = preorderPatch(preorder, null);
+    if (!preorderResult.ok) return t.dynamic(PREORDER_PROBLEM_KEY[preorderResult.problem]);
     return null;
   }
 
@@ -100,6 +106,7 @@ export default function NewSupplierProduct() {
       }
       setProgress(t("saving"));
       const bulkValue = parseAmount(bulkPrice);
+      const preorderResult = preorderPatch(preorder, null);
       const created = await createSupplierProduct({
         name: name.trim(),
         description: description.trim(),
@@ -114,6 +121,7 @@ export default function NewSupplierProduct() {
         deliveryRegions: regions.split(",").map((item) => item.trim()).filter(Boolean),
         processingTime: ships,
         ...(bulkValue ? { pricingTiers: [{ minQty: BULK_FROM, price: bulkValue }] } : {}),
+        ...(preorderResult.ok && preorderResult.patch?.enabled ? { preorder: preorderResult.patch } : {}),
         status,
       });
       setSaved(savedAs(status, created?.status));
@@ -276,6 +284,7 @@ export default function NewSupplierProduct() {
             </View>
             <Toggle on={bulk} onChange={setBulk} label={t("kind.wholesale")} />
           </View>
+          <PreorderEditor value={preorder} onChange={setPreorder} audience="shops" />
         </View>
       ) : (
         <LinkButton title={t("new.more")} color={colors.inkSoft} onPress={() => setMore(true)} />

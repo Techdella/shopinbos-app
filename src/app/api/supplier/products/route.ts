@@ -10,6 +10,7 @@ import { atLimit } from "@shared/plans";
 import { slugify } from "@/lib/workspace";
 import type { AuthUser } from "@/lib/auth/types";
 import { notifyProductForReview } from "@/lib/notifications/events.server";
+import { parsePreorderInput, preorderSaveData } from "@shared/preorder";
 
 export const GET = withSupplier(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const { page, limit, skip } = parsePagination(req.nextUrl.searchParams);
@@ -35,6 +36,8 @@ export const GET = withSupplier(async (req: NextRequest, { user }: { user: AuthU
         wholesalePrice: true, suggestedRetailPrice: true,
         currency: true, moq: true, stockQuantity: true,
         dropshipAvailable: true, status: true, trendScore: true, pricingTiers: true,
+        // Preorders (the supplier's own listing, so the count taken is theirs to see).
+        preorderEnabled: true, preorderShipsAt: true, preorderLimit: true, preorderTaken: true, preorderNote: true,
         createdAt: true, updatedAt: true,
         category: { select: { id: true, name: true, slug: true } },
         _count: { select: { storeProducts: true, quoteRequests: true } },
@@ -51,6 +54,11 @@ export const POST = withSupplier(async (req: NextRequest, { user }: { user: Auth
   if (!parsed.success) {
     return apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Invalid input");
   }
+
+  // Preorders (shared/preorder.ts): a real ship date (not past) and cap; saved as their own columns.
+  const { preorder, ...fields } = parsed.data;
+  const preorderParsed = preorder ? parsePreorderInput(preorder) : null;
+  if (preorderParsed && !preorderParsed.ok) return apiError("BAD_REQUEST", preorderParsed.message);
 
   const supplier = await db.supplier.findUnique({ where: { userId: user.id } });
   if (!supplier) return apiError("NOT_FOUND", "Supplier profile not found", 404);
@@ -82,7 +90,8 @@ export const POST = withSupplier(async (req: NextRequest, { user }: { user: Auth
 
   const product = await db.supplierProduct.create({
     data: {
-      ...parsed.data,
+      ...fields,
+      ...(preorderParsed?.ok ? preorderSaveData(preorderParsed.value) : {}),
       supplierId: supplier.id,
       slug,
       status: parsed.data.status === "pending_review" && !unverified ? "pending_review" : "draft",

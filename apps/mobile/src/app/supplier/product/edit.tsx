@@ -9,10 +9,12 @@ import { AppIcon } from "@/components/icons";
 import { ChipRow, ErrorState, LoadingBlock } from "@/components/kit";
 import { Screen } from "@/components/Screen";
 import { FieldLabel } from "@/components/SupplierKit";
+import { PreorderEditor } from "@/components/Preorder";
 import { Chip, Field, LinkButton, Notice, PillButton, T, Toggle } from "@/components/ui";
 import { VoiceInput } from "@/components/VoiceInput";
 import { useT } from "@/lib/i18n";
 import { parseAmount, parseCount } from "@/lib/partner-pure";
+import { PREORDER_PROBLEM_KEY, preorderFormFrom, preorderPatch, savedFromColumns, type PreorderForm } from "@/lib/preorder-pure";
 import { editSupplierProduct, fetchSupplierProduct, uploadSupplierPhoto, type PriceTier } from "@/lib/supplier";
 import { useLoad } from "@/lib/useLoad";
 import { colors } from "@/theme";
@@ -21,6 +23,8 @@ import { colors } from "@/theme";
 // wholesale price tiers (cheaper per piece for bigger orders), minimum order, shipping time, regions, and dropship /
 // wholesale. Saved through the portal's own PATCH /api/supplier/products/[id]; a live product goes back for review
 // when what shops see changes. ?focus=tiers opens with the price tiers first (Account › Wholesale price tiers).
+// Preorders (shared/preorder.ts, like the web form): take them, ships from, most on preorder and the promise to shops;
+// sent as `preorder` only when changed (no new review).
 
 const SHIPS = ["Same day", "24 hours", "48 hours", "3 days"];
 const MAX_PHOTOS = 6;
@@ -31,7 +35,7 @@ type TierDraft = { minQty: string; price: string };
 
 export default function EditSupplierProduct() {
   const { id, focus } = useLocalSearchParams<{ id: string; focus?: string }>();
-  const t = useT("m_supplier", "common");
+  const t = useT("m_supplier", "common", "m_ui");
   const product = useLoad(() => fetchSupplierProduct(String(id)), String(id));
   const data = product.data;
   const tiersOnly = focus === "tiers";
@@ -45,6 +49,7 @@ export default function EditSupplierProduct() {
   const [regions, setRegions] = useState("");
   const [dropship, setDropship] = useState(false);
   const [bulk, setBulk] = useState(true);
+  const [preorder, setPreorder] = useState<PreorderForm>(() => preorderFormFrom(null));
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -61,6 +66,7 @@ export default function EditSupplierProduct() {
     setRegions((extra.deliveryRegions ?? []).join(", "));
     setDropship(data.dropshipAvailable);
     setBulk(data.bulkOrderAvailable ?? true);
+    setPreorder(preorderFormFrom(savedFromColumns(data)));
   }, [data, filled]);
 
   async function addPhotos() {
@@ -94,6 +100,9 @@ export default function EditSupplierProduct() {
       if (!parseCount(moq) || parseCount(moq)! < 1) return setError(t("new.needMoq"));
       if (!dropship && !bulk) return setError(t("new.needKind"));
     }
+    // Preorders: only from servers that send them, and only when changed.
+    const preorderResult = !tiersOnly && data.preorderEnabled !== undefined ? preorderPatch(preorder, savedFromColumns(data)) : ({ ok: true, patch: null } as const);
+    if (!preorderResult.ok) return setError(t.dynamic(PREORDER_PROBLEM_KEY[preorderResult.problem]));
     setError(null);
     setBusy("save");
     try {
@@ -122,6 +131,7 @@ export default function EditSupplierProduct() {
               dropshipAvailable: dropship,
               bulkOrderAvailable: bulk,
               pricingTiers: priced,
+              ...(preorderResult.patch ? { preorder: preorderResult.patch } : {}),
             },
       );
       Alert.alert(saved.status === "pending_review" && data.status === "published" ? t("product.savedReview") : t("product.saved"));
@@ -240,6 +250,7 @@ export default function EditSupplierProduct() {
             </View>
             <Toggle on={bulk} onChange={setBulk} label={t("kind.wholesale")} />
           </View>
+          {data.preorderEnabled !== undefined ? <PreorderEditor value={preorder} onChange={setPreorder} audience="shops" taken={data.preorderEnabled ? data.preorderTaken : null} /> : null}
         </>
       )}
     </Screen>
