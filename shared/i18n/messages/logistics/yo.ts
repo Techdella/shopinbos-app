@@ -708,6 +708,11 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "market.cash.marked": "O sàmì sí i pé o ti san {amount} fún ṣọ́ọ̀bù. A ń dúró kí wọ́n jẹ́rìísí rẹ̀.",
   "market.cash.payShop": "San {amount} tí rider gbà fún ṣọ́ọ̀bù, lẹ́yìn náà:",
   "market.cash.mark": "Sàmì sí i pé o ti san owó fún ṣọ́ọ̀bù",
+  "partnerPage.notFound": "A kò rí delivery partner · Shopinbos",
+  "partnerPage.metaTitle": "{name} · delivery partner Shopinbos",
+  "partnerPage.metaDesc": "Book delivery pẹ̀lú {name} lórí Shopinbos.",
+  "partnerPage.pendingNote": "Shopinbos ṣì ń yẹ delivery partner yìí wò. Àwọn ṣọ́ọ̀bù kò lè book tàbí fi ìfiránṣẹ́ ránṣẹ́ sí wọn níbí títí a ó fi parí.",
+  "partnerPage.pending": "A ṣì ń jẹ́rìísí",
 };
 
 export default yo;

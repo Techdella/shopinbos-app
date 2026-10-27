@@ -18,6 +18,10 @@ import { db } from "@/lib/db/client";
 import { planOf } from "@/lib/plan-limits";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { getT } from "@/lib/i18n/server";
+import { ShareProfileCard } from "@/components/referrals/ShareProfileCard";
+import { profileShareStats } from "@/lib/referrals/service.server";
+import { appBase } from "@/lib/email/compliance.server";
+import { profileShareLink } from "@shared/referrals";
 
 export const dynamic = "force-dynamic";
 
@@ -53,6 +57,7 @@ export default async function SupplierProfilePage({ searchParams }: PageProps) {
   const billing = activeTab === BILLING_TAB;
   const photos = workshopPhotos(supplier.onboardingState);
   const place = [supplier.city, supplier.country].filter(Boolean).join(", ");
+  const share = billing ? null : await profileShareStats(user.id).catch(() => null);
 
   return (
     <AppPage
@@ -87,6 +92,9 @@ export default async function SupplierProfilePage({ searchParams }: PageProps) {
           <AssistantNote who="rex" action={<PillLink href="/supplier/verification" tone="ink" size="sm">{t("settings.link.verification.label")}</PillLink>}>
             {t("profile.unverifiedNote")}
           </AssistantNote>
+        )}
+        {share && (
+          <ShareProfileCard link={profileShareLink(appBase(), `/suppliers/${supplier.slug}`, share.code)} role="supplier" verified={supplier.verificationStatus === "verified"} joined={share.joined} />
         )}
 
         {billing ? (

@@ -4,7 +4,9 @@ import { getLogisticsPartnerForUser } from "@/lib/role-queries";
 import { PartnerPage } from "@/components/logistics/kit";
 import { ReferEarn } from "@/components/referrals/ReferEarn";
 import { referralOverview } from "@/lib/referrals/service.server";
-import { asReferralRole } from "@shared/referrals";
+import { ShareProfileCard } from "@/components/referrals/ShareProfileCard";
+import { appBase } from "@/lib/email/compliance.server";
+import { asReferralRole, profileShareLink } from "@shared/referrals";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Refer & earn" };
@@ -15,7 +17,12 @@ export default async function LogisticsReferPage(props: { searchParams?: Promise
   const [partner, overview] = await Promise.all([getLogisticsPartnerForUser(user), referralOverview(user.id)]);
   return (
     <PartnerPage frame={{ user, partner }} title="Refer & earn" sub="Invite other delivery partners, shops and suppliers. You both get rewarded.">
-      <ReferEarn overview={overview} focus={focus} />
+      <div className="grid gap-5">
+        <ReferEarn overview={overview} focus={focus} />
+        {partner.slug && (
+          <ShareProfileCard link={profileShareLink(appBase(), `/logistics/partners/${partner.slug}`, overview.code)} role="logistics_partner" verified={partner.verificationStatus === "verified"} joined={overview.counts.fromProfile} />
+        )}
+      </div>
     </PartnerPage>
   );
 }

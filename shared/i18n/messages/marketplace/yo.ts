@@ -255,10 +255,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "pub.home": "Ilé Shopinbos",
   "pub.browse": "Wo gbogbo supplier",
   "pub.contact": "Kàn sí supplier",
-  "pub.private": "A ṣì ń yẹ supplier yìí wò, nítorí náà ojú-ìwé wọn farapamọ́. Àwọn ṣọ́ọ̀bù kò lè rí ọjà wọn tàbí kàn sí wọn síbẹ̀.",
   "pub.logo": "Logo {name}",
   "pub.verified": "Supplier tí a ti jẹ́rìísí",
-  "pub.privateProfile": "Profile àdáni",
   "pub.products": "Ọjà {count}",
   "pub.quote": "Béèrè iye owó",
   "pub.message": "Fi ọ̀rọ̀ ránṣẹ́ sí supplier",
@@ -370,6 +368,15 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "ws.lead": "Àwọn ohun tí o rà ní ọ̀pọ̀ lọ́wọ́ àwọn supplier láti tọ́jú àti tà fúnra rẹ.",
   "ws.tip": "Ìmọ̀ràn: o lè fagilé order títí supplier yóò fi bẹ̀rẹ̀ sí í dì í. Nígbà tí wọ́n bá gbà á, san níbí pẹ̀lú káàdì (ó máa lọ tààrà sí bánkì wọn) tàbí san fún wọn tààrà.",
   "ds.tip": "Ìmọ̀ràn: tí ọjà kan bá ń tán lọ́dọ̀ supplier, tẹ Dá a dúró kí àwọn oníbàárà má baà lè order rẹ̀. Tẹ Tún tà á nígbà tó bá padà dé.",
+  "pub.pendingNote": "Shopinbos ṣì ń yẹ òwò yìí wò. Àwọn ṣọ́ọ̀bù kò lè ra ọjà lọ́wọ́ wọn tàbí fi ìfiránṣẹ́ ránṣẹ́ sí wọn níbí títí a ó fi parí.",
+  "pub.pendingProfile": "A ṣì ń jẹ́rìísí",
+  "badge.powered": "Agbára láti ọ̀dọ̀ Shopinbos",
+  "badge.title": "{name} ń lo Shopinbos. Òwò rẹ náà lè lò ó.",
+  "badge.sub": "Kọ́ ṣọ́ọ̀bù orí ayélujára pẹ̀lú AI, wá àwọn supplier tí o lè tà ọjà wọn, kí o sì ṣe delivery, gbogbo rẹ̀ ní ibì kan. Ọ̀fẹ́ ni láti bẹ̀rẹ̀.",
+  "badge.seller": "Bẹ̀rẹ̀ ṣọ́ọ̀bù mi",
+  "badge.supplier": "Darapọ̀ bí supplier",
+  "badge.partner": "Darapọ̀ bí delivery partner",
+  "badge.owner": "Èyí ni ohun tí àwọn ènìyàn ń rí nígbà tí o bá pín ojú-ìwé rẹ. Ẹnikẹ́ni tí ó bá darapọ̀ láti àwọn bọ́tìnnì wọ̀nyí jẹ́ referral rẹ.",
 };
 
 export default yo;
