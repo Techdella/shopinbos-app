@@ -65,10 +65,13 @@ export type LeadForPeggy = {
   source: string;
   pageUrl: string | null;
   message: string | null;
+  /** The team's own note on the lead (Admin › Leads). */
+  note?: string | null;
   createdAt: Date | string;
   convertedAt: Date | string | null;
 };
-export type LeadMessageForPeggy = { channel: string; createdAt: Date | string; template: string | null; from: string | null };
+/** `body` is what the message said (the campaign or sequence step text), so Peggy knows what they're answering. */
+export type LeadMessageForPeggy = { channel: string; createdAt: Date | string; template: string | null; from: string | null; body?: string | null };
 
 const roleName = (role: string) => (role === "delivery" ? "delivery partner" : role === "supplier" ? "supplier" : "seller");
 const day = (value: Date | string) => new Date(value).toISOString().slice(0, 10);
@@ -76,6 +79,21 @@ const day = (value: Date | string) => new Date(value).toISOString().slice(0, 10)
 /** People we found and contacted first (Admin › Lead campaigns › WhatsApp › Partnership outreach, or partner emails). */
 export function isOutreachLead(lead: Pick<LeadForPeggy, "source">) {
   return /outreach|partner-email/i.test(lead.source);
+}
+
+/** A business the team phoned and that agreed to join (source "partner-call…"). */
+export function isPartnerCallLead(lead: Pick<LeadForPeggy, "source">) {
+  return /partner-call/i.test(lead.source);
+}
+
+/** A sent message's text as they saw it: their first name in, the opt-out placeholder out, kept short. */
+function sentText(body: string) {
+  return body
+    .replace(/\{\{\s*(first_name|1)\s*\}\}/g, "[their name]")
+    .replace(/\n*If you'd rather not get these messages, open \[opt-out link\] to stop them\.?/i, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 700);
 }
 
 /**
@@ -86,7 +104,11 @@ export function isOutreachLead(lead: Pick<LeadForPeggy, "source">) {
 export function leadContext(lead: LeadForPeggy, sent: LeadMessageForPeggy[] = []) {
   const lines: string[] = [];
   const company = lead.message?.match(/^Company:\s*(.+)$/m)?.[1]?.trim();
-  if (isOutreachLead(lead)) {
+  if (isPartnerCallLead(lead)) {
+    lines.push(
+      `HOW WE MET: the Shopinbos team phoned ${company ? `their business (${company})` : "them"} and they agreed on the call to join as a ${roleName(lead.role)}; we then messaged them the next steps. They're expecting us: never thank them for signing up or pitch Shopinbos again. Thank them for the call, help them register and list their products, and answer their questions. When they want a setup call or help listing, say the team will reach out and set needs_human.`,
+    );
+  } else if (isOutreachLead(lead)) {
     lines.push(
       `HOW WE MET: partnership outreach. They did NOT sign up or join the waitlist: the Shopinbos team found ${company ? `their business (${company})` : "their business"} and reached out first, inviting them to partner as a ${roleName(lead.role)}. Never thank them for signing up or say they joined. If they ask how we got their number or email, say honestly that it's listed publicly for their business and we reached out because we'd like to partner with them; offer to stop messaging if they prefer.`,
     );
@@ -97,7 +119,7 @@ export function leadContext(lead: LeadForPeggy, sent: LeadMessageForPeggy[] = []
   } else {
     lines.push(`HOW WE MET: they filled in a form on the website (${lead.kind}${lead.pageUrl ? `, ${lead.pageUrl}` : ""}) on ${day(lead.createdAt)}, as a ${roleName(lead.role)} lead.`);
   }
-  const notes = lead.message?.replace(/^Company:.*$/m, "").trim();
+  const notes = [lead.message?.replace(/^Company:.*$/m, "").trim(), lead.note?.trim()].filter(Boolean).join(" ");
   if (notes) lines.push(`Team notes: ${notes.replace(/\s+/g, " ").slice(0, 600)}`);
   lines.push(lead.convertedAt ? "They already have a Shopinbos account." : "No Shopinbos account yet.");
   if (sent.length) {
@@ -106,6 +128,8 @@ export function leadContext(lead: LeadForPeggy, sent: LeadMessageForPeggy[] = []
       .map((m) => `${day(m.createdAt)} ${m.channel}${m.template ? ` "${m.template}"` : ""}${m.from ? ` (${m.from})` : ""}`)
       .join("; ");
     lines.push(`What we've sent them, newest first: ${list}. They may be replying to the latest one.`);
+    const latest = sent.find((m) => m.body?.trim());
+    if (latest?.body) lines.push(`Our latest message to them (${day(latest.createdAt)}, ${latest.channel}) said: "${sentText(latest.body)}"`);
   }
   return lines.join("\n");
 }
