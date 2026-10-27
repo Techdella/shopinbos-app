@@ -181,6 +181,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "admin.leads-all": "All leads",
   "admin.lead-campaigns": "Campaigns & automations",
   "admin.lead-whatsapp": "WhatsApp",
+  "admin.pilot": "Pilot testing",
   "admin.pricing": "Pricing",
   "admin.logistics-partners-all": "Logistics partners",
   "admin.pricing-prices": "Prices and fees",

@@ -181,6 +181,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "admin.leads-all": "Gbogbo leads",
   "admin.lead-campaigns": "Àwọn ìpolówó àti automation",
   "admin.lead-whatsapp": "WhatsApp",
+  "admin.pilot": "Ìdánwò pilot",
   "admin.pricing": "Iye owó",
   "admin.logistics-partners-all": "Àwọn alábàáṣiṣẹ́ ìfijiṣẹ́",
   "admin.pricing-prices": "Iye owó àti owó iṣẹ́",

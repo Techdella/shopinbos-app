@@ -462,6 +462,7 @@ model WebsiteLead {
 
   messages    LeadMessage[]
   enrollments LeadEnrollment[]
+  pilots      PilotApplicant[]
 
   @@index([status, createdAt])
   @@index([kind, createdAt])
@@ -5064,4 +5065,58 @@ model PushCampaignEvent {
   campaign PushCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
   @@index([campaignId, createdAt])
+}
+
+// ─── Pilot testing: invite waitlist leads, collect replies until a deadline, pick the testers ───────────────────
+// Admin › Leads › Pilot testing. docs/migrations/2026-12-01-pilot-testing.sql
+
+model PilotProgram {
+  id               String    @id @default(cuid())
+  name             String
+  status           String    @default("draft") // draft | open | closed
+  closesAt         DateTime
+  roles            String[]  @default(["seller", "supplier", "delivery"])
+  targets          Json      @default("{}") // { seller, supplier, delivery }: how many testers to pick per role
+  includeNoConsent Boolean   @default(false) // also invite leads who didn't tick "agree to messages" (one invite only)
+  textChannel      String    @default("sms") // sms | whatsapp | none: how leads without an email are invited
+  invitedAt        DateTime?
+  remindedAt       DateTime?
+  createdById      String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  applicants PilotApplicant[]
+}
+
+model PilotApplicant {
+  id            String       @id @default(cuid())
+  programId     String
+  leadId        String?
+  role          String // seller | supplier | delivery
+  // invited (no reply yet) | applied | declined | selected | waitlisted
+  status        String       @default("invited")
+  name          String?
+  email         String?
+  phone         String?
+  businessName  String?
+  city          String?
+  businessType  String?
+  devices       String[]     @default([])
+  availability  String?
+  note          String?
+  adminNote     String?
+  inviteChannel String?
+  inviteError   String?
+  invitedAt     DateTime?
+  remindedAt    DateTime?
+  appliedAt     DateTime?
+  decidedAt     DateTime?
+  notifiedAt    DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  program       PilotProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  lead          WebsiteLead? @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  @@unique([programId, leadId])
+  @@index([programId, status])
 }

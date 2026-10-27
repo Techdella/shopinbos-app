@@ -46,6 +46,7 @@ const PUBLIC_PAGES = [
   /^\/email\/preferences\//, // email preference center: the signed token is the credential
   /^\/email\/preferences\//, // email preference center, the signed token is the credential
   /^\/rider\/\[token\]$/, // rider job link, the token is the credential
+  /^\/pilot\/\[token\]$/, // pilot testing reply form; the signed token in the invitation is the credential
   /^\/delete-account$/, // account deletion request page Google Play requires; opens a rate-limited support ticket
   /^\/meta-data-deletion$/, // Meta data-deletion status page; the 12-character confirmation code is the credential
   /^\/invite\/\[code\]$/, // Refer & earn invite page (/r/CODE lands here): who invited you and the sign-up links
