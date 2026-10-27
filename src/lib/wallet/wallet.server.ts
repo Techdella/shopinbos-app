@@ -1,6 +1,7 @@
 import "server-only";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
+import { korapayFaceCheckReady } from "@/lib/korapay";
 import { getPriceBook } from "@/lib/pricing/price-book.server";
 import { storeFeeConfig, supplierCommissionPct } from "@shared/platform-pricing";
 import { planKeyFor } from "@shared/plans";
@@ -399,6 +400,11 @@ export interface WalletView {
    */
   check: { kind: "none" } | { kind: "business"; status: BusinessRegistrationStatus; href: string };
   kyc: { status: string; idType: string | null; idLast4: string | null; name: string | null; verifiedAt: string | null; checksReady: boolean };
+  /**
+   * The owner's identity: NIN checked (Kora) and the face check from the phone app (Kora liveness + face match,
+   * src/lib/wallet/identity.server.ts). faceReady: Kora's keys are set so the phone can run it.
+   */
+  identity: { nin: "verified" | "none"; ninLast4: string | null; face: "none" | "passed" | "failed" | "review"; faceCheckedAt: string | null; faceReady: boolean };
   bank: { bankName: string; accountName: string; accountEnding: string } | null;
   settlement: { status: string; error: string | null; frozen: boolean; frozenReason: string | null; korapay: boolean };
   /** Paystack's keys are set, so an active wallet takes card payments (false only while payments are off). */
@@ -477,6 +483,13 @@ export async function loadWalletView(user: { id: string; role: WalletRole }): Pr
     check,
     // Nobody has an ID step now ("not_required"; an older phone app shows its "not switched on" note there).
     kyc: { status: "not_required", idType: null, idLast4: null, name: null, verifiedAt: null, checksReady: false },
+    identity: {
+      nin: wallet.kycStatus === "verified" ? "verified" : "none",
+      ninLast4: wallet.kycStatus === "verified" ? wallet.kycIdLast4 : null,
+      face: (["passed", "failed", "review"] as const).find((state) => state === wallet.kycFaceStatus) ?? "none",
+      faceCheckedAt: wallet.kycFaceCheckedAt?.toISOString() ?? null,
+      faceReady: korapayFaceCheckReady(),
+    },
     bank: wallet.bankName && wallet.accountName ? { bankName: wallet.bankName, accountName: wallet.accountName, accountEnding: maskAccountNumber(wallet.accountNumber) } : null,
     settlement: { status: wallet.subaccountStatus, error: wallet.subaccountError, frozen: wallet.status === "frozen", frozenReason: wallet.frozenReason, korapay: false },
     cardsReady: paystackSecretReady(process.env.PAYSTACK_SECRET_KEY),

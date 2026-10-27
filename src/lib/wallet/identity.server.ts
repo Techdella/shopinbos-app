@@ -3,7 +3,8 @@ import "server-only";
 import { createHmac } from "node:crypto";
 import { db } from "@/lib/db/client";
 import { checkRateLimitShared, rateLimitKey } from "@/lib/rate-limit";
-import { korapayIdentityReady, verifyKorapayIdentity } from "@/lib/korapay";
+import { fetchKorapayFaceCheck, korapayFaceCheckReady, korapayIdentityReady, korapayPublicKey, verifyKorapayIdentity } from "@/lib/korapay";
+import { safeKoraReference } from "@/lib/korapay-liveness";
 import { verifyYouverifyIdentity, youverifyReady } from "@/lib/youverify";
 import { parseVerificationDocs } from "@/lib/verification-utils";
 import { cacOutcomeMessage, evaluateCac, isCacCompanyType, parseCacNumber } from "@/lib/kyb/cac";
@@ -22,6 +23,7 @@ export type { AccountIdentity } from "./balance-rules";
 
 const DAILY_NIN_CHECKS = 3;
 const DAILY_CAC_CHECKS = 3;
+const DAILY_FACE_CHECKS = 5;
 
 export function identityChecksReady() {
   return korapayIdentityReady() || youverifyReady();
@@ -160,4 +162,73 @@ export async function verifyWalletBusiness(user: { id: string; name: string | nu
     data: { verifiedBusinessName: lookup.record.companyName, verifiedBusinessNumber: lookup.record.rcNumber || parsed.number, verifiedBusinessAt: new Date() },
   });
   return { ok: true as const, message: `Verified with CAC: ${lookup.record.companyName}. Your account number in this name is on its way.` };
+}
+
+// ─── Face check (phone app) ─────────────────────────────────────────────────────
+// After the NIN is verified, the phone runs Kora's liveness check with a face match against the NIN's photo
+// (src/lib/korapay-liveness.ts). The NIN isn't stored, so the person types it again; it must be the one this wallet
+// verified (same keyed hash). Biometric data is sensitive (NDPA s.30): it runs only after an explicit yes, Kora
+// processes the images, and Shopinbos keeps only the outcome, Kora's reference and when consent was given.
+
+export interface FaceCheckStart {
+  publicKey: string;
+  sandbox: boolean;
+  user: { firstName: string; lastName: string; email?: string };
+  idLookup: { idType: "ng_nin"; fields: { id: string }; verificationConsent: true; validation: { firstName: string; lastName: string; dateOfBirth?: string } };
+}
+
+/** Checks the NIN is the verified one and returns what Kora's SDK needs to start. */
+export async function startFaceCheck(user: { id: string; email?: string | null }, input: { nin?: unknown; consent?: unknown }): Promise<FaceCheckStart> {
+  const publicKey = korapayPublicKey();
+  if (!publicKey || !korapayFaceCheckReady()) throw new WalletIdentityError("Face checks aren't switched on yet.", 503);
+  if (input.consent !== true) throw new WalletIdentityError("Agree to the face check first: it uses your camera to match your face to your NIN photo.");
+  const nin = String(input.nin ?? "").replace(/\D/g, "");
+  if (nin.length !== 11) throw new WalletIdentityError("Enter your 11-digit NIN.");
+  const wallet = await db.wallet.findUnique({ where: { userId: user.id }, select: { id: true, kycStatus: true, kycIdType: true, kycIdHash: true, kycFirstName: true, kycLastName: true, kycDateOfBirth: true, kycFaceStatus: true } });
+  if (!wallet || wallet.kycStatus !== "verified" || wallet.kycIdType !== "nin") throw new WalletIdentityError("Verify your NIN first.", 409);
+  if (wallet.kycFaceStatus === "passed") throw new WalletIdentityError("Your face check is already done.", 409);
+  if (wallet.kycIdHash !== idHash(nin)) throw new WalletIdentityError("That isn't the NIN you verified. Use the same NIN.");
+  if (!(await checkRateLimitShared(rateLimitKey("wallet-face", user.id), { maxRequests: DAILY_FACE_CHECKS, windowMs: 24 * 60 * 60_000 })).allowed) {
+    throw new WalletIdentityError("You've used today's face checks. Try again tomorrow.", 429);
+  }
+  await db.wallet.update({ where: { id: wallet.id }, data: { kycFaceConsentAt: new Date() } });
+  const firstName = wallet.kycFirstName ?? "";
+  const lastName = wallet.kycLastName ?? "";
+  return {
+    publicKey,
+    sandbox: publicKey.startsWith("pk_test_"),
+    user: { firstName, lastName, ...(user.email ? { email: user.email } : {}) },
+    idLookup: {
+      idType: "ng_nin",
+      fields: { id: nin },
+      verificationConsent: true,
+      validation: { firstName, lastName, ...(wallet.kycDateOfBirth ? { dateOfBirth: wallet.kycDateOfBirth } : {}) },
+    },
+  };
+}
+
+const FACE_MESSAGES = {
+  passed: "Face check done: it's really you. Thanks!",
+  failed: "Your face didn't match the photo on your NIN. Try again in good light, facing the camera, with nothing covering your face.",
+  review: "Thanks! We're checking the result and will let you know.",
+} as const;
+
+/** Asks Kora how the phone's face check went (by its reference) and keeps the outcome on the wallet. */
+export async function confirmFaceCheck(userId: string, input: { reference?: unknown }) {
+  const reference = safeKoraReference(input.reference);
+  if (!reference) throw new WalletIdentityError("The face check didn't finish. Try again.");
+  const wallet = await db.wallet.findUnique({ where: { userId }, select: { id: true, kycStatus: true, kycIdHash: true, kycFaceConsentAt: true, kycFaceStatus: true } });
+  if (!wallet || wallet.kycStatus !== "verified") throw new WalletIdentityError("Verify your NIN first.", 409);
+  if (!wallet.kycFaceConsentAt) throw new WalletIdentityError("Start the face check from the app.", 409);
+  if (wallet.kycFaceStatus === "passed") return { outcome: "passed" as const, message: FACE_MESSAGES.passed };
+  // One check counts for one wallet only.
+  const used = await db.wallet.findFirst({ where: { kycFaceReference: reference, NOT: { id: wallet.id } }, select: { id: true } });
+  if (used) throw new WalletIdentityError("That face check belongs to another account.", 409);
+
+  const result = await fetchKorapayFaceCheck(reference);
+  // The face must have been matched to this wallet's own NIN, when Kora says which one it looked up.
+  const outcome = result.outcome === "passed" && result.idNumber && result.idNumber.length === 11 && idHash(result.idNumber) !== wallet.kycIdHash ? "failed" : result.outcome;
+  await db.wallet.update({ where: { id: wallet.id }, data: { kycFaceStatus: outcome, kycFaceReference: reference, kycFaceCheckedAt: new Date() } });
+  if (outcome !== "passed") console.warn(`[wallet face] ${wallet.id} ${outcome}: ${result.detail}`);
+  return { outcome, message: FACE_MESSAGES[outcome] };
 }

@@ -118,6 +118,15 @@ export default async function AdminWalletsPage({ searchParams }: { searchParams?
                           <div className="mt-1">{kycName}</div>
                           <div className="text-app-ink-soft">{wallet.kycIdType?.toUpperCase()} …{wallet.kycIdLast4} · {formatDate(wallet.kycVerifiedAt)}</div>
                           {wallet.kycIdHash && shared.has(wallet.kycIdHash) ? <Pill tone="warning">ID on several wallets</Pill> : null}
+                          {/* Kora face check from the phone app (src/lib/korapay-liveness.ts); "review": look it up in Kora's dashboard by reference. */}
+                          {wallet.kycFaceStatus !== "none" ? (
+                            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                              <Pill tone={wallet.kycFaceStatus === "passed" ? "success" : wallet.kycFaceStatus === "failed" ? "danger" : "warning"}>
+                                {wallet.kycFaceStatus === "passed" ? "Face check passed" : wallet.kycFaceStatus === "failed" ? "Face check failed" : "Face check to review"}
+                              </Pill>
+                              {wallet.kycFaceReference ? <span className="font-mono text-[11.5px] text-app-ink-soft">{wallet.kycFaceReference}</span> : null}
+                            </div>
+                          ) : null}
                         </>
                       ) : null}
                     </td>

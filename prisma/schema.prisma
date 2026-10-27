@@ -4226,6 +4226,12 @@ model Wallet {
   kycVerifiedAt   DateTime?
   kycAttempts     Int       @default(0) // failed checks on kycAttemptDay
   kycAttemptDay   String? // YYYY-MM-DD, Lagos time
+  // Face check (Kora liveness + face match against the NIN's photo, run in the phone app with the person's explicit
+  // consent; src/lib/korapay-liveness.ts). Only the result is kept: Kora holds the images, Shopinbos never does.
+  kycFaceStatus    String    @default("none") // none | passed | failed | review
+  kycFaceReference String? // Kora's liveness session reference (LC-…)
+  kycFaceCheckedAt DateTime?
+  kycFaceConsentAt DateTime?
   // The bank Paystack settles to (name checked with Paystack's account lookup).
   bankCode        String?
   bankName        String?

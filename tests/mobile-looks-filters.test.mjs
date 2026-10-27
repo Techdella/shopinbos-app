@@ -64,7 +64,8 @@ test("Shop looks screen: grid, filters, full-screen preview, live demo, Use this
   const lib = mobile("lib/templates.ts");
   assert.match(lib, /"\/api\/store\/templates\/apply"/);
   assert.doesNotMatch(lib, /purchase/);
-  assert.doesNotMatch(read("apps/mobile/package.json"), /react-native-webview/, "no WebView dependency: the demo opens in the in-app browser");
+  // react-native-webview is installed only as the peer Kora's face check SDK needs (app/face-check.tsx).
+  assert.doesNotMatch(screen, /react-native-webview|<WebView/, "no WebView: the demo opens in the in-app browser");
 });
 
 test("Shop looks filters: category, plan, light or dark, search with accents folded, usable and new", () => {
