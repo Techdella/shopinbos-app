@@ -46,7 +46,7 @@ import { queuePeggyAutoReply } from "./peggy.server";
 
 /** The agent id Peggy's own auto-replies use (not a user). */
 export const PEGGY_ID = "peggy";
-import { isStopMessage, renderTeamTemplate, teamTemplateProblem, whatsappPhone, whatsappWindowOpen } from "./whatsapp-pure";
+import { isStopMessage, phoneTail, pickPhoneMatch, renderTeamTemplate, teamTemplateProblem, whatsappPhone, whatsappWindowOpen } from "./whatsapp-pure";
 
 // Live support: tickets, threads, notifications and the admin desk's queries. Everything degrades when
 // docs/migrations/2026-10-12-support.sql hasn't run yet (supportReady() is false): see each caller.
@@ -269,11 +269,7 @@ export async function createPublicRequest(input: {
 
   // Match an existing account for the desk's context panel only: a signed-out form can't prove who sent it,
   // so it never lands in that account's in-app history.
-  const matched = input.email
-    ? await db.user.findUnique({ where: { email: input.email }, select: { id: true, role: true } }).catch(() => null)
-    : input.phone
-      ? await db.user.findFirst({ where: { phone: input.phone }, select: { id: true, role: true } }).catch(() => null)
-      : null;
+  const matched = await accountByContact(input.email, input.phone);
 
   const ticket = await openTicket({
     userId: null,
@@ -658,7 +654,13 @@ export async function getTicketForAgent(number: number, agentId: string) {
     await db.supportTicket.update({ where: { id: ticket.id }, data: { agentReadAt: new Date() } }).catch(() => null);
   }
   const meta = (ticket.meta && typeof ticket.meta === "object" && !Array.isArray(ticket.meta) ? ticket.meta : {}) as Record<string, unknown>;
-  const contextUserId = ticket.userId ?? (typeof meta.matchedUserId === "string" ? meta.matchedUserId : null);
+  // Tickets matched to no account when they came in (or before phone matching ignored the format) are looked up
+  // again, so an account made later, or one stored as "2348…" against a "+2348…" ticket, still shows.
+  const contextUserId =
+    ticket.userId ??
+    (typeof meta.matchedUserId === "string" ? meta.matchedUserId : null) ??
+    (await accountByContact(ticket.email, ticket.phone))?.id ??
+    null;
   const [admins, context, previous] = await Promise.all([
     adminUsers(),
     contextUserId ? userContext(contextUserId).catch(() => null) : Promise.resolve(null),
@@ -682,6 +684,20 @@ export async function getTicketForAgent(number: number, agentId: string) {
     context,
     previous,
   };
+}
+
+/**
+ * The account a signed-out email or phone belongs to: by email, else by phone, however either side wrote the
+ * number ("+234…", "234…" from Supabase Auth or a WhatsApp wa_id, "0…"). Only for context, never proof it's them.
+ */
+async function accountByContact(email: string | null | undefined, phone: string | null | undefined) {
+  const select = { id: true, role: true, name: true, phone: true } as const;
+  const byEmail = email ? await db.user.findUnique({ where: { email }, select }).catch(() => null) : null;
+  if (byEmail) return byEmail;
+  const tail = phoneTail(phone);
+  if (!tail) return null;
+  const candidates = await db.user.findMany({ where: { phone: { endsWith: tail } }, select, take: 5 }).catch(() => []);
+  return pickPhoneMatch(phone, candidates);
 }
 
 export type AgentTicket = NonNullable<Awaited<ReturnType<typeof getTicketForAgent>>>;
@@ -1023,7 +1039,7 @@ export async function ingestSupportWhatsApp(input: {
       queuePeggyAutoReply(existing.id);
       return "reply";
     }
-    const matched = await db.user.findFirst({ where: { phone: { endsWith: phone.slice(-10) } }, select: { id: true, role: true, name: true } }).catch(() => null);
+    const matched = await accountByContact(null, phone);
     const ticket = await openTicket({
       userId: null,
       name: input.name || matched?.name || lead?.name || phone,
@@ -1145,7 +1161,7 @@ export async function startConversation(agent: Viewer, input: StartConversation)
 
   const phone = whatsappPhone(input.phone);
   if (!phone) throw new SupportError("BAD_REQUEST", "Enter a WhatsApp number with its country code, like +234 803 412 7790.");
-  const matched = account ?? (await db.user.findFirst({ where: { phone: { endsWith: phone.slice(-10) } }, select: { id: true, role: true, name: true } }).catch(() => null));
+  const matched = account ?? (await accountByContact(null, phone));
   const open = await db.supportTicket.findFirst({ where: { source: "whatsapp", phone, status: { not: "closed" } }, orderBy: { lastMessageAt: "desc" } });
   const values = { name: name || open?.name || matched?.name || null, agent: agent.name, note: input.note ?? null, business: input.business ?? null };
 
@@ -1248,11 +1264,7 @@ export async function conversationFromLead(leadId: string): Promise<number | nul
   if (existing) return existing.number;
   const email = lead.email?.trim().toLowerCase() || null;
   const phone = whatsappPhone(lead.phone);
-  const matched = email
-    ? await db.user.findUnique({ where: { email }, select: { id: true, role: true } }).catch(() => null)
-    : phone
-      ? await db.user.findFirst({ where: { phone: { endsWith: phone.slice(-10) } }, select: { id: true, role: true } }).catch(() => null)
-      : null;
+  const matched = await accountByContact(email, phone);
   try {
     const ticket = await openTicket({
       userId: null,
