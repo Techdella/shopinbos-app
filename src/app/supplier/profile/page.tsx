@@ -67,7 +67,7 @@ export default async function SupplierProfilePage({ searchParams }: PageProps) {
       actions={
         billing ? undefined : (
           <>
-            <PillLink href={`/suppliers/${supplier.slug}`} icon="eye">{t("profile.publicPage")}</PillLink>
+            <PillLink href={`/suppliers/${supplier.slug}`} icon="eye" iconOnlyOnPhone>{t("profile.publicPage")}</PillLink>
             <button type="submit" form="profile-form" className={buttonClass.accent}>{t("profile.saveChanges")}</button>
           </>
         )

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { PillLink } from "@/components/app-kit";
+import { MoreActions, PillLink } from "@/components/app-kit";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { db } from "@/lib/db/client";
 import { hasAiProvider } from "@/lib/inbox/ai";
@@ -58,7 +58,9 @@ export default async function ChatbotPage({ searchParams }: { searchParams: Prom
         sub={t("bot.waSub")}
         actions={
           <>
-            <PillLink href="/home/inbox/channels" icon="plug">{t("ar.channels")}</PillLink>
+            <MoreActions>
+              <PillLink href="/home/inbox/channels" icon="plug">{t("ar.channels")}</PillLink>
+            </MoreActions>
             <PillLink href="/home/messages" icon="chat" tone="ink">{t("ch.openInbox")}</PillLink>
           </>
         }
@@ -87,8 +89,10 @@ export default async function ChatbotPage({ searchParams }: { searchParams: Prom
       sub={t("bot.sub")}
       actions={
         <>
-          <PillLink href="/home/inbox/auto-replies" icon="clock">{t("autoReplies")}</PillLink>
-          <PillLink href="/home/marketing/chat" icon="chat">{t("bot.widget")}</PillLink>
+          <MoreActions>
+            <PillLink href="/home/inbox/auto-replies" icon="clock">{t("autoReplies")}</PillLink>
+            <PillLink href="/home/marketing/chat" icon="chat">{t("bot.widget")}</PillLink>
+          </MoreActions>
         </>
       }
     >

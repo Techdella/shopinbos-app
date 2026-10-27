@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
-import { AssistantNote, PillLink } from "@/components/app-kit";
+import { AssistantNote, MoreActions, PillLink } from "@/components/app-kit";
 import { formatDate } from "@/components/growth/kit";
 import { MARKETING_STORE_SELECT, emailBrand } from "@/lib/marketing/brand";
 import { previewShopFor } from "@/lib/email/compliance.server";
@@ -80,7 +80,9 @@ export default async function TemplatesPage() {
       sub={t("tpl.sub")}
       actions={
         <>
-          <PillLink href="/home/brand-kit" icon="palette">{t("tpl.brandKit")}</PillLink>
+          <MoreActions>
+            <PillLink href="/home/brand-kit" icon="palette">{t("tpl.brandKit")}</PillLink>
+          </MoreActions>
           <PillLink href="/home/marketing/templates/new" tone="accent" icon="plus">{t("tpl.new")}</PillLink>
         </>
       }

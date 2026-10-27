@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
-import { Card, CardHead, EmptyState, FilterChips, PillLink, StatTile, TextLink, Thumb } from "@/components/app-kit";
+import { Card, CardHead, EmptyState, FilterChips, MoreActions, PillLink, StatTile, TextLink, Thumb } from "@/components/app-kit";
 import { ShareBar, buttonClass, inputClass } from "@/components/growth/kit";
 import { Icon } from "@/components/ui/Icon";
 import { cx } from "@/components/app-ui/cx";
@@ -139,7 +139,9 @@ export default async function TrafficPage({ searchParams }: { searchParams: Sear
       sub={t("sub")}
       actions={
         <>
-          <PillLink href="/home/connections" icon="plug">{t("connections")}</PillLink>
+          <MoreActions>
+            <PillLink href="/home/connections" icon="plug">{t("connections")}</PillLink>
+          </MoreActions>
           <PillLink href={`/home/peggy?ask=${encodeURIComponent(ask("overview"))}`} tone="ink" icon="sparkle">{t("askPeggyAll")}</PillLink>
         </>
       }

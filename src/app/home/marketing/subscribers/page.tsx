@@ -3,7 +3,7 @@ import type { SubscriberSource, SubscriberStatus } from "@prisma/client";
 import { requireRole } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
-import { FilterChips, PillLink, SearchForm, StatGrid, StatTile } from "@/components/app-kit";
+import { FilterChips, MoreActions, PillLink, SearchForm, StatGrid, StatTile } from "@/components/app-kit";
 import { PHONE_SCROLL_ROW } from "@/components/app-ui/cx";
 import { consentSummary, listSubscribers } from "@/lib/marketing/subscribers";
 import { SOURCE_LABEL } from "@/lib/marketing/segment-rules";
@@ -57,8 +57,10 @@ export default async function SubscribersPage({ searchParams }: { searchParams?:
       sub={t("subs.sub")}
       actions={
         <>
-          <PillLink href="/home/marketing/forms" icon="mail">{t("subs.signupForms")}</PillLink>
-          <PillLink href="/home/marketing/segments" icon="layers">{t("hub.tool.segments")}</PillLink>
+          <MoreActions>
+            <PillLink href="/home/marketing/forms" icon="mail">{t("subs.signupForms")}</PillLink>
+            <PillLink href="/home/marketing/segments" icon="layers">{t("hub.tool.segments")}</PillLink>
+          </MoreActions>
         </>
       }
     >

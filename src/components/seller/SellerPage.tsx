@@ -48,11 +48,11 @@ export function SellerPage({
       <div className={cx("w-full px-4 py-6 font-app text-app-ink sm:px-6 xl:px-8 2xl:px-10", width)}>
         <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.8px]"><TitleTerm title={title} /></h1>
+            <h1 className="m-0 break-words text-[28px] font-extrabold leading-[1.1] tracking-[-0.8px] sm:text-[30px]"><TitleTerm title={title} /></h1>
             {sub && <p className="mb-0 mt-1.5 max-w-[640px] text-[14.5px] leading-[1.5] text-app-ink-soft">{sub}</p>}
             <LearnPill role="seller" variant="inline" className="mt-3.5" />
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
             {actions}
             <HelpButton />
           </div>

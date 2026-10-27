@@ -9,7 +9,7 @@ import { requireRole } from "@/lib/server-auth";
 import { getSellerWorkspace } from "@/lib/workspace";
 import { db } from "@/lib/db/client";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
-import { Card, EmptyState, PillLink, Pill, cx } from "@/components/app-kit";
+import { Card, EmptyState, MoreActions, PillLink, Pill, cx } from "@/components/app-kit";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { BRAND_COLOURS, LINKED_TOKENS, headingFont, readStoreLook, toHex6 } from "../store/look";
 import { ColourSwatches, DownloadLogoButton, UploadLogoButton, VoiceNote } from "./BrandKitControls";
@@ -79,9 +79,12 @@ export default async function BrandKitPage() {
       actions={
         <>
           <UploadLogoButton hasLogo={Boolean(store.logoUrl)} />
-          <PillLink href="/home/brand-kit/sheet" icon="document">{t("bk.sheet")}</PillLink>
-          <PillLink href="/home/brand-kit/book" icon="document">{t("ba.bookTitle")}</PillLink>
-          <PillLink href="/studio/logo" tone="ink" icon="sparkle">{t("bk.newLogo")}</PillLink>
+          {/* Phones: these fold into a "⋯" menu so the header stays one row (sheet and book are also linked below). */}
+          <MoreActions>
+            <PillLink href="/home/brand-kit/sheet" icon="document">{t("bk.sheet")}</PillLink>
+            <PillLink href="/home/brand-kit/book" icon="book">{t("ba.bookTitle")}</PillLink>
+            <PillLink href="/studio/logo" tone="ink" icon="sparkle">{t("bk.newLogo")}</PillLink>
+          </MoreActions>
         </>
       }
     >
@@ -90,8 +93,8 @@ export default async function BrandKitPage() {
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(340px,430px)]">
         <div className="grid min-w-0 content-start gap-5">
           <figure className="m-0">
-            <div className="grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
-              <LogoTile background={paper} className="aspect-[16/10] sm:aspect-auto sm:h-[200px]">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
+              <LogoTile background={paper} className="col-span-2 aspect-[16/10] sm:col-span-1 sm:aspect-auto sm:h-[200px]">
                 {store.logoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={store.logoUrl} alt={t("bk.logoAlt", { name: store.name })} className="max-h-[120px] max-w-full object-contain" />
@@ -99,7 +102,7 @@ export default async function BrandKitPage() {
                   <span className="max-w-full truncate text-[34px] leading-tight" style={{ fontFamily: font, color: ink, fontWeight: serif ? 500 : 800 }}>{store.name}</span>
                 )}
               </LogoTile>
-              <LogoTile background={ink} className="aspect-[16/10] sm:aspect-auto sm:h-[200px]">
+              <LogoTile background={ink} className="aspect-square sm:aspect-auto sm:h-[200px]">
                 {store.logoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={store.logoUrl} alt="" className="max-h-[90px] max-w-full rounded-[10px] bg-white/95 object-contain p-2" />
@@ -107,7 +110,7 @@ export default async function BrandKitPage() {
                   <span className="max-w-full truncate text-[20px] leading-tight" style={{ fontFamily: font, color: paper, fontWeight: serif ? 500 : 800 }}>{store.name}</span>
                 )}
               </LogoTile>
-              <LogoTile background="#FFFFFF" className="aspect-[16/10] border border-app-line sm:aspect-auto sm:h-[200px]">
+              <LogoTile background="#FFFFFF" className="aspect-square border border-app-line sm:aspect-auto sm:h-[200px]">
                 <span className="grid h-[76px] w-[76px] place-items-center overflow-hidden rounded-[20px] text-[36px]" style={{ background: accent, color: "#FFFFFF", fontFamily: font, fontWeight: serif ? 500 : 800 }}>
                   {store.logoUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -182,7 +185,7 @@ export default async function BrandKitPage() {
                     <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px] bg-app-canvas"><Icon name={place.icon} size={17} /></span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[14.5px] font-bold">{t(`used.${place.key}.title`)}</span>
-                      <span className="block truncate text-[13px] text-app-ink-soft">{t(`used.${place.key}.sub`)}</span>
+                      <span className="block text-[13px] text-app-ink-soft sm:truncate">{t(`used.${place.key}.sub`)}</span>
                     </span>
                     {place.used ? (
                       <span className="flex shrink-0 items-center gap-1 text-[12.5px] font-bold text-app-success"><Icon name="check" size={16} /><span className="sr-only">{t("bk.usesBrand")}</span></span>
@@ -249,7 +252,7 @@ function FileRow({ icon, title, sub, children }: { icon: IconName; title: string
       <Icon name={icon} size={18} className="shrink-0 text-app-ink-soft" />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[14.5px] font-bold">{title}</span>
-        <span className="block truncate text-[13px] text-app-ink-soft">{sub}</span>
+        <span className="block text-[13px] text-app-ink-soft sm:truncate">{sub}</span>
       </span>
       {children}
     </li>

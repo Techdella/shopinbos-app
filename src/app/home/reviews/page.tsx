@@ -58,7 +58,7 @@ export default async function SellerReviewsPage({ searchParams }: { searchParams
       sub={summary.count ? t("list.sub", { count: summary.count, sources: sourceCounts.length, average: summary.average.toFixed(1) }) : t("list.subEmpty")}
       actions={
         <>
-          <PillLink href="/home/reviews/sources#import" icon="upload">{t("list.import")}</PillLink>
+          <PillLink href="/home/reviews/sources#import" icon="upload" iconOnlyOnPhone>{t("list.import")}</PillLink>
           <PillLink href="/home/reviews/request" tone="accent" icon="send">{t("tabs.ask")}</PillLink>
         </>
       }

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { requireRole } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
-import { AssistantNote, Card, CardHead, ListCard, ListRow, Pill, PillLink, SplitLayout, StatGrid, StatTile, TextLink } from "@/components/app-kit";
+import { AssistantNote, Card, CardHead, ListCard, ListRow, MoreActions, Pill, PillLink, SplitLayout, StatGrid, StatTile, TextLink } from "@/components/app-kit";
 import { Bars, ShareBar, formatDate } from "@/components/growth/kit";
 import { formatDate as formatLocaleDate, formatMoney } from "@shared/i18n";
 import { getLocale, getT } from "@/lib/i18n/server";
@@ -51,8 +51,10 @@ export default async function SellerPaymentsPage() {
       sub={t("money.sub")}
       actions={
         <>
-          <PillLink href="/home/invoices" icon="document">{t("invoices")}</PillLink>
-          <PillLink href="/home/payouts" icon="bank" iconOnlyOnPhone>{t("payouts")}</PillLink>
+          <MoreActions>
+            <PillLink href="/home/invoices" icon="document">{t("invoices")}</PillLink>
+            <PillLink href="/home/payouts" icon="bank">{t("payouts")}</PillLink>
+          </MoreActions>
           <PillLink href="/home/orders/new" tone="accent" icon="plus">{t("recordSale")}</PillLink>
         </>
       }

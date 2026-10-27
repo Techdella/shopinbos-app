@@ -3,7 +3,7 @@ import type { CampaignStatus } from "@prisma/client";
 import { requireRole } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
-import { AssistantNote, EmptyState, FilterChips, ListCard, ListRow, Pill, PillLink, StatGrid, StatTile, type Tone } from "@/components/app-kit";
+import { AssistantNote, EmptyState, FilterChips, ListCard, ListRow, MoreActions, Pill, PillLink, StatGrid, StatTile, type Tone } from "@/components/app-kit";
 import { RexAICopywriter } from "@/components/marketing/RexAICopywriter";
 import { formatDate, humanize } from "@/components/growth/kit";
 import { naira } from "@shared/onboarding";
@@ -86,8 +86,10 @@ export default async function CampaignsPage({ searchParams }: { searchParams?: P
       actions={
         <>
           <RexAICopywriter storeName={store?.name} />
-          <PillLink href="/home/marketing/templates" icon="mail" iconOnlyOnPhone>{t("campaigns.templates")}</PillLink>
-          <PillLink href="/home/marketing/whatsapp" icon="whatsapp" iconOnlyOnPhone>{t("hub.tool.whatsappTemplates")}</PillLink>
+          <MoreActions>
+            <PillLink href="/home/marketing/templates" icon="mail">{t("campaigns.templates")}</PillLink>
+            <PillLink href="/home/marketing/whatsapp" icon="whatsapp">{t("hub.tool.whatsappTemplates")}</PillLink>
+          </MoreActions>
           <PillLink href="/home/marketing/campaigns/new" tone="accent" icon="plus">{t("hub.newCampaign")}</PillLink>
         </>
       }

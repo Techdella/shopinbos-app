@@ -8,6 +8,8 @@ import { Mascot, type MascotMood } from "@/components/brand/Mascot";
 import { LearnPill } from "@/components/learn/FeatureIntroHost";
 import { TitleTerm } from "@/components/learn/Term";
 
+export { MoreActions } from "./MoreActions";
+
 // The 2026 app look ("Seller app · web", "Products, web", "Partners · web dispatch console" prototypes)
 // as server-safe building blocks. Pages are full-bleed: they use the whole width at every size.
 // Interactive pieces (inputs, toggles, segmented controls) live in "@/components/app-ui".

@@ -5,7 +5,7 @@ import { db } from "@/lib/db/client";
 import { saveStoreNavigationSettings } from "@/app/actions/workspace";
 import { PageToast } from "@/components/PageToast";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
-import { PillLink } from "@/components/app-kit";
+import { MoreActions, PillLink } from "@/components/app-kit";
 import { Notice } from "@/components/app-ui";
 import { getT } from "@/lib/i18n/server";
 import { parseEditorState } from "@/lib/store-templates";
@@ -71,8 +71,10 @@ export default async function NavigationSettingsPage({ searchParams }: NavPagePr
       sub={t("nav.sub")}
       actions={
         <>
-          <PillLink href="/home/pages" icon="document">{t("nav.pages")}</PillLink>
-          <PillLink href="/seller/store/builder?rex=menu" icon="sparkle">{t("nav.editWithRex")}</PillLink>
+          <MoreActions>
+            <PillLink href="/home/pages" icon="document">{t("nav.pages")}</PillLink>
+            <PillLink href="/seller/store/builder?rex=menu" icon="sparkle">{t("nav.editWithRex")}</PillLink>
+          </MoreActions>
           <PillLink href="/seller/store/builder?focus=header" icon="palette" tone="ink">{t("nav.builder")}</PillLink>
         </>
       }

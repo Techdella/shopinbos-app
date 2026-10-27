@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { ensureSupplierAccess, getSupplierForUser } from "@/lib/role-queries";
-import { AppPage, PillLink } from "@/components/app-kit";
+import { AppPage, MoreActions, PillLink } from "@/components/app-kit";
 import { supplierFrame } from "@/components/supplier/supplier-kit";
 import { updateSupplierProduct } from "@/app/actions/supplier";
 import { SupplierProductForm } from "@/components/supplier/SupplierProductForm";
@@ -64,7 +64,9 @@ export default async function EditSupplierProductPage({
       sub={t("editProduct.sub", { category: product.category.name })}
       actions={
         <>
-          <PillLink href="/supplier/products">{t("dashboard.allProducts")}</PillLink>
+          <MoreActions>
+            <PillLink href="/supplier/products">{t("dashboard.allProducts")}</PillLink>
+          </MoreActions>
           <PillLink href="/supplier/products/new" icon="plus">{t("editProduct.newProduct")}</PillLink>
         </>
       }
