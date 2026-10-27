@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { PUBLIC_PREORDER_SELECT, withPublicPreorder } from "@/lib/marketplace/public-preorder";
 import { boostedProductIds, markFeatured } from "@/lib/plans/extras.server";
 import { PRODUCT_PLAN_FIRST } from "@/lib/plans/placement";
 import { db } from "@/lib/db/client";
@@ -25,6 +26,8 @@ const select = {
   deliveryRegions: true,
   processingTime: true,
   trendScore: true,
+  // Shaped into `preorder` (never the raw counts) by withPublicPreorder.
+  ...PUBLIC_PREORDER_SELECT,
   status: true,
   createdAt: true,
   supplier: {
@@ -82,7 +85,7 @@ export async function GET(req: NextRequest) {
   const { total, products } = await cachedPublic(publicCacheKey("products:list", parsed.data), PUBLIC_LIST_TTL_S, async () => {
     const [total, products] = await Promise.all([
       db.supplierProduct.count({ where }),
-      db.supplierProduct.findMany({ where, select, orderBy, skip, take: limit }),
+      db.supplierProduct.findMany({ where, select, orderBy, skip, take: limit }).then((rows) => rows.map(withPublicPreorder)),
     ]);
     // Products boosted this week lead the default sort (src/lib/plans/extras.server.ts).
     return { total, products: sort === "trending" ? markFeatured(products, await boostedProductIds()) : products };

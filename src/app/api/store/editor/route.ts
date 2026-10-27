@@ -72,7 +72,7 @@ async function getStoreEditorData(userId: string) {
           videoUrl: true,
           // Stock as shoppers see it (forShoppers), and the product's own page layout / sections.
           fulfillmentType: true,
-          supplierProduct: { select: { stockQuantity: true } },
+          supplierProduct: { select: { stockQuantity: true, preorderEnabled: true, preorderShipsAt: true, preorderLimit: true, preorderTaken: true, preorderNote: true } },
           trackStock: true,
           continueSellingWhenOut: true,
           currentStock: true,

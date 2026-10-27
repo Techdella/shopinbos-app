@@ -142,7 +142,7 @@ export async function priceOrder(input: PricingInput): Promise<PricedOrder | { o
       // Preorders take no stock, only a place under the cap; their lines are tagged on the order.
       preorderEnabled: true, preorderLimit: true, preorderTaken: true, preorderShipsAt: true,
       // Dropship products sell from the supplier's stock (the seller holds none).
-      fulfillmentType: true, supplierProductId: true, supplierProduct: { select: { id: true, stockQuantity: true, status: true } },
+      fulfillmentType: true, supplierProductId: true, supplierProduct: { select: { id: true, stockQuantity: true, status: true, preorderEnabled: true, preorderLimit: true, preorderTaken: true, preorderShipsAt: true } },
     },
   });
   if (products.length !== quantities.size) return { ok: false, message: "One or more items in your bag are no longer available. Remove them and try again." };
@@ -188,7 +188,10 @@ export async function priceOrder(input: PricingInput): Promise<PricedOrder | { o
       quantity: line.quantity,
       ...(variant ? { variant: variant.name, variantId: variant.id } : {}),
       ...(image ? { image } : {}),
-      ...(mode === "preorder" && !isDropshipProduct(product) ? { preorder: true as const, shipsOn: preorderDay(product.preorderShipsAt) } : {}),
+      // A preorder line: the seller's own preorder, or a dropship product whose supplier takes preorders.
+      ...(isDropshipProduct(product)
+        ? product.supplierProduct?.preorderEnabled ? { preorder: true as const, shipsOn: preorderDay(product.supplierProduct.preorderShipsAt) } : {}
+        : mode === "preorder" ? { preorder: true as const, shipsOn: preorderDay(product.preorderShipsAt) } : {}),
     });
   }
 

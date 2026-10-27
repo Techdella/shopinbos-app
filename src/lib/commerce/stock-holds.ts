@@ -25,7 +25,7 @@ export type StoreStockMode = "strict" | "oversell" | "off" | "preorder";
 
 export type StockHold =
   | { source: "store"; productId: string; quantity: number; name: string; variants?: VariantHold[]; mode?: Exclude<StoreStockMode, "strict"> }
-  | { source: "supplier"; productId: string; supplierProductId: string; quantity: number; name: string };
+  | { source: "supplier"; productId: string; supplierProductId: string; quantity: number; name: string; mode?: "preorder" };
 
 export interface StockProduct {
   id: string;
@@ -42,7 +42,8 @@ export interface StockProduct {
   preorderTaken?: number | null;
   fulfillmentType?: string | null;
   supplierProductId?: string | null;
-  supplierProduct?: { id: string; stockQuantity: number; status: string } | null;
+  /** preorder*: the supplier takes preorders on the listing, so dropship lines take places under its cap, not stock. */
+  supplierProduct?: { id: string; stockQuantity: number; status: string; preorderEnabled?: boolean | null; preorderLimit?: number | null; preorderTaken?: number | null } | null;
 }
 
 /** Dropship: linked to a supplier product and fulfilled by the supplier, so the supplier's stock counts. */
@@ -71,7 +72,9 @@ export function buildStockHolds(products: StockProduct[], quantities: Map<string
     const quantity = quantities.get(product.id) ?? 0;
     if (quantity <= 0) return [];
     if (isDropshipProduct(product)) {
-      return [{ source: "supplier", productId: product.id, supplierProductId: product.supplierProduct!.id, quantity, name: product.name }];
+      // The supplier takes preorders on this listing: the line takes a place under the supplier's cap instead.
+      const preorder = product.supplierProduct!.preorderEnabled ? { mode: "preorder" as const } : {};
+      return [{ source: "supplier", productId: product.id, supplierProductId: product.supplierProduct!.id, quantity, name: product.name, ...preorder }];
     }
     const mode = storeStockMode(product);
     const variants = mode === "off" || mode === "preorder" ? undefined : variantQuantities?.get(product.id)?.filter((hold) => hold.quantity > 0);
@@ -101,10 +104,10 @@ export function variantHoldTotals(holds: StockHold[]) {
  */
 export function holdTotals(holds: StockHold[]) {
   const store = new Map<string, { quantity: number; names: string[]; mode: StoreStockMode }>();
-  const supplier = new Map<string, { quantity: number; names: string[] }>();
+  const supplier = new Map<string, { quantity: number; names: string[]; preorder: boolean }>();
   for (const hold of holds) {
     if (hold.source === "supplier") {
-      const entry = supplier.get(hold.supplierProductId) ?? { quantity: 0, names: [] };
+      const entry = supplier.get(hold.supplierProductId) ?? { quantity: 0, names: [], preorder: hold.mode === "preorder" };
       entry.quantity += hold.quantity;
       if (!entry.names.includes(hold.name)) entry.names.push(hold.name);
       supplier.set(hold.supplierProductId, entry);
@@ -153,8 +156,13 @@ export function stockShortfallDetails(products: StockProduct[], quantities: Map<
     const available = product ? storeAvailable(product) : 0;
     if (available < quantity) short.push(...names.map((name) => ({ name, available: Math.max(0, available) })));
   }
-  for (const [supplierProductId, { quantity, names }] of totals.supplier) {
+  for (const [supplierProductId, { quantity, names, preorder }] of totals.supplier) {
     const supplierProduct = products.find((product) => product.supplierProduct?.id === supplierProductId)?.supplierProduct;
+    if (preorder) {
+      const left = supplierProduct && supplierProduct.status === "published" ? preorderRoom(supplierProduct) : 0;
+      if (left !== null && left < quantity) short.push(...names.map((name) => ({ name, available: Math.max(0, left), preorder: true })));
+      continue;
+    }
     const available = supplierProduct && supplierProduct.status === "published" ? supplierProduct.stockQuantity : 0;
     if (available < quantity) short.push(...names.map((name) => ({ name, available: Math.max(0, available) })));
   }
@@ -191,7 +199,7 @@ export function parseStockHold(value: unknown): StockHold[] {
     const name = typeof hold.name === "string" ? hold.name : "Product";
     if (!productId || !Number.isFinite(quantity) || quantity <= 0) return [];
     if (hold.source === "supplier" && typeof hold.supplierProductId === "string" && hold.supplierProductId) {
-      return [{ source: "supplier", productId, supplierProductId: hold.supplierProductId, quantity, name }];
+      return [{ source: "supplier", productId, supplierProductId: hold.supplierProductId, quantity, name, ...(hold.mode === "preorder" ? { mode: "preorder" as const } : {}) }];
     }
     if (hold.source === "store") {
       const variants = Array.isArray(hold.variants)

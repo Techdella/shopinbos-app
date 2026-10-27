@@ -34,7 +34,7 @@ import { SIZE_BANDS, SIZE_BAND_LABELS, isSizeBand } from "@shared/delivery-marke
 import { applySuggestion, type AssistantFormState, type SuggestionInput } from "@shared/product-assistant";
 import { friendlyError } from "@/lib/errors/report-client";
 import { checkShortCode } from "@shared/product-codes";
-import { PREORDER_NOTE_MAX, preorderDay } from "@shared/preorder";
+import { PREORDER_NOTE_MAX, preorderDay, shipDateLabel } from "@shared/preorder";
 import { SharePreorder } from "@/components/products/SharePreorder";
 
 interface Category {
@@ -93,6 +93,8 @@ interface Product {
   preorderLimit?: number | null;
   preorderTaken?: number;
   preorderNote?: string | null;
+  /** The supplier's listing, for dropship products: they follow its preorders. */
+  supplierProduct?: { preorderEnabled?: boolean; preorderShipsAt?: Date | string | null; preorderNote?: string | null } | null;
   /** This product's own page layout / parts (product-override.ts). */
   pageLayout?: unknown;
   seoTitle: string | null;
@@ -730,9 +732,23 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
 
               <Section title="Stock" sub="Count how many you have, so shoppers can't buy more than you can send.">
                 {!canTrack ? (
-                  <p className="m-0 rounded-[16px] bg-app-canvas px-4 py-3 text-[14px] text-app-ink-soft">
-                    Dropship products sell your supplier&apos;s stock. When the supplier runs out, shoppers see Sold out.
-                  </p>
+                  <div className="grid gap-3">
+                    <p className="m-0 rounded-[16px] bg-app-canvas px-4 py-3 text-[14px] text-app-ink-soft">
+                      Dropship products sell your supplier&apos;s stock. When the supplier runs out, shoppers see Sold out.
+                    </p>
+                    {product?.supplierProduct?.preorderEnabled ? (
+                      <div className="grid gap-3">
+                        <p className="m-0 rounded-[16px] bg-[#FDF0D5] px-4 py-3 text-[14px] text-[#5C3D00]">
+                          <strong>Your supplier takes preorders.</strong> Shoppers see Preorder now
+                          {product.supplierProduct.preorderShipsAt ? `, shipping from ${shipDateLabel(preorderDay(product.supplierProduct.preorderShipsAt)!)}` : ""}, and each order goes to your supplier as a preorder.
+                          {product.supplierProduct.preorderNote ? ` Their promise: “${product.supplierProduct.preorderNote}”` : ""}
+                        </p>
+                        {isEdit && product.status === "published" ? (
+                          <SharePreorder product={{ name: product.name, price: product.retailPrice, shipsOn: preorderDay(product.supplierProduct.preorderShipsAt), url: `${storeOrigin}/product/${encodeURIComponent(product.id)}` }} />
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
                 ) : (
                   <>
                     <div className="flex items-start justify-between gap-4 rounded-[16px] bg-app-canvas p-4">

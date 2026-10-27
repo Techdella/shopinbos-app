@@ -123,7 +123,15 @@ export function stockTrackingFor(sent: { trackStock?: boolean | null; currentSto
   return counted && !stored.trackStock ? true : undefined;
 }
 
-type SupplierStockRef = { stockQuantity?: number | null };
+type SupplierStockRef = {
+  stockQuantity?: number | null;
+  // The supplier's preorders on the listing: a dropship product follows them.
+  preorderEnabled?: boolean | null;
+  preorderShipsAt?: Date | string | null;
+  preorderLimit?: number | null;
+  preorderTaken?: number | null;
+  preorderNote?: string | null;
+};
 
 interface ShopperShapeInput extends StockSettings {
   preorderEnabled?: boolean | null;
@@ -136,10 +144,20 @@ interface ShopperShapeInput extends StockSettings {
   supplierProduct?: SupplierStockRef | null;
 }
 
+function supplierForShoppers<S extends SupplierStockRef>(supplier: S): Omit<S, "preorderEnabled" | "preorderShipsAt" | "preorderLimit" | "preorderTaken" | "preorderNote"> {
+  const { preorderEnabled: _on, preorderShipsAt: _ships, preorderLimit: _limit, preorderTaken: _taken, preorderNote: _note, ...rest } = supplier;
+  void _on;
+  void _ships;
+  void _limit;
+  void _taken;
+  void _note;
+  return rest;
+}
+
 /**
  * A product row ready for shoppers' pages: `stock` (tracked stock, else null), version counts only where they apply,
  * the supplier's stock only for dropship products (others sell from the store's own stock), and `preorder` when the
- * seller takes preorders (not on dropship products). The raw counts and switches are left out. Dropship needs
+ * seller takes preorders (for dropship products: when the supplier does). The raw counts and switches are left out. Dropship needs
  * `fulfillmentType` in the row.
  */
 export function forShoppers<T extends ShopperShapeInput>(
@@ -163,11 +181,16 @@ export function forShoppers<T extends ShopperShapeInput>(
   void _reserved;
   const dropship = product.fulfillmentType === "dropship" && Boolean(product.supplierProduct);
   const tracked = !dropship && Boolean(product.trackStock);
-  const preorder = dropship ? null : preorderState({ enabled: preorderEnabled, shipsAt: preorderShipsAt, limit: preorderLimit, taken: preorderTaken, note: preorderNote });
+  // Dropship products follow the supplier's preorders (their ship date, cap and promise); others the seller's own.
+  const source = product.supplierProduct;
+  const preorder = dropship
+    ? source?.preorderEnabled ? preorderState({ enabled: true, shipsAt: source.preorderShipsAt, limit: source.preorderLimit, taken: source.preorderTaken, note: source.preorderNote }) : null
+    : preorderState({ enabled: preorderEnabled, shipsAt: preorderShipsAt, limit: preorderLimit, taken: preorderTaken, note: preorderNote });
   return {
     ...rest,
     ...("variants" in product ? { variants: variantsForSale(product.variants, tracked && !preorder?.on) } : {}),
-    ...(product.supplierProduct && !dropship ? { supplierProduct: { ...product.supplierProduct, stockQuantity: null } } : {}),
+    // The supplier's stock only for dropship; its raw preorder counts never reach shoppers (only `preorder` below).
+    ...(product.supplierProduct ? { supplierProduct: { ...supplierForShoppers(product.supplierProduct), ...(dropship ? {} : { stockQuantity: null }) } } : {}),
     stock: dropship || preorder?.on ? null : shopperStock(product),
     preorder: preorder?.on ? preorder : null,
   };

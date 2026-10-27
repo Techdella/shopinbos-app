@@ -85,7 +85,16 @@ export async function reserveStock(tx: Prisma.TransactionClient, storeId: string
   }
   // Sizes / colours counted on their own also give their units.
   const variantsTaken = await changeVariantStock(tx, holds, -1, oversell);
-  for (const [supplierProductId, { quantity, names }] of totals.supplier) {
+  for (const [supplierProductId, { quantity, names, preorder }] of totals.supplier) {
+    if (preorder) {
+      // Dropship preorder: a place under the supplier's cap, no stock (shared/preorder.ts).
+      const placed = await tx.$executeRaw`
+        UPDATE "SupplierProduct" SET "preorderTaken" = "preorderTaken" + ${quantity}, "updatedAt" = NOW()
+        WHERE id = ${supplierProductId} AND status = 'published' AND "preorderEnabled" = true
+          AND ("preorderLimit" IS NULL OR "preorderTaken" + ${quantity} <= "preorderLimit")`;
+      if (placed !== 1) throw new InsufficientStockError(names.join(", "));
+      continue;
+    }
     const updated = await tx.supplierProduct.updateMany({
       where: { id: supplierProductId, status: "published", stockQuantity: { gte: quantity } },
       data: { stockQuantity: { decrement: quantity } },
@@ -131,8 +140,9 @@ export async function releaseStock(tx: Prisma.TransactionClient, holds: StockHol
     await tx.storeProduct.updateMany({ where: { id: productId, soldStock: { gte: quantity } }, data: { soldStock: { decrement: quantity } } });
   }
   await changeVariantStock(tx, holds, 1);
-  for (const [supplierProductId, { quantity }] of totals.supplier) {
-    await tx.supplierProduct.updateMany({ where: { id: supplierProductId }, data: { stockQuantity: { increment: quantity } } });
+  for (const [supplierProductId, { quantity, preorder }] of totals.supplier) {
+    if (preorder) await tx.supplierProduct.updateMany({ where: { id: supplierProductId, preorderTaken: { gte: quantity } }, data: { preorderTaken: { decrement: quantity } } });
+    else await tx.supplierProduct.updateMany({ where: { id: supplierProductId }, data: { stockQuantity: { increment: quantity } } });
   }
   for (const hold of holds) {
     if (hold.source !== "supplier") continue;

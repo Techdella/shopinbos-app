@@ -102,7 +102,7 @@ const catalogSelect = {
   // For "Customers also like" when the seller picked none (same type, category or tags).
   productType: true,
   tags: true,
-  supplierProduct: { select: { stockQuantity: true } },
+  supplierProduct: { select: { stockQuantity: true, preorderEnabled: true, preorderShipsAt: true, preorderLimit: true, preorderTaken: true, preorderNote: true } },
   // Stock as shoppers see it (forShoppers turns these into `stock` and drops the raw counts).
   fulfillmentType: true,
   trackStock: true,

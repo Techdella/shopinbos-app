@@ -34,6 +34,8 @@ export default async function ProductEditPage({
     where: { id, storeId: store.id },
     include: {
       category: { select: { id: true, name: true } },
+      // Dropship products follow the supplier's preorders (shown on the form).
+      supplierProduct: { select: { preorderEnabled: true, preorderShipsAt: true, preorderNote: true } },
     },
   });
 

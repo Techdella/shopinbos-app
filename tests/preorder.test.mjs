@@ -102,3 +102,40 @@ test("suppliers: preorder bulk orders take places under the cap, not stock, and 
   for (const name of ["preorderEnabled", "preorderShipsAt", "preorderLimit", "preorderNote"]) assert.match(form, new RegExp(`name="${name}"`));
   assert.match(read("src/app/marketplace/_components/ProductDetail.tsx"), /t\("pd\.preorderFor"/);
 });
+
+test("dropship: a product follows its supplier's preorders, at checkout and for shoppers", async () => {
+  const product = { id: "d", name: "Shea butter", currentStock: 0, fulfillmentType: "dropship", supplierProductId: "sp", supplierProduct: { id: "sp", stockQuantity: 0, status: "published", preorderEnabled: true, preorderLimit: 10, preorderTaken: 9 } };
+  const built = holds.buildStockHolds([product], new Map([["d", 1]]));
+  assert.deepEqual(built, [{ source: "supplier", productId: "d", supplierProductId: "sp", quantity: 1, name: "Shea butter", mode: "preorder" }], "no supplier stock is needed");
+  assert.deepEqual(holds.parseStockHold(JSON.parse(JSON.stringify(built))), built);
+  assert.deepEqual(holds.stockShortfallDetails([product], new Map([["d", 1]])), [], "the supplier's last place");
+  assert.deepEqual(holds.stockShortfallDetails([product], new Map([["d", 2]])), [{ name: "Shea butter", available: 1, preorder: true }]);
+  const plain = { ...product, supplierProduct: { ...product.supplierProduct, preorderEnabled: false } };
+  assert.equal(holds.buildStockHolds([plain], new Map([["d", 1]]))[0].mode, undefined, "no preorder: supplier stock as before");
+
+  const shaped = stock.forShoppers({ fulfillmentType: "dropship", trackStock: false, supplierProduct: { stockQuantity: 0, moq: 2, preorderEnabled: true, preorderShipsAt: "2026-12-20T12:00:00Z", preorderLimit: 10, preorderTaken: 4, preorderNote: "Arrives mid-December" } });
+  assert.equal(shaped.preorder.left, 6);
+  assert.equal(shaped.preorder.shipsOn, "2026-12-20");
+  assert.deepEqual(shaped.supplierProduct, { stockQuantity: 0, moq: 2 }, "the supplier's raw preorder counts never reach shoppers");
+  assert.equal(stock.listingSoldOut(shaped), false, "out of supplier stock but open for preorders");
+
+  const server = read("src/lib/commerce/stock.server.ts");
+  assert.match(server, /UPDATE "SupplierProduct" SET "preorderTaken" = "preorderTaken" \+ \$\{quantity\}/);
+  assert.match(server, /if \(preorder\) await tx\.supplierProduct\.updateMany\(\{ where: \{ id: supplierProductId, preorderTaken: \{ gte: quantity \} \}/, "expiry and supplier expiry give the place back");
+  const lines = (await import("../src/lib/supplier-orders/pure.ts")).groupDropshipLines([{ productId: "d", name: "Shea butter", quantity: 2, preorder: true, shipsOn: "2026-12-20" }], new Map([["d", { supplierId: "s", supplierProductId: "sp", unitCost: 1000 }]]));
+  assert.equal(lines.groups[0].items[0].preorder, true, "the supplier's order says it's a preorder");
+  assert.equal(lines.groups[0].items[0].shipsOn, "2026-12-20");
+});
+
+test("public marketplace API: products carry `preorder`, never the raw counts", async () => {
+  const { withPublicPreorder } = await import("../src/lib/marketplace/public-preorder.ts");
+  const row = withPublicPreorder({ id: "p", name: "Wax print", preorderEnabled: true, preorderShipsAt: new Date("2026-12-12T12:00:00Z"), preorderLimit: 20, preorderTaken: 5, preorderNote: "Container lands 10 Dec" });
+  assert.deepEqual(row, { id: "p", name: "Wax print", preorder: { open: true, shipsOn: "2026-12-12", left: 15, note: "Container lands 10 Dec" } });
+  assert.equal(withPublicPreorder({ id: "q", preorderEnabled: false, preorderShipsAt: null, preorderLimit: null, preorderTaken: 0, preorderNote: null }).preorder, null);
+  for (const file of ["src/app/api/public/products/route.ts", "src/app/api/public/products/[slug]/route.ts", "src/app/api/public/products/trending/route.ts", "src/app/api/public/products/category/[categorySlug]/route.ts", "src/app/api/public/suppliers/[slug]/route.ts"]) {
+    const source = read(file);
+    assert.match(source, /\.\.\.PUBLIC_PREORDER_SELECT/, file);
+    assert.match(source, /withPublicPreorder/, file);
+  }
+  assert.match(read("website/wp-content/plugins/shopinbos-core/includes/marketplace.php"), /'preorder'\s+=> \$pre \?/);
+});

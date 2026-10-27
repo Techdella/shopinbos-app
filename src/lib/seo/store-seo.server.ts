@@ -192,7 +192,7 @@ export async function loadStoreLlms(slug: string, productLimit: number): Promise
         where: { storeId: store.id, status: "published", currency: store.currency },
         select: {
           id: true, name: true, description: true, retailPrice: true, currency: true, variants: true, category: { select: { name: true, slug: true } },
-          supplierProduct: { select: { stockQuantity: true } }, trackStock: true, continueSellingWhenOut: true, currentStock: true, reservedStock: true, lowStockThreshold: true, preorderEnabled: true, preorderShipsAt: true, preorderLimit: true, preorderTaken: true, preorderNote: true,
+          supplierProduct: { select: { stockQuantity: true, preorderEnabled: true, preorderShipsAt: true, preorderLimit: true, preorderTaken: true, preorderNote: true } }, trackStock: true, continueSellingWhenOut: true, currentStock: true, reservedStock: true, lowStockThreshold: true, preorderEnabled: true, preorderShipsAt: true, preorderLimit: true, preorderTaken: true, preorderNote: true,
         },
         orderBy: [{ featured: "desc" }, { sortOrder: "asc" }, { createdAt: "desc" }],
         take: productLimit,

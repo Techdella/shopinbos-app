@@ -71,6 +71,8 @@ export default async function SupplierOrderPage({ params, searchParams }: PagePr
       title: order.items.map((item) => `${item.name}${item.variant && !item.name.includes(item.variant) ? ` (${item.variant})` : ""}${item.quantity > 1 ? ` ×${item.quantity}` : ""}`).join(", "),
       image: order.items[0]?.image ?? null,
       lines: order.items.map((item) => ({ name: item.name, quantity: item.quantity })),
+      // A shop's customer preordered (this listing takes preorders): ship from the date given at the time.
+      ...(order.items.some((item) => item.preorder) ? { preorder: { shipsOn: order.items.find((item) => item.preorder)?.shipsOn ?? null } } : {}),
       label: { to: order.recipient.name, phone: order.recipient.phone, address: order.recipient.address, collect: order.collectOnDelivery },
       sendTo: null, notes: order.notes, rejectReason: order.rejectReason, trackingCode: order.trackingCode, mixed: order.otherItemsInOrder,
     };
