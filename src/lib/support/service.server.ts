@@ -43,10 +43,11 @@ import {
 import { agentReplyEmail, newConversationEmail, newTicketEmail, receivedEmail, replyAddressFor, supportInbox } from "./email.server";
 import { downloadInboxMedia, findTeamTemplate, sendInboxTemplate, sendInboxText } from "./whatsapp.server";
 import { queuePeggyAutoReply } from "./peggy.server";
+import { accountByContact } from "./people.server";
 
 /** The agent id Peggy's own auto-replies use (not a user). */
 export const PEGGY_ID = "peggy";
-import { isStopMessage, phoneTail, pickPhoneMatch, renderTeamTemplate, teamTemplateProblem, whatsappPhone, whatsappWindowOpen } from "./whatsapp-pure";
+import { isStopMessage, renderTeamTemplate, teamTemplateProblem, whatsappPhone, whatsappWindowOpen } from "./whatsapp-pure";
 
 // Live support: tickets, threads, notifications and the admin desk's queries. Everything degrades when
 // docs/migrations/2026-10-12-support.sql hasn't run yet (supportReady() is false): see each caller.
@@ -684,20 +685,6 @@ export async function getTicketForAgent(number: number, agentId: string) {
     context,
     previous,
   };
-}
-
-/**
- * The account a signed-out email or phone belongs to: by email, else by phone, however either side wrote the
- * number ("+234…", "234…" from Supabase Auth or a WhatsApp wa_id, "0…"). Only for context, never proof it's them.
- */
-async function accountByContact(email: string | null | undefined, phone: string | null | undefined) {
-  const select = { id: true, role: true, name: true, phone: true } as const;
-  const byEmail = email ? await db.user.findUnique({ where: { email }, select }).catch(() => null) : null;
-  if (byEmail) return byEmail;
-  const tail = phoneTail(phone);
-  if (!tail) return null;
-  const candidates = await db.user.findMany({ where: { phone: { endsWith: tail } }, select, take: 5 }).catch(() => []);
-  return pickPhoneMatch(phone, candidates);
 }
 
 export type AgentTicket = NonNullable<Awaited<ReturnType<typeof getTicketForAgent>>>;
