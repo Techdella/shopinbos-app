@@ -9,8 +9,8 @@ export function authJson(data: unknown, status = 200) {
   return NextResponse.json({ data }, { status, headers: NO_STORE });
 }
 
-export function authError(code: string, message: string, status = 400) {
-  return NextResponse.json({ error: { code, message } }, { status, headers: NO_STORE });
+export function authError(code: string, message: string, status = 400, details?: Record<string, unknown>) {
+  return NextResponse.json({ error: { code, message, ...details } }, { status, headers: NO_STORE });
 }
 
 export function rateLimited(seconds: number, what = "attempts") {

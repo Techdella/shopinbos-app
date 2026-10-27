@@ -8,7 +8,17 @@ export type SignupRole = Exclude<AuthRole, "admin">;
 
 export type CodeTarget = { kind: "phone"; phone: string; via: "whatsapp" | "sms" } | { kind: "email"; email: string };
 
-type ApiBody<T> = { data?: T; error?: { message?: string } } | null;
+type ApiBody<T> = { data?: T; error?: { code?: string; message?: string; role?: AuthRole | null } } | null;
+
+/**
+ * A refused auth request, with the server's code: NO_ACCOUNT (log in with an email or phone that has no account) or
+ * ACCOUNT_EXISTS (sign up with one that has; role is the kind of account it is, when known).
+ */
+export class AuthApiError extends Error {
+  constructor(message: string, readonly code?: string, readonly role?: AuthRole | null) {
+    super(message);
+  }
+}
 
 async function postJson<T>(url: string, payload: unknown, headers: Record<string, string> = {}) {
   const response = await fetch(url, {
@@ -17,7 +27,7 @@ async function postJson<T>(url: string, payload: unknown, headers: Record<string
     body: JSON.stringify(payload),
   });
   const body = (await response.json().catch(() => null)) as ApiBody<T>;
-  if (!response.ok) throw new Error(body?.error?.message ?? "Something went wrong. Please try again.");
+  if (!response.ok) throw new AuthApiError(body?.error?.message ?? "Something went wrong. Please try again.", body?.error?.code, body?.error?.role);
   return body?.data as T;
 }
 

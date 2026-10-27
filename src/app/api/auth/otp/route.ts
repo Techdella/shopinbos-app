@@ -8,6 +8,7 @@ import { db } from "@/lib/db/client";
 import { chooseCodeChannel, whatsappCodesAvailable } from "@/lib/auth/otp-channel";
 import { channelUsedFor, rememberWantedChannel } from "@/lib/auth/otp-delivery.server";
 import { PHONE_TAKEN, phoneOwner, signsInWithPhone } from "@/lib/auth/phone-owner.server";
+import { accountExistsMessage, accountFor, noAccountMessage } from "@/lib/auth/account-lookup.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,7 +33,7 @@ type OtpBody = {
 
 const SIGNUP_ROLES = new Set<SignupRole>(["seller", "supplier", "logistics_partner"]);
 
-/** One message for every wrong, expired or unknown code, so it never tells whether an account exists. */
+/** One message for every wrong or expired code. */
 const WRONG_CODE = "That code is wrong or has expired. Check it, or ask for a new one.";
 
 function fail(message: string, status = 400, code = "BAD_REQUEST") {
@@ -86,6 +87,17 @@ export async function POST(request: NextRequest) {
       if (wait) return rateLimited(wait, "codes requested");
 
       const create = body.create === true;
+      const method = usePhone ? "otp_phone" : "otp_email";
+      // undefined: the database couldn't say, so carry on and let Supabase decide.
+      // Said before any code is sent (after the otpSend limit above), so nobody waits for a code that can't work.
+      const existing = await accountFor(usePhone ? { phone } : { email });
+      if (!create && existing === null) {
+        await logAuthEvent(request, { type: "login_failure", method, detail: { reason: "unknown_identifier" } });
+        return fail(noAccountMessage(usePhone), 404, "NO_ACCOUNT");
+      }
+      if (create && existing) {
+        return authError("ACCOUNT_EXISTS", accountExistsMessage(usePhone), 409, { role: existing.role });
+      }
       // One account per phone number: signing up with a number another account already has (say, an email account
       // that saved it in its profile) is refused. A number that is that account's own phone login just signs in.
       if (create && usePhone) {
@@ -115,11 +127,10 @@ export async function POST(request: NextRequest) {
             options: { shouldCreateUser: create, data },
           });
       if (error) {
-        // Signing in with an email or phone that has no account looks exactly like a sent code.
+        // The lookup above missed it (say, the database was unreachable): Supabase has no account for it either.
         if (/signups not allowed|user not found/i.test(error.message)) {
-          await logAuthEvent(request, { type: "login_failure", method: usePhone ? "otp_phone" : "otp_email", detail: { reason: "unknown_identifier" } });
-          // Same answer as a real send, so it never tells whether an account exists.
-          return authJson(usePhone ? { sent: true, channel: wanted } : { sent: true, channel: "email" });
+          await logAuthEvent(request, { type: "login_failure", method, detail: { reason: "unknown_identifier" } });
+          return fail(noAccountMessage(usePhone), 404, "NO_ACCOUNT");
         }
         return fail(friendlySendError(error.message, usePhone), error.status === 429 ? 429 : 400, error.status === 429 ? "RATE_LIMITED" : "BAD_REQUEST");
       }
