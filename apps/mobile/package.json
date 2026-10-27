@@ -37,6 +37,7 @@
     "expo-status-bar": "~57.0.1",
     "expo-video": "~57.0.5",
     "expo-web-browser": "~57.0.3",
+    "kora-identity-react-native-sdk": "0.4.0",
     "livekit-client": "2.22.4",
     "react": "19.2.3",
     "react-dom": "19.2.3",
@@ -45,7 +46,8 @@
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
     "react-native-svg": "15.15.4",
-    "react-native-web": "^0.21.2"
+    "react-native-web": "^0.21.2",
+    "react-native-webview": "13.16.1"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",

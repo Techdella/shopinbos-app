@@ -62,7 +62,7 @@ test("the phone uses the tiered API, sends the selfie with the NIN, and no longe
   const identity = app("components/kyc/IdentityStep.tsx");
   assert.match(identity, /cameraType: ImagePicker\.CameraType\.front/);
   assert.match(identity, /base64: true/);
-  assert.match(identity, /checkNin\(\{ nin, firstName: first\.trim\(\), lastName: last\.trim\(\), dateOfBirth: born, selfie: selfie\.dataUri \}\)/);
+  assert.match(identity, /checkNin\(\{ nin, firstName: first\.trim\(\), lastName: last\.trim\(\), dateOfBirth: born, selfie: selfie\.dataUri, \.\.\.\(passed \? \{ liveness: passed \} : \{\}\) \}\)/);
   const screen = app("app/logistics/verification.tsx");
   assert.doesNotMatch(screen, /VerificationScreen|LOGISTICS_DOC_TYPES/);
   for (const step of ["IdentityStep", "BankStep", "VehiclesStep", "CoverageStep", "GuarantorStep", "CacStep", "ReviewStep"]) assert.match(screen, new RegExp(`<${step} \\{\\.\\.\\.props\\} />`), step);
@@ -101,4 +101,23 @@ test("every phone verification word is in every language, with the same placehol
     .flatMap((file) => [...app(file).matchAll(/\bt\("([a-zA-Z0-9_.-]+)"/g)].map((match) => match[1]));
   for (const key of used) assert.ok(key in catalog.en, key);
   assert.match(read("shared/i18n/catalog.ts"), /import m_kyc from "\.\/messages\/m_kyc\/index\.ts";/);
+});
+
+test("Korapay liveness on the phone: the SDK runs before the selfie and its reference goes with the NIN check", () => {
+  const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
+  const pkg = JSON.parse(read("apps/mobile/package.json"));
+  assert.equal(pkg.dependencies["kora-identity-react-native-sdk"], "0.4.0", "pinned: pre-1.0 SDK");
+  assert.ok(pkg.dependencies["react-native-webview"], "the SDK renders in a WebView");
+  const native = read("apps/mobile/src/components/kyc/KoraLiveness.native.tsx");
+  assert.match(native, /EXPO_PUBLIC_KORAPAY_PUBLIC_KEY/);
+  assert.match(native, /\/\^pk_\(test\|live\)_\//, "only a real public key switches it on");
+  assert.match(native, /allowAudio: false/);
+  assert.match(read("apps/mobile/src/components/kyc/KoraLiveness.tsx"), /LIVENESS_ON = false/, "web fallback: no SDK");
+  const step = read("apps/mobile/src/components/kyc/IdentityStep.tsx");
+  assert.match(step, /LIVENESS_ON && !passed/);
+  assert.match(step, /\.\.\.\(passed \? \{ liveness: passed \} : \{\}\)/);
+  assert.match(step, /\{liveness\.screen\}/);
+  const plugin = read("apps/mobile/plugins/optional-features.js");
+  assert.match(plugin, /"tools:replace": "android:required"/, "the SDK's required camera can't hide the app from camera-less phones");
+  assert.match(read("apps/mobile/app.json"), /check your face when you verify your identity/);
 });
