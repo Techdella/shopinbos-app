@@ -12,6 +12,7 @@ import { getLocale, getT } from "@/lib/i18n/server";
 import { pageWindow } from "@/lib/pagination";
 import { Pagination } from "@/components/seller/Pagination";
 import { PageTip } from "@/components/learn/PageTip";
+import { orderHasPreorder } from "@shared/preorder";
 
 export const dynamic = "force-dynamic";
 
@@ -97,10 +98,10 @@ export default async function OrdersPage({
           <a
             href="/api/orders/export"
             download
-            className="inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-full border border-app-line bg-white px-5 text-[14px] font-extrabold text-app-ink no-underline transition hover:border-app-line-strong"
+            className="inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-full border border-app-line bg-white px-5 text-[14px] font-bold text-app-ink no-underline transition hover:border-app-line-strong max-sm:w-11 max-sm:px-0"
           >
             <Icon name="download" size={16} />
-            {t("list.export")}
+            <span className="max-sm:sr-only">{t("list.export")}</span>
           </a>
           <PillLink href="/home/orders/new" tone="accent" icon="plus">{t("recordSale")}</PillLink>
         </>
@@ -141,14 +142,15 @@ export default async function OrdersPage({
                     <div className="grid min-w-0 flex-1 items-center gap-x-5 gap-y-2 md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_auto] xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_120px_120px_110px_92px]">
                       <div className="min-w-0">
                         <div className="truncate text-[15px] font-extrabold">{row.buyer}</div>
-                        <div className="truncate text-[13px] text-app-ink-soft">
+                        <div className="line-clamp-2 break-words text-[13px] text-app-ink-soft sm:line-clamp-1">
                           {row.summary} · {order.orderNumber}
                         </div>
                       </div>
                       <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5 xl:contents">
                         <StageDot tone={row.stage.tone}>{t.dynamic(`stage.${row.stage.label}`, row.stage.label)}</StageDot>
-                        <span>
+                        <span className="inline-flex flex-wrap gap-1.5">
                           <Pill tone={row.payment.tone}>{t.dynamic(`pay.${row.payment.label}`, row.payment.label)}</Pill>
+                          {orderHasPreorder(order.items) ? <Pill tone="warning">{t("detail.preorder")}</Pill> : null}
                         </span>
                         <span className="hidden truncate text-[13.5px] text-app-ink-soft xl:block">{channel ?? "—"}</span>
                       </div>

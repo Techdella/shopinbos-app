@@ -26,10 +26,11 @@ import intentRouting from "@/lib/intent-routing";
 import { themeLibraryEntry } from "@/lib/store-templates/theme-library";
 import { safeNextPath } from "@/lib/auth/route-access";
 import { asAccountRole, asSignupRole, withPortalNote } from "@/lib/auth/role-rules";
-import { DEFAULT_DIAL_COUNTRY, DIAL_COUNTRIES, formatE164, isValidEmail, OTP_LENGTH, OTP_RESEND_SECONDS, toE164, type DialCountry } from "@shared/phone";
+import { DEFAULT_DIAL_COUNTRY, DIAL_COUNTRIES, formatE164, isValidEmail, splitE164, OTP_LENGTH, OTP_RESEND_SECONDS, toE164, type DialCountry } from "@shared/phone";
 import { CodeInput, GoogleMark, Mascot, Notice, PillButton, TextInput, Wordmark } from "@/components/app-ui";
 import { AuthShowcasePanel } from "./AuthShowcasePanel";
 import {
+  AuthApiError,
   fetchWhatsAppCodes,
   friendlyNetworkError,
   navigateAfterAuth,
@@ -252,18 +253,32 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
   const countdown = useCountdown();
   // The kind of account this email or phone already has, after a sign-up on another portal's page.
   const [conflictRole, setConflictRole] = useState<AuthRole | null>(conflictParam && conflictParam !== role ? conflictParam : null);
+  // Told before any code is sent: "no account yet, sign up first" on log in, "already used, log in" on sign up.
+  const [nextStep, setNextStep] = useState<null | "signup" | "login">(null);
 
-  // The shopinbos.com hero form passes the typed WhatsApp number as #phone=+234… (a fragment, so it never
-  // reaches a server log). Prefill it once, then drop it from the address bar.
+  // The shopinbos.com hero form passes the typed WhatsApp number as #phone=+234…, and the "Sign up now" / "Log in"
+  // button under "no account" / "already used" passes #phone= or #email= with carry=1 (a fragment, so it never
+  // reaches a server log). Prefill it once, then drop it from the address bar. Carried over, the form opens straight
+  // away with the same role: they already chose it on the other page.
   useEffect(() => {
-    const match = /(?:^|[#&])phone=([^&]+)/.exec(window.location.hash);
-    if (!match) return;
-    const value = decodeURIComponent(match[1]);
-    const dial = DIAL_COUNTRIES.find((item) => value.startsWith(item.dial));
-    if (dial) {
-      setCountry(dial);
-      setPhone(value.slice(dial.dial.length).replace(/\D/g, ""));
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    // A raw "+" (the hero form's #phone=+234…) reads as a space here.
+    const phoneValue = hash.get("phone")?.trim().replace(/^\+?/, "+") ?? null;
+    const emailValue = hash.get("email");
+    if (!phoneValue && !emailValue) return;
+    const split = phoneValue ? splitE164(phoneValue) : null;
+    if (split) {
+      setCountry(split.country);
+      setPhone(split.national);
       setMethod("phone");
+    } else if (emailValue && isValidEmail(emailValue)) {
+      setEmail(emailValue);
+      setMethod("email");
+      setEmailMode("code");
+    }
+    if (hash.get("carry") === "1" && (split || emailValue)) {
+      setPicked(true);
+      setScreen("details");
     }
     window.history.replaceState(null, "", window.location.pathname + window.location.search);
   }, []);
@@ -275,6 +290,7 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
     setError(null);
     setInfo(null);
     setConflictRole(null);
+    setNextStep(null);
   }
 
   function goTo(nextScreen: Screen) {
@@ -353,10 +369,35 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
       setScreen("code");
       countdown.start();
     } catch (sendError) {
-      setError(friendlyNetworkError(sendError));
+      if (!explainAccount(sendError, nextTarget.kind)) setError(friendlyNetworkError(sendError));
     } finally {
       setBusy(null);
     }
+  }
+
+  /**
+   * Log in with an email or phone that has no account → "You need to sign up first"; sign up with one that already
+   * has an account → "Log in instead" (or, for another kind of account, the usual "This number already has a
+   * supplier account" message). Both come back before any code is sent. false when the error is something else.
+   */
+  function explainAccount(failure: unknown, via: "email" | "phone") {
+    if (!(failure instanceof AuthApiError)) return false;
+    if (failure.code === "NO_ACCOUNT" && mode === "login") {
+      setError(t(via === "phone" ? "noAccount.phone" : "noAccount.email"));
+      if (!isAdmin) setNextStep("signup");
+      return true;
+    }
+    if (failure.code === "ACCOUNT_EXISTS" && mode === "signup") {
+      if (failure.role && failure.role !== role && !isAdmin) {
+        setError(conflictMessage(failure.role, via));
+        setConflictRole(failure.role);
+      } else {
+        setError(t(via === "phone" ? "exists.phone" : "exists.email"));
+        setNextStep("login");
+      }
+      return true;
+    }
+    return false;
   }
 
   async function submitCode(value = code) {
@@ -408,7 +449,7 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
       const accessToken = await signInWithPassword(email.trim().toLowerCase(), password);
       await finishWithToken(accessToken);
     } catch (signInError) {
-      setError(friendlyNetworkError(signInError));
+      if (!explainAccount(signInError, "email")) setError(friendlyNetworkError(signInError));
       setBusy(null);
     }
   }
@@ -428,6 +469,15 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
   const switchHref = (() => {
     const path = mode === "login" ? portalSignupPath(role) : portalLoginPath(role);
     return intentQuery ? `${path}?${intentQuery}` : path;
+  })();
+  // The "Sign up now" / "Log in" link under "no account" or "already used": the other page, with the same phone or
+  // email filled in (as #phone= / #email=, which never reach a server log).
+  const carryOverHref = (() => {
+    const carried = new URLSearchParams({ carry: "1" });
+    if (method === "email" && isValidEmail(email)) carried.set("email", email.trim().toLowerCase());
+    else if (method === "phone" && toE164(phone, country)) carried.set("phone", toE164(phone, country)!);
+    else return switchHref;
+    return `${switchHref}#${carried}`;
   })();
 
   // ── Pieces ─────────────────────────────────────────────────────────────────
@@ -596,7 +646,7 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
     <div className="mt-5">
       <Notice>
         {error}
-        {/couldn't find an account/i.test(error) && mode === "login" && <> <Link href={switchHref} className="font-bold text-app-danger underline">{t("createShop")}</Link></>}
+        {nextStep && <> <a href={carryOverHref} className="font-bold text-app-danger underline">{nextStep === "signup" ? t("noAccount.signUp") : t("logIn")}</a></>}
         {conflictRole && <> <Link href={portalLoginPath(conflictRole)} className="font-bold text-app-danger underline">{t("logIn")}</Link></>}
       </Notice>
     </div>

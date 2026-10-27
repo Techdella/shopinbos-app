@@ -41,7 +41,7 @@ export function CampaignsWidget({ items, serverNow }: { items: BackendCountdown[
       ) : (
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-[16px] bg-app-canvas px-4 py-3">
           <span className="text-[13.5px] text-app-ink-soft">{t("widget.empty")}</span>
-          <Link href="/home/campaigns?create=1" className="inline-flex min-h-[38px] items-center rounded-full bg-app-ink px-4 text-[13px] font-extrabold text-white no-underline">{t("widget.create")}</Link>
+          <Link href="/home/campaigns?create=1" className="inline-flex min-h-[38px] items-center rounded-full bg-app-ink px-4 text-[13px] font-bold text-white no-underline">{t("widget.create")}</Link>
         </div>
       )}
     </section>

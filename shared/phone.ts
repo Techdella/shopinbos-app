@@ -72,6 +72,24 @@ export const OTP_LENGTH = 6;
 export const OTP_RESEND_SECONDS = 45;
 
 /**
+ * The sign-in code in pasted text: "123456", "123 456", "123-456" or the whole message ("Your Shopinbos code is
+ * 123456. It expires in 10 minutes."). The digits typed so far when there's no full code in it.
+ */
+export function codeFromText(text: string): string {
+  const whole = new RegExp(`(?<!\\d)\\d{${OTP_LENGTH}}(?!\\d)`).exec(text);
+  if (whole) return whole[0];
+  const grouped = new RegExp(`(?<![\\d])\\d(?:[\\s-]?\\d){${OTP_LENGTH - 1}}(?![\\d])`).exec(text);
+  if (grouped) return grouped[0].replace(/\D/g, "");
+  return text.replace(/\D/g, "").slice(0, OTP_LENGTH);
+}
+
+/** +2348031234567 → Nigeria and "8031234567", to fill the phone field again. Null for a number from elsewhere. */
+export function splitE164(e164: string): { country: DialCountry; national: string } | null {
+  const country = DIAL_COUNTRIES.find((item) => e164.startsWith(item.dial));
+  return country ? { country, national: e164.slice(country.dial.length).replace(/\D/g, "") } : null;
+}
+
+/**
  * The key two phone numbers are compared by: the last 10 digits ("+234 803 123 4567", "08031234567" and
  * "2348031234567" are the same number). Null when there aren't 10 digits. One account per number uses it.
  */

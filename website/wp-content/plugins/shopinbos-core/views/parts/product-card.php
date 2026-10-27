@@ -18,7 +18,7 @@ $hide = $hide ?? false;
 		<?php endif; ?>
 		<span class="pinfo"><span class="pname"><?php echo esc_html( $p['name'] ); ?></span><span class="pmeta"><?php echo esc_html( trim( $p['sup_name'] . ' · ' . $p['sup_loc'], ' ·' ) ); ?></span></span>
 	</a>
-	<?php if ( ! $p['in_stock'] ) : ?><span class="tag tag-amber oos"><?php esc_html_e( 'Out of stock', 'shopinbos' ); ?></span><?php endif; ?>
+	<?php if ( ! empty( $p['preorder'] ) ) : ?><span class="tag tag-amber oos"><?php echo esc_html( $p['preorder']['open'] ? __( 'Preorder', 'shopinbos' ) : __( 'Preorders are full', 'shopinbos' ) ); ?></span><?php elseif ( ! $p['in_stock'] ) : ?><span class="tag tag-amber oos"><?php esc_html_e( 'Out of stock', 'shopinbos' ); ?></span><?php endif; ?>
 	<div class="pfoot">
 		<span style="display:flex;flex-direction:column">
 			<?php if ( $hide ) : ?>

@@ -85,7 +85,7 @@ export default async function SupplierProductsPage({ searchParams }: PageProps) 
       sub={isPro ? t("products.subPro") : t("products.subFree", { count: Math.min(total, listingLimit ?? total), limit: listingLimit ?? total })}
       actions={
         <>
-          <PillLink href="/supplier/products/import" icon="upload">{t("imp.button")}</PillLink>
+          <PillLink href="/supplier/products/import" icon="upload" iconOnlyOnPhone>{t("imp.button")}</PillLink>
           <PillLink href="/supplier/products/new" tone="accent" icon="plus">{t("dashboard.addProduct")}</PillLink>
         </>
       }

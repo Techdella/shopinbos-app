@@ -12,6 +12,7 @@ import { Screen } from "@/components/Screen";
 import { ChoiceRow, Sheet } from "@/components/Sheet";
 import { Thumb } from "@/components/seller/bits";
 import { CodeBadge } from "@/components/seller/ProductCode";
+import { PreorderPill } from "@/components/Preorder";
 import { TONE_COLORS, type Tone } from "@/lib/dashboard";
 import { fetchOrderDelivery, fetchReassignOptions, jobAction, openPartnerChat, type OrderDelivery, type Parcel, type ReassignOption } from "@/lib/delivery";
 import { daysWords, ownTimeline, timelineStates, timelineWordKey, whatsappNumber } from "@/lib/delivery-pure";
@@ -25,6 +26,7 @@ import { colors } from "@/theme";
 // main button for the next step. Delivery comes from GET /api/mobile/delivery/orders/[id] (the logistics
 // marketplace); orders without a partner keep the older steps (mark paid, get a rider, sent it myself, delivered).
 // Supplier parcels, switching or refunding when a supplier didn't accept, the label, items and cancelling stay.
+// A preordered order shows a "Preorder · 12 Dec" pill (the earliest ship date), and so does each preorder line.
 
 type PaidWith = "transfer" | "cash" | "pos";
 
@@ -264,6 +266,7 @@ export default function OrderScreen() {
       <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
         <Pill label={plan?.pod ? t("order2.pod") : order.row.payment.label} tone={plan?.pod ? "warn" : PILL_TONE[order.row.payment.tone]} />
         <Pill label={statusWords} tone="gray" />
+        <PreorderPill preorder={order.preorder ?? (order.items.some((line) => line.preorder) ? { shipsOn: order.items.find((line) => line.preorder)?.shipsOn ?? null } : null)} />
       </View>
       {error && <Notice>{error}</Notice>}
       {saved && !error && <Notice tone="success">{saved}</Notice>}
@@ -456,6 +459,7 @@ export default function OrderScreen() {
               <T weight="bold" numberOfLines={2}>{line.name}</T>
               <T style={{ color: colors.inkSoft, fontSize: 14 }}>{line.quantity} × {naira(line.price)}</T>
               {line.shortCode ? <CodeBadge code={line.shortCode} /> : null}
+              {line.preorder ? <View style={{ marginTop: 4 }}><PreorderPill preorder={{ shipsOn: line.shipsOn ?? null }} /></View> : null}
             </View>
             <T weight="extrabold">{naira(line.price * line.quantity)}</T>
           </View>

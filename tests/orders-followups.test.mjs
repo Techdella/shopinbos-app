@@ -218,7 +218,8 @@ test("wholesale orders reserve supplier stock when placed and give it back only 
   assert.deepEqual([...so.SELLER_CANCELLABLE_WHOLESALE], ["pending", "confirmed"]);
   const wholesale = read("src/lib/supplier-orders/wholesale.server.ts");
   assert.match(wholesale, /stockQuantity: \{ gte: reservation\.reserve \} \},\s*data: \{ stockQuantity: \{ decrement: reservation\.reserve \} \}/, "conditional: never below zero");
-  assert.match(wholesale, /where: \{ id: order\.id, stockReleasedAt: null, stockReserved: \{ gt: 0 \} \}, data: \{ stockReleasedAt: new Date\(\) \}/, "released once");
+  // Preorders reserve no stock but give their places under the cap back the same way (shared/preorder.ts).
+  assert.match(wholesale, /where: \{ id: order\.id, stockReleasedAt: null, OR: \[\{ stockReserved: \{ gt: 0 \} \}, \{ preorder: true \}\] \}, data: \{ stockReleasedAt: new Date\(\) \}/, "released once");
   assert.match(wholesale, /if \(result\.count === 1 && wholesaleReleasesStock\(next\)\) await releaseWholesaleStock\(tx, order\.id\);/);
 });
 

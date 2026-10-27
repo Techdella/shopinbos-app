@@ -152,7 +152,7 @@ export default async function MarketplaceSuppliersPage({ searchParams }: PagePro
                 </select>
               </div>
             </details>
-            <button type="submit" className="inline-flex min-h-[44px] items-center rounded-full bg-app-ink px-5 text-[14px] font-extrabold text-white hover:bg-black">{t("sup.filter")}</button>
+            <button type="submit" className="inline-flex min-h-[44px] items-center rounded-full bg-app-ink px-5 text-[14px] font-bold text-white hover:bg-black">{t("sup.filter")}</button>
             {filtered && <Link href="/marketplace/suppliers" className="px-2 text-[14px] font-extrabold text-app-accent-ink no-underline hover:underline">{t("sup.clear")}</Link>}
           </form>
 

@@ -3,7 +3,8 @@ import type { SubscriberSource, SubscriberStatus } from "@prisma/client";
 import { requireRole } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
-import { FilterChips, PillLink, SearchForm, StatGrid, StatTile } from "@/components/app-kit";
+import { FilterChips, MoreActions, PillLink, SearchForm, StatGrid, StatTile } from "@/components/app-kit";
+import { PHONE_SCROLL_ROW } from "@/components/app-ui/cx";
 import { consentSummary, listSubscribers } from "@/lib/marketing/subscribers";
 import { SOURCE_LABEL } from "@/lib/marketing/segment-rules";
 import { SubscribersManager } from "./SubscribersManager";
@@ -56,8 +57,10 @@ export default async function SubscribersPage({ searchParams }: { searchParams?:
       sub={t("subs.sub")}
       actions={
         <>
-          <PillLink href="/home/marketing/forms" icon="mail">{t("subs.signupForms")}</PillLink>
-          <PillLink href="/home/marketing/segments" icon="layers">{t("hub.tool.segments")}</PillLink>
+          <MoreActions>
+            <PillLink href="/home/marketing/forms" icon="mail">{t("subs.signupForms")}</PillLink>
+            <PillLink href="/home/marketing/segments" icon="layers">{t("hub.tool.segments")}</PillLink>
+          </MoreActions>
         </>
       }
     >
@@ -74,14 +77,14 @@ export default async function SubscribersPage({ searchParams }: { searchParams?:
           <SearchForm action="/home/marketing/subscribers" defaultValue={q} placeholder={t("subs.search")} keep={{ status, source, tag: params.tag }} />
         </div>
         {tags.length || source ? (
-          <nav aria-label={t("subs.filterByTag")} className="flex flex-wrap items-center gap-2 text-[13.5px]">
-            <span className="font-bold text-app-ink-soft">{t("subs.tags")}</span>
+          <nav aria-label={t("subs.filterByTag")} className={`flex items-center gap-2 text-[13.5px] ${PHONE_SCROLL_ROW}`}>
+            <span className="shrink-0 font-bold text-app-ink-soft">{t("subs.tags")}</span>
             {tags.slice(0, 30).map((tag) => (
-              <a key={tag} href={href({ ...params, tag: params.tag === tag ? undefined : tag, page: undefined })} aria-current={params.tag === tag ? "true" : undefined} className={`inline-flex min-h-[34px] items-center rounded-full border px-3 font-bold no-underline ${params.tag === tag ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink"}`}>
+              <a key={tag} href={href({ ...params, tag: params.tag === tag ? undefined : tag, page: undefined })} aria-current={params.tag === tag ? "true" : undefined} className={`inline-flex min-h-[34px] shrink-0 items-center whitespace-nowrap rounded-full border px-3 font-bold no-underline ${params.tag === tag ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink"}`}>
                 {tag}
               </a>
             ))}
-            {source ? <a href={href({ ...params, source: undefined })} className="font-bold text-app-accent-ink">{t("subs.clearSource", { source: t.dynamic(`source.${source}`, SOURCE_LABEL[source]) })}</a> : null}
+            {source ? <a href={href({ ...params, source: undefined })} className="shrink-0 whitespace-nowrap font-bold text-app-accent-ink">{t("subs.clearSource", { source: t.dynamic(`source.${source}`, SOURCE_LABEL[source]) })}</a> : null}
           </nav>
         ) : null}
 

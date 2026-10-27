@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { AppPage, PillLink } from "@/components/app-kit";
+import { AppPage, MoreActions, PillLink } from "@/components/app-kit";
 import { sellerFrame } from "@/components/seller-core";
 import { db } from "@/lib/db/client";
 import { hasAiProvider } from "@/lib/inbox/ai";
@@ -64,9 +64,11 @@ export default async function SellerMessagesPage({ searchParams }: { searchParam
       sub={unread ? t("waiting", { count: unread }) : t("sub")}
       actions={
         <>
-          <PillLink href="/home/inbox/auto-replies" icon="clock">{t("autoReplies")}</PillLink>
-          <PillLink href="/home/inbox/chatbot" icon="sparkle">{t("chatbot")}</PillLink>
-          <PillLink href="/home/inbox/settings" icon="settings">{t("settings")}</PillLink>
+          <MoreActions>
+            <PillLink href="/home/inbox/auto-replies" icon="clock">{t("autoReplies")}</PillLink>
+            <PillLink href="/home/inbox/chatbot" icon="sparkle">{t("chatbot")}</PillLink>
+            <PillLink href="/home/inbox/settings" icon="settings">{t("settings")}</PillLink>
+          </MoreActions>
           <PillLink href="/home/inbox/channels" icon="plug" tone="ink">{t("channelsOn", { count: connected.length + 2 })}</PillLink>
         </>
       }

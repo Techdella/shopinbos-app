@@ -56,10 +56,57 @@ export async function uploadToMyMedia(picked: File, allow: "image" | "any" = "im
     form.append("width", String(size.width));
     form.append("height", String(size.height));
   }
-  const response = await fetch("/api/app/media", { method: "POST", body: form, credentials: "same-origin" });
+  const response = await postOnce("/api/app/media", form);
   if (!response.ok) throw new Error(await readError(response, "That upload didn't go through. Try again."));
   const json = (await response.json()) as { data: MediaAssetView };
   return json.data;
+}
+
+/**
+ * A POST that tries once more when the connection drops (a phone switching networks, or the page sent to the
+ * background while the photo picker is open), waiting until the page is back on screen first.
+ */
+async function postOnce(url: string, form: FormData): Promise<Response> {
+  try {
+    return await fetch(url, { method: "POST", body: form, credentials: "same-origin" });
+  } catch (error) {
+    if (!(error instanceof TypeError)) throw error;
+    await backOnScreen();
+    return fetch(url, { method: "POST", body: form, credentials: "same-origin" });
+  }
+}
+
+function backOnScreen(): Promise<void> {
+  if (typeof document === "undefined" || document.visibilityState === "visible") return new Promise((resolve) => setTimeout(resolve, 1000));
+  return new Promise((resolve) => {
+    const done = () => {
+      document.removeEventListener("visibilitychange", done);
+      resolve();
+    };
+    document.addEventListener("visibilitychange", done);
+  });
+}
+
+/** Folders /api/upload accepts (see ALLOWED_FOLDERS there). */
+export type UploadFolder = "products" | "brand" | "store-banners" | "supplier-logos";
+
+/**
+ * Uploads a picture through /api/upload and returns its public URL. Shrinks phone photos first (the server can't take
+ * a request over about 4.5 MB; bigger ones are cut off mid-send and show up as "Failed to fetch"). Throws an Error
+ * with a plain-words message.
+ */
+export async function uploadToFolder(picked: File, folder: UploadFolder): Promise<string> {
+  const problem = mediaFileProblem(picked, "image");
+  if (problem) throw new Error(problem);
+  const file = await readyToSend(picked);
+  if (file.size > UPLOAD_MAX_BYTES) throw new Error("That picture is over 4 MB even after shrinking. Choose a smaller one.");
+  const form = new FormData();
+  form.append("file", file);
+  form.append("folder", folder);
+  const response = await postOnce("/api/upload", form);
+  const json = (await response.json().catch(() => null)) as { data?: { publicUrl?: string }; error?: { message?: string } } | null;
+  if (!response.ok || !json?.data?.publicUrl) throw new Error(json?.error?.message || "That picture didn't upload. Try again.");
+  return json.data.publicUrl;
 }
 
 export async function removeFromMyMedia(id: string): Promise<void> {

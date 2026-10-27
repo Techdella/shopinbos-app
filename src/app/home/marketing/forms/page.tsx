@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { requireRole } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
-import { AssistantNote, PillLink } from "@/components/app-kit";
+import { AssistantNote, MoreActions, PillLink } from "@/components/app-kit";
 import { readDesign, readFields, readPopupConfig, rewardLabel, themeHeadingFont, type RewardKind } from "@/lib/marketing/forms";
 import { formCodesUsed } from "@/lib/marketing/popup-rewards.server";
 import { readFormMarker } from "@/lib/marketing/popup-rewards";
@@ -104,8 +104,10 @@ export default async function FormsPage({ searchParams }: { searchParams?: Promi
       sub={t("forms.sub")}
       actions={
         <>
-          <PillLink href="/home/marketing/subscribers" icon="users">{t("hub.stat.subscribers")}</PillLink>
-          <PillLink href="/home/forms" icon="message">{t("forms.formMessages")}</PillLink>
+          <MoreActions>
+            <PillLink href="/home/marketing/subscribers" icon="users">{t("hub.stat.subscribers")}</PillLink>
+            <PillLink href="/home/forms" icon="message">{t("forms.formMessages")}</PillLink>
+          </MoreActions>
         </>
       }
     >

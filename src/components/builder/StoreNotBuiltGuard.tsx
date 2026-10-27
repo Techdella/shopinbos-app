@@ -48,10 +48,10 @@ export function StoreNotBuiltGuard() {
           There&apos;s no logo, products or pages yet. Tell me what you sell and I&apos;ll build it with you, step by step.
         </p>
         <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
-          <Link href="/builder" className="inline-flex min-h-[48px] items-center justify-center rounded-full bg-app-accent px-6 text-[15px] font-extrabold text-white no-underline hover:brightness-95">
+          <Link href="/builder" className="inline-flex min-h-[48px] items-center justify-center rounded-full bg-app-accent px-6 text-[15px] font-bold text-white no-underline hover:brightness-95">
             Build it with Rex
           </Link>
-          <Link href="/builder/templates" className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-app-line bg-white px-6 text-[15px] font-extrabold text-app-ink no-underline hover:border-app-line-strong">
+          <Link href="/builder/templates" className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-app-line bg-white px-6 text-[15px] font-bold text-app-ink no-underline hover:border-app-line-strong">
             Pick a template
           </Link>
         </div>

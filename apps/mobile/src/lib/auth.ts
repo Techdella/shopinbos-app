@@ -23,6 +23,47 @@ function friendly(message: string, phone = false) {
   return message;
 }
 
+/**
+ * Told before any code is sent: NO_ACCOUNT (log in with an email or phone that has no account: "sign up first") or
+ * ACCOUNT_EXISTS (sign up with one that has: "log in"; role is the kind of account it is, when known).
+ */
+export class AccountCheckError extends Error {
+  constructor(readonly code: "NO_ACCOUNT" | "ACCOUNT_EXISTS", readonly via: "email" | "phone", readonly role: AppRole | null = null) {
+    const t = tNow("m_auth");
+    super(code === "NO_ACCOUNT" ? t(via === "phone" ? "noAccount.phone" : "noAccount.email") : t(via === "phone" ? "exists.phone" : "exists.email"));
+  }
+}
+
+type ServerError = { code?: string; message?: string; role?: AppRole | null } | undefined;
+
+function accountCheckError(error: ServerError, via: "email" | "phone") {
+  if (error?.code === "NO_ACCOUNT" || error?.code === "ACCOUNT_EXISTS") return new AccountCheckError(error.code, via, error.role ?? null);
+  return null;
+}
+
+/**
+ * Asks the server (POST /api/auth/otp, action "check") whether this email or phone can log in, or sign up, before a
+ * code goes or a password is tried. Throws AccountCheckError, the server's own message (say, a number another
+ * account already uses, or too many tries), or "Couldn't reach Shopinbos" when there's no answer: nobody goes on
+ * to a code or password without being told first whether it can work.
+ */
+export async function checkAccount(target: CodeTarget, create: boolean) {
+  const via = target.kind;
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}/api/auth/otp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ action: "check", ...(target.kind === "phone" ? { phone: target.phone } : { email: target.email }), create }),
+    });
+  } catch {
+    throw new Error(tNow("m_auth")("error.offline"));
+  }
+  if (response.ok) return;
+  const body = (await response.json().catch(() => null)) as { error?: ServerError } | null;
+  throw accountCheckError(body?.error, via) ?? new Error(body?.error?.message ?? tNow("m_auth")("error.offline"));
+}
+
 /** How a code actually went: WhatsApp, SMS (WhatsApp off, failed, or "Send it by SMS") or email. */
 export type CodeChannel = "whatsapp" | "sms" | "email";
 
@@ -40,13 +81,13 @@ export async function fetchWhatsAppCodes() {
 /**
  * Sends a sign-in code and returns the channel that carried it. WhatsApp codes go through the server
  * (POST /api/auth/otp notes the channel for the Send SMS hook, which falls back to SMS); SMS and email codes go
- * straight to Supabase as before. Supabase itself is only ever asked for SMS (its WhatsApp needs Twilio).
+ * straight to Supabase, after the server's account check. Supabase itself is only ever asked for SMS (its WhatsApp needs Twilio).
  */
 export async function sendCode(target: CodeTarget, options: { create: boolean; fullName?: string; role?: Exclude<AppRole, "admin"> }): Promise<CodeChannel> {
   // Same sign-up metadata as the web's /api/auth/otp: the role picked on the sign-up screen ("I sell / I supply shops / I deliver").
   const data = options.create ? { role: options.role ?? "seller", full_name: options.fullName?.trim() || undefined } : undefined;
   if (target.kind === "phone" && target.via === "whatsapp") {
-    let response: Response | null = null;
+    let response: Response;
     try {
       response = await fetch(`${API_URL}/api/auth/otp`, {
         method: "POST",
@@ -54,14 +95,15 @@ export async function sendCode(target: CodeTarget, options: { create: boolean; f
         body: JSON.stringify({ action: "send", phone: target.phone, via: "whatsapp", create: options.create, profile: options.create ? { role: data?.role, fullName: data?.full_name } : undefined }),
       });
     } catch {
-      response = null; // Can't reach the server: send by SMS straight from Supabase below.
+      // No answer, so no "sign up first" / "log in instead" check either: say so rather than send blind.
+      throw new Error(tNow("m_auth")("error.offline"));
     }
-    if (response) {
-      const body = (await response.json().catch(() => null)) as { data?: { channel?: string }; error?: { message?: string } } | null;
-      if (!response.ok) throw new Error(friendly(body?.error?.message ?? tNow("m_auth")("form.sendFailed"), true));
-      return body?.data?.channel === "whatsapp" ? "whatsapp" : "sms";
-    }
+    const body = (await response.json().catch(() => null)) as { data?: { channel?: string }; error?: ServerError } | null;
+    if (!response.ok) throw accountCheckError(body?.error, "phone") ?? new Error(friendly(body?.error?.message ?? tNow("m_auth")("form.sendFailed"), true));
+    return body?.data?.channel === "whatsapp" ? "whatsapp" : "sms";
   }
+  // SMS and email codes go straight to Supabase, so ask the server first: "sign up first" or "log in instead".
+  await checkAccount(target, options.create);
   const { error } =
     target.kind === "phone"
       ? await supabase.auth.signInWithOtp({ phone: target.phone, options: { shouldCreateUser: options.create, channel: "sms", data } })
@@ -80,6 +122,7 @@ export async function verifyCode(target: CodeTarget, token: string) {
 }
 
 export async function signInWithPassword(email: string, password: string) {
+  await checkAccount({ kind: "email", email }, false);
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) throw new Error(friendly(error.message));
   return data.session;

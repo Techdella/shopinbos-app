@@ -9,6 +9,7 @@ import { useT } from "@/components/i18n/I18nProvider";
 import type { AssistantFormState, SuggestionInput } from "@shared/product-assistant";
 import { ChatText } from "@/components/chat/ChatText";
 import { friendlyError } from "@/lib/errors/report-client";
+import { uploadToFolder } from "@/components/media/media-client";
 
 // Peggy docked on the add / edit product page. She opens by herself once per browser session per page kind (new or
 // edit) with a short greeting, and can be closed to a small "Ask Peggy" button. The seller tells her sizes, colours
@@ -100,13 +101,7 @@ export const ProductPeggy = forwardRef<ProductPeggyHandle, Props>(function Produ
     if (!file) return;
     setUploading(true);
     try {
-      const body = new FormData();
-      body.append("file", file);
-      body.append("folder", "products");
-      const res = await fetch("/api/upload", { method: "POST", body });
-      const json = (await res.json().catch(() => null)) as { data?: { publicUrl?: string } } | null;
-      if (!res.ok || !json?.data?.publicUrl) throw new Error();
-      setPhoto(json.data.publicUrl);
+      setPhoto(await uploadToFolder(file, "products"));
     } catch {
       setTurns((current) => [...current, { role: "assistant", content: t("peggy.photoFailed"), failed: true }]);
     } finally {
@@ -206,7 +201,7 @@ export const ProductPeggy = forwardRef<ProductPeggyHandle, Props>(function Produ
           {turns.length === 0 ? (
             <div className="flex flex-wrap gap-1.5">
               {[t("peggy.example1"), t("peggy.example2")].map((example) => (
-                <button key={example} type="button" onClick={() => setDraft(example)} className="min-h-[34px] rounded-full border border-app-line bg-white px-3 text-left text-[12.5px] font-bold hover:border-app-line-strong">
+                <button key={example} type="button" onClick={() => setDraft(example)} className="min-h-[34px] whitespace-normal rounded-[18px] border border-app-line bg-white px-3 py-1.5 text-left text-[12.5px] font-bold leading-snug hover:border-app-line-strong">
                   {example}
                 </button>
               ))}
@@ -235,11 +230,11 @@ export const ProductPeggy = forwardRef<ProductPeggyHandle, Props>(function Produ
                   {turn.state === "applied" ? (
                     <p className="m-0 mt-2 text-[13px] font-bold text-app-success">{t("peggy.applied")}</p>
                   ) : turn.state === "dismissed" ? null : (
-                    <div className="mt-2.5 flex gap-2">
-                      <button type="button" onClick={() => void apply(index)} className="inline-flex min-h-[40px] flex-1 items-center justify-center rounded-full bg-app-ink px-4 text-[13.5px] font-extrabold text-white">
+                    <div className="mt-2.5 flex flex-wrap gap-2">
+                      <button type="button" onClick={() => void apply(index)} className="inline-flex min-h-[40px] flex-1 items-center justify-center rounded-full bg-app-ink px-4 text-[13.5px] font-bold text-white">
                         {isEdit ? t("peggy.applySave") : t("peggy.apply")}
                       </button>
-                      <button type="button" onClick={() => change(index)} className="inline-flex min-h-[40px] items-center justify-center rounded-full border border-app-line bg-white px-4 text-[13.5px] font-extrabold">
+                      <button type="button" onClick={() => change(index)} className="inline-flex min-h-[40px] items-center justify-center rounded-full border border-app-line bg-white px-4 text-[13.5px] font-bold">
                         {t("peggy.change")}
                       </button>
                     </div>

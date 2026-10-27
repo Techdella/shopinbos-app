@@ -20,7 +20,7 @@ export function FollowSupplierButton({ supplierId, following: initial }: { suppl
         if (result.ok) setFollowing(!following);
       })}
       className={cx(
-        "inline-flex min-h-[44px] flex-1 items-center justify-center rounded-full px-5 text-[14px] font-extrabold transition disabled:opacity-55 sm:flex-none",
+        "inline-flex min-h-[44px] flex-1 items-center justify-center rounded-full px-5 text-[14px] font-bold transition disabled:opacity-55 sm:flex-none",
         following ? "border border-app-line bg-white text-app-ink" : "bg-app-ink text-white hover:bg-black",
       )}
     >

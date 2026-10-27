@@ -277,7 +277,7 @@ export function CreditsBadge({
   if (headless) return modal && typeof document !== "undefined" ? createPortal(modal, document.body) : null;
 
   return (
-    <div className={cx("relative", className)}>
+    <div className={cx("relative shrink-0", className)}>
       <button
         type="button"
         aria-haspopup="dialog"
@@ -287,7 +287,7 @@ export function CreditsBadge({
           void load();
         }}
         className={cx(
-          "inline-flex h-[42px] items-center gap-1.5 rounded-full border px-3 text-[13.5px] font-extrabold",
+          "inline-flex h-10 shrink-0 items-center gap-1 rounded-full border px-2.5 text-[13.5px] font-bold sm:h-[42px] sm:gap-1.5 sm:px-3",
           low ? "border-app-accent bg-app-peach text-app-accent-ink" : "border-app-line bg-white text-app-ink hover:border-app-line-strong",
         )}
       >

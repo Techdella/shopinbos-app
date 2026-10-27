@@ -36,7 +36,7 @@ const SESSION_COOKIE_OPTIONS = { path: "/", sameSite: "lax" as const, secure: pr
 // Store hosts need the proxy on every path (including /s/ and /api/public, so they can be kept to their own
 // store); on app hosts those two are passed straight through below, exactly as when the matcher skipped them.
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|_vercel|favicon.ico|brand|fonts/).*)"],
+  matcher: ["/((?!_next/static|_next/image|_vercel|favicon.ico|brand|fonts/|audio/tips/).*)"],
 };
 
 function matchesRoute(pathname: string, routes: string[]) {

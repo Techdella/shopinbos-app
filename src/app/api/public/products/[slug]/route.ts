@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { PUBLIC_PREORDER_SELECT, withPublicPreorder } from "@/lib/marketplace/public-preorder";
 import { db } from "@/lib/db/client";
 import { cachedPublic, PUBLIC_DETAIL_TTL_S } from "@/lib/api/public-cache";
 import { PUBLIC_DETAIL_CACHE, withCors, handleOptions } from "@/lib/api/cors";
@@ -45,6 +46,7 @@ export async function GET(
         processingTime: true,
         trendScore: true,
         createdAt: true,
+        ...PUBLIC_PREORDER_SELECT,
         supplier: {
           select: {
             id: true,
@@ -66,7 +68,7 @@ export async function GET(
         },
         category: { select: { id: true, name: true, slug: true, parentId: true } },
       },
-    }),
+    }).then((row) => (row ? withPublicPreorder(row) : null)),
   );
 
   if (!product) {

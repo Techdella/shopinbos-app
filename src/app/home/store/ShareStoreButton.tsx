@@ -59,7 +59,7 @@ export function ShareStoreButton({ url, storeName }: { url: string; storeName: s
         aria-expanded={open}
         aria-haspopup="menu"
         onClick={() => setOpen((value) => !value)}
-        className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-app-line bg-white px-5 text-[14px] font-extrabold text-app-ink transition hover:border-app-line-strong"
+        className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-app-line bg-white px-5 text-[14px] font-bold text-app-ink transition hover:border-app-line-strong"
       >
         <Icon name="upload" size={16} /> {t("share.button")}
       </button>

@@ -462,6 +462,7 @@ model WebsiteLead {
 
   messages    LeadMessage[]
   enrollments LeadEnrollment[]
+  pilots      PilotApplicant[]
 
   @@index([status, createdAt])
   @@index([kind, createdAt])
@@ -738,6 +739,13 @@ model SupplierProduct {
   familyKey             String?
   /// Sizes and colours the supplier has: [{ size?, color? }]. Empty = one kind only.
   variants              Json          @default("[]")
+  /// Preorders (shared/preorder.ts): shops order stock before it arrives; the supplier ships from preorderShipsAt.
+  /// Preorder bulk orders take no stockQuantity; they count against preorderLimit through preorderTaken.
+  preorderEnabled       Boolean       @default(false)
+  preorderShipsAt       DateTime?
+  preorderLimit         Int?
+  preorderTaken         Int           @default(0)
+  preorderNote          String?
   status                ProductStatus @default(draft)
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
@@ -824,6 +832,14 @@ model StoreProduct {
   trackStock             Boolean    @default(false)
   // Tracked products only: keep selling at 0 (backorder); the count may then go below zero.
   continueSellingWhenOut Boolean    @default(false)
+  // Preorders (shared/preorder.ts): shoppers order before the stock arrives; the seller ships from preorderShipsAt.
+  // While on, checkout takes no stock: each unit counts against preorderLimit (if set) through preorderTaken, and
+  // an unpaid order that expires gives it back. Paid like any order: Shopinbos never holds the money.
+  preorderEnabled        Boolean    @default(false)
+  preorderShipsAt        DateTime?
+  preorderLimit          Int?
+  preorderTaken          Int        @default(0)
+  preorderNote           String?
 
   // Product page builder
   // Per-product page settings: { override: true, layout?, buyBox?, sections? } overrides the store's product page
@@ -979,6 +995,8 @@ model WholesaleOrder {
   acceptBy          DateTime?   // the supplier must accept by then, or it is cancelled (expiredAt set)
   acceptReminderAt  DateTime?   // "1 hour left" reminder sent
   expiredAt         DateTime?   // ran out of time without an answer (status cancelled)
+  preorder          Boolean     @default(false) // stock ordered before it arrives (SupplierProduct.preorderEnabled)
+  preorderShipsAt   DateTime?   // the ship date the supplier gave when it was ordered
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
 
@@ -5064,4 +5082,58 @@ model PushCampaignEvent {
   campaign PushCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
   @@index([campaignId, createdAt])
+}
+
+// ─── Pilot testing: invite waitlist leads, collect replies until a deadline, pick the testers ───────────────────
+// Admin › Leads › Pilot testing. docs/migrations/2026-12-01-pilot-testing.sql
+
+model PilotProgram {
+  id               String    @id @default(cuid())
+  name             String
+  status           String    @default("draft") // draft | open | closed
+  closesAt         DateTime
+  roles            String[]  @default(["seller", "supplier", "delivery"])
+  targets          Json      @default("{}") // { seller, supplier, delivery }: how many testers to pick per role
+  includeNoConsent Boolean   @default(false) // also invite leads who didn't tick "agree to messages" (one invite only)
+  textChannel      String    @default("sms") // sms | whatsapp | none: how leads without an email are invited
+  invitedAt        DateTime?
+  remindedAt       DateTime?
+  createdById      String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  applicants PilotApplicant[]
+}
+
+model PilotApplicant {
+  id            String       @id @default(cuid())
+  programId     String
+  leadId        String?
+  role          String // seller | supplier | delivery
+  // invited (no reply yet) | applied | declined | selected | waitlisted
+  status        String       @default("invited")
+  name          String?
+  email         String?
+  phone         String?
+  businessName  String?
+  city          String?
+  businessType  String?
+  devices       String[]     @default([])
+  availability  String?
+  note          String?
+  adminNote     String?
+  inviteChannel String?
+  inviteError   String?
+  invitedAt     DateTime?
+  remindedAt    DateTime?
+  appliedAt     DateTime?
+  decidedAt     DateTime?
+  notifiedAt    DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  program       PilotProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  lead          WebsiteLead? @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  @@unique([programId, leadId])
+  @@index([programId, status])
 }

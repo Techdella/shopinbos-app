@@ -89,7 +89,7 @@ export default async function AdminLogisticsDetailPage(props: { params: Promise<
       sub={`${partner.companyName} · /${partner.slug} · ${partner.city}, ${partner.country}`}
       actions={
         <>
-          <PillLink href="/admin/logistics-partners" icon="arrowLeft">All partners</PillLink>
+          <PillLink href="/admin/logistics-partners" icon="arrowLeft" iconOnlyOnPhone>All partners</PillLink>
           <PillLink href={`/admin/support/new?to=user:${partner.userId}`} icon="chat">Message</PillLink>
           {partner.verificationStatus !== "verified" && (
             <DecisionButtons

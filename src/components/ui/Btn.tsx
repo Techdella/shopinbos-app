@@ -3,6 +3,7 @@ import type { ButtonHTMLAttributes } from "react";
 import { Icon } from "./Icon";
 import type { IconName } from "./Icon";
 import { cn } from "@/lib/utils";
+import { PILL_BASE, pillLabel } from "@/components/app-ui/pill-label";
 
 // Re-export so callers can use the type
 export type { IconName };
@@ -30,8 +31,8 @@ const variants: Record<BtnVariant, string> = {
 
 const sizes: Record<BtnSize, string> = {
   sm: "min-h-[34px] px-3.5 text-[13px] gap-1.5",
-  md: "min-h-[42px] px-5 text-[14px] gap-2",
-  lg: "min-h-[50px] px-6 text-[15px] gap-2",
+  md: "min-h-[42px] px-4 text-[13.5px] gap-2 sm:px-5 sm:text-[14px]",
+  lg: "min-h-[48px] px-5 text-[15px] gap-2 sm:min-h-[50px] sm:px-6",
 };
 
 export const Btn = forwardRef<HTMLButtonElement, BtnProps>(
@@ -42,8 +43,8 @@ export const Btn = forwardRef<HTMLButtonElement, BtnProps>(
         ref={ref}
         disabled={disabled || loading}
         className={cn(
-          "inline-flex items-center justify-center rounded-full font-app font-extrabold",
-          "leading-none tracking-[-0.005em] cursor-pointer transition-colors duration-150",
+          PILL_BASE,
+          "font-app cursor-pointer transition-colors duration-150",
           "disabled:opacity-50 disabled:pointer-events-none",
           isDark ? "bg-app-accent text-white hover:brightness-95" : variants[variant],
           sizes[size],
@@ -51,9 +52,9 @@ export const Btn = forwardRef<HTMLButtonElement, BtnProps>(
         )}
         {...props}
       >
-        {iconLeft && <Icon name={iconLeft as any} size={size === "sm" ? 12 : 14} />}
-        {loading ? <span className="animate-pulse-dot">···</span> : children}
-        {icon && <Icon name={icon as any} size={size === "sm" ? 12 : 14} />}
+        {iconLeft && <Icon name={iconLeft as any} size={size === "sm" ? 12 : 14} className="shrink-0" />}
+        {loading ? <span className="animate-pulse-dot">···</span> : pillLabel(children)}
+        {icon && <Icon name={icon as any} size={size === "sm" ? 12 : 14} className="shrink-0" />}
       </button>
     );
   },

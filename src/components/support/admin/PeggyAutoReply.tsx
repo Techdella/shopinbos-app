@@ -44,7 +44,7 @@ export function PeggyAutoReply({ initial, aiReady }: { initial: PeggyAutoChannel
         aria-checked={on}
         disabled={pending || !aiReady}
         onClick={() => save(on ? [] : [...PEGGY_AUTO_CHANNELS])}
-        className={cx("inline-flex min-h-[44px] items-center gap-3 rounded-full border-2 px-4 text-[14px] font-extrabold disabled:opacity-60", on ? "border-app-forest bg-app-forest text-white" : "border-app-line-strong bg-white text-app-ink")}
+        className={cx("inline-flex min-h-[44px] items-center gap-3 rounded-full border-2 px-4 text-[14px] font-bold disabled:opacity-60", on ? "border-app-forest bg-app-forest text-white" : "border-app-line-strong bg-white text-app-ink")}
       >
         <span className={cx("relative h-5 w-9 rounded-full transition", on ? "bg-white/30" : "bg-app-line")} aria-hidden>
           <span className={cx("absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all", on ? "left-[18px]" : "left-0.5")} />

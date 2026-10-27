@@ -40,7 +40,7 @@ export default async function DeliveryPartnersPage({ searchParams }: { searchPar
       sub={t("partners.sub")}
       actions={
         <>
-          <PillLink href="/home/logistics" icon="arrowLeft">{t("logistics")}</PillLink>
+          <PillLink href="/home/logistics" icon="arrowLeft" iconOnlyOnPhone>{t("logistics")}</PillLink>
           <PillLink href="/home/logistics/settings" icon="settings">{t("settings.title")}</PillLink>
         </>
       }

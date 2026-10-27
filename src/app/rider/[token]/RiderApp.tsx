@@ -102,7 +102,7 @@ export function RiderApp({
           onClick={toggleOnline}
           disabled={pending}
           className={cx(
-            "inline-flex min-h-[48px] shrink-0 items-center gap-2 rounded-full px-5 text-[15px] font-extrabold transition disabled:opacity-70",
+            "inline-flex min-h-[48px] shrink-0 items-center gap-2 rounded-full px-5 text-[15px] font-bold transition disabled:opacity-70",
             online ? "bg-app-success text-white" : "border border-app-line-strong bg-white text-app-ink",
           )}
         >

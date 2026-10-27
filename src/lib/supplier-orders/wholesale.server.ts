@@ -6,6 +6,7 @@ import { parsePricingTiers, tierPrice } from "@/lib/marketplace/find";
 import { SELLER_CANCELLABLE_WHOLESALE, SELLER_CANCEL_PREFIX, plainText, wholesaleReleasesStock, wholesaleReservation, wholesaleStatusAfter, type SupplierAction } from "./pure";
 import type { ServiceResult } from "./service.server";
 import { acceptByFor, messageSupplierPhone } from "./deadline.server";
+import { preorderState, shipDateLabel } from "@shared/preorder";
 
 // Wholesale orders: a seller buys stock from a supplier (at least the minimum order, at the supplier's price tier
 // for the quantity). There's no payment rail for this yet: the supplier sends an invoice and the seller pays them
@@ -49,7 +50,12 @@ export async function placeWholesaleOrder(input: PlaceWholesaleInput): Promise<S
   const moq = Math.max(1, product.moq);
   if (input.quantity < moq) return { ok: false, code: "BAD_REQUEST", message: `The minimum order is ${moq.toLocaleString("en-NG")}.` };
   const short = (stock: number) => ({ ok: false as const, code: "BAD_REQUEST" as const, message: `${plainText(product.supplier.displayName)} has ${stock.toLocaleString("en-NG")} in stock. Lower the quantity or request a quote.` });
-  const reservation = wholesaleReservation(product.stockQuantity, input.quantity);
+  // Preorders (shared/preorder.ts): the stock isn't here yet, so none is reserved; the order takes places under
+  // the supplier's preorder cap instead, and ships from their date.
+  const preorder = preorderState({ enabled: product.preorderEnabled, shipsAt: product.preorderShipsAt, limit: product.preorderLimit, taken: product.preorderTaken });
+  const preorderShort = (left: number) => ({ ok: false as const, code: "BAD_REQUEST" as const, message: left > 0 ? `Only ${left.toLocaleString("en-NG")} preorder places are left. Lower the quantity.` : "Preorders for this product are full." });
+  if (preorder.on && preorder.left !== null && preorder.left < input.quantity) return preorderShort(preorder.left);
+  const reservation = preorder.on ? { reserve: 0 } : wholesaleReservation(product.stockQuantity, input.quantity);
   if ("short" in reservation) return short(product.stockQuantity);
 
   const unitPrice = tierPrice(parsePricingTiers(product.pricingTiers), input.quantity, product.wholesalePrice);
@@ -59,6 +65,13 @@ export async function placeWholesaleOrder(input: PlaceWholesaleInput): Promise<S
   // The units are reserved as the order is made (conditionally, so two sellers can't take the same stock and it
   // never goes below zero). They go back if the supplier declines or the seller cancels.
   const order = await db.$transaction(async (tx) => {
+    if (preorder.on) {
+      const placed = await tx.$executeRaw`
+        UPDATE "SupplierProduct" SET "preorderTaken" = "preorderTaken" + ${input.quantity}, "updatedAt" = NOW()
+        WHERE id = ${product.id} AND status = 'published' AND "preorderEnabled" = true
+          AND ("preorderLimit" IS NULL OR "preorderTaken" + ${input.quantity} <= "preorderLimit")`;
+      if (placed !== 1) return null;
+    }
     if (reservation.reserve > 0) {
       const taken = await tx.supplierProduct.updateMany({
         where: { id: product.id, status: "published", stockQuantity: { gte: reservation.reserve } },
@@ -79,10 +92,17 @@ export async function placeWholesaleOrder(input: PlaceWholesaleInput): Promise<S
         deliveryAddress: input.deliveryAddress.trim(),
         notes: input.notes?.trim() || null,
         acceptBy: deadline.acceptBy,
+        preorder: preorder.on,
+        preorderShipsAt: preorder.on ? product.preorderShipsAt : null,
       },
       include: { supplierProduct: { select: { id: true, name: true, images: true } } },
     });
   });
+  if (!order && preorder.on) {
+    // Someone else took the last preorder places a moment ago.
+    const fresh = await db.supplierProduct.findUnique({ where: { id: product.id }, select: { preorderLimit: true, preorderTaken: true } });
+    return preorderShort(fresh?.preorderLimit ? Math.max(0, fresh.preorderLimit - fresh.preorderTaken) : 0);
+  }
   if (!order) {
     // Someone else took the stock a moment ago.
     const fresh = await db.supplierProduct.findUnique({ where: { id: product.id }, select: { stockQuantity: true } });
@@ -93,8 +113,8 @@ export async function placeWholesaleOrder(input: PlaceWholesaleInput): Promise<S
     userId: product.supplier.userId,
     type: "suppliers",
     priority: "warning",
-    title: `New wholesale order ${wholesaleRef(order.id)}: accept within ${deadline.words}`,
-    description: `A shop wants ${input.quantity.toLocaleString("en-NG")} × ${plainText(product.name)} (${money(totalPrice, product.currency)}). Accept it within ${deadline.words} and send them your invoice; they pay you directly.`,
+    title: `New ${preorder.on ? "preorder" : "wholesale order"} ${wholesaleRef(order.id)}: accept within ${deadline.words}`,
+    description: `A shop wants ${input.quantity.toLocaleString("en-NG")} × ${plainText(product.name)} (${money(totalPrice, product.currency)})${preorder.on ? `, preordered to ship ${preorder.shipsOn ? `from ${shipDateLabel(preorder.shipsOn)}` : "when it arrives"}` : ""}. Accept it within ${deadline.words} and send them your invoice; they pay you directly.`,
     link: `/supplier/orders/${order.id}?kind=wholesale`,
     actionLabel: "Accept order",
     actionUrl: `/supplier/orders/${order.id}?kind=wholesale`,
@@ -169,15 +189,17 @@ export async function moveWholesaleOrder(input: MoveWholesaleInput): Promise<Ser
 }
 
 /**
- * Gives back the supplier stock a wholesale order reserved, once: stockReleasedAt is claimed with a conditional
- * update first, so a retried decline or cancel can't add it twice. Orders that reserved nothing are left alone.
+ * Gives back the supplier stock a wholesale order reserved (or, for a preorder, its places under the cap), once:
+ * stockReleasedAt is claimed with a conditional update first, so a retried decline or cancel can't add it twice.
+ * Orders that took nothing are left alone.
  */
 export async function releaseWholesaleStock(tx: Prisma.TransactionClient, orderId: string) {
-  const order = await tx.wholesaleOrder.findUnique({ where: { id: orderId }, select: { id: true, supplierProductId: true, stockReserved: true, stockReleasedAt: true } });
-  if (!order || order.stockReleasedAt || order.stockReserved <= 0) return false;
-  const claimed = await tx.wholesaleOrder.updateMany({ where: { id: order.id, stockReleasedAt: null, stockReserved: { gt: 0 } }, data: { stockReleasedAt: new Date() } });
+  const order = await tx.wholesaleOrder.findUnique({ where: { id: orderId }, select: { id: true, supplierProductId: true, stockReserved: true, stockReleasedAt: true, preorder: true, quantity: true } });
+  if (!order || order.stockReleasedAt || (order.stockReserved <= 0 && !order.preorder)) return false;
+  const claimed = await tx.wholesaleOrder.updateMany({ where: { id: order.id, stockReleasedAt: null, OR: [{ stockReserved: { gt: 0 } }, { preorder: true }] }, data: { stockReleasedAt: new Date() } });
   if (claimed.count !== 1) return false;
-  await tx.supplierProduct.updateMany({ where: { id: order.supplierProductId }, data: { stockQuantity: { increment: order.stockReserved } } });
+  if (order.stockReserved > 0) await tx.supplierProduct.updateMany({ where: { id: order.supplierProductId }, data: { stockQuantity: { increment: order.stockReserved } } });
+  if (order.preorder) await tx.supplierProduct.updateMany({ where: { id: order.supplierProductId, preorderTaken: { gte: order.quantity } }, data: { preorderTaken: { decrement: order.quantity } } });
   return true;
 }
 

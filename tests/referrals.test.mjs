@@ -106,4 +106,6 @@ test("referrals: shared supplier and delivery partner profiles carry the owner's
   assert.match(service, /asReferralSource\(jar\.get\(REFERRAL_SOURCE_COOKIE\)\?\.value\)/);
   assert.match(service, /kind: "profile_referral", ref: referee\.id/, "a profile sign-up gives the owner points");
   for (const page of ["src/app/suppliers/[slug]/page.tsx", "src/app/logistics/partners/[slug]/page.tsx"]) assert.match(read(page), /<PoweredByShopinbos /, `${page} shows the badge`);
+  // next/link would prefetch /r/CODE (which sets the cookies) as soon as the buttons scroll into view.
+  assert.doesNotMatch(read("src/components/referrals/PoweredByShopinbos.tsx"), /from "next\/link"|<\/Link>/, "join buttons are plain links");
 });

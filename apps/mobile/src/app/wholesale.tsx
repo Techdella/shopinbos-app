@@ -3,6 +3,7 @@ import { ActivityIndicator, Image, View } from "react-native";
 import { router } from "expo-router";
 import { Screen } from "@/components/Screen";
 import { List, Pill, Row, type PillTone } from "@/components/design";
+import { PreorderPill } from "@/components/Preorder";
 import { Notice, PillButton, T } from "@/components/ui";
 import { api } from "@/lib/api";
 import { money } from "@/lib/customers-pure";
@@ -14,6 +15,7 @@ import { colors } from "@/theme";
 // The seller's wholesale orders (stock bought from suppliers). Once the supplier accepts, the seller can pay here
 // by card: Paystack opens in an in-app browser that closes by itself once paid (lib/pay.ts), and the money goes
 // straight to the supplier's bank (physical goods, so it isn't an in-app purchase). The app then confirms it.
+// A preorder (stock ordered before it arrives) shows "Preorder · 12 Dec": the supplier ships from that date.
 
 type WholesaleOrder = {
   id: string;
@@ -29,6 +31,8 @@ type WholesaleOrder = {
   supplier: { id: string; name: string };
   product: { id: string; name: string; image: string | null };
   canPay: boolean;
+  /** A preorder: ships from the supplier's date (newer servers). */
+  preorder?: { shipsOn: string | null } | null;
 };
 
 const STAGE: Record<string, { key: string; tone: PillTone }> = {
@@ -147,6 +151,7 @@ export default function WholesaleOrders() {
                     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
                       <Pill tone={stage.tone} label={t.dynamic(`ws.stage.${stage.key}`, stage.key)} />
                       {paid ? <Pill tone="ok" icon="check" label={t("ws.paidInApp")} /> : null}
+                      <PreorderPill preorder={order.preorder} />
                     </View>
                     {order.status === "cancelled" && order.rejectReason && !order.expiredAt ? (
                       <T style={{ fontSize: 13, color: colors.inkSoft }}>{t("ws.note.declined", { reason: order.rejectReason })}</T>

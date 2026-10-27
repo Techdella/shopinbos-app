@@ -268,8 +268,8 @@ function AdCard({ ad, onChange }: { ad: Ad; onChange: () => void }) {
           <div className="text-[13px] font-bold">{t("adLink")}</div>
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
             <code className="min-w-0 flex-1 truncate text-[13px]">{ad.link}</code>
-            <button type="button" onClick={() => void copy("link", ad.link)} className="rounded-full border border-app-line px-3.5 py-1.5 text-[13px] font-extrabold">{copied === "link" ? t("copied") : t("copyLink")}</button>
-            <button type="button" onClick={() => void copy("text", `${text}\n${ad.link}`)} className="rounded-full border border-app-line px-3.5 py-1.5 text-[13px] font-extrabold">{copied === "text" ? t("copied") : t("copyText")}</button>
+            <button type="button" onClick={() => void copy("link", ad.link)} className="rounded-full border border-app-line px-3.5 py-1.5 text-[13px] font-bold">{copied === "link" ? t("copied") : t("copyLink")}</button>
+            <button type="button" onClick={() => void copy("text", `${text}\n${ad.link}`)} className="rounded-full border border-app-line px-3.5 py-1.5 text-[13px] font-bold">{copied === "text" ? t("copied") : t("copyText")}</button>
           </div>
           <p className="mb-0 mt-2 text-[12.5px] leading-[1.5] text-app-ink-soft">{PLATFORM_HELP[ad.platform] ? t.dynamic(`help.${ad.platform}`, PLATFORM_HELP[ad.platform]) : null}</p>
         </div>

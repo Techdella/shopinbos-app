@@ -39,7 +39,7 @@ export default async function AdminSellerPage(props: { params: Promise<{ id: str
       sub={`${seller.customDomain ?? `/s/${seller.slug}`}${seller.city ? ` · ${seller.city}` : ""}, ${seller.country}`}
       actions={
         <>
-          <PillLink href="/admin/sellers" icon="arrowLeft">All sellers</PillLink>
+          <PillLink href="/admin/sellers" icon="arrowLeft" iconOnlyOnPhone>All sellers</PillLink>
           <PillLink href={storeUrl(seller)} icon="globe">Open shop</PillLink>
           <PillLink href={`/admin/support/new?to=user:${seller.userId}`} icon="chat">Message</PillLink>
         </>

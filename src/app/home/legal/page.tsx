@@ -79,7 +79,7 @@ export default async function LegalPagesPage() {
                   <div className="mt-auto flex flex-wrap gap-2 pt-4">
                     <PillLink href={`/home/legal/${page.key}`} size="sm" tone={status === "empty" ? "ink" : "white"} icon="edit">{status === "empty" ? t("writeIt") : t("edit")}</PillLink>
                     {status === "published" && (
-                      <a href={live} target="_blank" rel="noreferrer" className="inline-flex min-h-[34px] items-center gap-1.5 rounded-full border border-app-line bg-white px-3.5 text-[13px] font-extrabold text-app-ink no-underline hover:border-app-line-strong">
+                      <a href={live} target="_blank" rel="noreferrer" className="inline-flex min-h-[34px] items-center gap-1.5 rounded-full border border-app-line bg-white px-3.5 text-[13px] font-bold text-app-ink no-underline hover:border-app-line-strong">
                         <Icon name="eye" size={14} /> {t("viewOnStore")}<span className="sr-only"> ({page.title})</span>
                       </a>
                     )}

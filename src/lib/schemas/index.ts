@@ -134,6 +134,14 @@ export const PricingTierSchema = z.object({
   price: z.number().positive(),
 });
 
+/** Preorder settings from a product form (shared/preorder.ts): ship date YYYY-MM-DD, optional cap and note. */
+export const PreorderInputSchema = z.object({
+  enabled: z.boolean(),
+  shipsAt: z.string().max(40).nullable().optional(),
+  limit: z.number().int().min(1).max(100_000).nullable().optional(),
+  note: z.string().max(280).nullable().optional(),
+});
+
 export const SupplierProductCreateSchema = z.object({
   name: z.string().min(2).max(200),
   description: z.string().min(10).max(5000),
@@ -152,6 +160,9 @@ export const SupplierProductCreateSchema = z.object({
   deliveryRegions: z.array(z.string()),
   processingTime: z.string().max(80).optional(),
   status: ProductStatusSchema.default("draft"),
+  // Preorders (shared/preorder.ts parsePreorderInput checks the date and cap): shops order stock before it arrives.
+  // Not a column: the routes take it out and save preorderSaveData's fields.
+  preorder: PreorderInputSchema.optional(),
 });
 
 export const SupplierProductUpdateSchema = SupplierProductCreateSchema.partial();
@@ -266,6 +277,8 @@ export const StoreProductCreateSchema = z.object({
   // given; left out on edit: switched on when a count above 0 is sent (see stockTrackingFor).
   trackStock: z.boolean().optional(),
   continueSellingWhenOut: z.boolean().optional(),
+  // Preorders (shared/preorder.ts parsePreorderInput checks the date and cap): sell before the stock arrives.
+  preorder: PreorderInputSchema.optional(),
   // Page builder
   pageVariant: ProductPageVariantSchema.default("shopify"),
   pageLayout: jsonObject().default({}),

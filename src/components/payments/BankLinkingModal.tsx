@@ -214,7 +214,7 @@ export function BankLinkingModal({
           )}
 
           {/* Actions */}
-          <div className="mt-2 flex items-center justify-end gap-2 border-t border-[var(--ink-100)] pt-4">
+          <div className="mt-2 flex flex-wrap items-center justify-end gap-2 border-t border-[var(--ink-100)] pt-4">
             <button 
               type="button" 
               onClick={onClose} 

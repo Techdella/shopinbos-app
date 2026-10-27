@@ -44,6 +44,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "detail.refundingAfterExpiry": "The payment land after this order don expire and the stock don sell, so we refund am through Paystack (Paystack still dey process am).",
   "detail.expiredUnpaid": "This order expire on {date} without payment and the stock don go back on sale. If the buyer pay now, we go take am again if stock still dey.",
   "detail.from": "From {channel}",
+  "detail.preorder": "Preorder",
+  "detail.preorderShips": "Preorder · e go ship {date}",
   "detail.items": "Items",
   "detail.itemCount": "{count, plural, one {# item} other {# items}}",
   "detail.noItems": "We no save any item for this order.",

@@ -79,7 +79,7 @@ export function PickupBooking({ initial, shop }: { initial: PickupView; shop: st
     return (
       <div className="grid gap-3">
         {error && <p role="alert" className="m-0 rounded-[14px] bg-app-danger-tint px-4 py-3 text-[14.5px] font-bold text-app-danger">{error}</p>}
-        <button type="button" onClick={() => void call("POST", { intent: "packed", kind: state.kind }, "packed")} disabled={Boolean(busy)} className="inline-flex min-h-[56px] w-full items-center justify-center rounded-full bg-app-ink px-6 text-[17px] font-extrabold text-white disabled:opacity-60">
+        <button type="button" onClick={() => void call("POST", { intent: "packed", kind: state.kind }, "packed")} disabled={Boolean(busy)} className="inline-flex min-h-[56px] w-full items-center justify-center rounded-full bg-app-ink px-6 text-[17px] font-bold text-white disabled:opacity-60">
           {busy === "packed" ? t("saving") : t("pickup.packed")}
         </button>
       </div>
@@ -101,7 +101,7 @@ export function PickupBooking({ initial, shop }: { initial: PickupView; shop: st
         {error && <p role="alert" className="m-0 rounded-[14px] bg-app-danger-tint px-4 py-3 text-[14.5px] font-bold text-app-danger">{error}</p>}
         {pickup.changeable ? (
           <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => { setEditing(true); setAddress(pickup.address); }} className="inline-flex min-h-[44px] items-center rounded-full border border-app-line bg-white px-5 text-[14.5px] font-extrabold">{t("pickup.changeTime")}</button>
+            <button type="button" onClick={() => { setEditing(true); setAddress(pickup.address); }} className="inline-flex min-h-[44px] items-center rounded-full border border-app-line bg-white px-5 text-[14.5px] font-bold">{t("pickup.changeTime")}</button>
             <button type="button" disabled={Boolean(busy)} onClick={async () => { if ((await confirmDialog(t("pickup.cancelConfirm")))) void call("DELETE", undefined, "cancel"); }} className="inline-flex min-h-[44px] items-center rounded-full px-4 text-[14.5px] font-bold text-app-ink-soft underline underline-offset-4">
               {busy === "cancel" ? t("pickup.cancelling") : t("pickup.cancel")}
             </button>
@@ -150,7 +150,7 @@ export function PickupBooking({ initial, shop }: { initial: PickupView; shop: st
         <span className="text-[13.5px] font-normal text-app-ink-soft">{state.address ? t("pickup.savedAddress") : t("pickup.saveForNext")}</span>
       </label>
       {error && <p role="alert" className="m-0 rounded-[14px] bg-app-danger-tint px-4 py-3 text-[14.5px] font-bold text-app-danger">{error}</p>}
-      <button type="button" onClick={() => void book()} disabled={Boolean(busy)} className="inline-flex min-h-[56px] w-full items-center justify-center rounded-full bg-app-ink px-6 text-[17px] font-extrabold text-white disabled:opacity-60">
+      <button type="button" onClick={() => void book()} disabled={Boolean(busy)} className="inline-flex min-h-[56px] w-full items-center justify-center rounded-full bg-app-ink px-6 text-[17px] font-bold text-white disabled:opacity-60">
         {busy === "book" ? t("pickup.booking") : editing ? t("pickup.saveNewTime") : t("pickup.book")}
       </button>
       {editing && <button type="button" onClick={() => setEditing(false)} className="min-h-[40px] text-[14.5px] font-bold text-app-ink-soft underline underline-offset-4">{t("pickup.keepOldTime")}</button>}

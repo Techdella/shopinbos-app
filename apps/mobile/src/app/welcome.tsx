@@ -52,10 +52,12 @@ function RoleCard({ title, line, tone, icon, onPress }: { title: string; line: s
 
 export default function Welcome() {
   const t = useT("m_auth");
-  const { step } = useLocalSearchParams<{ step?: string }>();
+  // phone / email: typed on the log-in screen before "Sign up now"; carried on to the sign-up form.
+  const { step, phone, email } = useLocalSearchParams<{ step?: string; phone?: string; email?: string }>();
 
   function pick(role: SignupRole) {
-    router.push({ pathname: "/signup", params: { method: "phone", role } });
+    const carried = phone ? { phone } : email ? { email } : {};
+    router.push({ pathname: "/signup", params: { method: email && !phone ? "email" : "phone", role, ...carried } });
   }
 
   const corner = (

@@ -92,7 +92,7 @@ export default async function AdminDevelopersPage(props: { searchParams?: Promis
                 </option>
               ))}
             </select>
-            <button type="submit" className="min-h-[40px] rounded-full bg-app-ink px-4 text-[13.5px] font-extrabold text-white">Open</button>
+            <button type="submit" className="min-h-[40px] rounded-full bg-app-ink px-4 text-[13.5px] font-bold text-white">Open</button>
           </form>
           {connected.length > 0 && (
             <p className="mb-0 mt-3 text-[13px] text-app-ink-soft">

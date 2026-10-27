@@ -3,7 +3,7 @@ import { requireRole } from "@/lib/server-auth";
 import { ensureLogisticsAccess, getLogisticsPartnerForUser } from "@/lib/role-queries";
 import { rateCardsForPartner } from "@/lib/delivery-market/manage.server";
 import { savePartnerRateCard } from "@/app/actions/delivery-market-partner";
-import { Card, CardHead, PillLink, TextLink } from "@/components/app-kit";
+import { Card, CardHead, MoreActions, PillLink, TextLink } from "@/components/app-kit";
 import { Notice } from "@/components/app-ui";
 import { RateCardEditor } from "@/components/logistics/RateCardEditor";
 import { ActionNotice, KeyValue, PartnerPage, lagosDate, naira } from "@/components/logistics/kit";
@@ -40,8 +40,10 @@ export default async function LogisticsRatesPage({ searchParams }: { searchParam
       sub={t("market.rates.sub")}
       actions={
         <>
-          <PillLink href="/logistics/coverage#where-you-work" icon="pin">{t("market.whereYouWork")}</PillLink>
-          <PillLink href="/logistics/pickup-points" icon="shop">{t("market.points.title")}</PillLink>
+          <MoreActions>
+            <PillLink href="/logistics/coverage#where-you-work" icon="pin">{t("market.whereYouWork")}</PillLink>
+            <PillLink href="/logistics/pickup-points" icon="shop">{t("market.points.title")}</PillLink>
+          </MoreActions>
         </>
       }
     >

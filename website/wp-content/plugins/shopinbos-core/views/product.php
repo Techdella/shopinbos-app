@@ -47,10 +47,11 @@ $default_mode = $p['dropship'] ? 'drop' : 'ws';
 					<h1 class="disp h2" style="font-size:40px"><?php echo esc_html( $p['name'] ); ?></h1>
 					<div class="row" style="gap:8px;flex-wrap:wrap">
 						<?php if ( $p['ships'] ) : ?><span class="tag"><?php echo esc_html( $p['ships'] ); ?></span><?php endif; ?>
-						<?php if ( null !== $p['stock'] ) : ?><span class="tag <?php echo $p['in_stock'] ? '' : 'tag-amber'; ?>"><?php echo $p['in_stock'] ? esc_html( sprintf( __( '%d in stock', 'shopinbos' ), $p['stock'] ) ) : esc_html__( 'Out of stock right now', 'shopinbos' ); ?></span><?php endif; ?>
+						<?php if ( $p['preorder'] ) : ?><span class="tag tag-amber"><?php echo esc_html( $p['preorder']['open'] ? __( 'Preorder', 'shopinbos' ) . ' · ' . $p['preorder']['ships'] . ( null !== $p['preorder']['left'] ? ' · ' . sprintf( __( '%d left', 'shopinbos' ), $p['preorder']['left'] ) : '' ) : __( 'Preorders are full', 'shopinbos' ) ); ?></span><?php elseif ( null !== $p['stock'] ) : ?><span class="tag <?php echo $p['in_stock'] ? '' : 'tag-amber'; ?>"><?php echo $p['in_stock'] ? esc_html( sprintf( __( '%d in stock', 'shopinbos' ), $p['stock'] ) ) : esc_html__( 'Out of stock right now', 'shopinbos' ); ?></span><?php endif; ?>
 						<?php if ( $p['dropship'] ) : ?><span class="tag tag-peach"><?php esc_html_e( 'Ships with your label', 'shopinbos' ); ?></span><?php endif; ?>
 					</div>
 					<?php if ( $p['description'] ) : ?><p class="p"><?php echo esc_html( $p['description'] ); ?></p><?php endif; ?>
+					<?php if ( $p['preorder'] && $p['preorder']['note'] ) : ?><p class="p" style="font-size:14px;color:#6B6779"><?php echo esc_html( $p['preorder']['note'] ); ?></p><?php endif; ?>
 				</div>
 				<?php if ( $p['dropship'] && $p['bulk'] ) : ?>
 					<div class="seg" role="group" aria-label="<?php esc_attr_e( 'How you want to sell it', 'shopinbos' ); ?>" data-toggle="mode" style="align-self:flex-start">

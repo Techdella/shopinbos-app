@@ -124,7 +124,7 @@ export function LabelPicker({ orders, preselected }: { orders: PickerOrder[]; pr
         <a
           href={selected.size ? href : undefined}
           aria-disabled={!selected.size}
-          className={cx("inline-flex min-h-[52px] items-center justify-center rounded-full px-5 text-[15px] font-extrabold no-underline", selected.size ? "bg-app-ink text-white hover:bg-black" : "pointer-events-none bg-app-line text-app-ink-soft")}
+          className={cx("inline-flex min-h-[52px] items-center justify-center rounded-full px-5 text-[15px] font-bold no-underline", selected.size ? "bg-app-ink text-white hover:bg-black" : "pointer-events-none bg-app-line text-app-ink-soft")}
         >
           {selected.size ? t("lab.print", { count: selected.size }) : t("lab.choose")}
         </a>

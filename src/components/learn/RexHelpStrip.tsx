@@ -57,8 +57,8 @@ export function RexHelpStrip({ className = "" }: { className?: string }) {
             key={action.href}
             href={action.href}
             className={index === 0
-              ? "inline-flex min-h-[38px] items-center gap-1.5 rounded-full bg-app-ink px-4 text-[13px] font-extrabold text-white no-underline hover:bg-black"
-              : "inline-flex min-h-[38px] items-center gap-1.5 rounded-full border border-app-line bg-white px-4 text-[13px] font-extrabold text-app-ink no-underline hover:border-app-line-strong"}
+              ? "inline-flex min-h-[38px] items-center gap-1.5 rounded-full bg-app-ink px-4 text-[13px] font-bold text-white no-underline hover:bg-black"
+              : "inline-flex min-h-[38px] items-center gap-1.5 rounded-full border border-app-line bg-white px-4 text-[13px] font-bold text-app-ink no-underline hover:border-app-line-strong"}
           >
             {index === 0 ? <Icon name="sparkle" size={14} /> : null}
             {action.label}

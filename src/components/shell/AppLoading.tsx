@@ -130,11 +130,11 @@ export function AppLoading({ role = "seller" }: { role?: Role }) {
                 <button
                   type="button"
                   onClick={() => window.location.reload()}
-                  className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full bg-app-ink px-6 text-[15px] font-extrabold text-white hover:brightness-110"
+                  className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full bg-app-ink px-6 text-[15px] font-bold text-white hover:brightness-110"
                 >
                   {t("tryAgain")}
                 </button>
-                <a href={HOME[role]} className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-app-line bg-white px-6 text-[15px] font-extrabold text-app-ink no-underline hover:border-app-line-strong">
+                <a href={HOME[role]} className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-app-line bg-white px-6 text-[15px] font-bold text-app-ink no-underline hover:border-app-line-strong">
                   {t("loading.goHome")}
                 </a>
               </div>

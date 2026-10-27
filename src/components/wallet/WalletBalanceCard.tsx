@@ -70,10 +70,10 @@ export function WalletBalanceCard({ returnTo, notice }: { returnTo: string; noti
           <p className="mb-0 mt-2 text-[13px] text-app-ink-soft">Top up by transfer or card, spend it on AI credits and other Shopinbos services, or withdraw it to your main bank account. Sales still go straight to your bank.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button type="button" disabled={!view.ready} onClick={() => { setMode(mode === "topup" ? null : "topup"); setMessage(null); }} className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-app-ink px-5 text-[14px] font-extrabold text-white disabled:opacity-50">
+          <button type="button" disabled={!view.ready} onClick={() => { setMode(mode === "topup" ? null : "topup"); setMessage(null); }} className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-app-ink px-5 text-[14px] font-bold text-white disabled:opacity-50">
             <Icon name="plus" size={15} /> Top up
           </button>
-          <button type="button" disabled={!view.ready || !view.canWithdraw || view.balanceNaira < BALANCE_LIMITS.withdrawMin} onClick={() => { setMode(mode === "withdraw" ? null : "withdraw"); setMessage(null); }} className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-app-line bg-white px-5 text-[14px] font-extrabold text-app-ink disabled:opacity-50">
+          <button type="button" disabled={!view.ready || !view.canWithdraw || view.balanceNaira < BALANCE_LIMITS.withdrawMin} onClick={() => { setMode(mode === "withdraw" ? null : "withdraw"); setMessage(null); }} className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-app-line bg-white px-5 text-[14px] font-bold text-app-ink disabled:opacity-50">
             <Icon name="arrow" size={15} /> Withdraw
           </button>
         </div>
@@ -107,7 +107,7 @@ export function WalletBalanceCard({ returnTo, notice }: { returnTo: string; noti
               </button>
             ))}
           </div>
-          <button type="submit" disabled={pending} className="inline-flex min-h-[46px] w-fit items-center rounded-full bg-app-accent px-5 text-[14px] font-extrabold text-white disabled:opacity-60">
+          <button type="submit" disabled={pending} className="inline-flex min-h-[46px] w-fit items-center rounded-full bg-app-accent px-5 text-[14px] font-bold text-white disabled:opacity-60">
             {pending ? "One moment…" : mode === "topup" ? "Continue to pay" : "Withdraw"}
           </button>
         </form>

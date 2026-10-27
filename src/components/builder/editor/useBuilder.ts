@@ -8,6 +8,7 @@ import { normalizeChrome, propagateChrome } from "@/lib/store-templates/chrome";
 import { heroDefaultLayout } from "./section-schema";
 import { readShopperInfo, type StorefrontShopperInfo } from "@/lib/storefront/shopper-info";
 import type { ShopperStock } from "@shared/product-stock";
+import type { PreorderState } from "@shared/preorder";
 import { useEditorT } from "./i18n";
 import {
   canRedo,
@@ -53,6 +54,8 @@ export interface BuilderProduct {
   videoUrl?: string | null;
   /** Tracked stock as shoppers see it (shared/product-stock.ts); null when not tracked. */
   stock?: ShopperStock | null;
+  /** Taking preorders (shared/preorder.ts forShoppers); null when not. */
+  preorder?: PreorderState | null;
   supplierProduct?: { stockQuantity?: number | null } | null;
   /** The product's own page layout / sections (product-override.ts). */
   pageLayout?: unknown;

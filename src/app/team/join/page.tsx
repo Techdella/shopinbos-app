@@ -36,8 +36,8 @@ export default async function JoinTeamPage({ searchParams }: { searchParams: Pro
           <>
             <p className="mb-0 mt-3 text-[14.5px] text-app-ink-soft">{t("team.joinSignIn")}</p>
             <div className="mt-5 flex flex-wrap gap-3">
-              <a href={`/login?next=${encodeURIComponent(here)}`} className="inline-flex min-h-[44px] items-center rounded-full bg-app-ink px-5 text-[14px] font-extrabold text-white no-underline">{t("team.joinLogin")}</a>
-              <a href={`/signup?next=${encodeURIComponent(here)}`} className="inline-flex min-h-[44px] items-center rounded-full border border-app-line px-5 text-[14px] font-extrabold text-app-ink no-underline">{t("team.joinSignup")}</a>
+              <a href={`/login?next=${encodeURIComponent(here)}`} className="inline-flex min-h-[44px] items-center rounded-full bg-app-ink px-5 text-[14px] font-bold text-white no-underline">{t("team.joinLogin")}</a>
+              <a href={`/signup?next=${encodeURIComponent(here)}`} className="inline-flex min-h-[44px] items-center rounded-full border border-app-line px-5 text-[14px] font-bold text-app-ink no-underline">{t("team.joinSignup")}</a>
             </div>
           </>
         )}

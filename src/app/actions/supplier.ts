@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { parsePreorderInput, preorderSaveData } from "@shared/preorder";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db/client";
 import { invalidatePublicMarketplaceCache } from "@/lib/api/cache";
@@ -116,6 +117,20 @@ function readProductPayload(formData: FormData, status: "draft" | "pending_revie
   };
 }
 
+/** The product form's Preorders section (shared/preorder.ts): checked here, saved beside the Zod-checked fields. */
+function readPreorder(formData: FormData, savedShipsAt?: Date | null) {
+  return parsePreorderInput(
+    {
+      enabled: readCheckbox(formData, "preorderEnabled"),
+      shipsAt: String(formData.get("preorderShipsAt") || "").trim() || null,
+      limit: String(formData.get("preorderLimit") || "").trim() || null,
+      note: String(formData.get("preorderNote") || ""),
+    },
+    new Date(),
+    savedShipsAt,
+  );
+}
+
 export async function createSupplierProduct(formData: FormData) {
   const { user, supplier } = await getSupplierActor();
   const verified = assertOnboardedSupplier(supplier);
@@ -136,12 +151,16 @@ export async function createSupplierProduct(formData: FormData) {
     redirect(`/supplier/products/new?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "Check the product details.")}`);
   }
 
+  const preorder = readPreorder(formData);
+  if (!preorder.ok) redirect(`/supplier/products/new?error=${encodeURIComponent(preorder.message)}`);
+
   const category = await db.category.findUnique({ where: { id: parsed.data.categoryId } });
   if (!category) redirect("/supplier/products/new?error=Choose%20a%20valid%20category.");
 
   const product = await db.supplierProduct.create({
     data: {
       ...parsed.data,
+      ...preorderSaveData(preorder.value),
       supplierId: supplier.id,
       slug: await getUniqueSupplierProductSlug(parsed.data.name, supplier.id),
     },
@@ -178,12 +197,15 @@ export async function updateSupplierProduct(formData: FormData) {
   // or prices go back to the team first (shared/supplier-product-review.ts).
   const nextStatus = statusAfterEdit({ current: product.status, verified, submit: wantsReview, needsReview: editNeedsReview(product, parsed.data) });
 
+  const preorder = readPreorder(formData, product.preorderShipsAt);
+  if (!preorder.ok) redirect(`/supplier/products/${product.id}/edit?error=${encodeURIComponent(preorder.message)}`);
+
   const category = await db.category.findUnique({ where: { id: parsed.data.categoryId } });
   if (!category) redirect(`/supplier/products/${product.id}/edit?error=Choose%20a%20valid%20category.`);
 
   const updated = await db.supplierProduct.update({
     where: { id: product.id },
-    data: { ...parsed.data, status: nextStatus },
+    data: { ...parsed.data, ...preorderSaveData(preorder.value, { wasEnabled: product.preorderEnabled }), status: nextStatus },
   });
 
   invalidatePublicMarketplaceCache({ productSlug: updated.slug, supplierSlug: supplier.slug, categorySlug: category.slug ?? product.category.slug });

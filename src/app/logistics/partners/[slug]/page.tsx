@@ -180,7 +180,7 @@ export default async function PublicLogisticsPartnerPage({ params }: PageProps) 
                   href={`https://wa.me/${partner.whatsappNumber.replace(/[^0-9]/g, "")}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-3 inline-flex min-h-[44px] items-center gap-2 rounded-full border border-app-line px-5 text-[15px] font-extrabold text-app-ink no-underline hover:border-app-line-strong"
+                  className="mt-3 inline-flex min-h-[44px] items-center gap-2 rounded-full border border-app-line px-5 text-[15px] font-bold text-app-ink no-underline hover:border-app-line-strong"
                 >
                   <Icon name="whatsapp" size={16} /> {t("partnerPage.whatsapp")}
                 </a>

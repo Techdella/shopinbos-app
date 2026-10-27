@@ -111,7 +111,7 @@ export function LearnPill({ role, className = "", variant = "pill" }: { role: st
         type="button"
         onClick={() => openFeatureIntro(intro.key)}
         data-learn-pill={intro.key}
-        className={`group inline-flex min-h-[48px] max-w-full items-center gap-3 rounded-full border border-[#0E2A38]/10 bg-[#0E2A38] py-1.5 pl-1.5 pr-5 text-left text-[#F4F1EA] shadow-[0_10px_30px_-18px_rgba(14,42,56,0.8)] transition hover:-translate-y-px hover:bg-[#143A4C] ${className}`}
+        className={`group inline-flex min-h-[48px] max-w-full items-center gap-3 whitespace-normal rounded-full border border-[#0E2A38]/10 bg-[#0E2A38] py-1.5 pl-1.5 pr-5 text-left text-[#F4F1EA] shadow-[0_10px_30px_-18px_rgba(14,42,56,0.8)] transition hover:-translate-y-px hover:bg-[#143A4C] ${className}`}
       >
         <span className="relative grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#73D8C8] text-[#0E2A38]">
           <span aria-hidden className="absolute inset-0 rounded-full bg-[#73D8C8] opacity-60 motion-safe:animate-ping group-hover:animate-none" />

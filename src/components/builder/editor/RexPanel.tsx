@@ -229,7 +229,7 @@ export function RexPanel(props: RexPanelProps) {
       </div>
       <div className="flex flex-wrap gap-1.5 px-4 pb-2">
         {suggestions.map((suggestion) => (
-          <button key={suggestion} type="button" onClick={() => setInput(tx(suggestion))} className="min-h-8 rounded-full border border-app-line px-3 text-[12.5px] font-medium text-app-ink hover:border-app-line-strong">{tx(suggestion)}</button>
+          <button key={suggestion} type="button" onClick={() => setInput(tx(suggestion))} className="min-h-8 whitespace-normal rounded-2xl border border-app-line px-3 py-1.5 text-left text-[12.5px] font-medium leading-snug text-app-ink hover:border-app-line-strong">{tx(suggestion)}</button>
         ))}
       </div>
       <form className="flex items-end gap-2 border-t border-app-line p-3" onSubmit={(event) => { event.preventDefault(); void send(input); }}>

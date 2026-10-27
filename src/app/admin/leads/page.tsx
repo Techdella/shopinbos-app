@@ -1,7 +1,8 @@
 import { AppPage, EmptyState, FilterChips, Pill, PillLink, SearchForm, StatTile, type Tone } from "@/components/app-kit";
 import { adminFrame, buttonClass, fieldClass, withParams } from "@/components/admin/AdminKit";
-import { addLeadManually, importLeadsCsv, replyToLead, setWebsiteLeadStatus } from "@/app/actions/admin-website-leads";
+import { addLeadManually, importLeadsCsv, removeWebsiteLead, replyToLead, setWebsiteLeadStatus } from "@/app/actions/admin-website-leads";
 import { Notice } from "@/components/app-ui";
+import { ConfirmSubmit } from "@/components/growth/ConfirmSubmit";
 import { CHANNEL_LABELS, LEAD_ROLES, type LeadChannel } from "@/lib/lead-growth/pure";
 import { leadMessages } from "@/lib/lead-growth/service.server";
 import { KIND_LABELS, LEAD_STATUSES, STATUS_LABELS, type LeadStatus } from "@/lib/website-leads/pure";
@@ -10,7 +11,7 @@ import { requireRole } from "@/lib/server-auth";
 
 export const dynamic = "force-dynamic";
 
-type Search = { kind?: string; status?: string; role?: string; noted?: string; q?: string; page?: string; added?: string; imported?: string; skipped?: string; error?: string; saved?: string; savedStatus?: string };
+type Search = { kind?: string; status?: string; role?: string; noted?: string; q?: string; page?: string; added?: string; imported?: string; skipped?: string; error?: string; saved?: string; savedStatus?: string; removed?: string };
 
 const ROLE_NAMES = { seller: "Seller", supplier: "Supplier", delivery: "Delivery partner" } as const;
 
@@ -77,6 +78,7 @@ export default async function AdminLeadsPage(props: { searchParams?: Promise<Sea
     >
       {search.error && <div className="mb-4"><Notice>{search.error}</Notice></div>}
       {search.added && <div className="mb-4"><Notice tone="success">Lead added.</Notice></div>}
+      {search.removed && <div className="mb-4"><Notice tone="success">Removed from the list. They won&apos;t get any more campaign or automation messages.</Notice></div>}
       {search.saved && (
         <div className="mb-4">
           <Notice tone="success">
@@ -216,6 +218,13 @@ export default async function AdminLeadsPage(props: { searchParams?: Promise<Sea
                     <label className="sr-only" htmlFor={`nt-${lead.id}`}>Note</label>
                     <input id={`nt-${lead.id}`} name="note" defaultValue={lead.note ?? ""} placeholder={lead.note ? "Edit the note" : "Add a note"} maxLength={2000} className={`${fieldClass} !min-h-[40px] !w-[220px]`} />
                     <button type="submit" className={buttonClass("ink", "sm")}>Save</button>
+                  </form>
+                  <form action={removeWebsiteLead}>
+                    <input type="hidden" name="id" value={lead.id} />
+                    <input type="hidden" name="back" value={here} />
+                    <ConfirmSubmit message={`Remove ${lead.name || lead.email || lead.phone || "this lead"} from the list? This deletes the lead and stops any messages to them. It can't be undone.`} className={buttonClass("danger", "sm")}>
+                      Remove
+                    </ConfirmSubmit>
                   </form>
                 </div>
               </li>

@@ -5,6 +5,7 @@ import { listDropshipOrders, type DropshipView } from "@/lib/supplier-orders/vie
 import { toE164 } from "@shared/phone";
 import { nextActions, type SupplierOrderAction } from "./_rules";
 import { pickupSummaries } from "@/lib/supplier-orders/views.server";
+import { orderHasPreorder, orderPreorderShipsOn, preorderDay } from "@shared/preorder";
 
 // Shared by the mobile supplier routes (/api/mobile/supplier/**): the supplier's dropship orders (SupplierOrder:
 // what they ship for a shop's order, with what goes on the parcel) and wholesale orders, in the shape the app reads.
@@ -38,7 +39,9 @@ export function appDropshipView(order: DropshipView) {
       address: order.recipient.address,
       collect: order.collectOnDelivery,
     },
-    items: order.items.map((item) => ({ name: item.name, variant: item.variant, quantity: item.quantity, image: item.image, yourPrice: item.lineCost })),
+    items: order.items.map((item) => ({ name: item.name, variant: item.variant, quantity: item.quantity, image: item.image, yourPrice: item.lineCost, ...(item.preorder ? { preorder: true as const, shipsOn: item.shipsOn ?? null } : {}) })),
+    // Preorder lines (the shop's customer preordered from the supplier's listing): the earliest ship date.
+    preorder: orderHasPreorder(order.items) ? { shipsOn: orderPreorderShipsOn(order.items) } : null,
     yourTotal: order.costTotal,
     notes: order.notes,
     trackingCode: order.trackingCode,
@@ -60,7 +63,7 @@ export type DropshipOrderView = ReturnType<typeof appDropshipView>;
 
 export const WHOLESALE_SELECT = {
   id: true, sellerId: true, quantity: true, unitPrice: true, totalPrice: true, currency: true, deliveryAddress: true, notes: true,
-  status: true, trackingCode: true, rejectReason: true, createdAt: true, acceptBy: true, paidAt: true,
+  status: true, trackingCode: true, rejectReason: true, createdAt: true, acceptBy: true, paidAt: true, preorder: true, preorderShipsAt: true,
   seller: { select: { name: true, phone: true, store: { select: { name: true } } } },
   supplierProduct: { select: { id: true, name: true, images: true } },
 } as const;
@@ -68,6 +71,7 @@ export const WHOLESALE_SELECT = {
 type WholesaleRow = {
   id: string; sellerId: string; quantity: number; unitPrice: number; totalPrice: number; currency: string; deliveryAddress: string; notes: string | null;
   status: string; trackingCode: string | null; rejectReason: string | null; createdAt: Date; acceptBy: Date | null; paidAt: Date | null;
+  preorder: boolean; preorderShipsAt: Date | null;
   seller: { name: string; phone: string | null; store: { name: string } | null };
   supplierProduct: { id: string; name: string; images: string[] };
 };
@@ -96,6 +100,8 @@ export function wholesaleView(order: WholesaleRow) {
     // The shop paid by card in Shopinbos: the money went straight to the supplier's bank.
     paidAt: order.paidAt?.toISOString() ?? null,
     packed: order.status === "processing",
+    // A preorder: the stock isn't here yet; the shop expects it from the date the supplier gave (shared/preorder.ts).
+    preorder: order.preorder ? { shipsOn: preorderDay(order.preorderShipsAt) } : null,
     pickup: null as { status: string; text: string | null } | null,
     createdAt: order.createdAt.toISOString(),
   };

@@ -5,6 +5,7 @@
 
 import { formatStoreMoney, freeDeliveryEverywhereOver, freeDeliveryPromise, type StorefrontShopperInfo } from "../../../../lib/storefront/shopper-info.ts";
 import { stockAvailability, type Availability, type ShopperStock } from "../../../../../shared/product-stock.ts";
+import type { PreorderState } from "../../../../../shared/preorder.ts";
 import { faqSectionStyle, readFaqStyle, readStoreFaqItems, storeFaqSection, FAQ_STYLE_OPTIONS, type FaqRenderer, type FaqStyle, type StoreFaqItem } from "../faq/faq-logic.ts";
 
 export type PdpLayout = "classic" | "gallery-stack" | "editorial" | "compact";
@@ -381,7 +382,7 @@ export function savingsPercent(price: number, compareAt: number | null | undefin
 }
 
 export interface StockStatus {
-  tone: "out" | "low" | "in";
+  tone: "out" | "low" | "in" | "preorder";
   text: string;
 }
 
@@ -390,8 +391,8 @@ export interface StockStatus {
  * Only tracked stock counts (shared/product-stock.ts): the product's own when the seller tracks it (`stock`, with
  * versions' own counts), the supplier's for dropship. `soldOut`: the chosen version is off or at 0.
  */
-export function pdpAvailability(input: { soldOut?: boolean; variantStock?: number | null; supplierStock?: number | null; stock?: ShopperStock | null }): Availability {
-  return stockAvailability({ versionSoldOut: input.soldOut, variantStock: input.variantStock, supplierStock: input.supplierStock, stock: input.stock });
+export function pdpAvailability(input: { soldOut?: boolean; variantStock?: number | null; supplierStock?: number | null; stock?: ShopperStock | null; preorder?: PreorderState | null }): Availability {
+  return stockAvailability({ versionSoldOut: input.soldOut, variantStock: input.variantStock, supplierStock: input.supplierStock, stock: input.stock, preorder: input.preorder });
 }
 
 /** Stock line for the buy box ("Sold out", "Only 3 left", "In stock"); null when stock isn't tracked. */

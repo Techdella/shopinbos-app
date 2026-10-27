@@ -44,6 +44,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "detail.refundingAfterExpiry": "Biyan ya shigo bayan wannan order ta ƙare kuma an sayar da kayanta, don haka an mayar da kuɗin ta Paystack (Paystack na ci gaba da aiki a kai).",
   "detail.expiredUnpaid": "Wannan order ta ƙare a {date} ba tare da biya ba kuma kayanta sun koma kasuwa. Idan mai saye ya biya yanzu, za a sake ɗaukar ta, idan akwai sauran kaya.",
   "detail.from": "Daga {channel}",
+  "detail.preorder": "Odar kafin lokaci",
+  "detail.preorderShips": "Odar kafin lokaci · za a aika {date}",
   "detail.items": "Kayayyaki",
   "detail.itemCount": "{count, plural, one {kaya #} other {kayayyaki #}}",
   "detail.noItems": "Ba a ajiye wani kaya a wannan order ba.",

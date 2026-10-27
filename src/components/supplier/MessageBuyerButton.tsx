@@ -18,7 +18,7 @@ export function MessageBuyerButton({ sellerUserId, sellerName }: MessageBuyerBut
     <>
       <button
         type="button"
-        className="inline-flex min-h-[40px] shrink-0 items-center justify-center gap-1.5 rounded-full border border-app-line bg-white px-4 text-[13px] font-extrabold text-app-ink transition hover:border-app-line-strong"
+        className="inline-flex min-h-[40px] shrink-0 items-center justify-center gap-1.5 rounded-full border border-app-line bg-white px-4 text-[13px] font-bold text-app-ink transition hover:border-app-line-strong"
         onClick={() => setChatOpen(true)}
         aria-label={t("messageBuyer.aria", { name: sellerName })}
       >

@@ -111,10 +111,10 @@ export function RexPreferencesForm({ initial, versionCount }: { initial: RexPref
       </div>
 
       <div className="mt-5 flex flex-wrap items-center gap-2">
-        <button type="submit" className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-app-ink px-5 text-[14px] font-extrabold text-white hover:bg-black">
+        <button type="submit" className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-app-ink px-5 text-[14px] font-bold text-white hover:bg-black">
           <Icon name="check" size={16} /> {t("save")}
         </button>
-        <Link href="/studio" className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-app-line bg-white px-5 text-[14px] font-extrabold text-app-ink no-underline hover:border-app-line-strong">
+        <Link href="/studio" className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-app-line bg-white px-5 text-[14px] font-bold text-app-ink no-underline hover:border-app-line-strong">
           <Icon name="sparkle" size={16} /> {t("rexp.openStudio")}
         </Link>
         {versionCount > 0 && (

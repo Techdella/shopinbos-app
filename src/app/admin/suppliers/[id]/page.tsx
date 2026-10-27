@@ -55,7 +55,7 @@ export default async function AdminSupplierDetailPage(props: { params: Promise<{
       sub={`${supplier.businessName} · /${supplier.slug} · ${supplier.city}, ${supplier.country}`}
       actions={
         <>
-          <PillLink href="/admin/suppliers" icon="arrowLeft">All suppliers</PillLink>
+          <PillLink href="/admin/suppliers" icon="arrowLeft" iconOnlyOnPhone>All suppliers</PillLink>
           <PillLink href={`/admin/support/new?to=user:${supplier.userId}`} icon="chat">Message</PillLink>
           {supplier.verificationStatus !== "verified" && (
             <DecisionButtons
@@ -94,7 +94,7 @@ export default async function AdminSupplierDetailPage(props: { params: Promise<{
         <form action={setSupplierMarketplaceVisible}>
           <input type="hidden" name="supplierId" value={supplier.id} />
           <input type="hidden" name="visible" value={supplier.marketplaceVisible ? "0" : "1"} />
-          <button type="submit" className={`inline-flex min-h-[40px] items-center rounded-full px-4 text-[13.5px] font-extrabold ${supplier.marketplaceVisible ? "border border-app-line bg-white text-app-ink hover:border-app-line-strong" : "bg-app-ink text-white"}`}>
+          <button type="submit" className={`inline-flex min-h-[40px] items-center rounded-full px-4 text-[13.5px] font-bold ${supplier.marketplaceVisible ? "border border-app-line bg-white text-app-ink hover:border-app-line-strong" : "bg-app-ink text-white"}`}>
             {supplier.marketplaceVisible ? "Hide from marketplace" : "Show in marketplace"}
           </button>
         </form>
@@ -113,7 +113,7 @@ export default async function AdminSupplierDetailPage(props: { params: Promise<{
           <label className="grid gap-1 text-[13.5px] font-bold">Bulk orders (hours)
             <input name="acceptHoursWholesale" type="number" min={1} max={168} defaultValue={supplier.acceptHoursWholesale ?? ""} className="min-h-[40px] w-[140px] rounded-full border border-app-line px-4 font-normal" />
           </label>
-          <button type="submit" className="inline-flex min-h-[40px] items-center rounded-full bg-app-ink px-4 text-[13.5px] font-extrabold text-white">Save</button>
+          <button type="submit" className="inline-flex min-h-[40px] items-center rounded-full bg-app-ink px-4 text-[13.5px] font-bold text-white">Save</button>
         </form>
       </section>
 

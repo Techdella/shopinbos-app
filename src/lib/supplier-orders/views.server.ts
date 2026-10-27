@@ -29,6 +29,7 @@ export function orderLines(items: unknown): SupplierOrderLine[] {
       quantity: Math.max(1, Number(item.quantity) || 1),
       unitCost: Number(item.unitCost) || 0,
       image: typeof item.image === "string" ? item.image : null,
+      ...(item.preorder === true ? { preorder: true as const, shipsOn: typeof item.shipsOn === "string" ? item.shipsOn : null } : {}),
     };
   });
 }

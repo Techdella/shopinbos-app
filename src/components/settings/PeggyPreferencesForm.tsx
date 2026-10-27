@@ -63,7 +63,7 @@ export function PeggyPreferencesForm({ defaultMemory, defaultCommStyle, defaultD
           </div>
         </fieldset>
       </div>
-      <button type="submit" className="mt-5 inline-flex min-h-[44px] items-center gap-2 rounded-full bg-app-ink px-5 text-[14px] font-extrabold text-white hover:bg-black">
+      <button type="submit" className="mt-5 inline-flex min-h-[44px] items-center gap-2 rounded-full bg-app-ink px-5 text-[14px] font-bold text-white hover:bg-black">
         <Icon name="check" size={16} /> {t("save")}
       </button>
     </form>

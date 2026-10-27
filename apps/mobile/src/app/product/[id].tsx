@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { naira } from "@shared/onboarding";
+import { preorderShareText } from "@shared/preorder";
 import {
   detailsPatch,
   formFromProduct,
@@ -26,6 +27,7 @@ import { AppIcon } from "@/components/icons";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { IconButton } from "@/components/seller/bits";
 import { CodeBadge, ShareProductButton } from "@/components/seller/ProductCode";
+import { OneLine, PreorderEditor } from "@/components/Preorder";
 import { ApiError } from "@/lib/api";
 import { Screen } from "@/components/Screen";
 import { ChoiceRow, Sheet } from "@/components/Sheet";
@@ -57,7 +59,8 @@ import {
 } from "@/lib/product-more-pure";
 import { archiveProduct, createCategory, fetchAllCategories, fetchEditProduct, fetchStoreCategories, saveProduct, uploadProductPhoto, type EditProduct } from "@/lib/products";
 import { fetchSetup } from "@/lib/setup";
-import { shareText } from "@/lib/share";
+import { shareOnWhatsApp, shareText } from "@/lib/share";
+import { PREORDER_PROBLEM_KEY, isDropshipProduct, preorderFormFrom, preorderLineText, preorderPatch, type PreorderForm } from "@/lib/preorder-pure";
 import { useT } from "@/lib/i18n";
 import { colors, fonts, radii } from "@/theme";
 
@@ -69,6 +72,9 @@ import { colors, fonts, radii } from "@/theme";
 // featured. One Save sends only what changed with PATCH /api/store/products/[id], the web form's route and rules
 // (logic in lib/product-more-pure.ts and shared/product-edit.ts). Dropship products show the supplier and what each
 // sale leaves; their stock and options are the supplier's. Only the product page layout stays on the website.
+// Preorders (shared/preorder.ts, like the web form's Inventory › Preorder): take them, ships from, most preorders and
+// the promise, saved as `preorder` with the rest; Share preorder posts it to WhatsApp. Not on dropship products
+// (they follow the supplier's listing: a note says when the supplier takes preorders).
 
 type Visible = "live" | "hidden";
 
@@ -174,7 +180,7 @@ function isLive(product: EditProduct): boolean {
 }
 
 export default function EditProductScreen() {
-  const t = useT("m_productedit", "m_products", "common", "productTypes");
+  const t = useT("m_productedit", "m_products", "common", "productTypes", "m_ui");
   const { id } = useLocalSearchParams<{ id: string }>();
   const [product, setProduct] = useState<EditProduct | null>(null);
   const [form, setForm] = useState<ProductEditForm | null>(null);
@@ -210,6 +216,8 @@ export default function EditProductScreen() {
   const [storeUrl, setStoreUrl] = useState<string | null>(null);
   // The short code customers quote ("BAG2"), editable: 2–8 letters and numbers, unique in the shop.
   const [code, setCode] = useState("");
+  // Preorders: take them, the ship date, the most taken and the promise (lib/preorder-pure.ts).
+  const [preorder, setPreorder] = useState<PreorderForm>(() => preorderFormFrom(null));
   const stockTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     void fetchSetup()
@@ -229,6 +237,7 @@ export default function EditProductScreen() {
       setDetails({ ...next.productDetails });
       setMore(moreFormFrom(next));
       setCode(next.shortCode ?? "");
+      setPreorder(preorderFormFrom(next.preorder));
       setProductType(next.productType);
       const shape = versionStateOf(next);
       setVersions(shape);
@@ -331,8 +340,12 @@ export default function EditProductScreen() {
       if (!checked.ok) return setError(t("code.format"));
       codePatch = { shortCode: checked.code };
     }
+    // Preorders: only when the server sent them (newer servers) and the product isn't dropship; only when changed.
+    const preorderResult = product.preorder && !isDropshipProduct(product) ? preorderPatch(preorder, product.preorder) : ({ ok: true, patch: null } as const);
+    if (!preorderResult.ok) return setError(t.dynamic(PREORDER_PROBLEM_KEY[preorderResult.problem]));
     const changedDetails = detailsPatch(product.productDetails, details);
     const extra: Record<string, unknown> = {
+      ...(preorderResult.patch ? { preorder: preorderResult.patch } : {}),
       ...extraFields.patch,
       ...(versions.full ? versions.full : versions.updates.length ? { variantUpdates: versions.updates } : {}),
       ...(changedDetails ? { productDetails: changedDetails } : {}),
@@ -447,6 +460,13 @@ export default function EditProductScreen() {
   const stepStock = countsStock && !countedVersions.length;
   const stockNow = parseWholeNumber(form.stock) ?? product.currentStock;
   const shareUrl = storeUrl && isLive(product) ? `${storeUrl.replace(/\/$/, "")}/product/${product.id}` : null;
+  // Share preorder: once preorders are saved on (and the product is live), a ready-made post for WhatsApp.
+  const ownDropship = isDropshipProduct(product);
+  const preorderShare =
+    shareUrl && product.preorder?.enabled && !ownDropship
+      ? preorderShareText({ name: product.name, price: naira(product.retailPrice), shipsOn: product.preorder.shipsOn, url: product.url ?? shareUrl })
+      : null;
+  const supplierPreorder = dropship?.preorder?.on ? dropship.preorder : null;
 
   function bumpStock(next: number) {
     edit({ stock: String(next) });
@@ -495,6 +515,17 @@ export default function EditProductScreen() {
             <ShareProductButton product={{ name: product.name, retailPrice: product.retailPrice, shortCode: product.shortCode, url: product.url ?? shareUrl }} />
           </View>
           <IconButton icon="share" label={t("view.share")} onPress={() => void shareText(`${form.name.trim() || product.name} ${shareUrl}`)} />
+        </View>
+      ) : null}
+      {preorderShare ? (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <View style={{ flex: 1 }}>
+            <PillButton tone="white" size="md" accessibilityLabel={t("preorder.share")} onPress={() => void shareOnWhatsApp(preorderShare)}>
+              <AppIcon name="clock" size={18} color={colors.ink} />
+              <OneLine text={t("preorder.share")} size={16} />
+            </PillButton>
+          </View>
+          <IconButton icon="share" label={t("preorder.share")} onPress={() => void shareText(preorderShare)} />
         </View>
       ) : null}
       <Eyebrow>{t("view.editDetails")}</Eyebrow>
@@ -622,6 +653,22 @@ export default function EditProductScreen() {
             <SwitchRow title={t("stock.keepSelling")} sub={t("stock.keepSellingSub")} on={more.continueSelling} onChange={(continueSelling) => editMore({ continueSelling })} />
           </Card>
         </>
+      ) : null}
+
+      {/* Preorders: sell before the stock arrives (own products). Dropship products follow the supplier's listing. */}
+      {ownDropship ? (
+        product.preorder || supplierPreorder ? (
+          <Card style={{ gap: 6 }}>
+            <T weight="extrabold" style={{ fontSize: 18 }}>{t("preorder.title")}</T>
+            <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>
+              {supplierPreorder && dropship
+                ? t("preorder.dropshipSupplier", { name: dropship.supplier.name, line: preorderLineText(supplierPreorder, new Date(), t) ?? "" })
+                : t("preorder.dropshipOff")}
+            </T>
+          </Card>
+        ) : null
+      ) : product.preorder ? (
+        <PreorderEditor value={preorder} onChange={(next) => { setPreorder(next); setSaved(false); }} audience="customers" taken={product.preorder.enabled ? product.preorder.taken : null} />
       ) : null}
 
       <View>

@@ -84,7 +84,7 @@ export function UploadLogoButton({ hasLogo }: { hasLogo: boolean }) {
       </button>
       <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" aria-label={t("bk.chooseLogo")} onChange={(event) => void onChange(event)} />
       {media.dialog}
-      <span role="status" aria-live="polite" className={cx("absolute left-0 top-[calc(100%+4px)] whitespace-nowrap text-[12.5px] font-semibold", message?.tone === "error" ? "text-app-danger" : "text-app-forest")}>
+      <span role="status" aria-live="polite" className={cx("absolute left-0 top-[calc(100%+4px)] w-max max-w-[calc(100vw-32px)] text-[12.5px] font-semibold sm:whitespace-nowrap", message?.tone === "error" ? "text-app-danger" : "text-app-forest")}>
         {busy ? t("bk.uploading") : message?.text ?? ""}
       </span>
     </span>
@@ -269,7 +269,7 @@ export function VoiceNote({ initial }: { initial: string }) {
         className="w-full resize-y rounded-[16px] border border-app-line bg-white px-4 py-3 text-[15px] leading-[1.5] text-app-ink outline-none focus:border-app-ink"
       />
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" onClick={() => void save()} disabled={state === "saving"} className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full bg-app-ink px-4 text-[13.5px] font-extrabold text-white disabled:opacity-60">
+        <button type="button" onClick={() => void save()} disabled={state === "saving"} className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full bg-app-ink px-4 text-[13.5px] font-bold text-white disabled:opacity-60">
           {state === "saving" ? <Spinner className="h-4 w-4" /> : <Icon name="check" size={14} />} {t("save")}
         </button>
         <button type="button" onClick={() => { setValue(saved); setEditing(false); setState("idle"); }} className="inline-flex min-h-[40px] items-center rounded-full px-3 text-[13.5px] font-bold text-app-ink-soft hover:text-app-ink">

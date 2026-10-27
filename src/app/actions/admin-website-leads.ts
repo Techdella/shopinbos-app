@@ -121,3 +121,18 @@ export async function replyToLead(formData: FormData) {
   if (number) redirect(`/admin/support/${number}`);
   redirect(`/admin/support/new?to=lead:${lead.id}`);
 }
+
+/**
+ * Admin: delete a lead outright, for someone who asked to be taken off the waitlist (or any list). Its campaign
+ * messages and automation steps go with it, so nothing more is sent to them.
+ */
+export async function removeWebsiteLead(formData: FormData) {
+  await requireAdminSection("leads");
+  const id = field(formData, "id").slice(0, 64);
+  if (id) await db.websiteLead.deleteMany({ where: { id } });
+  revalidatePath("/admin/leads");
+  const back = field(formData, "back");
+  const params = new URLSearchParams(back.startsWith("?") ? back.slice(1) : "");
+  params.set("removed", "1");
+  redirect(`/admin/leads?${params}`);
+}

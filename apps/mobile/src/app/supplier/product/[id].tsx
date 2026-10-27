@@ -11,19 +11,21 @@ import { useT } from "@/lib/i18n";
 import { parseAmount, productStage } from "@/lib/partner-pure";
 import { fetchSupplierProduct, quickEditProduct } from "@/lib/supplier";
 import { bestWholesale, LOW_STOCK } from "@/lib/supplier-pure";
+import { preorderLineText, savedFromColumns, stateOf } from "@/lib/preorder-pure";
 import { useLoad } from "@/lib/useLoad";
 import { colors } from "@/theme";
 
 // One supplier product ("Simple app, end to end" supplier prototype): the photo, name and price to shops, "In stock"
 // with − / + (saved a moment after the last tap; no new review), and rows for the wholesale price (tap to change the
 // price; a live product goes back for review) and dropship. Below: show it to shops or hide it, and the full editor
-// (supplier/product/edit: photos, details, price tiers, regions, dropship).
+// (supplier/product/edit: photos, details, price tiers, regions, dropship, preorders). A Preorders row shows the ship
+// date and places left when the listing takes preorders.
 
 const SAVE_AFTER_MS = 700;
 
 export default function SupplierProductScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const t = useT("m_supplier", "m_partner");
+  const t = useT("m_supplier", "m_partner", "m_ui");
   const product = useLoad(() => fetchSupplierProduct(String(id)), String(id));
   const data = product.data;
   const [editing, setEditing] = useState(false);
@@ -170,6 +172,14 @@ export default function SupplierProductScreen() {
           sub={data.dropshipAvailable ? t("product.dropshipOn") : t("product.dropshipOff")}
           onPress={() => router.push({ pathname: "/supplier/product/edit", params: { id: data.id } })}
         />
+        {data.preorderEnabled !== undefined ? (
+          <Row
+            lead={<Tile icon="clock" tone="gray" />}
+            title={t("preorder.title")}
+            sub={preorderLineText(stateOf(savedFromColumns(data)), new Date(), t) ?? t("preorder.off")}
+            onPress={() => router.push({ pathname: "/supplier/product/edit", params: { id: data.id } })}
+          />
+        ) : null}
       </List>
 
       {editing ? (

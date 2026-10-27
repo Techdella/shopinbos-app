@@ -76,7 +76,7 @@ export default async function AdsPage({ searchParams }: { searchParams: Promise<
             <h2 className="m-0 text-[19px] font-extrabold">{t("c.startTitle")}</h2>
             <p className="m-0 mt-1 text-[13.5px] text-white/80">{t("c.startHint")}</p>
           </div>
-          <Link href="/home/ads/new" className="inline-flex min-h-[48px] items-center gap-2 rounded-full bg-white px-5 text-[15px] font-extrabold text-app-ink no-underline">
+          <Link href="/home/ads/new" className="inline-flex min-h-[48px] items-center gap-2 rounded-full bg-white px-5 text-[15px] font-bold text-app-ink no-underline">
             <Icon name="plus" size={16} /> {t("c.start")}
           </Link>
         </div>

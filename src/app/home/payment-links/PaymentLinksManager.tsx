@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { confirmDialog } from "@/components/ui/dialogs";
 import { Notice, PillButton } from "@/components/app-ui";
-import { cx } from "@/components/app-ui/cx";
+import { cx, PHONE_SCROLL_ROW } from "@/components/app-ui/cx";
 import { Icon } from "@/components/ui/Icon";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { formatDate } from "@shared/i18n";
@@ -87,13 +87,13 @@ export function PaymentLinksManager({
         </Notice>
       ) : null}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <nav className="flex flex-wrap gap-1.5" aria-label={t("list.title")}>
+        <nav className={cx("flex gap-1.5", PHONE_SCROLL_ROW)} aria-label={t("list.title")}>
           {FILTERS.map((key) => (
             <Link
               key={key}
               href={key === "all" ? "/home/payment-links" : `/home/payment-links?status=${key}`}
               aria-current={filter === key ? "page" : undefined}
-              className={cx("inline-flex min-h-[40px] items-center rounded-full px-4 text-[13.5px] font-bold no-underline", filter === key ? "bg-app-ink text-white" : "border border-app-line bg-white text-app-ink")}
+              className={cx("inline-flex min-h-[40px] shrink-0 items-center whitespace-nowrap rounded-full px-4 text-[13.5px] font-bold no-underline", filter === key ? "bg-app-ink text-white" : "border border-app-line bg-white text-app-ink")}
             >
               {t(`filter.${key}`)}
             </Link>
@@ -140,12 +140,12 @@ export function PaymentLinksManager({
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <code className="min-w-0 flex-1 basis-[200px] truncate rounded-[12px] bg-app-canvas px-3 py-2 text-[12.5px]">{link.url}</code>
                 {link.status === "active" ? (
-                  <button type="button" onClick={() => void copy(link)} className="min-h-[40px] rounded-full border border-app-line bg-white px-4 text-[13px] font-extrabold">
+                  <button type="button" onClick={() => void copy(link)} className="min-h-[40px] rounded-full border border-app-line bg-white px-4 text-[13px] font-bold">
                     {copied === link.id ? t("done.copied") : t("row.copy")}
                   </button>
                 ) : null}
                 {link.order ? (
-                  <Link href={`/home/orders/${link.order.id}`} className="inline-flex min-h-[40px] items-center rounded-full bg-app-ink px-4 text-[13px] font-extrabold text-white no-underline">
+                  <Link href={`/home/orders/${link.order.id}`} className="inline-flex min-h-[40px] items-center rounded-full bg-app-ink px-4 text-[13px] font-bold text-white no-underline">
                     {t("row.order", { number: link.order.orderNumber })}
                   </Link>
                 ) : null}

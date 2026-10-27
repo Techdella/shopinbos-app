@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireRole } from "@/lib/server-auth";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
-import { AssistantNote, Card, CardHead, PillLink } from "@/components/app-kit";
+import { AssistantNote, Card, CardHead, MoreActions, PillLink } from "@/components/app-kit";
 import { Icon } from "@/components/ui/Icon";
 import { getSellerWorkspace } from "@/lib/workspace";
 import { listCollections } from "@/lib/cms/server";
@@ -34,8 +34,10 @@ export default async function CmsPage() {
       sub={t("sub")}
       actions={
         <>
-          {store && <PillLink href="/home/cms/plan" icon="calendar">{t("plan.title")}</PillLink>}
-          <PillLink href={studioHref(REX_SETUP_PROMPT)} icon="sparkle">{t("askRexSetup")}</PillLink>
+          <MoreActions>
+            {store && <PillLink href="/home/cms/plan" icon="calendar">{t("plan.title")}</PillLink>}
+            <PillLink href={studioHref(REX_SETUP_PROMPT)} icon="sparkle">{t("askRexSetup")}</PillLink>
+          </MoreActions>
           {store && <NewCollectionButton takenSlugs={taken} />}
         </>
       }
@@ -67,7 +69,7 @@ export default async function CmsPage() {
                         <PillLink href={`/home/cms/${collection.id}`} size="sm" icon="list">{t("items")}</PillLink>
                         <PillLink href={`/home/cms/${collection.id}?tab=fields`} size="sm" icon="layers">{t("fields")}</PillLink>
                         {collection.liveCount > 0 && collection.isPublished && (
-                          <a href={buildStorefrontUrl({ slug: store.slug, customDomain: store.customDomain ?? null }, `/${collection.slug}`)} target="_blank" rel="noreferrer" className="inline-flex min-h-[34px] items-center gap-1.5 rounded-full border border-app-line bg-white px-3.5 text-[13px] font-extrabold text-app-ink no-underline hover:border-app-line-strong">
+                          <a href={buildStorefrontUrl({ slug: store.slug, customDomain: store.customDomain ?? null }, `/${collection.slug}`)} target="_blank" rel="noreferrer" className="inline-flex min-h-[34px] items-center gap-1.5 rounded-full border border-app-line bg-white px-3.5 text-[13px] font-bold text-app-ink no-underline hover:border-app-line-strong">
                             <Icon name="eye" size={14} /> {t("view")}<span className="sr-only"> {t("viewInStore", { name: collection.name })}</span>
                           </a>
                         )}

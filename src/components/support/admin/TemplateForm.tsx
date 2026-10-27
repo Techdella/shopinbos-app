@@ -61,7 +61,7 @@ export function TemplateForm({ initial }: { initial: { name: string; purpose: st
           <textarea ref={area} id="tp-body" name="body" required rows={7} maxLength={1024} value={body} onChange={(e) => setBody(e.target.value)} className={textareaClass} placeholder={"Hi {{first_name}}, welcome to Shopinbos! {{message}}\n\nReply here if you need anything."} />
         </Field>
         <div>
-          <button type="submit" className="inline-flex min-h-[44px] items-center rounded-full bg-app-ink px-5 text-[14px] font-extrabold text-white hover:bg-black">Save and send to Meta</button>
+          <button type="submit" className="inline-flex min-h-[44px] items-center rounded-full bg-app-ink px-5 text-[14px] font-bold text-white hover:bg-black">Save and send to Meta</button>
         </div>
       </div>
       <aside className="min-w-0 self-start">
