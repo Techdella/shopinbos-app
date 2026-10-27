@@ -26,6 +26,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "error.linkExpired": "Link nbanye ahụ agwụla. Biko nwaa ọzọ.",
   "info.expired": "Maka nchekwa gị, anyị apụpụla gị mgbe oge ụfọdụ gachara. Banye ọzọ ka ị gaa n'ihu.",
   "info.idle": "Maka nchekwa gị, a pụpụrụ gị n'ihi na ọ dịghị onye jiri Shopinbos ruo oge ụfọdụ. Banye ọzọ ka ị gaa n'ihu.",
+  "age.confirm": "Adị m afọ 18 ma ọ bụ karịa. Akaụntụ Shopinbos bụ maka ndị okenye.",
+  "error.age": "Kaa akara n'igbe ahụ iji gosi na ị dịla afọ 18. Akaụntụ Shopinbos bụ maka ndị okenye.",
   "info.signedOutAll": "Anyị apụpụla gị na ngwaọrụ gị niile.",
   "error.otherRole.seller": "Akaụntụ a bụ nke onye na-ere ahịa. Banye na portal ahụ kama.",
   "error.otherRole.supplier": "Akaụntụ a bụ nke supplier. Banye na portal ahụ kama.",

@@ -9,6 +9,7 @@ import { parseVerificationDocs } from "@/lib/verification-utils";
 import { cacOutcomeMessage, evaluateCac, isCacCompanyType, parseCacNumber } from "@/lib/kyb/cac";
 import { cacCheckEnabled, lookupCacRecord } from "@/lib/kyb/verify-cac.server";
 import type { AccountIdentity } from "./balance-rules";
+import { isAdult } from "@/lib/auth/age";
 
 // Whose name a wallet's own account number is in (src/lib/wallet/balance.server.ts ensureTopUpAccount):
 //   1. the business name, once it's checked against CAC: the wallet's own check (any role), a supplier's or delivery
@@ -103,6 +104,10 @@ export async function verifyWalletNin(userId: string, input: { nin?: unknown; fi
   const { identity } = result;
   if (identity.matches.firstName !== true || identity.matches.lastName !== true || identity.matches.dateOfBirth !== true) {
     return fail("Your name or date of birth doesn't match this NIN. Type them exactly as they are on your NIN slip.");
+  }
+  // Accounts are for adults (src/lib/auth/age.ts): the ID's own date of birth decides.
+  if (!isAdult(identity.dateOfBirth ?? dateOfBirth)) {
+    throw new WalletIdentityError("Shopinbos wallets are for people aged 18 or older, so we can't verify this NIN.", 403);
   }
   await db.wallet.update({
     where: { id: wallet.id },

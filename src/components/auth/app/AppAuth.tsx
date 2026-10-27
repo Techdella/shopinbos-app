@@ -234,6 +234,9 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
   // After a code is accepted for a brand-new account: the session waits here while they type their name.
   const [pending, setPending] = useState<{ accessToken: string | null; phone?: string } | null>(null);
   const [busy, setBusy] = useState<null | "send" | "sms" | "verify" | "password" | "google" | "name">(null);
+  // Sign-up only: "I'm 18 or older" (src/lib/auth/age.ts). Required before a code is sent or Google opens.
+  const [adult, setAdult] = useState(false);
+  const needsAge = mode === "signup" && !isAdmin;
   const [error, setError] = useState<string | null>(() =>
     callbackError === "confirmation_failed" || callbackError === "missing_confirmation_code"
       ? t("error.linkExpired")
@@ -312,6 +315,7 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
           fullName: name.trim() || undefined,
           phone: signedUpPhone,
           source: mode === "signup" ? "signup" : undefined,
+          ageConfirmed: needsAge && adult ? true : undefined,
         })
       : null;
     if (mode === "signup" && syncedRole && syncedRole !== role && !isAdmin) {
@@ -339,6 +343,10 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
   async function requestCode(event?: FormEvent) {
     event?.preventDefault();
     resetMessages();
+    if (needsAge && !adult) {
+      setError(t("error.age"));
+      return;
+    }
     let nextTarget: CodeTarget;
     if (method === "phone") {
       const e164 = toE164(phone, country);
@@ -458,6 +466,10 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
 
   async function google() {
     resetMessages();
+    if (needsAge && !adult) {
+      setError(t("error.age"));
+      return;
+    }
     setBusy("google");
     try {
       await signInWithGoogle(role, nextUrl, mode);
@@ -671,6 +683,12 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
       <h1 className="m-0 text-[32px] font-extrabold leading-[1.08] tracking-[-0.9px] lg:text-[40px]">{heading}</h1>
       <p className="mb-0 mt-3 text-[16px] leading-[1.55] text-app-ink-soft">{subheading}</p>
       <div className="mt-7">{method === "phone" ? phoneFields : emailFields}</div>
+      {needsAge && (
+        <label className="mt-4 flex cursor-pointer items-start gap-2.5 text-[14px] leading-[1.45] text-app-ink-soft">
+          <input type="checkbox" checked={adult} onChange={(event) => setAdult(event.target.checked)} className="mt-0.5 h-[18px] w-[18px] shrink-0 cursor-pointer accent-[var(--app-accent,#2E7E78)]" />
+          <span>{t("age.confirm")}</span>
+        </label>
+      )}
       {errorBox}
       {infoBox}
       <PillButton

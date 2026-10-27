@@ -106,6 +106,13 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
   }
 
   const usingPassword = mode === "login" && method === "email" && emailMode === "password";
+  // Sign-up only: "I'm 18 or older" (web src/lib/auth/age.ts), needed before a code is sent or Apple/Google opens.
+  const [adult, setAdult] = useState(false);
+  const ageMissing = () => {
+    if (mode !== "signup" || adult) return false;
+    setError(tLegal("error.age"));
+    return true;
+  };
 
   async function finish(signedUp: boolean, phoneNumber?: string, fullName?: string) {
     const actual = await syncAccount({ fullName: name.trim() || fullName || undefined, phone: phoneNumber, signup: signedUp, role });
@@ -123,6 +130,7 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
     setError(null);
     setNextStep(null);
     if (mode === "signup" && !name.trim()) return setError(t("form.needName"));
+    if (ageMissing()) return;
     if (usingPassword) {
       if (!isValidEmail(email) || !password) return setError(t("form.needEmailPassword"));
       setBusy("send");
@@ -157,6 +165,7 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
 
   async function signInApple() {
     setError(null);
+    if (ageMissing()) return;
     setBusy("apple");
     try {
       const result = await signInWithApple();
@@ -170,6 +179,7 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
 
   async function google() {
     setError(null);
+    if (ageMissing()) return;
     setBusy("google");
     try {
       const session = await signInWithGoogle();
@@ -291,6 +301,20 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
           ) : null}
         </ScrollView>
         <View style={{ paddingHorizontal: 20, paddingBottom: 12, paddingTop: 10, gap: 10 }}>
+          {mode === "signup" && (
+            <Pressable
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: adult }}
+              onPress={() => { setAdult((value) => !value); setError(null); }}
+              testID="signup-adult"
+              style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 44 }}
+            >
+              <View style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, borderColor: adult ? colors.ink : colors.line, backgroundColor: adult ? colors.ink : colors.surface, alignItems: "center", justifyContent: "center" }}>
+                {adult ? <AppIcon name="check" size={15} color={colors.surface} /> : null}
+              </View>
+              <T style={{ flex: 1, fontSize: 14, color: colors.ink, lineHeight: 20 }}>{tLegal("age.confirm")}</T>
+            </Pressable>
+          )}
           {mode === "signup" && (
             <T style={{ fontSize: 12, color: colors.inkSoft, lineHeight: 18 }}>
               {tLegal("terms.before")}{" "}

@@ -58,3 +58,16 @@ test("analytics and session replay start only after consent, masked", () => {
   const replay = read("src/lib/analytics/replay.ts");
   assert.match(replay, /maskAllText: true, maskAllInputs: true, blockAllMedia: true/);
 });
+
+test("accounts are for adults: sign-up asks, the ID check confirms from the date of birth", async () => {
+  const { ageOn, isAdult } = await import("../src/lib/auth/age.ts");
+  const now = new Date("2026-10-27T12:00:00Z");
+  assert.equal(ageOn("2008-10-27", now), 18);
+  assert.equal(ageOn("2008-10-28", now), 17, "the day before the 18th birthday");
+  assert.ok(isAdult("1990-01-01", now) && !isAdult("2010-05-05", now) && !isAdult("not a date", now));
+  assert.match(read("src/components/auth/app/AppAuth.tsx"), /ageConfirmed: needsAge && adult/);
+  assert.match(read("apps/mobile/src/components/AuthForm.tsx"), /ageMissing\(\)/);
+  assert.match(read("src/app/api/auth/sync-user/route.ts"), /recordAgeConfirmed\(/);
+  assert.match(read("src/lib/wallet/identity.server.ts"), /isAdult\(/);
+  assert.match(read("docs/data-protection/lawful-basis.md"), /NDPA s\.25/);
+});

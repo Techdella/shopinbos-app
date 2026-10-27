@@ -26,6 +26,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "error.linkExpired": "That sign-in link don expire. Abeg try again.",
   "info.expired": "Because of your security, we don log you out after some time. Log in again make you continue.",
   "info.idle": "Because of your security, we log you out because nobody use Shopinbos for some time. Log in again make you continue.",
+  "age.confirm": "I don reach 18 years or pass. Shopinbos account na for adults.",
+  "error.age": "Tick the box to show say you don reach 18 years. Shopinbos account na for adults.",
   "info.signedOutAll": "We don log you out for all your devices.",
   "error.otherRole.seller": "This account na seller own already. Log in for that portal instead.",
   "error.otherRole.supplier": "This account na supplier own already. Log in for that portal instead.",
