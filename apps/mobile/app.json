@@ -11,7 +11,7 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.shopinbos.app",
       "infoPlist": {
-        "NSCameraUsageDescription": "Take photos of your products, and proof of delivery photos.",
+        "NSCameraUsageDescription": "Take photos of your products and proof of delivery, and check your face when you verify your identity.",
         "NSPhotoLibraryUsageDescription": "Choose product photos so Rex can list them in your shop.",
         "ITSAppUsesNonExemptEncryption": false
       },
@@ -55,7 +55,7 @@
         "expo-image-picker",
         {
           "photosPermission": "Choose product photos so Rex can list them in your shop.",
-          "cameraPermission": "Take photos of your products, and proof of delivery photos."
+          "cameraPermission": "Take photos of your products and proof of delivery, and check your face when you verify your identity."
         }
       ],
       [
@@ -109,7 +109,7 @@
         "@config-plugins/react-native-webrtc",
         {
           "microphonePermission": "Shopinbos uses the microphone only when you tap the mic to speak instead of typing, or when you call Peggy.",
-          "cameraPermission": "Take photos of your products, and proof of delivery photos."
+          "cameraPermission": "Take photos of your products and proof of delivery, and check your face when you verify your identity."
         }
       ]
     ],
