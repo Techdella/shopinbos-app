@@ -10,7 +10,8 @@ import { PLAN_TIER_KEYS, PLAN_TIERS, isPlanTier, planTierOf } from "@shared/plan
 // Paystack, Shopinbos's fee (platformKobo: the seller's fee for their plan, plus money owed to Shopinbos taken from
 // the shares) and the suppliers' marketplace commissions. Both stay in Shopinbos's Paystack balance; every other naira
 // settles straight to the businesses. Also what businesses spent on Shopinbos services from their wallet balance, and
-// subscription payments (PaymentReceipt: the first payment of a plan, and each renewal from invoice.update).
+// subscription payments (PaymentReceipt: the first payment of a plan, and each renewal from invoice.update), and AI
+// credit packs bought (AiCreditPurchase paid with money: by card, auto top-up or from the wallet balance).
 
 const PAID_STATUSES = ["paid", "processing", "packed", "shipped", "delivered"] as const;
 const DAY = 24 * 60 * 60 * 1000;
@@ -30,12 +31,19 @@ export interface FeeSummary {
   latest: FeeOrder[];
   walletSpendKobo: { month: number; all: number };
   transfersInKobo: { month: number; all: number };
+  credits: {
+    periods: Array<{ key: PeriodKey; label: string; purchases: number; amountKobo: number; credits: number }>;
+    byMethod: Array<{ method: CreditMethod; purchases: number; amountKobo: number }>;
+    latest: Array<{ reference: string; who: string; email: string | null; credits: number; method: CreditMethod; at: string; amountKobo: number }>;
+  };
   subscriptions: {
     periods: Array<{ key: PeriodKey; label: string; payments: number; amountKobo: number }>;
     tiers: Array<{ tier: string; label: string; role: string; payments: number; amountKobo: number; active: number }>;
     latest: Array<{ reference: string; who: string; email: string | null; plan: string; renewal: boolean; at: string; amountKobo: number }>;
   };
 }
+
+type CreditMethod = "card" | "auto" | "wallet";
 
 type PeriodKey = "today" | "week" | "month" | "all";
 
@@ -113,7 +121,48 @@ export async function platformFeeSummary(now = new Date()): Promise<FeeSummary> 
     })),
   };
 
+  const purchases = await db.aiCreditPurchase.findMany({
+    where: { status: "paid", amountKobo: { gt: 0 } },
+    orderBy: { paidAt: "desc" },
+    take: 5000,
+    select: { reference: true, userId: true, credits: true, amountKobo: true, auto: true, paidAt: true, createdAt: true },
+  });
+  const buyers = new Map(
+    (await db.user.findMany({ where: { id: { in: [...new Set(purchases.slice(0, 30).map((row) => row.userId))] } }, select: { id: true, name: true, email: true } })).map((user) => [user.id, user]),
+  );
+  const creditRows = purchases.map((row) => ({
+    ...row,
+    at: row.paidAt ?? row.createdAt,
+    method: (row.reference.includes("wallet-") ? "wallet" : row.auto ? "auto" : "card") as CreditMethod,
+  }));
+  const credits: FeeSummary["credits"] = {
+    periods: (Object.keys(since) as PeriodKey[]).map((key) => {
+      const inPeriod = creditRows.filter((row) => row.at.getTime() >= since[key]);
+      return {
+        key,
+        label: labels[key],
+        purchases: inPeriod.length,
+        amountKobo: inPeriod.reduce((sum, row) => sum + row.amountKobo, 0),
+        credits: inPeriod.reduce((sum, row) => sum + row.credits, 0),
+      };
+    }),
+    byMethod: (["card", "auto", "wallet"] as const).map((method) => {
+      const paid = creditRows.filter((row) => row.method === method);
+      return { method, purchases: paid.length, amountKobo: paid.reduce((sum, row) => sum + row.amountKobo, 0) };
+    }),
+    latest: creditRows.slice(0, 30).map((row) => ({
+      reference: row.reference,
+      who: buyers.get(row.userId)?.name ?? "Deleted account",
+      email: buyers.get(row.userId)?.email ?? null,
+      credits: row.credits,
+      method: row.method,
+      at: row.at.toISOString(),
+      amountKobo: row.amountKobo,
+    })),
+  };
+
   return {
+    credits,
     subscriptions,
     periods,
     latest: rows.filter((row) => row.feeKobo > 0 || row.commissionKobo > 0).slice(0, 30),

@@ -9,13 +9,15 @@ export const dynamic = "force-dynamic";
 // Admin › Wallets › Shopinbos fees: what Shopinbos earns on payments (src/lib/wallet/platform-fees.server.ts).
 // Every other naira of a store payment settles straight to the businesses through their Paystack subaccounts.
 
+const CREDIT_METHOD = { card: "Card", auto: "Auto top-up", wallet: "Wallet balance" } as const;
+
 const naira = (kobo: number) => `₦${(kobo / 100).toLocaleString("en-NG", { maximumFractionDigits: 2 })}`;
 
 export default async function AdminPlatformFeesPage() {
   const user = await requireRole(["admin"], "/admin/login");
   const summary = await platformFeeSummary();
   return (
-    <AppPage frame={adminFrame(user)} title="Shopinbos fees" sub="What Shopinbos keeps from store payments split through Paystack (the rest settles straight to each business's bank), and subscription payments.">
+    <AppPage frame={adminFrame(user)} title="Shopinbos fees" sub="What Shopinbos keeps from store payments split through Paystack (the rest settles straight to each business's bank), subscription payments and AI credit purchases.">
       <p className="mb-4 mt-0 text-[13.5px]">
         <Link href="/admin/wallets" className="font-bold underline underline-offset-4">← Wallets</Link>
       </p>
@@ -89,6 +91,47 @@ export default async function AdminPlatformFeesPage() {
           </>
         ) : (
           <EmptyState icon="coin" title="No subscription payments yet">Plan payments show here once someone subscribes.</EmptyState>
+        )}
+      </Card>
+      <h2 className="mb-3 mt-0 text-[18px] font-extrabold">AI credits</h2>
+      <StatGrid className="mb-5">
+        {summary.credits.periods.map((period) => (
+          <StatTile key={period.key} label={period.label} value={naira(period.amountKobo)} hint={`${period.purchases} pack${period.purchases === 1 ? "" : "s"} · ${period.credits.toLocaleString("en-NG")} credits`} />
+        ))}
+      </StatGrid>
+      <Card className="mb-5 overflow-x-auto">
+        <CardHead
+          title="AI credit purchases"
+          sub={`All time: ${summary.credits.byMethod.map((row) => `${naira(row.amountKobo)} ${CREDIT_METHOD[row.method].toLowerCase()} (${row.purchases})`).join(" · ")}. Packs paid from the wallet are also in wallet spend above.`}
+        />
+        {summary.credits.latest.length ? (
+          <table className="w-full min-w-[720px] border-collapse text-left text-[13.5px]">
+            <thead className="text-[12px] uppercase tracking-[0.06em] text-app-ink-soft">
+              <tr>
+                <th className="px-4 py-3">Business</th>
+                <th className="px-4 py-3">Credits</th>
+                <th className="px-4 py-3">Paid by</th>
+                <th className="px-4 py-3">Date</th>
+                <th className="px-4 py-3 text-right">Amount</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-app-line">
+              {summary.credits.latest.map((row) => (
+                <tr key={row.reference}>
+                  <td className="px-4 py-3">
+                    <span className="font-bold">{row.who}</span>
+                    {row.email ? <span className="block text-[12px] text-app-ink-soft">{row.email}</span> : null}
+                  </td>
+                  <td className="px-4 py-3">{row.credits.toLocaleString("en-NG")}</td>
+                  <td className="px-4 py-3">{CREDIT_METHOD[row.method]}</td>
+                  <td className="px-4 py-3 text-app-ink-soft">{formatDate(row.at)}</td>
+                  <td className="px-4 py-3 text-right font-bold">{naira(row.amountKobo)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <EmptyState icon="coin" title="No AI credit purchases yet">Credit packs bought by card, auto top-up or from the wallet show here.</EmptyState>
         )}
       </Card>
       <Card className="overflow-x-auto">
