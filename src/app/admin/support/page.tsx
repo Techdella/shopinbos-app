@@ -1,4 +1,4 @@
-import { AppPage, EmptyState, FilterChips, PillLink, SearchForm, StatTile } from "@/components/app-kit";
+import { AppPage, EmptyState, FilterChips, MoreActions, PillLink, SearchForm, StatTile } from "@/components/app-kit";
 import { adminFrame, withParams } from "@/components/admin/AdminKit";
 import { SupportFilters, SupportQueue, type DeskRow } from "@/components/support/admin/SupportQueue";
 import { PeggyAutoReply } from "@/components/support/admin/PeggyAutoReply";
@@ -75,8 +75,10 @@ export default async function AdminSupportPage(props: { searchParams?: Promise<S
       actions={
         <>
           <PillLink href="/admin/support/new" tone="ink" icon="plus">New conversation</PillLink>
-          <PillLink href="/admin/support/macros" icon="list">Saved replies</PillLink>
-          <PillLink href={withParams("/admin/support", { assignee: "me" })} icon="user">My tickets · {queue.counts.mine}</PillLink>
+          <MoreActions>
+            <PillLink href="/admin/support/macros" icon="list">Saved replies</PillLink>
+            <PillLink href={withParams("/admin/support", { assignee: "me" })} icon="user">My tickets · {queue.counts.mine}</PillLink>
+          </MoreActions>
         </>
       }
     >

@@ -56,6 +56,11 @@ export const saveNotificationSettings = (body: { categories?: Partial<Record<Not
 
 export const sendTestNotification = () => api<{ sent: boolean; devices: number }>("/api/notifications/test", { method: "POST", json: {} });
 
+/** A push was tapped: counts as "opened" for Push center campaigns (/admin/push). Fire and forget. */
+export function reportPushOpened(notificationId: string) {
+  void api("/api/notifications/opened", { method: "POST", json: { notificationId } }).catch(() => null);
+}
+
 /** Opens what a notification is about: the app's own screen when there is one, else that page of the website. */
 export function openNotificationTarget(target: { route?: string | null; url?: string | null }) {
   // app:/posts/<id> (the "Time to post" reminder) may come as the link or as the push's route.

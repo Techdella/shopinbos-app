@@ -276,10 +276,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "pub.home": "Gidan Shopinbos",
   "pub.browse": "Duba duk masu kawo kaya",
   "pub.contact": "Tuntuɓi mai kawo kaya",
-  "pub.private": "Har yanzu muna duba wannan mai kawo kaya, don haka shafinsa a ɓoye yake. Shaguna ba za su iya ganin kayansa ko tuntuɓarsa ba tukuna.",
   "pub.logo": "Tambarin {name}",
   "pub.verified": "Mai kawo kaya da aka tabbatar",
-  "pub.privateProfile": "Bayanai na sirri",
   "pub.products": "Kayayyaki {count}",
   "pub.quote": "Nemi farashi",
   "pub.message": "Aika saƙo ga mai kawo kaya",
@@ -391,6 +389,15 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "ws.lead": "Abubuwan da ka saya da yawa daga masu kawo kaya don ka ajiye ka sayar da kanka.",
   "ws.tip": "Shawara: za ka iya soke oda har sai mai kawo kaya ya fara ƙunshe ta. Da zarar sun karɓa, biya nan da kati (zai shiga bankinsu kai tsaye) ko ka biya su kai tsaye.",
   "ds.tip": "Shawara: idan kaya na ƙarewa a wurin mai kawo kaya, danna Dakatar don kada abokan ciniki su yi oda. Danna Sake sayarwa idan ya dawo.",
+  "pub.pendingNote": "Shopinbos har yanzu tana duba wannan kasuwanci. Shaguna ba za su iya yin oda ko aika musu saƙo a nan ba sai an gama.",
+  "pub.pendingProfile": "Ana tabbatarwa",
+  "badge.powered": "Shopinbos ce ke tafiyar da shi",
+  "badge.title": "{name} yana amfani da Shopinbos. Kasuwancinka ma zai iya.",
+  "badge.sub": "Gina shagon intanet da AI, nemo masu kawo kaya da za ka sayar da kayansu, kuma ka yi isar da kaya, duk a wuri ɗaya. Farawa kyauta ce.",
+  "badge.seller": "Fara shagona",
+  "badge.supplier": "Shiga a matsayin mai kawo kaya",
+  "badge.partner": "Shiga a matsayin abokin isar da kaya",
+  "badge.owner": "Wannan shi ne abin da mutane ke gani idan ka raba shafinka. Duk wanda ya shiga ta waɗannan maɓallan referral ɗinka ne.",
 };
 
 export default ha;

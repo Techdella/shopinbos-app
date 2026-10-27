@@ -17,6 +17,7 @@ import { CAMPAIGN_SECTION_KINDS } from "@/lib/store-campaigns/presets";
 import { readCountdownSettings } from "@/lib/store-campaigns/blocks";
 import type { TemplateSectionNode, ThemeTokenSet } from "@/lib/store-templates/types";
 import type { EditorProps } from "./editor-shared";
+import { uploadToFolder } from "@/components/media/media-client";
 
 // Campaign look: a focused theme panel. Colours, heading font, corners and logo replace the store's own only while
 // the campaign runs; on any page the seller can hide, move or change a section for the campaign, or add campaign
@@ -112,12 +113,7 @@ export function LookTab({ campaign, store, save, busy }: EditorProps) {
 
   async function upload(file: File) {
     try {
-      const form = new FormData();
-      form.append("file", file);
-      form.append("folder", "store-banners");
-      const response = await fetch("/api/upload", { method: "POST", body: form });
-      const json = (await response.json().catch(() => null)) as { data?: { publicUrl?: string } } | null;
-      return response.ok ? json?.data?.publicUrl ?? null : null;
+      return await uploadToFolder(file, "store-banners");
     } catch {
       return null;
     }

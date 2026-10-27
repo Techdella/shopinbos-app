@@ -182,6 +182,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "admin.leads-all": "Duk leads",
   "admin.lead-campaigns": "Kamfen da automation",
   "admin.lead-whatsapp": "WhatsApp",
+  "admin.pilot": "Gwajin pilot",
   "admin.pricing": "Farashi",
   "admin.logistics-partners-all": "Abokan isar da kaya",
   "admin.pricing-prices": "Farashi da kuɗaɗe",
@@ -275,6 +276,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   media: "Hotuna",
   "supplier.products-import": "Ɗora CSV",
   "supplier.followers": "Mabiya",
+  "admin.push": "Cibiyar sanarwa",
 };
 
 export default ha;

@@ -182,6 +182,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "admin.leads-all": "Leads niile",
   "admin.lead-campaigns": "Mkpọsa na automation",
   "admin.lead-whatsapp": "WhatsApp",
+  "admin.pilot": "Nnwale pilot",
   "admin.pricing": "Ọnụahịa",
   "admin.logistics-partners-all": "Ndị mmekọ nnyefe",
   "admin.pricing-prices": "Ọnụahịa na ụgwọ",
@@ -275,6 +276,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   media: "Mgbasa",
   "supplier.products-import": "Bulite CSV",
   "supplier.followers": "Ndị na-eso",
+  "admin.push": "Ebe ozi ngwa",
 };
 
 export default ig;

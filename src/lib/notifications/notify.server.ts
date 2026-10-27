@@ -64,6 +64,12 @@ export interface NotifyInput {
   inAppOnly?: boolean;
   /** The language the title and description are written in: the email's frame and button follow it. */
   locale?: Locale;
+  /** The phone app screen a tapped push opens (expo-router href or app:/… link), when it isn't the link's own screen. */
+  appRoute?: string | null;
+  /** Push only to these kinds of device: "app" (Expo phones) and/or "web" (browsers). Default: all of them. */
+  pushPlatforms?: ReadonlyArray<"app" | "web">;
+  /** Stored as the push deliveries' collapseKey so a sender can count them (e.g. "push-campaign:<id>"). */
+  trackKey?: string | null;
 }
 
 export interface NotifyResult {
@@ -79,6 +85,7 @@ const TYPE_FOR_CATEGORY: Record<NotifyCategory, NotificationType> = {
   stock: "inventory",
   marketing: "marketing",
   account: "system",
+  announcements: "system",
 };
 
 function absoluteUrl(target: string) {
@@ -159,17 +166,18 @@ async function quietHoursFor(userId: string): Promise<QuietHours> {
   return setting ? { enabled: setting.quietHoursEnabled, start: setting.quietStart, end: setting.quietEnd, timezone: setting.timezone } : DEFAULT_QUIET_HOURS;
 }
 
-async function activeDevices(where: { userId?: string; riderId?: string }) {
-  return db.pushDevice.findMany({ where: { ...where, disabledAt: null }, select: PUSH_DEVICE_SELECT, orderBy: { lastSeenAt: "desc" }, take: 10 }).catch(() => []);
+async function activeDevices(where: { userId?: string; riderId?: string }, platforms?: ReadonlyArray<"app" | "web">) {
+  const providers = platforms?.length ? platforms.map((platform) => (platform === "app" ? "expo" : "webpush")) : null;
+  return db.pushDevice.findMany({ where: { ...where, disabledAt: null, ...(providers ? { provider: { in: providers } } : {}) }, select: PUSH_DEVICE_SELECT, orderBy: { lastSeenAt: "desc" }, take: 10 }).catch(() => []);
 }
 
 async function unreadCount(userId: string) {
   return db.notification.count({ where: { userId, read: false } }).catch(() => null);
 }
 
-function pushPayload(input: { title: string; description: string; link?: string | null; actionUrl?: string | null; event?: string | null }, category: NotifyCategory, notificationId: string | null, urgent: boolean, badge: number | null): PushPayload {
+function pushPayload(input: { title: string; description: string; link?: string | null; actionUrl?: string | null; event?: string | null; appRoute?: string | null }, category: NotifyCategory, notificationId: string | null, urgent: boolean, badge: number | null): PushPayload {
   const url = input.actionUrl || input.link || null;
-  const route = appRouteFor(url);
+  const route = appRouteFor(input.appRoute || url);
   return {
     title: input.title,
     body: input.description,
@@ -192,7 +200,7 @@ async function deliver(input: NotifyInput & { priority: NotifyPriority; type: No
     db.user.findUnique({ where: { id: input.userId }, select: { email: true, phone: true, role: true } }),
     db.notificationPreference.findMany({ where: { userId: input.userId }, select: { eventKey: true, push: true, email: true, sms: true, whatsapp: true, inApp: true } }).catch(() => []),
     quietHoursFor(input.userId),
-    activeDevices({ userId: input.userId }),
+    activeDevices({ userId: input.userId }, input.pushPlatforms),
   ]);
   if (!user) return;
 
@@ -262,7 +270,7 @@ async function deliverPush(args: {
 }) {
   const { input, notificationId, category, urgent, devices, now, collapse } = args;
   if (args.hold) {
-    await record({ notificationId, userId: input.userId, channel: "push", status: "held_quiet", category, collapseKey: collapse?.key ?? null, title: input.title, body: input.description });
+    await record({ notificationId, userId: input.userId, channel: "push", status: "held_quiet", category, collapseKey: collapse?.key ?? input.trackKey ?? null, title: input.title, body: input.description });
     return;
   }
 
@@ -288,7 +296,7 @@ async function deliverPush(args: {
   }
 
   const badge = await unreadCount(input.userId);
-  await pushToDevices(devices, pushPayload(input, category, notificationId, urgent, badge), { notificationId, userId: input.userId, collapseKey: collapse?.key ?? null, category });
+  await pushToDevices(devices, pushPayload(input, category, notificationId, urgent, badge), { notificationId, userId: input.userId, collapseKey: collapse?.key ?? input.trackKey ?? null, category });
 }
 
 // ─── Riders (no account: push only) ───────────────────────────────────────────

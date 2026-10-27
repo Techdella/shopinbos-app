@@ -87,6 +87,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "channel.email": "Email",
   "channel.sms": "SMS",
   "channel.whatsapp": "WhatsApp",
+  "category.announcements": "Labaran Shopinbos",
+  "help.announcements": "Sababbin abubuwa, tayi da shawarwari daga ƙungiyar Shopinbos.",
 };
 
 export default ha;

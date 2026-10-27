@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ScrollView, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
+import * as Clipboard from "expo-clipboard";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { formatE164, OTP_LENGTH, OTP_RESEND_SECONDS } from "@shared/phone";
+import { codeFromText, formatE164, OTP_LENGTH, OTP_RESEND_SECONDS } from "@shared/phone";
 import { explainSignupConflict, sendCode, signOutNow, syncAccount, verifyCode, type CodeChannel, type CodeTarget } from "@/lib/auth";
 import { asSignupRole } from "@/lib/partner-pure";
 import { rememberSignedInRole } from "@/lib/role";
@@ -64,6 +65,19 @@ export default function Verify() {
     }
   }
 
+  /** "Paste code": the code copied from the SMS, WhatsApp or email (just the digits, or the whole message). */
+  async function pasteCode() {
+    const text = await Clipboard.getStringAsync().catch(() => "");
+    const pasted = codeFromText(text);
+    if (pasted.length !== OTP_LENGTH) {
+      setError(t("verify.nothingToPaste", { length: OTP_LENGTH }));
+      return;
+    }
+    setError(null);
+    setCode(pasted);
+    void submit(pasted);
+  }
+
   async function resend(next: CodeTarget) {
     setError(null);
     try {
@@ -94,6 +108,7 @@ export default function Verify() {
           <Sub>{sentTo}</Sub>
         </View>
         <Keypad value={code} length={OTP_LENGTH} onChange={(next) => { setError(null); setCode(next); }} />
+        <PillButton tone="white" size="md" title={t("verify.paste")} disabled={busy} onPress={() => void pasteCode()} testID="verify-paste" />
         {resent ? <Small style={{ textAlign: "center" }}>{t("code.newSent")}</Small> : null}
         {seconds > 0 ? (
           <T style={{ color: colors.inkSoft, textAlign: "center", fontSize: 14 }}>{t("verify.resendIn", { time: `0:${String(seconds).padStart(2, "0")}` })}</T>

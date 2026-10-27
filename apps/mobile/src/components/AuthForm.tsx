@@ -5,8 +5,8 @@ import * as AppleAuthentication from "expo-apple-authentication";
 import * as WebBrowser from "expo-web-browser";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
-import { DEFAULT_DIAL_COUNTRY, DIAL_COUNTRIES, isValidEmail, toE164, type DialCountry } from "@shared/phone";
-import { appleSignInAvailable, explainSignupConflict, fetchWhatsAppCodes, sendCode, signInWithApple, signInWithGoogle, signInWithPassword, signOutNow, syncAccount, type CodeTarget } from "@/lib/auth";
+import { DEFAULT_DIAL_COUNTRY, DIAL_COUNTRIES, isValidEmail, splitE164, toE164, type DialCountry } from "@shared/phone";
+import { AccountCheckError, appleSignInAvailable, explainSignupConflict, fetchWhatsAppCodes, sendCode, signInWithApple, signInWithGoogle, signInWithPassword, signOutNow, syncAccount, type CodeTarget } from "@/lib/auth";
 import { BackButton, Field, Label, LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { Sub, Title } from "@/components/design";
 import { ChoiceRow, Sheet } from "@/components/Sheet";
@@ -42,10 +42,24 @@ function changeRole() {
   else router.replace({ pathname: "/welcome", params: { step: "role" } });
 }
 
-export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller" }: { mode: Mode; initialMethod?: Method; initialRole?: SignupRole }) {
+/** The phone or email typed on the other screen, from its "Sign up now" / "Log in" button. */
+export type Prefill = { phone?: string; email?: string };
+
+/** Route params for that button: the typed phone (E.164) or email, when it's valid. */
+function prefillParams(method: Method, phone: string, country: DialCountry, email: string): Prefill {
+  if (method === "phone") {
+    const e164 = toE164(phone, country);
+    return e164 ? { phone: e164 } : {};
+  }
+  return isValidEmail(email) ? { email: email.trim().toLowerCase() } : {};
+}
+
+export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller", prefill }: { mode: Mode; initialMethod?: Method; initialRole?: SignupRole; prefill?: Prefill }) {
   const t = useT("m_auth");
   const tLegal = useT("auth");
-  const [method, setMethod] = useState<Method>(initialMethod);
+  const prefilledPhone = prefill?.phone ? splitE164(prefill.phone) : null;
+  const prefilledEmail = prefill?.email && isValidEmail(prefill.email) ? prefill.email : "";
+  const [method, setMethod] = useState<Method>(prefilledPhone ? "phone" : prefilledEmail ? "email" : initialMethod);
   // Who is signing up, picked on the Welcome cards (seller, supplier, delivery partner). Sets a new account's role.
   const role = initialRole;
   // Phone codes go on WhatsApp when the server has it on (GET /api/auth/otp), else SMS; null while asking.
@@ -63,13 +77,33 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
   const via = whatsapp ? ("whatsapp" as const) : ("sms" as const);
   const [emailMode, setEmailMode] = useState<"code" | "password">("code");
   const [name, setName] = useState("");
-  const [country, setCountry] = useState<DialCountry>(DEFAULT_DIAL_COUNTRY);
+  const [country, setCountry] = useState<DialCountry>(prefilledPhone?.country ?? DEFAULT_DIAL_COUNTRY);
   const [picking, setPicking] = useState(false);
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState(prefilledPhone?.national ?? "");
+  const [email, setEmail] = useState(prefilledEmail);
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState<null | "send" | "google" | "apple">(null);
   const [error, setError] = useState<string | null>(null);
+  // Told before any code is sent: "no account yet, sign up first" on log in, "already used, log in" on sign up.
+  const [nextStep, setNextStep] = useState<null | "signup" | "login">(null);
+
+  /** The words for a failed send or log in, with a Sign up / Log in button under them when that's the way forward. */
+  function showFailure(failure: unknown, fallback: string) {
+    if (failure instanceof AccountCheckError) {
+      if (failure.code === "ACCOUNT_EXISTS" && failure.role && failure.role !== role) {
+        // Another kind of account: "This number already has a supplier account. Log in, or use a different number…"
+        setError(t(failure.via === "phone" ? "conflict.phone" : "conflict.email", {
+          account: t(`conflict.account.${failure.role}`),
+          business: t(`conflict.business.${role}`),
+        }));
+      } else {
+        setError(failure.message);
+      }
+      setNextStep(failure.code === "NO_ACCOUNT" ? "signup" : "login");
+      return;
+    }
+    setError(failure instanceof Error ? failure.message : fallback);
+  }
 
   const usingPassword = mode === "login" && method === "email" && emailMode === "password";
 
@@ -87,6 +121,7 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
 
   async function submit() {
     setError(null);
+    setNextStep(null);
     if (mode === "signup" && !name.trim()) return setError(t("form.needName"));
     if (usingPassword) {
       if (!isValidEmail(email) || !password) return setError(t("form.needEmailPassword"));
@@ -95,7 +130,7 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
         await signInWithPassword(email.trim().toLowerCase(), password);
         await finish(false);
       } catch (signInError) {
-        setError(signInError instanceof Error ? signInError.message : t("form.loginFailed"));
+        showFailure(signInError, t("form.loginFailed"));
         setBusy(null);
       }
       return;
@@ -114,7 +149,7 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
       const channel = await sendCode(target, { create: mode === "signup", fullName: name, role });
       router.push({ pathname: "/verify", params: { target: JSON.stringify(target), mode, name: name.trim(), role, channel } });
     } catch (sendError) {
-      setError(sendError instanceof Error ? sendError.message : t("form.sendFailed"));
+      showFailure(sendError, t("form.sendFailed"));
     } finally {
       setBusy(null);
     }
@@ -232,6 +267,20 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
             </View>
           )}
           {error && <Notice>{error}</Notice>}
+          {error && nextStep && (
+            <PillButton
+              tone="white"
+              size="md"
+              title={nextStep === "signup" ? t("noAccount.signUp") : t("form.logIn")}
+              testID={nextStep === "signup" ? "no-account-signup" : "exists-login"}
+              onPress={() => {
+                // Same phone or email filled in on the next screen, so nobody types it twice.
+                const carried = prefillParams(method, phone, country, email);
+                if (nextStep === "signup") router.replace({ pathname: "/welcome", params: { step: "role", ...carried } });
+                else router.replace({ pathname: "/login", params: carried });
+              }}
+            />
+          )}
           <LinkButton title={t("other.link")} color={colors.inkSoft} onPress={() => setOthers(true)} testID="other-ways" />
           {mode === "login" ? (
             // New here: sign up. Riders have no business account: their own sign-in (phone + the company's code).

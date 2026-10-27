@@ -4,7 +4,7 @@ import { PARTNER_PLAN_FIRST } from "@/lib/plans/placement";
 import { getSellerWorkspace } from "@/lib/workspace";
 import { db } from "@/lib/db/client";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
-import { AssistantNote, Card, CardHead, FilterChips, ListCard, ListRow, Pill, PillLink, StatGrid, StatTile, Thumb, EmptyState, type Tone } from "@/components/app-kit";
+import { AssistantNote, Card, CardHead, EmptyState, FilterChips, ListCard, ListRow, MoreActions, Pill, PillLink, StatGrid, StatTile, Thumb, type Tone } from "@/components/app-kit";
 import { QuoteRequestForm } from "./QuoteRequestForm";
 import { AcceptQuoteButton } from "./AcceptQuoteButton";
 import { PayDeliveryFeeButton } from "@/components/logistics/PayDeliveryFeeButton";
@@ -94,7 +94,9 @@ export default async function SellerLogisticsPage({ searchParams }: { searchPara
       sub={t("lg.sub")}
       actions={
         <>
-          <PillLink href="/marketplace?type=logistics" icon="truck">{t("lg.findPartners")}</PillLink>
+          <MoreActions>
+            <PillLink href="/marketplace?type=logistics" icon="truck">{t("lg.findPartners")}</PillLink>
+          </MoreActions>
           <PillLink href="/home/logistics?intent=book_delivery#quote" tone="accent" icon="plus">{t("lg.book")}</PillLink>
         </>
       }

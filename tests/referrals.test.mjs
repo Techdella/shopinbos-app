@@ -83,3 +83,29 @@ test("referrals: WhatsApp templates follow Meta's rules and have their banners",
   const payload = t.memberTemplatePayload(t.memberTemplate("shopinbos_referral_reward"), "h");
   assert.deepEqual(payload.components[1].example.body_text, [["Ada", "Kemi's Fabrics", "3 months free"]]);
 });
+
+test("referrals: shared supplier and delivery partner profiles carry the owner's code", () => {
+  assert.equal(r.profileReferralCode("/suppliers/ada-textiles", "adaf-k7q"), "ADAFK7Q");
+  assert.equal(r.profileReferralCode("/logistics/partners/swift-riders", "SWIF2KQ"), "SWIF2KQ");
+  assert.equal(r.profileReferralCode("/suppliers/ada-textiles", null), null, "no ?ref, nothing to remember");
+  assert.equal(r.profileReferralCode("/suppliers/ada-textiles", "ab"), null, "not a code");
+  assert.equal(r.profileReferralCode("/s/ada-shop", "ADAFK7Q"), null, "only supplier and partner profiles");
+  assert.equal(r.profileReferralCode("/logistics/partners", "ADAFK7Q"), null);
+  assert.equal(r.profileReferralCode("/suppliers/ada/products", "ADAFK7Q"), null);
+  assert.equal(r.profileShareLink("https://app.shopinbos.com/", "/suppliers/ada-textiles", "ADAFK7Q"), "https://app.shopinbos.com/suppliers/ada-textiles?ref=ADAFK7Q");
+  assert.equal(r.profileInvitePath("ADAFK7Q", "logistics_partner"), "/r/ADAFK7Q?for=logistics_partner&src=profile");
+  assert.equal(r.asReferralSource("profile"), "profile");
+  assert.equal(r.asReferralSource(undefined), "link");
+  assert.equal(r.asReferralSource("anything"), "link");
+
+  const read = (path) => fs.readFileSync(path, "utf8");
+  assert.match(read("docs/migrations/2026-11-30-referral-source.sql"), /ALTER TABLE "Referral" ADD COLUMN IF NOT EXISTS "source" TEXT NOT NULL DEFAULT 'link'/);
+  assert.match(read("src/proxy.ts"), /profileReferralCode\(pathname, request\.nextUrl\.searchParams\.get\("ref"\)\)/, "opening a shared profile remembers the code");
+  assert.match(read("src/app/r/[code]/route.ts"), /REFERRAL_SOURCE_COOKIE/, "the profile's join buttons mark the source");
+  const service = read("src/lib/referrals/service.server.ts");
+  assert.match(service, /asReferralSource\(jar\.get\(REFERRAL_SOURCE_COOKIE\)\?\.value\)/);
+  assert.match(service, /kind: "profile_referral", ref: referee\.id/, "a profile sign-up gives the owner points");
+  for (const page of ["src/app/suppliers/[slug]/page.tsx", "src/app/logistics/partners/[slug]/page.tsx"]) assert.match(read(page), /<PoweredByShopinbos /, `${page} shows the badge`);
+  // next/link would prefetch /r/CODE (which sets the cookies) as soon as the buttons scroll into view.
+  assert.doesNotMatch(read("src/components/referrals/PoweredByShopinbos.tsx"), /from "next\/link"|<\/Link>/, "join buttons are plain links");
+});

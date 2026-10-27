@@ -68,6 +68,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "quiet.off": "E dey off. Notifications fit buzz anytime.",
   "quiet.midnight": "midnight",
   "quiet.noon": "12 noon",
+  "category.announcements": "Shopinbos news",
+  "help.announcements": "New things, offers and tips from the Shopinbos team.",
 };
 
 export default pcm;

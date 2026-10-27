@@ -462,6 +462,7 @@ model WebsiteLead {
 
   messages    LeadMessage[]
   enrollments LeadEnrollment[]
+  pilots      PilotApplicant[]
 
   @@index([status, createdAt])
   @@index([kind, createdAt])
@@ -1756,6 +1757,7 @@ model NotificationDelivery {
   @@index([ticketId])
   @@index([userId, collapseKey, createdAt])
   @@index([notificationId])
+  @@index([collapseKey, status])
 }
 
 /// Per-person notification settings that aren't a category × channel switch (those are NotificationPreference
@@ -4622,7 +4624,7 @@ model RewardEvent {
   id        String   @id @default(cuid())
   userId    String
   /// order_paid | order_accepted | order_accepted_fast | shop_supplied | product_added | quote_sent | status_posted |
-  /// delivery_done | delivery_on_time | job_accepted_fast | chat_replied_fast | partner_connected
+  /// delivery_done | delivery_on_time | job_accepted_fast | chat_replied_fast | partner_connected | profile_referral
   kind      String
   /// What it was for (order, product, job, post… id), so the same thing is counted once.
   ref       String
@@ -4855,6 +4857,8 @@ model Referral {
   referrerId     String
   refereeId      String    @unique
   refereeRole    String
+  /// link (an invite link, /r/CODE) | profile (a shared supplier or delivery partner profile, ?ref=CODE)
+  source         String    @default("link")
   /// signed_up → qualified → rewarded, or rejected (same person, over the yearly limit, suspended).
   status         String    @default("signed_up")
   reason         String?
@@ -5028,4 +5032,157 @@ model ImportOrder {
 
   @@index([storeId, createdAt])
   @@index([status, updatedAt])
+}
+
+// ─── Push center (Admin › Push center) ────────────────────────────────────────
+
+/// A push campaign from the Shopinbos team: one message sent through notify() (bell + push, the "announcements"
+/// category, so each person's switch and quiet hours apply) to an audience (shared/push-campaigns.ts). Sending is
+/// src/lib/push-campaigns/campaigns.server.ts; scheduled ones are started by /api/cron/push-campaigns, which claims
+/// the row (scheduled → sending) so it never starts twice. Migration: docs/migrations/2026-11-30-push-center.sql.
+model PushCampaign {
+  id            String    @id @default(cuid())
+  title         String
+  body          String
+  /// A curated screen (shared/push-campaigns.ts PUSH_LINKS) or "custom" (a web path).
+  linkKey       String    @default("home")
+  /// What browsers and the bell open (a web path).
+  link          String
+  /// What a tapped push opens in the phone app (an app:/… link or web path that appRouteFor maps to a screen).
+  appLink       String?
+  /// shared/push-campaigns.ts PushAudience.
+  audience      Json
+  /// Ignores quiet hours (owners and admins only, rare).
+  urgent        Boolean   @default(false)
+  /// draft | scheduled | sending | sent | cancelled | failed
+  status        String    @default("draft")
+  scheduledAt   DateTime?
+  startedAt     DateTime?
+  sentAt        DateTime?
+  cancelledAt   DateTime?
+  /// contentHash of the title, text and link last sent to the admin as a test (a real send needs it to match).
+  testedHash    String?
+  testedAt      DateTime?
+  /// Sent past the daily limit (the admin ticked "override").
+  overrideLimit Boolean   @default(false)
+  /// The estimate when it went out: people and devices.
+  targetedCount Int       @default(0)
+  deviceCount   Int       @default(0)
+  /// Recipients done (bell written and push handed over) and failed.
+  notifiedCount Int       @default(0)
+  failedCount   Int       @default(0)
+  /// Push results, copied from NotificationDelivery (kept 30 days): accepted, delivered, failed; and taps.
+  pushSent      Int       @default(0)
+  pushOk        Int       @default(0)
+  pushErrors    Int       @default(0)
+  openedCount   Int       @default(0)
+  /// "Resend to the failed ones" was used (once).
+  resentAt      DateTime?
+  lastError     String?
+  createdById   String
+  sentById      String?
+  cancelledById String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now()) @updatedAt
+
+  recipients PushCampaignRecipient[]
+  events     PushCampaignEvent[]
+
+  @@index([status, scheduledAt])
+  @@index([createdAt])
+}
+
+/// Who a campaign goes to, one row each (an account, or a rider: riders have no account and get push only).
+/// queued → sending → sent | failed. A batch is claimed queued → sending atomically, and notify()'s dedupe key
+/// ("push-campaign:<id>") means nobody is told twice even if a run dies mid-batch.
+model PushCampaignRecipient {
+  id             String    @id @default(cuid())
+  campaignId     String
+  userId         String?
+  riderId        String?
+  notificationId String?
+  status         String    @default("queued")
+  error          String?
+  sentAt         DateTime?
+  /// When a run took it (queued → sending): a row left "sending" long after belongs to a run that died.
+  claimedAt      DateTime?
+  /// The push was tapped (POST /api/notifications/opened from the app and the browser).
+  openedAt       DateTime?
+  createdAt      DateTime  @default(now())
+
+  campaign PushCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, userId])
+  @@unique([campaignId, riderId])
+  @@index([campaignId, status])
+  @@index([notificationId])
+}
+
+/// Audit log for the Push center: who created, tested, scheduled, sent, cancelled or resent a campaign.
+model PushCampaignEvent {
+  id         String   @id @default(cuid())
+  campaignId String
+  /// created | edited | test | scheduled | sent | cancelled | resent
+  action     String
+  byId       String?
+  detail     Json     @default("{}")
+  createdAt  DateTime @default(now())
+
+  campaign PushCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, createdAt])
+}
+
+// ─── Pilot testing: invite waitlist leads, collect replies until a deadline, pick the testers ───────────────────
+// Admin › Leads › Pilot testing. docs/migrations/2026-12-01-pilot-testing.sql
+
+model PilotProgram {
+  id               String    @id @default(cuid())
+  name             String
+  status           String    @default("draft") // draft | open | closed
+  closesAt         DateTime
+  roles            String[]  @default(["seller", "supplier", "delivery"])
+  targets          Json      @default("{}") // { seller, supplier, delivery }: how many testers to pick per role
+  includeNoConsent Boolean   @default(false) // also invite leads who didn't tick "agree to messages" (one invite only)
+  textChannel      String    @default("sms") // sms | whatsapp | none: how leads without an email are invited
+  invitedAt        DateTime?
+  remindedAt       DateTime?
+  createdById      String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  applicants PilotApplicant[]
+}
+
+model PilotApplicant {
+  id            String       @id @default(cuid())
+  programId     String
+  leadId        String?
+  role          String // seller | supplier | delivery
+  // invited (no reply yet) | applied | declined | selected | waitlisted
+  status        String       @default("invited")
+  name          String?
+  email         String?
+  phone         String?
+  businessName  String?
+  city          String?
+  businessType  String?
+  devices       String[]     @default([])
+  availability  String?
+  note          String?
+  adminNote     String?
+  inviteChannel String?
+  inviteError   String?
+  invitedAt     DateTime?
+  remindedAt    DateTime?
+  appliedAt     DateTime?
+  decidedAt     DateTime?
+  notifiedAt    DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  program       PilotProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  lead          WebsiteLead? @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  @@unique([programId, leadId])
+  @@index([programId, status])
 }

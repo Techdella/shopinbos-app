@@ -182,6 +182,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "admin.leads-all": "Gbogbo leads",
   "admin.lead-campaigns": "Àwọn ìpolówó àti automation",
   "admin.lead-whatsapp": "WhatsApp",
+  "admin.pilot": "Ìdánwò pilot",
   "admin.pricing": "Iye owó",
   "admin.logistics-partners-all": "Àwọn alábàáṣiṣẹ́ ìfijiṣẹ́",
   "admin.pricing-prices": "Iye owó àti owó iṣẹ́",
@@ -275,6 +276,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   media: "Àwọn àwòrán",
   "supplier.products-import": "Gbé CSV sókè",
   "supplier.followers": "Àwọn olùtẹ̀lé",
+  "admin.push": "Ibùdó ìfitónilétí",
 };
 
 export default yo;

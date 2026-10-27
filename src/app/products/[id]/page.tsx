@@ -63,7 +63,7 @@ export default async function ProductEditPage({
       sub={product.shortCode ? t("code.sub", { code: product.shortCode }) : t("edit.sub")}
       actions={
         <>
-          <PillLink href="/products" icon="arrowLeft">{t("allProducts")}</PillLink>
+          <PillLink href="/products" icon="arrowLeft" iconOnlyOnPhone>{t("allProducts")}</PillLink>
           {/* Only published products can be paid for (the pay page shows public products only). */}
           {/* Share to WhatsApp: name, price, code and the product's page (live products only). */}
           {product.status === "published" ? <ShareWhatsAppButton product={{ name: product.name, price: product.retailPrice, currency: product.currency, shortCode: product.shortCode, url: storefrontProductUrl(storeUrl(store), product.id) }} /> : null}

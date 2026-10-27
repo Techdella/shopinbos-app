@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
-import { AssistantNote, PillLink } from "@/components/app-kit";
+import { AssistantNote, MoreActions, PillLink } from "@/components/app-kit";
 import { channelStatus } from "@/lib/marketing/channels";
 import { listWhatsAppTemplates } from "@/lib/marketing/whatsapp-templates.server";
 import { WhatsAppTemplates } from "./WhatsAppTemplates";
@@ -30,7 +30,9 @@ export default async function WhatsAppTemplatesPage() {
       sub={t("wa.sub")}
       actions={
         <>
-          <PillLink href="/home/marketing/messages" icon="bell">{t("hub.tool.orderMessages")}</PillLink>
+          <MoreActions>
+            <PillLink href="/home/marketing/messages" icon="bell">{t("hub.tool.orderMessages")}</PillLink>
+          </MoreActions>
           <PillLink href="/home/marketing/campaigns/new?channel=whatsapp" tone="accent" icon="plus">{t("wa.campaign")}</PillLink>
         </>
       }

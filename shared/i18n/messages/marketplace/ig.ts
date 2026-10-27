@@ -276,10 +276,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "pub.home": "Ihu mbụ Shopinbos",
   "pub.browse": "Hụ ndị supplier niile",
   "pub.contact": "Kpọtụrụ supplier",
-  "pub.private": "Anyị ka na-enyocha supplier a, ya mere e zoro peeji ha. Ụlọ ahịa enweghị ike ịhụ ngwaahịa ha ma ọ bụ kpọtụrụ ha ugbu a.",
   "pub.logo": "Logo {name}",
   "pub.verified": "Supplier e nyochara",
-  "pub.privateProfile": "Profaịlụ nzuzo",
   "pub.products": "Ngwaahịa {count}",
   "pub.quote": "Jụọ ọnụahịa",
   "pub.message": "Zigara supplier ozi",
@@ -391,6 +389,15 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "ws.lead": "Ihe ị zụtara n'ọtụtụ n'aka ndị supplier ka i debe ma ree n'onwe gị.",
   "ws.tip": "Ndụmọdụ: ị nwere ike ịkagbu order ruo mgbe supplier malitere ịkwakọ ya. Ozugbo ha nabatara, kwụọ ebe a site na kaadị (ọ na-aga ozugbo n'akaụntụ ụlọ akụ ha) ma ọ bụ kwụọ ha ozugbo.",
   "ds.tip": "Ndụmọdụ: ọ bụrụ na ngwaahịa na-agwụ n'aka supplier, pịa Kwụsịtụ ka ndị ahịa ghara inwe ike ịtụ ya. Pịa Ree ọzọ mgbe ọ laghachiri.",
+  "pub.pendingNote": "Shopinbos ka na-enyocha azụmahịa a. Ụlọ ahịa enweghị ike ịzụ ihe n'aka ha ma ọ bụ zitere ha ozi ebe a ruo mgbe anyị mechara.",
+  "pub.pendingProfile": "A na-enyocha ya",
+  "badge.powered": "Shopinbos na-akwado ya",
+  "badge.title": "{name} na-eji Shopinbos. Azụmahịa gị nwekwara ike.",
+  "badge.sub": "Jiri AI wuo ụlọ ahịa n'ịntanetị, chọta ndị supplier ị ga-ere ngwaahịa ha, ma mee delivery, ihe niile n'otu ebe. Ịmalite bụ n'efu.",
+  "badge.seller": "Malite ụlọ ahịa m",
+  "badge.supplier": "Banye dị ka supplier",
+  "badge.partner": "Banye dị ka delivery partner",
+  "badge.owner": "Nke a bụ ihe ndị mmadụ na-ahụ mgbe ị kesara peeji gị. Onye ọ bụla sonyere site na bọtịnụ ndị a bụ referral gị.",
 };
 
 export default ig;

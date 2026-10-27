@@ -708,6 +708,11 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "market.cash.marked": "I kaara na ị kwụọla ụlọ ahịa {amount}. A na-eche ka ha kwado ya.",
   "market.cash.payShop": "Kwụọ ụlọ ahịa {amount} rider gị natara, wee:",
   "market.cash.mark": "Kaa na ị kwụọla ụlọ ahịa ego cash ahụ",
+  "partnerPage.notFound": "A hụghị delivery partner · Shopinbos",
+  "partnerPage.metaTitle": "{name} · delivery partner Shopinbos",
+  "partnerPage.metaDesc": "Book delivery na {name} na Shopinbos.",
+  "partnerPage.pendingNote": "Shopinbos ka na-enyocha delivery partner a. Ụlọ ahịa enweghị ike ịbook ma ọ bụ zitere ha ozi ebe a ruo mgbe anyị mechara.",
+  "partnerPage.pending": "A na-enyocha ya",
 };
 
 export default ig;

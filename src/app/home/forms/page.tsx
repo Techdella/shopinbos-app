@@ -81,8 +81,8 @@ export default async function SellerFormSubmissionsPage({ searchParams }: { sear
       actions={
         <>
           <PillLink href="/home/messages" icon="chat" tone="ink">{t("forms.reply")}</PillLink>
-          <PillLink href="/home/marketing/forms" icon="settings">{t("forms.manage")}</PillLink>
-          <PillLink href={`/s/${store.slug}`} icon="globe">{t("forms.viewStore")}</PillLink>
+          <PillLink href="/home/marketing/forms" icon="settings" iconOnlyOnPhone>{t("forms.manage")}</PillLink>
+          <PillLink href={`/s/${store.slug}`} icon="globe" iconOnlyOnPhone>{t("forms.viewStore")}</PillLink>
         </>
       }
     >

@@ -68,6 +68,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "quiet.off": "Ó wà ní pípa. Ìfitónilétí lè dún nígbàkigbà.",
   "quiet.midnight": "ọ̀gànjọ́ òru",
   "quiet.noon": "ọ̀sán gangan",
+  "category.announcements": "Ìròyìn Shopinbos",
+  "help.announcements": "Àwọn ohun tuntun, ìfilọ̀ àti ìmọ̀ràn láti ọ̀dọ̀ ẹgbẹ́ Shopinbos.",
 };
 
 export default yo;

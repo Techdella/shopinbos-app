@@ -13,6 +13,7 @@ import { resolveCustomDomainSlug } from "@/lib/domains/lookup";
 import { getOnboardingDestination } from "@/lib/onboarding-router";
 import { portalDashboardPath, portalLoginPath, portalOnboardingPath, portalRoleFromPath } from "@/lib/portal-routes";
 import { classifyHost, storePathAction } from "@/lib/storefront/host-routing";
+import { REFERRAL_COOKIE, REFERRAL_COOKIE_DAYS, REFERRAL_SOURCE_COOKIE, profileReferralCode } from "@shared/referrals";
 
 const GUEST_ROUTES = [
   "/login",
@@ -131,6 +132,13 @@ export async function proxy(request: NextRequest) {
     return headers;
   };
   const sessionCookies: { name: string; value: string; options?: Parameters<NextResponse["cookies"]["set"]>[2] }[] = [];
+  // A supplier's or delivery partner's profile shared with ?ref=CODE remembers the code like /r/CODE does, so a
+  // sign-up that starts there counts for them (src/lib/referrals/service.server.ts).
+  const profileCode = profileReferralCode(pathname, request.nextUrl.searchParams.get("ref"));
+  if (profileCode) {
+    const options = { path: "/", sameSite: "lax" as const, secure: process.env.NODE_ENV === "production", httpOnly: true, maxAge: REFERRAL_COOKIE_DAYS * 86_400 };
+    sessionCookies.push({ name: REFERRAL_COOKIE, value: profileCode, options }, { name: REFERRAL_SOURCE_COOKIE, value: "profile", options });
+  }
   // Rebuilt whenever Supabase refreshes the session, so pages rendered after this see the new cookies too.
   const buildResponse = () => {
     const next = NextResponse.next({ request: { headers: forwardHeaders() } });

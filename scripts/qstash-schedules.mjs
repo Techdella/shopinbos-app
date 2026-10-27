@@ -24,6 +24,7 @@ export const JOBS = [
   { id: "expire-orders", path: "/api/cron/expire-orders", cron: "*/5 * * * *" },
   { id: "supplier-acceptance", path: "/api/cron/supplier-acceptance", cron: "*/5 * * * *" },
   { id: "push-receipts", path: "/api/cron/push-receipts", cron: "*/5 * * * *" },
+  { id: "push-campaigns", path: "/api/cron/push-campaigns", cron: "*/5 * * * *" },
   { id: "marketing", path: "/api/cron/marketing", cron: "*/10 * * * *" },
   { id: "unread-message-emails", path: "/api/conversations/cron", cron: "*/10 * * * *" },
   { id: "product-news", path: "/api/cron/product-news", cron: "*/10 * * * *" },

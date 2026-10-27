@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireRole } from "@/lib/server-auth";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
-import { AssistantNote, Card, CardHead, PillLink } from "@/components/app-kit";
+import { AssistantNote, Card, CardHead, MoreActions, PillLink } from "@/components/app-kit";
 import { Icon } from "@/components/ui/Icon";
 import { getSellerWorkspace } from "@/lib/workspace";
 import { listCollections } from "@/lib/cms/server";
@@ -34,8 +34,10 @@ export default async function CmsPage() {
       sub={t("sub")}
       actions={
         <>
-          {store && <PillLink href="/home/cms/plan" icon="calendar">{t("plan.title")}</PillLink>}
-          <PillLink href={studioHref(REX_SETUP_PROMPT)} icon="sparkle">{t("askRexSetup")}</PillLink>
+          <MoreActions>
+            {store && <PillLink href="/home/cms/plan" icon="calendar">{t("plan.title")}</PillLink>}
+            <PillLink href={studioHref(REX_SETUP_PROMPT)} icon="sparkle">{t("askRexSetup")}</PillLink>
+          </MoreActions>
           {store && <NewCollectionButton takenSlugs={taken} />}
         </>
       }

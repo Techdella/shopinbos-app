@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { PillLink } from "@/components/app-kit";
+import { MoreActions, PillLink } from "@/components/app-kit";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { db } from "@/lib/db/client";
 import { hasAiProvider } from "@/lib/inbox/ai";
@@ -30,7 +30,9 @@ export default async function AutoRepliesPage() {
       sub={t("ar.sub")}
       actions={
         <>
-          <PillLink href="/home/inbox/chatbot" icon="sparkle">{t("chatbot")}</PillLink>
+          <MoreActions>
+            <PillLink href="/home/inbox/chatbot" icon="sparkle">{t("chatbot")}</PillLink>
+          </MoreActions>
           <PillLink href="/home/messages" icon="chat" tone="ink">{t("ch.openInbox")}</PillLink>
         </>
       }

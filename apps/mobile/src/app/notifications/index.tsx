@@ -29,6 +29,7 @@ const ICON: Record<NotifyCategory, AppIconName> = {
   stock: "box",
   marketing: "megaphone",
   account: "shield",
+  announcements: "sparkle",
 };
 
 type Words = ReturnType<typeof useT<["m_notifications", "common"]>>;

@@ -12,8 +12,13 @@ import { KeyValue } from "@/components/logistics/kit";
 import { messagesHref } from "@/lib/conversations/pure";
 import { formatMoney, type Locale } from "@shared/i18n";
 import { getLocale, getT } from "@/lib/i18n/server";
+import { PoweredByPill, PoweredByShopinbos } from "@/components/referrals/PoweredByShopinbos";
+import { referralCodeFor } from "@/lib/referrals/service.server";
 
-// Public supplier page sellers open from the supplier marketplace (same look as the delivery partner page).
+// Public supplier page: sellers open it from the supplier marketplace (same look as the delivery partner page), and the
+// supplier shares it anywhere (with ?ref=CODE, from "Share your profile"). Guests and the supplier see the "Powered by
+// Shopinbos" panel, whose join buttons count as the supplier's referral. Unverified suppliers can share it too: it
+// says they're being verified, shows no products and has no contact buttons, and isn't indexed.
 
 export const dynamic = "force-dynamic";
 
@@ -78,6 +83,11 @@ export default async function PublicSupplierProfilePage({ params }: PageProps) {
   const viewer = await getCurrentAppUser();
   const following = viewer?.role === "seller" ? await isFollowing(supplier.id, viewer.id) : false;
   const locale = await getLocale();
+  const isOwner = viewer?.id === supplier.userId;
+  // Only guests (who can join) and the supplier (checking their page) see the badge; shops browsing don't.
+  const showBadge = !viewer || isOwner;
+  const code = showBadge ? await referralCodeFor(supplier.userId).then((row) => row.code).catch(() => null) : null;
+  const isSeller = viewer?.role === "seller";
 
   const isVerified = supplier.verificationStatus === "verified";
   const initials = supplier.displayName.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase();
@@ -90,22 +100,25 @@ export default async function PublicSupplierProfilePage({ params }: PageProps) {
           <BrandLogo className="w-[128px] sm:w-[150px]" />
         </Link>
         <nav className="flex items-center gap-2">
-          <span className="hidden sm:block"><PillLink href="/marketplace/suppliers" size="sm">{t("pub.browse")}</PillLink></span>
+          {showBadge && <PoweredByPill />}
+          {isSeller && <span className="hidden sm:block"><PillLink href="/marketplace/suppliers" size="sm">{t("pub.browse")}</PillLink></span>}
           {isVerified && <PillLink href={quoteHref} size="sm" tone="ink">{t("pub.contact")}</PillLink>}
         </nav>
       </header>
 
       <div className="w-full px-4 py-6 sm:px-6 xl:px-8 2xl:px-10">
-        <Link href="/marketplace/suppliers" className="mb-5 inline-flex min-h-[40px] items-center gap-1.5 text-[14px] font-bold text-app-ink no-underline hover:underline">
-          <Icon name="arrowLeft" size={15} /> {t("sup.title")}
-        </Link>
+        {isSeller && (
+          <Link href="/marketplace/suppliers" className="mb-5 inline-flex min-h-[40px] items-center gap-1.5 text-[14px] font-bold text-app-ink no-underline hover:underline">
+            <Icon name="arrowLeft" size={15} /> {t("sup.title")}
+          </Link>
+        )}
 
         <p className="m-0 mb-4 max-w-[760px] text-[14.5px] leading-[1.55] text-app-ink-soft">{t("pub.lead")}</p>
 
         {!isVerified && (
           <div className="mb-5 flex items-start gap-2.5 rounded-[18px] border border-app-line bg-white px-4 py-3 text-[14px] text-app-ink-soft">
             <Icon name="lock" size={15} />
-            <span>{t("pub.private")}</span>
+            <span>{t("pub.pendingNote")}</span>
           </div>
         )}
 
@@ -128,7 +141,7 @@ export default async function PublicSupplierProfilePage({ params }: PageProps) {
             <div className="min-w-0 flex-1 pb-1">
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="m-0 break-words text-[26px] font-extrabold leading-[1.1] tracking-[-0.6px] sm:text-[30px]">{supplier.displayName}</h1>
-                {isVerified ? <Pill tone="success" dot>{t("pub.verified")}</Pill> : <Pill tone="warning" dot>{t("pub.privateProfile")}</Pill>}
+                {isVerified ? <Pill tone="success" dot>{t("pub.verified")}</Pill> : <Pill tone="warning" dot>{t("pub.pendingProfile")}</Pill>}
               </div>
               <p className="m-0 mt-1 text-[14.5px] text-app-ink-soft">
                 {[supplier.city, supplier.country].filter(Boolean).join(", ")} · {supplier.businessType.replace(/_/g, " ")} · {t("pub.products", { count: supplier._count.products })}
@@ -221,6 +234,8 @@ export default async function PublicSupplierProfilePage({ params }: PageProps) {
             )}
           </Card>
         )}
+
+        {showBadge && <PoweredByShopinbos name={supplier.displayName} code={code} isOwner={isOwner} />}
       </div>
     </div>
   );

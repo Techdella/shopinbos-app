@@ -84,7 +84,7 @@ export function UploadLogoButton({ hasLogo }: { hasLogo: boolean }) {
       </button>
       <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" aria-label={t("bk.chooseLogo")} onChange={(event) => void onChange(event)} />
       {media.dialog}
-      <span role="status" aria-live="polite" className={cx("absolute left-0 top-[calc(100%+4px)] whitespace-nowrap text-[12.5px] font-semibold", message?.tone === "error" ? "text-app-danger" : "text-app-forest")}>
+      <span role="status" aria-live="polite" className={cx("absolute left-0 top-[calc(100%+4px)] w-max max-w-[calc(100vw-32px)] text-[12.5px] font-semibold sm:whitespace-nowrap", message?.tone === "error" ? "text-app-danger" : "text-app-forest")}>
         {busy ? t("bk.uploading") : message?.text ?? ""}
       </span>
     </span>

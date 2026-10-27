@@ -19,6 +19,7 @@ export const REWARD_KINDS = [
   "job_accepted_fast", // partner: accepted a job within 30 minutes (ref: booking id)
   "chat_replied_fast", // seller: answered a customer within an hour (ref: the customer's message id)
   "partner_connected", // seller or supplier: connected a delivery partner (ref: partner id)
+  "profile_referral", // supplier or partner: a business joined from their shared public profile (ref: new user id)
 ] as const;
 export type RewardKind = (typeof REWARD_KINDS)[number];
 
@@ -43,6 +44,7 @@ export const EVENT_VALUES: Record<RewardKind, { xp: number; points: number; perD
   job_accepted_fast: { xp: 5, points: 2, perDay: null },
   chat_replied_fast: { xp: 5, points: 2, perDay: 10 },
   partner_connected: { xp: 20, points: 10, perDay: 3 },
+  profile_referral: { xp: 30, points: 25, perDay: 5 },
 };
 
 /** XP and points for an event, given how many of the same kind already happened today. */
