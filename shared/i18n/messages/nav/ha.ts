@@ -276,6 +276,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "supplier.products-import": "Ɗora CSV",
   "supplier.followers": "Mabiya",
   "admin.push": "Cibiyar sanarwa",
+  // Preorder lists, Stock is ready and deposits (shared/preorder.ts)
+  "orders-preorders": "Odar kafin lokaci",
+  "supplier.preorders": "Odar kafin lokaci",
 };
 
 export default ha;

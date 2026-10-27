@@ -41,7 +41,7 @@ function CopyButton({ value, label, iconOnly = false }: { value: string; label: 
       style={({ pressed }) => ({ minHeight: 44, minWidth: 44, paddingHorizontal: iconOnly ? 0 : 12, borderRadius: radii.pill, borderWidth: 1.5, borderColor: copied ? colors.success : colors.line, backgroundColor: colors.surface, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, opacity: pressed ? 0.7 : 1 })}
     >
       <AppIcon name={copied ? "check" : "copy"} size={iconOnly ? 18 : 15} color={copied ? colors.success : colors.ink} />
-      {iconOnly ? null : <T weight="bold" style={{ fontSize: 14 }}>{copied ? t("copied") : t("copy")}</T>}
+      {iconOnly ? null : <T weight="bold" numberOfLines={1} style={{ flexShrink: 1, fontSize: 14 }}>{copied ? t("copied") : t("copy")}</T>}
     </Pressable>
   );
 }
@@ -175,10 +175,7 @@ export default function DomainScreen() {
             <View style={{ flex: 1 }}>
               <CopyButton value={data.free.url} label={data.free.host} />
             </View>
-            <PillButton size="sm" tone="white" style={{ flex: 1, minHeight: 44 }} accessibilityLabel={t("share")} onPress={() => void shareText(data.free.url)}>
-              <AppIcon name="share" size={15} />
-              <T weight="bold" style={{ fontSize: 14 }}>{t("share")}</T>
-            </PillButton>
+            <PillButton size="sm" tone="white" style={{ flex: 1, minHeight: 44 }} accessibilityLabel={t("share")} onPress={() => void shareText(data.free.url)} icon="share" title={t("share")} />
           </View>
         </Card>
       ) : null}

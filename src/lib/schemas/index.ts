@@ -140,6 +140,8 @@ export const PreorderInputSchema = z.object({
   shipsAt: z.string().max(40).nullable().optional(),
   limit: z.number().int().min(1).max(100_000).nullable().optional(),
   note: z.string().max(280).nullable().optional(),
+  // Suppliers only (SupplierProduct.preorderDepositPct): the share a shop pays when it places the preorder.
+  depositPct: z.number().int().min(0).max(100).optional(),
 });
 
 export const SupplierProductCreateSchema = z.object({

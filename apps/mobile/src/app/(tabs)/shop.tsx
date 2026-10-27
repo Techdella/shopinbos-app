@@ -4,7 +4,7 @@ import { router, useFocusEffect } from "expo-router";
 import { List, Row, Tile, Title, type TileTone } from "@/components/design";
 import { HelpButton } from "@/components/Help";
 import { LanguageRow } from "@/components/LanguagePicker";
-import { AppIcon, type AppIconName } from "@/components/icons";
+import { type AppIconName } from "@/components/icons";
 import { Picture } from "@/components/kit";
 import { Section } from "@/components/seller/bits";
 import { StockRow, useStockSaver } from "@/components/seller/StockRows";
@@ -156,15 +156,9 @@ export default function MyShop() {
             <Picture uri={latestPicture(changedPictures, "logoUrl", store.logoUrl)} name={store.name} size={64} shape="square" />
             {/* The two buttons wrap under each other on narrow phones instead of running off the screen. */}
             <View style={{ flex: 1, minWidth: 0, flexDirection: "row", flexWrap: "wrap", justifyContent: "flex-end", gap: 8 }}>
-            <PillButton testID="edit-shop" tone="white" size="sm" accessibilityLabel={t("editShop.open")} onPress={() => router.push("/shop-edit" as never)}>
-              <AppIcon name="sparkle" size={16} />
-              <T weight="bold" style={{ fontSize: 15 }}>{t("editShop.open")}</T>
-            </PillButton>
+            <PillButton testID="edit-shop" tone="white" size="sm" accessibilityLabel={t("editShop.open")} onPress={() => router.push("/shop-edit" as never)} icon="sparkle" title={t("editShop.open")} />
             {store.url ? (
-              <PillButton testID="share-shop" size="sm" accessibilityLabel={t("share")} onPress={() => void share()}>
-                <AppIcon name="share" size={16} color="#FFFFFF" />
-                <T weight="bold" style={{ color: "#FFFFFF", fontSize: 15 }}>{t("share")}</T>
-              </PillButton>
+              <PillButton testID="share-shop" size="sm" accessibilityLabel={t("share")} onPress={() => void share()} icon="share" title={t("share")} />
             ) : null}
             </View>
           </View>

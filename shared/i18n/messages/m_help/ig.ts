@@ -145,6 +145,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "call.screen.messages": "Ozi",
   "call.screen.money": "Ego",
   "call.screen.orders": "Ịtụ ahịa",
+  "call.screen.preorders": "Ịtụ n'ihu oge",
   "call.screen.payments": "Ụzọ ịkwụ ụgwọ",
   "call.screen.payout": "Ụlọ akụ maka ịkwụ ụgwọ",
   "call.screen.pickup": "Adreesị ebe a na-anara ngwa",

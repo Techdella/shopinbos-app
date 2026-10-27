@@ -150,7 +150,7 @@ test("the server starts phone payments with the app's return address and confirm
   assert.match(confirm, /confirmAppPayment\(parsed\.data\.reference, user\.id\)/, "the payment must be theirs");
   // Web flows keep their own pages when no app address is sent.
   assert.match(read("src/lib/logistics/seller-payins.server.ts"), /options\.callbackUrl \?\? `\$\{appBase\(\)\}\/logistics\/cash`/);
-  assert.match(read("src/lib/supplier-orders/wholesale-payments.server.ts"), /options\.callbackUrl \?\? `\$\{appBase\(\)\}\/marketplace\/wholesale`/);
+  assert.match(read("src/lib/supplier-orders/wholesale-payments.server.ts"), /options\.callbackUrl \?\? `\$\{appBase\(\)\}\$\{due\.step === "full" \? "\/marketplace\/wholesale" : "\/home\/preorders\?view=suppliers"\}`/);
 });
 
 test("confirms tell a payment still on its way from one that failed, and only take naira", () => {

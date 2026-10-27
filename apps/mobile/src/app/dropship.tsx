@@ -5,7 +5,7 @@ import { Image } from "expo-image";
 import { naira } from "@shared/onboarding";
 import { Badge, EmptyState, ErrorState, LoadingBlock } from "@/components/kit";
 import { Screen } from "@/components/Screen";
-import { Card, Chip, Notice, PillButton, T } from "@/components/ui";
+import { ButtonRow, Card, Chip, Notice, PillButton, T } from "@/components/ui";
 import { fetchDropship, filterDropship, setPaused, type DropshipFilter, type DropshipItem } from "@/lib/dropship";
 import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
@@ -54,11 +54,11 @@ function DropshipCard({ item, onToggle, busy }: { item: DropshipItem; onToggle: 
           </View>
         </View>
       </View>
-      <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 12, paddingBottom: 12 }}>
+      <ButtonRow labels={[t("dropship.price"), item.paused ? t("dropship.sellAgain") : t("dropship.pause"), t("dropship.message")]} size="sm" gap={8} style={{ paddingHorizontal: 12, paddingBottom: 12 }}>
         <PillButton title={t("dropship.price")} tone="white" size="sm" style={{ flex: 1 }} onPress={() => router.push({ pathname: "/product/[id]", params: { id: item.product.id } })} />
         <PillButton title={item.paused ? t("dropship.sellAgain") : t("dropship.pause")} tone="white" size="sm" busy={busy} style={{ flex: 1 }} onPress={onToggle} />
         <PillButton title={t("dropship.message")} tone="white" size="sm" style={{ flex: 1 }} onPress={() => router.push({ pathname: "/partners/[id]", params: { id: item.supplier.userId, name: item.supplier.name } })} />
-      </View>
+      </ButtonRow>
     </Card>
   );
 }

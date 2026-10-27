@@ -25,8 +25,8 @@ export const TONES: Record<Tone, { bg: string; fg: string }> = {
 
 export function TonePill({ tone, label, style }: { tone: Tone; label: string; style?: StyleProp<ViewStyle> }) {
   return (
-    <View style={[{ backgroundColor: TONES[tone].bg, borderRadius: radii.pill, paddingHorizontal: 10, paddingVertical: 4, alignSelf: "flex-start" }, style]}>
-      <T weight="bold" style={{ fontSize: 12, color: TONES[tone].fg }}>{label}</T>
+    <View style={[{ backgroundColor: TONES[tone].bg, borderRadius: radii.pill, paddingHorizontal: 10, paddingVertical: 4, alignSelf: "flex-start", maxWidth: "100%" }, style]}>
+      <T weight="bold" numberOfLines={1} style={{ fontSize: 12, color: TONES[tone].fg }}>{label}</T>
     </View>
   );
 }

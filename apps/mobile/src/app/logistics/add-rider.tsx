@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { Linking } from "react-native";
 import { router } from "expo-router";
-import { AppIcon } from "@/components/icons";
 import { DoneScreen, LabeledInput } from "@/components/PartnerKit";
 import { Screen } from "@/components/Screen";
-import { Notice, PillButton, T } from "@/components/ui";
+import { Notice, PillButton } from "@/components/ui";
 import { useT } from "@/lib/i18n";
 import { addRider } from "@/lib/logistics";
 
@@ -45,10 +44,7 @@ export default function AddRider() {
         footer={
           <>
             <PillButton tone="forest" title={t("done")} onPress={() => (router.canGoBack() ? router.back() : router.replace("/logistics/team"))} />
-            <PillButton tone="white" onPress={() => void Linking.openURL(invite.inviteUrl)}>
-              <AppIcon name="chat" size={18} />
-              <T weight="bold" style={{ fontSize: 15 }}>{t("addRider.openAgain")}</T>
-            </PillButton>
+            <PillButton tone="white" onPress={() => void Linking.openURL(invite.inviteUrl)} icon="chat" title={t("addRider.openAgain")} />
           </>
         }
       />
@@ -60,10 +56,7 @@ export default function AddRider() {
       title={t("riders.add")}
       sub={t("addRider.subWa")}
       footer={
-        <PillButton tone="forest" busy={busy} onPress={() => void send()}>
-          <AppIcon name="send" size={20} color="#FFFFFF" />
-          <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 17 }}>{t("addRider.sendInvite")}</T>
-        </PillButton>
+        <PillButton tone="forest" busy={busy} onPress={() => void send()} icon="send" title={t("addRider.sendInvite")} />
       }
     >
       <LabeledInput label={t("addRider.theirName")} value={name} onChangeText={setName} placeholder="Musa Bello" autoCapitalize="words" autoComplete="name" />

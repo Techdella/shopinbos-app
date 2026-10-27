@@ -145,6 +145,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "call.screen.messages": "Saƙonni",
   "call.screen.money": "Kuɗi",
   "call.screen.orders": "Oda",
+  "call.screen.preorders": "Odar kafin lokaci",
   "call.screen.payments": "Hanyoyin biya",
   "call.screen.payout": "Bankin karɓar kuɗi",
   "call.screen.pickup": "Adireshin ɗauka",

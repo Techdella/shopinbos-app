@@ -1,10 +1,9 @@
 import { router } from "expo-router";
 import { List, Row, Tile } from "@/components/design";
-import { AppIcon } from "@/components/icons";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { NoteCard } from "@/components/PartnerKit";
 import { Screen } from "@/components/Screen";
-import { PillButton, T } from "@/components/ui";
+import { PillButton } from "@/components/ui";
 import { useT } from "@/lib/i18n";
 import { fetchMarket } from "@/lib/logistics";
 import { useLoad } from "@/lib/useLoad";
@@ -23,10 +22,7 @@ export default function PickupPoints() {
       refreshing={market.refreshing}
       onRefresh={() => void market.refresh()}
       footer={
-        <PillButton tone="forest" onPress={() => router.push("/logistics/points/edit")}>
-          <AppIcon name="plus" size={20} color="#FFFFFF" />
-          <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 17 }}>{t("points.add")}</T>
-        </PillButton>
+        <PillButton tone="forest" onPress={() => router.push("/logistics/points/edit")} icon="plus" title={t("points.add")} />
       }
     >
       {market.loading && !market.data ? <LoadingBlock /> : null}

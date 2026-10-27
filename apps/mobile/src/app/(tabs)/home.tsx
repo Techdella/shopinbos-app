@@ -92,8 +92,9 @@ function AskCard({ who, title, sub, onPress, testID }: { who: "rex" | "peggy"; t
     >
       {who === "peggy" ? <Mascot name="peggy" mood={isPeggyNight() ? "sleep" : "idle"} size={44} label="" /> : <Mascot name="rex" size={44} label="" />}
       <View style={{ flex: 1, minWidth: 0 }}>
-        <T weight="extrabold" style={{ fontSize: 16 }} numberOfLines={1}>{title}</T>
-        <T style={{ fontSize: 13.5, color: colors.inkSoft }} numberOfLines={2}>{sub}</T>
+        {/* Two lines for the name: "Béèrè lọ́wọ́ Rex" and "Béèrè lọ́wọ́ Peggy" must not both end in "Béèrè lọ…". */}
+        <T weight="extrabold" style={{ fontSize: 16, lineHeight: 20 }} numberOfLines={2}>{title}</T>
+        <T style={{ fontSize: 13.5, lineHeight: 18, color: colors.inkSoft }} numberOfLines={2}>{sub}</T>
       </View>
     </Pressable>
   );

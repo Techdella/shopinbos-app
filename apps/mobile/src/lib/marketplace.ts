@@ -23,8 +23,9 @@ interface RawProduct {
   bulkOrderAvailable: boolean;
   processingTime: string | null;
   trendScore: number;
-  /** The supplier takes preorders (ship date, places left, promise; shared/preorder.ts). Newer servers. */
-  preorder?: PreorderState | null;
+  /** The supplier takes preorders (ship date, places left, promise; shared/preorder.ts). Newer servers. `depositPct`:
+   * the share paid when the preorder is placed (newer servers; 0 or absent: none). */
+  preorder?: (PreorderState & { depositPct?: number }) | null;
   supplier: {
     id: string;
     displayName: string;
@@ -83,7 +84,7 @@ export interface FindProduct {
   wholesale: boolean;
   trendScore: number;
   /** The supplier takes preorders on it: the stock isn't here yet and ships from their date. Null when not. */
-  preorder: PreorderState | null;
+  preorder: (PreorderState & { depositPct?: number }) | null;
 }
 
 function toFindProduct(row: RawProduct): FindProduct {
@@ -170,7 +171,7 @@ export const addToStore = (supplierProductId: string, retailPrice: number) =>
 /** A bulk order (here: a preorder on a listing that takes them). The supplier confirms it, then the seller pays them
  *  (Wholesale screen); Shopinbos holds no preorder money. */
 export const placeWholesaleOrder = (input: { supplierId: string; supplierProductId: string; quantity: number; deliveryAddress: string }) =>
-  api<{ id: string }>("/api/app/wholesale/request", { method: "POST", json: input });
+  api<{ id: string; depositKobo?: number }>("/api/app/wholesale/request", { method: "POST", json: input });
 
 export const requestQuote = (input: { supplierId: string; supplierProductId: string; quantity: number; destination: string; notes?: string }) =>
   api<{ id: string }>("/api/app/supplier-quotes", { method: "POST", json: input });

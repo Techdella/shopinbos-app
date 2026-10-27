@@ -384,6 +384,12 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "badge.supplier": "Join as supplier",
   "badge.partner": "Join as delivery partner",
   "badge.owner": "Na wetin people go see be this when you share your page. Anybody wey join from these buttons na your referral.",
+  // Preorder lists, Stock is ready and deposits (shared/preorder.ts)
+  "ws.preorders": "Preorders",
+  "pd.preorderPlaced": "Preorder don enter",
+  "pd.seePreorders": "See my preorders",
+  "pd.preorderDeposit": "Pay {pct}% now ({amount}). The remain when stock ready.",
+  "pd.depositLater": "Preorder don enter. Pay the deposit for See my preorders to hold your space.",
 };
 
 export default pcm;

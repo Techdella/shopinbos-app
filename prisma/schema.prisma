@@ -746,6 +746,9 @@ model SupplierProduct {
   preorderLimit         Int?
   preorderTaken         Int           @default(0)
   preorderNote          String?
+  /// Share of a preorder the shop pays when it places it (0–100; 0: the whole order is paid as usual). The rest is
+  /// paid once the supplier says the stock is ready (WholesaleOrder.depositKobo, shared/preorder.ts depositSplit).
+  preorderDepositPct    Int           @default(0)
   status                ProductStatus @default(draft)
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
@@ -997,6 +1000,10 @@ model WholesaleOrder {
   expiredAt         DateTime?   // ran out of time without an answer (status cancelled)
   preorder          Boolean     @default(false) // stock ordered before it arrives (SupplierProduct.preorderEnabled)
   preorderShipsAt   DateTime?   // the ship date the supplier gave when it was ordered
+  preorderReadyAt   DateTime?   // the supplier said the stock is ready ("Stock is ready"): it ships now
+  depositKobo       Int         @default(0) // a preorder's deposit, paid when it's placed (0: no deposit; the rest after stock is ready)
+  depositPaidAt     DateTime?   // the deposit was paid by card in Shopinbos (paidAt: the whole order is paid)
+  depositRef        String?     @unique // that Paystack reference (whpay-…)
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
 

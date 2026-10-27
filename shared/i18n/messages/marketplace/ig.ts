@@ -384,6 +384,12 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "badge.supplier": "Banye dị ka supplier",
   "badge.partner": "Banye dị ka delivery partner",
   "badge.owner": "Nke a bụ ihe ndị mmadụ na-ahụ mgbe ị kesara peeji gị. Onye ọ bụla sonyere site na bọtịnụ ndị a bụ referral gị.",
+  // Preorder lists, Stock is ready and deposits (shared/preorder.ts)
+  "ws.preorders": "Ịtụ n'ihu oge",
+  "pd.preorderPlaced": "E tinyela ịtụ n'ihu oge",
+  "pd.seePreorders": "Lee ịtụ n'ihu oge m",
+  "pd.preorderDeposit": "Kwụọ {pct}% ugbu a ({amount}). Ndị fọdụrụ mgbe ngwaahịa dị njikere.",
+  "pd.depositLater": "E tinyela ịtụ n'ihu oge. Kwụọ nkwụnye ego site na Lee ịtụ n'ihu oge m ka ị jide ọnọdụ gị.",
 };
 
 export default ig;

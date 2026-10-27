@@ -147,6 +147,7 @@ const en = {
   "call.screen.messages": "Messages",
   "call.screen.money": "Money",
   "call.screen.orders": "Orders",
+  "call.screen.preorders": "Preorders",
   "call.screen.payments": "Payment methods",
   "call.screen.payout": "Bank for payments",
   "call.screen.pickup": "Pickup address",

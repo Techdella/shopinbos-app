@@ -30,7 +30,7 @@ export const orderImage = (order: AnyOrder) => (order.kind === "dropship" ? orde
 
 export const orderAmount = (order: AnyOrder) => (order.kind === "dropship" ? order.yourTotal : order.total);
 
-/** `below` sits under the grey line (the accept countdown on a new order). */
+/** `below` sits under the row at its full width (the accept countdown on a new order, so it stays on one line). */
 export function OrderRow({ order, below }: { order: AnyOrder; below?: ReactNode }) {
   const t = useT("m_supplier", "m_partner");
   const line = `${orderKindLabel(order.kind, t)} · ${orderItems(order)} · ${orderRowStatus(order, t)}`;
@@ -43,16 +43,17 @@ export function OrderRow({ order, below }: { order: AnyOrder; below?: ReactNode 
       lead={<Pic uri={orderImage(order)} />}
       title={order.shop}
       sub={
-        below || preorder ? (
+        preorder ? (
           <View style={{ gap: 6 }}>
             <T style={{ fontSize: 14, lineHeight: 19, color: colors.inkSoft }} numberOfLines={2}>{line}</T>
             <PreorderPill preorder={preorder} />
-            {below}
           </View>
         ) : (
           line
         )
       }
+      below={below}
+      leadWidth={52}
       right={
         <View style={{ alignItems: "flex-end", gap: 2, maxWidth: 110 }}>
           <T weight="extrabold" style={{ fontSize: 15 }} numberOfLines={1}>{amount}</T>

@@ -93,10 +93,7 @@ export default function ProofScreen() {
 
   const ready = photoMode ? Boolean(current.proofUrl || recipient.trim()) : code.length === 4;
   const footer = ready ? (
-    <PillButton tone="forest" busy={busy === "deliver"} disabled={Boolean(busy)} onPress={() => void deliver()}>
-      <AppIcon name="check" size={20} color="#FFFFFF" />
-      <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 17 }}>{t("proof.delivered")}</T>
-    </PillButton>
+    <PillButton tone="forest" busy={busy === "deliver"} disabled={Boolean(busy)} onPress={() => void deliver()} icon="check" title={t("proof.delivered")} />
   ) : undefined;
 
   return (

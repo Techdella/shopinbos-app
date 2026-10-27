@@ -240,7 +240,7 @@ function ZoneEditor({ zone, onClose, onDone }: { zone: Zone | "new" | null; onCl
             <T weight="extrabold" style={{ flex: 1, fontSize: 22, lineHeight: 28 }} accessibilityRole="header">{existing ? t("del.editTitle") : t("del.newTitle")}</T>
             <Pressable accessibilityRole="button" onPress={() => !busy && onClose()} hitSlop={8} style={{ minHeight: 44, paddingHorizontal: 14, borderRadius: 22, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, flexDirection: "row", alignItems: "center", gap: 6 }}>
               <AppIcon name="x" size={16} />
-              <T weight="bold" style={{ fontSize: 15 }}>{t("close")}</T>
+              <T weight="bold" numberOfLines={1} style={{ flexShrink: 1, fontSize: 15 }}>{t("close")}</T>
             </Pressable>
           </View>
           <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 28, gap: 14 }}>

@@ -3,7 +3,7 @@ import { ActivityIndicator, Image, View } from "react-native";
 import { router } from "expo-router";
 import { Screen } from "@/components/Screen";
 import { List, Pill, Row, type PillTone } from "@/components/design";
-import { PreorderPill } from "@/components/Preorder";
+import { OneLine, PreorderPill } from "@/components/Preorder";
 import { Notice, PillButton, T } from "@/components/ui";
 import { api } from "@/lib/api";
 import { money } from "@/lib/customers-pure";
@@ -33,6 +33,8 @@ type WholesaleOrder = {
   canPay: boolean;
   /** A preorder: ships from the supplier's date (newer servers). */
   preorder?: { shipsOn: string | null } | null;
+  /** What Pay pays now (a preorder deposit, or the rest once the stock is ready), in kobo (newer servers). */
+  pay?: { step: "deposit" | "balance" | "full"; kobo: number } | null;
 };
 
 const STAGE: Record<string, { key: string; tone: PillTone }> = {
@@ -64,6 +66,7 @@ export default function WholesaleOrders() {
   const t = useT("marketplace");
   const { data, error, refreshing, refresh, reload } = useLoad(() => api<WholesaleOrder[]>("/api/app/wholesale"));
   const tw = useT("m_find");
+  const tu = useT("m_ui");
   const tp = useT("m_money");
   // Price requests: an extra; hidden when the server can't answer.
   const quotes = useLoad(() => api<PriceRequest[]>("/api/app/supplier-quotes?limit=20").catch(() => null));
@@ -94,6 +97,12 @@ export default function WholesaleOrders() {
   return (
     <Screen title={t("ws.title")} sub={t("ws.sub")} refreshing={refreshing} onRefresh={() => { void quotes.reload(); return refresh(); }}>
       {notice ? <Notice tone={notice.tone}>{notice.text}</Notice> : null}
+      {/* Preorders (deposits, Pay balance once the stock is ready) have their own list. */}
+      {data?.some((order) => order.preorder) ? (
+        <PillButton tone="white" size="sm" accessibilityLabel={tu("preorders.seeMine")} onPress={() => router.push({ pathname: "/preorders", params: { view: "suppliers" } })} style={{ alignSelf: "flex-start" }}>
+          <OneLine text={tu("preorders.seeMine")} size={15} />
+        </PillButton>
+      ) : null}
       {quotes.data?.length ? (
         <View style={{ gap: 8 }}>
           <T weight="extrabold" style={{ fontSize: 16 }}>{tw("wholesale.requests")}</T>
@@ -158,7 +167,7 @@ export default function WholesaleOrders() {
                     ) : null}
                     {order.canPay && !paid ? (
                       <PillButton
-                        title={tw("ws.payOrder", { total: money(order.totalPrice, order.currency) })}
+                        title={tw("ws.payOrder", { total: money(order.pay ? order.pay.kobo / 100 : order.totalPrice, order.currency) })}
                         accessibilityLabel={t("ws.payLabel", { ref: ref(order.id) })}
                         tone="accent"
                         size="sm"

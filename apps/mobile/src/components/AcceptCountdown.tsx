@@ -27,6 +27,7 @@ export function AcceptCountdown({ acceptBy, big = false }: { acceptBy: string | 
           alignItems: "center",
           gap: 6,
           alignSelf: "flex-start",
+          maxWidth: "100%",
           paddingHorizontal: 12,
           minHeight: big ? 40 : 32,
           borderRadius: 999,
@@ -35,10 +36,11 @@ export function AcceptCountdown({ acceptBy, big = false }: { acceptBy: string | 
           backgroundColor: soon ? AMBER.background : colors.canvas,
         }}
       >
-        <AppIcon name="clock" size={big ? 18 : 15} color={soon ? AMBER.ink : colors.ink} />
-        <T weight="extrabold" style={{ fontSize: big ? 17 : 15, color: soon ? AMBER.ink : colors.ink }}>{countdown.text}</T>
+        <View style={{ flexShrink: 0 }}><AppIcon name="clock" size={big ? 18 : 15} color={soon ? AMBER.ink : colors.ink} /></View>
+        {/* One line: "Accept in 4h 59m" never breaks in a narrow order row. */}
+        <T weight="bold" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ flexShrink: 1, fontSize: big ? 16 : 14, color: soon ? AMBER.ink : colors.ink }}>{countdown.text}</T>
       </View>
-      {countdown.warning ? <T weight="bold" style={{ fontSize: 15, color: AMBER.ink }}>{countdown.warning}</T> : null}
+      {countdown.warning ? <T weight="bold" style={{ fontSize: 14, lineHeight: 19, color: AMBER.ink }}>{countdown.warning}</T> : null}
     </View>
   );
 }

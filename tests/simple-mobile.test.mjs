@@ -151,7 +151,7 @@ test("every screen frame has Help, and Help offers a person and Peggy", () => {
 });
 
 test("one main button per screen is 56 tall", () => {
-  assert.match(read("components/ui.tsx"), /size === "lg" \? 56/);
+  assert.match(read("components/ui.tsx"), /BUTTON_HEIGHT: Record<PillSize, number> = \{ lg: 56,/);
 });
 
 test("dates and amounts in plain words", () => {

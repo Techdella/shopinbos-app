@@ -277,6 +277,9 @@ const en = {
   "supplier.products-import": "Upload CSV",
   "supplier.followers": "Followers",
   "admin.push": "Push center",
+  // Preorder lists, Stock is ready and deposits (shared/preorder.ts)
+  "orders-preorders": "Preorders",
+  "supplier.preorders": "Preorders",
 } satisfies Record<string, string>;
 
 export default en;

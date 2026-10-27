@@ -69,10 +69,7 @@ export default function Posts() {
       refreshing={week.refreshing}
       onRefresh={() => void week.refresh()}
       footer={
-        <PillButton tone="accent" onPress={() => router.push("/create")} accessibilityLabel={t("posts.make")}>
-          <AppIcon name="sparkle" size={20} color={colors.ink} />
-          <T weight="extrabold" style={{ fontSize: 17 }}>{t("posts.make")}</T>
-        </PillButton>
+        <PillButton tone="accent" onPress={() => router.push("/create")} accessibilityLabel={t("posts.make")} icon="sparkle" title={t("posts.make")} />
       }
     >
       {missing ? <ErrorState message={t("posts.loadFailed")} onRetry={() => void week.reload()} /> : null}

@@ -17,7 +17,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   search: "Search",
   loading: "E dey load…",
   tryAgain: "Try again",
-  help: "Help",
+  help: "Abeg help",
   settings: "Settings",
   signOut: "Sign out",
   logOut: "Log out",

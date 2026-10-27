@@ -2,7 +2,6 @@ import { useCallback } from "react";
 import { View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { naira } from "@shared/onboarding";
-import { AppIcon } from "@/components/icons";
 import { Badge, ErrorState, LoadingBlock } from "@/components/kit";
 import { Screen } from "@/components/Screen";
 import { Card, PillButton, T } from "@/components/ui";
@@ -48,10 +47,7 @@ export default function OrderInvoice() {
       refreshing={loaded.refreshing}
       onRefresh={() => void loaded.refresh()}
       footer={
-        <PillButton onPress={share} tone="accent" accessibilityLabel={t("inv.share")}>
-          <AppIcon name="share" size={20} color={colors.ink} />
-          <T weight="extrabold" style={{ color: colors.ink, fontSize: 17 }}>{t("inv.share")}</T>
-        </PillButton>
+        <PillButton onPress={share} tone="accent" accessibilityLabel={t("inv.share")} icon="share" title={t("inv.share")} />
       }
     >
       <Card style={{ gap: 8 }}>

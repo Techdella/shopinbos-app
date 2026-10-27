@@ -6,7 +6,6 @@ import { Banner, Eyebrow, List, Pill, Row, Small, Tile } from "@/components/desi
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { Screen } from "@/components/Screen";
 import { PartnerMark } from "@/components/seller/bits";
-import { AppIcon } from "@/components/icons";
 import { Notice, PillButton, T } from "@/components/ui";
 import { connectPartner, fetchPartnerPage, openPartnerChat } from "@/lib/delivery";
 import { coverageParts, daysWords, routeWords } from "@/lib/delivery-pure";
@@ -73,20 +72,11 @@ export default function PartnerPageScreen() {
       footer={
         <>
           {connection ? (
-            <PillButton tone="accent" accessibilityLabel={t("partner.settings")} onPress={() => router.push({ pathname: "/delivery/connection/[id]", params: { id: connection.id } })}>
-              <AppIcon name="settings" size={20} color={colors.ink} />
-              <T weight="extrabold" style={{ fontSize: 17 }}>{t("partner.settings")}</T>
-            </PillButton>
+            <PillButton tone="accent" accessibilityLabel={t("partner.settings")} onPress={() => router.push({ pathname: "/delivery/connection/[id]", params: { id: connection.id } })} icon="settings" title={t("partner.settings")} />
           ) : (
-            <PillButton tone="accent" busy={busy} accessibilityLabel={t("connect")} onPress={() => void connect()}>
-              <AppIcon name="link" size={20} color={colors.ink} />
-              <T weight="extrabold" style={{ fontSize: 17 }}>{t("connect")}</T>
-            </PillButton>
+            <PillButton tone="accent" busy={busy} accessibilityLabel={t("connect")} onPress={() => void connect()} icon="link" title={t("connect")} />
           )}
-          <PillButton tone="white" accessibilityLabel={t("partner.chat")} onPress={chat}>
-            <AppIcon name="chat" size={20} color={colors.ink} />
-            <T weight="extrabold" style={{ fontSize: 17 }}>{t("partner.chat")}</T>
-          </PillButton>
+          <PillButton tone="white" accessibilityLabel={t("partner.chat")} onPress={chat} icon="chat" title={t("partner.chat")} />
         </>
       }
     >

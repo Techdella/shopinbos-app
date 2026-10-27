@@ -51,7 +51,7 @@ function QuickButton({ label, icon, onPress, tint, color }: { label: string; ico
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => ({ flex: 1, minHeight: 50, borderRadius: 999, backgroundColor: tint, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, opacity: pressed ? 0.8 : 1 })}>
       <AppIcon name={icon} size={20} color={color} />
-      <T weight="extrabold" style={{ color, fontSize: 16 }}>{label}</T>
+      <T weight="extrabold" numberOfLines={1} style={{ flexShrink: 1, color, fontSize: 16 }}>{label}</T>
     </Pressable>
   );
 }

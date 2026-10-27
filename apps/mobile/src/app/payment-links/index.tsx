@@ -4,7 +4,6 @@ import { router } from "expo-router";
 import { naira } from "@shared/onboarding";
 import { Badge, ChipRow, EmptyState, ErrorState, LoadingBlock } from "@/components/kit";
 import { Screen } from "@/components/Screen";
-import { AppIcon } from "@/components/icons";
 import { Card, Chip, LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { friendlyDay } from "@/lib/friendly";
 import { fetchPaymentLinks } from "@/lib/paylinks";
@@ -27,10 +26,7 @@ export default function PaymentLinks() {
 
   return (
     <Screen title={t("title")} sub={t("sub")} refreshing={links.refreshing} onRefresh={() => void links.refresh()}>
-      <PillButton testID="new-payment-link" onPress={() => router.push("/payment-links/new")} accessibilityLabel={t("new")}>
-        <AppIcon name="plus" size={20} color="#FFFFFF" />
-        <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 17 }}>{t("new")}</T>
-      </PillButton>
+      <PillButton testID="new-payment-link" onPress={() => router.push("/payment-links/new")} accessibilityLabel={t("new")} icon="plus" title={t("new")} />
 
       {links.data && !links.data.readiness.ready ? (
         <View style={{ gap: 4 }}>

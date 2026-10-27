@@ -5,7 +5,6 @@ import { naira } from "@shared/onboarding";
 import { Banner, Heading, List, Row, Small, Sub } from "@/components/design";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { Screen } from "@/components/Screen";
-import { AppIcon } from "@/components/icons";
 import { LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { answerPrivateRate, fetchDeliveryHub, fetchPartnerPage } from "@/lib/delivery";
 import { daysWords, publicPriceFor, routeWords } from "@/lib/delivery-pure";
@@ -68,10 +67,7 @@ export default function PrivateRate() {
         waiting ? (
           <>
             {error ? <Notice>{error}</Notice> : null}
-            <PillButton tone="accent" busy={busy === "accept"} disabled={busy === "decline"} accessibilityLabel={t("rate.accept")} onPress={() => void answer(true)}>
-              <AppIcon name="check" size={20} color={colors.ink} />
-              <T weight="extrabold" style={{ fontSize: 17 }}>{t("rate.accept")}</T>
-            </PillButton>
+            <PillButton tone="accent" busy={busy === "accept"} disabled={busy === "decline"} accessibilityLabel={t("rate.accept")} onPress={() => void answer(true)} icon="check" title={t("rate.accept")} />
             <PillButton title={t("rate.notNow")} tone="white" onPress={back} />
           </>
         ) : null

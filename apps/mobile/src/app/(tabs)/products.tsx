@@ -3,7 +3,6 @@ import { View } from "react-native";
 import { router, useFocusEffect, useNavigation } from "expo-router";
 import { List, Seg, Small } from "@/components/design";
 import { FilterBar, FilterGroup, FilterSheet } from "@/components/FilterBar";
-import { AppIcon } from "@/components/icons";
 import { Screen } from "@/components/Screen";
 import { StockRow, useStockSaver } from "@/components/seller/StockRows";
 import { Chip, Notice, PillButton, T } from "@/components/ui";
@@ -78,10 +77,7 @@ export default function Products() {
       refreshing={refreshing}
       onRefresh={async () => { setRefreshing(true); await load(query); setRefreshing(false); }}
       footer={
-        <PillButton tone="accent" accessibilityLabel={t("add.title")} onPress={() => router.push("/add-products")}>
-          <AppIcon name="plus" size={20} color={colors.ink} />
-          <T weight="extrabold" style={{ fontSize: 17 }}>{t("add.title")}</T>
-        </PillButton>
+        <PillButton tone="accent" accessibilityLabel={t("add.title")} onPress={() => router.push("/add-products")} icon="plus" title={t("add.title")} />
       }
     >
       <FilterBar testID="products-filters" onMore={() => setSheet(true)} moreLabel={t("filters.title")} moreCount={productFilterCount(query)}>

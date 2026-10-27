@@ -384,6 +384,12 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "badge.supplier": "Darapọ̀ bí supplier",
   "badge.partner": "Darapọ̀ bí delivery partner",
   "badge.owner": "Èyí ni ohun tí àwọn ènìyàn ń rí nígbà tí o bá pín ojú-ìwé rẹ. Ẹnikẹ́ni tí ó bá darapọ̀ láti àwọn bọ́tìnnì wọ̀nyí jẹ́ referral rẹ.",
+  // Preorder lists, Stock is ready and deposits (shared/preorder.ts)
+  "ws.preorders": "Àwọn àṣẹ ṣáájú",
+  "pd.preorderPlaced": "A ti ṣe àṣẹ ṣáájú",
+  "pd.seePreorders": "Wo àwọn àṣẹ ṣáájú mi",
+  "pd.preorderDeposit": "San {pct}% báyìí ({amount}). Èyí tó kù nígbà tí ọjà bá ṣetán.",
+  "pd.depositLater": "A ti ṣe àṣẹ ṣáájú. San ìdógò láti Wo àwọn àṣẹ ṣáájú mi kí o lè di ààyè rẹ mú.",
 };
 
 export default yo;
