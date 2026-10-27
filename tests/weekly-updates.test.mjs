@@ -125,8 +125,24 @@ test("mobile: the Shopinbos ring leads the Status row on every home, and plays t
   assert.match(viewer, /openPath\(url\)/, "in-app links open the app's own screen when there is one");
 });
 
+test("intro music: the Afrobeats tips collection, a different track each intro, on web and phone", () => {
+  for (const track of narration.INTRO_TRACKS) assert.ok(existsSync(new URL(`../public${narration.introTrackPath(track.id)}`, import.meta.url)), track.id);
+  const ids = narration.INTRO_TRACKS.map((track) => track.id);
+  for (const previous of [null, ...ids]) {
+    for (const random of [0, 0.3, 0.6, 0.999, 1]) {
+      const picked = narration.pickIntroTrack(previous, random);
+      assert.ok(ids.includes(picked));
+      assert.notEqual(picked, previous, "never the same track twice in a row");
+    }
+  }
+  const web = read("src/components/learn/useIntroSound.ts");
+  assert.match(web, /pickIntroTrack\(/);
+  assert.match(web, /source\.loop = true/);
+  assert.doesNotMatch(web, /renderMusic\(/, "the generated track is gone from the tips");
+  assert.match(read("apps/mobile/src/components/learn/useIntroSound.ts"), /createAudioPlayer\(\{ uri: nextTrackUrl\(\) \}\)/);
+});
+
 test("mobile: the intro sheet has the narrator and the same music as the web", () => {
-  assert.ok(existsSync(new URL("../apps/mobile/assets/sounds/intro-music.m4a", import.meta.url)));
   const hook = read("apps/mobile/src/components/learn/useIntroSound.ts");
   assert.match(hook, /\/api\/learn\/narration\?/);
   assert.match(hook, /music\.current\.loop = true/);

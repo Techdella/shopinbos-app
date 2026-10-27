@@ -19,7 +19,7 @@ import { useIntroSound } from "./useIntroSound";
 // progress, play/pause, back/next, replay, skip; Escape closes. With reduced motion the scenes are still frames
 // and you step through them. When a one-minute help video is published for the same topic, "Watch the video"
 // plays it in the same panel. Full-screen sheet on phones. A narrator reads each scene in the person's language over
-// soft music (useIntroSound.ts); each scene waits for the narrator to finish its line, and both can be switched off.
+// a track from the Afrobeats tips collection (useIntroSound.ts); each scene waits for the narrator to finish its line, and both can be switched off.
 
 export type IntroCloseReason = "done" | "skip" | "close" | "cta";
 
@@ -85,7 +85,7 @@ export function FeatureIntro({ intro: source, role, onClose }: { intro: Intro; r
   const still = reduced;
   const playing = !paused && !finished && !still && tab === "intro";
   const locale = useLocale();
-  const sound = useIntroSound({ introKey: intro.key, scenes, locale: isNarrationLocale(locale) ? locale : "en", totalMs: introDurationMs(intro) });
+  const sound = useIntroSound({ introKey: intro.key, scenes, locale: isNarrationLocale(locale) ? locale : "en" });
   const { playScene, finish: finishSound, stopVoice, pause: pauseSound, resume: resumeSound } = sound;
 
   // The narrator follows the scenes: each new scene (or a replay) reads its line; the recap and the video stop it.

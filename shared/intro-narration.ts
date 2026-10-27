@@ -58,9 +58,37 @@ export function pickBrowserVoice<V extends { lang: string; name: string; localSe
   return voices.find((voice) => norm(voice).split("-")[0] === base) ?? null;
 }
 
-/** Music level (0..1) on its own and under the narrator. */
-export const MUSIC_LEVEL = 0.32;
-export const MUSIC_UNDER_VOICE = 0.1;
+/**
+ * The tips' music: an Afrobeats collection served from public/audio/tips (web) and streamed by the phone app from
+ * the same URLs. Each intro plays one track, a different one from the last intro, looping until the recap.
+ */
+export const INTRO_TRACKS = [
+  { id: "buckle-up-and-break-free", title: "Buckle Up and Break Free", artist: "Harper Rey" },
+  { id: "crazy", title: "Crazy (Instrumental)", artist: "Chris Coral" },
+  { id: "everywhere", title: "Everywhere", artist: "Say3" },
+  { id: "kite-lines", title: "Kite Lines (Instrumental)", artist: "Mike Stringer" },
+  { id: "lets-go", title: "Let's Go", artist: "Speedy The Spider" },
+] as const;
+export type IntroTrackId = (typeof INTRO_TRACKS)[number]["id"];
+
+/** Site path of a track, e.g. /audio/tips/kite-lines.mp3. */
+export function introTrackPath(id: IntroTrackId): string {
+  return `/audio/tips/${id}.mp3`;
+}
+
+/** The next intro's track: any track but `previous` (the last one played on this device). `random` is 0..1. */
+export function pickIntroTrack(previous: string | null | undefined, random: number): IntroTrackId {
+  const pool = INTRO_TRACKS.filter((track) => track.id !== previous);
+  const list = pool.length ? pool : INTRO_TRACKS;
+  const index = Math.min(list.length - 1, Math.max(0, Math.floor(random * list.length)));
+  return list[index]!.id;
+}
+
+/** Music level (0..1) on its own and under the narrator. Mastered tracks are loud, so these sit low. */
+export const MUSIC_LEVEL = 0.2;
+export const MUSIC_UNDER_VOICE = 0.06;
+/** Where the last track played is remembered on the device. */
+export const LAST_TRACK_KEY = "shopinbos.introTrack";
 /** How long a scene waits past its time for the narrator to finish before moving on anyway. */
 export const VOICE_GRACE_MS = 12_000;
 
