@@ -473,6 +473,11 @@ const en = {
   "upload.coverAria": "Cover image",
   // Partner page sellers see (/logistics/partners/[slug])
   "partnerPage.back": "Delivery partners",
+  "partnerPage.notFound": "Delivery partner not found · Shopinbos",
+  "partnerPage.metaTitle": "{name} · Shopinbos delivery partner",
+  "partnerPage.metaDesc": "Book deliveries with {name} on Shopinbos.",
+  "partnerPage.pendingNote": "Shopinbos is still checking this delivery partner. Shops can't book or message them here until it's done.",
+  "partnerPage.pending": "Being verified",
   "partnerPage.sameDayDelivery": "Same-day delivery",
   "partnerPage.requestQuote": "Request a quote",
   "partnerPage.book": "Book a delivery",

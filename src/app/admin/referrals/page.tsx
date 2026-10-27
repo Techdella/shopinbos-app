@@ -92,7 +92,7 @@ export default async function AdminReferralsPage(props: { searchParams?: Promise
                 <span className="min-w-[220px] flex-1">
                   <span className="font-bold">{row.refereeName}</span> <span className="text-app-ink-soft">({ROLE[row.refereeRole] ?? row.refereeRole})</span>
                   <span className="block text-[12.5px] text-app-ink-soft">
-                    invited by <span className="font-semibold text-app-ink">{row.referrerName}</span> ({ROLE[row.referrer?.role ?? ""] ?? "—"}) · code {row.code} · {formatDate(row.createdAt)}
+                    invited by <span className="font-semibold text-app-ink">{row.referrerName}</span> ({ROLE[row.referrer?.role ?? ""] ?? "—"}) · code {row.code}{row.source === "profile" ? " · from their profile" : ""} · {formatDate(row.createdAt)}
                   </span>
                   <span className="block text-[12.5px] text-app-ink-soft">{[row.referee?.email, row.referee?.phone].filter(Boolean).join(" · ")}</span>
                 </span>

@@ -255,10 +255,10 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "pub.home": "Shopinbos home",
   "pub.browse": "See all suppliers",
   "pub.contact": "Contact supplier",
-  "pub.private": "We still dey check this supplier, so their page dey hidden. Shops no fit see their products or contact dem yet.",
+  "pub.pendingNote": "Shopinbos still dey check this business. Shops no fit order from dem or message dem for here until e finish.",
+  "pub.pendingProfile": "Dem still dey check am",
   "pub.logo": "{name} logo",
   "pub.verified": "Verified supplier",
-  "pub.privateProfile": "Private profile",
   "pub.products": "{count} products",
   "pub.quote": "Ask for price",
   "pub.message": "Message supplier",
@@ -370,6 +370,13 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "ws.lead": "Things wey you buy plenty from suppliers to keep and sell yourself.",
   "ws.tip": "Tip: you fit cancel order until the supplier start to pack am. Once dem accept, pay here by card (e go enter their bank straight) or pay dem direct.",
   "ds.tip": "Tip: if product dey finish for supplier side, tap Pause so customers no go fit order am. Tap Sell again when e don come back.",
+  "badge.powered": "Powered by Shopinbos",
+  "badge.title": "{name} dey use Shopinbos. Your business fit use am too.",
+  "badge.sub": "Build online store with AI, find suppliers wey you go sell from, and get deliveries done, all for one place. E free to start.",
+  "badge.seller": "Start my store",
+  "badge.supplier": "Join as supplier",
+  "badge.partner": "Join as delivery partner",
+  "badge.owner": "Na wetin people go see be this when you share your page. Anybody wey join from these buttons na your referral.",
 };
 
 export default pcm;

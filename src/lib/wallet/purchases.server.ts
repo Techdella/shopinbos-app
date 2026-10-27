@@ -45,7 +45,7 @@ export interface PurchaseSummary {
   latest: Array<{ id: string; category: PurchaseCategory; item: string; who: string; email: string | null; at: string; amountKobo: number }>;
 }
 
-export async function purchaseSummary(now = new Date()): Promise<PurchaseSummary> {
+export async function purchaseSummary(now = new Date(), limit = 40): Promise<PurchaseSummary> {
   const [themes, domains, extras, registrations, ads, prints] = await Promise.all([
     db.themePurchase.findMany({ where: { status: "paid" }, orderBy: { paidAt: "desc" }, take: TAKE, select: { reference: true, userId: true, themeId: true, tier: true, amountKobo: true, paidAt: true, createdAt: true } }),
     db.domainPurchase.findMany({
@@ -75,7 +75,7 @@ export async function purchaseSummary(now = new Date()): Promise<PurchaseSummary
   const sum = (list: Row[], from: number) => list.reduce((total, row) => total + (row.at.getTime() >= from ? row.amountKobo : 0), 0);
   const tally = (list: Row[]) => ({ today: sum(list, since.today), week: sum(list, since.week), month: sum(list, since.month), all: sum(list, since.all), count: list.length });
 
-  const latest = rows.slice(0, 40);
+  const latest = rows.slice(0, limit);
   const buyers = new Map(
     (await db.user.findMany({ where: { id: { in: [...new Set(latest.map((row) => row.userId))] } }, select: { id: true, name: true, email: true } })).map((user) => [user.id, user]),
   );

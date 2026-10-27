@@ -156,6 +156,7 @@ export function ReferEarn({ overview, focus }: { overview: ReferralOverview; foc
           <h2 id="refer-list" className="m-0 text-[16px] font-bold tracking-[-0.01em]">Businesses you invited</h2>
           <p className="mb-4 mt-1 text-[13.5px] text-app-ink-soft">
             {overview.counts.joined} joined · {overview.counts.waiting} on their way · {overview.counts.rewarded} rewarded
+            {overview.counts.fromProfile ? ` · ${overview.counts.fromProfile} from your profile` : ""}
           </p>
           {overview.referrals.length === 0 ? (
             <p className="m-0 rounded-[14px] border border-dashed border-app-line bg-app-canvas/60 px-4 py-8 text-center text-[13.5px] text-app-ink-soft">No one yet. Share your link on WhatsApp: it takes ten seconds.</p>
@@ -168,6 +169,7 @@ export function ReferEarn({ overview, focus }: { overview: ReferralOverview; foc
                     <span className="block text-[14px] font-semibold">{referral.name}</span>
                     <span className="block text-[12.5px] text-app-ink-soft">
                       {REFERRAL_OFFERS[referral.role].noun.replace(/^an? /, "")} · joined {new Date(referral.joinedAt).toLocaleDateString("en-NG", { day: "numeric", month: "short" })}
+                      {referral.source === "profile" ? " via your profile" : ""}
                       {referral.progress ? ` · ${referral.progress}` : ""}
                       {referral.reason ? ` · ${referral.reason}` : ""}
                     </span>

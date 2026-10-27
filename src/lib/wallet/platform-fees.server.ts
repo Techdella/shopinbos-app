@@ -49,7 +49,8 @@ type PeriodKey = "today" | "week" | "month" | "all";
 
 const planLabel = (tier: string) => (isPlanTier(tier) ? `${PLAN_TIERS[tier].label} (${PLAN_TIERS[tier].role === "logistics_partner" ? "delivery" : PLAN_TIERS[tier].role})` : tier);
 
-export async function platformFeeSummary(now = new Date()): Promise<FeeSummary> {
+/** `limit` caps each "latest" list (the page shows 30; the CSV and PDF exports take them all). */
+export async function platformFeeSummary(now = new Date(), limit = 30): Promise<FeeSummary> {
   const orders = await db.retailOrder.findMany({
     where: { status: { in: [...PAID_STATUSES] }, paymentSplit: { not: Prisma.DbNull } },
     orderBy: { createdAt: "desc" },
@@ -110,7 +111,7 @@ export async function platformFeeSummary(now = new Date()): Promise<FeeSummary> 
       const paid = receipts.filter((receipt) => receipt.purpose === tier);
       return { tier, label: PLAN_TIERS[tier].label, role: PLAN_TIERS[tier].role, payments: paid.length, amountKobo: Math.round(paid.reduce((sum, receipt) => sum + receipt.amount * 100, 0)), active: activeByTier.get(tier) ?? 0 };
     }).filter((row) => row.payments || row.active),
-    latest: receipts.slice(0, 30).map((receipt) => ({
+    latest: receipts.slice(0, limit).map((receipt) => ({
       reference: receipt.reference,
       who: receipt.user.name,
       email: receipt.user.email,
@@ -128,7 +129,7 @@ export async function platformFeeSummary(now = new Date()): Promise<FeeSummary> 
     select: { reference: true, userId: true, credits: true, amountKobo: true, auto: true, paidAt: true, createdAt: true },
   });
   const buyers = new Map(
-    (await db.user.findMany({ where: { id: { in: [...new Set(purchases.slice(0, 30).map((row) => row.userId))] } }, select: { id: true, name: true, email: true } })).map((user) => [user.id, user]),
+    (await db.user.findMany({ where: { id: { in: [...new Set(purchases.slice(0, limit).map((row) => row.userId))] } }, select: { id: true, name: true, email: true } })).map((user) => [user.id, user]),
   );
   const creditRows = purchases.map((row) => ({
     ...row,
@@ -150,7 +151,7 @@ export async function platformFeeSummary(now = new Date()): Promise<FeeSummary> 
       const paid = creditRows.filter((row) => row.method === method);
       return { method, purchases: paid.length, amountKobo: paid.reduce((sum, row) => sum + row.amountKobo, 0) };
     }),
-    latest: creditRows.slice(0, 30).map((row) => ({
+    latest: creditRows.slice(0, limit).map((row) => ({
       reference: row.reference,
       who: buyers.get(row.userId)?.name ?? "Deleted account",
       email: buyers.get(row.userId)?.email ?? null,
@@ -165,7 +166,7 @@ export async function platformFeeSummary(now = new Date()): Promise<FeeSummary> 
     credits,
     subscriptions,
     periods,
-    latest: rows.filter((row) => row.feeKobo > 0 || row.commissionKobo > 0).slice(0, 30),
+    latest: rows.filter((row) => row.feeKobo > 0 || row.commissionKobo > 0).slice(0, limit),
     walletSpendKobo: { month: -(spendMonth._sum.amountKobo ?? 0), all: -(spendAll._sum.amountKobo ?? 0) },
     transfersInKobo: { month: inMonth._sum.amountKobo ?? 0, all: inAll._sum.amountKobo ?? 0 },
   };

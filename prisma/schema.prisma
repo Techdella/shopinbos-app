@@ -4622,7 +4622,7 @@ model RewardEvent {
   id        String   @id @default(cuid())
   userId    String
   /// order_paid | order_accepted | order_accepted_fast | shop_supplied | product_added | quote_sent | status_posted |
-  /// delivery_done | delivery_on_time | job_accepted_fast | chat_replied_fast | partner_connected
+  /// delivery_done | delivery_on_time | job_accepted_fast | chat_replied_fast | partner_connected | profile_referral
   kind      String
   /// What it was for (order, product, job, post… id), so the same thing is counted once.
   ref       String
@@ -4855,6 +4855,8 @@ model Referral {
   referrerId     String
   refereeId      String    @unique
   refereeRole    String
+  /// link (an invite link, /r/CODE) | profile (a shared supplier or delivery partner profile, ?ref=CODE)
+  source         String    @default("link")
   /// signed_up → qualified → rewarded, or rejected (same person, over the yearly limit, suspended).
   status         String    @default("signed_up")
   reason         String?

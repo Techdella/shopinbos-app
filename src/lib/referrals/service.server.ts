@@ -16,7 +16,9 @@ import {
   REFERRAL_COOKIE,
   REFERRAL_LIMITS,
   REFERRAL_OFFERS,
+  REFERRAL_SOURCE_COOKIE,
   asReferralRole,
+  asReferralSource,
   asRewardChoice,
   cleanReferralCode,
   extendGrant,
@@ -31,6 +33,7 @@ import {
   welcomeText,
   type QualifyFacts,
   type ReferralRole,
+  type ReferralSource,
   type RewardChoice,
 } from "@shared/referrals";
 import { sendReferralWhatsApp } from "./whatsapp.server";
@@ -38,7 +41,9 @@ import { rewardTextIn, ruleIn, welcomeTextIn } from "./words";
 import { mailT, memberLocale } from "@/lib/member-messaging/i18n";
 
 // Refer & earn (shared/referrals.ts has the offers and rules). The flow:
-//  1. /r/CODE sets the sib_ref cookie and shows the invite page.
+//  1. /r/CODE sets the sib_ref cookie and shows the invite page. A supplier's or delivery partner's public profile
+//     opened with ?ref=CODE sets it too (src/proxy.ts), with sib_ref_src=profile; those referrals are saved as
+//     source "profile" and also give the profile's owner Rewards points as soon as the business joins.
 //  2. After sign-up (/api/auth/sync-user, /auth/callback) claimReferralFromCookie() links the new account to the
 //     code, gives the welcome gift and tells the referrer.
 //  3. The hourly referrals job (/api/cron/referrals) checks who now counts, rewards the referrer (months or credits,
@@ -212,8 +217,11 @@ export async function claimReferralFromCookie(userId: string) {
     const jar = await cookies();
     const code = jar.get(REFERRAL_COOKIE)?.value;
     if (!code) return null;
-    const result = await attributeReferral(userId, code);
-    if (result.ok || result.final) jar.delete(REFERRAL_COOKIE);
+    const result = await attributeReferral(userId, code, new Date(), asReferralSource(jar.get(REFERRAL_SOURCE_COOKIE)?.value));
+    if (result.ok || result.final) {
+      jar.delete(REFERRAL_COOKIE);
+      jar.delete(REFERRAL_SOURCE_COOKIE);
+    }
     return result;
   } catch (error) {
     console.error("[referrals] claim failed", error);
@@ -224,7 +232,7 @@ export async function claimReferralFromCookie(userId: string) {
 type AttributeResult = { ok: true; referralId: string } | { ok: false; final: boolean; reason: string };
 
 /** Links a new account to an invite code and gives the welcome gift. `final` false: try again later. */
-export async function attributeReferral(userId: string, rawCode: string, now = new Date()): Promise<AttributeResult> {
+export async function attributeReferral(userId: string, rawCode: string, now = new Date(), source: ReferralSource = "link"): Promise<AttributeResult> {
   const code = cleanReferralCode(rawCode);
   if (!code) return { ok: false, final: true, reason: "Not a code" };
   const [row, referee, existing] = await Promise.all([
@@ -244,13 +252,17 @@ export async function attributeReferral(userId: string, rawCode: string, now = n
   let referral;
   try {
     referral = await db.referral.create({
-      data: { code, referrerId: referrer.id, refereeId: referee.id, refereeRole: role, ...(same.length ? { status: "rejected", reason: same.join(", ") } : {}) },
+      data: { code, referrerId: referrer.id, refereeId: referee.id, refereeRole: role, source, ...(same.length ? { status: "rejected", reason: same.join(", ") } : {}) },
     });
   } catch (error) {
     if ((error as { code?: string }).code === "P2002") return { ok: false, final: true, reason: "Already linked" };
     throw error;
   }
   if (same.length) return { ok: false, final: true, reason: same.join(", ") };
+  // Profile sign-ups give the owner points straight away; the referral reward still waits until the business counts.
+  if (source === "profile") {
+    void import("@/lib/rewards/rewards.server").then((rewards) => rewards.recordRewardEvent({ userId: referrer.id, kind: "profile_referral", ref: referee.id, at: now })).catch(() => undefined);
+  }
 
   const welcome = await giveWelcome(referee.id, role, referral.id, now).catch((error) => {
     console.error("[referrals] welcome gift failed", error);
@@ -470,6 +482,7 @@ export async function referralOverview(userId: string) {
         avatarUrl: profiles.get(row.refereeId)?.avatarUrl ?? null,
         role,
         status: row.status,
+        source: asReferralSource(row.source),
         statusLabel: STATUS_LABEL[row.status] ?? row.status,
         progress,
         reason: row.status === "rejected" ? row.reason : null,
@@ -494,7 +507,12 @@ export async function referralOverview(userId: string) {
     paying: user ? isPaying(user) : false,
     role: asReferralRole(user?.role) ?? "seller",
     referrals: list,
-    counts: { joined: rows.length, rewarded: rewarded.length, waiting: rows.filter((row) => row.status === "signed_up").length },
+    counts: {
+      joined: rows.length,
+      rewarded: rewarded.length,
+      waiting: rows.filter((row) => row.status === "signed_up").length,
+      fromProfile: rows.filter((row) => row.source === "profile" && row.status !== "rejected").length,
+    },
     earned,
     freeUntil: free?.endsAt.toISOString() ?? null,
     loyalty,
@@ -502,6 +520,15 @@ export async function referralOverview(userId: string) {
 }
 
 export type ReferralOverview = Awaited<ReturnType<typeof referralOverview>>;
+
+/** The "Share your profile" card: the owner's code and the businesses their shared profile brought in. */
+export async function profileShareStats(userId: string) {
+  const [code, joined] = await Promise.all([
+    referralCodeFor(userId),
+    db.referral.count({ where: { referrerId: userId, source: "profile", status: { not: "rejected" } } }),
+  ]);
+  return { code: code.code, joined };
+}
 
 /** Admin › Referrals. */
 export async function adminReferrals(filter: "all" | "signed_up" | "rewarded" | "rejected", take = 200) {
