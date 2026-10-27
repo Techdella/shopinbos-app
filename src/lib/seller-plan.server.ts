@@ -2,6 +2,7 @@ import "server-only";
 import { db } from "@/lib/db/client";
 import { notify } from "@/lib/notifications/notify.server";
 import { getPlanCatalog } from "@/lib/plans/catalog.server";
+import { planTierOf } from "@shared/plan-catalog";
 import { extendPaidUntil, paystackDate, planInterval, sameSubscription, type PlanStatus } from "@/lib/seller-plan";
 
 // Records the seller's plan from Paystack subscription webhooks on User (planCode, planInterval, planStatus,
@@ -38,6 +39,7 @@ export async function recordInvoicePaid(data: Data) {
   const subscription = (data?.subscription ?? {}) as Data;
   const user = await userByEmail(data?.customer?.email);
   if (!user) return false;
+  await recordRenewalPayment(user.id, data);
   const subscriptionCode = typeof subscription.subscription_code === "string" ? subscription.subscription_code : null;
   if (!sameSubscription(user.subscriptionCode, subscriptionCode)) return false;
   const code = (subscription.plan?.plan_code as string | undefined) ?? user.planCode ?? undefined;
@@ -54,6 +56,17 @@ export async function recordInvoicePaid(data: Data) {
     },
   });
   return true;
+}
+
+/** The renewal's money on Admin › Wallets › Shopinbos fees (the first payment's receipt comes from applyPlanUpgrade). */
+async function recordRenewalPayment(userId: string, data: Data) {
+  const tier = planTierOf(data?.subscription?.plan?.plan_code);
+  const key = (data?.invoice_code as string | undefined) ?? (data?.transaction?.reference as string | undefined);
+  const amountKobo = Number(data?.amount ?? data?.transaction?.amount);
+  if (!tier || !key || !Number.isFinite(amountKobo) || amountKobo <= 0) return;
+  await db.paymentReceipt
+    .createMany({ data: [{ reference: `renewal:${key}`, userId, purpose: tier, amount: amountKobo / 100, provider: "paystack" }], skipDuplicates: true })
+    .catch((error) => console.error("[seller plan] renewal receipt not recorded", error));
 }
 
 export async function recordSubscriptionStatus(data: Data, status: Exclude<PlanStatus, "active">) {
