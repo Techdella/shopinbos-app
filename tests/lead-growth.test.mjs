@@ -258,3 +258,17 @@ test("support contact: the Shopinbos WhatsApp number by default, env overrides",
   assert.equal(contact.formatWhatsApp("17116951381"), "+1 711-695-1381");
   assert.equal(contact.whatsappChatUrl("Hi there", "17116951381"), "https://wa.me/17116951381?text=Hi%20there");
 });
+
+test("lead growth: WhatsApp delivery failures mark the lead message failed and move the campaign count", async () => {
+  const { readFileSync } = await import("node:fs");
+  const webhook = readFileSync(new URL("../src/app/api/webhooks/whatsapp/route.ts", import.meta.url), "utf8");
+  // Our own number's status reports reach lead messages as well as inbox messages.
+  assert.match(webhook, /updateSupportDelivery\(status\.externalId[^\n]*\n[^\n]*\n\s*await updateLeadDelivery\(status\.externalId, status\.status, status\.error\)/);
+  const service = readFileSync(new URL("../src/lib/lead-growth/service.server.ts", import.meta.url), "utf8");
+  const fn = service.slice(service.indexOf("export async function updateLeadDelivery"), service.indexOf("/** Someone on an outreach list wrote back"));
+  assert.match(fn, /status !== "failed"\) return 0/, "only failures change anything");
+  assert.match(fn, /where: \{ providerId, status: "sent" \}/);
+  assert.match(fn, /sent: \{ decrement: 1 \}, failed: \{ increment: 1 \}/);
+  const schema = readFileSync(new URL("../prisma/schema.prisma", import.meta.url), "utf8");
+  assert.match(schema.slice(schema.indexOf("model LeadMessage {")), /@@index\(\[providerId\]\)/);
+});

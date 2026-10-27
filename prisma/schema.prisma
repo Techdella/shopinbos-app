@@ -556,6 +556,7 @@ model LeadMessage {
   @@unique([automationId, leadId, step])
   @@index([leadId])
   @@index([status, createdAt])
+  @@index([providerId])
 }
 
 // One row per signed-in account per day they used the app (Admin › Analytics: active users and retention).

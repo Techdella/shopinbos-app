@@ -463,6 +463,25 @@ export async function addOutreachContent() {
   });
 }
 
+/**
+ * WhatsApp's delivery report for a lead message (campaigns and automation steps). Meta accepts a template, then may
+ * refuse to deliver it ("healthy ecosystem engagement", "part of an experiment"): that marks the message failed with
+ * Meta's reason and moves it from the campaign's sent count to failed, so Admin › Lead campaigns shows who to reach
+ * another way. Delivered and read reports change nothing.
+ */
+export async function updateLeadDelivery(providerId: string, status: string, error?: string | null) {
+  if (!providerId || status !== "failed") return 0;
+  return guardGrowth(async () => {
+    const message = await db.leadMessage.findFirst({ where: { providerId, status: "sent" }, select: { id: true, campaignId: true } });
+    if (!message) return 0;
+    const updated = await db.leadMessage.updateMany({ where: { id: message.id, status: "sent" }, data: { status: "failed", error: (error || "WhatsApp couldn't deliver it.").slice(0, 500) } });
+    if (updated.count && message.campaignId) {
+      await db.leadCampaign.update({ where: { id: message.campaignId }, data: { sent: { decrement: 1 }, failed: { increment: 1 } } });
+    }
+    return updated.count;
+  });
+}
+
 /** Someone on an outreach list wrote back: no more "just following up", the team takes it from here in the inbox. */
 export async function stopOutreachOnReply(leadId: string) {
   const { OUTREACH_AUTOMATIONS } = await import("./whatsapp-content");
