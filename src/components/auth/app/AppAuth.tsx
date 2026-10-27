@@ -33,6 +33,7 @@ import {
   AuthApiError,
   fetchWhatsAppCodes,
   friendlyNetworkError,
+  ensureSessionSaved,
   navigateAfterAuth,
   sendCode,
   signInWithGoogle,
@@ -304,6 +305,8 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
   }
 
   async function finishWithToken(accessToken: string | null, signedUpPhone?: string, name = fullName) {
+    // A browser that blocks cookies drops the session: say so here, rather than bouncing back to log in.
+    if (accessToken) await ensureSessionSaved();
     const syncedRole = accessToken
       ? await syncSession(accessToken, {
           role,
@@ -409,6 +412,7 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
       const signedUpPhone = target.kind === "phone" ? target.phone : undefined;
       if (result.needsName) {
         // Brand-new account: ask what to call them before the account row (and shop) is made with their name.
+        if (result.accessToken) await ensureSessionSaved();
         setPending({ accessToken: result.accessToken, phone: signedUpPhone });
         setBusy(null);
         setScreen("name");
