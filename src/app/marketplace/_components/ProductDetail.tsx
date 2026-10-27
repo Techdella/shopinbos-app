@@ -286,7 +286,7 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
                     <span className="flex flex-wrap items-center gap-x-2 gap-y-1 font-bold">
                       <span className="rounded-full bg-white/70 px-2 py-0.5 text-[12px]">{t("pd.preorder")}</span>
                       {preorder.shipsOn ? t("pd.preorderShips", { date: formatDate(new Date(`${preorder.shipsOn}T12:00:00Z`), locale, { day: "numeric", month: "short" }) }) : t("pd.preorderSoon")}
-                      {preorder.left !== null && <span className="font-normal">· {preorder.open ? t("pd.preorderLeft", { count: num(preorder.left) }) : t("pd.preorderFull")}</span>}
+                      {preorder.left !== null && <span className="font-normal">{preorder.open ? t("pd.preorderLeft", { count: num(preorder.left) }) : t("pd.preorderFull")}</span>}
                     </span>
                     {preorder.note && <span>{preorder.note}</span>}
                     <span>{t("pd.preorderWhy")}</span>
