@@ -185,8 +185,8 @@ test("session claims: auth time, recovery sessions and absolute lifetime", () =>
   assert.equal(claims.decodeAccessToken("not-a-token"), null);
   assert.equal(claims.decodeAccessToken(null), null);
 
-  assert.equal(claims.sessionMaxAgeMs("seller", {}), 30 * 86_400_000);
-  assert.equal(claims.sessionMaxAgeMs("admin", {}), 12 * 3_600_000);
+  assert.equal(claims.sessionMaxAgeMs("seller", {}), 7 * 86_400_000);
+  assert.equal(claims.sessionMaxAgeMs("admin", {}), 8 * 3_600_000);
   assert.equal(claims.sessionMaxAgeMs("seller", { AUTH_SESSION_MAX_DAYS: "0" }), 0);
   const old = { amr: [{ method: "password", timestamp: now / 1000 - 31 * 86_400 }] };
   assert.ok(claims.sessionTooOld(old, claims.sessionMaxAgeMs("seller", {}), now));
@@ -377,4 +377,40 @@ test("sign-in codes paste in any shape, and the typed phone or email carries ove
   const mobileAuth = read("apps/mobile/src/lib/auth.ts");
   assert.doesNotMatch(mobileAuth, /send by SMS straight from Supabase below/);
   assert.match(mobileAuth, /catch \{\n    throw new Error\(tNow\("m_auth"\)\("error\.offline"\)\);/);
+});
+
+test("idle sign-out: signed activity cookie, limits per role, and what counts as activity", async () => {
+  const idle = await import("../src/lib/auth/idle.ts");
+  const now = Date.now();
+  assert.equal(idle.idleTimeoutMs("seller", {}), 60 * 60_000);
+  assert.equal(idle.idleTimeoutMs("admin", {}), 15 * 60_000);
+  assert.equal(idle.idleTimeoutMs("supplier", { AUTH_IDLE_MINUTES: "0" }), 0, "0 turns it off");
+
+  const value = await idle.activityCookieValue("sess-1", now - 5 * 60_000, "secret");
+  const at = await idle.lastActiveAt(value, "sess-1", "secret");
+  assert.equal(at, Math.floor((now - 5 * 60_000) / 1000) * 1000);
+  assert.equal(await idle.lastActiveAt(value, "sess-2", "secret"), null, "another session's cookie doesn't count");
+  assert.equal(await idle.lastActiveAt(value, "sess-1", "other"), null, "wrong key");
+  const [id, , sig] = value.split(".");
+  assert.equal(await idle.lastActiveAt(`${id}.${Math.floor(now / 1000)}.${sig}`, "sess-1", "secret"), null, "a moved timestamp is forged");
+  assert.equal(await idle.lastActiveAt(undefined, "sess-1", "secret"), null);
+
+  assert.equal(idle.idleExpired(now - 61 * 60_000, 60 * 60_000, now), true);
+  assert.equal(idle.idleExpired(now - 59 * 60_000, 60 * 60_000, now), false);
+  assert.equal(idle.idleExpired(null, 60 * 60_000, now), false, "no cookie yet: the clock starts now");
+  assert.equal(idle.idleExpired(now - 99 * 60 * 60_000, 0, now), false);
+
+  const headers = (entries = {}) => ({ get: (name) => entries[name] ?? null });
+  assert.equal(idle.countsAsActivity({ method: "GET", isApi: false, headers: headers() }), true, "opening a page");
+  assert.equal(idle.countsAsActivity({ method: "GET", isApi: false, headers: headers({ "next-router-prefetch": "1" }) }), false, "prefetch");
+  assert.equal(idle.countsAsActivity({ method: "GET", isApi: true, headers: headers() }), false, "background polling");
+  assert.equal(idle.countsAsActivity({ method: "POST", isApi: true, headers: headers() }), true, "a write or the heartbeat");
+
+  assert.ok(access.isSignedInPage("/home/orders") && access.isSignedInPage("/admin"));
+  assert.ok(!access.isSignedInPage("/supplier/login") && !access.isSignedInPage("/logistics/partners/x") && !access.isSignedInPage("/s/shop"));
+
+  const proxy = read("src/proxy.ts");
+  assert.match(proxy, /idleExpired\(/);
+  assert.match(proxy, /reason=\$\{reason\}/);
+  assert.match(proxy, /maxAge: ACTIVITY_COOKIE_MAX_AGE/, "survives the browser closing");
 });

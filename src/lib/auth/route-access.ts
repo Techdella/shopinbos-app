@@ -58,6 +58,11 @@ export function matchesAny(pathname: string, prefixes: readonly string[]) {
   return prefixes.some((prefix) => isUnderPath(pathname, prefix));
 }
 
+/** A page only a signed-in account can open (not a login page or a public page under a portal's prefix). */
+export function isSignedInPage(pathname: string) {
+  return matchesAny(pathname, PROTECTED_PREFIXES) && !matchesAny(pathname, GUEST_PAGES) && !matchesAny(pathname, PUBLIC_PORTAL_PAGES);
+}
+
 /** The roles that may open this page, or null when it's public or a guest page. */
 export function rolesForPath(pathname: string): PortalRole[] | null {
   if (matchesAny(pathname, GUEST_PAGES) || matchesAny(pathname, PUBLIC_PORTAL_PAGES)) return null;

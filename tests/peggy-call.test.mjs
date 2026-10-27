@@ -132,7 +132,8 @@ test("phone: the call runs in the app, never in a browser or the web", () => {
 test("phone: SDK installed with LiveKit WebRTC and the Expo config plugins", () => {
   const pkg = JSON.parse(read("apps/mobile/package.json"));
   for (const dep of ["@elevenlabs/react-native", "@livekit/react-native", "@livekit/react-native-webrtc", "@livekit/react-native-expo-plugin", "@config-plugins/react-native-webrtc", "livekit-client"]) assert.ok(pkg.dependencies[dep], dep);
-  assert.ok(!pkg.dependencies["react-native-webview"], "no WebView fallback needed");
+  // react-native-webview is there only for Kora's face check SDK (app/face-check.tsx); calls never use it.
+  assert.doesNotMatch(read("apps/mobile/src/components/peggy/PeggyCallHost.tsx"), /react-native-webview|<WebView/, "no WebView fallback needed");
   const app = JSON.parse(read("apps/mobile/app.json"));
   const plugins = app.expo.plugins.map((plugin) => (Array.isArray(plugin) ? plugin[0] : plugin));
   assert.ok(plugins.includes("@livekit/react-native-expo-plugin"));

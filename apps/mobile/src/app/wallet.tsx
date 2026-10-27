@@ -100,6 +100,20 @@ function WalletBody({ data, t, reload }: { data: WalletData; t: TFn; reload: () 
         </List>
       ) : null}
 
+      {view.identity && (view.identity.faceReady || view.identity.face === "passed") ? (
+        // "Verify it's you": NIN and a face check, powered by Kora (app/face-check.tsx).
+        <List>
+          <ListRow
+            testID="verify-identity"
+            lead={<Tile icon="shield" tone={view.identity.face === "passed" ? "ok" : "gray"} />}
+            title={view.identity.face === "passed" ? t("face.cardDone") : t("face.card")}
+            sub={t("face.cardSub")}
+            onPress={view.identity.face === "passed" ? undefined : () => router.push("/face-check")}
+            chevron={view.identity.face !== "passed"}
+          />
+        </List>
+      ) : null}
+
       {data.cashToReceive.length ? <CashToReceiveCard rows={data.cashToReceive} t={t} onDone={reload} /> : null}
 
       <Card style={{ gap: 14 }}>

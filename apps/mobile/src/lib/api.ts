@@ -70,6 +70,8 @@ export async function api<T>(path: string, init: RequestInit & { json?: unknown 
   const body = (await response.json().catch(() => null)) as { data?: T; error?: { message?: string; code?: string } } | T | null;
   if (!response.ok) {
     const error = (body as { error?: { message?: string; code?: string } } | null)?.error;
+    // Past the app's session lifetime (web src/lib/auth/middleware.ts): sign this phone out, back to the welcome screen.
+    if (response.status === 401 && error?.code === "SESSION_EXPIRED") void supabase.auth.signOut({ scope: "local" }).catch(() => null);
     throw new ApiError(phoneMessage(error?.message, response.status, error?.code), response.status, error?.code);
   }
   return (body && typeof body === "object" && "data" in (body as object) ? (body as { data: T }).data : body) as T;

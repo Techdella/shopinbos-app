@@ -39,11 +39,23 @@ export function authenticatedWithin(claims: SessionClaims | null, maxAgeMs: numb
   return at !== null && at > now - maxAgeMs;
 }
 
-/** Absolute session lifetime; 0 or unset in env turns it off. Admin sessions are shorter. */
+/**
+ * Absolute session lifetime on the web: a week (AUTH_SESSION_MAX_DAYS), 8 hours for admins
+ * (AUTH_ADMIN_SESSION_MAX_HOURS); 0 turns it off. Inactivity signs people out sooner (./idle.ts).
+ */
 export function sessionMaxAgeMs(role: string | null | undefined, env: Record<string, string | undefined>) {
-  const days = Number(env.AUTH_SESSION_MAX_DAYS ?? 30);
-  const adminHours = Number(env.AUTH_ADMIN_SESSION_MAX_HOURS ?? 12);
+  const days = Number(env.AUTH_SESSION_MAX_DAYS ?? 7);
+  const adminHours = Number(env.AUTH_ADMIN_SESSION_MAX_HOURS ?? 8);
   if (role === "admin" && Number.isFinite(adminHours) && adminHours > 0) return adminHours * 3_600_000;
+  return Number.isFinite(days) && days > 0 ? days * 86_400_000 : 0;
+}
+
+/**
+ * Absolute lifetime of a phone app session (Bearer token): AUTH_APP_SESSION_MAX_DAYS, default 30; 0 turns it off.
+ * Longer than the web's because the app also locks itself after a few minutes away (Face ID, fingerprint or PIN).
+ */
+export function appSessionMaxAgeMs(env: Record<string, string | undefined>) {
+  const days = Number(env.AUTH_APP_SESSION_MAX_DAYS ?? 30);
   return Number.isFinite(days) && days > 0 ? days * 86_400_000 : 0;
 }
 

@@ -169,6 +169,18 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "code.continue": "Continue",
   "form.signupLink": "You new here? Create account",
   "form.riderLink": "You dey ride for delivery company? Rider sign-in",
+  "lock.title": "Shopinbos don lock",
+  "lock.body": "You don comot for some time. Open am with Face ID, your fingerprint or your phone PIN so nobody else go see your shop and money.",
+  "lock.unlock": "Open am",
+  "lock.logout": "Log out instead",
+  "lock.prompt": "Open Shopinbos",
+  "lock.cancel": "Cancel",
+  "lock.failed": "E no open. Try again, or log out and log in again.",
+  "age.title": "You don reach 18 years?",
+  "age.body": "Shopinbos account na for adults. Confirm am once and we no go ask again.",
+  "age.yes": "Yes, I don reach 18",
+  "age.under": "I never reach 18",
+  "age.failed": "E no save. Check your network and try again.",
 };
 
 export default pcm;

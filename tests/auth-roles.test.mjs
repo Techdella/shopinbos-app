@@ -127,7 +127,7 @@ test("web screens: role cards first, unless the link already says; the chosen ro
   assert.match(auth, /t\(`change\.\$\{signupRole\}`\)/, "Not a supplier? Change");
   assert.match(auth, /conflictMessage\(syncedRole/);
   assert.match(auth, /withPortalNote\(roleDestination\(syncedRole\), role\)/);
-  assert.match(auth, /signInWithGoogle\(role, nextUrl, mode\)/);
+  assert.match(auth, /signInWithGoogle\(role, nextUrl, mode, needsAge && adult\)/);
   assert.match(read("src/components/ClientLayout.tsx"), /<PortalNote \/>/);
 });
 

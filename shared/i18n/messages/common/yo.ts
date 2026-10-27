@@ -93,6 +93,21 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "product.code": "Kóòdù",
   "product.orderHere": "Ra á níbí",
   "product.shareWhatsapp": "Pín sí WhatsApp",
+  "idle.title": "Ṣé o ṣì wà níbẹ̀?",
+  "idle.body": "Fún ààbò rẹ, a ó jáde rẹ ní ìṣẹ́jú-àáyá {seconds} nítorí pé kò sí ẹni tó lo Shopinbos fún ìgbà díẹ̀.",
+  "idle.stay": "Dúró sínú àkáǹtì",
+  "idle.signOut": "Jáde báyìí",
+  "consent.title": "Kúkì lórí Shopinbos",
+  "consent.body": "A ń lo àwọn kúkì pàtàkì láti jẹ́ kí o wà nínú àkáǹtì rẹ láìléwu. Pẹ̀lú àṣẹ rẹ, a tún ń lo ìtúpalẹ̀ àti gbigbasilẹ bí a ṣe ń lo àwọn ojú-ewé (a fi ohun gbogbo tí o tẹ̀ tàbí kà pamọ́) láti rí àṣìṣe àti láti mú Shopinbos dára sí i. O lè yí èyí padà nígbàkúùgbà nínú Settings.",
+  "consent.essential": "Àwọn pàtàkì nìkan",
+  "consent.allow": "Gba ìtúpalẹ̀ láàyè",
+  "consent.policy": "Ìlànà ìpamọ́",
+  "consent.settings": "Ètò kúkì",
+  "age.title": "Ṣé o ti pé ọmọ ọdún 18 tàbí jù bẹ́ẹ̀ lọ?",
+  "age.body": "Àkáǹtì Shopinbos wà fún àgbàlagbà. Jẹ́rìí lẹ́ẹ̀kan, a kò ní béèrè mọ́.",
+  "age.yes": "Bẹ́ẹ̀ni, mo ti pé 18",
+  "age.under": "Mi ò tíì pé 18",
+  "age.failed": "Kò fi pamọ́. Ṣàyẹ̀wò ìsopọ̀ rẹ kí o sì gbìyànjú lẹ́ẹ̀kan sí i.",
 };
 
 export default yo;

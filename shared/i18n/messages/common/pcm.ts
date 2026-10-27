@@ -93,6 +93,21 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "product.code": "Code",
   "product.orderHere": "Order am here",
   "product.shareWhatsapp": "Share am for WhatsApp",
+  "idle.title": "You still dey there?",
+  "idle.body": "Because of your security, we go log you out in {seconds} seconds because nobody don use Shopinbos for some time.",
+  "idle.stay": "Make I stay logged in",
+  "idle.signOut": "Log me out now",
+  "consent.title": "Cookies for Shopinbos",
+  "consent.body": "We dey use important cookies to keep you logged in and safe. If you gree, we go also use analytics and recording of how people dey use the pages (we go hide everything you type or read) to find wahala and make Shopinbos better. You fit change am anytime for Settings.",
+  "consent.essential": "Only the important ones",
+  "consent.allow": "Allow analytics",
+  "consent.policy": "Privacy policy",
+  "consent.settings": "Cookie settings",
+  "age.title": "You don reach 18 years?",
+  "age.body": "Shopinbos account na for adults. Confirm am once and we no go ask again.",
+  "age.yes": "Yes, I don reach 18",
+  "age.under": "I never reach 18",
+  "age.failed": "E no save. Check your network and try again.",
 };
 
 export default pcm;

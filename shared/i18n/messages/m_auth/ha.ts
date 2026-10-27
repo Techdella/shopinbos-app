@@ -169,6 +169,18 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "code.continue": "Ci gaba",
   "form.signupLink": "Sabo ne? Buɗe asusu",
   "form.riderLink": "Kana tuƙi don kamfanin isarwa? Shigar mahaya",
+  "lock.title": "An kulle Shopinbos",
+  "lock.body": "Ka ɗan jima ba ka nan. Buɗe da Face ID, yatsanka ko PIN ɗin wayarka don kada wani ya ga shagonka da kuɗinka.",
+  "lock.unlock": "Buɗe",
+  "lock.logout": "Fita maimakon haka",
+  "lock.prompt": "Buɗe Shopinbos",
+  "lock.cancel": "Soke",
+  "lock.failed": "Bai buɗe ba. Sake gwadawa, ko ka fita ka sake shiga.",
+  "age.title": "Ka kai shekara 18 ko fiye?",
+  "age.body": "Asusun Shopinbos na manya ne. Tabbatar sau ɗaya kuma ba za mu sake tambaya ba.",
+  "age.yes": "Ee, na kai 18",
+  "age.under": "Ban kai 18 ba",
+  "age.failed": "Bai adana ba. Duba haɗinka ka sake gwadawa.",
 };
 
 export default ha;

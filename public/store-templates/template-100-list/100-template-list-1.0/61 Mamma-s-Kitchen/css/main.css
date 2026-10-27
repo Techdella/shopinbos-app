@@ -46,8 +46,8 @@
 /*=================================================
 ||				1. Imports 
 ==================================================*/
-@import url(http://fonts.googleapis.com/css?family=Roboto:100,400);
-@import url(http://fonts.googleapis.com/css?family=Raleway:100,400,700);
+@import url(/api/fonts/google/css?family=Roboto:100,400);
+@import url(/api/fonts/google/css?family=Raleway:100,400,700);
 /*=================================================
 ||				2. Global 
 ==================================================*/

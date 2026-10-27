@@ -64,7 +64,7 @@ export async function verifyCode(target: CodeTarget, token: string) {
 /** Creates or refreshes the app's User row. Returns the role the account actually has. */
 export async function syncSession(
   accessToken: string,
-  payload: { role: AuthRole; fullName?: string; businessName?: string; phone?: string; source?: "signup" },
+  payload: { role: AuthRole; fullName?: string; businessName?: string; phone?: string; source?: "signup"; ageConfirmed?: boolean },
 ) {
   const data = await postJson<{ role?: AuthRole }>("/api/auth/sync-user", payload, { Authorization: `Bearer ${accessToken}` }).catch(() => null);
   return data?.role ?? null;
@@ -77,19 +77,21 @@ export async function signInWithPassword(email: string, password: string) {
 }
 
 /** mode "signup" lets the callback say "This email already has a seller account" when the Google account has one. */
-export function callbackUrl(role: AuthRole, next: string, mode?: "login" | "signup") {
+/** adult: "I'm 18 or older" was ticked on the sign-up page; the callback records it on the account. */
+export function callbackUrl(role: AuthRole, next: string, mode?: "login" | "signup", adult = false) {
   const url = new URL("/auth/callback", window.location.origin);
   url.searchParams.set("role", role);
   url.searchParams.set("next", next);
   if (mode === "signup") url.searchParams.set("mode", "signup");
+  if (mode === "signup" && adult) url.searchParams.set("adult", "1");
   return url.toString();
 }
 
-export async function signInWithGoogle(role: AuthRole, next: string, mode?: "login" | "signup") {
+export async function signInWithGoogle(role: AuthRole, next: string, mode?: "login" | "signup", adult = false) {
   const supabase = requireSupabase();
   const { error } = await supabase.auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo: callbackUrl(role, next, mode), queryParams: { prompt: "select_account" } },
+    options: { redirectTo: callbackUrl(role, next, mode, adult), queryParams: { prompt: "select_account" } },
   });
   if (error) throw new Error(/provider is not enabled/i.test(error.message) ? "Google sign-in isn't switched on yet. Use your phone or email." : error.message);
 }

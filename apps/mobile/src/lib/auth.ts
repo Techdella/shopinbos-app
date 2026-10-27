@@ -192,7 +192,8 @@ export async function syncAccount(payload: { fullName?: string; phone?: string; 
   const role = payload.role ?? "seller";
   const data = await api<{ role?: AppRole }>("/api/auth/sync-user", {
     method: "POST",
-    json: { role, fullName: payload.fullName, phone: payload.phone, source: payload.signup ? "signup" : undefined },
+    // Sign-up can't start without "I'm 18 or older" ticked (components/AuthForm.tsx), so a sign-up confirms it.
+    json: { role, fullName: payload.fullName, phone: payload.phone, source: payload.signup ? "signup" : undefined, ageConfirmed: payload.signup ? true : undefined },
   }).catch(() => null);
   // Pick up the role the server saved on the login, so later launches read the same one.
   if (payload.signup && data?.role) await supabase.auth.refreshSession().catch(() => null);

@@ -1,6 +1,10 @@
 import "server-only";
 import { db } from "@/lib/db/client";
-import { appBase, storeSender, SENDER_STORE_SELECT } from "@/lib/email/compliance.server";
+import { appBase, contactLinks, storeSender, SENDER_STORE_SELECT, unsubscribeHeaders } from "@/lib/email/compliance.server";
+import { contactAllows } from "@/lib/email/preferences";
+import { loadOptOuts } from "@/lib/marketing/opt-outs";
+import { isOptedOut } from "@/lib/marketing/text-channels";
+import { normalizePhone } from "@/lib/marketing/segment-rules";
 import { reviewRequestEmail } from "@/lib/email/store-emails";
 import { formatFromAddress, isEmailConfigured, sendEmail } from "@/lib/notifications/resend";
 import { sendSms, sendWhatsAppMessage } from "@/lib/notifications/service";
@@ -9,7 +13,7 @@ import { getChannel } from "@/lib/inbox/service";
 import { sendSmsReply } from "@/lib/inbox/channels/sms";
 import { platformSmsReady } from "@/lib/sms";
 import { sendWhatsApp } from "@/lib/inbox/channels/whatsapp";
-import { ordersDueForRequest, reviewRequestMessage, signReviewToken, type RequestChannel } from "./pure";
+import { ordersDueForRequest, reviewRequestMessage, signReviewToken, withOptOut, type RequestChannel } from "./pure";
 import { reviewLinkSecret } from "./secrets";
 import { getReviewSettings, reviewUrls } from "./server";
 
@@ -20,6 +24,9 @@ import { getReviewSettings, reviewUrls } from "./server";
 // automations (agent A's post-purchase flow can call requestReviews with trigger "automation").
 // When the store connected its own WhatsApp Cloud API number or SMS account in the inbox (agent E), requests
 // go out from that first; the platform accounts are the fallback.
+// A review request asks for something, so it respects the buyer's choices like marketing does: no email to someone
+// who unsubscribed from the shop (and every email carries an unsubscribe link), no SMS or WhatsApp to a number that
+// replied STOP, and every SMS says how to stop.
 
 export type RequestTrigger = "manual" | "auto" | "peggy" | "automation";
 
@@ -123,6 +130,12 @@ export async function requestReviews(input: { storeId: string; orderIds: string[
   ]);
   const asked = new Set(earlier.map((row) => row.orderId));
   const urls = reviewUrls(store.slug);
+  const optOuts = input.channel === "sms" || input.channel === "whatsapp" ? await loadOptOuts(store.id) : null;
+  // Both spellings: contacts keep the address as typed, orders may differ in case.
+  const emails = input.channel === "email" ? orders.flatMap((order) => (order.buyerEmail?.includes("@") ? [order.buyerEmail.trim(), order.buyerEmail.trim().toLowerCase()] : [])) : [];
+  const contacts = emails.length
+    ? new Map((await db.subscriber.findMany({ where: { storeId: store.id, email: { in: [...new Set(emails)] } }, select: { email: true, status: true, metadata: true } }).catch(() => [])).map((row) => [row.email.toLowerCase(), row]))
+    : new Map<string, { status: string; metadata: unknown }>();
   const results: RequestOutcome[] = [];
 
   for (const order of orders) {
@@ -143,6 +156,15 @@ export async function requestReviews(input: { storeId: string; orderIds: string[
     }
     if ((input.channel === "sms" || input.channel === "whatsapp") && !phone) {
       results.push({ ...base, status: "skipped", reason: "No phone number on this order" });
+      continue;
+    }
+    if (input.channel === "email" && !contactAllows(contacts.get(email!.toLowerCase()), null)) {
+      results.push({ ...base, status: "skipped", reason: "Unsubscribed from this shop's emails" });
+      continue;
+    }
+    const normalized = phone ? normalizePhone(phone) : null;
+    if ((input.channel === "sms" || input.channel === "whatsapp") && optOuts && normalized && isOptedOut(optOuts, input.channel, normalized, "marketing")) {
+      results.push({ ...base, status: "skipped", reason: `Opted out of ${input.channel === "sms" ? "SMS" : "WhatsApp"} from this shop` });
       continue;
     }
     if (input.channel !== "link" && !ready[input.channel]) {
@@ -166,30 +188,32 @@ export async function requestReviews(input: { storeId: string; orderIds: string[
     let error = "";
     try {
       if (input.channel === "email") {
+        const links = contactLinks(store.id, email!);
         const sent = await sendEmail({
           to: [email!],
           subject: message.subject,
-          html: reviewRequestEmail({ appUrl: appBase(), store: storeSender(store), customerName: order.buyerName, link, items: orderItemNames(order.items) }),
+          html: reviewRequestEmail({ appUrl: appBase(), store: storeSender(store), customerName: order.buyerName, link, items: orderItemNames(order.items), unsubscribeUrl: links?.unsubscribe, preferencesUrl: links?.preferences }),
+          headers: links ? unsubscribeHeaders(links) : undefined,
           from: formatFromAddress(store.name),
         });
         ok = sent.success;
         error = sent.message ?? "";
       } else if (input.channel === "sms") {
         if (own.sms) {
-          const sent = await sendSmsReply({ to: phone!, body: message.sms, store: ref, credentials: own.sms.credentials });
+          const sent = await sendSmsReply({ to: phone!, body: withOptOut(message.sms, { reply: true }), store: ref, credentials: own.sms.credentials });
           ok = sent.ok;
           error = sent.ok ? "" : sent.error;
         } else {
-          const sent = await sendSms({ to: [phone!], message: message.sms });
+          const sent = await sendSms({ to: [phone!], message: withOptOut(message.sms, { link: `${link}/stop` }) });
           ok = sent.success;
           error = sent.message;
         }
       } else if (own.whatsapp) {
-        const sent = await sendWhatsApp({ to: phone!, body: message.text, store: ref, credentials: own.whatsapp.credentials });
+        const sent = await sendWhatsApp({ to: phone!, body: withOptOut(message.text, { reply: true }, 1000), store: ref, credentials: own.whatsapp.credentials });
         ok = sent.ok;
         error = sent.ok ? "" : sent.error;
       } else {
-        const sent = await sendWhatsAppMessage({ to: [phone!], message: message.text });
+        const sent = await sendWhatsAppMessage({ to: [phone!], message: withOptOut(message.text, { link: `${link}/stop` }, 1000) });
         ok = sent.success;
         error = sent.message;
       }

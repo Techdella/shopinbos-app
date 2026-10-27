@@ -109,7 +109,8 @@ const STATIC_EXTENSIONS = new Set([
 ]);
 
 /** APIs a storefront calls from the shopper's browser (everything else under /api is the app's). */
-export const STOREFRONT_API_PREFIXES = ["/api/public", "/api/store/coupons/validate"];
+// /api/fonts: the self-hosted Google Fonts proxy, so store pages never call Google (src/lib/google-fonts-proxy.ts).
+export const STOREFRONT_API_PREFIXES = ["/api/public", "/api/store/coupons/validate", "/api/fonts"];
 
 /** App areas that must never be served on a store's host, even as static-looking paths. */
 const APP_ONLY_PREFIXES = [

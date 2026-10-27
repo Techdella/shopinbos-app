@@ -1,6 +1,6 @@
 import "server-only";
 
-import { Prisma } from "@prisma/client";
+import { Prisma, type Role } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { appBase, sendPlatformEmail } from "@/lib/email/compliance.server";
 import { personaSender } from "@/lib/email/looks";
@@ -48,18 +48,37 @@ export async function saveTipSettings(settings: TipSettings, userId: string) {
 
 export const WHATSAPP_TIPS_EVENT = "whatsapp.tips";
 
+/** Turns Shopinbos's WhatsApp tips and offers (tips, set-up help, win-back, referral news) on or off for one account. */
+export async function setWhatsAppMarketing(user: { id: string; role: string }, on: boolean) {
+  await db.notificationPreference.upsert({
+    where: { userId_eventKey_category: { userId: user.id, eventKey: WHATSAPP_TIPS_EVENT, category: "system" } },
+    create: { userId: user.id, role: user.role as Role, eventKey: WHATSAPP_TIPS_EVENT, category: "system", inApp: false, whatsapp: on },
+    update: { whatsapp: on },
+  });
+}
+
+/** Whether this account still gets Shopinbos's WhatsApp tips and offers (no row: on). */
+export async function whatsappMarketingOn(userId: string) {
+  return !(await whatsappTipsOff(userId));
+}
+
+async function usersOnPhone(phone: string) {
+  const digits = phone.replace(/\D/g, "").slice(-10);
+  if (digits.length < 10) return [];
+  return db.user.findMany({ where: { phone: { endsWith: digits } }, select: { id: true, role: true } });
+}
+
 /** "STOP" on WhatsApp: no more weekly tips for the accounts on this number. Returns how many accounts it covered. */
 export async function stopWhatsAppTips(phone: string) {
-  const digits = phone.replace(/\D/g, "").slice(-10);
-  if (digits.length < 10) return 0;
-  const users = await db.user.findMany({ where: { phone: { endsWith: digits } }, select: { id: true, role: true } });
-  for (const user of users) {
-    await db.notificationPreference.upsert({
-      where: { userId_eventKey_category: { userId: user.id, eventKey: WHATSAPP_TIPS_EVENT, category: "system" } },
-      create: { userId: user.id, role: user.role, eventKey: WHATSAPP_TIPS_EVENT, category: "system", inApp: false, whatsapp: false },
-      update: { whatsapp: false },
-    });
-  }
+  const users = await usersOnPhone(phone);
+  for (const user of users) await setWhatsAppMarketing(user, false);
+  return users.length;
+}
+
+/** "START" on WhatsApp: tips and offers again for the accounts on this number (the way back from STOP). */
+export async function startWhatsAppTips(phone: string) {
+  const users = await usersOnPhone(phone);
+  for (const user of users) await setWhatsAppMarketing(user, true);
   return users.length;
 }
 

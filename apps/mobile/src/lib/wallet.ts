@@ -12,6 +12,8 @@ export interface WalletView {
   /** What this business is checked on: nothing (sellers), or its CAC or BN registration (suppliers and delivery partners). */
   check?: { kind: "none" } | { kind: "business"; status: "approved" | "pending" | "rejected" | "missing"; href: string };
   kyc: { status: string; idType: string | null; idLast4: string | null; name: string | null; verifiedAt: string | null; checksReady: boolean };
+  /** NIN and face check (Kora). Older servers don't send it. */
+  identity?: { nin: "verified" | "none"; ninLast4: string | null; face: "none" | "passed" | "failed" | "review"; faceCheckedAt: string | null; faceReady: boolean };
   bank: { bankName: string; accountName: string; accountEnding: string } | null;
   settlement: { status: string; error: string | null; frozen: boolean; frozenReason: string | null; korapay: boolean };
   totals: { paidKobo: number; last30Kobo: number };
@@ -80,6 +82,26 @@ export interface WalletData {
 }
 
 export const fetchWallet = () => api<WalletData>("/api/mobile/wallet");
+
+// ─── Verify it's you (Kora: NIN, then a face check matched to the NIN's photo) ───────────────────────────────────
+
+/** The NIN with the name and date of birth on it (web src/lib/wallet/identity.server.ts verifyWalletNin). */
+export const verifyNin = (input: { nin: string; firstName: string; lastName: string; dateOfBirth: string }) =>
+  api<{ message: string }>("/api/app/wallet/identity", { method: "POST", json: input });
+
+export interface FaceCheckStart {
+  publicKey: string;
+  sandbox: boolean;
+  user: { firstName: string; lastName: string; email?: string };
+  idLookup: { idType: "ng_nin"; fields: { id: string }; verificationConsent: true; validation: { firstName: string; lastName: string; dateOfBirth?: string } };
+}
+
+/** After an explicit yes: what Kora's Liveness SDK starts with. The NIN must be the one already verified. */
+export const startFaceCheck = (nin: string) => api<FaceCheckStart>("/api/app/wallet/face/start", { method: "POST", json: { nin, consent: true } });
+
+/** The server asks Kora how it went (the SDK's own "success" isn't trusted on its own). */
+export const confirmFaceCheck = (reference: string) =>
+  api<{ outcome: "passed" | "failed" | "review"; message: string }>("/api/app/wallet/face", { method: "POST", json: { reference } });
 
 export const linkWalletBank = (input: { bankName: string; accountNumber: string }) =>
   api<{ ok: true; message?: string }>("/api/mobile/wallet/bank", { method: "POST", json: input });

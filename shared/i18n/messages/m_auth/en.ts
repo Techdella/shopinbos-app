@@ -172,6 +172,18 @@ const en = {
   "code.continue": "Continue",
   "form.signupLink": "New here? Create an account",
   "form.riderLink": "Riding for a delivery company? Rider sign-in",
+  "lock.title": "Shopinbos is locked",
+  "lock.body": "You've been away for a while. Unlock with Face ID, your fingerprint or your phone's PIN so nobody else sees your shop and money.",
+  "lock.unlock": "Unlock",
+  "lock.logout": "Log out instead",
+  "lock.prompt": "Unlock Shopinbos",
+  "lock.cancel": "Cancel",
+  "lock.failed": "That didn't unlock. Try again, or log out and back in.",
+  "age.title": "Are you 18 or older?",
+  "age.body": "Shopinbos accounts are for adults. Confirm once and we won't ask again.",
+  "age.yes": "Yes, I'm 18 or older",
+  "age.under": "I'm under 18",
+  "age.failed": "That didn't save. Check your connection and try again.",
 } satisfies Record<string, string>;
 
 export default en;

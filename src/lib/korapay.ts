@@ -1,6 +1,7 @@
 import "server-only";
 import { korapayChargeState, korapayPaidKobo } from "./korapay-signature";
 import { readKorapayIdentity, type IdentityCheckResult } from "./korapay-identity-rules";
+import { readKorapayFaceCheck, type FaceCheckResult } from "./korapay-liveness";
 
 // Korapay for the Shopinbos Wallet:
 //   * Identity: the ID and business checks. A Nigerian BVN or NIN against the name and date of birth the owner typed
@@ -12,8 +13,11 @@ import { readKorapayIdentity, type IdentityCheckResult } from "./korapay-identit
 //     is left in the Shopinbos balance. Off until KORAPAY_SPLIT_ENABLED=true (Korapay must switch Split Payments on
 //     for the account, and confirm shares settle straight to the recipients' banks).
 //
+//   * Face check: Kora's Liveness SDK in the phone app (public key) matches a live face to the NIN's photo; the server
+//     confirms the outcome by reference (./korapay-liveness.ts).
+//
 // Env: KORAPAY_SECRET_KEY (a test key runs Korapay's sandbox: BVN 22222222222, NIN 55555555555 and CAC RC00000011
-// are found there).
+// are found there) and KORAPAY_PUBLIC_KEY for the face check (pk_test_… runs the SDK's sandbox).
 
 const KORAPAY_BASE = "https://api.korapay.com/merchant/api/v1";
 
@@ -34,6 +38,17 @@ function korapayBase() {
 }
 
 const text = (value: unknown) => (typeof value === "string" && value.trim() ? value.trim() : null);
+
+/** The public key the phone app's Liveness SDK starts with; null when the face check isn't set up. */
+export function korapayPublicKey() {
+  const key = process.env.KORAPAY_PUBLIC_KEY?.trim() ?? "";
+  return /^pk_(test|live)_/.test(key) ? key : null;
+}
+
+/** Face checks can run: the public key for the SDK and the secret key to confirm each result. */
+export function korapayFaceCheckReady() {
+  return Boolean(korapayPublicKey() && secret());
+}
 
 /** The secret key, for checking webhook signatures; null when Korapay isn't set up. */
 export function korapaySecretKey() {
@@ -157,6 +172,22 @@ export async function verifyKorapayIdentity(input: { type: "bvn" | "nin"; id: st
     return result;
   } catch (error) {
     return { ok: false, notFound: false, message: error instanceof Error ? error.message : "Korapay could not be reached" };
+  }
+}
+
+/**
+ * Asks Kora how a face check went (GET /identities/verifications/:reference), never trusting the phone's word. Never
+ * throws: Kora unreachable is a "review" outcome, so the person isn't failed for our outage.
+ */
+export async function fetchKorapayFaceCheck(reference: string): Promise<FaceCheckResult> {
+  if (!secret()) return { outcome: "review", reference, idNumber: null, detail: "Kora isn't set up." };
+  try {
+    const { httpStatus, json } = await call(`/identities/verifications/${encodeURIComponent(reference)}`, { method: "GET", timeoutMs: 20_000 });
+    const result = readKorapayFaceCheck(httpStatus, json);
+    if (result.outcome === "review") console.error(`[korapay] face check ${reference} answered ${httpStatus}: ${result.detail} keys=${Object.keys((json?.data as Record<string, unknown> | null) ?? {}).join(",")}`);
+    return result;
+  } catch (error) {
+    return { outcome: "review", reference, idNumber: null, detail: error instanceof Error ? error.message : "Kora could not be reached" };
   }
 }
 

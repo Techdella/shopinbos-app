@@ -11,7 +11,7 @@ const PERSONAL_KEYS = ["shopinbos:identity", "shopinbos:prefs"];
  * copy and cached account details, then replaces the current history entry with the portal's login page
  * so Back doesn't return to the dashboard.
  */
-export async function signOutOfShopinbos(options: { scope?: "local" | "global"; loginPath?: string } = {}) {
+export async function signOutOfShopinbos(options: { scope?: "local" | "global"; loginPath?: string; reason?: "idle" } = {}) {
   const scope = options.scope ?? "local";
   const ok = await fetch("/api/auth/sign-out", {
     method: "POST",
@@ -28,5 +28,5 @@ export async function signOutOfShopinbos(options: { scope?: "local" | "global"; 
     // Storage unavailable: nothing was cached.
   }
   const loginPath = options.loginPath ?? portalLoginPath(portalRoleFromPath(window.location.pathname));
-  window.location.replace(scope === "global" ? `${loginPath}?signedOut=all` : loginPath);
+  window.location.replace(scope === "global" ? `${loginPath}?signedOut=all` : options.reason ? `${loginPath}?reason=${options.reason}` : loginPath);
 }

@@ -11,7 +11,7 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.shopinbos.app",
       "infoPlist": {
-        "NSCameraUsageDescription": "Take photos of your products, and proof of delivery photos.",
+        "NSCameraUsageDescription": "Take photos of your products and proof of delivery, and check it's really you when you verify your identity.",
         "NSPhotoLibraryUsageDescription": "Choose product photos so Rex can list them in your shop.",
         "ITSAppUsesNonExemptEncryption": false
       },
@@ -31,7 +31,8 @@
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION"
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.CAMERA"
       ],
       "blockedPermissions": [
         "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
@@ -55,7 +56,7 @@
         "expo-image-picker",
         {
           "photosPermission": "Choose product photos so Rex can list them in your shop.",
-          "cameraPermission": "Take photos of your products, and proof of delivery photos."
+          "cameraPermission": "Take photos of your products and proof of delivery, and check it's really you when you verify your identity."
         }
       ],
       [
@@ -110,6 +111,12 @@
         {
           "microphonePermission": "Shopinbos uses the microphone only when you tap the mic to speak instead of typing, or when you call Peggy.",
           "cameraPermission": "Take photos of your products, and proof of delivery photos."
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Use Face ID to open Shopinbos after you've been away, so nobody else can see your shop and money."
         }
       ]
     ],

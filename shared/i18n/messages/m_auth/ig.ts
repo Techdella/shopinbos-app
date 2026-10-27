@@ -169,6 +169,18 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "code.continue": "Gaa n'ihu",
   "form.signupLink": "Ị bụ onye ọhụrụ? Mepee akaụntụ",
   "form.riderLink": "Ị na-anya maka ụlọ ọrụ nnyefe? Nbanye rider",
+  "lock.title": "Ekpochiri Shopinbos",
+  "lock.body": "Ị pụọla ruo oge ụfọdụ. Jiri Face ID, mkpịsị aka gị ma ọ bụ PIN ekwentị gị meghee ya ka onye ọzọ ghara ịhụ ụlọ ahịa na ego gị.",
+  "lock.unlock": "Meghee",
+  "lock.logout": "Pụọ kama",
+  "lock.prompt": "Meghee Shopinbos",
+  "lock.cancel": "Kagbuo",
+  "lock.failed": "O megheghị. Nwaa ọzọ, ma ọ bụ pụọ wee banye ọzọ.",
+  "age.title": "Ị dịla afọ 18 ma ọ bụ karịa?",
+  "age.body": "Akaụntụ Shopinbos bụ maka ndị okenye. Kwenye otu ugboro, anyị agaghị ajụ ọzọ.",
+  "age.yes": "Ee, adị m afọ 18",
+  "age.under": "Erubeghị m afọ 18",
+  "age.failed": "Echekwaghị ya. Lelee njikọ gị ma nwaa ọzọ.",
 };
 
 export default ig;

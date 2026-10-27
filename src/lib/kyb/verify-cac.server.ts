@@ -27,8 +27,9 @@ import {
   type CacRecord,
 } from "./cac";
 
-// Instant CAC check for suppliers and delivery partners (see ./cac.ts for the rules). Tried in order, each one set up
-// handing over to the next when it can't answer: Korapay Identity (KORAPAY_SECRET_KEY, src/lib/korapay.ts), CAC's own
+// Instant CAC check for suppliers and delivery partners (see ./cac.ts for the rules). Kora powers it: Korapay Identity
+// (KORAPAY_SECRET_KEY, src/lib/korapay.ts) is always tried first. The others only stand in when Kora can't answer
+// (not set up, refusing, down), each handing over to the next: CAC's own
 // VAS Validation API (CAC_VAS_API_KEY; ₦7,500 a check, so second), Youverify (YOUVERIFY_SECRET_KEY), Dojah
 // (DOJAH_APP_ID + DOJAH_SECRET_KEY; DOJAH_ENV=sandbox uses Dojah's test registry). Without any the check is off and
 // the page keeps asking for the certificate.
@@ -53,7 +54,8 @@ export function cacCheckEnabled() {
   return Boolean(cacVasKey()) || korapayIdentityReady() || youverifyReady() || dojahReady();
 }
 
-const cacProvider = () => (cacVasKey() ? "cac" : korapayIdentityReady() ? "korapay" : youverifyReady() ? "youverify" : "dojah");
+/** The provider tried first (Korapay Identity whenever its key is set; the same order as lookupCacRecord). */
+const cacProvider = () => cacProviders()[0] ?? "dojah";
 
 function dojahBaseUrl() {
   return process.env.DOJAH_ENV?.trim().toLowerCase() === "sandbox" ? "https://sandbox.dojah.io" : "https://api.dojah.io";

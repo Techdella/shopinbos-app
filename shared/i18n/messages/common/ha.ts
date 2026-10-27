@@ -93,6 +93,21 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "product.code": "Kodi",
   "product.orderHere": "Yi oda a nan",
   "product.shareWhatsapp": "Raba a WhatsApp",
+  "idle.title": "Kana nan har yanzu?",
+  "idle.body": "Saboda tsaronka, za a fitar da kai cikin daƙiƙa {seconds} saboda ba wanda ya yi amfani da Shopinbos na ɗan lokaci.",
+  "idle.stay": "Ci gaba da kasancewa a ciki",
+  "idle.signOut": "Fita yanzu",
+  "consent.title": "Kukis a Shopinbos",
+  "consent.body": "Muna amfani da muhimman kukis don ka ci gaba da kasancewa a ciki cikin aminci. Da izininka, muna kuma amfani da nazari da rikodin yadda ake amfani da shafuka (an ɓoye duk abin da ka rubuta ko karanta) don nemo matsaloli da inganta Shopinbos. Kana iya canza wannan kowane lokaci a Settings.",
+  "consent.essential": "Muhimmai kawai",
+  "consent.allow": "Ba da izinin nazari",
+  "consent.policy": "Manufar sirri",
+  "consent.settings": "Saitunan kukis",
+  "age.title": "Ka kai shekara 18 ko fiye?",
+  "age.body": "Asusun Shopinbos na manya ne. Tabbatar sau ɗaya kuma ba za mu sake tambaya ba.",
+  "age.yes": "Ee, na kai 18",
+  "age.under": "Ban kai 18 ba",
+  "age.failed": "Bai adana ba. Duba haɗinka ka sake gwadawa.",
 };
 
 export default ha;

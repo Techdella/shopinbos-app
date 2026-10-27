@@ -6,6 +6,7 @@ import type { AuthUser, JWTClaims, Role } from "./types";
 import { apiError } from "@/lib/api/response";
 import { e164FromSupabase } from "@/lib/auth/app-user";
 import { asAccountRole } from "@/lib/auth/role-rules";
+import { appSessionMaxAgeMs, decodeAccessToken, sessionTooOld } from "@/lib/auth/session-claims";
 import { recordActivity } from "@/lib/platform-analytics/activity.server";
 import { adminCanOpen } from "@/lib/admin-team/pure";
 import { OWNER_ONLY_API, actingUser, isOwnerOnlyPath } from "@/lib/staff/acting.server";
@@ -59,12 +60,22 @@ export async function resolveUser(claims: JWTClaims): Promise<AuthUser | null> {
 
 // ─── Resolve Supabase user ID from request (header or cookie) ─────────────────
 
-async function resolveSupabaseId(req: NextRequest): Promise<{ id: string; email: string | null; role: Role; metadataRole: Role | null; fullName?: string; businessName?: string; phone?: string | null } | null> {
+/** A Bearer token Supabase accepted, but from a sign-in older than the app's session lifetime: sign in again. */
+export const SESSION_EXPIRED = "expired" as const;
+
+/** The phone's session is past AUTH_APP_SESSION_MAX_DAYS since the person last signed in (only on a verified token). */
+export function bearerSessionExpired(token: string, supabaseId: string) {
+  const claims = decodeAccessToken(token);
+  return claims?.sub === supabaseId && sessionTooOld(claims, appSessionMaxAgeMs(process.env));
+}
+
+async function resolveSupabaseId(req: NextRequest): Promise<{ id: string; email: string | null; role: Role; metadataRole: Role | null; fullName?: string; businessName?: string; phone?: string | null } | typeof SESSION_EXPIRED | null> {
   // 1. Try Authorization: Bearer <token>
   const auth = req.headers.get("authorization");
   const bearerToken = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
   if (bearerToken) {
     const claims = await verifyJWT(bearerToken);
+    if (claims && bearerSessionExpired(bearerToken, claims.sub)) return SESSION_EXPIRED;
     if (claims) {
       return { id: claims.sub, email: claims.email, phone: claims.phone, role: claims.user_metadata.role, metadataRole: claims.user_metadata.rawRole ?? null, fullName: claims.user_metadata.name };
     }
@@ -104,6 +115,7 @@ type Handler = (req: NextRequest, ctx: { user: AuthUser; params: any }) => Promi
 export function withAuth(handler: Handler, allowedRoles?: Role[]) {
   return async (req: NextRequest, { params }: { params: Promise<any> }) => {
     const identity = await resolveSupabaseId(req);
+    if (identity === SESSION_EXPIRED) return apiError("SESSION_EXPIRED", "Your session has ended. Log in again.", 401);
     if (!identity) return apiError("UNAUTHORIZED", "Authentication required", 401);
 
     let user = await db.user.findUnique({

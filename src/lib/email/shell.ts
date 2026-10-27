@@ -210,6 +210,9 @@ ${scope} .sib-logo-dark{display:block!important;max-height:none!important;overfl
 ${card}`;
 }
 
+/** The email fonts, served by the app (public/fonts/email.css), so opening an email never calls Google Fonts. */
+export const EMAIL_FONTS_CSS = "https://app.shopinbos.com/fonts/email.css";
+
 export function emailHead(input: { title: string; scheme?: "light dark" | "dark"; adaptCard?: boolean; extraCss?: string; fonts?: boolean }) {
   const scheme = input.scheme ?? "light dark";
   const adapt = input.adaptCard ?? true;
@@ -222,7 +225,7 @@ export function emailHead(input: { title: string; scheme?: "light dark" | "dark"
 <meta name="color-scheme" content="${scheme}" />
 <meta name="supported-color-schemes" content="${scheme}" />
 <title>${escapeHtml(input.title)}</title>
-${input.fonts === false ? "" : '<!--[if !mso]><!--><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;family=Anton&amp;family=Fraunces:ital@1&amp;display=swap" rel="stylesheet" /><!--<![endif]-->'}
+${input.fonts === false ? "" : `<!--[if !mso]><!--><link href="${EMAIL_FONTS_CSS}" rel="stylesheet" /><!--<![endif]-->`}
 <!--[if mso]><style>table,td,div,p,a,span{font-family:Arial,Helvetica,sans-serif!important}</style><![endif]-->
 <style>
 :root{color-scheme:${scheme};supported-color-schemes:${scheme}}
