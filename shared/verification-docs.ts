@@ -24,6 +24,25 @@ export interface VerificationDoc {
   registry?: RegistryCheck;
   /** Set on the "identity" document when the owner's BVN or NIN passed the Shopinbos Wallet ID check. */
   idCheck?: IdCheck;
+  /** A delivery partner's selfie: the facial match against their NIN photo (shared/partner-tiers.ts selfieDecision). */
+  faceMatch?: FaceMatchCheck;
+  /** A delivery partner's selfie: the liveness check the browser reported (Korapay's reference, for the team to look up). */
+  liveness?: LivenessCheck;
+}
+
+export interface FaceMatchCheck {
+  provider: string;
+  match: boolean | null;
+  /** 0–100, as Korapay answers it. */
+  confidence: number | null;
+  checkedAt: string;
+}
+
+export interface LivenessCheck {
+  provider: string;
+  reference: string;
+  passed: boolean;
+  checkedAt: string;
 }
 
 /** The owner's ID check (Shopinbos Wallet, src/lib/wallet): stands in for an uploaded ID. Never the full number. */
@@ -201,9 +220,30 @@ export function normalizeVerificationDocs(value: unknown): VerificationDoc[] {
       ...(typeof row.rejectionReason === "string" && row.rejectionReason ? { rejectionReason: row.rejectionReason } : {}),
       ...(normalizeRegistry(row.registry) ? { registry: normalizeRegistry(row.registry)! } : {}),
       ...(normalizeIdCheck(row.idCheck) ? { idCheck: normalizeIdCheck(row.idCheck)! } : {}),
+      ...(normalizeFaceMatch(row.faceMatch) ? { faceMatch: normalizeFaceMatch(row.faceMatch)! } : {}),
+      ...(normalizeLiveness(row.liveness) ? { liveness: normalizeLiveness(row.liveness)! } : {}),
     });
   }
   return docs;
+}
+
+function normalizeFaceMatch(value: unknown): FaceMatchCheck | null {
+  if (!value || typeof value !== "object") return null;
+  const r = value as Record<string, unknown>;
+  if (!text(r.provider) || !text(r.checkedAt)) return null;
+  return {
+    provider: text(r.provider),
+    match: typeof r.match === "boolean" ? r.match : null,
+    confidence: typeof r.confidence === "number" && Number.isFinite(r.confidence) ? r.confidence : null,
+    checkedAt: text(r.checkedAt),
+  };
+}
+
+function normalizeLiveness(value: unknown): LivenessCheck | null {
+  if (!value || typeof value !== "object") return null;
+  const r = value as Record<string, unknown>;
+  if (!text(r.provider) || !text(r.reference) || !text(r.checkedAt)) return null;
+  return { provider: text(r.provider), reference: text(r.reference).slice(0, 120), passed: r.passed === true, checkedAt: text(r.checkedAt) };
 }
 
 function normalizeIdCheck(value: unknown): IdCheck | null {

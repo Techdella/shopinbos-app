@@ -5,6 +5,7 @@ import { PillButton, Segmented, cx } from "@/components/app-ui";
 import { field } from "@/components/seller-core";
 import { NG_STATES } from "@shared/delivery-market";
 import { CodeConfirm, DocUpload, Field, Row, StepCard, StepError, docItemState, jsonInit, kycCall, useAction, useKycT, type KycState } from "./kit";
+import { SelfieCapture, type SelfieValue } from "./SelfieCapture";
 
 // Identity (name, NIN, phone, email, selfie, address) and Bank (BVN or a bank account in the NIN's name).
 
@@ -33,6 +34,11 @@ export function IdentityStep({ state, onState, reload, accountEmail, accountPhon
   const [addressState, setAddressState] = useState(state.identity.address?.state ?? "");
   const nameLocked = state.identity.nin?.status === "approved";
   const selfie = state.docs.find((doc) => doc.type === "selfie");
+  const [selfieShot, setSelfieShot] = useState<SelfieValue | null>(null);
+  // The NIN and selfie are checked together (Korapay matches the selfie to the NIN photo), so a rejected or missing
+  // selfie asks for the NIN again.
+  const selfieNeeded = state.tier1.selfie === "missing" || state.tier1.selfie === "rejected";
+  const ninFormOpen = state.identity.nin?.status !== "approved" || selfieNeeded;
   const utility = state.docs.find((doc) => doc.type === "utility");
 
   return (
@@ -40,9 +46,11 @@ export function IdentityStep({ state, onState, reload, accountEmail, accountPhon
       <StepError error={error} />
 
       <Row label={t("item.nin")} state={state.tier1.nin} reason={state.identity.nin?.rejectionReason}>
-        {state.identity.nin?.status === "approved" ? (
+        {state.identity.nin?.status === "approved" && (
           <p className="m-0 text-[14.5px]">{t("id.ninDone", { last4: state.identity.nin.last4 })} · <b>{state.identity.fullName}</b></p>
-        ) : (
+        )}
+        {state.identity.nin?.status === "approved" && selfieNeeded && <p className="m-0 text-[13.5px] text-app-ink-soft">{t("selfie.redo")}</p>}
+        {ninFormOpen && (
           <>
             {state.identity.nin?.status === "pending" && <p className="m-0 text-[14.5px] text-app-ink-soft">{t("id.ninWaiting", { last4: state.identity.nin.last4 })}</p>}
             {!state.idChecksReady && <p className="m-0 text-[13.5px] text-app-ink-soft">{t("id.ninManual")}</p>}
@@ -52,9 +60,17 @@ export function IdentityStep({ state, onState, reload, accountEmail, accountPhon
               <Field label={t("id.dob")}><input type="date" value={dateOfBirth} onChange={(event) => setDateOfBirth(event.target.value)} className={field.input} /></Field>
               <Field label={t("id.nin")}><input value={nin} onChange={(event) => setNin(event.target.value.replace(/\D/g, "").slice(0, 11))} inputMode="numeric" className={field.input} /></Field>
             </div>
+            <Field label={t("id.selfie")}>
+              <SelfieCapture value={selfieShot} onChange={setSelfieShot} firstName={firstName} lastName={lastName} />
+            </Field>
             <div>
-              <PillButton size="md" busy={busy === "nin"} disabled={nin.length !== 11 || !dateOfBirth || !firstName.trim() || !lastName.trim()} onClick={() => void run("nin", () => kycCall("/nin", jsonInit("POST", { nin, firstName, lastName, dateOfBirth })))}>
-                {t("id.checkNin")}
+              <PillButton
+                size="md"
+                busy={busy === "nin"}
+                disabled={nin.length !== 11 || !dateOfBirth || !firstName.trim() || !lastName.trim() || !selfieShot}
+                onClick={() => void run("nin", () => kycCall("/nin", jsonInit("POST", { nin, firstName, lastName, dateOfBirth, selfie: selfieShot?.dataUri, liveness: selfieShot?.liveness ?? undefined })), () => { setSelfieShot(null); setNin(""); })}
+              >
+                {t("selfie.check")}
               </PillButton>
             </div>
           </>
@@ -104,7 +120,9 @@ export function IdentityStep({ state, onState, reload, accountEmail, accountPhon
       </Row>
 
       <Row label={t("id.selfie")} state={state.tier1.selfie} reason={selfie?.rejectionReason}>
-        <DocUpload type="selfie" doc={selfie} hint={t("id.selfieHint")} imagesOnly onDone={reload} />
+        <p className="m-0 text-[14px] text-app-ink-soft">
+          {state.tier1.selfie === "approved" ? t("selfie.matched") : state.tier1.selfie === "pending" ? t("selfie.waiting") : t("id.selfieHint")}
+        </p>
       </Row>
 
       <Row label={t("item.address")} state={state.tier1.address}>

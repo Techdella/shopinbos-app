@@ -129,3 +129,35 @@ export function guarantorMessage(partnerName: string, code: string, link: string
 export function partnerPhoneCodeMessage(code: string) {
   return `Shopinbos: your delivery partner verification code is ${code}. Don't share it with anyone.`;
 }
+
+// ─── Selfie ──────────────────────────────────────────────────────────────────
+
+/** The most a selfie may be once decoded (the phone and the browser shrink it first). */
+export const SELFIE_MAX_BYTES = 3 * 1024 * 1024;
+const SELFIE_TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
+
+export type SelfieUpload = { ok: true; mimeType: string; ext: string; bytes: Buffer; dataUri: string } | { ok: false; error: string };
+
+/** Reads the selfie the partner took ("data:image/jpeg;base64,…"): a JPEG, PNG or WebP photo, not too big. */
+export function readSelfieDataUri(value: unknown): SelfieUpload {
+  const raw = typeof value === "string" ? value.trim() : "";
+  if (!raw) return { ok: false, error: "Take a selfie first." };
+  const match = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=\s]+)$/.exec(raw);
+  if (!match) return { ok: false, error: "That selfie isn't a photo we can read. Take it again." };
+  const mimeType = match[1];
+  const base64 = match[2].replace(/\s+/g, "");
+  if (base64.length > Math.ceil((SELFIE_MAX_BYTES * 4) / 3) + 4) return { ok: false, error: "That selfie is too big. Take it again." };
+  const bytes = Buffer.from(base64, "base64");
+  if (bytes.length < 1024) return { ok: false, error: "That selfie is too small to check. Take it again." };
+  if (bytes.length > SELFIE_MAX_BYTES) return { ok: false, error: "That selfie is too big. Take it again." };
+  return { ok: true, mimeType, ext: SELFIE_TYPES[mimeType], bytes, dataUri: `data:${mimeType};base64,${base64}` };
+}
+
+/** The liveness result the browser or phone reported, or null. Only Korapay's reference is kept. */
+export function readLivenessReport(value: unknown): { reference: string; passed: boolean } | null {
+  if (!value || typeof value !== "object") return null;
+  const row = value as Record<string, unknown>;
+  const reference = typeof row.reference === "string" ? row.reference.trim() : "";
+  if (!reference || reference.length > 120 || !/^[A-Za-z0-9_.:-]+$/.test(reference)) return null;
+  return { reference, passed: row.passed === true };
+}

@@ -138,6 +138,27 @@ export function readIdentityChecks(value: unknown): IdentityChecks {
   return out;
 }
 
+// ─── Selfie (Korapay facial match) ──────────────────────────────────────────
+
+/**
+ * Korapay's confidence (0–100) below which a "match" still goes to the team. Korapay doesn't publish its own cut-off,
+ * so a borderline match is looked at by a person rather than passed.
+ */
+export const FACE_MATCH_MIN_CONFIDENCE = 80;
+
+export const SELFIE_MISMATCH = "Your selfie doesn't match the photo on your NIN. Take a new one in good light, looking straight at the camera.";
+
+/**
+ * What the selfie's facial match against the NIN photo decides: approved on a confident match, rejected on a
+ * mismatch, and pending (the team looks) when there was no result or the match was borderline.
+ */
+export function selfieDecision(face: { match: boolean | null; confidence: number | null } | null | undefined): { status: CheckStatus; reason?: string } {
+  if (!face || face.match === null) return { status: "pending" };
+  if (face.match === false) return { status: "rejected", reason: SELFIE_MISMATCH };
+  if (face.confidence !== null && face.confidence < FACE_MATCH_MIN_CONFIDENCE) return { status: "pending" };
+  return { status: "approved" };
+}
+
 // ─── Names ───────────────────────────────────────────────────────────────────
 
 function nameTokens(name: string) {

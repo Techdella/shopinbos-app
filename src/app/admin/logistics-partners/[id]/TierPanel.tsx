@@ -13,6 +13,7 @@ import {
   tier2Checklist,
   type ItemState,
   type PartnerState,
+  FACE_MATCH_MIN_CONFIDENCE,
 } from "@shared/partner-tiers";
 import { checkGraduation, partnerTierSnapshot } from "@/lib/logistics/partner-tiers.server";
 import { TierActionButton } from "./TierActionButton";
@@ -165,6 +166,15 @@ export async function TierPanel({ partnerId }: { partnerId: string }) {
               </Row>
               <Row item="selfie" state={t1.selfie} actions={<DocDecision partnerId={partnerId} doc={selfie} />}>
                 {selfie && docHasFile(selfie) ? <FileLink path={selfie.filePath}>Open selfie</FileLink> : "-"}
+                {selfie?.faceMatch ? (
+                  <span className="block">
+                    Korapay face match with the NIN photo: {selfie.faceMatch.match === null ? "no result" : selfie.faceMatch.match ? "match" : "no match"}
+                    {selfie.faceMatch.confidence !== null ? ` (${selfie.faceMatch.confidence}% confidence; auto-approved from ${FACE_MATCH_MIN_CONFIDENCE}%)` : ""}
+                  </span>
+                ) : selfie ? (
+                  <span className="block">No face match result: compare the selfie with the person yourself.</span>
+                ) : null}
+                {selfie?.liveness ? <span className="block">Liveness passed in the browser · Korapay reference {selfie.liveness.reference}</span> : selfie ? <span className="block">No liveness check was run for this selfie.</span> : null}
                 {selfie?.rejectionReason && <span className="block text-app-danger">Rejected: {selfie.rejectionReason}</span>}
                 <span className="block">Check it's a live photo of the same face as the NIN record.</span>
               </Row>

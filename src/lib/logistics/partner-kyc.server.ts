@@ -8,7 +8,8 @@ import { getPublicEnv } from "@/lib/env";
 import { korapayIdentityReady } from "@/lib/korapay";
 import { youverifyReady } from "@/lib/youverify";
 import { notifyAdminsToReview } from "@/lib/notifications/events.server";
-import { LOGISTICS_TIER_DOC_TYPES, normalizeVerificationDocs, submitUploadedDocs } from "@shared/verification-docs";
+import { DOC_TYPE_LABELS, LOGISTICS_TIER_DOC_TYPES, normalizeVerificationDocs, submitUploadedDocs, type FaceMatchCheck, type LivenessCheck, type VerificationDoc } from "@shared/verification-docs";
+import { removePrivateFile, uploadPrivateFile } from "@/lib/supabase/storage.server";
 import {
   PARTNER_TERMS_VERSION,
   itemsWhere,
@@ -259,4 +260,51 @@ export async function guarantorForToken(token: string) {
     where: { tokenHash: guarantorTokenHash(secret, token) },
     select: { id: true, fullName: true, status: true, codeHash: true, codeExpiresAt: true, codeAttempts: true, logisticsPartnerId: true, logisticsPartner: { select: { displayName: true } } },
   });
+}
+
+// ─── Selfie ──────────────────────────────────────────────────────────────────
+
+/**
+ * Stores the selfie taken in the Identity step privately and records it as the partner's "selfie" document, with the
+ * facial match (and the liveness reference, when the browser or phone ran one) and the status they decide. Replaces an
+ * earlier selfie and its file.
+ */
+export async function saveSelfie(
+  partnerId: string,
+  selfie: { bytes: Buffer; mimeType: string; ext: string },
+  outcome: { status: "pending" | "approved" | "rejected"; reason?: string; faceMatch?: FaceMatchCheck; liveness?: LivenessCheck },
+) {
+  const file = new File([new Uint8Array(selfie.bytes)], `selfie.${selfie.ext}`, { type: selfie.mimeType });
+  const { path } = await uploadPrivateFile(`logistics-verifications/${partnerId}/selfie`, file);
+  const partner = await db.logisticsPartner.findUnique({ where: { id: partnerId }, select: { verificationDocuments: true } });
+  const docs = normalizeVerificationDocs(partner?.verificationDocuments);
+  const previous = docs.filter((doc) => doc.type === "selfie");
+  const now = new Date().toISOString();
+  const doc: VerificationDoc = {
+    id: previous[0]?.id ?? `selfie-${Date.now()}`,
+    type: "selfie",
+    label: DOC_TYPE_LABELS.selfie,
+    fileName: file.name,
+    filePath: path,
+    fileSize: file.size,
+    mimeType: selfie.mimeType,
+    // Decided now: an approved or rejected selfie is final; a pending one waits for the team like a sent document.
+    status: outcome.status === "pending" ? "submitted" : outcome.status,
+    uploadedAt: now,
+    updatedAt: now,
+    ...(outcome.reason ? { rejectionReason: outcome.reason } : {}),
+    ...(outcome.faceMatch ? { faceMatch: outcome.faceMatch } : {}),
+    ...(outcome.liveness ? { liveness: outcome.liveness } : {}),
+  };
+  try {
+    await db.logisticsPartner.update({
+      where: { id: partnerId },
+      data: { verificationDocuments: [...docs.filter((row) => row.type !== "selfie"), doc] as unknown as Prisma.InputJsonValue },
+    });
+  } catch (error) {
+    await removePrivateFile(path).catch(() => undefined);
+    throw error;
+  }
+  await Promise.all(previous.map((row) => (row.filePath ? removePrivateFile(row.filePath).catch(() => undefined) : undefined)));
+  return doc;
 }
