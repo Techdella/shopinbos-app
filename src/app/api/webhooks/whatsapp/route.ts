@@ -9,6 +9,7 @@ import { ingestSupportWhatsApp, updateSupportDelivery } from "@/lib/support/serv
 import { inboxSignatureOk, isInboxWhatsAppNumber } from "@/lib/support/whatsapp.server";
 import { stopWhatsAppTips } from "@/lib/member-messaging/tips.server";
 import { isStopWord } from "@/lib/member-messaging/tips-email";
+import { updateLeadDelivery } from "@/lib/lead-growth/service.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -56,6 +57,8 @@ export async function POST(req: NextRequest) {
       }
       for (const status of statuses.filter((s) => s.accountId === accountId)) {
         await updateSupportDelivery(status.externalId, status.status, status.error).catch((error) => console.error("[webhooks/whatsapp] inbox status failed", error));
+        // Campaign and sequence messages to leads go from the same number.
+        await updateLeadDelivery(status.externalId, status.status, status.error).catch((error) => console.error("[webhooks/whatsapp] lead status failed", error));
       }
       continue;
     }

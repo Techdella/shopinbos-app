@@ -18,6 +18,8 @@ export interface YouverifyIdentity {
   middleName: string | null;
   dateOfBirth: string | null;
   matches: { firstName: boolean | null; lastName: boolean | null; dateOfBirth: boolean | null };
+  /** The selfie compared with the ID's photo, when one was sent (Korapay only): null fields weren't returned. */
+  selfie?: { match: boolean | null; confidence: number | null };
 }
 
 export type YouverifyIdentityResult = { ok: true; identity: YouverifyIdentity } | { ok: false; notFound: boolean; pending?: boolean; message: string };

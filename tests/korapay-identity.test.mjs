@@ -83,3 +83,11 @@ test("Korapay runs ID and CAC checks when its key is set, ahead of Youverify and
   assert.match(client, /^import "server-only";/);
   assert.match(client, /readKorapayIdentity\(httpStatus, json, input\)/);
 });
+
+test("NIN with a selfie: Korapay's facial match is read from data.validation.selfie", () => {
+  const typed = { firstName: "Ada", lastName: "Obi", dateOfBirth: "1990-01-02" };
+  const answer = (selfie) => ({ status: true, message: "ok", data: { reference: "r1", first_name: "ADA", last_name: "OBI", date_of_birth: "1990-01-02", validation: { selfie } } });
+  assert.deepEqual(kp.readKorapayIdentity(200, answer({ value: "data:…", match: true, confidence_rating: 94 }), typed).identity.selfie, { match: true, confidence: 94 });
+  assert.deepEqual(kp.readKorapayIdentity(200, answer({ match: false, confidence_rating: "12" }), typed).identity.selfie, { match: false, confidence: 12 });
+  assert.equal(kp.readKorapayIdentity(200, { status: true, data: { first_name: "ADA", last_name: "OBI" } }, typed).identity.selfie, undefined, "no selfie sent, no result");
+});

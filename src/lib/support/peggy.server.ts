@@ -105,7 +105,7 @@ async function loadThread(ticketId: string): Promise<Thread | null> {
   });
 }
 
-const LEAD_FIELDS = { id: true, kind: true, role: true, source: true, pageUrl: true, message: true, createdAt: true, convertedAt: true } as const;
+const LEAD_FIELDS = { id: true, kind: true, role: true, source: true, pageUrl: true, message: true, note: true, createdAt: true, convertedAt: true } as const;
 
 /** The lead behind a conversation: the one it was opened from, else the latest with the same phone or email. */
 async function findLead(thread: Thread, leadId: string | null) {
@@ -123,7 +123,7 @@ async function sentToLead(leadId: string) {
       where: { leadId, status: "sent" },
       orderBy: { createdAt: "desc" },
       take: 8,
-      select: { channel: true, createdAt: true, step: true, campaign: { select: { name: true } }, automation: { select: { name: true } } },
+      select: { channel: true, createdAt: true, step: true, campaign: { select: { name: true, body: true } }, automation: { select: { name: true, steps: true } } },
     })
     .catch(() => []);
   return rows.map((m) => ({
@@ -131,7 +131,15 @@ async function sentToLead(leadId: string) {
     createdAt: m.createdAt,
     template: null,
     from: m.campaign?.name ?? (m.automation ? `${m.automation.name}, message ${(m.step ?? 0) + 1}` : null),
+    // What it said: the campaign's text, or that step's text in the sequence.
+    body: m.campaign?.body ?? stepBody(m.automation?.steps, m.step),
   }));
+}
+
+function stepBody(steps: unknown, step: number | null) {
+  if (!Array.isArray(steps) || step === null) return null;
+  const entry = steps[step] as { body?: unknown } | undefined;
+  return typeof entry?.body === "string" ? entry.body : null;
 }
 
 async function whoTheyAre(thread: Thread) {

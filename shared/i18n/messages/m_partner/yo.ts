@@ -660,6 +660,16 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "profile.save": "Fi àyípadà pamọ́",
   "profile.saved": "A ti fi pamọ́.",
   "profile.needName": "Fi orúkọ ilé-iṣẹ́ rẹ kún un.",
+  "kyc.introTitle": "O kò nílò CAC láti bẹ̀rẹ̀",
+  "kyc.introSub": "Lẹ́yìn set-up, o máa verify ara rẹ lórí fóònù. Ṣètò àwọn wọ̀nyí sílẹ̀:",
+  "kyc.need.id": "NIN rẹ àti selfie kan",
+  "kyc.need.bank": "BVN rẹ, tàbí bank account ní orúkọ rẹ",
+  "kyc.need.vehicle": "Fọ́tò ọkọ̀ rẹ àti licence awakọ̀",
+  "kyc.need.guarantor": "Onígbọ̀wọ́ tó lè jẹ́rìí sí i nípasẹ̀ text",
+  "kyc.introCac": "Ṣé o ní CAC? Fi kún un nígbà verification kí o di Registered Business láìsí order limits.",
+  "kyc.start": "Verify mi báyìí",
+  "kyc.doneTitle": "A ti fi set-up pamọ́. Verify ara rẹ báyìí",
+  "kyc.doneSub": "O lè gba iṣẹ́ nígbà tí a bá ti ṣàyẹ̀wò ID, bank, ọkọ̀ àti onígbọ̀wọ́ rẹ. Ìṣẹ́jú díẹ̀ ni.",
 };
 
 export default yo;

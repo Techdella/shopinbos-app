@@ -22,6 +22,15 @@ function secret() {
   return key && !key.includes("your_") && !key.includes("your-") ? key : "";
 }
 
+/**
+ * Korapay's liveness check (kora-identity-web-sdk) is set up: its public key is in NEXT_PUBLIC_KORAPAY_PUBLIC_KEY.
+ * The browser runs it before a delivery partner's selfie is sent (src/components/logistics/verification).
+ */
+export function korapayLivenessReady() {
+  const key = process.env.NEXT_PUBLIC_KORAPAY_PUBLIC_KEY?.trim() ?? "";
+  return Boolean(secret()) && /^pk_(test|live)_/.test(key);
+}
+
 /** Korapay's key is set, so ID checks can run. */
 export function korapayIdentityReady() {
   return Boolean(secret());
@@ -135,11 +144,12 @@ export async function queryKorapayCharge(reference: string): Promise<KorapayChar
 }
 
 /**
- * Looks up a BVN or NIN (POST /identities/ng/bvn | nin) with the owner's consent and compares the name and date of
+ * Looks up a BVN or NIN (POST /identities/ng/bvn | nin) with the owner's consent (and, with `selfie`, matches the ID's
+ * photo against it) and compares the name and date of
  * birth they typed (./korapay-identity-rules.ts). Never throws: an unknown number comes back as notFound, anything
  * else (no balance, Identity not enabled, Korapay down) as a message, which is logged for the team.
  */
-export async function verifyKorapayIdentity(input: { type: "bvn" | "nin"; id: string; firstName: string; lastName: string; dateOfBirth: string }): Promise<IdentityCheckResult> {
+export async function verifyKorapayIdentity(input: { type: "bvn" | "nin"; id: string; firstName: string; lastName: string; dateOfBirth: string; selfie?: string }): Promise<IdentityCheckResult> {
   if (!secret()) return { ok: false, notFound: false, message: "ID checks aren't set up yet." };
   try {
     const { httpStatus, json } = await call(`/identities/ng/${input.type}`, {
@@ -147,7 +157,8 @@ export async function verifyKorapayIdentity(input: { type: "bvn" | "nin"; id: st
       body: {
         id: input.id,
         verification_consent: true,
-        validation: { first_name: input.firstName, last_name: input.lastName, date_of_birth: input.dateOfBirth },
+        // A selfie (data URI) also compares the ID's photo with it: facial matching (developers.korapay.com/docs/nigeria-nin).
+        validation: { first_name: input.firstName, last_name: input.lastName, date_of_birth: input.dateOfBirth, ...(input.selfie ? { selfie: input.selfie } : {}) },
       },
       timeoutMs: 30_000,
     });

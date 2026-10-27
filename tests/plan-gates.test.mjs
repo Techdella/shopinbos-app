@@ -46,7 +46,7 @@ test("wiring: every place a seller adds something checks the plan", () => {
     payOnDeliveryAllowed: ["src/lib/seller-payments.server.ts", "src/app/api/app/onboarding/payments/route.ts", "src/lib/setup/server.ts"],
     deliveryPartnerProblem: ["src/app/api/app/logistics/bookings/route.ts", "src/app/api/app/logistics/quotes/route.ts", "src/app/api/app/logistics/preferred-partner/route.ts"],
     seasonalCampaignProblem: ["src/lib/store-campaigns/server.ts"],
-    chinaImportProblem: ["src/app/actions/sourcing.ts"],
+    chinaImportProblem: ["src/app/actions/imports.ts"],
   };
   for (const [fn, paths] of Object.entries(checks)) for (const path of paths) assert.match(read(path), new RegExp(`\\b${fn}\\(`), `${path} → ${fn}`);
   // Things the seller already had keep working after a downgrade.

@@ -557,6 +557,7 @@ model LeadMessage {
   @@unique([automationId, leadId, step])
   @@index([leadId])
   @@index([status, createdAt])
+  @@index([providerId])
 }
 
 // One row per signed-in account per day they used the app (Admin › Analytics: active users and retention).
@@ -5085,6 +5086,71 @@ model MemberStory {
   updatedAt      DateTime  @updatedAt
 
   @@index([status, role])
+}
+
+/// A China import (Find products › From China, My imports, Admin › China imports): a seller's request from a
+/// ShopKonfam or 1688 link, a photo or a description, quoted in naira by the sourcing partner (ShopKonfam), paid,
+/// then moved through each step until it's delivered (src/lib/imports). The partner works on it in Admin › China
+/// imports with the "Sourcing partner" admin role; externalId holds their own order id once their API is connected.
+model ImportOrder {
+  id               String    @id @default(cuid())
+  /// "IMP-1042"
+  ref              String    @unique
+  storeId          String
+  sellerId         String
+  /// The sourcing partner: shopkonfam
+  partner          String    @default("shopkonfam")
+  /// shopkonfam | 1688 | photo | description
+  source           String
+  title            String
+  link             String?
+  /// 1688 offer id or ShopKonfam product slug
+  productRef       String?
+  photoUrl         String?
+  quantity         Int?
+  /// air | sea
+  shipping         String    @default("air")
+  /// The seller's notes (colours, sizes, packaging)
+  notes            String?
+  /// Where it's delivered ("Ikeja, Lagos")
+  destination      String?
+  /// requested | quoted | quote_paid | bought | checked | shipping | customs | in_stock | declined | cancelled
+  status           String    @default("requested")
+  currency         String    @default("NGN")
+  unitPrice        Float?
+  goodsTotal       Float?
+  freight          Float?
+  customs          Float?
+  serviceFee       Float?
+  /// Landed total in naira
+  total            Float?
+  quoteNote        String?
+  quoteValidUntil  DateTime?
+  estimatedArrival DateTime?
+  /// The partner's payment link for this quote (the partner collects and holds the money until delivery)
+  paymentUrl       String?
+  quotedAt         DateTime?
+  acceptedAt       DateTime?
+  paidAt           DateTime?
+  deliveredAt      DateTime?
+  declineReason    String?
+  carrier          String?
+  trackingNumber   String?
+  qcPhotos         String[]  @default([])
+  /// Shown to the seller ("Lands in Lagos about 16 Nov")
+  partnerNote      String?
+  /// Partner and Shopinbos team only
+  teamNotes        String?
+  externalId       String?
+  /// [{ status, at, by, note? }]
+  events           Json      @default("[]")
+  /// The draft product made from it ("Add to my products")
+  storeProductId   String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([storeId, createdAt])
+  @@index([status, updatedAt])
 }
 
 // ─── Push center (Admin › Push center) ────────────────────────────────────────

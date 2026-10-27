@@ -196,3 +196,23 @@ test("peggy: knows whether we met through the waitlist or partnership outreach",
   const emailed = peggy.leadContext({ ...base, kind: "import", source: "partner-email", message: "Company: Zashadu\nEmailed a partnership invitation on 2026-10-27." });
   assert.match(emailed, /Team notes: Emailed a partnership invitation/);
 });
+
+test("peggy: knows suppliers who agreed on a call, the team's note, and what our last message said", () => {
+  const base = { role: "supplier", pageUrl: null, createdAt: "2026-10-27T10:00:00Z", convertedAt: null, kind: "import", message: null };
+  const called = peggy.leadContext({ ...base, source: "partner-call-oct26", note: "Agreed to onboard as a supplier on a call, 26 Oct 2026." }, [
+    { channel: "whatsapp", createdAt: "2026-10-27T11:00:00Z", template: null, from: "Suppliers who agreed on the call: next steps (27 Oct)", body: "Hi {{first_name}}, let's get you listed! Supplier registration on Shopinbos is now open.\n\nIf you'd rather not get these messages, open [opt-out link] to stop them." },
+  ]);
+  assert.match(called, /phoned them and they agreed on the call to join as a supplier/);
+  assert.match(called, /never thank them for signing up/);
+  assert.match(called, /Team notes: Agreed to onboard as a supplier on a call, 26 Oct 2026\./);
+  assert.match(called, /Our latest message to them \(2026-10-27, whatsapp\) said: "Hi \[their name\], let's get you listed! Supplier registration on Shopinbos is now open\."/);
+  assert.doesNotMatch(called, /opt-out/);
+  assert.ok(peggy.isPartnerCallLead({ source: "partner-call-oct26" }));
+  assert.ok(!peggy.isOutreachLead({ source: "partner-call-oct26" }));
+  // A cold list imported for outreach reads as outreach, with the intro it was sent.
+  const cold = peggy.leadContext({ ...base, source: "outreach-list-oct27" }, [
+    { channel: "whatsapp", createdAt: "2026-10-27T11:00:00Z", template: null, from: "Supplier outreach", body: "Hi {{first_name}}, this is the partnerships team at Shopinbos." },
+  ]);
+  assert.match(cold, /did NOT sign up/);
+  assert.match(cold, /said: "Hi \[their name\], this is the partnerships team at Shopinbos\."/);
+});
