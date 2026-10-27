@@ -48,7 +48,14 @@ export async function feeLines(period: ExportPeriod, now = new Date()) {
     const total = totals.get(line.type) ?? { count: 0, amountKobo: 0 };
     totals.set(line.type, { count: total.count + 1, amountKobo: total.amountKobo + line.amountKobo });
   }
-  return { lines, totals: [...totals].map(([type, total]) => ({ type, ...total })).sort((a, b) => b.amountKobo - a.amountKobo), totalKobo: lines.reduce((sum, line) => sum + line.amountKobo, 0) };
+  return {
+    lines,
+    /** For the page: who is on a paid plan now, and money moving through wallets (not Shopinbos's own). */
+    subscribers: fees.subscriptions.tiers.filter((tier) => tier.active > 0).map(({ label, role, active }) => ({ label, role, active })),
+    wallet: { spendKobo: fees.walletSpendKobo, transfersInKobo: fees.transfersInKobo },
+    totals: [...totals].map(([type, total]) => ({ type, ...total })).sort((a, b) => b.amountKobo - a.amountKobo),
+    totalKobo: lines.reduce((sum, line) => sum + line.amountKobo, 0),
+  };
 }
 
 const naira = (kobo: number) => (kobo / 100).toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
