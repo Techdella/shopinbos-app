@@ -85,6 +85,8 @@ export interface IdentityChecks {
   payout?: {
     method: "bvn" | "bank";
     last4: string;
+    /** Keyed hash of a BVN (so one BVN can't verify two partners). */
+    hash?: string;
     status: CheckStatus;
     bankName?: string;
     accountName?: string;
@@ -125,6 +127,7 @@ export function readIdentityChecks(value: unknown): IdentityChecks {
       status: payout.status,
       nameMatched: payout.nameMatched === true,
       checkedAt: text(payout.checkedAt),
+      ...(text(payout.hash) ? { hash: text(payout.hash) } : {}),
       ...(text(payout.bankName) ? { bankName: text(payout.bankName) } : {}),
       ...(text(payout.accountName) ? { accountName: text(payout.accountName) } : {}),
       ...(text(payout.rejectionReason) ? { rejectionReason: text(payout.rejectionReason) } : {}),
@@ -195,6 +198,26 @@ export const TIER2_ITEMS = ["businessName", "cacType", "cacNumber", "cacCertific
 export type Tier1Item = (typeof TIER1_ITEMS)[number];
 export type Tier2Item = (typeof TIER2_ITEMS)[number];
 export type ChecklistItem = Tier1Item | Tier2Item;
+
+/** English names for each item (admin screens and reminder emails; partner screens translate in "partnerKyc"). */
+export const ITEM_LABELS: Record<ChecklistItem, string> = {
+  terms: "Partner terms",
+  fullName: "Full name",
+  phone: "Phone number",
+  email: "Email",
+  nin: "NIN",
+  selfie: "Selfie",
+  payout: "BVN or bank account",
+  address: "Address",
+  coverage: "Coverage areas",
+  methods: "Delivery methods",
+  vehicles: "A vehicle",
+  guarantor: "Guarantor",
+  businessName: "Business name",
+  cacType: "CAC registration type",
+  cacNumber: "CAC number",
+  cacCertificate: "CAC certificate",
+};
 
 /** Onboarding steps (spec: Identity → Bank → Vehicles → Coverage → Guarantor → (Optional) CAC → Review & submit). */
 export const ONBOARDING_STEPS = ["identity", "bank", "vehicles", "coverage", "guarantor", "cac", "review"] as const;

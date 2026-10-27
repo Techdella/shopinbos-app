@@ -579,6 +579,8 @@ export const LogisticsOnboardingSchema = z.object({
     updatedBy: z.literal("onboarding").default("onboarding"),
   }).default({ zones: [], updatedBy: "onboarding" }),
   completed: z.boolean().default(false),
+  /** The partner ticked "I agree to the partner terms" (shared/partner-tiers.ts PARTNER_TERMS_VERSION). */
+  acceptTerms: z.boolean().optional(),
 });
 
 export const LogisticsCoverageUpdateSchema = z.object({

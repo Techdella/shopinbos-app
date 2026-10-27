@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { ensureLogisticsAccess, getLogisticsPartnerForUser } from "@/lib/role-queries";
-import { VerificationChecklist } from "@/components/verification/VerificationChecklist";
-import { LOGISTICS_DOC_TYPES } from "@shared/verification-docs";
+import { TierCard } from "@/components/logistics/verification/TierCard";
 import { respondToDeliveryQuote } from "@/app/actions/logistics";
 import { Card, CardHead, ListCard, ListRow, Pill, PillLink, StageDot, StatGrid, StatTile, TextLink } from "@/components/app-kit";
 import { Icon } from "@/components/ui/Icon";
@@ -138,7 +137,8 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
       <ActionNotice saved={saved} error={error} savedText={t("today.saved")} />
 
       <div className="mb-5">
-        <VerificationChecklist docs={partner.verificationDocuments} configs={LOGISTICS_DOC_TYPES} verificationStatus={partner.verificationStatus} href="/logistics/verification" />
+        {/* Tier, badges, limits and what needs fixing (shared/partner-tiers.ts). */}
+        <TierCard partnerId={partner.id} />
       </div>
 
       {/* Getting set up, with Peggy (chat and a free voice call) until every step is done. */}

@@ -7,6 +7,7 @@ import { ok, apiError } from "@/lib/api/response";
 import { LogisticsOnboardingSchema } from "@/lib/schemas";
 import { coverageStateCount, logisticsCoverageLimitMessage, logisticsPlanLimits } from "@/lib/plan-limits";
 import type { AuthUser } from "@/lib/auth/types";
+import { PARTNER_TERMS_VERSION } from "@shared/partner-tiers";
 
 export const GET = withLogistics(async (_req: NextRequest, { user }: { user: AuthUser }) => {
   const partner = await db.logisticsPartner.findUnique({
@@ -28,11 +29,12 @@ export const GET = withLogistics(async (_req: NextRequest, { user }: { user: Aut
       verificationStatus: true,
       reliabilityScore: true,
       onboardingState: true,
+      termsVersion: true,
     },
   });
 
   if (!partner) return apiError("NOT_FOUND", "Logistics partner profile not found", 404);
-  return ok(partner);
+  return ok({ ...partner, termsCurrent: partner.termsVersion === PARTNER_TERMS_VERSION });
 });
 
 export const PATCH = withLogistics(async (req: NextRequest, { user }: { user: AuthUser }) => {
@@ -88,6 +90,9 @@ export const PATCH = withLogistics(async (req: NextRequest, { user }: { user: Au
       onboardingState: onboardingState as Prisma.InputJsonValue,
       verificationStatus: partner.verificationStatus === "verified" ? "verified" : parsed.data.completed ? "pending" : "unverified",
       reliabilityScore: Math.max(partner.reliabilityScore, Math.min(100, onboardingState.readinessScore)),
+      // The web setup asks for the partner terms at its last step. Not refused without them (the phone app's setup
+      // doesn't send them yet): the Tier 1 checklist still needs them before anything goes for review.
+      ...(parsed.data.acceptTerms ? { termsVersion: PARTNER_TERMS_VERSION, termsAcceptedAt: new Date() } : {}),
     },
   });
 
