@@ -14,6 +14,7 @@ import { Card, Chip, Field, Mascot, PillButton, Segmented, T } from "@/component
 import { FIND_PRICE_BANDS, NO_FIND_FILTERS, filterFind, findCities, findFilterCount, saleBreakdown, sortCategories, type FindFilters } from "@/lib/find-pure";
 import { fetchFindContext, fetchFindProducts, type FindProduct } from "@/lib/marketplace";
 import { SupplierTrustBadges } from "@/components/SupplierTrust";
+import { preorderPillText } from "@/lib/preorder-pure";
 import { fetchStatusFeed } from "@/lib/familiar";
 import { openStatusCta, rememberSavedFinds, savedFinds } from "@/lib/seller-home";
 import { useSession } from "@/lib/session";
@@ -33,6 +34,14 @@ import { DIAL_COUNTRIES } from "@shared/phone";
 
 type Tab = "nigeria" | "trending";
 
+/** The supplier takes preorders on this listing: "Preorder · 12 Dec", or "Preorders are full" (shared/preorder.ts). */
+function PreorderBadge({ product }: { product: FindProduct }) {
+  const t = useT("m_ui");
+  if (!product.preorder) return null;
+  const label = product.preorder.open ? preorderPillText(product.preorder, new Date(), t) : t("preorder.full");
+  return label ? <Badge label={label} bg={colors.warnTint} fg={colors.warnInk} /> : null;
+}
+
 function ProductCard({ product, added }: { product: FindProduct; added: boolean }) {
   const t = useT("m_find");
   const sale = saleBreakdown(product.price, product.cost);
@@ -45,8 +54,10 @@ function ProductCard({ product, added }: { product: FindProduct; added: boolean 
     >
       <View style={{ aspectRatio: 1, backgroundColor: colors.lilac }}>
         {product.images[0] ? <Image source={{ uri: product.images[0] }} style={{ width: "100%", height: "100%" }} contentFit="cover" transition={150} /> : null}
-        <View style={{ position: "absolute", left: 8, top: 8, flexDirection: "row", gap: 4 }}>
+        {/* Stacked, so two badges never squeeze or wrap on a half-width card. */}
+        <View style={{ position: "absolute", left: 8, right: 8, top: 8, alignItems: "flex-start", gap: 4 }}>
           {added ? <Badge label={t("card.inStore")} bg={colors.successTint} fg={colors.success} /> : product.dropship ? <Badge label={t("card.dropship")} bg={colors.surface} /> : <Badge label={t("card.wholesale")} bg={colors.surface} />}
+          <PreorderBadge product={product} />
         </View>
       </View>
       <View style={{ padding: 10, gap: 6 }}>
@@ -112,7 +123,12 @@ function SwipeCard({ product, width, height, saved, added, position, onSave, onN
           <Initials name={product.supplier.name} size={30} bg={colors.mintTint} fg={colors.forest} />
           <T weight="bold" numberOfLines={1} style={{ flex: 1, color: "#FFFFFF", fontSize: 14 }}>{[product.supplier.name, product.supplier.city].filter(Boolean).join(" · ")}</T>
         </View>
-        {added ? <Badge label={t("card.inStore")} bg={colors.successTint} fg={colors.success} /> : null}
+        {added || product.preorder ? (
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+            {added ? <Badge label={t("card.inStore")} bg={colors.successTint} fg={colors.success} /> : null}
+            <PreorderBadge product={product} />
+          </View>
+        ) : null}
         <T numberOfLines={2} style={{ fontFamily: fonts.display, fontSize: 26, lineHeight: 29, color: "#FFFFFF" }}>{product.name}</T>
         <View style={{ flexDirection: "row", gap: 18 }}>
           <View>

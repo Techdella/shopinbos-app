@@ -145,3 +145,12 @@ test("phone screens: product forms, Find, orders and sharing", () => {
   assert.match(read("apps/mobile/src/components/SupplierOrderRow.tsx"), /<PreorderPill preorder=\{preorder\} \/>/);
   assert.match(read("apps/mobile/src/app/wholesale.tsx"), /<PreorderPill preorder=\{order\.preorder\} \/>/);
 });
+
+test("Find list cards show a Preorder badge (phone and web)", () => {
+  const phone = read("apps/mobile/src/app/find/index.tsx");
+  assert.match(phone, /function PreorderBadge\(/);
+  assert.equal((phone.match(/<PreorderBadge product=\{product\} \/>/g) ?? []).length, 2, "grid cards and the swipe card");
+  const web = read("src/app/marketplace/_components/ProductGrid.tsx");
+  assert.match(web, /t\("pd\.preorderFull"\)/);
+  assert.match(web, /\$\{t\("pd\.preorder"\)\} · \$\{formatDate/);
+});

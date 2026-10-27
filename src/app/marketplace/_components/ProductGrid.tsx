@@ -9,7 +9,7 @@ import { naira, saleBreakdown, supplierLine, type FindProduct } from "@/lib/mark
 import { SampleNotice } from "./SampleNotice";
 import { SupplierTrustBadges } from "./SupplierTrust";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
-import { formatMoney } from "@shared/i18n";
+import { formatDate, formatMoney } from "@shared/i18n";
 
 interface Chip {
   label: string;
@@ -98,7 +98,21 @@ export function ProductGrid({ products, addedIds, chips, notified, emptyText }: 
                   ) : (
                     <span className="absolute inset-0 grid place-items-center text-app-ink-faint"><Icon name="image" size={32} /></span>
                   )}
-                  {product.featured ? <span className="absolute left-2 top-2 rounded-full bg-app-ink px-2.5 py-1 text-[11.5px] font-bold text-white">{t("featured")}</span> : null}
+                  {product.featured || product.preorder ? (
+                    <span className="absolute left-2 right-2 top-2 flex flex-col items-start gap-1">
+                      {product.featured ? <span className="rounded-full bg-app-ink px-2.5 py-1 text-[11.5px] font-bold text-white">{t("featured")}</span> : null}
+                      {/* The supplier takes preorders on this listing (shared/preorder.ts). */}
+                      {product.preorder ? (
+                        <span className="max-w-full truncate rounded-full bg-[#FDF0D5] px-2.5 py-1 text-[11.5px] font-bold text-[#8A5A00]">
+                          {!product.preorder.open
+                            ? t("pd.preorderFull")
+                            : product.preorder.shipsOn
+                              ? `${t("pd.preorder")} · ${formatDate(new Date(`${product.preorder.shipsOn}T12:00:00Z`), locale, { day: "numeric", month: "short", timeZone: "UTC" })}`
+                              : t("pd.preorder")}
+                        </span>
+                      ) : null}
+                    </span>
+                  ) : null}
                 </Link>
                 <div className="flex flex-1 flex-col p-3 sm:p-3.5">
                   <h3 className="m-0 text-[14.5px] font-extrabold leading-tight sm:text-[15.5px]">
