@@ -98,7 +98,7 @@ export function MoneyOwedCard({ owed, role, onChanged }: { owed: MoneyOwed; role
             disputing === debt.id ? (
               <>
                 <Field value={response} onChangeText={setResponse} placeholder={t("owed.disputePh")} multiline maxLength={2000} style={{ minHeight: 90 }} />
-                <View style={{ flexDirection: "row", gap: 8 }}>
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
                   <PillButton title={t("owed.sendTeam")} size="sm" busy={busy === `respond:${debt.id}`} disabled={busy !== null} onPress={() => void run(`respond:${debt.id}`, () => answerClaim(debt.id, false, response))} />
                   <PillButton title={t("owed.back")} tone="white" size="sm" onPress={() => setDisputing(null)} />
                 </View>
@@ -224,7 +224,7 @@ function ClaimForm({ owed, t, onDone }: { owed: MoneyOwed; t: WalletT; onDone: (
             </>
           ) : null}
           {error ? <Notice>{error}</Notice> : null}
-          <View style={{ flexDirection: "row", gap: 8 }}>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             <PillButton title={busy ? t("claim.sending") : t("claim.send")} size="sm" busy={busy} disabled={!selected || !reason} onPress={() => void send()} />
             <PillButton title={t("claim.cancel")} tone="white" size="sm" onPress={() => setOpen(false)} />
           </View>

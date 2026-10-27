@@ -77,12 +77,15 @@ export function List({ children, style }: { children: ReactNode; style?: StylePr
 }
 
 /** One row in a List: a leading tile, avatar or picture, a bold title, a grey line, and something on the right
- * (a pill, an amount, a toggle). Tappable rows end in a chevron unless `right` replaces it. */
+ * (a pill, an amount, a toggle). Tappable rows end in a chevron unless `right` replaces it. `below` sits under the
+ * whole row, lined up with the title but as wide as the row (a countdown pill that must stay on one line). */
 export function Row({
   title,
   sub,
   lead,
   right,
+  below,
+  leadWidth = 44,
   onPress,
   chevron,
   accessibilityLabel,
@@ -93,6 +96,9 @@ export function Row({
   sub?: ReactNode;
   lead?: ReactNode;
   right?: ReactNode;
+  below?: ReactNode;
+  /** How wide `lead` is, to line `below` up with the title. */
+  leadWidth?: number;
   onPress?: () => void;
   chevron?: boolean;
   accessibilityLabel?: string;
@@ -111,10 +117,19 @@ export function Row({
     </>
   );
   const style: ViewStyle = { flexDirection: "row", alignItems: "center", gap: 14, minHeight: 68, paddingHorizontal: 16, paddingVertical: 12 };
-  if (!onPress) return <View testID={testID} style={style}>{body}</View>;
+  const content = below ? (
+    <>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>{body}</View>
+      <View style={{ paddingLeft: lead ? leadWidth + 14 : 0 }}>{below}</View>
+    </>
+  ) : (
+    body
+  );
+  const outer: ViewStyle = below ? { ...style, flexDirection: "column", alignItems: "stretch", gap: 8 } : style;
+  if (!onPress) return <View testID={testID} style={outer}>{content}</View>;
   return (
-    <Pressable testID={testID} accessibilityRole="button" accessibilityLabel={accessibilityLabel} onPress={onPress} style={({ pressed }) => [style, pressed && { backgroundColor: colors.canvas }]}>
-      {body}
+    <Pressable testID={testID} accessibilityRole="button" accessibilityLabel={accessibilityLabel} onPress={onPress} style={({ pressed }) => [outer, pressed && { backgroundColor: colors.canvas }]}>
+      {content}
     </Pressable>
   );
 }
@@ -131,9 +146,9 @@ const PILL: Record<PillTone, { bg: string; fg: string }> = {
 /** A small status pill (`.pill`). */
 export function Pill({ label, tone = "gray", icon, style }: { label: string; tone?: PillTone; icon?: AppIconName; style?: StyleProp<ViewStyle> }) {
   return (
-    <View style={[{ flexDirection: "row", alignItems: "center", gap: 6, borderRadius: radii.pill, paddingHorizontal: 11, paddingVertical: 5, backgroundColor: PILL[tone].bg, alignSelf: "flex-start" }, style]}>
-      {icon ? <AppIcon name={icon} size={13} color={PILL[tone].fg} strokeWidth={2.4} /> : null}
-      <T weight="bold" style={{ fontSize: 13, color: PILL[tone].fg }}>{label}</T>
+    <View style={[{ flexDirection: "row", alignItems: "center", gap: 6, borderRadius: radii.pill, paddingHorizontal: 11, paddingVertical: 5, backgroundColor: PILL[tone].bg, alignSelf: "flex-start", maxWidth: "100%" }, style]}>
+      {icon ? <View style={{ flexShrink: 0 }}><AppIcon name={icon} size={13} color={PILL[tone].fg} strokeWidth={2.4} /></View> : null}
+      <T weight="bold" numberOfLines={1} style={{ fontSize: 13, color: PILL[tone].fg, flexShrink: 1 }}>{label}</T>
     </View>
   );
 }
@@ -148,7 +163,7 @@ export function Seg({ label, on, onPress, count, accessibilityLabel }: { label: 
       onPress={onPress}
       style={({ pressed }) => ({ minHeight: 44, paddingHorizontal: 13, borderRadius: radii.pill, borderWidth: 1.5, borderColor: on ? colors.ink : colors.line, backgroundColor: on ? colors.ink : colors.surface, flexDirection: "row", alignItems: "center", gap: 6, opacity: pressed ? 0.85 : 1 })}
     >
-      <T weight="bold" style={{ fontSize: 15, color: on ? "#FFFFFF" : colors.ink }}>{label}</T>
+      <T weight="bold" numberOfLines={1} style={{ fontSize: 15, color: on ? "#FFFFFF" : colors.ink }}>{label}</T>
       {count == null ? null : <T weight="extrabold" style={{ fontSize: 13, color: on ? "#FFFFFF" : colors.inkSoft }}>{count}</T>}
     </Pressable>
   );

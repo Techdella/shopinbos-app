@@ -182,10 +182,7 @@ function LookPreview({ look, rexReason, applied, onClose, onApplied }: { look: S
           <Sub>{t("keeps", { blurb })}</Sub>
         </View>
         {rexReason ? <Banner tone="peach" icon="sparkle" title={t("rexPick")}>{rexReason}</Banner> : null}
-        <PillButton testID="look-live" tone="white" size="md" accessibilityLabel={t("seeLive")} onPress={() => void WebBrowser.openBrowserAsync(lookDemoUrl(look))}>
-          <AppIcon name="globe" size={18} />
-          <T weight="bold" style={{ fontSize: 16 }}>{t("seeLive")}</T>
-        </PillButton>
+        <PillButton testID="look-live" tone="white" size="md" accessibilityLabel={t("seeLive")} onPress={() => void WebBrowser.openBrowserAsync(lookDemoUrl(look))} icon="globe" title={t("seeLive")} />
       </ScrollView>
       <View style={{ paddingHorizontal: 20, paddingTop: 10, paddingBottom: 12, gap: 6 }}>
         {error ? <Notice>{error}</Notice> : null}

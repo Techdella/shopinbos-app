@@ -76,10 +76,10 @@ export function CountdownPill({ campaign, now, big = false }: { campaign: Campai
   return (
     <View
       accessibilityRole="timer"
-      style={{ flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", paddingHorizontal: 12, minHeight: big ? 40 : 32, borderRadius: radii.pill, borderWidth: 1, borderColor: urgent ? "#F2A93B" : colors.line, backgroundColor: urgent ? "#FDF0D9" : ticking ? colors.surface : colors.canvas }}
+      style={{ flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", maxWidth: "100%", paddingHorizontal: 12, minHeight: big ? 40 : 32, borderRadius: radii.pill, borderWidth: 1, borderColor: urgent ? "#F2A93B" : colors.line, backgroundColor: urgent ? "#FDF0D9" : ticking ? colors.surface : colors.canvas }}
     >
-      <AppIcon name="clock" size={big ? 18 : 15} color={urgent ? "#7A4D06" : colors.ink} />
-      <T weight="extrabold" style={{ fontSize: big ? 17 : 14.5, color: urgent ? "#7A4D06" : colors.ink, fontVariant: ["tabular-nums"] }}>{timerLine(campaign, now, t)}</T>
+      <View style={{ flexShrink: 0 }}><AppIcon name="clock" size={big ? 18 : 15} color={urgent ? "#7A4D06" : colors.ink} /></View>
+      <T weight="bold" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ flexShrink: 1, fontSize: big ? 16 : 14, color: urgent ? "#7A4D06" : colors.ink, fontVariant: ["tabular-nums"] }}>{timerLine(campaign, now, t)}</T>
     </View>
   );
 }

@@ -6,7 +6,7 @@ import { LinkShareButtons } from "@/components/LinkShareButtons";
 import { ProductPickSheet } from "@/components/ProductPickSheet";
 import { Screen } from "@/components/Screen";
 import { Sheet } from "@/components/Sheet";
-import { Card, Field, Label, LinkButton, Notice, PillButton, T, Toggle } from "@/components/ui";
+import { ButtonRow, Card, Field, Label, LinkButton, Notice, PillButton, T, Toggle } from "@/components/ui";
 import { fetchBio, fetchPublishedProducts, saveBio } from "@/lib/paylinks";
 import { blockTaps, linkBlock, MAX_BIO_BLOCKS, moveBlock, productBlock, removeBlock, shortUrl, type BioBlock, type BioPage } from "@/lib/paylinks-pure";
 import { openShop } from "@/lib/share";
@@ -183,16 +183,10 @@ export default function LinkInBio() {
       })}
 
       {full ? <Notice tone="info">{t("bio.full")}</Notice> : (
-        <View style={{ flexDirection: "row", gap: 8 }}>
-          <PillButton size="md" tone="white" style={{ flex: 1 }} onPress={() => setAdding("product")} accessibilityLabel={t("bio.addProduct")}>
-            <AppIcon name="plus" size={18} />
-            <T weight="bold" style={{ fontSize: 15 }}>{t("bio.addProduct")}</T>
-          </PillButton>
-          <PillButton size="md" tone="white" style={{ flex: 1 }} onPress={() => setAdding("link")} accessibilityLabel={t("bio.addLink")}>
-            <AppIcon name="link" size={18} />
-            <T weight="bold" style={{ fontSize: 15 }}>{t("bio.addLink")}</T>
-          </PillButton>
-        </View>
+        <ButtonRow labels={[t("bio.addProduct"), t("bio.addLink")]} icons gap={8}>
+          <PillButton size="md" tone="white" style={{ flex: 1 }} onPress={() => setAdding("product")} accessibilityLabel={t("bio.addProduct")} icon="plus" title={t("bio.addProduct")} />
+          <PillButton size="md" tone="white" style={{ flex: 1 }} onPress={() => setAdding("link")} accessibilityLabel={t("bio.addLink")} icon="link" title={t("bio.addLink")} />
+        </ButtonRow>
       )}
 
       <ProductPickSheet

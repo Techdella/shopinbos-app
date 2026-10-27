@@ -164,11 +164,5 @@ export function PreorderPill({ preorder }: { preorder: { shipsOn?: string | null
   return label ? <Pill label={label} tone="warn" icon="clock" /> : null;
 }
 
-/** A one-line label for a pill button (it shrinks a little instead of wrapping on small phones). */
-export function OneLine({ text, color = colors.ink, size = 17 }: { text: string; color?: string; size?: number }) {
-  return (
-    <T weight="extrabold" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={{ fontSize: size, color, flexShrink: 1 }}>
-      {text}
-    </T>
-  );
-}
+/** The one-line button label lives in components/ui.tsx with the other button parts; kept here for older imports. */
+export { OneLine } from "@/components/ui";

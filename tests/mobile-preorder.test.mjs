@@ -138,7 +138,8 @@ test("phone screens: product forms, Find, orders and sharing", () => {
   const box = read("apps/mobile/src/components/Preorder.tsx");
   assert.match(box, /t\("preorder\.noEscrowBuyer"\)/);
   assert.match(box, /t\("preorder\.noEscrow"\)/);
-  assert.match(box, /numberOfLines=\{1\} adjustsFontSizeToFit/, "button labels stay on one line");
+  assert.match(box, /export \{ OneLine \} from "@\/components\/ui"/, "the one-line label lives with the other button parts");
+  assert.match(read("apps/mobile/src/components/ui.tsx"), /export function OneLine[\s\S]{0,300}numberOfLines=\{1\} adjustsFontSizeToFit/, "button labels stay on one line");
 
   assert.match(read("apps/mobile/src/app/order/[id].tsx"), /<PreorderPill preorder=\{order\.preorder/);
   assert.match(read("apps/mobile/src/app/supplier/order/[id].tsx"), /<PreorderPill preorder=\{data\.preorder\} \/>/);

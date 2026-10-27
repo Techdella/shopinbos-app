@@ -250,14 +250,13 @@ export function StoryViewer({
                   tone={hasCta ? "white" : "accent"}
                   accessibilityLabel={t("sib.watch")}
                   style={hasCta ? undefined : { flex: 1 }}
+                  icon="play"
+                  title={t("sib.watch")}
                   onPress={() => {
                     onClose();
                     watchOutside(post.video);
                   }}
-                >
-                  <AppIcon name="play" size={18} color={colors.ink} />
-                  <T weight="extrabold" style={{ fontSize: 17, color: colors.ink }}>{t("sib.watch")}</T>
-                </PillButton>
+                />
               ) : null
             ) : (
               <Pressable accessibilityRole="button" accessibilityLabel={like.liked ? t("unlike") : t("like")} accessibilityState={{ selected: like.liked }} onPress={() => void toggleLike()} style={{ minWidth: 56, height: 52, borderRadius: 26, backgroundColor: photo ? "rgba(255,255,255,0.22)" : "rgba(22,20,31,0.1)", flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center", paddingHorizontal: 14 }}>

@@ -56,12 +56,7 @@ export function CallPeggyButton({ style, note = true, variant = "button" }: { st
 
   return (
     <View style={style}>
-      <PillButton tone="forest" busy={busy} disabled={busy} onPress={press} accessibilityLabel={t("call.label")}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-          <AppIcon name="phone" size={19} color="#FFFFFF" />
-          <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 16 }}>{title}</T>
-        </View>
-      </PillButton>
+      <PillButton tone="forest" busy={busy} disabled={busy} onPress={press} accessibilityLabel={t("call.label")} icon="phone" title={title} />
       {note ? <T style={{ marginTop: 8, textAlign: "center", fontSize: 13, color: colors.inkSoft }}>{t("call.note")}</T> : null}
       {failed ? <T style={{ marginTop: 6, textAlign: "center", fontSize: 13, color: colors.danger }}>{failed || t("call.failed")}</T> : null}
     </View>

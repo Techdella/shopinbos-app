@@ -8,7 +8,6 @@ import { ErrorState, LoadingBlock } from "@/components/kit";
 import { Screen } from "@/components/Screen";
 import { Sheet } from "@/components/Sheet";
 import { Chips, PartnerMark, Section } from "@/components/seller/bits";
-import { AppIcon } from "@/components/icons";
 import { Field, Label, Notice, PillButton, T, Toggle } from "@/components/ui";
 import { fetchDeliveryHub, saveDeliverySettings, type DeliveryHub, type DeliverySettings, type SettingsPatch } from "@/lib/delivery";
 import { stateName, whereWords } from "@/lib/delivery-pure";
@@ -102,10 +101,7 @@ export default function DeliveryHubScreen() {
                 <T style={{ fontSize: 15, lineHeight: 22, color: colors.inkSoft }}>{t("hub.noPartners")}</T>
               </View>
             )}
-            <PillButton tone="accent" onPress={() => router.push("/delivery/find")} accessibilityLabel={t("hub.find")}>
-              <AppIcon name="search" size={20} color={colors.ink} />
-              <T weight="extrabold" style={{ fontSize: 17 }}>{t("hub.find")}</T>
-            </PillButton>
+            <PillButton tone="accent" onPress={() => router.push("/delivery/find")} accessibilityLabel={t("hub.find")} icon="search" title={t("hub.find")} />
           </Section>
 
           <Section title={t("hub.own")}>

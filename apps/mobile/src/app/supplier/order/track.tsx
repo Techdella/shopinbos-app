@@ -3,7 +3,6 @@ import { router, useLocalSearchParams } from "expo-router";
 import { List, Pill, Row, Sub, Tile, Timeline } from "@/components/design";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { Screen } from "@/components/Screen";
-import { AppIcon } from "@/components/icons";
 import { PillButton, T } from "@/components/ui";
 import { fetchSupplierTrack } from "@/lib/familiar";
 import { capitalise, friendlyTime } from "@/lib/friendly";
@@ -36,10 +35,7 @@ export default function SupplierTrack() {
   }
 
   const footer = data?.shareUrl ? (
-    <PillButton tone="accent" onPress={() => void share(data.shareUrl!)} accessibilityLabel={t("track.share", { shop: shopName })}>
-      <AppIcon name="share" size={20} color={colors.ink} />
-      <T weight="extrabold" style={{ fontSize: 17, color: colors.ink }}>{t("track.share", { shop: shopName })}</T>
-    </PillButton>
+    <PillButton tone="accent" onPress={() => void share(data.shareUrl!)} accessibilityLabel={t("track.share", { shop: shopName })} icon="share" title={t("track.share", { shop: shopName })} />
   ) : undefined;
 
   return (

@@ -6,7 +6,6 @@ import * as Clipboard from "expo-clipboard";
 import { ShareSheet } from "@/components/familiar/ShareSheet";
 import { PLATFORM_KEY } from "@/components/familiar/ScheduleSheet";
 import { Banner, List, Pill, Row, Small } from "@/components/design";
-import { AppIcon } from "@/components/icons";
 import { EmptyState, ErrorState, LoadingBlock } from "@/components/kit";
 import { Screen } from "@/components/Screen";
 import { Card, LinkButton, Notice, PillButton, T } from "@/components/ui";
@@ -110,10 +109,7 @@ export default function PostDetail() {
       footer={
         post ? (
           <>
-            <PillButton tone="accent" onPress={() => setSheet(true)} accessibilityLabel={t("posts.share")}>
-              <AppIcon name="share" size={20} color={colors.ink} />
-              <T weight="extrabold" style={{ fontSize: 17 }}>{t("posts.share")}</T>
-            </PillButton>
+            <PillButton tone="accent" onPress={() => setSheet(true)} accessibilityLabel={t("posts.share")} icon="share" title={t("posts.share")} />
             {canMark ? <PillButton title={t("posts.markPosted")} tone="white" size="md" busy={marking} onPress={() => void markPosted()} /> : null}
           </>
         ) : null

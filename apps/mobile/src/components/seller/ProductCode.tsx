@@ -2,7 +2,6 @@ import { useCallback } from "react";
 import { View } from "react-native";
 import { naira } from "@shared/onboarding";
 import { productShareMessage } from "@shared/product-codes";
-import { AppIcon } from "@/components/icons";
 import { IconButton } from "@/components/seller/bits";
 import { PillButton, T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
@@ -59,9 +58,6 @@ export function ShareProductButton({ product }: { product: SharedProduct }) {
   const share = useShareProduct();
   if (!product.url) return null;
   return (
-    <PillButton tone="forest" accessibilityLabel={t("product.shareWhatsapp")} onPress={() => share(product)}>
-      <AppIcon name="chat" size={20} color="#FFFFFF" />
-      <T weight="extrabold" style={{ fontSize: 17, color: "#FFFFFF" }}>{t("product.shareWhatsapp")}</T>
-    </PillButton>
+    <PillButton tone="forest" accessibilityLabel={t("product.shareWhatsapp")} onPress={() => share(product)} icon="chat" title={t("product.shareWhatsapp")} />
   );
 }

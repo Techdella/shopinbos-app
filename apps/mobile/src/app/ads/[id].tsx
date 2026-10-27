@@ -1,12 +1,11 @@
 import { useState } from "react";
-import { View } from "react-native";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import { AdStatusBadge, adMoney, StatTiles, useModeLabel } from "@/components/ads";
 import { ErrorState, LoadingBlock, SectionTitle } from "@/components/kit";
 import { Screen } from "@/components/Screen";
 import { Sheet } from "@/components/Sheet";
-import { Card, LinkButton, Notice, PillButton, T } from "@/components/ui";
+import { ButtonRow, Card, LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { campaignAction, fetchAds } from "@/lib/ads";
 import { campaignActions, campaignTotal, costPerOrder, groupDigits, type CampaignAction } from "@/lib/ads-pure";
 import { friendlyDay } from "@/lib/friendly";
@@ -87,11 +86,11 @@ export default function AdCampaign() {
 
       {actions.includes("launch") ? <PillButton title={t("c.launch")} busy={busy === "launch"} disabled={busy !== null} onPress={() => setAsking("launch")} /> : null}
       {actions.includes("pause") || actions.includes("resume") || actions.includes("sync") ? (
-        <View style={{ flexDirection: "row", gap: 10 }}>
+        <ButtonRow labels={[actions.includes("pause") ? t("c.pause") : null, actions.includes("resume") ? t("c.resume") : null, actions.includes("sync") ? t("refresh") : null].filter((label): label is string => label !== null)}>
           {actions.includes("pause") ? <PillButton title={t("c.pause")} tone="white" size="md" style={{ flex: 1 }} busy={busy === "pause"} disabled={busy !== null} onPress={() => void act("pause")} /> : null}
           {actions.includes("resume") ? <PillButton title={t("c.resume")} size="md" style={{ flex: 1 }} busy={busy === "resume"} disabled={busy !== null} onPress={() => void act("resume")} /> : null}
           {actions.includes("sync") ? <PillButton title={t("refresh")} tone="white" size="md" style={{ flex: 1 }} busy={busy === "sync"} disabled={busy !== null} onPress={() => void act("sync")} /> : null}
-        </View>
+        </ButtonRow>
       ) : null}
 
       <SectionTitle>{t("results")}</SectionTitle>

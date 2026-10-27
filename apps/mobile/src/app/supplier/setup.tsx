@@ -227,10 +227,7 @@ export default function SupplierSetup() {
         sub={verified ? t("setup.readySubVerified") : docsSent || docs.sent ? t("setup.readySubChecking") : t("setup.readySub")}
         footer={
           <>
-            <PillButton tone="accent" onPress={() => router.replace("/supplier/product/new")} accessibilityLabel={t("setup.addFirst")}>
-              <AppIcon name="plus" size={20} color={colors.ink} strokeWidth={2.4} />
-              <T weight="extrabold" style={{ fontSize: 17, color: colors.ink }}>{t("setup.addFirst")}</T>
-            </PillButton>
+            <PillButton tone="accent" onPress={() => router.replace("/supplier/product/new")} accessibilityLabel={t("setup.addFirst")} icon="plus" title={t("setup.addFirst")} />
             <PillButton title={t("setup.later")} tone="white" onPress={() => router.replace("/supplier/home")} />
           </>
         }

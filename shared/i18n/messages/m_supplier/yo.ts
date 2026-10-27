@@ -475,7 +475,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "home.qa.add": "Fi ọjà kún un",
   "home.qa.orders": "Àwọn order",
   "home.qa.create": "Ṣẹ̀dá",
-  "home.qa.delivery": "Delivery",
+  "home.qa.delivery": "Ìfiránṣẹ́",
   "home.peggy": "Béèrè lọ́wọ́ Peggy",
   "home.peggySub": "Iye owó, ohun tó ń tà jù, ohun tí o yẹ kí o tún rà",
   "home.needsYou": "Ó nílò rẹ",

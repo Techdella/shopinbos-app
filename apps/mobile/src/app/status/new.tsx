@@ -120,10 +120,7 @@ export default function NewStatus() {
     <Screen
       title={t("sn.title")}
       footer={
-        <PillButton tone="accent" busy={busy} disabled={!ready} onPress={() => void post()} accessibilityLabel={t("sn.post")}>
-          <AppIcon name="send" size={19} color={colors.ink} />
-          <T weight="extrabold" style={{ fontSize: 17 }}>{t("sn.post")}</T>
-        </PillButton>
+        <PillButton tone="accent" busy={busy} disabled={!ready} onPress={() => void post()} accessibilityLabel={t("sn.post")} icon="send" title={t("sn.post")} />
       }
     >
       <View style={{ backgroundColor: TILE.lime.bg, borderRadius: 24, padding: 18, gap: 4 }}>
@@ -191,10 +188,7 @@ export default function NewStatus() {
           <PillButton title={t("sn.removePhoto")} tone="white" size="sm" onPress={() => setPhoto(null)} style={{ alignSelf: "flex-start" }} />
         </View>
       ) : (
-        <PillButton tone="white" size="md" onPress={() => void choosePhoto()} accessibilityLabel={t("sn.addPhoto")}>
-          <AppIcon name="camera" size={18} />
-          <T weight="bold" style={{ fontSize: 16 }}>{t("sn.addPhoto")}</T>
-        </PillButton>
+        <PillButton tone="white" size="md" onPress={() => void choosePhoto()} accessibilityLabel={t("sn.addPhoto")} icon="camera" title={t("sn.addPhoto")} />
       )}
 
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 16, minHeight: 64 }}>

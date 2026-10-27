@@ -234,7 +234,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "portal.admin": "Admin",
   "tab.home": "Ilé",
   "tab.orders": "Order",
-  "tab.chats": "Chats",
+  "tab.chats": "Ìjíròrò",
   "tab.shop": "Ṣọ́ọ̀bù mi",
   "tab.create": "Fi kún tàbí tà",
   "tab.supplier.home": "Ilé",

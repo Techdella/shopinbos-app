@@ -2,12 +2,11 @@ import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { naira } from "@shared/onboarding";
 import { List, Row, Small } from "@/components/design";
-import { AppIcon } from "@/components/icons";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { DoneScreen, NoteCard, PriceBox } from "@/components/PartnerKit";
 import { useRateWords } from "@/components/PartnerSetup";
 import { Screen } from "@/components/Screen";
-import { Notice, PillButton, T } from "@/components/ui";
+import { Notice, PillButton } from "@/components/ui";
 import { useT } from "@/lib/i18n";
 import { fetchMarket, sendPrivateRate, type MarketData } from "@/lib/logistics";
 import { SERVICE_KEYS, SIZE_KEYS, draftFromRow, rowsToSave } from "@/lib/logistics-pure";
@@ -51,10 +50,7 @@ function PrivateRateForm({ data, ownerUserId, name }: { data: MarketData; ownerU
       heading={t("priv.heading", { name })}
       sub={t("priv.sub")}
       footer={
-        <PillButton tone="forest" busy={busy} onPress={() => void send()}>
-          <AppIcon name="send" size={20} color="#FFFFFF" />
-          <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 17 }} numberOfLines={1}>{t("priv.send", { name })}</T>
-        </PillButton>
+        <PillButton tone="forest" busy={busy} onPress={() => void send()} icon="send" title={t("priv.send", { name })} />
       }
     >
       <List>

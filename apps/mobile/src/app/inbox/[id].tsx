@@ -4,7 +4,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
 import { Bubble, ChatScreen, Composer } from "@/components/ChatScreen";
 import { ErrorState, LoadingBlock } from "@/components/kit";
-import { Chip, Mascot, Notice, PillButton, T } from "@/components/ui";
+import { ButtonRow, Chip, Mascot, Notice, PillButton, T } from "@/components/ui";
 import { fetchThread, sendInboxMessage, setConversationStatus, suggestReply, type InboxMessage } from "@/lib/inbox";
 import { channelLabel, NO_REPLY_CHANNELS, repliesByEmail, replySubject, shortTime } from "@/lib/inbox-pure";
 import { AppIcon } from "@/components/icons";
@@ -166,7 +166,7 @@ export default function InboxThread() {
                       <T weight="extrabold" style={{ flex: 1, fontSize: 15, color: colors.forest }}>{t("thread.peggyWrote")}</T>
                     </View>
                     <T style={{ fontSize: 15, lineHeight: 21 }}>{peggy.draft}</T>
-                    <View style={{ flexDirection: "row", gap: 8 }}>
+                    <ButtonRow labels={[t("thread.peggySend"), t("thread.peggyEdit")]} size="sm" gap={8}>
                       <PillButton size="sm" title={t("thread.peggySend")} busy={sending} style={{ flex: 1 }} onPress={() => void send(peggy.draft!)} />
                       <PillButton
                         size="sm"
@@ -179,7 +179,7 @@ export default function InboxThread() {
                           peggy.dismiss();
                         }}
                       />
-                    </View>
+                    </ButtonRow>
                   </View>
                 ) : null}
                 {byEmail && canReply && mode === "reply" ? (
@@ -205,15 +205,15 @@ export default function InboxThread() {
                     {conversation.status === "open" ? (
                       <>
                         <Pressable accessibilityRole="button" disabled={saving} onPress={snooze} style={{ minHeight: 44, borderRadius: radii.pill, paddingHorizontal: 14, justifyContent: "center", backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line }}>
-                          <T weight="bold" style={{ fontSize: 15 }}>{t("thread.later")}</T>
+                          <T weight="bold" numberOfLines={1} style={{ flexShrink: 1, fontSize: 15 }}>{t("thread.later")}</T>
                         </Pressable>
                         <Pressable accessibilityRole="button" disabled={saving} onPress={() => void setStatus("closed")} style={{ minHeight: 44, borderRadius: radii.pill, paddingHorizontal: 14, justifyContent: "center", backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line }}>
-                          <T weight="bold" style={{ fontSize: 15 }}>{t("done")}</T>
+                          <T weight="bold" numberOfLines={1} style={{ flexShrink: 1, fontSize: 15 }}>{t("done")}</T>
                         </Pressable>
                       </>
                     ) : (
                       <Pressable accessibilityRole="button" disabled={saving} onPress={() => void setStatus("open")} style={{ minHeight: 44, borderRadius: radii.pill, paddingHorizontal: 14, justifyContent: "center", backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line }}>
-                        <T weight="bold" style={{ fontSize: 15 }}>{t("thread.openAgain")}</T>
+                        <T weight="bold" numberOfLines={1} style={{ flexShrink: 1, fontSize: 15 }}>{t("thread.openAgain")}</T>
                       </Pressable>
                     )}
                   </View>

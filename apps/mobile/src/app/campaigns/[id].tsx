@@ -5,7 +5,7 @@ import { naira } from "@shared/onboarding";
 import { ErrorState, LinkRow, LoadingBlock, SectionTitle } from "@/components/kit";
 import { Screen } from "@/components/Screen";
 import { Sheet } from "@/components/Sheet";
-import { Card, LinkButton, Notice, PillButton, T } from "@/components/ui";
+import { ButtonRow, Card, LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { CountdownPill, StatusBadge, useServerNow, whenText } from "@/components/campaigns";
 import { campaignPreviewLink, fetchCampaign, runCampaignAction, type CampaignAction } from "@/lib/campaigns";
 import { campaignActions, campaignStatus, presetSwatch } from "@/lib/campaigns-pure";
@@ -91,11 +91,11 @@ export default function CampaignScreen() {
       {status === "draft" ? <PillButton title={t("detail.schedule")} onPress={() => router.push({ pathname: "/campaigns/new", params: { id: campaign.id } })} /> : null}
 
       {actions.pause || actions.resume || actions.endNow ? (
-        <View style={{ flexDirection: "row", gap: 10 }}>
+        <ButtonRow labels={[actions.pause ? t("detail.pause") : null, actions.resume ? t("detail.resume") : null, actions.endNow ? t("detail.endNow") : null].filter((label): label is string => label !== null)}>
           {actions.pause ? <PillButton title={t("detail.pause")} tone="white" size="md" style={{ flex: 1 }} busy={busy === "pause"} disabled={busy !== null} onPress={() => void act("pause")} /> : null}
           {actions.resume ? <PillButton title={t("detail.resume")} size="md" style={{ flex: 1 }} busy={busy === "resume"} disabled={busy !== null} onPress={() => void act("resume")} /> : null}
           {actions.endNow ? <PillButton title={t("detail.endNow")} tone="white" size="md" style={{ flex: 1 }} disabled={busy !== null} onPress={() => setConfirmEnd(true)} /> : null}
-        </View>
+        </ButtonRow>
       ) : null}
 
       <SectionTitle>{t("form.discount")}</SectionTitle>

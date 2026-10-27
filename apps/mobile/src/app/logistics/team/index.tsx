@@ -1,10 +1,9 @@
 import { router } from "expo-router";
 import { List, Pill, Row } from "@/components/design";
-import { AppIcon } from "@/components/icons";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { Initial, NoteCard, useRiderWhere } from "@/components/PartnerKit";
 import { Screen } from "@/components/Screen";
-import { PillButton, T } from "@/components/ui";
+import { PillButton } from "@/components/ui";
 import { useT } from "@/lib/i18n";
 import { fetchRiders } from "@/lib/logistics";
 import { riderState } from "@/lib/logistics-pure";
@@ -25,10 +24,7 @@ export default function Team() {
       refreshing={riders.refreshing}
       onRefresh={() => void riders.refresh()}
       footer={
-        <PillButton tone="forest" onPress={() => router.push("/logistics/add-rider")}>
-          <AppIcon name="plus" size={20} color="#FFFFFF" />
-          <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 17 }}>{t("riders.add")}</T>
-        </PillButton>
+        <PillButton tone="forest" onPress={() => router.push("/logistics/add-rider")} icon="plus" title={t("riders.add")} />
       }
     >
       {riders.loading && !riders.data ? <LoadingBlock label={t("riders.loading")} /> : null}

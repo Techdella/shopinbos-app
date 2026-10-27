@@ -234,7 +234,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "portal.admin": "Admin",
   "tab.home": "Ụlọ",
   "tab.orders": "Orders",
-  "tab.chats": "Chats",
+  "tab.chats": "Nkata",
   "tab.shop": "Ụlọ ahịa m",
   "tab.create": "Tinye ma ọ bụ ree",
   "tab.supplier.home": "Ụlọ",
