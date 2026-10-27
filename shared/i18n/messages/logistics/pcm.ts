@@ -708,6 +708,11 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "market.cash.marked": "You don mark say you pay the shop {amount}. We dey wait make dem confirm.",
   "market.cash.payShop": "Pay the shop the {amount} wey the rider collect, then:",
   "market.cash.mark": "Mark say you don pay the shop the cash",
+  "partnerPage.notFound": "Delivery partner no dey · Shopinbos",
+  "partnerPage.metaTitle": "{name} · Shopinbos delivery partner",
+  "partnerPage.metaDesc": "Book delivery with {name} for Shopinbos.",
+  "partnerPage.pendingNote": "Shopinbos still dey check this delivery partner. Shops no fit book or message dem for here until e finish.",
+  "partnerPage.pending": "Dem still dey check am",
 };
 
 export default pcm;

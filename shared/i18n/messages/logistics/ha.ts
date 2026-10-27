@@ -708,6 +708,11 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "market.cash.marked": "Ka nuna cewa ka biya shagon {amount}. Ana jiran su tabbatar.",
   "market.cash.payShop": "Biya shagon {amount} da rider ya karɓa, sannan:",
   "market.cash.mark": "Nuna cewa an biya shagon kuɗin",
+  "partnerPage.notFound": "Ba a sami abokin isar da kaya ba · Shopinbos",
+  "partnerPage.metaTitle": "{name} · abokin isar da kaya na Shopinbos",
+  "partnerPage.metaDesc": "Yi booking na isarwa tare da {name} a Shopinbos.",
+  "partnerPage.pendingNote": "Shopinbos har yanzu tana duba wannan abokin isar da kaya. Shaguna ba za su iya yin booking ko aika musu saƙo a nan ba sai an gama.",
+  "partnerPage.pending": "Ana tabbatarwa",
 };
 
 export default ha;

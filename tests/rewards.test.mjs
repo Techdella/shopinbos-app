@@ -168,6 +168,7 @@ test("routes and hooks: three mobile routes for the three roles, events fired fr
     "src/app/api/store/products/route.ts": '"product_added"',
     "src/app/api/supplier/products/route.ts": '"product_added"',
     "src/app/api/mobile/supplier/quotes/[id]/route.ts": '"quote_sent"',
+    "src/lib/referrals/service.server.ts": '"profile_referral"',
   };
   for (const [file, call] of Object.entries(hooks)) assert.ok(read(file).includes(call), `${file} fires ${call}`);
 });

@@ -16,6 +16,10 @@ import { IdentityImageUploader } from "@/components/profile/IdentityImageUploade
 import { CoverImageUpload } from "./CoverImageUpload";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { getT } from "@/lib/i18n/server";
+import { ShareProfileCard } from "@/components/referrals/ShareProfileCard";
+import { profileShareStats } from "@/lib/referrals/service.server";
+import { appBase } from "@/lib/email/compliance.server";
+import { profileShareLink } from "@shared/referrals";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -57,6 +61,7 @@ export default async function LogisticsProfilePage({ searchParams }: PageProps) 
 
   const hours = serviceHours(partner.onboardingState);
   const isVerified = partner.verificationStatus === "verified";
+  const share = await profileShareStats(user.id).catch(() => null);
   const limitMessage =
     params.limit === "routes"
       ? logisticsCoverageLimitMessage(logisticsPlanLimits((await planDb.user.findUnique({ where: { id: user.id }, select: { aiCredits: true } })) ?? {}).coverageStates)
@@ -71,7 +76,7 @@ export default async function LogisticsProfilePage({ searchParams }: PageProps) 
       sub={t("company.sub")}
       actions={
         <>
-          {isVerified && <PillLink href={`/logistics/partners/${partner.slug}`} icon="eye">{t("company.publicPage")}</PillLink>}
+          <PillLink href={`/logistics/partners/${partner.slug}`} icon="eye">{t("company.publicPage")}</PillLink>
         </>
       }
     >
@@ -83,6 +88,11 @@ export default async function LogisticsProfilePage({ searchParams }: PageProps) 
           <Notice tone="info">{t("company.verifyFirst")} <TextLink href="/logistics/verification">{t("company.finishVerification")}</TextLink></Notice>
         )}
       </div>
+      {share && (
+        <div className="mb-5">
+          <ShareProfileCard link={profileShareLink(appBase(), `/logistics/partners/${partner.slug}`, share.code)} role="logistics_partner" verified={isVerified} joined={share.joined} />
+        </div>
+      )}
 
       <div className="grid gap-5 xl:[grid-template-columns:minmax(0,1fr)_400px]">
         <div className="grid min-w-0 content-start gap-5">

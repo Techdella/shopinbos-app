@@ -217,3 +217,37 @@ export function signupPath(role: ReferralRole) {
 /** The referral cookie: set by /r/CODE, read once the account exists. */
 export const REFERRAL_COOKIE = "sib_ref";
 export const REFERRAL_COOKIE_DAYS = 30;
+
+// ─── Profile links ────────────────────────────────────────────────────────────
+// A supplier or delivery partner shares their public profile with their code on it
+// (app.shopinbos.com/suppliers/<slug>?ref=CODE). Opening it remembers the code like /r/CODE does, and the sign-ups it
+// brings are marked "profile" so the owner sees what their profile brought in (and gets Rewards points for each).
+
+/** Where a referral came from: an invite link (/r/CODE) or a shared public profile. */
+export type ReferralSource = "link" | "profile";
+/** Set next to REFERRAL_COOKIE: "profile" when the code came from a profile; missing means an invite link. */
+export const REFERRAL_SOURCE_COOKIE = "sib_ref_src";
+
+export function asReferralSource(value: unknown): ReferralSource {
+  return value === "profile" ? "profile" : "link";
+}
+
+/** The public profile pages that can carry a code: /suppliers/<slug> and /logistics/partners/<slug>. */
+export function isPublicProfilePath(pathname: string) {
+  return /^\/(suppliers|logistics\/partners)\/[^/]+\/?$/.test(pathname);
+}
+
+/** The code to remember when a public profile is opened with ?ref=CODE, else null. */
+export function profileReferralCode(pathname: string, ref: string | null | undefined) {
+  return isPublicProfilePath(pathname) ? cleanReferralCode(ref) : null;
+}
+
+/** The link to share: the public profile with the owner's code on it. */
+export function profileShareLink(base: string, profilePath: string, code: string) {
+  return `${base.replace(/\/+$/, "")}${profilePath}?ref=${encodeURIComponent(code)}`;
+}
+
+/** The "Join Shopinbos" buttons on a profile: the owner's invite page, marked as coming from their profile. */
+export function profileInvitePath(code: string, role: ReferralRole) {
+  return `/r/${encodeURIComponent(code)}?for=${role}&src=profile`;
+}
