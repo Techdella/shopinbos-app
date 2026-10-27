@@ -3,6 +3,7 @@ import { AppPage, Card, CardHead, EmptyState, StatGrid, StatTile } from "@/compo
 import { adminFrame, formatDate } from "@/components/admin/AdminKit";
 import { requireRole } from "@/lib/server-auth";
 import { platformFeeSummary } from "@/lib/wallet/platform-fees.server";
+import { PURCHASE_LABEL, purchaseSummary } from "@/lib/wallet/purchases.server";
 
 export const dynamic = "force-dynamic";
 
@@ -15,9 +16,9 @@ const naira = (kobo: number) => `₦${(kobo / 100).toLocaleString("en-NG", { max
 
 export default async function AdminPlatformFeesPage() {
   const user = await requireRole(["admin"], "/admin/login");
-  const summary = await platformFeeSummary();
+  const [summary, purchases] = await Promise.all([platformFeeSummary(), purchaseSummary()]);
   return (
-    <AppPage frame={adminFrame(user)} title="Shopinbos fees" sub="What Shopinbos keeps from store payments split through Paystack (the rest settles straight to each business's bank), subscription payments and AI credit purchases.">
+    <AppPage frame={adminFrame(user)} title="Shopinbos fees" sub="What Shopinbos keeps from store payments split through Paystack (the rest settles straight to each business's bank), subscription payments, AI credits and everything else businesses buy.">
       <p className="mb-4 mt-0 text-[13.5px]">
         <Link href="/admin/wallets" className="font-bold underline underline-offset-4">← Wallets</Link>
       </p>
@@ -132,6 +133,72 @@ export default async function AdminPlatformFeesPage() {
           </table>
         ) : (
           <EmptyState icon="coin" title="No AI credit purchases yet">Credit packs bought by card, auto top-up or from the wallet show here.</EmptyState>
+        )}
+      </Card>
+      <h2 className="mb-3 mt-0 text-[18px] font-extrabold">Other purchases</h2>
+      <StatGrid className="mb-5">
+        <StatTile label="Today" value={naira(purchases.totals.today)} hint="Themes, domains, add-ons, CAC, ads, print" />
+        <StatTile label="Last 7 days" value={naira(purchases.totals.week)} />
+        <StatTile label="Last 30 days" value={naira(purchases.totals.month)} />
+        <StatTile label="All time" value={naira(purchases.totals.all)} hint={`${purchases.totals.count} purchase${purchases.totals.count === 1 ? "" : "s"}`} />
+      </StatGrid>
+      <Card className="mb-5 overflow-x-auto">
+        <CardHead title="Purchases by type" sub="Paid only: refunds, domains free with a plan, add-ons included in a plan and cancelled print orders are left out." />
+        <table className="w-full min-w-[720px] border-collapse text-left text-[13.5px]">
+          <thead className="text-[12px] uppercase tracking-[0.06em] text-app-ink-soft">
+            <tr>
+              <th className="px-4 py-3">Type</th>
+              <th className="px-4 py-3 text-right">Today</th>
+              <th className="px-4 py-3 text-right">7 days</th>
+              <th className="px-4 py-3 text-right">30 days</th>
+              <th className="px-4 py-3 text-right">All time</th>
+              <th className="px-4 py-3 text-right">Purchases</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-app-line">
+            {purchases.categories.map((row) => (
+              <tr key={row.category}>
+                <td className="px-4 py-3 font-bold">{row.label}</td>
+                <td className="px-4 py-3 text-right">{naira(row.today)}</td>
+                <td className="px-4 py-3 text-right">{naira(row.week)}</td>
+                <td className="px-4 py-3 text-right">{naira(row.month)}</td>
+                <td className="px-4 py-3 text-right font-bold">{naira(row.all)}</td>
+                <td className="px-4 py-3 text-right">{row.count}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+      <Card className="mb-5 overflow-x-auto">
+        <CardHead title="Latest purchases" />
+        {purchases.latest.length ? (
+          <table className="w-full min-w-[720px] border-collapse text-left text-[13.5px]">
+            <thead className="text-[12px] uppercase tracking-[0.06em] text-app-ink-soft">
+              <tr>
+                <th className="px-4 py-3">Business</th>
+                <th className="px-4 py-3">Type</th>
+                <th className="px-4 py-3">What</th>
+                <th className="px-4 py-3">Date</th>
+                <th className="px-4 py-3 text-right">Amount</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-app-line">
+              {purchases.latest.map((row) => (
+                <tr key={row.id}>
+                  <td className="px-4 py-3">
+                    <span className="font-bold">{row.who}</span>
+                    {row.email ? <span className="block text-[12px] text-app-ink-soft">{row.email}</span> : null}
+                  </td>
+                  <td className="px-4 py-3">{PURCHASE_LABEL[row.category]}</td>
+                  <td className="px-4 py-3">{row.item}</td>
+                  <td className="px-4 py-3 text-app-ink-soft">{formatDate(row.at)}</td>
+                  <td className="px-4 py-3 text-right font-bold">{naira(row.amountKobo)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <EmptyState icon="coin" title="No purchases yet">Themes, domains, add-ons, CAC registrations, ad setups and print orders show here once paid.</EmptyState>
         )}
       </Card>
       <Card className="overflow-x-auto">
