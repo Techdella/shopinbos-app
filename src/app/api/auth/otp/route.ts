@@ -16,7 +16,8 @@ export const dynamic = "force-dynamic";
 type SignupRole = "seller" | "supplier" | "logistics_partner";
 
 type OtpBody = {
-  action?: "send" | "verify";
+  /** "check": only the account rules below, no code (the phone app asks before its own SMS, email or password). */
+  action?: "send" | "verify" | "check";
   email?: string;
   /** E.164, e.g. +2348031234567 */
   phone?: string;
@@ -38,6 +39,31 @@ const WRONG_CODE = "That code is wrong or has expired. Check it, or ask for a ne
 
 function fail(message: string, status = 400, code = "BAD_REQUEST") {
   return authError(code, message, status);
+}
+
+/**
+ * Said before any code is sent, so nobody waits for a code that can't work: log in with an email or phone that has no
+ * account → NO_ACCOUNT ("sign up first"); sign up with one that has → ACCOUNT_EXISTS ("log in"), or PHONE_TAKEN when
+ * another account saved the number in its profile. null when it's fine to go on. Callers rate-limit first.
+ */
+async function accountProblem(request: NextRequest, create: boolean, target: { email: string } | { phone: string }) {
+  const usePhone = "phone" in target;
+  // undefined: the database couldn't say, so carry on and let Supabase decide.
+  const existing = await accountFor(target);
+  if (!create && existing === null) {
+    await logAuthEvent(request, { type: "login_failure", method: usePhone ? "otp_phone" : "otp_email", detail: { reason: "unknown_identifier" } });
+    return fail(noAccountMessage(usePhone), 404, "NO_ACCOUNT");
+  }
+  if (create && existing) {
+    return authError("ACCOUNT_EXISTS", accountExistsMessage(usePhone), 409, { role: existing.role });
+  }
+  // One account per phone number: signing up with a number another account already has (say, an email account
+  // that saved it in its profile) is refused. A number that is that account's own phone login just signs in.
+  if (create && usePhone) {
+    const owner = await phoneOwner(target.phone);
+    if (owner && !(await signsInWithPhone(owner.supabaseId, target.phone))) return fail(PHONE_TAKEN, 409, "PHONE_TAKEN");
+  }
+  return null;
 }
 
 function friendlySendError(message: string, phone: boolean) {
@@ -87,23 +113,8 @@ export async function POST(request: NextRequest) {
       if (wait) return rateLimited(wait, "codes requested");
 
       const create = body.create === true;
-      const method = usePhone ? "otp_phone" : "otp_email";
-      // undefined: the database couldn't say, so carry on and let Supabase decide.
-      // Said before any code is sent (after the otpSend limit above), so nobody waits for a code that can't work.
-      const existing = await accountFor(usePhone ? { phone } : { email });
-      if (!create && existing === null) {
-        await logAuthEvent(request, { type: "login_failure", method, detail: { reason: "unknown_identifier" } });
-        return fail(noAccountMessage(usePhone), 404, "NO_ACCOUNT");
-      }
-      if (create && existing) {
-        return authError("ACCOUNT_EXISTS", accountExistsMessage(usePhone), 409, { role: existing.role });
-      }
-      // One account per phone number: signing up with a number another account already has (say, an email account
-      // that saved it in its profile) is refused. A number that is that account's own phone login just signs in.
-      if (create && usePhone) {
-        const owner = await phoneOwner(phone);
-        if (owner && !(await signsInWithPhone(owner.supabaseId, phone))) return fail(PHONE_TAKEN, 409, "PHONE_TAKEN");
-      }
+      const problem = await accountProblem(request, create, usePhone ? { phone } : { email });
+      if (problem) return problem;
       const role = body.profile?.role && SIGNUP_ROLES.has(body.profile.role) ? body.profile.role : "seller";
       const data = create
         ? {
@@ -129,13 +140,21 @@ export async function POST(request: NextRequest) {
       if (error) {
         // The lookup above missed it (say, the database was unreachable): Supabase has no account for it either.
         if (/signups not allowed|user not found/i.test(error.message)) {
-          await logAuthEvent(request, { type: "login_failure", method, detail: { reason: "unknown_identifier" } });
+          await logAuthEvent(request, { type: "login_failure", method: usePhone ? "otp_phone" : "otp_email", detail: { reason: "unknown_identifier" } });
           return fail(noAccountMessage(usePhone), 404, "NO_ACCOUNT");
         }
         return fail(friendlySendError(error.message, usePhone), error.status === 429 ? 429 : 400, error.status === 429 ? "RATE_LIMITED" : "BAD_REQUEST");
       }
       // The channel that really carried the code (WhatsApp, or SMS when WhatsApp is off or failed).
       return authJson(usePhone ? { sent: true, channel: await channelUsedFor(phone) } : { sent: true, channel: "email" });
+    }
+
+    if (body?.action === "check") {
+      // Same budget as password log ins, which the phone app checks this way before signing in.
+      const wait = await consumeAuthLimit("login", ip, identifier);
+      if (wait) return rateLimited(wait);
+      const problem = await accountProblem(request, body.create === true, usePhone ? { phone } : { email });
+      return problem ?? authJson({ ok: true });
     }
 
     if (body?.action === "verify") {

@@ -202,10 +202,14 @@ test("login, codes and resets are rate-limited, locked after failures, generic a
   assert.match(otp, /recordSignIn\(/);
   // Log in with no account says "sign up first", sign up with an existing one says "log in": both before a code is
   // sent, and only after the otpSend rate limit so the answer can't be used to sweep through numbers.
-  assert.ok(otp.indexOf('consumeAuthLimit("otpSend"') < otp.indexOf("accountFor("), "account check is rate-limited");
-  assert.ok(otp.indexOf("accountFor(") < otp.indexOf("signInWithOtp("), "account check comes before any code is sent");
+  assert.match(otp, /consumeAuthLimit\("otpSend"[\s\S]*?accountProblem\(request, create[\s\S]*?signInWithOtp\(/, "account check is rate-limited and comes before any code is sent");
   assert.match(otp, /"NO_ACCOUNT"/);
   assert.match(otp, /"ACCOUNT_EXISTS"/);
+  // The phone app asks first ("check") before its own SMS, email or password sign-in, under the login rate limit.
+  assert.match(otp, /action === "check"[\s\S]*?consumeAuthLimit\("login"[\s\S]*?accountProblem\(/);
+  const mobileAuth = read("apps/mobile/src/lib/auth.ts");
+  assert.ok(mobileAuth.indexOf("await checkAccount(target, options.create)") < mobileAuth.indexOf("supabase.auth.signInWithOtp("), "mobile checks before sending a code");
+  assert.match(mobileAuth, /signInWithPassword\(email: string, password: string\) \{\n  await checkAccount\(/);
 
   const login = read("src/app/api/auth/login/route.ts");
   assert.match(login, /consumeAuthLimit\("login"/);

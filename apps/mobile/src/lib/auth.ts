@@ -23,6 +23,49 @@ function friendly(message: string, phone = false) {
   return message;
 }
 
+/**
+ * Told before any code is sent: NO_ACCOUNT (log in with an email or phone that has no account: "sign up first") or
+ * ACCOUNT_EXISTS (sign up with one that has: "log in"; role is the kind of account it is, when known).
+ */
+export class AccountCheckError extends Error {
+  constructor(readonly code: "NO_ACCOUNT" | "ACCOUNT_EXISTS", readonly via: "email" | "phone", readonly role: AppRole | null = null) {
+    const t = tNow("m_auth");
+    super(code === "NO_ACCOUNT" ? t(via === "phone" ? "noAccount.phone" : "noAccount.email") : t(via === "phone" ? "exists.phone" : "exists.email"));
+  }
+}
+
+type ServerError = { code?: string; message?: string; role?: AppRole | null } | undefined;
+
+function accountCheckError(error: ServerError, via: "email" | "phone") {
+  if (error?.code === "NO_ACCOUNT" || error?.code === "ACCOUNT_EXISTS") return new AccountCheckError(error.code, via, error.role ?? null);
+  return null;
+}
+
+/**
+ * Asks the server (POST /api/auth/otp, action "check") whether this email or phone can log in, or sign up, before a
+ * code goes or a password is tried. Throws AccountCheckError, or the server's own message (say, a number another
+ * account already uses). When the server can't be reached it doesn't stand in the way: Supabase still decides.
+ */
+export async function checkAccount(target: CodeTarget, create: boolean) {
+  const via = target.kind;
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}/api/auth/otp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ action: "check", ...(target.kind === "phone" ? { phone: target.phone } : { email: target.email }), create }),
+    });
+  } catch {
+    return;
+  }
+  if (response.ok) return;
+  const body = (await response.json().catch(() => null)) as { error?: ServerError } | null;
+  const known = accountCheckError(body?.error, via);
+  if (known) throw known;
+  // Too many tries, or a number another account already uses: say so. Anything else: let Supabase decide.
+  if (response.status === 429 || body?.error?.code === "PHONE_TAKEN") throw new Error(body?.error?.message ?? tNow("m_auth")("form.sendFailed"));
+}
+
 /** How a code actually went: WhatsApp, SMS (WhatsApp off, failed, or "Send it by SMS") or email. */
 export type CodeChannel = "whatsapp" | "sms" | "email";
 
@@ -57,11 +100,13 @@ export async function sendCode(target: CodeTarget, options: { create: boolean; f
       response = null; // Can't reach the server: send by SMS straight from Supabase below.
     }
     if (response) {
-      const body = (await response.json().catch(() => null)) as { data?: { channel?: string }; error?: { message?: string } } | null;
-      if (!response.ok) throw new Error(friendly(body?.error?.message ?? tNow("m_auth")("form.sendFailed"), true));
+      const body = (await response.json().catch(() => null)) as { data?: { channel?: string }; error?: ServerError } | null;
+      if (!response.ok) throw accountCheckError(body?.error, "phone") ?? new Error(friendly(body?.error?.message ?? tNow("m_auth")("form.sendFailed"), true));
       return body?.data?.channel === "whatsapp" ? "whatsapp" : "sms";
     }
   }
+  // SMS and email codes go straight to Supabase, so ask the server first: "sign up first" or "log in instead".
+  await checkAccount(target, options.create);
   const { error } =
     target.kind === "phone"
       ? await supabase.auth.signInWithOtp({ phone: target.phone, options: { shouldCreateUser: options.create, channel: "sms", data } })
@@ -80,6 +125,7 @@ export async function verifyCode(target: CodeTarget, token: string) {
 }
 
 export async function signInWithPassword(email: string, password: string) {
+  await checkAccount({ kind: "email", email }, false);
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) throw new Error(friendly(error.message));
   return data.session;

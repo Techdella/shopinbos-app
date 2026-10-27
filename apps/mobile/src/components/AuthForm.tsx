@@ -6,7 +6,7 @@ import * as WebBrowser from "expo-web-browser";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { DEFAULT_DIAL_COUNTRY, DIAL_COUNTRIES, isValidEmail, toE164, type DialCountry } from "@shared/phone";
-import { appleSignInAvailable, explainSignupConflict, fetchWhatsAppCodes, sendCode, signInWithApple, signInWithGoogle, signInWithPassword, signOutNow, syncAccount, type CodeTarget } from "@/lib/auth";
+import { AccountCheckError, appleSignInAvailable, explainSignupConflict, fetchWhatsAppCodes, sendCode, signInWithApple, signInWithGoogle, signInWithPassword, signOutNow, syncAccount, type CodeTarget } from "@/lib/auth";
 import { BackButton, Field, Label, LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { Sub, Title } from "@/components/design";
 import { ChoiceRow, Sheet } from "@/components/Sheet";
@@ -70,6 +70,26 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState<null | "send" | "google" | "apple">(null);
   const [error, setError] = useState<string | null>(null);
+  // Told before any code is sent: "no account yet, sign up first" on log in, "already used, log in" on sign up.
+  const [nextStep, setNextStep] = useState<null | "signup" | "login">(null);
+
+  /** The words for a failed send or log in, with a Sign up / Log in button under them when that's the way forward. */
+  function showFailure(failure: unknown, fallback: string) {
+    if (failure instanceof AccountCheckError) {
+      if (failure.code === "ACCOUNT_EXISTS" && failure.role && failure.role !== role) {
+        // Another kind of account: "This number already has a supplier account. Log in, or use a different number…"
+        setError(t(failure.via === "phone" ? "conflict.phone" : "conflict.email", {
+          account: t(`conflict.account.${failure.role}`),
+          business: t(`conflict.business.${role}`),
+        }));
+      } else {
+        setError(failure.message);
+      }
+      setNextStep(failure.code === "NO_ACCOUNT" ? "signup" : "login");
+      return;
+    }
+    setError(failure instanceof Error ? failure.message : fallback);
+  }
 
   const usingPassword = mode === "login" && method === "email" && emailMode === "password";
 
@@ -87,6 +107,7 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
 
   async function submit() {
     setError(null);
+    setNextStep(null);
     if (mode === "signup" && !name.trim()) return setError(t("form.needName"));
     if (usingPassword) {
       if (!isValidEmail(email) || !password) return setError(t("form.needEmailPassword"));
@@ -95,7 +116,7 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
         await signInWithPassword(email.trim().toLowerCase(), password);
         await finish(false);
       } catch (signInError) {
-        setError(signInError instanceof Error ? signInError.message : t("form.loginFailed"));
+        showFailure(signInError, t("form.loginFailed"));
         setBusy(null);
       }
       return;
@@ -114,7 +135,7 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
       const channel = await sendCode(target, { create: mode === "signup", fullName: name, role });
       router.push({ pathname: "/verify", params: { target: JSON.stringify(target), mode, name: name.trim(), role, channel } });
     } catch (sendError) {
-      setError(sendError instanceof Error ? sendError.message : t("form.sendFailed"));
+      showFailure(sendError, t("form.sendFailed"));
     } finally {
       setBusy(null);
     }
@@ -232,6 +253,15 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
             </View>
           )}
           {error && <Notice>{error}</Notice>}
+          {error && nextStep && (
+            <PillButton
+              tone="white"
+              size="md"
+              title={nextStep === "signup" ? t("noAccount.signUp") : t("form.logIn")}
+              testID={nextStep === "signup" ? "no-account-signup" : "exists-login"}
+              onPress={() => (nextStep === "signup" ? router.replace({ pathname: "/welcome", params: { step: "role" } }) : router.replace("/login"))}
+            />
+          )}
           <LinkButton title={t("other.link")} color={colors.inkSoft} onPress={() => setOthers(true)} testID="other-ways" />
           {mode === "login" ? (
             // New here: sign up. Riders have no business account: their own sign-in (phone + the company's code).
