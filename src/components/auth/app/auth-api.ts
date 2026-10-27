@@ -2,7 +2,8 @@
 
 import type { AuthRole } from "@/lib/brand";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
-import { friendlyError } from "@/lib/errors/report-client";
+import { friendlyError, reportClientError } from "@/lib/errors/report-client";
+import { FRIENDLY_TEXT } from "@/lib/errors/friendly";
 
 export type SignupRole = Exclude<AuthRole, "admin">;
 
@@ -114,16 +115,45 @@ export async function hasSession() {
   return Boolean(data.session);
 }
 
+/** True when this browser refuses to keep cookies for the site (blocked cookies/site data), so no session can stick. */
+function cookiesBlocked() {
+  try {
+    if (!navigator.cookieEnabled) return true;
+    document.cookie = "sib_cookie_probe=1; path=/; SameSite=Lax";
+    const kept = document.cookie.includes("sib_cookie_probe=1");
+    document.cookie = "sib_cookie_probe=; path=/; max-age=0";
+    return !kept;
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * Just signed in: waits briefly for the session cookie to land. If it never does because the browser throws cookies
+ * away, every page would send them back to log in (a code that "works" but loops), so throw words saying how to fix
+ * it instead. Other reasons for a missing session are left to the pages, as before.
+ */
+export async function ensureSessionSaved() {
+  if (await waitForSession()) return;
+  if (!cookiesBlocked()) return;
+  reportClientError(new Error("Signed in, but the browser blocks cookies, so the session was not saved"), { source: "shown", shown: FRIENDLY_TEXT.storage });
+  throw new Error(FRIENDLY_TEXT.storage);
+}
+
+async function waitForSession() {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) return true;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const { data } = await supabase.auth.getSession();
+    if (data.session) return true;
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
+  return false;
+}
+
 /** Waits briefly for the auth cookie to land before a full navigation, so the server sees the session. */
 export async function navigateAfterAuth(url: string) {
-  const supabase = getSupabaseBrowserClient();
-  if (supabase) {
-    for (let attempt = 0; attempt < 5; attempt++) {
-      const { data } = await supabase.auth.getSession();
-      if (data.session) break;
-      await new Promise((resolve) => setTimeout(resolve, 200));
-    }
-  }
+  await waitForSession();
   window.location.href = url;
 }
 

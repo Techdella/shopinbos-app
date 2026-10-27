@@ -56,20 +56,28 @@ export async function enroll(rule: Rule, contact: EnrollContact, context: Record
   const email = normalizeEmail(contact.email);
   const phone = normalizePhone(contact.phone);
   if (!email && !phone) return null;
-  const enrollment = await db.automationEnrollment
-    .create({
-      data: {
-        storeId: rule.storeId,
-        automationId: rule.id,
-        dedupeKey: dedupeKey.slice(0, 200),
-        email,
-        phone,
-        name: contact.name?.trim() || null,
-        context: context as Prisma.InputJsonValue,
-        nextRunAt: new Date(),
-      },
+  // unique (automationId, dedupeKey): already enrolled → no row back. skipDuplicates (ON CONFLICT DO NOTHING) rather
+  // than catching the error, which Prisma would still log as prisma:error on every cron sweep.
+  const [enrollment] = await db.automationEnrollment
+    .createManyAndReturn({
+      data: [
+        {
+          storeId: rule.storeId,
+          automationId: rule.id,
+          dedupeKey: dedupeKey.slice(0, 200),
+          email,
+          phone,
+          name: contact.name?.trim() || null,
+          context: context as Prisma.InputJsonValue,
+          nextRunAt: new Date(),
+        },
+      ],
+      skipDuplicates: true,
     })
-    .catch(() => null); // unique (automationId, dedupeKey): already enrolled
+    .catch((error) => {
+      console.error("[automations] enroll failed", error);
+      return [];
+    });
   if (!enrollment) return null;
   await Promise.all([
     log(enrollment, 0, "enrolled", "ok", "Started the flow", email ?? phone),
