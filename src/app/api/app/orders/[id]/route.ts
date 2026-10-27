@@ -7,9 +7,13 @@ import { OrderStatusUpdateSchema, updateOrderStatus } from "@/lib/orders/update-
 import { sellerPartsView } from "@/lib/supplier-orders/parts.server";
 import { storeUrl } from "@/lib/marketing/brand";
 import { withItemCodes } from "@/lib/products/short-code.server";
+import { orderHasPreorder, orderPreorderShipsOn } from "@shared/preorder";
 
 // `trackingUrl`: the customer's own order page on the storefront (/order/<order id>, an unguessable cuid, never the
-// order number), which the phone's "Share tracking" sends.
+// order number), which the phone's "Share tracking" sends. `preorder`: { shipsOn } when a line was preordered (lines
+// carry { preorder: true, shipsOn }; shared/preorder.ts), else null, for the phone's Preorder pill.
+
+const preorderOf = (items: unknown) => (orderHasPreorder(items) ? { shipsOn: orderPreorderShipsOn(items) } : null);
 
 export const GET = withSeller(async (req, { user, params }) => {
   const { id } = await params;
@@ -32,7 +36,7 @@ export const GET = withSeller(async (req, { user, params }) => {
   const row = orderRow({ ...order, total: Number(order.total) });
   // Each line with its product's short code (BAG2), as the seller says it on lives and Status.
   const items = await withItemCodes(store.id, Array.isArray(order.items) ? (order.items as Array<{ productId?: unknown }>) : []);
-  return ok({ ...order, items, supplierOrders, parts, row: parts?.stage ? { ...row, stage: parts.stage } : row, trackingUrl: storeUrl(store, `/order/${order.id}`) });
+  return ok({ ...order, items, preorder: preorderOf(order.items), supplierOrders, parts, row: parts?.stage ? { ...row, stage: parts.stage } : row, trackingUrl: storeUrl(store, `/order/${order.id}`) });
 });
 
 export const PATCH = withSeller(async (req, { user, params }) => {
@@ -55,5 +59,5 @@ export const PATCH = withSeller(async (req, { user, params }) => {
 
   const row = orderRow({ ...updated, total: Number(updated.total) });
   const items = await withItemCodes(store.id, Array.isArray(updated.items) ? (updated.items as Array<{ productId?: unknown }>) : []);
-  return ok({ ...updated, items, parts, row: parts?.stage ? { ...row, stage: parts.stage } : row, trackingUrl: storeUrl(store, `/order/${updated.id}`) });
+  return ok({ ...updated, items, preorder: preorderOf(updated.items), parts, row: parts?.stage ? { ...row, stage: parts.stage } : row, trackingUrl: storeUrl(store, `/order/${updated.id}`) });
 });

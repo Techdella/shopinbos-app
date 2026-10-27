@@ -3,18 +3,21 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   DEFAULT_SOUND_PREFS,
+  LAST_TRACK_KEY,
   MUSIC_LEVEL,
   MUSIC_UNDER_VOICE,
   browserVoiceLang,
   narrationText,
   parseSoundPrefs,
+  introTrackPath,
   pickBrowserVoice,
+  pickIntroTrack,
   type IntroSoundPrefs,
 } from "@shared/intro-narration";
 
 // Sound for the 60-second intro: the narrator reads each scene (a stored clip from /api/learn/narration, or the
-// browser's own voice when that service is off) over soft music made in the browser (src/lib/video/music.ts), which
-// dips while the narrator speaks. `voiceBusy` is true while a scene's line is loading or being read, so the intro
+// browser's own voice when that service is off) over a track from the tips' Afrobeats collection (INTRO_TRACKS in
+// shared/intro-narration.ts, served from public/audio/tips), which dips while the narrator speaks. `voiceBusy` is true while a scene's line is loading or being read, so the intro
 // waits for the narrator before moving on. Browsers only start sound after a tap: when the intro opened by itself,
 // `needsTap` asks for one. The on/off choices are kept on this device.
 
@@ -34,6 +37,23 @@ function readPrefs(): IntroSoundPrefs {
   }
 }
 
+/** This intro's track: not the one the last intro played on this device. */
+function nextTrack(): string {
+  let previous: string | null = null;
+  try {
+    previous = window.localStorage.getItem(LAST_TRACK_KEY);
+  } catch {
+    // No storage: any track will do.
+  }
+  const id = pickIntroTrack(previous, Math.random());
+  try {
+    window.localStorage.setItem(LAST_TRACK_KEY, id);
+  } catch {
+    // Private mode.
+  }
+  return introTrackPath(id);
+}
+
 function savePrefs(prefs: IntroSoundPrefs) {
   try {
     window.localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
@@ -44,7 +64,7 @@ function savePrefs(prefs: IntroSoundPrefs) {
 
 type Clip = { url: string } | { browser: true } | { none: true };
 
-export function useIntroSound({ introKey, scenes, locale, totalMs }: { introKey: string; scenes: Scene[]; locale: string; totalMs: number }) {
+export function useIntroSound({ introKey, scenes, locale }: { introKey: string; scenes: Scene[]; locale: string }) {
   const [prefs, setPrefs] = useState<IntroSoundPrefs>(DEFAULT_SOUND_PREFS);
   const [voiceBusy, setVoiceBusy] = useState(false);
   const [needsTap, setNeedsTap] = useState(false);
@@ -108,24 +128,26 @@ export function useIntroSound({ introKey, scenes, locale, totalMs }: { introKey:
     if (!ctx) return;
     musicLoading.current = (async () => {
       try {
-        const { renderMusic } = await import("@/lib/video/music");
-        // Long enough for the intro, its waits for the narrator and the recap; it fades out by itself at the end.
-        const buffer = await renderMusic("chill", Math.min(180, Math.round(totalMs / 1000) + 40), 5);
+        const response = await fetch(nextTrack());
+        if (!response.ok) return;
+        const buffer = await ctx.decodeAudioData(await response.arrayBuffer());
         if (disposed.current || musicSource.current || !musicGain.current) return;
         const source = ctx.createBufferSource();
         source.buffer = buffer;
+        // The intro can outlast a short track while it waits for the narrator: loop it until the recap fades it out.
+        source.loop = true;
         source.connect(musicGain.current);
         source.start();
         musicSource.current = source;
         setMusicLevel(musicTarget(Boolean(audioRef.current && !audioRef.current.paused) || (typeof speechSynthesis !== "undefined" && speechSynthesis.speaking)), 1.2);
       } catch {
-        // No Web Audio (old browser): the intro plays without music.
+        // No Web Audio (old browser) or the track didn't load: the intro plays without music.
       } finally {
         musicLoading.current = null;
       }
     })();
     await musicLoading.current;
-  }, [context, musicTarget, setMusicLevel, totalMs]);
+  }, [context, musicTarget, setMusicLevel]);
 
   const stopMusic = useCallback((fadeSeconds = 1.5) => {
     const source = musicSource.current;

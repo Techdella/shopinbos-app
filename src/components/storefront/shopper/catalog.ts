@@ -2,6 +2,7 @@
 
 import { isColourOption, normalizeVariants, totalVariantStock } from "../../../../shared/product-variants.ts";
 import { listingSoldOut, type ShopperStock } from "../../../../shared/product-stock.ts";
+import type { PreorderState } from "../../../../shared/preorder.ts";
 
 export interface ShopperVariant {
   id?: string;
@@ -36,6 +37,8 @@ export interface ShopperProduct {
   supplierProduct?: { stockQuantity?: number | null } | null;
   /** Tracked stock (shared/product-stock.ts forShoppers); null or absent when the seller doesn't track it. */
   stock?: ShopperStock | null;
+  /** Taking preorders (shared/preorder.ts forShoppers); null when not. */
+  preorder?: PreorderState | null;
 }
 
 export function readVariants(value: unknown): ShopperVariant[] {
@@ -109,15 +112,18 @@ export function unitsLeft(product: Pick<ShopperProduct, "variants" | "supplierPr
 }
 
 /** "Only 3 left" only when stock is tracked and genuinely low (the seller's low-stock level, else 5). */
-export function lowStockLabel(product: Pick<ShopperProduct, "variants" | "supplierProduct" | "stock">) {
+export function lowStockLabel(product: Pick<ShopperProduct, "variants" | "supplierProduct" | "stock" | "preorder">) {
+  // Taking preorders: the card says so instead of a stock line.
+  if (product.preorder?.on) return product.preorder.open ? "Preorder" : null;
   const left = unitsLeft(product);
   const lowAt = product.stock?.lowAt ?? 5;
   return left !== null && left > 0 && left <= lowAt ? `Only ${left} left` : null;
 }
 
-/** A card's "Sold out" badge: tracked stock (or the supplier's for dropship) at 0, with no backorders. */
-export function soldOutLabel(product: Pick<ShopperProduct, "supplierProduct" | "stock">) {
-  return listingSoldOut(product) ? "Sold out" : null;
+/** A card's "Sold out" badge: tracked stock (or the supplier's for dropship) at 0, with no backorders; full preorders. */
+export function soldOutLabel(product: Pick<ShopperProduct, "supplierProduct" | "stock" | "preorder">) {
+  if (!listingSoldOut(product)) return null;
+  return product.preorder?.on ? "Preorders full" : "Sold out";
 }
 
 export function productColours(product: Pick<ShopperProduct, "variants">) {

@@ -56,6 +56,7 @@ function availabilityOf(data: ProductPageData): ProductAvailability {
   const { product } = data;
   const variants = normalizeVariants(product.variants).filter((variant) => variant.enabled);
   const tracked = variants.filter((variant) => variant.stock !== null);
+  if (product.preorder?.on) return product.preorder.open ? "PreOrder" : "OutOfStock";
   if (listingSoldOut(product)) return "OutOfStock";
   const versionsLeft = tracked.length ? tracked.some((variant) => (variant.stock ?? 0) > 0) : true;
   // Tracked stock at 0 that keeps selling is a back order: it ships when more arrives.

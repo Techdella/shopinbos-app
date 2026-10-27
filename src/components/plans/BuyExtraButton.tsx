@@ -55,7 +55,7 @@ export function BuyExtraButton({
         type="button"
         onClick={buy}
         disabled={busy || disabled}
-        className={cx("inline-flex min-h-[44px] items-center justify-center rounded-full bg-app-ink px-5 text-[14px] font-extrabold text-white transition hover:bg-black disabled:opacity-55", className)}
+        className={cx("inline-flex min-h-[44px] items-center justify-center rounded-full bg-app-ink px-5 text-[14px] font-bold text-white transition hover:bg-black disabled:opacity-55", className)}
       >
         {busy ? t("ex.opening") : label}
       </button>

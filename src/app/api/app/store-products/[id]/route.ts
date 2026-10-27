@@ -9,6 +9,7 @@ import { productTypeKey, readProductDetails } from "@shared/product-types";
 import { normalizeVariants, readVariantOptions } from "@shared/product-variants";
 import { storefrontProductUrl } from "@shared/product-codes";
 import { storeUrl } from "@/lib/marketing/brand";
+import { preorderDay, preorderState } from "@shared/preorder";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,9 @@ export const dynamic = "force-dynamic";
 // (variantOptions + variantRows) so the phone can add or remove sizes and colours (saved as variants + variantOptions).
 // Saving and archiving go to PATCH / DELETE /api/store/products/[id], the same route and rules as the web form;
 // pausing a dropship product goes to POST /api/mobile/dropship. Auth: Bearer (or the web session), role seller.
+// Preorders (shared/preorder.ts): `preorder` { enabled, shipsOn (YYYY-MM-DD), limit, taken, note } for the form (saved
+// as `preorder` through PATCH /api/store/products/[id]); dropship products can't take their own, so they carry the
+// supplier's instead (`dropship.preorder`, a preorder state: ship date, places left, promise).
 
 export const GET = withSeller(async (_req: NextRequest, { user, params }: { user: AuthUser; params: { id: string } }) => {
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, slug: true, customDomain: true } });
@@ -67,19 +71,26 @@ export const GET = withSeller(async (_req: NextRequest, { user, params }: { user
       categoryId: true,
       category: { select: { id: true, name: true } },
       updatedAt: true,
+      fulfillmentType: true,
+      preorderEnabled: true,
+      preorderShipsAt: true,
+      preorderLimit: true,
+      preorderTaken: true,
+      preorderNote: true,
       dropship: {
         select: {
           id: true,
           status: true,
           supplier: { select: { userId: true, displayName: true, city: true } },
-          supplierProduct: { select: { wholesalePrice: true, stockQuantity: true } },
+          supplierProduct: { select: { wholesalePrice: true, stockQuantity: true, preorderEnabled: true, preorderShipsAt: true, preorderLimit: true, preorderTaken: true, preorderNote: true } },
         },
       },
     },
   });
   if (!product || product.status === "archived") return apiError("NOT_FOUND", "That product couldn't be found.", 404);
 
-  const { dropship, variants, variantOptions, productType, productDetails, ...rest } = product;
+  const { dropship, variants, variantOptions, productType, productDetails, preorderEnabled, preorderShipsAt, preorderLimit, preorderTaken, preorderNote, ...rest } = product;
+  const supplierListing = dropship?.supplierProduct;
   const variantRows = normalizeVariants(variants).map(({ sourceIndex: _sourceIndex, ...row }) => row);
   return ok({
     ...rest,
@@ -92,6 +103,7 @@ export const GET = withSeller(async (_req: NextRequest, { user, params }: { user
     variants: editableVariantRows(variants),
     productType: productTypeKey(productType),
     productDetails: readProductDetails(productDetails),
+    preorder: { enabled: preorderEnabled, shipsOn: preorderDay(preorderShipsAt), limit: preorderLimit, taken: preorderTaken, note: preorderNote },
     dropship: dropship
       ? {
           relationshipId: dropship.id,
@@ -100,6 +112,10 @@ export const GET = withSeller(async (_req: NextRequest, { user, params }: { user
           cost: dropship.supplierProduct.wholesalePrice,
           supplierStock: dropship.supplierProduct.stockQuantity,
           sale: saleBreakdown(product.retailPrice, dropship.supplierProduct.wholesalePrice),
+          // The supplier takes preorders on this listing (their date, places left and promise), or null.
+          preorder: supplierListing?.preorderEnabled
+            ? preorderState({ enabled: true, shipsAt: supplierListing.preorderShipsAt, limit: supplierListing.preorderLimit, taken: supplierListing.preorderTaken, note: supplierListing.preorderNote })
+            : null,
         }
       : null,
   });

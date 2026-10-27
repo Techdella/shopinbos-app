@@ -6,7 +6,8 @@ import { adjustVariantStock, normalizeVariants } from "@shared/product-variants"
 // Taking and giving back the stock an order holds (see stock-holds.ts). Always inside a transaction, with
 // conditional decrements, so two shoppers can't buy the last unit and an expiry can't double-restore.
 // Untracked products (hold mode "off") only count the sale; tracked ones that keep selling at 0 ("oversell") take
-// their count below 0 and their versions down to 0.
+// their count below 0 and their versions down to 0. Preorders ("preorder") take no stock: each unit takes a place
+// under the product's cap (preorderTaken, checked against preorderLimit when one is set).
 
 export class InsufficientStockError extends Error {
   constructor(name: string) {
@@ -50,6 +51,15 @@ export async function reserveStock(tx: Prisma.TransactionClient, storeId: string
   const totals = holdTotals(holds);
   const oversell = new Set<string>();
   for (const [productId, { quantity, names, mode }] of totals.store) {
+    if (mode === "preorder") {
+      const updated = await tx.$executeRaw`
+        UPDATE "StoreProduct"
+        SET "preorderTaken" = "preorderTaken" + ${quantity}, "soldStock" = "soldStock" + ${quantity}, "updatedAt" = NOW()
+        WHERE id = ${productId} AND "storeId" = ${storeId} AND status = 'published' AND "preorderEnabled" = true
+          AND ("preorderLimit" IS NULL OR "preorderTaken" + ${quantity} <= "preorderLimit")`;
+      if (updated !== 1) throw new InsufficientStockError(names.join(", "));
+      continue;
+    }
     if (mode === "off") {
       // Not tracked: only the sale counts.
       const updated = await tx.storeProduct.updateMany({ where: { id: productId, storeId, status: "published" }, data: { soldStock: { increment: quantity } } });
@@ -75,7 +85,16 @@ export async function reserveStock(tx: Prisma.TransactionClient, storeId: string
   }
   // Sizes / colours counted on their own also give their units.
   const variantsTaken = await changeVariantStock(tx, holds, -1, oversell);
-  for (const [supplierProductId, { quantity, names }] of totals.supplier) {
+  for (const [supplierProductId, { quantity, names, preorder }] of totals.supplier) {
+    if (preorder) {
+      // Dropship preorder: a place under the supplier's cap, no stock (shared/preorder.ts).
+      const placed = await tx.$executeRaw`
+        UPDATE "SupplierProduct" SET "preorderTaken" = "preorderTaken" + ${quantity}, "updatedAt" = NOW()
+        WHERE id = ${supplierProductId} AND status = 'published' AND "preorderEnabled" = true
+          AND ("preorderLimit" IS NULL OR "preorderTaken" + ${quantity} <= "preorderLimit")`;
+      if (placed !== 1) throw new InsufficientStockError(names.join(", "));
+      continue;
+    }
     const updated = await tx.supplierProduct.updateMany({
       where: { id: supplierProductId, status: "published", stockQuantity: { gte: quantity } },
       data: { stockQuantity: { decrement: quantity } },
@@ -116,12 +135,14 @@ function holdsAsTaken(holds: StockHold[], taken: Map<string, Map<string, number>
 export async function releaseStock(tx: Prisma.TransactionClient, holds: StockHold[]) {
   const totals = holdTotals(holds);
   for (const [productId, { quantity, mode }] of totals.store) {
-    if (mode !== "off") await tx.storeProduct.updateMany({ where: { id: productId }, data: { currentStock: { increment: quantity } } });
+    if (mode === "preorder") await tx.storeProduct.updateMany({ where: { id: productId, preorderTaken: { gte: quantity } }, data: { preorderTaken: { decrement: quantity } } });
+    else if (mode !== "off") await tx.storeProduct.updateMany({ where: { id: productId }, data: { currentStock: { increment: quantity } } });
     await tx.storeProduct.updateMany({ where: { id: productId, soldStock: { gte: quantity } }, data: { soldStock: { decrement: quantity } } });
   }
   await changeVariantStock(tx, holds, 1);
-  for (const [supplierProductId, { quantity }] of totals.supplier) {
-    await tx.supplierProduct.updateMany({ where: { id: supplierProductId }, data: { stockQuantity: { increment: quantity } } });
+  for (const [supplierProductId, { quantity, preorder }] of totals.supplier) {
+    if (preorder) await tx.supplierProduct.updateMany({ where: { id: supplierProductId, preorderTaken: { gte: quantity } }, data: { preorderTaken: { decrement: quantity } } });
+    else await tx.supplierProduct.updateMany({ where: { id: supplierProductId }, data: { stockQuantity: { increment: quantity } } });
   }
   for (const hold of holds) {
     if (hold.source !== "supplier") continue;

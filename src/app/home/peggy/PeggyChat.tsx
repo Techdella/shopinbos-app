@@ -152,7 +152,7 @@ export function PeggyChat({ greeting, initialAsk, suggestions, stats }: { greeti
               type="button"
               onClick={newChat}
               disabled={busy}
-              className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-app-line bg-white px-3.5 text-[13px] font-extrabold text-app-ink hover:border-app-line-strong disabled:opacity-50"
+              className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-app-line bg-white px-3.5 text-[13px] font-bold text-app-ink hover:border-app-line-strong disabled:opacity-50"
             >
               <Icon name="plus" size={13} /> {t("newChat")}
             </button>
@@ -170,7 +170,7 @@ export function PeggyChat({ greeting, initialAsk, suggestions, stats }: { greeti
                     type="button"
                     onClick={() => void send(suggestion)}
                     disabled={busy}
-                    className="min-h-[40px] rounded-full border border-app-line bg-white px-4 text-left text-[13.5px] font-bold text-app-ink hover:border-app-line-strong disabled:opacity-50"
+                    className="min-h-[40px] whitespace-normal rounded-[20px] border border-app-line bg-white px-4 py-2 text-left text-[13.5px] font-bold leading-snug text-app-ink hover:border-app-line-strong disabled:opacity-50"
                   >
                     {suggestion}
                   </button>

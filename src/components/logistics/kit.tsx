@@ -245,7 +245,7 @@ export function SubmitButton({ tone = "ink", size = "md", children, className, .
     <button
       type="submit"
       className={[
-        "inline-flex shrink-0 items-center justify-center gap-2 rounded-full font-extrabold transition disabled:cursor-not-allowed disabled:opacity-55",
+        "inline-flex shrink-0 items-center justify-center gap-2 rounded-full font-bold transition disabled:cursor-not-allowed disabled:opacity-55",
         size === "sm" ? "min-h-[40px] px-4 text-[15px]" : "min-h-[44px] px-5 text-[15px]",
         BUTTON[tone],
         className ?? "",

@@ -7,6 +7,7 @@ import type { AuthUser } from "@/lib/auth/types";
 import { markCatalogDirty } from "@/lib/whatsapp-catalog/dirty";
 import { productFieldsData } from "@/lib/products/save-fields.server";
 import { stockTrackingFor } from "@shared/product-stock";
+import { parsePreorderInput, preorderSaveData } from "@shared/preorder";
 import { isShortCodeClash } from "@shared/product-codes";
 
 async function getOwnedProduct(productId: string, userId: string) {
@@ -42,7 +43,7 @@ export const PATCH = withSeller(async (
   // The update schema is the create schema made partial, and Zod still fills in defaults (images: [],
   // faqs: []...) for missing keys. Only apply the fields the client actually sent.
   const sent = new Set(body && typeof body === "object" ? Object.keys(body) : []);
-  const { costPrice, retailPrice, productType, productDetails, relatedProductIds, variants, variantOptions, variantUpdates, ...rest } = Object.fromEntries(
+  const { costPrice, retailPrice, productType, productDetails, relatedProductIds, variants, variantOptions, variantUpdates, preorder, ...rest } = Object.fromEntries(
     Object.entries(parsed.data).filter(([key]) => sent.has(key)),
   ) as typeof parsed.data;
 
@@ -53,6 +54,12 @@ export const PATCH = withSeller(async (
     { id: product.id, variants: product.variants, variantOptions: product.variantOptions, inventoryType: rest.inventoryType ?? product.inventoryType },
   );
   if (!fields.ok) return apiError("BAD_REQUEST", fields.error);
+
+  // Preorders: a real ship date and cap; never on dropship products (they sell the supplier's stock).
+  const preorderParsed = preorder ? parsePreorderInput(preorder, new Date(), product.preorderShipsAt) : null;
+  if (preorderParsed && !preorderParsed.ok) return apiError("BAD_REQUEST", preorderParsed.message);
+  const dropship = (rest.fulfillmentType ?? product.fulfillmentType) === "dropship" || (rest.inventoryType ?? product.inventoryType) === "dropshipping";
+  const preorderData = preorderParsed?.ok ? preorderSaveData(preorderParsed.value, { dropship, wasEnabled: product.preorderEnabled }) : dropship && product.preorderEnabled ? { preorderEnabled: false } : {};
 
   const effectiveCost = costPrice ?? product.costPrice;
   const effectivePrice = retailPrice ?? product.retailPrice;
@@ -74,6 +81,7 @@ export const PATCH = withSeller(async (
         ...rest,
         ...fields.data,
         ...(trackStock !== undefined ? { trackStock } : {}),
+        ...preorderData,
         ...(costPrice !== undefined ? { costPrice } : {}),
         ...(retailPrice !== undefined ? { retailPrice } : {}),
         ...(margin !== undefined ? { margin } : {}),

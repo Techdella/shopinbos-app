@@ -21,8 +21,9 @@ import { readDeliveryPlan } from "@shared/delivery-market";
 import { DeliveryPlanCard } from "./DeliveryPlanCard";
 import { shortCodesById } from "@/lib/products/short-code.server";
 import { ProductCodeBadge } from "@/components/products/ProductCodeBadge";
+import { orderHasPreorder, orderPreorderShipsOn } from "@shared/preorder";
 
-type OrderItem = { name?: string; title?: string; quantity?: number; price?: number; image?: string | null; variant?: string; productId?: string };
+type OrderItem = { name?: string; title?: string; quantity?: number; price?: number; image?: string | null; variant?: string; productId?: string; preorder?: boolean; shipsOn?: string | null };
 
 /** Each parcel's state (shared/order-parts.ts). */
 const PART_TONE: Record<string, "accent" | "info" | "warning" | "success" | "muted" | "danger"> = {
@@ -69,6 +70,7 @@ export default async function OrderDetailPage({ params, searchParams }: { params
   });
 
   const items = (Array.isArray(order.items) ? order.items : []) as OrderItem[];
+  const preorderShipsOn = orderPreorderShipsOn(order.items);
   // Suppliers behind the products on this order (dropshipped or bought wholesale), to message about it.
   const itemProductIds = [...new Set(items.map((item) => item.productId).filter((value): value is string => typeof value === "string"))];
   // Each line's product short code (BAG2), as the seller says it on lives and Status.
@@ -133,6 +135,10 @@ export default async function OrderDetailPage({ params, searchParams }: { params
         <StageDot tone={row.stage.tone}>{stageLabel}</StageDot>
         {parts?.line && parts.line !== row.stage.label && <Pill tone={parts.sent === parts.total ? "success" : "info"}>{parts.line}</Pill>}
         <Pill tone={row.payment.tone}>{paymentLabel}</Pill>
+        {/* Preorder lines ship from the date the seller gave (shared/preorder.ts). */}
+        {orderHasPreorder(order.items) && (
+          <Pill tone="warning">{preorderShipsOn ? t("detail.preorderShips", { date: formatDate(new Date(`${preorderShipsOn}T12:00:00Z`), locale) }) : t("detail.preorder")}</Pill>
+        )}
         {channel && <span className="text-[13.5px] text-app-ink-soft">{t("detail.from", { channel })}</span>}
       </div>
 
@@ -158,6 +164,7 @@ export default async function OrderDetailPage({ params, searchParams }: { params
                         <div className="flex min-w-0 items-start gap-2 sm:items-center">
                           <span className="line-clamp-2 min-w-0 break-words text-[15px] font-bold leading-[1.3] sm:line-clamp-1">{name}</span>
                           {item.productId && itemCodes[item.productId] ? <ProductCodeBadge code={itemCodes[item.productId]!} /> : null}
+                          {item.preorder ? <Pill tone="warning">{t("detail.preorder")}</Pill> : null}
                         </div>
                         <div className="text-[13px] text-app-ink-soft">
                           {/* Newer orders name the size / colour in the item name ("Ankara dress · L / Red"). */}

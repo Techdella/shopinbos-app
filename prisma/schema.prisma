@@ -740,6 +740,13 @@ model SupplierProduct {
   familyKey             String?
   /// Sizes and colours the supplier has: [{ size?, color? }]. Empty = one kind only.
   variants              Json          @default("[]")
+  /// Preorders (shared/preorder.ts): shops order stock before it arrives; the supplier ships from preorderShipsAt.
+  /// Preorder bulk orders take no stockQuantity; they count against preorderLimit through preorderTaken.
+  preorderEnabled       Boolean       @default(false)
+  preorderShipsAt       DateTime?
+  preorderLimit         Int?
+  preorderTaken         Int           @default(0)
+  preorderNote          String?
   status                ProductStatus @default(draft)
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
@@ -826,6 +833,14 @@ model StoreProduct {
   trackStock             Boolean    @default(false)
   // Tracked products only: keep selling at 0 (backorder); the count may then go below zero.
   continueSellingWhenOut Boolean    @default(false)
+  // Preorders (shared/preorder.ts): shoppers order before the stock arrives; the seller ships from preorderShipsAt.
+  // While on, checkout takes no stock: each unit counts against preorderLimit (if set) through preorderTaken, and
+  // an unpaid order that expires gives it back. Paid like any order: Shopinbos never holds the money.
+  preorderEnabled        Boolean    @default(false)
+  preorderShipsAt        DateTime?
+  preorderLimit          Int?
+  preorderTaken          Int        @default(0)
+  preorderNote           String?
 
   // Product page builder
   // Per-product page settings: { override: true, layout?, buyBox?, sections? } overrides the store's product page
@@ -981,6 +996,8 @@ model WholesaleOrder {
   acceptBy          DateTime?   // the supplier must accept by then, or it is cancelled (expiredAt set)
   acceptReminderAt  DateTime?   // "1 hour left" reminder sent
   expiredAt         DateTime?   // ran out of time without an answer (status cancelled)
+  preorder          Boolean     @default(false) // stock ordered before it arrives (SupplierProduct.preorderEnabled)
+  preorderShipsAt   DateTime?   // the ship date the supplier gave when it was ordered
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
 

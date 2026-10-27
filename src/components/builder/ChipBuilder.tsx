@@ -938,7 +938,7 @@ export function ChipBuilder({ userName, userAvatarUrl = null, existingStore, sel
                           key={s}
                           type="button"
                           onClick={() => sendMessage(s)}
-                          className="min-h-[36px] rounded-full border border-app-line bg-white px-3.5 text-[13px] font-bold transition hover:border-app-ink"
+                          className="min-h-[36px] whitespace-normal rounded-[18px] border border-app-line bg-white px-3.5 py-1.5 text-left text-[13px] font-bold leading-snug transition hover:border-app-ink"
                         >
                           {s}
                         </button>
@@ -1138,7 +1138,7 @@ export function ChipBuilder({ userName, userAvatarUrl = null, existingStore, sel
           <button
             type="button"
             onClick={() => setMobilePreview(true)}
-            className="fixed bottom-4 right-4 z-20 inline-flex min-h-[44px] items-center gap-2 rounded-full bg-app-ink px-4 text-[14px] font-extrabold text-white shadow-[0_12px_30px_-10px_rgba(22,20,31,0.5)] lg:hidden"
+            className="fixed bottom-4 right-4 z-20 inline-flex min-h-[44px] items-center gap-2 rounded-full bg-app-ink px-4 text-[14px] font-bold text-white shadow-[0_12px_30px_-10px_rgba(22,20,31,0.5)] lg:hidden"
           >
             <Icon name="eye" size={16} /> {t("chip.preview")}
           </button>

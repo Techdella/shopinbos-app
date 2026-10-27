@@ -147,7 +147,7 @@ export function EmptyPartners({ role, compact = false }: { role: PartnerRole; co
             key={link.href}
             href={link.href}
             className={cx(
-              "inline-flex min-h-[40px] items-center gap-1.5 rounded-full px-4 text-[13.5px] font-extrabold no-underline transition",
+              "inline-flex min-h-[40px] items-center gap-1.5 rounded-full px-4 text-[13.5px] font-bold no-underline transition",
               index === 0 ? "bg-app-ink text-white hover:bg-black" : "border border-app-line bg-white text-app-ink hover:border-app-line-strong",
             )}
           >

@@ -28,7 +28,7 @@ function SubmitButton() {
   const { pending } = useFormStatus();
   const t = useT("marketplace");
   return (
-    <button type="submit" disabled={pending} className="inline-flex min-h-[48px] w-full shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-app-ink px-6 text-[15px] font-extrabold text-white hover:bg-black disabled:opacity-60 sm:w-auto">
+    <button type="submit" disabled={pending} className="inline-flex min-h-[48px] w-full shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-app-ink px-6 text-[15px] font-bold text-white hover:bg-black disabled:opacity-60 sm:w-auto">
       <Icon name="send" size={16} /> {pending ? t("find.china.sending") : t("find.china.submit")}
     </button>
   );
@@ -74,7 +74,7 @@ export function ChinaImportForm({ examples, error, focusPhoto }: { examples: str
             unsupported ? "border-app-danger" : "border-app-line",
           )}
         />
-        <label className="inline-flex min-h-[48px] cursor-pointer items-center justify-center gap-2 rounded-full border border-app-line bg-white px-4 text-[14.5px] font-extrabold hover:border-app-line-strong has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-app-ink/30">
+        <label className="inline-flex min-h-[48px] cursor-pointer items-center justify-center gap-2 rounded-full border border-app-line bg-white px-4 text-[14.5px] font-bold hover:border-app-line-strong has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-app-ink/30">
           <Icon name="image" size={16} /> {t("find.china.photo")}
           <input
             ref={fileRef}
@@ -175,7 +175,7 @@ export function ChinaImportForm({ examples, error, focusPhoto }: { examples: str
               setQuery(example);
               inputRef.current?.focus();
             }}
-            className="inline-flex min-h-[34px] items-center rounded-full bg-app-canvas px-3.5 text-[13px] font-extrabold hover:bg-app-line"
+            className="inline-flex min-h-[34px] items-center whitespace-normal rounded-[18px] bg-app-canvas px-3.5 py-1.5 text-left text-[13px] font-extrabold leading-snug hover:bg-app-line"
           >
             {example}
           </button>

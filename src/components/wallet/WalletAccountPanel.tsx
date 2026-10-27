@@ -162,7 +162,7 @@ function BusinessForm<V>({ onDone }: { onDone: (view: V) => void }) {
         </label>
       </div>
       <p className="m-0 text-[12px] text-app-ink-soft">We check it with CAC. Your name has to be on the business&apos;s CAC record (verify your NIN first if your account name is different).</p>
-      <button type="submit" disabled={pending} className="inline-flex min-h-[42px] w-fit items-center rounded-full bg-app-accent px-5 text-[14px] font-extrabold text-white disabled:opacity-60">{pending ? "Checking with CAC…" : "Check my business"}</button>
+      <button type="submit" disabled={pending} className="inline-flex min-h-[42px] w-fit items-center rounded-full bg-app-accent px-5 text-[14px] font-bold text-white disabled:opacity-60">{pending ? "Checking with CAC…" : "Check my business"}</button>
       {note}
     </form>
   );
@@ -195,7 +195,7 @@ function NinForm<V>({ onDone }: { onDone: (view: V) => void }) {
         </label>
       </div>
       <p className="m-0 text-[12px] text-app-ink-soft">Type them exactly as on your NIN slip. We keep only the last 4 digits of your NIN; the account is opened in the name on it.</p>
-      <button type="submit" disabled={pending} className="inline-flex min-h-[42px] w-fit items-center rounded-full bg-app-accent px-5 text-[14px] font-extrabold text-white disabled:opacity-60">{pending ? "Checking…" : "Verify my NIN"}</button>
+      <button type="submit" disabled={pending} className="inline-flex min-h-[42px] w-fit items-center rounded-full bg-app-accent px-5 text-[14px] font-bold text-white disabled:opacity-60">{pending ? "Checking…" : "Verify my NIN"}</button>
       {note}
     </form>
   );

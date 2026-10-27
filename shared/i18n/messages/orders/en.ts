@@ -42,6 +42,8 @@ const en = {
   "detail.refundingAfterExpiry": "The payment came in after this order expired and its stock had sold, so it was refunded through Paystack (Paystack is still processing it).",
   "detail.expiredUnpaid": "This order expired unpaid on {date} and its stock went back on sale. If the buyer pays now it's taken again, if there's still stock.",
   "detail.from": "From {channel}",
+  "detail.preorder": "Preorder",
+  "detail.preorderShips": "Preorder · ships {date}",
   "detail.items": "Items",
   "detail.itemCount": "{count, plural, one {# item} other {# items}}",
   "detail.noItems": "No items were saved on this order.",

@@ -67,7 +67,7 @@ export function TermCard({ entry: source, onWatch, compact = false, hideWatch = 
             onWatch?.();
             openFeatureIntro(intro.key);
           }}
-          className="mt-2 inline-flex min-h-[32px] items-center gap-1.5 rounded-full px-3 text-[12.5px] font-extrabold"
+          className="mt-2 inline-flex min-h-[32px] items-center gap-1.5 rounded-full px-3 text-[12.5px] font-bold"
           style={{ background: MINT, color: NAVY }}
         >
           <svg aria-hidden width="10" height="10" viewBox="0 0 10 10"><path d="M2 1 L9 5 L2 9 Z" fill="currentColor" /></svg>

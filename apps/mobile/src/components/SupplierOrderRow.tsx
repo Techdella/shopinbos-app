@@ -3,6 +3,7 @@ import { View } from "react-native";
 import { router } from "expo-router";
 import { naira } from "@shared/onboarding";
 import { Row } from "@/components/design";
+import { PreorderPill } from "@/components/Preorder";
 import { Pic } from "@/components/SupplierKit";
 import { T } from "@/components/ui";
 import type { DropshipOrder, WholesaleOrder } from "@/lib/supplier";
@@ -12,7 +13,7 @@ import { colors } from "@/theme";
 
 // One supplier order as a row in the Orders list ("Familiar app" supplier prototype `orders`): the picture, the
 // shop over "{Dropship|Wholesale} · {item} · {status}", and on the right what you get with the town it goes to.
-// A new order also counts down the time left to accept it.
+// A new order also counts down the time left to accept it. A preorder (wholesale) shows "Preorder · 12 Dec".
 
 type AnyOrder = DropshipOrder | WholesaleOrder;
 
@@ -35,15 +36,17 @@ export function OrderRow({ order, below }: { order: AnyOrder; below?: ReactNode 
   const line = `${orderKindLabel(order.kind, t)} · ${orderItems(order)} · ${orderRowStatus(order, t)}`;
   const amount = naira(orderAmount(order));
   const city = orderCity(order);
+  const preorder = order.preorder ?? null;
   return (
     <Row
       accessibilityLabel={[order.shop, amount, city, line].filter(Boolean).join(". ")}
       lead={<Pic uri={orderImage(order)} />}
       title={order.shop}
       sub={
-        below ? (
+        below || preorder ? (
           <View style={{ gap: 6 }}>
             <T style={{ fontSize: 14, lineHeight: 19, color: colors.inkSoft }} numberOfLines={2}>{line}</T>
+            <PreorderPill preorder={preorder} />
             {below}
           </View>
         ) : (

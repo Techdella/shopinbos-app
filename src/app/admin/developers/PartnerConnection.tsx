@@ -136,7 +136,7 @@ export function ApiKeysPanel({ partnerId, keys, canCreate }: { partnerId: string
                 </div>
               </div>
               {!key.revoked && (
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   {canCreate && (
                     <PillButton size="sm" tone="white" className="min-h-[40px]" busy={busyId === `rotate:${key.id}`} onClick={() => rotate(key.id)} aria-label={`Rotate ${key.name}`}>
                       Rotate

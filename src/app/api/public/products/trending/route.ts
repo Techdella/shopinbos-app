@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { PUBLIC_PREORDER_SELECT, withPublicPreorder } from "@/lib/marketplace/public-preorder";
 import { db } from "@/lib/db/client";
 import { cachedPublic, PUBLIC_LIST_TTL_S } from "@/lib/api/public-cache";
 import { PUBLIC_LIST_CACHE, withCors, handleOptions } from "@/lib/api/cors";
@@ -37,12 +38,13 @@ export async function GET(req: NextRequest) {
         moq: true,
         dropshipAvailable: true,
         trendScore: true,
+        ...PUBLIC_PREORDER_SELECT,
         supplier: {
           select: { id: true, displayName: true, slug: true, country: true, rating: true, logoUrl: true },
         },
         category: { select: { id: true, name: true, slug: true } },
       },
-    }),
+    }).then((rows) => rows.map(withPublicPreorder)),
   );
 
   return withCors(req, okList(products, { page: 1, limit, total: products.length }), { cacheControl: PUBLIC_LIST_CACHE });

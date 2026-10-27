@@ -24,7 +24,7 @@ export function PauseButton({ relationshipId, paused, name }: { relationshipId: 
           })
         }
         aria-label={`${isPaused ? t("ds.sellAgain") : t("ds.pause")}: ${name}`}
-        className="inline-flex min-h-[40px] flex-1 items-center justify-center whitespace-nowrap rounded-full border border-app-line bg-white px-3 text-[13.5px] font-extrabold text-app-ink hover:border-app-line-strong disabled:opacity-60"
+        className="inline-flex min-h-[40px] flex-1 items-center justify-center whitespace-nowrap rounded-full border border-app-line bg-white px-3 text-[13.5px] font-bold text-app-ink hover:border-app-line-strong disabled:opacity-60"
       >
         {pending ? t("ds.saving") : isPaused ? t("ds.sellAgain") : t("ds.pause")}
       </button>

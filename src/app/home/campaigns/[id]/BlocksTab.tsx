@@ -313,7 +313,7 @@ export function BlocksTab(props: EditorProps) {
                     {!popupForm.active ? <Pill tone="warning">{t("blocks.popupOff")}</Pill> : null}
                   </span>
                 </span>
-                <Link href={`/home/marketing/forms?edit=${popupForm.id}`} className="inline-flex min-h-[38px] items-center rounded-full border border-app-line px-4 text-[13px] font-extrabold text-app-ink no-underline hover:border-app-line-strong">{t("blocks.editPopup")}</Link>
+                <Link href={`/home/marketing/forms?edit=${popupForm.id}`} className="inline-flex min-h-[38px] items-center rounded-full border border-app-line px-4 text-[13px] font-bold text-app-ink no-underline hover:border-app-line-strong">{t("blocks.editPopup")}</Link>
               </div>
             ) : (
               <Notice tone="info">{t("blocks.popupMissing")}</Notice>

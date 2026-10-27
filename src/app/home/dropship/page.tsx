@@ -79,7 +79,7 @@ export default async function SellerDropshipPage({ searchParams }: { searchParam
       title={t("ds.title")}
       sub={t("ds.sub")}
       actions={
-        <Link href="/marketplace" className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-app-accent px-5 text-[14.5px] font-extrabold text-white no-underline hover:brightness-95">
+        <Link href="/marketplace" className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-app-accent px-5 text-[14.5px] font-bold text-white no-underline hover:brightness-95">
           <Icon name="search" size={16} /> {t("ds.find")}
         </Link>
       }
@@ -157,7 +157,7 @@ export default async function SellerDropshipPage({ searchParams }: { searchParam
             <p className="mx-auto mb-0 mt-2 max-w-[440px] text-[14.5px] leading-[1.55] text-app-ink-soft">
               {t("ds.emptySub")}
             </p>
-            <Link href="/marketplace" className="mt-5 inline-flex min-h-[44px] items-center rounded-full bg-app-ink px-5 text-[14.5px] font-extrabold text-white no-underline">{t("ds.findToSell")}</Link>
+            <Link href="/marketplace" className="mt-5 inline-flex min-h-[44px] items-center rounded-full bg-app-ink px-5 text-[14.5px] font-bold text-white no-underline">{t("ds.findToSell")}</Link>
           </div>
         ) : visible.length === 0 ? (
           <p className="m-0 rounded-[22px] border border-dashed border-app-line px-6 py-10 text-center text-[14.5px] text-app-ink-soft">{t("ds.nothing")}</p>
@@ -195,7 +195,7 @@ export default async function SellerDropshipPage({ searchParams }: { searchParam
                     </p>
                     <span className={cx("mt-2 inline-flex w-fit rounded-full px-2.5 py-1 text-[12px] font-extrabold", state.tone)}>{state.label}</span>
                     <div className="mt-auto flex flex-wrap gap-2 pt-3">
-                      <Link href={productHref} className="inline-flex min-h-[40px] flex-1 items-center justify-center whitespace-nowrap rounded-full bg-app-ink px-3 text-[13.5px] font-extrabold text-white no-underline hover:bg-black">
+                      <Link href={productHref} className="inline-flex min-h-[40px] flex-1 items-center justify-center whitespace-nowrap rounded-full bg-app-ink px-3 text-[13.5px] font-bold text-white no-underline hover:bg-black">
                         {t("ds.editPrice")}
                       </Link>
                       <PauseButton relationshipId={id} paused={paused} name={product.name} />

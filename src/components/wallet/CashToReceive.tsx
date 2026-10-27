@@ -39,7 +39,7 @@ export function CashToReceive({ rows }: { rows: CashToReceiveRow[] }) {
             <button
               type="button"
               disabled={pending}
-              className="inline-flex min-h-[40px] items-center rounded-full border border-app-line bg-white px-4 text-[13.5px] font-extrabold disabled:opacity-55"
+              className="inline-flex min-h-[40px] items-center rounded-full border border-app-line bg-white px-4 text-[13.5px] font-bold disabled:opacity-55"
               onClick={() => {
                 setError(null);
                 startTransition(async () => {

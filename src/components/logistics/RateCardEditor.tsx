@@ -191,7 +191,7 @@ export function RateCardEditor({
       </ol>
 
       <div>
-        <button type="button" onClick={add} className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-app-line bg-white px-4 text-[15px] font-extrabold text-app-ink transition hover:border-app-line-strong">
+        <button type="button" onClick={add} className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-app-line bg-white px-4 text-[15px] font-bold text-app-ink transition hover:border-app-line-strong">
           <Icon name="plus" size={16} /> {t("market.editor.add")}
         </button>
       </div>
@@ -217,7 +217,7 @@ export function RateCardEditor({
         <button
           type="submit"
           disabled={pending}
-          className="inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-full bg-app-ink px-5 text-[15px] font-extrabold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-55"
+          className="inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-full bg-app-ink px-5 text-[15px] font-bold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-55"
         >
           {pending ? t("market.editor.saving") : submitLabel ?? t("market.editor.save")}
         </button>

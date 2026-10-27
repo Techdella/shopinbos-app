@@ -67,7 +67,7 @@ export async function VerificationChecklist({ docs, configs, verificationStatus,
       {!pending && (
         <Link
           href={href}
-          className="inline-flex min-h-[46px] shrink-0 items-center gap-2 rounded-full bg-app-ink px-5 text-[14px] font-extrabold text-white transition hover:opacity-90"
+          className="inline-flex min-h-[46px] shrink-0 items-center gap-2 rounded-full bg-app-ink px-5 text-[14px] font-bold text-white transition hover:opacity-90"
         >
           {done.length ? t("checklist.continue") : t("checklist.addDocs")} <Icon name="arrow" size={15} />
         </Link>

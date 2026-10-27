@@ -18,7 +18,7 @@ export function PaymentLinkButton({ product, storeName, ready = true, compact = 
         aria-label={compact ? `${t("button")}: ${product.name}` : undefined}
         title={compact ? t("button") : undefined}
         className={cx(
-          "inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-app-line bg-white font-extrabold text-app-ink transition hover:border-app-line-strong",
+          "inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-app-line bg-white font-bold text-app-ink transition hover:border-app-line-strong",
           compact ? "h-11 w-11" : "min-h-[44px] px-5 text-[14px]",
         )}
       >

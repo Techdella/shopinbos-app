@@ -44,6 +44,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "detail.refundingAfterExpiry": "Ego ahụ batara mgbe order a gwụchara, e rekwala ngwaahịa ya, ya mere akwụghachiri ya site na Paystack (Paystack ka na-arụ ọrụ na ya).",
   "detail.expiredUnpaid": "Order a gwụrụ na {date} na-akwụghị ụgwọ, ngwaahịa ya laghachiri n'ahịa. Ọ bụrụ na onye na-azụ akwụọ ugbu a, a ga-ewere ya ọzọ, ma ọ bụrụ na ngwaahịa ka dị.",
   "detail.from": "Site na {channel}",
+  "detail.preorder": "Ịtụ n'ihu",
+  "detail.preorderShips": "Ịtụ n'ihu · a ga-ezipụ ya {date}",
   "detail.items": "Ihe ndị a zụrụ",
   "detail.itemCount": "{count, plural, other {ihe #}}",
   "detail.noItems": "Echekwaghị ihe ọ bụla na order a.",

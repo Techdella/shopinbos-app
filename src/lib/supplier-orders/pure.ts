@@ -28,6 +28,8 @@ export interface OrderLine {
   variant?: unknown;
   quantity?: unknown;
   image?: unknown;
+  preorder?: unknown;
+  shipsOn?: unknown;
 }
 
 export interface DropshipLink {
@@ -45,6 +47,9 @@ export interface SupplierOrderLine {
   quantity: number;
   unitCost: number;
   image: string | null;
+  /** A preorder line (the supplier takes preorders on the listing): ships from shipsOn (YYYY-MM-DD) or "soon". */
+  preorder?: true;
+  shipsOn?: string | null;
 }
 
 export interface SupplierOrderGroup {
@@ -80,6 +85,7 @@ export function groupDropshipLines(items: unknown, links: Map<string, DropshipLi
       quantity,
       unitCost: link.unitCost,
       image: (typeof item.image === "string" && item.image) || link.image || null,
+      ...(item.preorder === true ? { preorder: true as const, shipsOn: typeof item.shipsOn === "string" ? item.shipsOn : null } : {}),
     });
     group.costTotal = round2(group.costTotal + link.unitCost * quantity);
     groups.set(link.supplierId, group);

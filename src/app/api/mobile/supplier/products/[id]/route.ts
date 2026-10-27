@@ -6,12 +6,15 @@ import { apiError, ok } from "@/lib/api/response";
 import { invalidatePublicMarketplaceCache } from "@/lib/api/cache";
 import { supplierForUser } from "../../_shared";
 import { editNeedsReview } from "@shared/supplier-product-review";
+import { parsePreorderInput, preorderSaveData } from "@shared/preorder";
+import { PreorderInputSchema } from "@/lib/schemas";
 
 export const dynamic = "force-dynamic";
 
-// Quick edits from the supplier app's Products tab. PATCH { stockQuantity?, wholesalePrice?, suggestedRetailPrice?, publish? }
+// Quick edits from the supplier app's Products tab. PATCH { stockQuantity?, wholesalePrice?, suggestedRetailPrice?, publish?, preorder? }
 //  - stock changes save straight away (they don't change what the listing says, so no new review);
 //  - price changes on a live product send it back for review, like PATCH /api/supplier/products/[id];
+//  - preorder { enabled, shipsAt (YYYY-MM-DD | null), limit, note } saves straight away (shared/preorder.ts rules);
 //  - publish: true sends a draft or unpublished product for review (admins publish it), false takes it off the marketplace.
 // Full edits (name, description, tiers, regions) use PATCH /api/supplier/products/[id].
 
@@ -20,6 +23,7 @@ const Body = z.object({
   wholesalePrice: z.number().positive().optional(),
   suggestedRetailPrice: z.number().positive().optional(),
   publish: z.boolean().optional(),
+  preorder: PreorderInputSchema.optional(),
 });
 
 export const PATCH = withSupplier(async (req: NextRequest, { user, params }) => {
@@ -31,6 +35,8 @@ export const PATCH = withSupplier(async (req: NextRequest, { user, params }) => 
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Check the numbers and try again.");
   const input = parsed.data;
+  const preorderParsed = input.preorder ? parsePreorderInput(input.preorder, new Date(), product.preorderShipsAt) : null;
+  if (preorderParsed && !preorderParsed.ok) return apiError("BAD_REQUEST", preorderParsed.message);
 
   const priceChanged = editNeedsReview(product, { wholesalePrice: input.wholesalePrice, suggestedRetailPrice: input.suggestedRetailPrice });
   let status = product.status;
@@ -47,9 +53,13 @@ export const PATCH = withSupplier(async (req: NextRequest, { user, params }) => 
       ...(input.stockQuantity !== undefined ? { stockQuantity: input.stockQuantity } : {}),
       ...(input.wholesalePrice !== undefined ? { wholesalePrice: input.wholesalePrice } : {}),
       ...(input.suggestedRetailPrice !== undefined ? { suggestedRetailPrice: input.suggestedRetailPrice } : {}),
+      ...(preorderParsed?.ok ? preorderSaveData(preorderParsed.value, { wasEnabled: product.preorderEnabled }) : {}),
       status,
     },
-    select: { id: true, name: true, status: true, stockQuantity: true, wholesalePrice: true, suggestedRetailPrice: true },
+    select: {
+      id: true, name: true, status: true, stockQuantity: true, wholesalePrice: true, suggestedRetailPrice: true,
+      preorderEnabled: true, preorderShipsAt: true, preorderLimit: true, preorderTaken: true, preorderNote: true,
+    },
   });
   invalidatePublicMarketplaceCache({ productSlug: product.slug, supplierSlug: supplier.slug, categorySlug: product.category.slug });
   return ok(updated);

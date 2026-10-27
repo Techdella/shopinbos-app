@@ -3,6 +3,7 @@
 // sourcing partner. Pure (no server imports), unit-tested in tests/find-products.test.mjs.
 
 import { unsplashUrl } from "../store-templates/demo-photos.ts";
+import { preorderState, type PreorderState } from "../../../shared/preorder.ts";
 
 export interface FindPricingTier {
   minQty: number;
@@ -61,6 +62,8 @@ export interface FindProduct {
   trendScore: number;
   /** Boosted by the supplier this week (src/lib/plans/extras.server.ts): shown first, with a label. */
   featured?: boolean;
+  /** The supplier takes preorders for stock (shared/preorder.ts); null when not. */
+  preorder?: PreorderState | null;
 }
 
 // ─── Money ────────────────────────────────────────────────────────────────────
@@ -174,6 +177,11 @@ export interface SupplierProductRow {
   bulkOrderAvailable: boolean;
   processingTime: string | null;
   trendScore: number;
+  preorderEnabled?: boolean;
+  preorderShipsAt?: Date | null;
+  preorderLimit?: number | null;
+  preorderTaken?: number;
+  preorderNote?: string | null;
   category: { name: string } | null;
   supplier: { id: string; userId: string; slug: string; displayName: string; city: string; rating: number; ratingCount: number; verificationStatus: string; returnPolicy?: string | null; address?: string | null };
 }
@@ -221,6 +229,7 @@ export function toFindProduct(row: SupplierProductRow): FindProduct {
     wholesale: row.bulkOrderAvailable,
     similar: null,
     trendScore: row.trendScore,
+    preorder: row.preorderEnabled ? preorderState({ enabled: true, shipsAt: row.preorderShipsAt, limit: row.preorderLimit, taken: row.preorderTaken, note: row.preorderNote }) : null,
   };
 }
 

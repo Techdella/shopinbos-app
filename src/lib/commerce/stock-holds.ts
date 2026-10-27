@@ -18,12 +18,14 @@ export interface VariantHold {
  *              every hold saved before the switch existed means)
  *   oversell - tracked, "keep selling when out of stock": take it, the count may go below 0
  *   off      - not tracked: nothing is taken or checked, only the sale is counted (soldStock)
+ *   preorder - taking preorders (shared/preorder.ts): no stock is taken; each unit takes a place under the cap
+ *              (preorderTaken, when preorderLimit is set) and the sale is counted. Wins over the stock switches.
  */
-export type StoreStockMode = "strict" | "oversell" | "off";
+export type StoreStockMode = "strict" | "oversell" | "off" | "preorder";
 
 export type StockHold =
   | { source: "store"; productId: string; quantity: number; name: string; variants?: VariantHold[]; mode?: Exclude<StoreStockMode, "strict"> }
-  | { source: "supplier"; productId: string; supplierProductId: string; quantity: number; name: string };
+  | { source: "supplier"; productId: string; supplierProductId: string; quantity: number; name: string; mode?: "preorder" };
 
 export interface StockProduct {
   id: string;
@@ -34,9 +36,14 @@ export interface StockProduct {
   /** false: not tracked. Left out (callers that don't read it): tracked, as before the switch existed. */
   trackStock?: boolean | null;
   continueSellingWhenOut?: boolean | null;
+  /** Taking preorders: see StoreStockMode "preorder". */
+  preorderEnabled?: boolean | null;
+  preorderLimit?: number | null;
+  preorderTaken?: number | null;
   fulfillmentType?: string | null;
   supplierProductId?: string | null;
-  supplierProduct?: { id: string; stockQuantity: number; status: string } | null;
+  /** preorder*: the supplier takes preorders on the listing, so dropship lines take places under its cap, not stock. */
+  supplierProduct?: { id: string; stockQuantity: number; status: string; preorderEnabled?: boolean | null; preorderLimit?: number | null; preorderTaken?: number | null } | null;
 }
 
 /** Dropship: linked to a supplier product and fulfilled by the supplier, so the supplier's stock counts. */
@@ -44,7 +51,8 @@ export function isDropshipProduct(product: Pick<StockProduct, "fulfillmentType" 
   return product.fulfillmentType === "dropship" && Boolean(product.supplierProductId) && Boolean(product.supplierProduct);
 }
 
-export function storeStockMode(product: Pick<StockProduct, "trackStock" | "continueSellingWhenOut">): StoreStockMode {
+export function storeStockMode(product: Pick<StockProduct, "trackStock" | "continueSellingWhenOut" | "preorderEnabled">): StoreStockMode {
+  if (product.preorderEnabled) return "preorder";
   if (product.trackStock === false) return "off";
   return product.continueSellingWhenOut ? "oversell" : "strict";
 }
@@ -64,10 +72,12 @@ export function buildStockHolds(products: StockProduct[], quantities: Map<string
     const quantity = quantities.get(product.id) ?? 0;
     if (quantity <= 0) return [];
     if (isDropshipProduct(product)) {
-      return [{ source: "supplier", productId: product.id, supplierProductId: product.supplierProduct!.id, quantity, name: product.name }];
+      // The supplier takes preorders on this listing: the line takes a place under the supplier's cap instead.
+      const preorder = product.supplierProduct!.preorderEnabled ? { mode: "preorder" as const } : {};
+      return [{ source: "supplier", productId: product.id, supplierProductId: product.supplierProduct!.id, quantity, name: product.name, ...preorder }];
     }
     const mode = storeStockMode(product);
-    const variants = mode === "off" ? undefined : variantQuantities?.get(product.id)?.filter((hold) => hold.quantity > 0);
+    const variants = mode === "off" || mode === "preorder" ? undefined : variantQuantities?.get(product.id)?.filter((hold) => hold.quantity > 0);
     return [{ source: "store", productId: product.id, quantity, name: product.name, ...(variants?.length ? { variants } : {}), ...(mode !== "strict" ? { mode } : {}) }];
   });
 }
@@ -94,10 +104,10 @@ export function variantHoldTotals(holds: StockHold[]) {
  */
 export function holdTotals(holds: StockHold[]) {
   const store = new Map<string, { quantity: number; names: string[]; mode: StoreStockMode }>();
-  const supplier = new Map<string, { quantity: number; names: string[] }>();
+  const supplier = new Map<string, { quantity: number; names: string[]; preorder: boolean }>();
   for (const hold of holds) {
     if (hold.source === "supplier") {
-      const entry = supplier.get(hold.supplierProductId) ?? { quantity: 0, names: [] };
+      const entry = supplier.get(hold.supplierProductId) ?? { quantity: 0, names: [], preorder: hold.mode === "preorder" };
       entry.quantity += hold.quantity;
       if (!entry.names.includes(hold.name)) entry.names.push(hold.name);
       supplier.set(hold.supplierProductId, entry);
@@ -115,6 +125,14 @@ export interface StockShortfall {
   name: string;
   /** Units that can still be bought (0 when sold out). */
   available: number;
+  /** Short of preorder places (the cap), not stock. */
+  preorder?: boolean;
+}
+
+/** Preorder places left under a product's cap, or null when there is no cap. */
+export function preorderRoom(product: Pick<StockProduct, "preorderLimit" | "preorderTaken"> | undefined): number | null {
+  if (!product || typeof product.preorderLimit !== "number" || product.preorderLimit <= 0) return null;
+  return Math.trunc(product.preorderLimit) - Math.max(0, Math.trunc(product.preorderTaken ?? 0));
 }
 
 /**
@@ -128,13 +146,23 @@ export function stockShortfallDetails(products: StockProduct[], quantities: Map<
   const byId = new Map(products.map((product) => [product.id, product]));
   const short: StockShortfall[] = [];
   for (const [productId, { quantity, names, mode }] of totals.store) {
+    if (mode === "preorder") {
+      const left = preorderRoom(byId.get(productId));
+      if (left !== null && left < quantity) short.push(...names.map((name) => ({ name, available: Math.max(0, left), preorder: true })));
+      continue;
+    }
     if (mode !== "strict") continue;
     const product = byId.get(productId);
     const available = product ? storeAvailable(product) : 0;
     if (available < quantity) short.push(...names.map((name) => ({ name, available: Math.max(0, available) })));
   }
-  for (const [supplierProductId, { quantity, names }] of totals.supplier) {
+  for (const [supplierProductId, { quantity, names, preorder }] of totals.supplier) {
     const supplierProduct = products.find((product) => product.supplierProduct?.id === supplierProductId)?.supplierProduct;
+    if (preorder) {
+      const left = supplierProduct && supplierProduct.status === "published" ? preorderRoom(supplierProduct) : 0;
+      if (left !== null && left < quantity) short.push(...names.map((name) => ({ name, available: Math.max(0, left), preorder: true })));
+      continue;
+    }
     const available = supplierProduct && supplierProduct.status === "published" ? supplierProduct.stockQuantity : 0;
     if (available < quantity) short.push(...names.map((name) => ({ name, available: Math.max(0, available) })));
   }
@@ -150,7 +178,11 @@ export function stockShortfalls(products: StockProduct[], quantities: Map<string
 /** What checkout tells the shopper when there isn't enough: how many are left of each, or that it's sold out. */
 export function stockShortfallMessage(short: StockShortfall[]): string {
   if (!short.length) return "";
-  const parts = short.map((entry) => (entry.available > 0 ? `only ${entry.available} of ${entry.name} ${entry.available === 1 ? "is" : "are"} left` : `${entry.name} is sold out`));
+  const parts = short.map((entry) =>
+    entry.preorder
+      ? entry.available > 0 ? `only ${entry.available} preorder${entry.available === 1 ? "" : "s"} of ${entry.name} ${entry.available === 1 ? "is" : "are"} left` : `preorders for ${entry.name} are full`
+      : entry.available > 0 ? `only ${entry.available} of ${entry.name} ${entry.available === 1 ? "is" : "are"} left` : `${entry.name} is sold out`,
+  );
   const text = parts.join("; ");
   const soldOutOnly = short.every((entry) => entry.available <= 0);
   return `Sorry, ${text}. ${soldOutOnly ? "Remove it from your bag" : "Lower the quantity in your bag"} and try again.`;
@@ -167,7 +199,7 @@ export function parseStockHold(value: unknown): StockHold[] {
     const name = typeof hold.name === "string" ? hold.name : "Product";
     if (!productId || !Number.isFinite(quantity) || quantity <= 0) return [];
     if (hold.source === "supplier" && typeof hold.supplierProductId === "string" && hold.supplierProductId) {
-      return [{ source: "supplier", productId, supplierProductId: hold.supplierProductId, quantity, name }];
+      return [{ source: "supplier", productId, supplierProductId: hold.supplierProductId, quantity, name, ...(hold.mode === "preorder" ? { mode: "preorder" as const } : {}) }];
     }
     if (hold.source === "store") {
       const variants = Array.isArray(hold.variants)
@@ -179,7 +211,7 @@ export function parseStockHold(value: unknown): StockHold[] {
             return [{ id: entry.id, quantity: count, name: typeof entry.name === "string" ? entry.name : "Option" }];
           })
         : [];
-      const mode = hold.mode === "off" || hold.mode === "oversell" ? hold.mode : undefined;
+      const mode = hold.mode === "off" || hold.mode === "oversell" || hold.mode === "preorder" ? hold.mode : undefined;
       return [{ source: "store", productId, quantity, name, ...(variants.length ? { variants } : {}), ...(mode ? { mode } : {}) }];
     }
     return [];

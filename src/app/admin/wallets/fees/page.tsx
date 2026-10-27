@@ -67,10 +67,10 @@ export default async function AdminPlatformFeesPage(props: { searchParams?: Prom
           ))}
         </nav>
         <div className="flex flex-wrap items-center gap-2">
-          <a href={download("csv")} className="inline-flex min-h-[38px] items-center gap-1.5 rounded-full border border-app-line bg-white px-4 text-[13px] font-extrabold no-underline">
+          <a href={download("csv")} className="inline-flex min-h-[38px] items-center gap-1.5 rounded-full border border-app-line bg-white px-4 text-[13px] font-bold no-underline">
             <Icon name="download" size={14} /> CSV
           </a>
-          <a href={download("pdf")} className="inline-flex min-h-[38px] items-center gap-1.5 rounded-full border border-app-line bg-white px-4 text-[13px] font-extrabold no-underline">
+          <a href={download("pdf")} className="inline-flex min-h-[38px] items-center gap-1.5 rounded-full border border-app-line bg-white px-4 text-[13px] font-bold no-underline">
             <Icon name="download" size={14} /> PDF
           </a>
         </div>

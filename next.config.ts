@@ -88,6 +88,11 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        // The tips' music (shared/intro-narration.ts INTRO_TRACKS): a new track gets a new file name.
+        source: "/audio/tips/:file*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=2592000, immutable" }],
+      },
     ];
   },
   images: {

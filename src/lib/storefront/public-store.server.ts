@@ -48,7 +48,7 @@ function storeSelect(productStatuses: readonly string[]) {
         // imageUrl: the shop page's category tiles fall back to the category's own picture.
         category: { select: { id: true, name: true, slug: true, imageUrl: true } },
         variants: true,
-        supplierProduct: { select: { stockQuantity: true, moq: true } },
+        supplierProduct: { select: { stockQuantity: true, moq: true, preorderEnabled: true, preorderShipsAt: true, preorderLimit: true, preorderTaken: true, preorderNote: true } },
         // Already public on each product page; the store blocks use them for "You may also like" and the
         // comparison table.
         productType: true,
@@ -61,6 +61,12 @@ function storeSelect(productStatuses: readonly string[]) {
         currentStock: true,
         reservedStock: true,
         lowStockThreshold: true,
+        // Preorders (shared/preorder.ts): forShoppers turns these into `preorder`.
+        preorderEnabled: true,
+        preorderShipsAt: true,
+        preorderLimit: true,
+        preorderTaken: true,
+        preorderNote: true,
       },
       orderBy: { createdAt: "desc" as const },
     },

@@ -51,6 +51,9 @@ function sib_product_vm( array $p ): array {
 	usort( $tiers, fn( $a, $b ) => $a['min'] <=> $b['min'] );
 	$supplier = (array) ( $p['supplier'] ?? [] );
 	$stock    = isset( $p['stockQuantity'] ) ? (int) $p['stockQuantity'] : null;
+	// The supplier takes preorders (the app's /api/public "preorder": { open, shipsOn, left, note } or null).
+	$pre      = is_array( $p['preorder'] ?? null ) ? $p['preorder'] : null;
+	$pre_on   = $pre && ! empty( $pre['shipsOn'] ) ? strtotime( $pre['shipsOn'] . ' 12:00:00 UTC' ) : false;
 	return [
 		'name'        => (string) ( $p['name'] ?? '' ),
 		'slug'        => (string) ( $p['slug'] ?? '' ),
@@ -68,7 +71,13 @@ function sib_product_vm( array $p ): array {
 		'tiers'       => $tiers,
 		'moq'         => (int) ( $p['moq'] ?? 1 ),
 		'stock'       => $stock,
-		'in_stock'    => null === $stock || $stock > 0,
+		'in_stock'    => null === $stock || $stock > 0 || ( $pre && ! empty( $pre['open'] ) ),
+		'preorder'    => $pre ? [
+			'open'  => ! empty( $pre['open'] ),
+			'ships' => $pre_on ? sprintf( /* translators: %s: a date like 12 Dec */ __( 'Ships from %s', 'shopinbos' ), wp_date( 'j M', $pre_on, new DateTimeZone( 'UTC' ) ) ) : __( 'Ships when it arrives', 'shopinbos' ),
+			'left'  => isset( $pre['left'] ) ? (int) $pre['left'] : null,
+			'note'  => (string) ( $pre['note'] ?? '' ),
+		] : null,
 		'ships'       => (string) ( $p['processingTime'] ?? '' ),
 		'dropship'    => ! empty( $p['dropshipAvailable'] ),
 		'bulk'        => ! empty( $p['bulkOrderAvailable'] ) || (bool) $tiers,

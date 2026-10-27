@@ -7,10 +7,12 @@ import { Icon } from "@/components/ui/Icon";
 import { codeFromText, DIAL_COUNTRIES, OTP_LENGTH, type DialCountry } from "@shared/phone";
 
 import { cx, PHONE_SCROLL_ROW } from "./cx";
+import { PILL_BASE, pillLabel } from "./pill-label";
 import { Mascot as BrandMascot, type MascotProps, type MascotWho } from "@/components/brand/Mascot";
 import { useT } from "@/components/i18n/I18nProvider";
 
 export { cx, PHONE_SCROLL_ROW };
+export { PILL_BASE, pillLabel };
 
 export function Wordmark({ tone = "dark", className = "" }: { tone?: "dark" | "light"; className?: string }) {
   // eslint-disable-next-line @next/next/no-img-element
@@ -37,21 +39,22 @@ const toneClass: Record<ButtonTone, string> = {
 
 export const PillButton = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButtonElement> & { tone?: ButtonTone; size?: "lg" | "md" | "sm"; busy?: boolean }>(
   function PillButton({ tone = "ink", size = "lg", busy = false, className = "", children, disabled, ...props }, ref) {
-    const sizeClass = size === "lg" ? "min-h-[56px] px-6 text-[16px] font-extrabold" : size === "md" ? "min-h-[48px] px-5 text-[15px] font-bold" : "min-h-[38px] px-4 text-[13px] font-bold";
+    const sizeClass = size === "lg" ? "min-h-[52px] px-5 text-[15px] sm:min-h-[56px] sm:px-6 sm:text-[16px]" : size === "md" ? "min-h-[44px] px-4 text-[14px] sm:min-h-[48px] sm:px-5 sm:text-[15px]" : "min-h-[38px] px-3.5 text-[13px] sm:px-4";
     return (
       <button
         ref={ref}
         type="button"
         disabled={disabled || busy}
         className={cx(
-          "inline-flex items-center justify-center gap-2 rounded-full transition disabled:cursor-not-allowed disabled:opacity-55",
+          PILL_BASE,
+          "gap-2 transition disabled:cursor-not-allowed disabled:opacity-55",
           sizeClass,
           toneClass[tone],
           className,
         )}
         {...props}
       >
-        {busy ? <Spinner /> : children}
+        {busy ? <Spinner /> : pillLabel(children)}
       </button>
     );
   },

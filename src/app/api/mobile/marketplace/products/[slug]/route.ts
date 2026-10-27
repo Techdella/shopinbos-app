@@ -4,7 +4,7 @@ import { apiError, ok } from "@/lib/api/response";
 import { db } from "@/lib/db/client";
 import { agreementWith, nearness, sellerHasPlace, sellerPlace, supplierContact, supplierTrust, VISIBLE_SUPPLIER } from "@/lib/marketplace/agreements.server";
 import { listingStep } from "@shared/supplier-trust";
-import { productSelect } from "../_shared";
+import { productSelect, withPreorderState } from "../_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +22,8 @@ export const GET = withSeller(async (_req: NextRequest, { user, params }) => {
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { name: true, city: true } });
   const { address: _address, ...supplier } = row.supplier;
   return ok({
-    ...row,
+    // `preorder`: the supplier takes preorders (ship date, places left, promise), or null.
+    ...withPreorderState(row),
     // Wholesale (paid to the supplier directly) only from verified suppliers.
     bulkOrderAvailable: row.bulkOrderAvailable && row.supplier.verificationStatus === "verified",
     supplier: { ...supplier, km: distance.km, area: distance.area, risk: trust.get(row.supplier.id)?.risk ?? null, agreed: agreement?.status === "active" },

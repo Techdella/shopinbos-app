@@ -60,11 +60,11 @@ export function SampleNotice({ open, onClose, productName, notified: notifiedAtS
         {error ? <p className="mb-0 mt-3 text-[13.5px] font-bold text-app-danger" role="alert">{error}</p> : null}
         <div className="mt-5 flex flex-wrap gap-2">
           {!notified && (
-            <button type="button" onClick={notify} disabled={pending} className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-app-ink px-5 text-[14px] font-extrabold text-white hover:bg-black disabled:opacity-60">
+            <button type="button" onClick={notify} disabled={pending} className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-app-ink px-5 text-[14px] font-bold text-white hover:bg-black disabled:opacity-60">
               <Icon name="bell" size={16} /> {pending ? t("sample.saving") : t("sample.notify")}
             </button>
           )}
-          <button type="button" onClick={onClose} className="inline-flex min-h-[44px] items-center rounded-full border border-app-line bg-white px-5 text-[14px] font-extrabold hover:border-app-line-strong">
+          <button type="button" onClick={onClose} className="inline-flex min-h-[44px] items-center rounded-full border border-app-line bg-white px-5 text-[14px] font-bold hover:border-app-line-strong">
             {notified ? t("sample.done") : t("sample.notNow")}
           </button>
         </div>

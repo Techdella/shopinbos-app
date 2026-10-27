@@ -115,7 +115,7 @@ function Call({ token, size = "lg", className, persistent = false }: { token?: s
             {conversation.isMuted ? "Unmute" : "Mute"}
           </button>
         )}
-        <button type="button" onClick={() => { conversation.endSession(); setConnecting(false); }} className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-[#E86A4F] px-5 text-[14px] font-extrabold">
+        <button type="button" onClick={() => { conversation.endSession(); setConnecting(false); }} className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-[#E86A4F] px-5 text-[14px] font-bold">
           <Icon name="x" size={15} /> End call
         </button>
       </div>
@@ -127,7 +127,7 @@ function Call({ token, size = "lg", className, persistent = false }: { token?: s
       <button
         type="button"
         onClick={() => void start()}
-        className={cx("inline-flex w-full items-center justify-center gap-3 rounded-full bg-app-forest font-extrabold text-white shadow-sm hover:brightness-110", size === "lg" ? "min-h-[60px] px-6 text-[17px]" : "min-h-[46px] px-5 text-[15px]")}
+        className={cx("inline-flex w-full items-center justify-center gap-3 rounded-full bg-app-forest font-bold text-white shadow-sm hover:brightness-110", size === "lg" ? "min-h-[60px] px-6 text-[17px]" : "min-h-[46px] px-5 text-[15px]")}
       >
         <Icon name="phone" size={size === "lg" ? 20 : 17} /> Call Peggy · free
       </button>

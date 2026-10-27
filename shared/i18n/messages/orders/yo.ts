@@ -44,6 +44,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "detail.refundingAfterExpiry": "Owó náà dé lẹ́yìn tí order yìí ti parí tí ọjà rẹ̀ sì ti tà, nítorí náà a dá a padà nípasẹ̀ Paystack (Paystack ṣì ń ṣiṣẹ́ lé e lórí).",
   "detail.expiredUnpaid": "Order yìí parí ní {date} láìsí ìsanwó, ọjà rẹ̀ sì padà sí títà. Tí oníbàárà bá san báyìí, a ó tún gbà á, tí ọjà bá ṣì wà.",
   "detail.from": "Láti {channel}",
+  "detail.preorder": "Ìbéèrè ṣáájú",
+  "detail.preorderShips": "Ìbéèrè ṣáájú · a ó fi ránṣẹ́ {date}",
   "detail.items": "Àwọn ohun",
   "detail.itemCount": "{count, plural, other {ohun #}}",
   "detail.noItems": "A kò fi ohun kankan pamọ́ sórí order yìí.",

@@ -2,6 +2,7 @@ import type { EditableVariantRow, ProductKind } from "@shared/product-edit";
 import type { ProductTypeKey } from "@shared/product-types";
 import type { ProductVariant, VariantOption } from "@shared/product-variants";
 import type { MoreSource } from "./product-more-pure";
+import type { PreorderState } from "./preorder-pure";
 import { api } from "./api";
 import type { CategoryLite, StoreCategory } from "./categories-pure";
 import type { ProductItem } from "./dashboard";
@@ -44,7 +45,14 @@ export interface EditProduct extends MoreSource {
     cost: number;
     supplierStock: number;
     sale: { shopperPays: number; supplierGets: number; fee: number; keep: number; keepPct: number };
+    /** The supplier takes preorders on this listing (shoppers' preorders follow it); null when not. Newer servers. */
+    preorder?: PreorderState | null;
   } | null;
+  /** "dropship" when it sells a supplier's stock (newer servers). */
+  fulfillmentType?: string | null;
+  /** Its own preorder settings (shared/preorder.ts), saved as `preorder` { enabled, shipsAt, limit, note } with the
+   *  rest of the form. Newer servers; dropship products can't take their own. */
+  preorder?: { enabled: boolean; shipsOn: string | null; limit: number | null; taken: number; note: string | null };
   /** The versions in full and their options, so sizes and colours can be added or removed (older servers leave
    *  these out; then only price, stock and on/off of the versions above can change). */
   variantOptions?: VariantOption[];

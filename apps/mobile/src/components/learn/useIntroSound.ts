@@ -1,14 +1,14 @@
 import "expo-sqlite/localStorage/install";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from "expo-audio";
-import { api } from "@/lib/api";
+import { API_URL, api } from "@/lib/api";
 import { introAudio, useIntroAudioStop } from "@/lib/intro-audio";
-import { DEFAULT_SOUND_PREFS, MUSIC_LEVEL, MUSIC_UNDER_VOICE, parseSoundPrefs, type IntroSoundPrefs } from "@shared/intro-narration";
+import { DEFAULT_SOUND_PREFS, LAST_TRACK_KEY, MUSIC_LEVEL, MUSIC_UNDER_VOICE, introTrackPath, parseSoundPrefs, pickIntroTrack, type IntroSoundPrefs } from "@shared/intro-narration";
 
 // Sound for the 60-second intro on the phone, like the web's (src/components/learn/useIntroSound.ts): a narrator
 // reads each scene in the app language (the stored clip from /api/learn/narration) over soft music that dips while
-// the voice speaks. The music is the same generated "chill" track as the web, as a short seamless loop
-// (assets/sounds/intro-music.m4a). `voiceBusy` is true while a scene's line loads or plays, so the intro waits for
+// the voice speaks. The music is the web's Afrobeats tips collection, streamed from the app's site
+// (INTRO_TRACKS, /audio/tips/*.mp3), a different track from the last intro, looping until the recap. `voiceBusy` is true while a scene's line loads or plays, so the intro waits for
 // the narrator. When the narration service is off, the captions carry on without a voice. Choices are kept on the phone.
 //
 // Stopping is strict, because the music used to carry on after the sheet closed and even after the app went to the
@@ -19,7 +19,23 @@ import { DEFAULT_SOUND_PREFS, MUSIC_LEVEL, MUSIC_UNDER_VOICE, parseSoundPrefs, t
 
 const PREFS_KEY = "shopinbos.introSound";
 const CLIP_WAIT_MS = 6_000;
-const MUSIC = require("../../../assets/sounds/intro-music.m4a") as number;
+
+/** This intro's track URL: not the one the last intro played on this phone. */
+function nextTrackUrl(): string {
+  let previous: string | null = null;
+  try {
+    previous = localStorage.getItem(LAST_TRACK_KEY);
+  } catch {
+    // No storage: any track will do.
+  }
+  const id = pickIntroTrack(previous, Math.random());
+  try {
+    localStorage.setItem(LAST_TRACK_KEY, id);
+  } catch {
+    // No storage.
+  }
+  return `${API_URL}${introTrackPath(id)}`;
+}
 
 function readPrefs(): IntroSoundPrefs {
   try {
@@ -135,7 +151,7 @@ export function useIntroSound({ introKey, sceneCount, locale, onInterrupt }: { i
     if (!prefsRef.current.music || off.current || pausedRef.current || !introAudio.allowed()) return;
     if (!music.current) {
       try {
-        music.current = createAudioPlayer(MUSIC);
+        music.current = createAudioPlayer({ uri: nextTrackUrl() });
         music.current.loop = true;
         music.current.volume = 0;
       } catch {

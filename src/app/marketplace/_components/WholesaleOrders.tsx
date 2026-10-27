@@ -36,6 +36,8 @@ export interface SellerWholesaleRow {
   paid: boolean;
   /** Accepted by the supplier, not paid yet, and the supplier takes card payments. */
   canPay: boolean;
+  /** Stock preordered before it arrives: the supplier's ship date, preformatted (null: when it arrives). */
+  preorder?: { ships: string | null } | null;
 }
 
 function money(amount: number, currency: string, locale: Locale) {
@@ -165,6 +167,7 @@ export function WholesaleOrders({ initial }: { initial: SellerWholesaleRow[] }) 
                 </dl>
                 <div className="grid min-w-0 justify-items-start gap-1">
                   <Pill tone={stage.tone} dot>{stage.label}</Pill>
+                  {row.preorder && <Pill tone="warning">{row.preorder.ships ? `${t("pd.preorder")} · ${t("pd.preorderShips", { date: row.preorder.ships })}` : t("pd.preorder")}</Pill>}
                   {row.trackingCode && <span className="max-w-full truncate text-[12.5px] text-app-ink-soft">{t("pd.tracking", { code: row.trackingCode })}</span>}
                   {stage.note && <span className={cx("max-w-full break-words text-[12.5px]", stage.tone === "danger" ? "text-app-danger" : "text-app-ink-soft")}>{stage.note}</span>}
                   {row.paid && <Pill tone="success">{t("ws.paidInApp")}</Pill>}

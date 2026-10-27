@@ -140,12 +140,12 @@ export function PaymentLinksManager({
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <code className="min-w-0 flex-1 basis-[200px] truncate rounded-[12px] bg-app-canvas px-3 py-2 text-[12.5px]">{link.url}</code>
                 {link.status === "active" ? (
-                  <button type="button" onClick={() => void copy(link)} className="min-h-[40px] rounded-full border border-app-line bg-white px-4 text-[13px] font-extrabold">
+                  <button type="button" onClick={() => void copy(link)} className="min-h-[40px] rounded-full border border-app-line bg-white px-4 text-[13px] font-bold">
                     {copied === link.id ? t("done.copied") : t("row.copy")}
                   </button>
                 ) : null}
                 {link.order ? (
-                  <Link href={`/home/orders/${link.order.id}`} className="inline-flex min-h-[40px] items-center rounded-full bg-app-ink px-4 text-[13px] font-extrabold text-white no-underline">
+                  <Link href={`/home/orders/${link.order.id}`} className="inline-flex min-h-[40px] items-center rounded-full bg-app-ink px-4 text-[13px] font-bold text-white no-underline">
                     {t("row.order", { number: link.order.orderNumber })}
                   </Link>
                 ) : null}

@@ -238,7 +238,7 @@ function MenuList(props: ListProps) {
         <p className="m-0 rounded-[16px] border border-dashed border-app-line px-4 py-5 text-center text-[13px] text-app-ink-soft">{t("nav.empty")}</p>
       )}
       <div className="flex flex-wrap items-center gap-3">
-        <button type="button" onClick={add} disabled={full} className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-app-line bg-white px-4 text-[13.5px] font-extrabold text-app-ink hover:border-app-line-strong disabled:opacity-50">
+        <button type="button" onClick={add} disabled={full} className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-app-line bg-white px-4 text-[13.5px] font-bold text-app-ink hover:border-app-line-strong disabled:opacity-50">
           <Icon name="plus" size={15} /> {t("nav.add")}
         </button>
         {props.content.length ? (

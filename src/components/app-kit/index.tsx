@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 import { AppFrame } from "@/components/shell/AppFrame";
 import { cx, PHONE_SCROLL_ROW } from "@/components/app-ui/cx";
+import { PILL_BASE, pillLabel } from "@/components/app-ui/pill-label";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { HelpButton } from "@/components/simple/HelpButton";
 import { Mascot, type MascotMood } from "@/components/brand/Mascot";
@@ -122,15 +123,16 @@ export function PillLink({ href, tone = "white", size = "md", icon, iconOnlyOnPh
     <Link
       href={href}
       className={cx(
-        "inline-flex shrink-0 items-center justify-center gap-2 rounded-full font-extrabold no-underline transition",
-        size === "sm" ? "min-h-[34px] px-3.5 text-[13px]" : "min-h-[44px] px-5 text-[14px]",
+        PILL_BASE,
+        "gap-2 no-underline transition",
+        size === "sm" ? "min-h-[34px] px-3.5 text-[13px]" : "min-h-[42px] px-4 text-[13.5px] sm:min-h-[44px] sm:px-5 sm:text-[14px]",
         PILL_LINK[tone],
-        phoneIcon && (size === "sm" ? "max-sm:w-[34px] max-sm:px-0" : "max-sm:w-11 max-sm:px-0"),
+        phoneIcon && (size === "sm" ? "max-sm:w-[34px] max-sm:shrink-0 max-sm:px-0" : "max-sm:w-[42px] max-sm:shrink-0 max-sm:px-0"),
         className,
       )}
     >
       {icon && <Icon name={icon} size={size === "sm" ? 14 : 16} />}
-      {phoneIcon ? <span className="max-sm:sr-only">{children}</span> : children}
+      {phoneIcon ? <span className="min-w-0 truncate py-[0.12em] leading-[1.2] max-sm:sr-only">{children}</span> : pillLabel(children)}
     </Link>
   );
 }

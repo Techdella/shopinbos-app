@@ -6,7 +6,7 @@ export function PrintSheetButton({ label = "Print or save as PDF" }: { label?: s
     <button
       type="button"
       onClick={() => window.print()}
-      className="inline-flex min-h-[44px] items-center rounded-full bg-app-ink px-5 text-[14px] font-extrabold text-white"
+      className="inline-flex min-h-[44px] items-center rounded-full bg-app-ink px-5 text-[14px] font-bold text-white"
     >
       {label}
     </button>

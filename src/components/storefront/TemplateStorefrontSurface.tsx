@@ -38,6 +38,7 @@ import { ShopBrowser } from "@/components/storefront/shopper/ShopBrowser";
 import { readShopLayoutOptions, type ShopLayoutOptions } from "@/components/storefront/shopper/shop-browse";
 import { useShopQuery } from "@/components/storefront/shopper/useShopQuery";
 import { listingSoldOut, type ShopperStock } from "@shared/product-stock";
+import type { PreorderState } from "@shared/preorder";
 import { StoreLogo } from "@/components/storefront/StoreLogo";
 import { CampaignBadges } from "@/components/storefront/campaign/CampaignBadges";
 import { brandTagline, footerSummaryForShoppers, isPlaceholderCopy } from "@shared/placeholder-copy";
@@ -58,6 +59,8 @@ export interface SurfaceProduct {
   supplierProduct?: { stockQuantity?: number | null } | null;
   /** Tracked stock (shared/product-stock.ts forShoppers); null or absent when not tracked. */
   stock?: ShopperStock | null;
+  /** Taking preorders (shared/preorder.ts forShoppers); null when not. */
+  preorder?: PreorderState | null;
 }
 
 export interface SurfaceStore {

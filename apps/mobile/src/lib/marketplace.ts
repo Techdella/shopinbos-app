@@ -1,10 +1,12 @@
 import { api } from "./api";
 import { parsePricingTiers, shipsLabel, shortCategory, type FindTier } from "./find-pure";
+import type { PreorderState } from "./preorder-pure";
 
 // Find products: supplier products from /api/mobile/marketplace/products (the same rows the web's /marketplace
 // shows: suppliers near the seller, verified or not, with their risk score), plus the seller's own bits from
 // /api/mobile/marketplace (already added, where wholesale ships to), the Dropship agreement before listing
-// (call the supplier, check the stock, agree), and "Add to store" / "Request a quote".
+// (call the supplier, check the stock, agree), and "Add to store" / "Request a quote" / "Preorder N for ₦…" (a bulk
+// order on a listing that takes preorders: POST /api/app/wholesale/request, the web's own route).
 
 interface RawProduct {
   id: string;
@@ -21,6 +23,8 @@ interface RawProduct {
   bulkOrderAvailable: boolean;
   processingTime: string | null;
   trendScore: number;
+  /** The supplier takes preorders (ship date, places left, promise; shared/preorder.ts). Newer servers. */
+  preorder?: PreorderState | null;
   supplier: {
     id: string;
     displayName: string;
@@ -78,6 +82,8 @@ export interface FindProduct {
   dropship: boolean;
   wholesale: boolean;
   trendScore: number;
+  /** The supplier takes preorders on it: the stock isn't here yet and ships from their date. Null when not. */
+  preorder: PreorderState | null;
 }
 
 function toFindProduct(row: RawProduct): FindProduct {
@@ -111,6 +117,7 @@ function toFindProduct(row: RawProduct): FindProduct {
     dropship: row.dropshipAvailable,
     wholesale: row.bulkOrderAvailable,
     trendScore: row.trendScore,
+    preorder: row.preorder?.on ? row.preorder : null,
   };
 }
 
@@ -159,6 +166,11 @@ export const fetchFindContext = () => api<FindContext>("/api/mobile/marketplace"
 
 export const addToStore = (supplierProductId: string, retailPrice: number) =>
   api<{ storeProductId: string; already: boolean }>("/api/mobile/marketplace", { method: "POST", json: { supplierProductId, retailPrice } });
+
+/** A bulk order (here: a preorder on a listing that takes them). The supplier confirms it, then the seller pays them
+ *  (Wholesale screen); Shopinbos holds no preorder money. */
+export const placeWholesaleOrder = (input: { supplierId: string; supplierProductId: string; quantity: number; deliveryAddress: string }) =>
+  api<{ id: string }>("/api/app/wholesale/request", { method: "POST", json: input });
 
 export const requestQuote = (input: { supplierId: string; supplierProductId: string; quantity: number; destination: string; notes?: string }) =>
   api<{ id: string }>("/api/app/supplier-quotes", { method: "POST", json: input });

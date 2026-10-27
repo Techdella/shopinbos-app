@@ -45,6 +45,7 @@ export default async function SellerWholesaleOrdersPage({ searchParams }: { sear
     take: 100,
     select: {
       id: true, status: true, rejectReason: true, trackingCode: true, quantity: true, unitPrice: true, totalPrice: true, currency: true, createdAt: true, paidAt: true, paidOutAt: true,
+      preorder: true, preorderShipsAt: true,
       supplier: { select: { displayName: true, slug: true, userId: true } },
       supplierProduct: { select: { id: true, name: true, images: true } },
     },
@@ -86,6 +87,7 @@ export default async function SellerWholesaleOrdersPage({ searchParams }: { sear
     product: { id: order.supplierProduct.id, name: order.supplierProduct.name, image: order.supplierProduct.images[0] ?? null },
     paid: !!order.paidAt,
     canPay: payable.has(order.id),
+    preorder: order.preorder ? { ships: order.preorderShipsAt ? formatDate(order.preorderShipsAt, locale, { day: "numeric", month: "short", timeZone: "UTC" }) : null } : null,
   }));
 
   return (
@@ -158,7 +160,7 @@ export default async function SellerWholesaleOrdersPage({ searchParams }: { sear
                       {product.stockQuantity > 0 ? ` · ${t("ws.inStock", { count: product.stockQuantity.toLocaleString("en-NG") })}` : ""}
                     </p>
                     <div className="mt-auto pt-2">
-                      <Link href={href} className="inline-flex min-h-[40px] w-full items-center justify-center whitespace-nowrap rounded-full bg-app-ink px-3 text-[13.5px] font-extrabold text-white no-underline hover:bg-black">
+                      <Link href={href} className="inline-flex min-h-[40px] w-full items-center justify-center whitespace-nowrap rounded-full bg-app-ink px-3 text-[13.5px] font-bold text-white no-underline hover:bg-black">
                         {t("ws.buy")}
                       </Link>
                     </div>

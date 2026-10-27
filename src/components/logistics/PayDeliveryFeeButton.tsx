@@ -42,7 +42,7 @@ export function PayDeliveryFeeButton({ bookingId, label }: { bookingId: string; 
 
   return (
     <span className="inline-grid justify-items-end gap-1">
-      <button type="button" onClick={pay} disabled={busy} className="inline-flex min-h-[34px] items-center rounded-full bg-app-ink px-3.5 text-[13px] font-extrabold text-white disabled:opacity-55">
+      <button type="button" onClick={pay} disabled={busy} className="inline-flex min-h-[34px] items-center rounded-full bg-app-ink px-3.5 text-[13px] font-bold text-white disabled:opacity-55">
         {busy ? "Opening…" : label}
       </button>
       {error ? <span role="status" className="max-w-[240px] text-right text-[12.5px] leading-[1.35] text-app-danger">{error}</span> : null}

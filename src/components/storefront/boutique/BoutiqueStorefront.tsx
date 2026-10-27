@@ -3574,7 +3574,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           )}
           {card.onQuickAdd ? (
             <button type="button" className="bq-btn justify-self-start" style={{ ...look.primaryButton, minHeight: 40, fontSize: 13.5 }} onClick={() => card.onQuickAdd?.(product.id)} disabled={Boolean(soldOutLabel(product))} aria-label={soldOutLabel(product) ? `${product.name} is sold out` : `Add ${product.name} to bag`}>
-              {soldOutLabel(product) ?? <><Icon name="bag" size={15} aria-hidden /> Add to bag</>}
+              {soldOutLabel(product) ?? <><Icon name="bag" size={15} aria-hidden /> {product.preorder?.on ? "Preorder" : "Add to bag"}</>}
             </button>
           ) : null}
         </div>
