@@ -68,6 +68,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "quiet.off": "Ọ gbanyụrụ. Ọkwa nwere ike ịda ụda n'oge ọ bụla.",
   "quiet.midnight": "etiti abalị",
   "quiet.noon": "etiti ehihie",
+  "category.announcements": "Akụkọ Shopinbos",
+  "help.announcements": "Ihe ọhụrụ, onyinye na ndụmọdụ sitere n'aka ndị otu Shopinbos.",
 };
 
 export default ig;

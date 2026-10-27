@@ -275,6 +275,7 @@ const en = {
   "credits.badge.large": "Best value",
   "supplier.products-import": "Upload CSV",
   "supplier.followers": "Followers",
+  "admin.push": "Push center",
 } satisfies Record<string, string>;
 
 export default en;

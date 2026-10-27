@@ -91,6 +91,8 @@ const en = {
   "channel.email": "Email",
   "channel.sms": "SMS",
   "channel.whatsapp": "WhatsApp",
+  "category.announcements": "Shopinbos news",
+  "help.announcements": "New features, offers and tips from the Shopinbos team.",
 } satisfies Record<string, string>;
 
 export default en;

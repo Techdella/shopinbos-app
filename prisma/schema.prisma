@@ -1755,6 +1755,7 @@ model NotificationDelivery {
   @@index([ticketId])
   @@index([userId, collapseKey, createdAt])
   @@index([notificationId])
+  @@index([collapseKey, status])
 }
 
 /// Per-person notification settings that aren't a category × channel switch (those are NotificationPreference
@@ -4962,4 +4963,103 @@ model MemberStory {
   updatedAt      DateTime  @updatedAt
 
   @@index([status, role])
+}
+
+// ─── Push center (Admin › Push center) ────────────────────────────────────────
+
+/// A push campaign from the Shopinbos team: one message sent through notify() (bell + push, the "announcements"
+/// category, so each person's switch and quiet hours apply) to an audience (shared/push-campaigns.ts). Sending is
+/// src/lib/push-campaigns/campaigns.server.ts; scheduled ones are started by /api/cron/push-campaigns, which claims
+/// the row (scheduled → sending) so it never starts twice. Migration: docs/migrations/2026-11-30-push-center.sql.
+model PushCampaign {
+  id            String    @id @default(cuid())
+  title         String
+  body          String
+  /// A curated screen (shared/push-campaigns.ts PUSH_LINKS) or "custom" (a web path).
+  linkKey       String    @default("home")
+  /// What browsers and the bell open (a web path).
+  link          String
+  /// What a tapped push opens in the phone app (an app:/… link or web path that appRouteFor maps to a screen).
+  appLink       String?
+  /// shared/push-campaigns.ts PushAudience.
+  audience      Json
+  /// Ignores quiet hours (owners and admins only, rare).
+  urgent        Boolean   @default(false)
+  /// draft | scheduled | sending | sent | cancelled | failed
+  status        String    @default("draft")
+  scheduledAt   DateTime?
+  startedAt     DateTime?
+  sentAt        DateTime?
+  cancelledAt   DateTime?
+  /// contentHash of the title, text and link last sent to the admin as a test (a real send needs it to match).
+  testedHash    String?
+  testedAt      DateTime?
+  /// Sent past the daily limit (the admin ticked "override").
+  overrideLimit Boolean   @default(false)
+  /// The estimate when it went out: people and devices.
+  targetedCount Int       @default(0)
+  deviceCount   Int       @default(0)
+  /// Recipients done (bell written and push handed over) and failed.
+  notifiedCount Int       @default(0)
+  failedCount   Int       @default(0)
+  /// Push results, copied from NotificationDelivery (kept 30 days): accepted, delivered, failed; and taps.
+  pushSent      Int       @default(0)
+  pushOk        Int       @default(0)
+  pushErrors    Int       @default(0)
+  openedCount   Int       @default(0)
+  /// "Resend to the failed ones" was used (once).
+  resentAt      DateTime?
+  lastError     String?
+  createdById   String
+  sentById      String?
+  cancelledById String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now()) @updatedAt
+
+  recipients PushCampaignRecipient[]
+  events     PushCampaignEvent[]
+
+  @@index([status, scheduledAt])
+  @@index([createdAt])
+}
+
+/// Who a campaign goes to, one row each (an account, or a rider: riders have no account and get push only).
+/// queued → sending → sent | failed. A batch is claimed queued → sending atomically, and notify()'s dedupe key
+/// ("push-campaign:<id>") means nobody is told twice even if a run dies mid-batch.
+model PushCampaignRecipient {
+  id             String    @id @default(cuid())
+  campaignId     String
+  userId         String?
+  riderId        String?
+  notificationId String?
+  status         String    @default("queued")
+  error          String?
+  sentAt         DateTime?
+  /// When a run took it (queued → sending): a row left "sending" long after belongs to a run that died.
+  claimedAt      DateTime?
+  /// The push was tapped (POST /api/notifications/opened from the app and the browser).
+  openedAt       DateTime?
+  createdAt      DateTime  @default(now())
+
+  campaign PushCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, userId])
+  @@unique([campaignId, riderId])
+  @@index([campaignId, status])
+  @@index([notificationId])
+}
+
+/// Audit log for the Push center: who created, tested, scheduled, sent, cancelled or resent a campaign.
+model PushCampaignEvent {
+  id         String   @id @default(cuid())
+  campaignId String
+  /// created | edited | test | scheduled | sent | cancelled | resent
+  action     String
+  byId       String?
+  detail     Json     @default("{}")
+  createdAt  DateTime @default(now())
+
+  campaign PushCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, createdAt])
 }

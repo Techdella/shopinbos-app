@@ -87,6 +87,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "channel.email": "Email",
   "channel.sms": "SMS",
   "channel.whatsapp": "WhatsApp",
+  "category.announcements": "Ìròyìn Shopinbos",
+  "help.announcements": "Àwọn ohun tuntun, ìfilọ̀ àti ìmọ̀ràn láti ọ̀dọ̀ ẹgbẹ́ Shopinbos.",
 };
 
 export default yo;

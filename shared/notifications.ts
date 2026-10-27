@@ -4,7 +4,7 @@
 
 // ─── Categories and channels ─────────────────────────────────────────────────
 
-export const NOTIFY_CATEGORY_KEYS = ["orders", "money", "messages", "deliveries", "stock", "marketing", "account"] as const;
+export const NOTIFY_CATEGORY_KEYS = ["orders", "money", "messages", "deliveries", "stock", "marketing", "account", "announcements"] as const;
 export type NotifyCategory = (typeof NOTIFY_CATEGORY_KEYS)[number];
 
 export const NOTIFY_CHANNEL_KEYS = ["push", "email", "sms", "whatsapp"] as const;
@@ -28,6 +28,9 @@ export const NOTIFY_CATEGORIES: readonly CategoryInfo[] = [
   { key: "stock", label: "Stock", help: "Products running low or sold out.", roles: ["seller", "supplier"] },
   { key: "marketing", label: "Marketing and tips", help: "Campaign results, new reviews and ideas to sell more.", roles: ["seller", "supplier"] },
   { key: "account", label: "Account and verification", help: "Verification, product approvals and support replies.", roles: ["seller", "supplier", "logistics_partner", "admin"] },
+  // Admin › Push center campaigns (src/lib/push-campaigns). Promotional, so it always has its own switch (app store
+  // and privacy rules): push and the bell only, never email or texts.
+  { key: "announcements", label: "Shopinbos news", help: "New features, offers and tips from the Shopinbos team.", roles: ["seller", "supplier", "logistics_partner"] },
 ];
 
 /** Words a delivery partner or admin knows better than "Orders". */
@@ -46,8 +49,9 @@ export function isNotifyCategory(value: unknown): value is NotifyCategory {
   return typeof value === "string" && (NOTIFY_CATEGORY_KEYS as readonly string[]).includes(value);
 }
 
-/** SMS and WhatsApp cost money per message: never for tips and marketing. */
+/** SMS and WhatsApp cost money per message: never for tips and marketing. Shopinbos news is push and bell only. */
 export function channelAllowedFor(category: NotifyCategory, channel: NotifyChannel) {
+  if (category === "announcements") return channel === "push";
   return !(category === "marketing" && (channel === "sms" || channel === "whatsapp"));
 }
 
@@ -124,6 +128,8 @@ export const NOTIFY_EVENTS = {
   "support.reply": { category: "account" },
   "account.update": { category: "account" },
   "test": { category: "account", urgent: true },
+  // Admin › Push center: a campaign from the Shopinbos team (urgent only when the admin ticks it).
+  "push.campaign": { category: "announcements" },
 } as const satisfies Record<string, EventInfo>;
 
 export type NotifyEvent = keyof typeof NOTIFY_EVENTS;
@@ -177,6 +183,7 @@ export const DEFAULT_PREFERENCES: PreferenceMatrix = {
   stock: { push: true, email: false, sms: false, whatsapp: false },
   marketing: { push: true, email: false, sms: false, whatsapp: false },
   account: { push: true, email: true, sms: false, whatsapp: false },
+  announcements: { push: true, email: false, sms: false, whatsapp: false },
 };
 
 /** How a category's switches are stored: a NotificationPreference row with this eventKey. */
@@ -207,6 +214,7 @@ export function resolvePreferences(rows: readonly PreferenceRow[]): PreferenceMa
     }
     const row = rows.find((item) => item.eventKey === preferenceEventKey(category));
     const merged = row ? { push: row.push, email: row.email, sms: row.sms, whatsapp: row.whatsapp } : base;
+    if (!channelAllowedFor(category, "email")) merged.email = false;
     if (!channelAllowedFor(category, "sms")) merged.sms = false;
     if (!channelAllowedFor(category, "whatsapp")) merged.whatsapp = false;
     out[category] = merged;
@@ -284,7 +292,7 @@ export function planDelivery(input: {
   const texts = !input.phoneHandled && !hush;
   return {
     push: p.push ? (hush ? "hold" : "send") : "off",
-    email: input.email === "transactional" ? true : input.email === "notification" ? p.email : false,
+    email: !channelAllowedFor(input.category, "email") ? false : input.email === "transactional" ? true : input.email === "notification" ? p.email : false,
     sms: texts && p.sms && channelAllowedFor(input.category, "sms"),
     whatsapp: texts && p.whatsapp && channelAllowedFor(input.category, "whatsapp"),
   };
@@ -390,6 +398,7 @@ const SIMPLE_SCREENS: Array<[RegExp, string]> = [
   [/^\/home\/notifications(\/.*)?$/, "/notifications"],
   [/^\/home\/(payments|payouts)(\/.*)?$/, "/payments"],
   [/^\/home\/(shipping|logistics)$/, "/delivery"],
+  [/^\/home\/wallet$/, "/wallet"],
   [/^\/home\/settings(\/.*)?$/, "/settings"],
   [/^\/channels$/, "/channels"],
   [/^\/home$/, "/home"],
@@ -398,6 +407,7 @@ const SIMPLE_SCREENS: Array<[RegExp, string]> = [
   [/^\/supplier\/inbox$/, "/supplier/messages"],
   [/^\/supplier\/(payouts|wholesale)$/, "/supplier/money"],
   [/^\/supplier\/products$/, "/supplier/products"],
+  [/^\/supplier\/wallet$/, "/supplier/wallet"],
   [/^\/supplier\/verification$/, "/supplier/verification"],
   [/^\/supplier\/agreements$/, "/supplier/agreements"],
   [/^\/supplier(\/dashboard)?$/, "/supplier/home"],
@@ -492,10 +502,12 @@ export const ANDROID_CHANNELS = [
   { id: "money", name: "Money", description: "Payments, payouts and cash to pay in." },
   { id: "deliveries", name: "Deliveries", description: "Riders, pickups and delivery updates." },
   { id: "marketing", name: "Tips and marketing", description: "Campaign results, reviews and ideas." },
+  { id: "news", name: "Shopinbos news", description: "New features, offers and tips from the Shopinbos team." },
 ] as const;
 export type AndroidChannelId = (typeof ANDROID_CHANNELS)[number]["id"];
 
 export function androidChannelFor(category: NotifyCategory): AndroidChannelId {
+  if (category === "announcements") return "news";
   if (category === "messages" || category === "money" || category === "deliveries" || category === "marketing") return category;
   return "orders";
 }

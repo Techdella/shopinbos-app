@@ -19,6 +19,7 @@ export const CATEGORY_ICON: Record<NotifyCategory, IconName> = {
   stock: "box",
   marketing: "megaphone",
   account: "shield",
+  announcements: "sparkle",
 };
 
 const PRIORITY_TILE: Record<NotificationItem["priority"], string> = {

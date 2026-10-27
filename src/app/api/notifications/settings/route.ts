@@ -38,6 +38,7 @@ async function load(user: { id: string; role: string }) {
       help: category.help,
       channels: prefs[category.key],
       textAllowed: channelAllowedFor(category.key, "sms"),
+      emailAllowed: channelAllowedFor(category.key, "email"),
     })),
     quietHours: setting ? { enabled: setting.quietHoursEnabled, start: setting.quietStart, end: setting.quietEnd, timezone: setting.timezone } : DEFAULT_QUIET_HOURS,
     available: { webPush: Boolean(webPushPublicKey()), email: isEmailConfigured(), sms: platformSmsReady(), whatsapp: platformWhatsAppReady() },
@@ -66,6 +67,7 @@ export const PUT = withAuth(async (req: NextRequest, { user }) => {
     for (const [key, change] of Object.entries(categories) as Array<[NotifyCategory, z.infer<typeof Switches>]>) {
       if (!change) continue;
       const next = { ...current[key], ...change };
+      if (!channelAllowedFor(key, "email")) next.email = false;
       if (!channelAllowedFor(key, "sms")) next.sms = false;
       if (!channelAllowedFor(key, "whatsapp")) next.whatsapp = false;
       const eventKey = preferenceEventKey(key);

@@ -274,6 +274,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   media: "Media",
   "supplier.products-import": "Upload CSV",
   "supplier.followers": "Followers",
+  "admin.push": "Push center",
 };
 
 export default pcm;

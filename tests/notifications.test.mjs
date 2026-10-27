@@ -162,7 +162,8 @@ test("deep links: a tap opens the order, chat, job, quote or payout screen", () 
   assert.equal(n.routeHref({ pathname: "/supplier/order/[id]", params: { id: "x", kind: "wholesale" } }), "/supplier/order/x?kind=wholesale");
   assert.equal(n.androidChannelFor("stock"), "orders");
   assert.equal(n.androidChannelFor("money"), "money");
-  assert.deepEqual(n.ANDROID_CHANNELS.map((channel) => channel.id), ["orders", "messages", "money", "deliveries", "marketing"]);
+  assert.deepEqual(n.ANDROID_CHANNELS.map((channel) => channel.id), ["orders", "messages", "money", "deliveries", "marketing", "news"]);
+  assert.equal(n.androidChannelFor("announcements"), "news");
 });
 
 test("Expo: batches of 100, tickets, and receipts that switch off dead phones", () => {
@@ -219,7 +220,7 @@ test("list helpers: Today / Yesterday / Earlier and short times", () => {
   assert.equal(n.timeAgo(new Date(now.getTime() - 30_000), now), "Just now");
   assert.equal(n.timeAgo(new Date(now.getTime() - 5 * 60_000), now), "5m ago");
   assert.equal(n.categoryLabel("orders", "logistics_partner"), "Jobs");
-  assert.deepEqual(n.categoriesFor("logistics_partner").map((c) => c.key), ["orders", "money", "messages", "deliveries", "account"]);
+  assert.deepEqual(n.categoriesFor("logistics_partner").map((c) => c.key), ["orders", "money", "messages", "deliveries", "account", "announcements"]);
 });
 
 test("wiring: one notify() path, every role's key events, cron and push plumbing", () => {
