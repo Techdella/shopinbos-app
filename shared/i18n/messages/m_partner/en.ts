@@ -673,6 +673,16 @@ const en = {
   "profile.save": "Save changes",
   "profile.saved": "Saved.",
   "profile.needName": "Add your company's name.",
+  "kyc.introTitle": "You don't need CAC to start",
+  "kyc.introSub": "After set-up you'll verify yourself on the phone. Have these ready:",
+  "kyc.need.id": "Your NIN and a selfie",
+  "kyc.need.bank": "Your BVN, or a bank account in your name",
+  "kyc.need.vehicle": "A photo of your vehicle and the driver's or rider's licence",
+  "kyc.need.guarantor": "A guarantor who can confirm by text",
+  "kyc.introCac": "Have CAC? Add it during verification to become a Registered Business with no order limits.",
+  "kyc.start": "Verify me now",
+  "kyc.doneTitle": "Set-up saved. Now verify yourself",
+  "kyc.doneSub": "You can take jobs once we've checked your ID, bank, vehicle and guarantor. It takes a few minutes.",
 } satisfies Record<string, string>;
 
 export default en;

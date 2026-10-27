@@ -13,6 +13,7 @@ import { ErrorState, LoadingBlock } from "@/components/kit";
 import { NotificationBellButton } from "@/components/NotificationBellButton";
 import { PayInOverdueCard } from "@/components/PayInOverdueCard";
 import { CardButton, PeggyButton, RouteCard, shopRoleOf } from "@/components/PartnerKit";
+import { TierCard } from "@/components/kyc/TierCard";
 import { PushPromptCard } from "@/components/PushPromptCard";
 import { TabScreen } from "@/components/TabScreen";
 import { Card, T, Toggle } from "@/components/ui";
@@ -217,6 +218,7 @@ export default function LogisticsJobs() {
       ) : data && verification && data.partner.verificationStatus !== "verified" && !(checklistShown && data.partner.verificationStatus === "unverified") ? (
         <CardButton icon="shield" tint={colors.warnTint} iconBg="#FFFFFF" iconFg={colors.warnInk} title={verification.label} sub={verification.hint} onPress={() => router.push("/logistics/verification")} />
       ) : null}
+      {data?.partner.verificationStatus === "verified" ? <TierCard /> : null}
 
       {data ? (
         <View style={{ backgroundColor: colors.forest, borderRadius: 26, padding: 20, gap: 16 }}>

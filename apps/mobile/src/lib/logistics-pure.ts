@@ -1,13 +1,7 @@
 import { NATIONWIDE, NG_STATES, cleanAreas, parseArea } from "@shared/delivery-market";
 import { nameWords } from "@shared/identity-images";
-import { LOGISTICS_DOC_TYPES } from "@shared/verification-docs";
 import type { TakingBlock } from "@shared/taking-jobs";
 import type { MarketRateRow, RateService, RiderRow, SizeBand } from "./logistics";
-
-/** The documents the server needs before "Send for review" (LOGISTICS_DOC_TYPES required: CAC and insurance). */
-export function requiredDocsMissing(done: string[]) {
-  return LOGISTICS_DOC_TYPES.filter((doc) => doc.required && !done.includes(doc.type));
-}
 
 /**
  * Why the "Taking new jobs" switch can't go on, for Jobs: the server's answer (overview takingBlock) when it sends

@@ -72,16 +72,14 @@ test("suppliers and delivery partners can turn tips off", () => {
 
 // ─── Delivery partner ─────────────────────────────────────────────────────────
 
-test("delivery set-up: documents are required (or put off on purpose) and Send for review shows what really happened", () => {
+test("delivery set-up: no CAC or insurance needed; it finishes set-up and opens the tiered verification", () => {
   const setup = app("app/logistics/setup.tsx");
-  assert.doesNotMatch(setup, /submitVerification\(\)\.catch\(\(\) => null\)/, "a refusal is never swallowed");
-  assert.match(setup, /setReview\(\{ sent: !refused, reason: refused \}\)/);
-  assert.match(setup, /if \(missingDocs\.length\) return setError\(t\("docs\.needRequired"/);
-  assert.match(setup, /setDocsLater\(true\)/);
-  assert.match(setup, /\{review\.reason \? <Notice>\{review\.reason\}<\/Notice> : null\}/);
+  // Documents moved to the stepped verification screen (shared/partner-tiers.ts): set-up never uploads or submits.
+  assert.doesNotMatch(setup, /LOGISTICS_DOC_TYPES|uploadVerificationDoc|submitVerification/);
+  assert.match(setup, /t\("kyc\.introTitle"\)/);
   assert.match(setup, /router\.replace\("\/logistics\/verification"\)/);
-  assert.match(app("lib/logistics-pure.ts"), /LOGISTICS_DOC_TYPES\.filter\(\(doc\) => doc\.required && !done\.includes\(doc\.type\)\)/);
-  for (const key of ["docs.needRequired", "docs.later", "setup.notSentTitle", "setup.notSentSub", "setup.addDocs"]) assert.ok(hasKey("m_partner", key), key);
+  assert.doesNotMatch(app("lib/logistics-pure.ts"), /LOGISTICS_DOC_TYPES/);
+  for (const key of ["kyc.introTitle", "kyc.introSub", "kyc.introCac", "kyc.start", "kyc.doneTitle", "kyc.doneSub"]) assert.ok(hasKey("m_partner", key), key);
 });
 
 test("taking new jobs: why it's off, for every state, and never 'on hold' unless suspended", async () => {
