@@ -162,6 +162,24 @@ export function whatsappPhone(raw: string | null | undefined) {
   return digits.length >= 8 && digits.length <= 15 ? `+${digits}` : null;
 }
 
+/**
+ * The last ten digits of a phone number: the part every way it gets stored shares ("+2348069394531",
+ * "2348069394531" from Supabase Auth or a WhatsApp wa_id, "08069394531" typed by hand). Null when it isn't one.
+ */
+export function phoneTail(raw: string | null | undefined) {
+  const phone = whatsappPhone(raw);
+  return phone ? phone.slice(-10) : null;
+}
+
+/** Of the accounts whose phone ends the same way, the one that is really this number: exact first, else the first. */
+export function pickPhoneMatch<T extends { phone: string | null }>(raw: string | null | undefined, candidates: T[]): T | null {
+  const phone = whatsappPhone(raw);
+  const tail = phoneTail(raw);
+  if (!phone || !tail) return null;
+  const same = candidates.filter((row) => phoneTail(row.phone) === tail);
+  return same.find((row) => whatsappPhone(row.phone) === phone) ?? same[0] ?? null;
+}
+
 /** "STOP", "Stop.", "unsubscribe": the person wants no more marketing on WhatsApp. */
 export function isStopMessage(text: string) {
   return /^\s*(stop|unsubscribe|stop promotions|opt out|optout)\s*[.!]?\s*$/i.test(text);

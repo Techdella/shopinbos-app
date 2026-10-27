@@ -10,6 +10,7 @@ import { getPriceBook } from "@/lib/pricing/price-book.server";
 import { PLAN_TIERS, PLAN_TIER_KEYS } from "@shared/plan-catalog";
 import { PEGGY_FACTS } from "./peggy-knowledge";
 import { setupStatus, setupText } from "@/lib/onboarding/setup-status.server";
+import { accountByContact } from "./people.server";
 import { PEGGY_AUTO_CHANNELS, leadContext, peggyChannel, peggyFormat, peggyMayAutoReply, type PeggyAutoChannel, type PeggySettings } from "./peggy-pure";
 
 // Peggy in the admin inbox: she drafts replies for the team (Draft with Peggy), and, when an owner switches it on,
@@ -84,6 +85,7 @@ async function liveFacts() {
 type Thread = {
   id: string;
   number: number;
+  userId: string | null;
   name: string;
   email: string | null;
   phone: string | null;
@@ -99,7 +101,7 @@ async function loadThread(ticketId: string): Promise<Thread | null> {
   return db.supportTicket.findUnique({
     where: { id: ticketId },
     select: {
-      id: true, number: true, name: true, email: true, phone: true, source: true, portal: true, subject: true, lastUserMessageAt: true, meta: true,
+      id: true, number: true, userId: true, name: true, email: true, phone: true, source: true, portal: true, subject: true, lastUserMessageAt: true, meta: true,
       messages: { orderBy: { createdAt: "asc" }, take: 60, select: { authorType: true, authorName: true, body: true, internal: true, createdAt: true } },
     },
   });
@@ -149,7 +151,12 @@ async function whoTheyAre(thread: Thread) {
   if (thread.phone) lines.push(`Phone/WhatsApp: ${thread.phone}`);
   const lead = await findLead(thread, typeof meta.leadId === "string" ? meta.leadId : null);
   if (lead) lines.push(leadContext(lead, await sentToLead(lead.id)));
-  const userId = typeof meta.matchedUserId === "string" ? meta.matchedUserId : null;
+  // Same order as the desk's customer panel: their own account, the match made when it came in, else a fresh look.
+  const userId =
+    thread.userId ??
+    (typeof meta.matchedUserId === "string" ? meta.matchedUserId : null) ??
+    (await accountByContact(thread.email, thread.phone))?.id ??
+    null;
   const user = userId ? await db.user.findUnique({ where: { id: userId }, select: { role: true, createdAt: true, store: { select: { name: true, status: true } } } }).catch(() => null) : null;
   if (user) lines.push(`Has a Shopinbos ${user.role.replace("_", " ")} account since ${user.createdAt.toISOString().slice(0, 10)}${user.store ? ` (store "${user.store.name}", ${user.store.status})` : ""}.`);
   else if (!lead) lines.push("No Shopinbos account found for them.");
