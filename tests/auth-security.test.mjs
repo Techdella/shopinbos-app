@@ -206,6 +206,8 @@ test("login, codes and resets are rate-limited, locked after failures, generic a
   assert.match(otp, /consumeAuthLimit\("otpSend"[\s\S]*?accountProblem\(request, create[\s\S]*?signInWithOtp\(/, "account check is rate-limited and comes before any code is sent");
   assert.match(otp, /"NO_ACCOUNT"/);
   assert.match(otp, /"ACCOUNT_EXISTS"/);
+  // An email saved on an account that logs in by phone counts as used at sign up, like a phone number does.
+  assert.match(otp, /if \(create && !usePhone\) \{[\s\S]*?profileEmailOwner\(target\.email\)[\s\S]*?"ACCOUNT_EXISTS"/);
   // The phone app asks first ("check") before its own SMS, email or password sign-in, under the login rate limit.
   assert.match(otp, /action === "check"[\s\S]*?consumeAuthLimit\("login"[\s\S]*?accountProblem\(/);
   const mobileAuth = read("apps/mobile/src/lib/auth.ts");

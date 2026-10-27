@@ -63,3 +63,15 @@ export async function accountFor(identifier: { email: string } | { phone: string
   }
   return null;
 }
+
+/**
+ * The account whose profile has this email, whatever it logs in with; null when none; undefined when the database
+ * can't say. An email belongs to one account (User.email is unique), so sign up refuses one that's taken.
+ */
+export async function profileEmailOwner(email: string): Promise<ExistingAccount | null | undefined> {
+  const user = await db.user
+    .findFirst({ where: { email: { equals: email.trim(), mode: "insensitive" } }, select: { role: true } })
+    .catch(() => undefined);
+  if (user === undefined) return undefined;
+  return user ? { role: asRole(user.role) } : null;
+}
