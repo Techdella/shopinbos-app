@@ -8,6 +8,7 @@ import type { AuthUser } from "@/lib/auth/types";
 import { markCatalogDirty } from "@/lib/whatsapp-catalog/dirty";
 import { productFieldsData } from "@/lib/products/save-fields.server";
 import { stockTrackingFor } from "@shared/product-stock";
+import { parsePreorderInput, preorderSaveData } from "@shared/preorder";
 import { isShortCodeClash, normalizeShortCode, storefrontProductUrl } from "@shared/product-codes";
 import { withShortCode } from "@/lib/products/short-code.server";
 import { storeUrl } from "@/lib/marketing/brand";
@@ -117,7 +118,11 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
     return apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Invalid input");
   }
 
-  const { costPrice, retailPrice, productType, productDetails, relatedProductIds, variants, variantOptions, ...rest } = parsed.data;
+  const { costPrice, retailPrice, productType, productDetails, relatedProductIds, variants, variantOptions, preorder, ...rest } = parsed.data;
+  // Preorders: a real ship date and cap; never on dropship products (they sell the supplier's stock).
+  const preorderParsed = preorder ? parsePreorderInput(preorder) : null;
+  if (preorderParsed && !preorderParsed.ok) return apiError("BAD_REQUEST", preorderParsed.message);
+  const preorderData = preorderParsed?.ok ? preorderSaveData(preorderParsed.value, { dropship: rest.fulfillmentType === "dropship" || rest.inventoryType === "dropshipping" }) : {};
   const planLimit = await productLimitProblem(user.id, store.id);
   if (planLimit) return apiError("PLAN_LIMIT", planLimit, 402);
   // Type, details, versions (checked and normalized) and related products.
@@ -141,6 +146,7 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
         ...(fields.data as Record<string, never>),
         shortCode,
         trackStock,
+        ...preorderData,
         storeId: store.id,
         userId: user.id,
         retailPrice,

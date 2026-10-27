@@ -18,6 +18,7 @@ import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { needsOptions, unitsLeft } from "@/components/storefront/shopper/catalog";
 import { SHOP_QUERY_KEYS } from "@/components/storefront/shopper/shop-browse";
 import { listingSoldOut, type ShopperStock } from "@shared/product-stock";
+import type { PreorderState } from "@shared/preorder";
 import { readCartSettings } from "@shared/cart-checkout";
 import { normalizeStorefrontPageKey, storefrontPageHref, storefrontPageKeyFromLocation } from "@shared/storefront-pages";
 import {
@@ -40,6 +41,8 @@ interface StoreProduct {
   supplierProduct?: { stockQuantity?: number | null } | null;
   /** Tracked stock (shared/product-stock.ts); null when not tracked. */
   stock?: ShopperStock | null;
+  /** Taking preorders (shared/preorder.ts forShoppers); null when not. */
+  preorder?: PreorderState | null;
   currency: string;
   category?: { id: string; name: string; slug: string } | null;
   avgRating?: number;

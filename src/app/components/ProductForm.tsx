@@ -34,6 +34,8 @@ import { SIZE_BANDS, SIZE_BAND_LABELS, isSizeBand } from "@shared/delivery-marke
 import { applySuggestion, type AssistantFormState, type SuggestionInput } from "@shared/product-assistant";
 import { friendlyError } from "@/lib/errors/report-client";
 import { checkShortCode } from "@shared/product-codes";
+import { PREORDER_NOTE_MAX, preorderDay } from "@shared/preorder";
+import { SharePreorder } from "@/components/products/SharePreorder";
 
 interface Category {
   id: string;
@@ -85,6 +87,12 @@ interface Product {
   lowStockThreshold: number;
   trackStock?: boolean;
   continueSellingWhenOut?: boolean;
+  /** Preorders (shared/preorder.ts). */
+  preorderEnabled?: boolean;
+  preorderShipsAt?: Date | string | null;
+  preorderLimit?: number | null;
+  preorderTaken?: number;
+  preorderNote?: string | null;
   /** This product's own page layout / parts (product-override.ts). */
   pageLayout?: unknown;
   seoTitle: string | null;
@@ -234,6 +242,11 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
   // "Track stock": off = never sold out, the count isn't used. Products from before the switch were backfilled.
   const [trackStock, setTrackStock] = useState(Boolean(product?.trackStock));
   const [continueSelling, setContinueSelling] = useState(Boolean(product?.continueSellingWhenOut));
+  // Preorders: sell before the stock arrives (shared/preorder.ts). The ship date is a day (YYYY-MM-DD).
+  const [preorderOn, setPreorderOn] = useState(Boolean(product?.preorderEnabled));
+  const [preorderShipsOn, setPreorderShipsOn] = useState(preorderDay(product?.preorderShipsAt) ?? "");
+  const [preorderLimit, setPreorderLimit] = useState(product?.preorderLimit ? String(product.preorderLimit) : "");
+  const [preorderNote, setPreorderNote] = useState(product?.preorderNote ?? "");
 
   // This product's own page: null = the store's Product page settings (builder) for that part.
   const [pageOverride] = useState(() => readProductPageOverride(product?.pageLayout));
@@ -418,6 +431,12 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
       lowStockThreshold: Number.isFinite(parseInt(lowStockThreshold)) ? Math.max(0, parseInt(lowStockThreshold)) : 10,
       trackStock: tracking,
       continueSellingWhenOut: tracking && continueSelling,
+      preorder: {
+        enabled: canTrack && preorderOn,
+        shipsAt: preorderShipsOn || null,
+        limit: parseInt(preorderLimit) > 0 ? parseInt(preorderLimit) : null,
+        note: preorderNote.trim() || null,
+      },
       // Only what the seller chose here overrides the store's product page settings.
       pageLayout: writeProductPageOverride({ layout: pageLayoutChoice, buyBox: buyBoxChoice, sections: sectionsChoice, ...(faqStyleChoice ? { faqStyle: faqStyleChoice } : {}) }),
       seoTitle: seo.metaTitle.slice(0, 70) || undefined,
@@ -762,6 +781,45 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
                   </>
                 )}
               </Section>
+
+              {canTrack ? (
+                <Section title="Preorder" sub="Sell it before the stock arrives. Customers order now and you ship from the date you set.">
+                  <div className="flex items-start justify-between gap-4 rounded-[16px] bg-app-canvas p-4">
+                    <span className="min-w-0">
+                      <span className="block text-[14px] font-bold">Take preorders</span>
+                      <span className="block text-[13px] text-app-ink-soft">
+                        {preorderOn
+                          ? "Shoppers see Preorder now and your ship date. Orders don't take from your stock count."
+                          : "Off: this product sells from the stock you have."}
+                      </span>
+                    </span>
+                    <Toggle on={preorderOn} onChange={setPreorderOn} label="Take preorders" />
+                  </div>
+                  {preorderOn ? (
+                    <>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <Field label="Ships from" hint="When you expect to send it out. Leave empty for “Ships soon”.">
+                          <input value={preorderShipsOn} onChange={(e) => setPreorderShipsOn(e.target.value)} type="date" min={new Date().toISOString().slice(0, 10)} className={field.input} />
+                        </Field>
+                        <Field label="Most preorders" hint={product?.preorderEnabled && product.preorderTaken ? `${product.preorderTaken} taken so far. Empty: no limit.` : "Empty: no limit. Shoppers see “Preorders full” when it's reached."}>
+                          <input value={preorderLimit} onChange={(e) => setPreorderLimit(e.target.value)} type="number" inputMode="numeric" className={field.input} min={1} placeholder="No limit" />
+                        </Field>
+                      </div>
+                      <Field label="Your promise to customers" hint="Shown under the button. Say when it ships and what you'll do if it's late.">
+                        <textarea value={preorderNote} onChange={(e) => setPreorderNote(e.target.value.slice(0, PREORDER_NOTE_MAX))} rows={2} className={field.textarea} placeholder="Ships by 15 Dec. If it's late, you can cancel for a full refund." />
+                      </Field>
+                      <p className="m-0 rounded-[16px] bg-app-canvas px-4 py-3 text-[13px] leading-[1.55] text-app-ink-soft">
+                        Customers pay you as for any order, straight to your bank. Shopinbos doesn&apos;t hold preorder money, so keep your promise clear and keep customers posted.
+                      </p>
+                      {isEdit && product && product.status === "published" && product.preorderEnabled ? (
+                        <SharePreorder product={{ name: product.name, price: product.retailPrice, shipsOn: preorderDay(product.preorderShipsAt), url: `${storeOrigin}/product/${encodeURIComponent(product.id)}` }} />
+                      ) : (
+                        <p className="m-0 text-[13px] text-app-ink-soft">Once it&apos;s saved and live, you can share the preorder on WhatsApp, Instagram, Facebook and X from here.</p>
+                      )}
+                    </>
+                  ) : null}
+                </Section>
+              ) : null}
 
               <Section title="Shipping and fulfilment" sub="Weight, codes and who sends it out.">
                 <div className="grid gap-4 md:grid-cols-2">

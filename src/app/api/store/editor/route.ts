@@ -78,6 +78,7 @@ async function getStoreEditorData(userId: string) {
           currentStock: true,
           reservedStock: true,
           lowStockThreshold: true,
+          preorderEnabled: true, preorderShipsAt: true, preorderLimit: true, preorderTaken: true, preorderNote: true,
           pageLayout: true,
         },
       },

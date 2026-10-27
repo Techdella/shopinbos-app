@@ -12,6 +12,7 @@ import { getLocale, getT } from "@/lib/i18n/server";
 import { pageWindow } from "@/lib/pagination";
 import { Pagination } from "@/components/seller/Pagination";
 import { PageTip } from "@/components/learn/PageTip";
+import { orderHasPreorder } from "@shared/preorder";
 
 export const dynamic = "force-dynamic";
 
@@ -147,8 +148,9 @@ export default async function OrdersPage({
                       </div>
                       <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5 xl:contents">
                         <StageDot tone={row.stage.tone}>{t.dynamic(`stage.${row.stage.label}`, row.stage.label)}</StageDot>
-                        <span>
+                        <span className="inline-flex flex-wrap gap-1.5">
                           <Pill tone={row.payment.tone}>{t.dynamic(`pay.${row.payment.label}`, row.payment.label)}</Pill>
+                          {orderHasPreorder(order.items) ? <Pill tone="warning">{t("detail.preorder")}</Pill> : null}
                         </span>
                         <span className="hidden truncate text-[13.5px] text-app-ink-soft xl:block">{channel ?? "—"}</span>
                       </div>

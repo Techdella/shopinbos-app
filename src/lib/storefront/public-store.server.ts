@@ -61,6 +61,12 @@ function storeSelect(productStatuses: readonly string[]) {
         currentStock: true,
         reservedStock: true,
         lowStockThreshold: true,
+        // Preorders (shared/preorder.ts): forShoppers turns these into `preorder`.
+        preorderEnabled: true,
+        preorderShipsAt: true,
+        preorderLimit: true,
+        preorderTaken: true,
+        preorderNote: true,
       },
       orderBy: { createdAt: "desc" as const },
     },

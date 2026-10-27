@@ -90,7 +90,9 @@ export function BoutiquePdp(props: Props) {
   const { selected, price, compareAt } = picker;
   const variantStock = picker.stock;
   // A version without its own count uses the product's tracked stock (or the supplier's for dropship).
-  const stockInput = { soldOut: picker.soldOut, variantStock, supplierStock: product.supplierProduct?.stockQuantity ?? null, stock: product.stock ?? null };
+  // Taking preorders: buyable up to the cap whatever the counts say (shared/preorder.ts).
+  const preorder = product.preorder?.on ? product.preorder : null;
+  const stockInput = { soldOut: picker.soldOut, variantStock, supplierStock: product.supplierProduct?.stockQuantity ?? null, stock: product.stock ?? null, preorder };
   const availability = pdpAvailability(stockInput);
   const status = stockStatus(stockInput);
   const soldOut = !availability.canBuy;
@@ -172,7 +174,7 @@ export function BoutiquePdp(props: Props) {
   const chat = shopper.whatsappNumber
     ? whatsappLink(shopper.whatsappNumber, `Hi ${props.storeName}, I'm asking about ${product.name}${selected ? ` (${selected.name})` : ""}${props.shareUrl ? `: ${props.shareUrl}` : ""}`)
     : null;
-  const addLabel = soldOut ? "Sold out" : settings.labels.addToBag;
+  const addLabel = soldOut ? (preorder ? "Preorders full" : "Sold out") : preorder ? "Preorder now" : settings.labels.addToBag;
   // The seller card (live product pages): who sells it, from where, where they deliver, and a WhatsApp chat.
   const seller = props.seller ?? null;
   const sellerChat = seller?.whatsappNumber ? whatsappLink(seller.whatsappNumber, `Hi ${seller.name}, I'm asking about ${product.name}${props.shareUrl ? `: ${props.shareUrl}` : ""}`) : null;
@@ -243,10 +245,14 @@ export function BoutiquePdp(props: Props) {
     },
     stock: () =>
       status ? (
-        <p className="bq-pdp2-row gap-2 text-[13.5px] font-semibold" role="status" style={{ color: status.tone === "low" ? "#C2410C" : status.tone === "out" ? t.muted : look.dark ? t.accent : "#16794A" }}>
-          <span aria-hidden className="inline-block h-2 w-2 rounded-full" style={{ background: "currentColor" }} />
-          {status.text}
-        </p>
+        <div className="grid gap-1.5">
+          <p className="bq-pdp2-row gap-2 text-[13.5px] font-semibold" role="status" style={{ color: status.tone === "low" || status.tone === "preorder" ? "#C2410C" : status.tone === "out" ? t.muted : look.dark ? t.accent : "#16794A" }}>
+            <span aria-hidden className="inline-block h-2 w-2 rounded-full" style={{ background: "currentColor" }} />
+            {status.tone === "preorder" ? <><strong>Preorder</strong> · {status.text}</> : status.text}
+          </p>
+          {/* The seller's own promise (when it ships, what happens if it's late): they run the preorder, not Shopinbos. */}
+          {preorder?.note ? <p className="m-0 text-[13px] leading-[1.5]" style={{ color: t.muted }}>{preorder.note}</p> : null}
+        </div>
       ) : null,
     quantity: () => (
       <div className="bq-pdp2-row gap-3">
