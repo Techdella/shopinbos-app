@@ -125,8 +125,8 @@ test("mobile: the Shopinbos ring leads the Status row on every home, and plays t
   assert.match(viewer, /openPath\(url\)/, "in-app links open the app's own screen when there is one");
 });
 
-test("mobile: the intro sheet has the narrator and the same music as the web", () => {
-  assert.ok(existsSync(new URL("../apps/mobile/assets/sounds/intro-music.m4a", import.meta.url)));
+test("mobile: the intro sheet has the narrator and the Afrobeats tips music", () => {
+  assert.ok(existsSync(new URL("../apps/mobile/assets/sounds/tips-lets-go.m4a", import.meta.url)));
   const hook = read("apps/mobile/src/components/learn/useIntroSound.ts");
   assert.match(hook, /\/api\/learn\/narration\?/);
   assert.match(hook, /music\.current\.loop = true/);
