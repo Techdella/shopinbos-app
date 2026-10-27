@@ -274,6 +274,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   media: "Hotuna",
   "supplier.products-import": "Ɗora CSV",
   "supplier.followers": "Mabiya",
+  "admin.push": "Cibiyar sanarwa",
 };
 
 export default ha;

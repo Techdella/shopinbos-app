@@ -82,6 +82,7 @@ export const SCHEDULED_JOBS: ScheduledJob[] = [
   { path: "/api/cron/expire-orders", label: "Expire unpaid orders", pgCron: ["expire-unpaid-orders"], qstash: "expire-orders" },
   { path: "/api/cron/supplier-acceptance", label: "Supplier acceptance deadlines", pgCron: ["supplier-acceptance"], qstash: "supplier-acceptance" },
   { path: "/api/cron/push-receipts", label: "Push notification receipts", pgCron: ["push-receipts"], qstash: "push-receipts" },
+  { path: "/api/cron/push-campaigns", label: "Push center campaigns", pgCron: ["push-campaigns"], qstash: "push-campaigns" },
   { path: "/api/cron/marketing", label: "Marketing automations", pgCron: ["run-marketing"], qstash: "marketing" },
   { path: "/api/conversations/cron", label: "Unread message emails", pgCron: ["send-unread-message-emails"], qstash: "unread-message-emails" },
   { path: "/api/cron/product-news", label: "Product news emails", pgCron: ["product-news"], qstash: "product-news" },

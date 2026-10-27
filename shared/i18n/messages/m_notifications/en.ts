@@ -69,6 +69,8 @@ const en = {
   "quiet.off": "Off. Notifications can buzz at any time.",
   "quiet.midnight": "midnight",
   "quiet.noon": "noon",
+  "category.announcements": "Shopinbos news",
+  "help.announcements": "New features, offers and tips from the Shopinbos team.",
 } satisfies Record<string, string>;
 
 export default en;
