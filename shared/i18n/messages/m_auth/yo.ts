@@ -169,6 +169,18 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "code.continue": "Tẹ̀síwájú",
   "form.signupLink": "Ṣé tuntun ni ọ́? Ṣí àkáǹtì",
   "form.riderLink": "Ṣé o ń gùn fún ilé-iṣẹ́ ìfijíṣẹ́? Ìwọlé àwọn rider",
+  "lock.title": "Shopinbos ti tì",
+  "lock.body": "O ti kúrò fún ìgbà díẹ̀. Ṣí i pẹ̀lú Face ID, ìka rẹ tàbí PIN fóònù rẹ kí ẹlòmíràn má bàa rí ṣọ́ọ̀bù àti owó rẹ.",
+  "lock.unlock": "Ṣí i",
+  "lock.logout": "Jáde dípò rẹ̀",
+  "lock.prompt": "Ṣí Shopinbos",
+  "lock.cancel": "Fagilé",
+  "lock.failed": "Kò ṣí. Gbìyànjú lẹ́ẹ̀kan sí i, tàbí jáde kí o sì wọlé padà.",
+  "age.title": "Ṣé o ti pé ọmọ ọdún 18 tàbí jù bẹ́ẹ̀ lọ?",
+  "age.body": "Àkáǹtì Shopinbos wà fún àgbàlagbà. Jẹ́rìí lẹ́ẹ̀kan, a kò ní béèrè mọ́.",
+  "age.yes": "Bẹ́ẹ̀ni, mo ti pé 18",
+  "age.under": "Mi ò tíì pé 18",
+  "age.failed": "Kò fi pamọ́. Ṣàyẹ̀wò ìsopọ̀ rẹ kí o sì gbìyànjú lẹ́ẹ̀kan sí i.",
 };
 
 export default yo;

@@ -112,6 +112,12 @@
           "microphonePermission": "Shopinbos uses the microphone only when you tap the mic to speak instead of typing, or when you call Peggy.",
           "cameraPermission": "Take photos of your products, and proof of delivery photos."
         }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Use Face ID to open Shopinbos after you've been away, so nobody else can see your shop and money."
+        }
       ]
     ],
     "extra": {

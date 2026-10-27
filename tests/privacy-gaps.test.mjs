@@ -71,3 +71,35 @@ test("accounts are for adults: sign-up asks, the ID check confirms from the date
   assert.match(read("src/lib/wallet/identity.server.ts"), /isAdult\(/);
   assert.match(read("docs/data-protection/lawful-basis.md"), /NDPA s\.25/);
 });
+
+test("18+ is recorded for every way in: Google from a sign-up page, and a one-time check for anyone else", async () => {
+  assert.match(read("src/components/auth/app/auth-api.ts"), /url\.searchParams\.set\("adult", "1"\)/);
+  assert.match(read("src/app/auth/callback/route.ts"), /get\("adult"\) === "1"[\s\S]*recordAgeConfirmed\(/);
+  assert.match(read("src/app/api/auth/activity/route.ts"), /ageConfirmed:/);
+  assert.match(read("src/app/api/auth/age/route.ts"), /recordAgeConfirmed\(user\.staff\?\.userId \?\? user\.id\)/);
+  assert.match(read("src/components/auth/IdleSignOut.tsx"), /<AgeCheck /);
+  assert.match(read("apps/mobile/src/components/SessionGuard.tsx"), /\/api\/auth\/age/);
+});
+
+test("store templates: every Google Fonts stylesheet goes through the app's proxy, and the CSP drops Google", async () => {
+  const { googleFontsUpstream, selfHostGoogleFonts } = await import("../src/lib/google-fonts-proxy.ts");
+  const q = (text) => new URLSearchParams(text);
+  assert.equal(googleFontsUpstream("css", q("family=Open+Sans:300,400|PT+Sans+Narrow&subset=all"))?.toString(), "https://fonts.googleapis.com/css?family=Open+Sans%3A300%2C400%7CPT+Sans+Narrow&subset=all");
+  assert.ok(googleFontsUpstream("css2", q("family=Inter:wght@400;700&display=swap")));
+  assert.ok(googleFontsUpstream("icon", q("family=Material+Icons")));
+  assert.equal(googleFontsUpstream("evil", q("family=Inter")), null);
+  assert.equal(googleFontsUpstream("css", q("family=Inter&callback=x")), null, "only font parameters");
+  assert.equal(googleFontsUpstream("css", q("family=<script>")), null);
+  assert.equal(googleFontsUpstream("css", q("display=swap")), null, "needs a family");
+  const html = '<link rel="preconnect" href="https://fonts.googleapis.com">\n<link href="https://fonts.googleapis.com/css2?family=Inter&display=swap" rel="stylesheet">';
+  assert.equal(selfHostGoogleFonts(html), '<link href="/api/fonts/google/css2?family=Inter&display=swap" rel="stylesheet">');
+  assert.equal(selfHostGoogleFonts("@import url(//fonts.googleapis.com/css?family=Lato);"), "@import url(/api/fonts/google/css?family=Lato);");
+
+  const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => (entry.isDirectory() ? (entry.name === ".sass-cache" ? [] : walk(path.join(dir, entry.name))) : [path.join(dir, entry.name)]));
+  const calling = walk(path.join(ROOT, "public/store-templates")).filter((file) => /\.(html?|css|scss|less)$/i.test(file) && /fonts\.(googleapis|gstatic)\.com/.test(fs.readFileSync(file, "utf8")));
+  assert.deepEqual(calling, [], "run node scripts/self-host-template-fonts.mjs");
+  const csp = read("next.config.ts");
+  assert.doesNotMatch(csp, /"style-src[^"]*fonts\.googleapis\.com/);
+  assert.doesNotMatch(csp, /"font-src[^"]*fonts\.gstatic\.com/);
+  assert.match(read("src/lib/storefront/host-routing.ts"), /"\/api\/fonts"/);
+});

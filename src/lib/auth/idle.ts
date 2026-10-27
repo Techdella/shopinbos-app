@@ -8,7 +8,9 @@
 //
 // Env: AUTH_IDLE_MINUTES (sellers, suppliers, delivery partners; default 60) and AUTH_ADMIN_IDLE_MINUTES (default 15);
 // 0 turns it off. The cookie is signed with AUTH_ACTIVITY_SECRET (else JWT_SECRET, else the service role key).
-// The phone app signs in with a Bearer token and never passes through here.
+// The phone app signs in with a Bearer token and never passes through the proxy: it locks itself instead
+// (apps/mobile/src/components/SessionGuard.tsx) after appLockMs in the background, asking for Face ID, a fingerprint
+// or the phone's PIN, and its sessions end after appSessionMaxAgeMs (src/lib/auth/session-claims.ts).
 
 export const ACTIVITY_COOKIE = "sib_active";
 export const ACTIVITY_PATH = "/api/auth/activity";
@@ -17,6 +19,12 @@ export const ACTIVITY_COOKIE_MAX_AGE = 30 * 86_400;
 
 export function idleTimeoutMs(role: string | null | undefined, env: Record<string, string | undefined>) {
   const minutes = Number(role === "admin" ? env.AUTH_ADMIN_IDLE_MINUTES ?? 15 : env.AUTH_IDLE_MINUTES ?? 60);
+  return Number.isFinite(minutes) && minutes > 0 ? minutes * 60_000 : 0;
+}
+
+/** The phone app locks after this long in the background or unused (AUTH_APP_LOCK_MINUTES, default 5; 0 = off). */
+export function appLockMs(env: Record<string, string | undefined>) {
+  const minutes = Number(env.AUTH_APP_LOCK_MINUTES ?? 5);
   return Number.isFinite(minutes) && minutes > 0 ? minutes * 60_000 : 0;
 }
 

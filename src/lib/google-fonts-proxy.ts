@@ -1,6 +1,8 @@
-// Google Fonts through the app (src/app/api/fonts): the brand book shows a seller's chosen fonts without their browser
-// ever calling fonts.googleapis.com or fonts.gstatic.com, so Google doesn't get their IP address (NDPA: no transfer
-// we don't need). Only Google's own font CSS and font files can be fetched. Pure, tested in tests/privacy-gaps.test.mjs.
+// Google Fonts through the app (src/app/api/fonts): the brand book and the imported HTML store templates
+// (public/store-templates, rewritten by scripts/self-host-template-fonts.mjs) show their fonts without the visitor's
+// browser ever calling fonts.googleapis.com or fonts.gstatic.com, so Google doesn't get their IP address (NDPA: no
+// transfer we don't need). Only Google's own font CSS and font files can be fetched. Pure, tested in
+// tests/privacy-gaps.test.mjs.
 
 export const GOOGLE_CSS = "https://fonts.googleapis.com/css2";
 export const GOOGLE_FILES = "https://fonts.gstatic.com";
@@ -20,4 +22,35 @@ export function rewriteFontCss(css: string, base = "/api/fonts/file") {
 export function safeFontPath(segments: string[]) {
   const path = segments.join("/");
   return /^s\/[a-z0-9]+\/v\d+\/[A-Za-z0-9_\-./]+\.(woff2|woff|ttf)$/.test(path) && !path.includes("..") ? path : null;
+}
+
+/** Google's three stylesheet APIs, as /api/fonts/google/<api>?… */
+export const GOOGLE_CSS_APIS = { css: "https://fonts.googleapis.com/css", css2: "https://fonts.googleapis.com/css2", icon: "https://fonts.googleapis.com/icon" } as const;
+export type GoogleCssApi = keyof typeof GOOGLE_CSS_APIS;
+
+const ALLOWED_PARAMS = new Set(["family", "display", "subset", "text", "effect"]);
+
+/**
+ * The Google URL for /api/fonts/google/<api>?<query>, or null when the API or any parameter isn't a font request
+ * (old css "Open Sans:300,400|Lato", css2 "Inter:wght@400;700", icon "Material Icons").
+ */
+export function googleFontsUpstream(api: string, query: URLSearchParams) {
+  if (!(api in GOOGLE_CSS_APIS)) return null;
+  const url = new URL(GOOGLE_CSS_APIS[api as GoogleCssApi]);
+  let families = 0;
+  for (const [key, value] of query) {
+    if (!ALLOWED_PARAMS.has(key) || value.length > 400) return null;
+    if (key !== "text" && !/^[A-Za-z0-9 +:,;@.|_~-]*$/.test(value)) return null;
+    if (key === "family") families += 1;
+    url.searchParams.append(key, value);
+  }
+  return families >= 1 && families <= 6 ? url : null;
+}
+
+/** Points every Google Fonts stylesheet URL in an HTML or CSS file at the app's proxy; drops preconnects to Google. */
+export function selfHostGoogleFonts(source: string) {
+  return source
+    .replace(/[ \t]*<link[^>]*rel=["']?(?:preconnect|dns-prefetch)["']?[^>]*fonts\.(?:googleapis|gstatic)\.com[^>]*>[ \t]*\r?\n?/gi, "")
+    .replace(/[ \t]*<link[^>]*fonts\.(?:googleapis|gstatic)\.com[^>]*rel=["']?(?:preconnect|dns-prefetch)["']?[^>]*>[ \t]*\r?\n?/gi, "")
+    .replace(/(?:https?:)?\/\/fonts\.googleapis\.com\/(css2|css|icon)\?/g, "/api/fonts/google/$1?");
 }

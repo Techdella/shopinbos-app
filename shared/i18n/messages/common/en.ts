@@ -102,6 +102,11 @@ const en = {
   "consent.allow": "Allow analytics",
   "consent.policy": "Privacy policy",
   "consent.settings": "Cookie settings",
+  "age.title": "Are you 18 or older?",
+  "age.body": "Shopinbos accounts are for adults. Confirm once and we won't ask again.",
+  "age.yes": "Yes, I'm 18 or older",
+  "age.under": "I'm under 18",
+  "age.failed": "That didn't save. Check your connection and try again.",
 } satisfies Record<string, string>;
 
 export default en;

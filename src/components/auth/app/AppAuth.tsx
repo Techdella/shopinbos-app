@@ -472,7 +472,7 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
     }
     setBusy("google");
     try {
-      await signInWithGoogle(role, nextUrl, mode);
+      await signInWithGoogle(role, nextUrl, mode, needsAge && adult);
     } catch (googleError) {
       setError(friendlyNetworkError(googleError));
       setBusy(null);

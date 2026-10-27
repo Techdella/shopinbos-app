@@ -103,6 +103,11 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "consent.allow": "Kwe ka e mee nyocha",
   "consent.policy": "Iwu nzuzo",
   "consent.settings": "Ntọala kuki",
+  "age.title": "Ị dịla afọ 18 ma ọ bụ karịa?",
+  "age.body": "Akaụntụ Shopinbos bụ maka ndị okenye. Kwenye otu ugboro, anyị agaghị ajụ ọzọ.",
+  "age.yes": "Ee, adị m afọ 18",
+  "age.under": "Erubeghị m afọ 18",
+  "age.failed": "Echekwaghị ya. Lelee njikọ gị ma nwaa ọzọ.",
 };
 
 export default ig;

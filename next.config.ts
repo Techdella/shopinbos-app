@@ -62,13 +62,13 @@ const nextConfig: NextConfig = {
               // Call Peggy (ElevenLabs, src/components/peggy/PeggyCall.tsx) loads its audio worklets from blob:/data: URLs and,
               // where the mic's sample rate needs converting, one pinned resampler worklet from jsDelivr.
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: data: https://cdn.jsdelivr.net/npm/@alexanderolsen/libsamplerate-js@2.1.2/ https://js.paystack.co https://checkout.paystack.com https://*.supabase.co https://va.vercel-scripts.com https://www.googletagmanager.com https://analytics.tiktok.com https://connect.facebook.net https://*.posthog.com https://cdn.mxpnl.com",
-              // The app's own fonts are self-hosted (src/app/fonts.css, /api/fonts for the brand book); Google Fonts stays
-              // allowed only for the imported HTML store templates (public/store-templates) that still link to it.
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              // Every font is served by the app (src/app/fonts.css, /api/fonts for the brand book and the imported store
+              // templates, scripts/self-host-template-fonts.mjs): browsers never call Google Fonts.
+              "style-src 'self' 'unsafe-inline'",
               // Theme previews show sample products with Unsplash photos (src/lib/store-templates/demo-photos.ts).
               // The store tags' tracking pixels: Google Analytics, Meta (www.facebook.com/tr) and TikTok.
               `img-src 'self' data: blob: https://*.supabase.co https://*.paystack.com https://images.unsplash.com https://i.ytimg.com https://i.vimeocdn.com https://*.google-analytics.com https://*.googletagmanager.com https://www.facebook.com https://analytics.tiktok.com ${storageOrigin}`.trim(),
-              "font-src 'self' https://fonts.gstatic.com data:",
+              "font-src 'self' data:",
               // Video studio previews its reel (blob:) and product videos are stored on Supabase; so are help videos.
               `media-src 'self' blob: https://*.supabase.co ${storageOrigin}`.trim(),
               // Embedded Signup opens its login/consent frames on www/web.facebook.com.

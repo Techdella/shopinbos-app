@@ -10,6 +10,7 @@ import { decodeAccessToken } from "@/lib/auth/session-claims";
 import { safeNextPath } from "@/lib/auth/route-access";
 import { deviceCookie, recordSignIn } from "@/lib/auth/events";
 import { claimReferralFromCookie } from "@/lib/referrals/service.server";
+import { recordAgeConfirmed } from "@/lib/auth/age.server";
 
 const RESET_PATH = "/reset-password";
 
@@ -55,6 +56,10 @@ export async function GET(request: NextRequest) {
     role: isReset ? metadataRole ?? role : role,
   });
   await alignRoleMetadata(data.user.id, data.user.user_metadata?.role, appUser.role);
+  // Google sign-up from a sign-up page, where "I'm 18 or older" had to be ticked first (src/lib/auth/age.ts).
+  if (!isReset && request.nextUrl.searchParams.get("mode") === "signup" && request.nextUrl.searchParams.get("adult") === "1") {
+    await recordAgeConfirmed(appUser.id).catch(() => null);
+  }
   // Joined with an invite (Refer & earn, the sib_ref cookie from /r/CODE).
   if (!isReset) await claimReferralFromCookie(appUser.id);
   // Every business gets its wallet and own account number on sign-in, without holding up the sign-in.

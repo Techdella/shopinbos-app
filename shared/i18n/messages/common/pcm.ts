@@ -103,6 +103,11 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "consent.allow": "Allow analytics",
   "consent.policy": "Privacy policy",
   "consent.settings": "Cookie settings",
+  "age.title": "You don reach 18 years?",
+  "age.body": "Shopinbos account na for adults. Confirm am once and we no go ask again.",
+  "age.yes": "Yes, I don reach 18",
+  "age.under": "I never reach 18",
+  "age.failed": "E no save. Check your network and try again.",
 };
 
 export default pcm;

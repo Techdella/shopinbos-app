@@ -28,8 +28,8 @@ theme.
 	14. Contact page
 
 */
-@import url(https://fonts.googleapis.com/css?family=Lato:400,900,300);
-@import 'https://fonts.googleapis.com/css?family=Cantarell:400,700';
+@import url(/api/fonts/google/css?family=Lato:400,900,300);
+@import '/api/fonts/google/css?family=Cantarell:400,700';
 
 
 

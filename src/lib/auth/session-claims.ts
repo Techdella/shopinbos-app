@@ -50,6 +50,15 @@ export function sessionMaxAgeMs(role: string | null | undefined, env: Record<str
   return Number.isFinite(days) && days > 0 ? days * 86_400_000 : 0;
 }
 
+/**
+ * Absolute lifetime of a phone app session (Bearer token): AUTH_APP_SESSION_MAX_DAYS, default 30; 0 turns it off.
+ * Longer than the web's because the app also locks itself after a few minutes away (Face ID, fingerprint or PIN).
+ */
+export function appSessionMaxAgeMs(env: Record<string, string | undefined>) {
+  const days = Number(env.AUTH_APP_SESSION_MAX_DAYS ?? 30);
+  return Number.isFinite(days) && days > 0 ? days * 86_400_000 : 0;
+}
+
 export function sessionTooOld(claims: SessionClaims | null, maxAgeMs: number, now = Date.now()) {
   if (!maxAgeMs) return false;
   const at = authenticatedAt(claims);

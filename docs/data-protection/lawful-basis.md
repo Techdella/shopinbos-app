@@ -33,7 +33,7 @@ rest still need scheduled clean-up jobs, so treat any period without a job as a 
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Account and sign-in | Sellers, suppliers, delivery partners, admins | Name, email, phone, role, password hash (Supabase), sign-in events, IP and device for security | Create and secure the account | Contract; legitimate interests (security) | `src/app/api/auth/*`, `src/lib/auth/*`, `src/proxy.ts` | While the account is open; auth events 12 months |
 | 2 | Age confirmation | Everyone who signs up | "I'm 18 or older" tick and time (`User.preferences.ageConfirmedAt`), date of birth from the ID check | Accounts are for adults only (NDPA s.31: no child's data without a guardian's consent) | Legal obligation; contract | `src/lib/auth/age.ts`, `src/app/api/auth/sync-user` | With the account |
-| 3 | Web session security | Signed-in web users | Signed "last active" cookie (`sib_active`), session id | Sign out idle sessions (60 min, 15 for admins) and old ones (7 days, 8 h admins) | Legitimate interests (security) | `src/lib/auth/idle.ts`, `src/lib/auth/session-claims.ts` | Session only |
+| 3 | Session security | Signed-in users (web and phone) | Web: signed "last active" cookie (`sib_active`), session id. Phone: when the app was last used, kept on the phone; the unlock is the phone's own Face ID, fingerprint or PIN (no biometric data reaches Shopinbos) | Web: sign out idle sessions (60 min, 15 for admins) and old ones (7 days, 8 h admins). Phone: lock after 5 min away, sign out after 30 days | Legitimate interests (security) | `src/lib/auth/idle.ts`, `src/lib/auth/session-claims.ts`, `apps/mobile/src/components/SessionGuard.tsx` | Session only |
 | 4 | Running the shop | Sellers and their staff | Store details, products, prices, legal pages, business address | Provide the store builder and storefront | Contract | `src/lib/storefront`, `src/lib/products` | While the account is open |
 | 5 | Orders and checkout (as processor) | Shoppers | Name, phone, email, delivery address, order items, payment reference | Take and deliver the seller's orders | Seller's contract with the shopper (Shopinbos as processor) | `src/lib/commerce`, `src/app/api/public/store` | Seller's records; tax records 6 years |
 | 6 | Payments and payouts | Sellers, suppliers, delivery partners | Bank account (last 4 shown), Paystack/Korapay subaccounts, settlements | Split payments to each business's own bank | Contract; legal obligation | `src/lib/wallet`, `src/lib/paystack.ts`, `src/lib/korapay.ts` | 6 years after the last payment (accounting) |
@@ -89,8 +89,9 @@ SMS and WhatsApp, and "Cookie settings" in the account menu. Complaints can go t
 
 ## Children
 
-Shopinbos isn't for anyone under 18. Sign-up requires "I'm 18 or older" (web and app), and the ID check refuses a
-date of birth under 18 (`src/lib/auth/age.ts`). An account found to belong to a child is closed and its data deleted.
+Shopinbos isn't for anyone under 18. Sign-up requires "I'm 18 or older" (web and app, including Google and
+Apple), any account that never confirmed it is asked once before the portal or app can be used, and the ID check
+refuses a date of birth under 18 (`src/lib/auth/age.ts`). An account found to belong to a child is closed and its data deleted.
 
 ## Breaches (NDPA s.40)
 

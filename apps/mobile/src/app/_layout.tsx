@@ -6,6 +6,7 @@ import { useFonts, PlusJakartaSans_400Regular, PlusJakartaSans_500Medium, PlusJa
 import { BricolageGrotesque_700Bold, BricolageGrotesque_800ExtraBold } from "@expo-google-fonts/bricolage-grotesque";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { RoleGuard } from "@/components/RoleGuard";
+import { SessionGuard } from "@/components/SessionGuard";
 import { LearnHost } from "@/components/learn/LearnHost";
 import { PushManager } from "@/components/PushManager";
 import { CallSpace, PeggyCallHost } from "@/components/peggy/PeggyCallHost";
@@ -59,6 +60,8 @@ export default function RootLayout() {
           <PushManager />
           {/* "Call Peggy": the in-app call, full screen or minimized to a bar across the app. */}
           <PeggyCallHost />
+          {/* Locks the app after a few minutes away (Face ID, fingerprint or PIN), ends old sessions, asks 18+ once. */}
+          <SessionGuard />
           {/* 60-second feature intros: a small Tips button on screens that have one, after setup; never during a call. */}
           <LearnHost />
         </I18nProvider>

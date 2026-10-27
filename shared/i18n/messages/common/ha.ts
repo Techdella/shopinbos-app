@@ -103,6 +103,11 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "consent.allow": "Ba da izinin nazari",
   "consent.policy": "Manufar sirri",
   "consent.settings": "Saitunan kukis",
+  "age.title": "Ka kai shekara 18 ko fiye?",
+  "age.body": "Asusun Shopinbos na manya ne. Tabbatar sau ɗaya kuma ba za mu sake tambaya ba.",
+  "age.yes": "Ee, na kai 18",
+  "age.under": "Ban kai 18 ba",
+  "age.failed": "Bai adana ba. Duba haɗinka ka sake gwadawa.",
 };
 
 export default ha;

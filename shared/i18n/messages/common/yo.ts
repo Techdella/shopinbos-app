@@ -103,6 +103,11 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "consent.allow": "Gba ìtúpalẹ̀ láàyè",
   "consent.policy": "Ìlànà ìpamọ́",
   "consent.settings": "Ètò kúkì",
+  "age.title": "Ṣé o ti pé ọmọ ọdún 18 tàbí jù bẹ́ẹ̀ lọ?",
+  "age.body": "Àkáǹtì Shopinbos wà fún àgbàlagbà. Jẹ́rìí lẹ́ẹ̀kan, a kò ní béèrè mọ́.",
+  "age.yes": "Bẹ́ẹ̀ni, mo ti pé 18",
+  "age.under": "Mi ò tíì pé 18",
+  "age.failed": "Kò fi pamọ́. Ṣàyẹ̀wò ìsopọ̀ rẹ kí o sì gbìyànjú lẹ́ẹ̀kan sí i.",
 };
 
 export default yo;
