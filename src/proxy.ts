@@ -8,6 +8,7 @@ import { metadataNeedsAlign, roleToRepair } from "@/lib/auth/role-rules";
 import { csrfRejection } from "@/lib/auth/csrf";
 import { loginRedirectPath, PORTAL_API_PREFIXES, PROTECTED_PREFIXES, rolesForPath, type PortalRole } from "@/lib/auth/route-access";
 import { decodeAccessToken, sessionMaxAgeMs, sessionTooOld } from "@/lib/auth/session-claims";
+import { ACTIVITY_COOKIE, ACTIVITY_PATH, activityCookieValue, activitySecret, countsAsActivity, idleExpired, idleTimeoutMs, lastActiveAt, shouldRefreshActivity } from "@/lib/auth/idle";
 import { getPlatformRootDomain } from "@/lib/domains/storefront";
 import { resolveCustomDomainSlug } from "@/lib/domains/lookup";
 import { getOnboardingDestination } from "@/lib/onboarding-router";
@@ -225,19 +226,40 @@ export async function proxy(request: NextRequest) {
 
   // Absolute session lifetime (AUTH_SESSION_MAX_DAYS, shorter for admins): after it, sign in again.
   // (/api/auth is left alone so signing in again and signing out always work.)
-  const dataApi = portalApi && !matchesRoute(pathname, ["/api/auth"]);
+  // Inactivity (src/lib/auth/idle.ts): no real activity for AUTH_IDLE_MINUTES (15 for admins) signs out too. The
+  // heartbeat (/api/auth/activity) is checked like a data API, so it can't bring an expired session back.
+  const heartbeat = pathname === ACTIVITY_PATH;
+  const dataApi = portalApi && (!matchesRoute(pathname, ["/api/auth"]) || heartbeat);
   if (protectedPage || dataApi) {
     const { data: sessionData } = await supabase.auth.getSession();
     const claims = decodeAccessToken(sessionData.session?.access_token);
-    if (claims?.sub === data.user.id && sessionTooOld(claims, sessionMaxAgeMs(appUser?.role, process.env))) {
+    const sessionKey = claims?.sub === data.user.id ? claims.session_id || claims.sub : null;
+    const secret = activitySecret(process.env);
+    const now = Date.now();
+    const lastActive = sessionKey && secret ? await lastActiveAt(request.cookies.get(ACTIVITY_COOKIE)?.value, sessionKey, secret) : null;
+    const reason = !sessionKey
+      ? null
+      : sessionTooOld(claims, sessionMaxAgeMs(appUser?.role, process.env), now)
+        ? "expired"
+        : idleExpired(lastActive, idleTimeoutMs(appUser?.role, process.env), now)
+          ? "idle"
+          : null;
+    if (reason) {
       await supabase.auth.signOut({ scope: "local" }).catch(() => null);
+      sessionCookies.push({ name: ACTIVITY_COOKIE, value: "", options: { ...SESSION_COOKIE_OPTIONS, httpOnly: true, maxAge: 0 } });
       if (dataApi) {
-        const expired = NextResponse.json({ error: { code: "SESSION_EXPIRED", message: "Your session has ended. Log in again." } }, { status: 401 });
+        const message = reason === "idle" ? "You were signed out after a while with no activity. Log in again." : "Your session has ended. Log in again.";
+        const expired = NextResponse.json({ error: { code: "SESSION_EXPIRED", reason, message } }, { status: 401 });
         for (const cookie of sessionCookies) expired.cookies.set(cookie.name, cookie.value, cookie.options);
         return expired;
       }
       const login = loginRedirectPath(getLoginPath(pathname), pathname, search);
-      return redirectTo(`${login}${login.includes("?") ? "&" : "?"}reason=expired`);
+      return redirectTo(`${login}${login.includes("?") ? "&" : "?"}reason=${reason}`);
+    }
+    if (sessionKey && secret && (lastActive === null || countsAsActivity({ method: request.method, isApi, headers: request.headers })) && shouldRefreshActivity(lastActive, now)) {
+      const value = await activityCookieValue(sessionKey, now, secret);
+      sessionCookies.push({ name: ACTIVITY_COOKIE, value, options: { ...SESSION_COOKIE_OPTIONS, httpOnly: true } });
+      response = buildResponse();
     }
   }
 

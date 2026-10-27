@@ -62,6 +62,8 @@ const nextConfig: NextConfig = {
               // Call Peggy (ElevenLabs, src/components/peggy/PeggyCall.tsx) loads its audio worklets from blob:/data: URLs and,
               // where the mic's sample rate needs converting, one pinned resampler worklet from jsDelivr.
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: data: https://cdn.jsdelivr.net/npm/@alexanderolsen/libsamplerate-js@2.1.2/ https://js.paystack.co https://checkout.paystack.com https://*.supabase.co https://va.vercel-scripts.com https://www.googletagmanager.com https://analytics.tiktok.com https://connect.facebook.net https://*.posthog.com https://cdn.mxpnl.com",
+              // The app's own fonts are self-hosted (src/app/fonts.css, /api/fonts for the brand book); Google Fonts stays
+              // allowed only for the imported HTML store templates (public/store-templates) that still link to it.
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               // Theme previews show sample products with Unsplash photos (src/lib/store-templates/demo-photos.ts).
               // The store tags' tracking pixels: Google Analytics, Meta (www.facebook.com/tr) and TikTok.
@@ -87,6 +89,11 @@ const nextConfig: NextConfig = {
             ].join("; "),
           },
         ],
+      },
+      {
+        // Email fonts (public/fonts/email.css) load from mail apps on other origins.
+        source: "/fonts/:file*",
+        headers: [{ key: "Access-Control-Allow-Origin", value: "*" }, { key: "Cache-Control", value: "public, max-age=2592000" }],
       },
       {
         // The tips' music (shared/intro-narration.ts INTRO_TRACKS): a new track gets a new file name.

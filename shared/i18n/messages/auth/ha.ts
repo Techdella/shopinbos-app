@@ -25,6 +25,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "role.logistics_partner.next4": "Karɓi bookings ka sami kuɗinka",
   "error.linkExpired": "Wannan link na shiga ya ƙare. Don Allah sake gwadawa.",
   "info.expired": "Saboda tsaronka, an fitar da kai bayan ɗan lokaci. Sake shiga don ci gaba.",
+  "info.idle": "Saboda tsaronka, an fitar da kai saboda ba wanda ya yi amfani da Shopinbos na ɗan lokaci. Sake shiga don ci gaba.",
   "info.signedOutAll": "An fitar da kai daga duk na'urorinka.",
   "error.otherRole.seller": "Wannan asusu na mai sayarwa ne tun da. Shiga wannan portal ɗin maimakon haka.",
   "error.otherRole.supplier": "Wannan asusu na supplier ne tun da. Shiga wannan portal ɗin maimakon haka.",

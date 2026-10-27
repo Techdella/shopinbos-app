@@ -93,6 +93,16 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "product.code": "Koodu",
   "product.orderHere": "Zụta ya ebe a",
   "product.shareWhatsapp": "Kesaa na WhatsApp",
+  "idle.title": "Ị ka nọ ebe ahụ?",
+  "idle.body": "Maka nchekwa gị, a ga-apụpụ gị n'ime sekọnd {seconds} n'ihi na ọ dịghị onye jiri Shopinbos ruo oge ụfọdụ.",
+  "idle.stay": "Nọgide n'ime ya",
+  "idle.signOut": "Pụọ ugbu a",
+  "consent.title": "Kuki na Shopinbos",
+  "consent.body": "Anyị na-eji kuki ndị dị mkpa iji mee ka ị nọrọ n'ime akaụntụ gị n'udo. Site n'ikike gị, anyị na-ejikwa nyocha na ndekọ otu e si eji ibe (ihe niile ị pịnyere ma ọ bụ gụọ ka ezoro ezo) iji chọta nsogbu ma meziwanye Shopinbos. Ị nwere ike ịgbanwe nke a mgbe ọ bụla na Settings.",
+  "consent.essential": "Naanị ndị dị mkpa",
+  "consent.allow": "Kwe ka e mee nyocha",
+  "consent.policy": "Iwu nzuzo",
+  "consent.settings": "Ntọala kuki",
 };
 
 export default ig;

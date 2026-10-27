@@ -25,6 +25,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "role.logistics_partner.next4": "Gba àwọn booking kí o sì gba owó rẹ",
   "error.linkExpired": "Link ìwọlé yẹn ti parí. Jọ̀ọ́ gbìyànjú lẹ́ẹ̀kan sí i.",
   "info.expired": "Fún ààbò rẹ, a ti mú ọ jáde lẹ́yìn ìgbà díẹ̀. Wọlé padà láti máa bá a lọ.",
+  "info.idle": "Fún ààbò rẹ, a jáde rẹ nítorí pé kò sí ẹni tó lo Shopinbos fún ìgbà díẹ̀. Wọlé padà láti tẹ̀síwájú.",
   "info.signedOutAll": "A ti mú ọ jáde lórí gbogbo ẹ̀rọ rẹ.",
   "error.otherRole.seller": "Àkáǹtì yìí ti jẹ́ ti olùtajà tẹ́lẹ̀. Wọlé sí portal yẹn dípò.",
   "error.otherRole.supplier": "Àkáǹtì yìí ti jẹ́ ti supplier tẹ́lẹ̀. Wọlé sí portal yẹn dípò.",

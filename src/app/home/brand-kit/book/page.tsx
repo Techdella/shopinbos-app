@@ -41,7 +41,8 @@ export default async function BrandBookPage() {
       ] as const)
     : [];
   const fontLink = book
-    ? `https://fonts.googleapis.com/css2?family=${encodeURIComponent(book.typography.headings)}:wght@500;700&family=${encodeURIComponent(book.typography.body)}:wght@400;600&display=swap`
+    ? // Through the app, never straight from Google (src/lib/google-fonts-proxy.ts).
+      `/api/fonts/css?family=${encodeURIComponent(`${book.typography.headings}:wght@500;700`)}&family=${encodeURIComponent(`${book.typography.body}:wght@400;600`)}`
     : null;
 
   return (

@@ -23,6 +23,7 @@ const en = {
   "role.logistics_partner.next4": "Accept bookings and get paid",
   "error.linkExpired": "That sign-in link has expired. Please try again.",
   "info.expired": "For your security, you've been logged out after a while. Log in again to carry on.",
+  "info.idle": "For your security, you were logged out because nobody used Shopinbos for a while. Log in again to carry on.",
   "info.signedOutAll": "You've been logged out on all your devices.",
   "error.otherRole.seller": "This account already belongs to a seller. Log in to that portal instead.",
   "error.otherRole.supplier": "This account already belongs to a supplier. Log in to that portal instead.",

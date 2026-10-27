@@ -13,6 +13,17 @@ import { SearchModal } from "./SearchModal";
 import { ConversationsModal } from "./ConversationsModal";
 import { useUnreadMessages } from "@/components/conversations/client";
 import { SignOutButton } from "./SignOutButton";
+import { openConsentSettings } from "@/lib/analytics/consent";
+
+/** Reopens the cookie banner (components/analytics/ProductAnalytics.tsx) to change the analytics choice. */
+function CookieSettingsItem({ onOpen }: { onOpen: () => void }) {
+  const t = useT("common");
+  return (
+    <button type="button" onClick={() => { onOpen(); openConsentSettings(); }} className="flex w-full items-center gap-2.5 rounded-[12px] px-3 py-2 text-left text-[13.5px] font-semibold text-app-ink hover:bg-app-canvas">
+      <Icon name="shield" size={15} /> {t("consent.settings")}
+    </button>
+  );
+}
 import { TOGGLE_NAV_EVENT, useIdentity, useShellCounts } from "./useShellCounts";
 import { initialsOf } from "@shared/identity-images";
 import { navLabel } from "@shared/i18n/nav";
@@ -157,6 +168,7 @@ export function GlobalTopBar({
                 <Icon name="settings" size={15} /> {t("settings")}
               </Link>
               <LanguagePicker variant="compact" />
+              <CookieSettingsItem onOpen={() => setMenuOpen(false)} />
               <div className="my-1 border-t border-app-line" />
               <div className="px-1.5 pb-1">
                 <SignOutButton variant="full" label={t("shell.logOut")} />

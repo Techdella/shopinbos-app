@@ -92,6 +92,16 @@ const en = {
   "product.code": "Code",
   "product.orderHere": "Order here",
   "product.shareWhatsapp": "Share to WhatsApp",
+  "idle.title": "Still there?",
+  "idle.body": "For your security, you'll be logged out in {seconds} seconds because nobody has used Shopinbos for a while.",
+  "idle.stay": "Stay logged in",
+  "idle.signOut": "Log out now",
+  "consent.title": "Cookies on Shopinbos",
+  "consent.body": "We use essential cookies to keep you signed in and safe. With your OK we also use analytics, and recordings of how pages are used with everything you type or read hidden, to find bugs and improve Shopinbos. You can change this any time in Settings.",
+  "consent.essential": "Essential only",
+  "consent.allow": "Allow analytics",
+  "consent.policy": "Privacy policy",
+  "consent.settings": "Cookie settings",
 } satisfies Record<string, string>;
 
 export default en;
