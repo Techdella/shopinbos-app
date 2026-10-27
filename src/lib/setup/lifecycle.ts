@@ -105,3 +105,94 @@ export function lifecycleEmail(input: LifecycleEmailInput): { subject: string; h
 function escape(text: string) {
   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
+
+// ─── Paused setup ─────────────────────────────────────────────────────────────
+// Sellers who started building (at least one step past creating the shop) and then stopped coming back: a "pick up
+// where you left off" nudge 2 and 5 days into the quiet spell, before the 7-day winback journey takes over. Keyed to
+// the quiet spell (their last active day), so coming back and pausing again starts over, up to RESUME_MAX in all.
+
+/** Days of quiet before each paused-setup nudge. */
+export const RESUME_DAYS = [2, 5] as const;
+/** Quiet this long and the winback journey (src/lib/member-messaging/journeys.ts) speaks instead. */
+export const RESUME_QUIET_MAX_DAYS = 7;
+/** Paused-setup nudges a shop can get in all, across every quiet spell. */
+export const RESUME_MAX = 4;
+/** Shops older than this get no paused-setup nudges. */
+export const RESUME_WINDOW_DAYS = 90;
+
+export interface ResumeNudge {
+  period: string;
+  at: string;
+}
+
+/** "d2" or "d5" while the seller has been quiet that long (and under a week), else null. */
+export function resumeStage(lastActive: Date, now = Date.now()): "d2" | "d5" | null {
+  const quiet = (now - lastActive.getTime()) / DAY_MS;
+  if (quiet >= RESUME_DAYS[1] && quiet < RESUME_QUIET_MAX_DAYS) return "d5";
+  if (quiet >= RESUME_DAYS[0] && quiet < RESUME_DAYS[1]) return "d2";
+  return null;
+}
+
+/** "2026-10-25:d2": the quiet spell (last active day) and the step, so each goes once per spell. */
+export function resumePeriod(lastActive: Date, stage: string) {
+  return `${lastActive.toISOString().slice(0, 10)}:${stage}`;
+}
+
+/** Paused-setup nudges already sent, kept in Store.brandSettings.setup.resumeNudges. */
+export function sentResumeNudges(brandSettings: unknown): ResumeNudge[] {
+  const list = record(record(brandSettings).setup).resumeNudges;
+  if (!Array.isArray(list)) return [];
+  return list
+    .map(record)
+    .filter((row): row is Record<string, unknown> & ResumeNudge => typeof row.period === "string" && typeof row.at === "string");
+}
+
+/** brandSettings with a paused-setup nudge recorded. */
+export function withResumeNudgeSent(brandSettings: unknown, at: Date, period: string): Record<string, unknown> {
+  const settings = record(brandSettings);
+  const setup = record(settings.setup);
+  return { ...settings, setup: { ...setup, resumeNudges: [...sentResumeNudges(brandSettings), { period, at: at.toISOString() }] } };
+}
+
+/** Did something past creating the shop: picked a look, added products, turned on payments... */
+export function startedBuilding(checklist: SetupChecklist): boolean {
+  return checklist.steps.some((step) => step.key !== "store" && step.done);
+}
+
+/** Whether a paused-setup nudge for this spell and step should go: setup unfinished, started, not sent, under the cap. */
+export function wantsResumeNudge(checklist: SetupChecklist, sent: ResumeNudge[], period: string): boolean {
+  return wantsSetupNudges(checklist) && startedBuilding(checklist) && sent.length < RESUME_MAX && !sent.some((row) => row.period === period);
+}
+
+/** The nudge: how far they got, what they've done, and the next step with its button. */
+export function resumeEmail(input: { stage: "d2" | "d5"; firstName: string; storeName: string; checklist: SetupChecklist; base: string }): { subject: string; heading: string; preheader: string; bodyHtml: string; title: string; description: string } {
+  const { checklist, storeName } = input;
+  const next = checklist.next!;
+  const doneSteps = checklist.steps.filter((step) => step.done && step.key !== "store");
+  const subject =
+    input.stage === "d2"
+      ? `Pick up where you left off: ${storeName} is ${checklist.percent}% ready`
+      : `${storeName} is waiting for you, ${input.firstName}`;
+  const lead =
+    input.stage === "d2"
+      ? `You made a great start on ${storeName}. Everything you did is saved, so you can carry on from the next step.`
+      : `${storeName} is ${checklist.percent}% of the way to taking orders. One more step today gets you closer to your first sale.`;
+  const helper = next.helper ? html.small(`Busy? Ask ${next.helper.who === "peggy" ? "Peggy" : "Rex"} in the app and they'll do it with you.`) : "";
+  const done = doneSteps.length ? `<p class="sib-ink" style="margin:0 0 8px;font-weight:700">Already done:</p>${html.list(doneSteps.slice(0, 5).map((step) => step.title))}` : "";
+  const body = [
+    html.p(lead),
+    html.quote(`${html.raw(`<strong>Next: ${escape(next.title)}</strong>`)}${html.small(next.hint)}`),
+    html.button(next.action.label === "View" ? "Carry on setting up" : next.action.label, stepLink(next, input.base)),
+    helper,
+    done,
+    html.small("You get these while your shop's setup isn't finished. Turn them off any time from the link below."),
+  ].join("");
+  return {
+    subject,
+    heading: `Hi ${input.firstName},`,
+    preheader: lead,
+    bodyHtml: body,
+    title: `${storeName} is ${checklist.percent}% ready`,
+    description: `Pick up where you left off: ${next.title.toLowerCase()}.`,
+  };
+}

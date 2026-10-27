@@ -6,6 +6,7 @@ import type { StudioChange } from "./types";
 import type { RexCard } from "@/lib/ai/rex/cards";
 import type { Inspiration, InspirationLink } from "@/lib/ai/rex/inspiration";
 import type { BuildPlan } from "@/lib/ai/rex/build-plan";
+import { uploadToFolder } from "@/components/media/media-client";
 
 // Browser calls for Rex Studio. They rely on the Supabase session cookie.
 
@@ -120,13 +121,7 @@ export async function publishDraft(): Promise<PublishResult> {
 
 /** Uploads a photo to the store's media and returns its public URL. */
 export async function uploadStudioPhoto(file: File) {
-  const body = new FormData();
-  body.append("file", file);
-  body.append("folder", "store-banners");
-  const response = await fetch("/api/upload", { method: "POST", body });
-  const result = (await response.json().catch(() => null)) as { data?: { publicUrl?: string }; error?: { message?: string } } | null;
-  if (!response.ok || !result?.data?.publicUrl) throw new Error(result?.error?.message ?? "That photo didn't upload. Try another one.");
-  return result.data.publicUrl;
+  return uploadToFolder(file, "store-banners");
 }
 
 export interface RexAgentReply {

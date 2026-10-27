@@ -33,6 +33,7 @@ import { normalizeVariants, readVariantOptions, serializeVariants, totalVariantS
 import { SIZE_BANDS, SIZE_BAND_LABELS, isSizeBand } from "@shared/delivery-market";
 import { applySuggestion, type AssistantFormState, type SuggestionInput } from "@shared/product-assistant";
 import { friendlyError } from "@/lib/errors/report-client";
+import { uploadToFolder } from "@/components/media/media-client";
 import { checkShortCode } from "@shared/product-codes";
 
 interface Category {
@@ -160,6 +161,7 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
   const [activeTab, setActiveTab] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [uploading, setUploading] = useState(false);
 
   const [name, setName] = useState(product?.name ?? "");
   const [description, setDescription] = useState(product?.description ?? "");
@@ -327,20 +329,17 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
 
   const handleUpload = useCallback(async (files: FileList | null) => {
     if (!files?.length) return;
+    setUploading(true);
+    setError("");
     try {
       const uploaded: string[] = [];
-      for (const file of Array.from(files)) {
-        const fd = new FormData();
-        fd.append("file", file);
-        fd.append("folder", "products");
-        const res = await fetch("/api/upload", { method: "POST", body: fd });
-        if (!res.ok) throw new Error("Upload failed");
-        const data = await res.json();
-        uploaded.push(data.data.publicUrl);
-      }
+      for (const file of Array.from(files)) uploaded.push(await uploadToFolder(file, "products"));
       setImages((prev) => [...prev, ...uploaded]);
     } catch (e) {
       setError(e instanceof Error ? friendlyError(e) : "Upload failed");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }, []);
 
@@ -530,8 +529,8 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
                     <button type="button" onClick={() => setLibraryOpen(true)} className="inline-flex min-h-[40px] items-center gap-2 rounded-full bg-app-ink px-4 text-[13px] font-bold text-white">
                       <Icon name="grid" size={15} /> Add from my media
                     </button>
-                    <button type="button" onClick={() => fileInputRef.current?.click()} className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-app-line bg-white px-4 text-[13px] font-bold hover:border-app-line-strong">
-                      <Icon name="upload" size={15} /> Upload new
+                    <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-app-line bg-white px-4 text-[13px] font-bold hover:border-app-line-strong disabled:opacity-60">
+                      <Icon name="upload" size={15} /> {uploading ? "Uploading..." : "Upload new"}
                     </button>
                     <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" aria-label="Upload product photos" onChange={(e) => handleUpload(e.target.files)} />
                     <MediaLibraryDialog

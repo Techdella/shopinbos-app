@@ -9,6 +9,7 @@ import { useT } from "@/components/i18n/I18nProvider";
 import type { AssistantFormState, SuggestionInput } from "@shared/product-assistant";
 import { ChatText } from "@/components/chat/ChatText";
 import { friendlyError } from "@/lib/errors/report-client";
+import { uploadToFolder } from "@/components/media/media-client";
 
 // Peggy docked on the add / edit product page. She opens by herself once per browser session per page kind (new or
 // edit) with a short greeting, and can be closed to a small "Ask Peggy" button. The seller tells her sizes, colours
@@ -100,13 +101,7 @@ export const ProductPeggy = forwardRef<ProductPeggyHandle, Props>(function Produ
     if (!file) return;
     setUploading(true);
     try {
-      const body = new FormData();
-      body.append("file", file);
-      body.append("folder", "products");
-      const res = await fetch("/api/upload", { method: "POST", body });
-      const json = (await res.json().catch(() => null)) as { data?: { publicUrl?: string } } | null;
-      if (!res.ok || !json?.data?.publicUrl) throw new Error();
-      setPhoto(json.data.publicUrl);
+      setPhoto(await uploadToFolder(file, "products"));
     } catch {
       setTurns((current) => [...current, { role: "assistant", content: t("peggy.photoFailed"), failed: true }]);
     } finally {
