@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
-import { AssistantNote, PillLink } from "@/components/app-kit";
+import { AssistantNote, MoreActions, PillLink } from "@/components/app-kit";
 import { loadGameConfig } from "@/lib/gamification/config.server";
 import { gameStats } from "@/lib/gamification/stats.server";
 import { GAME_SECTION_KINDS } from "@/lib/gamification/logic";
@@ -47,8 +47,10 @@ export default async function RewardsPage() {
       sub={t("rewards.sub")}
       actions={
         <>
-          <PillLink href="/home/discounts" icon="percent">{t("rewards.discounts")}</PillLink>
-          <PillLink href="/builder/editor" icon="edit">{t("rewards.storeBuilder")}</PillLink>
+          <MoreActions>
+            <PillLink href="/home/discounts" icon="percent">{t("rewards.discounts")}</PillLink>
+            <PillLink href="/builder/editor" icon="edit">{t("rewards.storeBuilder")}</PillLink>
+          </MoreActions>
         </>
       }
     >

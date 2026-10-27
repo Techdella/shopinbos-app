@@ -4,7 +4,7 @@ import { requireRole } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
 import { getSellerWorkspace } from "@/lib/workspace";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
-import { AssistantNote, Card, EmptyState, FilterChips, ListCard, ListRow, Pill, PillLink, SearchForm, Thumb } from "@/components/app-kit";
+import { AssistantNote, Card, EmptyState, FilterChips, ListCard, ListRow, MoreActions, Pill, PillLink, SearchForm, Thumb } from "@/components/app-kit";
 import { Icon } from "@/components/ui/Icon";
 import { cx } from "@/components/app-ui/cx";
 import { buildStorefrontOrigin } from "@/lib/domains/storefront";
@@ -88,12 +88,14 @@ export default async function CollectionPage({ params, searchParams }: { params:
       actions={
         <>
           <PillLink href="/home/cms" icon="arrowLeft" iconOnlyOnPhone>{t("col.allContent")}</PillLink>
-          <PillLink href="/home/cms/plan" icon="calendar" iconOnlyOnPhone>{t("plan.title")}</PillLink>
-          {collection.isPublished && (
-            <a href={`${origin}/${collection.slug}`} target="_blank" rel="noreferrer" className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full border border-app-line bg-white px-5 text-[14px] font-extrabold text-app-ink no-underline hover:border-app-line-strong max-sm:w-11 max-sm:px-0">
-              <Icon name="eye" size={16} /> <span className="max-sm:sr-only">{t("view")}</span>
-            </a>
-          )}
+          <MoreActions>
+            <PillLink href="/home/cms/plan" icon="calendar">{t("plan.title")}</PillLink>
+            {collection.isPublished && (
+              <a href={`${origin}/${collection.slug}`} target="_blank" rel="noreferrer" className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-app-line bg-white px-5 text-[14px] font-extrabold text-app-ink no-underline hover:border-app-line-strong">
+                <Icon name="eye" size={16} /> {t("view")}
+              </a>
+            )}
+          </MoreActions>
           <PillLink href={`${base}/new`} tone="accent" icon="plus">{t("newItem", { label })}</PillLink>
         </>
       }

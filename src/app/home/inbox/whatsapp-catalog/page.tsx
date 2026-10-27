@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { getT } from "@/lib/i18n/server";
 import { after } from "next/server";
 import { redirect } from "next/navigation";
-import { PillLink } from "@/components/app-kit";
+import { MoreActions, PillLink } from "@/components/app-kit";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
@@ -37,8 +37,10 @@ export default async function WhatsAppCatalogPage() {
       sub={t("cat.sub")}
       actions={
         <>
-          <PillLink href="/home/inbox/chatbot?tab=whatsapp" icon="whatsapp">{t("cat.settings")}</PillLink>
-          <PillLink href="/products" icon="bag">{t("cat.products")}</PillLink>
+          <MoreActions>
+            <PillLink href="/home/inbox/chatbot?tab=whatsapp" icon="whatsapp">{t("cat.settings")}</PillLink>
+            <PillLink href="/products" icon="bag">{t("cat.products")}</PillLink>
+          </MoreActions>
         </>
       }
     >

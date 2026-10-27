@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { AppPage, PillLink } from "@/components/app-kit";
+import { AppPage, MoreActions, PillLink } from "@/components/app-kit";
 import { sellerFrame } from "@/components/seller-core";
 import { MessagesPage, type MessagesSearchParams } from "@/components/conversations/MessagesPage";
 import { requireRole } from "@/lib/server-auth";
@@ -29,8 +29,10 @@ export default async function SellerPartnerMessagesPage({ searchParams }: { sear
       sub={t("partner.sub")}
       actions={
         <>
-          <PillLink href="/marketplace/suppliers" icon="search">{t("partner.findSuppliers")}</PillLink>
-          <PillLink href="/marketplace/logistics" icon="truck">{t("partner.findPartners")}</PillLink>
+          <MoreActions>
+            <PillLink href="/marketplace/suppliers" icon="search">{t("partner.findSuppliers")}</PillLink>
+            <PillLink href="/marketplace/logistics" icon="truck">{t("partner.findPartners")}</PillLink>
+          </MoreActions>
         </>
       }
     >
