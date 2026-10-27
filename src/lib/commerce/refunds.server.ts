@@ -43,7 +43,7 @@ function loadOrder(orderId: string) {
   });
 }
 
-async function emailBuyer(order: RefundOrder, kind: "automatic" | "by_store") {
+async function emailBuyerOf(order: RefundOrder, kind: "automatic" | "by_store") {
   if (!order.buyerEmail) return;
   const sender = await loadStoreSender(order.storeId).catch(() => null);
   if (!sender) return;
@@ -107,7 +107,7 @@ export async function refundLatePayment(orderId: string): Promise<RefundOutcome>
       await notifySeller(order, `Refund needed: order ${order.orderNumber}`, order.paymentSplit
         ? "This order expired unpaid and its stock sold to someone else, then the payment came in. It went straight to your bank through your Shopinbos Wallet, so refund the buyer or offer a replacement."
         : "This order expired unpaid and its stock sold to someone else, then the payment came in outside Paystack. Refund the buyer or offer a replacement.", "critical");
-      await emailBuyer(order, "by_store");
+      await emailBuyerOf(order, "by_store");
       return "manual";
     }
 
@@ -117,7 +117,7 @@ export async function refundLatePayment(orderId: string): Promise<RefundOutcome>
     const secret = process.env.PAYSTACK_SECRET_KEY;
     if (!paystackSecretReady(secret)) {
       await markFailed(order, "Paystack isn't set up on the server");
-      await emailBuyer(order, "by_store");
+      await emailBuyerOf(order, "by_store");
       return "failed";
     }
 
@@ -126,7 +126,7 @@ export async function refundLatePayment(orderId: string): Promise<RefundOutcome>
 
     if (!result.ok) {
       await markFailed(order, result.message);
-      await emailBuyer(order, "by_store");
+      await emailBuyerOf(order, "by_store");
       return "failed";
     }
 
@@ -142,7 +142,7 @@ export async function refundLatePayment(orderId: string): Promise<RefundOutcome>
     });
     console.info(`[refunds] ${refundIdempotencyKey(order.id, body.transaction)}: Paystack refund ${result.id ?? "(already reversed)"} ${result.status}`);
     await notifySeller(order, `Refunded: order ${order.orderNumber}`, `The payment came in after this order expired and its stock sold, so ${money(Number(order.total), order.currency)} went back to the buyer through Paystack automatically.`, "info");
-    await emailBuyer(order, "automatic");
+    await emailBuyerOf(order, "automatic");
     return processed ? "processed" : "started";
   } catch (error) {
     console.error(`[refunds] could not refund order ${orderId}`, error);
@@ -181,13 +181,16 @@ export async function applyRefundEvent(event: string, data: Record<string, unkno
  * in time). Same claim and Paystack call as a late payment: card payments go back through Paystack, anything else
  * is flagged for the seller to refund by hand. Unpaid orders (pay when it arrives) have nothing to refund.
  */
-export async function refundCancelledOrder(orderId: string, why: string): Promise<RefundOutcome> {
+export async function refundCancelledOrder(orderId: string, why: string, options: { amountNaira?: number; emailBuyer?: boolean } = {}): Promise<RefundOutcome> {
   try {
     const order = await loadOrder(orderId);
     if (!order || !canStartRefund(order)) return "skipped";
     const paid = order.paystackStatus === "success" || (order.paymentMethod !== null && order.paymentMethod !== "paystack" && order.paymentMethod !== "pay_on_delivery");
-    if (!paid || Number(order.total) <= 0) return "skipped";
-    const amount = money(Number(order.total), order.currency);
+    // `amountNaira`: only part was paid (a preorder deposit); the caller then sends its own email to the buyer.
+    const paidNaira = options.amountNaira ?? Number(order.total);
+    if (!paid || paidNaira <= 0) return "skipped";
+    const amount = money(paidNaira, order.currency);
+    const emailBuyer = options.emailBuyer === false ? async () => undefined : (row: RefundOrder, kind: "automatic" | "by_store") => emailBuyerOf(row, kind);
 
     if (refundRoute(order) === "manual") {
       const claimed = await db.retailOrder.updateMany({ where: { id: order.id, refundStatus: null }, data: { refundStatus: "manual", paymentIssue: `${why} Refund the customer ${amount} by hand.`.slice(0, 500) } });

@@ -166,12 +166,23 @@ export function paidText(order: { depositKobo: number; paidKobo: number; dueKobo
 }
 
 const STAGE_WORDS: Record<PreorderStage, string> = { waiting: "Waiting for stock", pay_balance: "Stock ready: pay the rest", ready: "Stock ready", shipped: "On the way", delivered: "Delivered", cancelled: "Cancelled" };
-const STORE_STAGE_WORDS: Record<StorePreorderStage, string> = { unpaid: "Not paid yet", waiting: "Waiting for stock", preparing: "Being prepared" };
+const STORE_STAGE_WORDS: Record<StorePreorderStage, string> = { unpaid: "Not paid yet", waiting: "Waiting for stock", balance_due: "Balance due", preparing: "Being prepared" };
 
 /** A bulk preorder's stage in words (m_ui "preorders.stage.*"). */
 export const stageText = (stage: PreorderStage, t?: Say) => say(t, `preorders.stage.${stage}`, STAGE_WORDS[stage] ?? stage);
 /** A store preorder's stage in words (m_ui "preorders.storeStage.*"). */
 export const storeStageText = (stage: StorePreorderStage, t?: Say) => say(t, `preorders.storeStage.${stage}`, STORE_STAGE_WORDS[stage] ?? stage);
+
+/**
+ * Under a store preorder whose customer paid a deposit (stage balance_due): "Deposit paid · ₦X to pay when the stock
+ * is ready", "₦X due by 3 Nov" once they were asked, or "₦X overdue since 3 Nov".
+ */
+export function balanceDueText(order: { dueKobo: number; balanceDueOn: string | null; overdue: boolean }, money: (naira: number) => string, now: Date = new Date(), t?: Say): string {
+  const amount = money(order.dueKobo / 100);
+  if (!order.balanceDueOn) return say(t, "preorders.balanceOwed", `Deposit paid · ${amount} to pay when the stock is ready`, { amount });
+  const date = shipDayText(order.balanceDueOn, now, t);
+  return order.overdue ? say(t, "preorders.balanceOverdue", `${amount} overdue since ${date}`, { amount, date }) : say(t, "preorders.balanceBy", `${amount} due by ${date}`, { amount, date });
+}
 
 /** The pay button on a seller's bulk preorder: "Pay deposit ₦X", "Pay balance ₦X" or "Pay ₦X". */
 export function payButtonText(pay: { step: "deposit" | "balance" | "full"; kobo: number }, money: (naira: number) => string, t?: Say): string {

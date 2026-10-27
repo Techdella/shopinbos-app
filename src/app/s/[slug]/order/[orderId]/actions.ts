@@ -41,3 +41,15 @@ export async function notifyTransferSent(orderId: string): Promise<{ ok: boolean
   });
   return { ok: true };
 }
+
+/**
+ * "Pay the rest" of a preorder paid with a deposit (src/lib/commerce/store-balance.server.ts): starts a Paystack
+ * payment of the balance and answers with where to send the shopper; Paystack brings them back to the order page,
+ * which confirms the reference with Paystack before anything is recorded. The order id is the shopper's link.
+ */
+export async function payOrderBalance(orderId: string): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  if (typeof orderId !== "string" || !orderId || orderId.length > 64) return { ok: false, error: "Order not found." };
+  const { startStoreBalancePayment } = await import("@/lib/commerce/store-balance.server");
+  const started = await startStoreBalancePayment(orderId);
+  return started.ok ? { ok: true, url: started.authorizationUrl } : { ok: false, error: started.error };
+}

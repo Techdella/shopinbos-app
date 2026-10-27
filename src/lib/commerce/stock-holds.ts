@@ -377,8 +377,11 @@ export function shouldRestoreDiscount(order: { discountCode?: string | null; dis
 }
 
 /** A store order as the buyer's browser gets it: without the stock bookkeeping (it names supplier products). */
-export function shopperOrder<T extends { stockHold?: unknown; stockReleasedAt?: unknown; paymentIssue?: unknown; discountReleasedAt?: unknown; refundId?: unknown }>(order: T) {
-  const { stockHold: _hold, stockReleasedAt: _released, paymentIssue: _issue, discountReleasedAt: _discount, refundId: _refund, ...rest } = order;
+export function shopperOrder<T extends { stockHold?: unknown; stockReleasedAt?: unknown; paymentIssue?: unknown; discountReleasedAt?: unknown; refundId?: unknown; balanceSplit?: unknown; balanceRef?: unknown }>(order: T) {
+  // balanceSplit (who a preorder's balance settles to) and its reference stay on the server too.
+  const { stockHold: _hold, stockReleasedAt: _released, paymentIssue: _issue, discountReleasedAt: _discount, refundId: _refund, balanceSplit: _split, balanceRef: _ref, ...rest } = order;
+  void _split;
+  void _ref;
   void _hold;
   void _released;
   void _issue;

@@ -52,7 +52,7 @@ export interface EditProduct extends MoreSource {
   fulfillmentType?: string | null;
   /** Its own preorder settings (shared/preorder.ts), saved as `preorder` { enabled, shipsAt, limit, note } with the
    *  rest of the form. Newer servers; dropship products can't take their own. */
-  preorder?: { enabled: boolean; shipsOn: string | null; limit: number | null; taken: number; note: string | null };
+  preorder?: { enabled: boolean; shipsOn: string | null; limit: number | null; taken: number; note: string | null; depositPct?: number };
   /** The versions in full and their options, so sizes and colours can be added or removed (older servers leave
    *  these out; then only price, stock and on/off of the versions above can change). */
   variantOptions?: VariantOption[];

@@ -49,15 +49,19 @@ export function notifyNewOrder(input: { sellerId: string; orderId: string; order
 /** Card payment confirmed (Paystack webhook). */
 export function notifyOrderPaid(orderId: string) {
   return safely("order paid", async () => {
-    const order = await db.retailOrder.findUnique({ where: { id: orderId }, select: { id: true, orderNumber: true, total: true, currency: true, buyerName: true, store: { select: { userId: true } } } });
+    const order = await db.retailOrder.findUnique({ where: { id: orderId }, select: { id: true, orderNumber: true, total: true, currency: true, buyerName: true, depositKobo: true, balanceKobo: true, store: { select: { userId: true } } } });
     if (!order) return;
+    // A preorder deposit (shared/preorder.ts): reserved now, the rest is asked for when the seller says the stock is ready.
+    const deposit = order.depositKobo > 0 && order.balanceKobo > 0;
     await notify({
       userId: order.store.userId,
       event: "order.paid",
       type: "payout",
       priority: "success",
-      title: `Payment received for ${order.orderNumber}`,
-      description: `${short(order.buyerName) || "Your customer"} paid ${naira(order.total, order.currency)} by card. Get the order ready.`,
+      title: deposit ? `Pre-order deposit paid: ${order.orderNumber}` : `Payment received for ${order.orderNumber}`,
+      description: deposit
+        ? `${short(order.buyerName) || "Your customer"} paid a deposit of ${naira(order.depositKobo / 100, order.currency)} by card. They pay the rest (${naira(order.balanceKobo / 100, order.currency)}) when you say the stock is ready in My shop › Preorders.`
+        : `${short(order.buyerName) || "Your customer"} paid ${naira(order.total, order.currency)} by card. Get the order ready.`,
       link: `/home/orders/${order.id}`,
       actionLabel: "Open the order",
       metadata: { orderId: order.id },

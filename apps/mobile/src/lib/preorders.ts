@@ -48,11 +48,24 @@ export interface StorePreorderGroup {
   units: number;
   waiting: number;
   unpaid: number;
-  orders: Array<{ id: string; orderNumber: string; buyerName: string; status: string; quantity: number; stage: StorePreorderStage; createdAt: string }>;
-  product: { on: boolean; shipsOn: string | null; limit: number | null; taken: number } | null;
+  /** Customers who paid a deposit and still owe the rest (older servers: absent). */
+  balanceDue?: number;
+  orders: Array<{
+    id: string; orderNumber: string; buyerName: string; status: string; quantity: number; stage: StorePreorderStage; createdAt: string;
+    /** Balance due (stage balance_due): kobo still owed, when it's due (once asked) and whether it's overdue. */
+    dueKobo?: number; balanceDueOn?: string | null; overdue?: boolean;
+  }>;
+  product: { on: boolean; shipsOn: string | null; limit: number | null; taken: number; depositPct?: number } | null;
 }
 
 export const fetchStorePreorders = () => api<{ groups: StorePreorderGroup[] }>("/api/app/preorders?view=shop");
 
 export const storePreorderAction = (productId: string, action: "ready" | "end", end?: boolean) =>
-  api<{ groups: StorePreorderGroup[]; moved?: number; unpaid?: number; ended: boolean }>("/api/app/preorders", { method: "POST", json: { productId, action, ...(end ? { end: true } : {}) } });
+  api<{ groups: StorePreorderGroup[]; moved?: number; asked?: number; unpaid?: number; ended: boolean }>("/api/app/preorders", { method: "POST", json: { productId, action, ...(end ? { end: true } : {}) } });
+
+/** A customer who paid a deposit: they paid the rest another way, or (overdue) cancel; the deposit is then owed back. */
+export const storeBalanceAction = (orderId: string, action: "balance_paid" | "cancel_unpaid") =>
+  api<{ groups: StorePreorderGroup[]; message: string }>("/api/app/preorders", { method: "POST", json: { orderId, action } });
+
+/** Orders in a group waiting to be asked for the rest (deposit paid, not asked yet): "Stock is ready" asks them. */
+export const toAsk = (group: StorePreorderGroup) => group.orders.filter((order) => order.stage === "balance_due" && !order.balanceDueOn).length;

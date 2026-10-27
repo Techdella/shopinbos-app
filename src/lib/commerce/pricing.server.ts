@@ -5,7 +5,7 @@ import { bestAutomaticDiscount, discountAmount, describeDiscount, parseDiscountC
 import { contactsInSegment, segmentRules } from "@/lib/marketing/contacts";
 import { readGameConfig } from "@/lib/gamification/logic";
 import { quotePoints, type PointsRedemption } from "@/lib/gamification/loyalty.server";
-import { preorderDay } from "@shared/preorder";
+import { lineDepositPct, preorderDay, storeOrderDeposit, type StoreOrderDeposit } from "@shared/preorder";
 import { buildStockHolds, isDropshipProduct, stockShortfallDetails, stockShortfallMessage, storeStockMode, type StockHold, type VariantHold } from "@/lib/commerce/stock-holds";
 import { normalizeVariants, resolveLineVariant } from "@shared/product-variants";
 import { maybeExpireUnpaidOrders } from "@/lib/commerce/order-expiry.server";
@@ -39,6 +39,8 @@ export interface PricedItem {
   /** A preorder line (shared/preorder.ts): ships from shipsOn (YYYY-MM-DD) or "soon". */
   preorder?: true;
   shipsOn?: string | null;
+  /** The seller's own preorder asks for this deposit percent (1-99) at a card checkout (shared/preorder.ts). */
+  depositPct?: number;
 }
 
 export interface AppliedDiscount {
@@ -65,6 +67,11 @@ export interface PricedOrder {
   /** Loyalty points used on this order (already inside totals.productDiscount and totals.total). */
   points: PointsRedemption | null;
   totals: OrderTotals;
+  /**
+   * Preorder lines with a deposit: what a card checkout charges now and the balance due once the stock is ready
+   * (shared/preorder.ts storeOrderDeposit). Null: one payment of the whole total. Payment links never take deposits.
+   */
+  deposit: StoreOrderDeposit | null;
   /** The stock this order takes: the store's, or the supplier's for dropship products. Server-only, never sent to the browser. */
   stockHolds: StockHold[];
 }
@@ -140,7 +147,7 @@ export async function priceOrder(input: PricingInput): Promise<PricedOrder | { o
       // The seller's "Track stock" switch: untracked products are never short and give no stock.
       trackStock: true, continueSellingWhenOut: true, reservedStock: true,
       // Preorders take no stock, only a place under the cap; their lines are tagged on the order.
-      preorderEnabled: true, preorderLimit: true, preorderTaken: true, preorderShipsAt: true,
+      preorderEnabled: true, preorderLimit: true, preorderTaken: true, preorderShipsAt: true, preorderDepositPct: true,
       // Dropship products sell from the supplier's stock (the seller holds none).
       fulfillmentType: true, supplierProductId: true, supplierProduct: { select: { id: true, stockQuantity: true, status: true, preorderEnabled: true, preorderLimit: true, preorderTaken: true, preorderShipsAt: true } },
     },
@@ -191,7 +198,9 @@ export async function priceOrder(input: PricingInput): Promise<PricedOrder | { o
       // A preorder line: the seller's own preorder, or a dropship product whose supplier takes preorders.
       ...(isDropshipProduct(product)
         ? product.supplierProduct?.preorderEnabled ? { preorder: true as const, shipsOn: preorderDay(product.supplierProduct.preorderShipsAt) } : {}
-        : mode === "preorder" ? { preorder: true as const, shipsOn: preorderDay(product.preorderShipsAt) } : {}),
+        : mode === "preorder"
+          ? { preorder: true as const, shipsOn: preorderDay(product.preorderShipsAt), ...(lineDepositPct({ preorder: true, depositPct: product.preorderDepositPct }) ? { depositPct: lineDepositPct({ preorder: true, depositPct: product.preorderDepositPct }) } : {}) }
+          : {}),
     });
   }
 
@@ -301,6 +310,9 @@ export async function priceOrder(input: PricingInput): Promise<PricedOrder | { o
     }
   }
 
+  // A payment link charges what the seller agreed, in one payment.
+  const deposit = agreed === null && agreedFee === null ? storeOrderDeposit({ items, total: totals.total, shippingFee: totals.shippingFee, deliveryDiscount: totals.deliveryDiscount }) : null;
+
   return {
     ok: true,
     items,
@@ -309,6 +321,7 @@ export async function priceOrder(input: PricingInput): Promise<PricedOrder | { o
     codeError,
     points,
     totals,
+    deposit,
     stockHolds,
   };
 }

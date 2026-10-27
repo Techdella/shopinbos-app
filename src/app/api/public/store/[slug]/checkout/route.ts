@@ -37,7 +37,7 @@ import { confirmWhatsAppOrder } from "@/lib/whatsapp-store/server";
 import { isLinkCode, linkCheckoutDelivery, linkOrderChannel } from "@/lib/payment-links/pure";
 import { splitPlanForOrder, storeTakesCards, storeTakesKorapay } from "@/lib/wallet/wallet.server";
 import { startKorapayCheckout } from "@/lib/commerce/korapay-orders.server";
-import { paystackSplitParams } from "@/lib/wallet/rules";
+import { paystackSplitParams, type PaymentSplitPlan } from "@/lib/wallet/rules";
 import { initializePaystackTransaction } from "@/lib/paystack";
 import { cancelUnstartedOrder } from "@/lib/commerce/order-expiry.server";
 import { partnerShipments, planFromOption, supplierSelfShipments } from "@shared/delivery-market";
@@ -236,6 +236,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     return withCors(req, apiError("BAD_REQUEST", "Add a phone number so the rider can reach you for pay on delivery."), CHECKOUT_CORS);
   }
   const transferAccount = paymentMethod === "transfer" ? readTransferAccount(store.brandSettings) : null;
+  // Preorder lines with a deposit (shared/preorder.ts storeOrderDeposit): a card payment (Paystack) charges the
+  // deposits, every other line and delivery now, and the rest once the seller says the stock is ready. Transfer, pay
+  // on delivery, Korapay and payment links take the whole total in one payment, as before.
+  const deposit = paymentMethod === "paystack" && !link ? priced.deposit : null;
   // Only keep attribution tokens issued by this store's campaigns.
   const campaignToken = await validCampaignToken(store.id, rawCampaignToken);
   const orderNumber = generateOrderNumber();
@@ -300,6 +304,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
           paymentMethod: paymentMethod === "paystack" ? null : paymentMethod,
           ...(deliveryPlan ? { logisticsDetails: { type: partnerParcels.length ? "network" : "pickup", delivery: JSON.parse(JSON.stringify(deliveryPlan)) } } : {}),
           status: "pending",
+          ...(deposit ? { depositKobo: deposit.payNowKobo, balanceKobo: deposit.balanceKobo } : {}),
           // What was really taken (versions of products that keep selling at 0 may give less than asked).
           stockHold: JSON.parse(JSON.stringify(stockHolds)),
           // When it lets its stock go if still unpaid: card 30 min, bank transfer 24 h or the seller's choice.
@@ -326,7 +331,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const selfShares = selfParcels.map((part) => ({ supplierId: part.shipmentKey.slice("supplier:".length), naira: part.price }));
   let paystackData: { authorization_url: string; access_code: string | null; reference: string } | null = null;
   if (paymentMethod === "paystack") {
-    const plan = await splitPlanForOrder(store.id, orderItems, total, "paystack", shippingFee, order.id, deliveryShares, selfShares);
+    // With a deposit the split is for what's paid now; the balance's own split (all the seller's, less its part of
+    // Shopinbos's fee) is saved for the second payment.
+    const planned = await splitPlanForOrder(store.id, orderItems, total, "paystack", shippingFee, order.id, deliveryShares, selfShares, { balanceKobo: deposit?.balanceKobo ?? 0 });
+    const { balancePlan = null, ...rest } = planned ?? {};
+    const plan = planned ? (rest as PaymentSplitPlan) : null;
     try {
       if (!plan) throw new Error("the store's wallet can't take card payments");
       const started = await initializePaystackTransaction({
@@ -334,11 +343,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
         amountKobo: plan.totalKobo,
         reference: order.id,
         callbackUrl: buildStorefrontUrl(store, `/order/${order.id}`),
-        metadata: { orderId: order.id, orderNumber, storeId: store.id, buyerName },
+        metadata: { orderId: order.id, orderNumber, storeId: store.id, buyerName, ...(deposit ? { part: "deposit" } : {}) },
         split: paystackSplitParams(plan),
       });
       paystackData = { authorization_url: started.authorization_url!, access_code: started.access_code ?? null, reference: started.reference ?? order.id };
-      await db.retailOrder.update({ where: { id: order.id }, data: { paystackRef: paystackData.reference, paymentSplit: JSON.parse(JSON.stringify(plan)) } });
+      await db.retailOrder.update({ where: { id: order.id }, data: { paystackRef: paystackData.reference, paymentSplit: JSON.parse(JSON.stringify(plan)), ...(deposit && balancePlan ? { balanceSplit: JSON.parse(JSON.stringify(balancePlan)) } : {}) } });
     } catch (error) {
       console.error(`[checkout] Paystack could not start order ${order.id}`, error);
       await cancelUnstartedOrder(order.id, "Paystack could not start the payment, so the order was cancelled before payment.");
@@ -368,7 +377,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   if (paymentMethod === "pay_on_delivery" && link) await settlePaymentLinkForOrder(order.id);
 
   const money = (amount: number) => new Intl.NumberFormat("en-NG", { style: "currency", currency: store.currency, maximumFractionDigits: 0 }).format(amount);
-  const sellerDescription = `${buyerName} placed an order worth ${money(total)}. ${paymentChoiceText(paymentMethod)}`;
+  const depositText = deposit ? ` Pre-order deposit: ${money(deposit.payNowKobo / 100)} now, ${money(deposit.balanceKobo / 100)} when you say the stock is ready.` : "";
+  const sellerDescription = `${buyerName} placed an order worth ${money(total)}. ${paymentChoiceText(paymentMethod)}${depositText}`;
 
   await Promise.allSettled([
     // The bag this shopper left (by this browser's cart token, email or phone) is now an order.
@@ -381,7 +391,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       items: orderItems.map((item) => ({ name: item.name, qty: item.quantity, price: money(item.price * item.quantity) })),
       total: money(total),
       orderUrl: buildStorefrontUrl({ slug: store.slug, customDomain: store.customDomain }, `/order/${order.id}`),
-      paymentNote: buyerPaymentText(paymentMethod),
+      paymentNote: deposit
+        ? `Pre-order: pay ${money(deposit.payNowKobo / 100)} now by card. The rest, ${money(deposit.balanceKobo / 100)}, is due when it's ready to ship. We'll email you a link to pay it.`
+        : buyerPaymentText(paymentMethod),
       // Pay on delivery is confirmed now; anything paid online is a summary until the money arrives.
       paid: paymentMethod === "pay_on_delivery",
     }),
@@ -422,6 +434,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     },
     paystack: paystackData,
     korapay: korapayData,
+    // A preorder deposit: the card payment is payNow (naira); the balance is due once the stock is ready.
+    deposit: deposit ? { payNow: deposit.payNowKobo / 100, balance: deposit.balanceKobo / 100 } : null,
     // Where to send a bank transfer: the exact total, with the order number as the reference.
     transfer: transferAccount ? { ...transferAccount, amount: order.total, reference: order.orderNumber, payBy: order.paymentDueAt?.toISOString() ?? null } : null,
   }), CHECKOUT_CORS);

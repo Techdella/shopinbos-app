@@ -59,7 +59,11 @@ export const PATCH = withSeller(async (
   const preorderParsed = preorder ? parsePreorderInput(preorder, new Date(), product.preorderShipsAt) : null;
   if (preorderParsed && !preorderParsed.ok) return apiError("BAD_REQUEST", preorderParsed.message);
   const dropship = (rest.fulfillmentType ?? product.fulfillmentType) === "dropship" || (rest.inventoryType ?? product.inventoryType) === "dropshipping";
-  const preorderData = preorderParsed?.ok ? preorderSaveData(preorderParsed.value, { dropship, wasEnabled: product.preorderEnabled }) : dropship && product.preorderEnabled ? { preorderEnabled: false } : {};
+  const preorderData = {
+    ...(preorderParsed?.ok ? preorderSaveData(preorderParsed.value, { dropship, wasEnabled: product.preorderEnabled }) : dropship && product.preorderEnabled ? { preorderEnabled: false } : {}),
+    // The deposit shoppers pay at checkout (0 = all of it then; shared/preorder.ts storeOrderDeposit).
+    ...(preorderParsed?.ok && typeof preorder?.depositPct === "number" ? { preorderDepositPct: preorder.depositPct } : {}),
+  };
 
   const effectiveCost = costPrice ?? product.costPrice;
   const effectivePrice = retailPrice ?? product.retailPrice;

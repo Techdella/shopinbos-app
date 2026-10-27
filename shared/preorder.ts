@@ -151,7 +151,7 @@ export function preorderSaveData(value: Extract<ParsedPreorder, { ok: true }>["v
 // A supplier can ask shops to pay part of a preorder when they place it (SupplierProduct.preorderDepositPct). The
 // rest (the balance) is due once the supplier says the stock is ready, and the order is only packed and sent once
 // it's all paid. 0 % is the old way: the whole order is paid once the supplier accepts it. Money is in kobo.
-// Store preorders (shoppers) have no deposit: checkout takes one payment per order.
+// Store preorders (shoppers) can ask for a deposit too: see "Store deposits" below.
 
 /** What the supplier's form suggests first. */
 export const PREORDER_DEPOSIT_SUGGESTED = 30;
@@ -337,9 +337,9 @@ export function stockReadyTargets<T extends { status: string; preorder?: boolean
 /** Store order statuses a preorder list shows: unpaid, paid (waiting for the stock) and being prepared. */
 export const STORE_PREORDER_OPEN = ["pending", "awaiting_payment", "paid", "processing", "packed"] as const;
 
-export type StorePreorderStage = "unpaid" | "waiting" | "preparing";
+export type StorePreorderStage = "unpaid" | "waiting" | "balance_due" | "preparing";
 
-export interface StorePreorderOrder {
+export interface StorePreorderOrder extends Partial<StoreOrderPayFacts> {
   id: string;
   orderNumber: string;
   status: string;
@@ -359,13 +359,26 @@ export interface StorePreorderGroup {
   waiting: number;
   /** Orders not paid yet ("Stock is ready" leaves them alone). */
   unpaid: number;
-  orders: Array<{ id: string; orderNumber: string; buyerName: string; status: string; quantity: number; stage: StorePreorderStage; createdAt: string }>;
+  /** Deposit paid, the rest still owed: "Stock is ready" asks these shoppers for the balance. */
+  balanceDue: number;
+  orders: Array<{
+    id: string; orderNumber: string; buyerName: string; status: string; quantity: number; stage: StorePreorderStage; createdAt: string;
+    /** Kobo the shopper still owes (0 when nothing). */
+    dueKobo: number;
+    /** When the balance is due (YYYY-MM-DD) once the shopper was asked, else null. */
+    balanceDueOn: string | null;
+    /** The balance is past due: the seller may cancel (the deposit is owed back). */
+    overdue: boolean;
+  }>;
 }
 
-/** The stage of a store order holding a preorder line, or null once it's sent or closed. */
-export function storePreorderStage(status: string): StorePreorderStage | null {
+/**
+ * The stage of a store order holding a preorder line, or null once it's sent or closed. `balanceDue`: the shopper paid
+ * a deposit and still owes the rest (storeBalanceDue), so the order waits for that before it's prepared.
+ */
+export function storePreorderStage(status: string, balanceDue = false): StorePreorderStage | null {
   if (status === "pending" || status === "awaiting_payment") return "unpaid";
-  if (status === "paid") return "waiting";
+  if (status === "paid") return balanceDue ? "balance_due" : "waiting";
   if (status === "processing" || status === "packed") return "preparing";
   return null;
 }
@@ -379,23 +392,29 @@ function preorderLines(items: unknown): Array<Record<string, unknown> & { produc
 }
 
 /** The seller's open store preorders, one group per product (soonest ship date first, then most units). */
-export function groupStorePreorders(orders: StorePreorderOrder[]): StorePreorderGroup[] {
+export function groupStorePreorders(orders: StorePreorderOrder[], now: Date = new Date()): StorePreorderGroup[] {
   const groups = new Map<string, StorePreorderGroup>();
   for (const order of orders) {
-    const stage = storePreorderStage(order.status);
+    const facts: StoreOrderPayFacts = { status: order.status, depositKobo: order.depositKobo ?? 0, balanceKobo: order.balanceKobo ?? 0, balancePaidAt: order.balancePaidAt ?? null, balanceDueAt: order.balanceDueAt ?? null };
+    const due = storeBalanceDue(facts);
+    const stage = storePreorderStage(order.status, due);
     if (!stage) continue;
+    const dueKobo = due ? Math.max(0, facts.balanceKobo ?? 0) : 0;
+    const balanceDueOn = due ? preorderDay(facts.balanceDueAt ?? null) : null;
+    const overdue = storeBalanceOverdue(facts, now);
     for (const line of preorderLines(order.items)) {
       const quantity = Math.max(1, Math.floor(Number(line.quantity) || 1));
       const shipsOn = typeof line.shipsOn === "string" && /^\d{4}-\d{2}-\d{2}$/.test(line.shipsOn) ? line.shipsOn : null;
-      const group = groups.get(line.productId) ?? { productId: line.productId, name: typeof line.name === "string" && line.name ? line.name : "Product", image: typeof line.image === "string" && line.image ? line.image : null, shipsOn: null, units: 0, waiting: 0, unpaid: 0, orders: [] };
+      const group = groups.get(line.productId) ?? { productId: line.productId, name: typeof line.name === "string" && line.name ? line.name : "Product", image: typeof line.image === "string" && line.image ? line.image : null, shipsOn: null, units: 0, waiting: 0, unpaid: 0, balanceDue: 0, orders: [] };
       if (shipsOn && (!group.shipsOn || shipsOn < group.shipsOn)) group.shipsOn = shipsOn;
       group.units += quantity;
       const existing = group.orders.find((row) => row.id === order.id);
       if (existing) existing.quantity += quantity;
       else {
-        group.orders.push({ id: order.id, orderNumber: order.orderNumber, buyerName: order.buyerName, status: order.status, quantity, stage, createdAt: isoOf(order.createdAt) });
+        group.orders.push({ id: order.id, orderNumber: order.orderNumber, buyerName: order.buyerName, status: order.status, quantity, stage, createdAt: isoOf(order.createdAt), dueKobo, balanceDueOn, overdue });
         if (stage === "waiting") group.waiting += 1;
         if (stage === "unpaid") group.unpaid += 1;
+        if (stage === "balance_due") group.balanceDue += 1;
       }
       groups.set(line.productId, group);
     }
@@ -404,7 +423,155 @@ export function groupStorePreorders(orders: StorePreorderOrder[]): StorePreorder
   return [...groups.values()].sort((a, b) => (a.shipsOn ?? "9999").localeCompare(b.shipsOn ?? "9999") || b.units - a.units);
 }
 
-/** Store orders "Stock is ready" moves to processing for a product: paid ones holding a preorder line of it. */
-export function storeStockReadyTargets<T extends { status: string; items: unknown }>(orders: T[], productId: string): T[] {
-  return orders.filter((order) => order.status === "paid" && preorderLines(order.items).some((line) => line.productId === productId));
+/**
+ * Store orders "Stock is ready" moves to processing for a product: paid ones holding a preorder line of it, and
+ * paid in full (an order whose shopper still owes the balance is asked for it instead: storeBalanceRequestTargets).
+ */
+export function storeStockReadyTargets<T extends { status: string; items: unknown } & Partial<StoreOrderPayFacts>>(orders: T[], productId: string): T[] {
+  return orders.filter((order) => order.status === "paid" && !storeBalanceDue(order) && preorderLines(order.items).some((line) => line.productId === productId));
 }
+
+/** Store orders of a product whose shoppers "Stock is ready" asks for the balance: deposit paid, the rest still owed. */
+export function storeBalanceRequestTargets<T extends { status: string; items: unknown } & Partial<StoreOrderPayFacts>>(orders: T[], productId: string): T[] {
+  return orders.filter((order) => storeBalanceDue(order) && preorderLines(order.items).some((line) => line.productId === productId));
+}
+
+// ─── Store deposits (shoppers pay part of a preorder now, the rest when it's ready) ─────────
+//
+// A seller can ask for a deposit on their own preorder product (StoreProduct.preorderDepositPct, 0–100; dropship
+// products can't take preorders from the seller). At a card checkout (Paystack) the shopper pays now:
+//   - each preorder line with a deposit: its deposit (depositSplit, rounded up to whole naira);
+//   - every other line in full, and delivery in full (it's booked and paid with the order);
+// and the rest of those preorder lines (the balance) once the seller says the stock is ready. A discount or points
+// come off both parts in proportion (so the deposit stays its percent of what the shopper really pays). 0 % or 100 %
+// on every line is one payment, as before deposits. Bank transfer, pay on delivery, Korapay and payment links always
+// take one payment of the whole order. Money is in kobo; what's paid now + the balance is always the order total.
+
+/** Days the shopper has to pay the balance once the seller says the stock is ready; after that the seller may cancel. */
+export const STORE_BALANCE_DAYS = 7;
+
+/** A priced order line as checkout saves it (naira), with the seller's deposit percent on preorder lines that have one. */
+export interface StoreDepositLine {
+  price: number;
+  quantity: number;
+  preorder?: boolean | null;
+  depositPct?: number | null;
+}
+
+export interface StoreOrderDeposit {
+  /** What the shopper pays at checkout. */
+  payNowKobo: number;
+  /** What's left, paid once the stock is ready. */
+  balanceKobo: number;
+  totalKobo: number;
+}
+
+/** The deposit percent of a line: 1–99 asks for a deposit; 0, 100, out of range or not a preorder: none. */
+export function lineDepositPct(line: Pick<StoreDepositLine, "preorder" | "depositPct">): number {
+  const pct = typeof line.depositPct === "number" && Number.isFinite(line.depositPct) ? Math.trunc(line.depositPct) : 0;
+  return line.preorder && pct > 0 && pct < 100 ? pct : 0;
+}
+
+/**
+ * How a store order is paid when it holds preorder lines with a deposit: what's paid now and the balance, or null
+ * when it's one payment (no line asks for a deposit, or nothing would be left to pay later). `total` and
+ * `shippingFee` are the order's (naira, total after any discount); `deliveryDiscount` the part of the discount that
+ * came off delivery (free delivery).
+ */
+export function storeOrderDeposit(input: { items: StoreDepositLine[]; total: number; shippingFee?: number; deliveryDiscount?: number }): StoreOrderDeposit | null {
+  const totalKobo = toKobo(input.total);
+  if (totalKobo <= 0) return null;
+  let goodsKobo = 0;
+  let laterKobo = 0;
+  for (const line of input.items) {
+    const lineKobo = toKobo(Number(line.price) * Math.max(0, Math.trunc(Number(line.quantity) || 0)));
+    goodsKobo += lineKobo;
+    const pct = lineDepositPct(line);
+    if (pct) laterKobo += depositSplit(lineKobo, pct).balanceKobo;
+  }
+  if (laterKobo <= 0 || goodsKobo <= 0) return null;
+  const deliveryKobo = Math.max(0, toKobo(input.shippingFee ?? 0) - toKobo(input.deliveryDiscount ?? 0));
+  // What the shopper pays for the goods after a discount or points, and the balance scaled the same way, rounded
+  // down to whole naira so the part paid now is rounded up (as depositSplit does). At least ₦1 is paid now.
+  const paidGoodsKobo = Math.max(0, Math.min(goodsKobo, totalKobo - deliveryKobo));
+  const scaled = Math.floor((laterKobo * paidGoodsKobo) / goodsKobo / 100) * 100;
+  const balanceKobo = Math.max(0, Math.min(scaled, totalKobo - 100));
+  if (balanceKobo <= 0) return null;
+  return { payNowKobo: totalKobo - balanceKobo, balanceKobo, totalKobo };
+}
+
+/** "Pay ₦X deposit now": the deposit on one unit at `price` naira, or null when the product asks for none. */
+export function productDepositKobo(price: number, pct: number | null | undefined): { depositKobo: number; balanceKobo: number } | null {
+  const share = lineDepositPct({ preorder: true, depositPct: pct ?? 0 });
+  if (!share) return null;
+  const split = depositSplit(toKobo(price), share);
+  return split.balanceKobo > 0 ? split : null;
+}
+
+/** The store order fields the deposit and balance steps read. */
+export interface StoreOrderPayFacts {
+  status: string;
+  depositKobo?: number | null;
+  balanceKobo?: number | null;
+  balancePaidAt?: Date | string | null;
+  balanceDueAt?: Date | string | null;
+}
+
+const STORE_CLOSED = ["cancelled", "refunded", "returned", "partially_refunded"];
+
+/** The order was placed with a deposit (paid in two parts). */
+export function storeHasDeposit(order: Pick<StoreOrderPayFacts, "depositKobo" | "balanceKobo">): boolean {
+  return (order.depositKobo ?? 0) > 0 && (order.balanceKobo ?? 0) > 0;
+}
+
+/** The deposit is paid and the rest isn't: the order is confirmed ("paid") but waits for the balance. */
+export function storeBalanceDue(order: Partial<StoreOrderPayFacts>): boolean {
+  return storeHasDeposit(order) && !order.balancePaidAt && order.status === "paid";
+}
+
+/** The balance is still owed past the day it was due (STORE_BALANCE_DAYS after "Stock is ready"). */
+export function storeBalanceOverdue(order: StoreOrderPayFacts, now: Date = new Date()): boolean {
+  if (!storeBalanceDue(order) || !order.balanceDueAt) return false;
+  const due = order.balanceDueAt instanceof Date ? order.balanceDueAt : new Date(order.balanceDueAt);
+  return !Number.isNaN(due.getTime()) && due.getTime() <= now.getTime();
+}
+
+/** When the balance is due, asked for at `askedAt` ("Stock is ready"). */
+export function storeBalanceDueAt(askedAt: Date, days = STORE_BALANCE_DAYS): Date {
+  return new Date(askedAt.getTime() + days * 86_400_000);
+}
+
+/**
+ * What a store order has been paid and what's left, in kobo. Unpaid orders (pending) have paid nothing yet; a paid
+ * deposit order has paid what was charged at checkout until the balance is in; closed orders owe nothing.
+ */
+export function storeOrderMoney(order: StoreOrderPayFacts & { total: number }): { totalKobo: number; payNowKobo: number; balanceKobo: number; paidKobo: number; dueKobo: number } {
+  const totalKobo = toKobo(order.total);
+  const deposit = storeHasDeposit(order);
+  const payNowKobo = deposit ? Math.min(totalKobo, order.depositKobo ?? 0) : totalKobo;
+  const balanceKobo = totalKobo - payNowKobo;
+  const unpaid = order.status === "pending" || order.status === "awaiting_payment";
+  const paidKobo = unpaid ? 0 : deposit && !order.balancePaidAt ? payNowKobo : totalKobo;
+  return { totalKobo, payNowKobo, balanceKobo, paidKobo, dueKobo: unpaid || STORE_CLOSED.includes(order.status) ? 0 : totalKobo - paidKobo };
+}
+
+/** What Paystack must have charged for the order's first payment (checkout's reference is the order id). */
+export function storeFirstChargeKobo(order: Pick<StoreOrderPayFacts, "depositKobo" | "balanceKobo"> & { total: number | string | { toString(): string } }): number {
+  const totalKobo = toKobo(Number(order.total));
+  return storeHasDeposit(order) ? Math.min(totalKobo, Math.max(0, order.depositKobo ?? 0)) : totalKobo;
+}
+
+/** Paystack references for a store order's balance (the first payment's reference is the order id). */
+export const STORE_BALANCE_PREFIX = "sbal-";
+
+/**
+ * Shopinbos's fee on a deposit order, in two parts so it's taken once in all: the part on the balance (in proportion
+ * to the goods it pays for) goes with the balance's split, the rest with the payment at checkout.
+ */
+export function splitFeeForBalance(feeKobo: number, goodsKobo: number, balanceKobo: number): { nowKobo: number; laterKobo: number } {
+  const fee = Math.max(0, Math.round(feeKobo));
+  if (!(goodsKobo > 0) || !(balanceKobo > 0) || fee === 0) return { nowKobo: fee, laterKobo: 0 };
+  const laterKobo = Math.min(fee, Math.round((fee * Math.min(balanceKobo, goodsKobo)) / goodsKobo));
+  return { nowKobo: fee - laterKobo, laterKobo };
+}
+

@@ -24,6 +24,7 @@ import {
   walletWaitingForPaystack,
 } from "./rules";
 import { paystackSecretReady } from "@shared/checkout-payments";
+import { splitFeeForBalance } from "@shared/preorder";
 
 // Shopinbos Wallet, server side. A business links the bank Paystack should settle to and gets a Paystack subaccount
 // (an account in another name waits for the team). Nobody is asked for an ID: sellers have no check, and a supplier's
@@ -280,7 +281,13 @@ export async function splitPlanForOrder(
   delivery: Array<{ shipmentKey: string; partnerId: string; naira: number }> = [],
   /** Delivery fees of suppliers that deliver their own parcels: added to that supplier's share. */
   supplierDelivery: Array<{ supplierId: string; naira: number }> = [],
-): Promise<PaymentSplitPlan | null> {
+  /**
+   * A preorder deposit (shared/preorder.ts storeOrderDeposit): this much of the order (the seller's own preorder
+   * lines) is paid later, so the plan is for the rest, and `balancePlan` is the balance's own split: all of it to the
+   * seller less Shopinbos's fee on it (the fee is split in proportion, so it's taken once in all).
+   */
+  options: { balanceKobo?: number } = {},
+): Promise<(PaymentSplitPlan & { balancePlan?: PaymentSplitPlan }) | null> {
   const store = await db.store.findUnique({ where: { id: storeId }, select: { userId: true } });
   if (!store) return null;
   const ready = gateway === "korapay" ? korapayWhere : activeWhere;
@@ -332,11 +339,14 @@ export async function splitPlanForOrder(
     const userId = deliveryPartners.find((partner) => partner.id === partnerId)?.userId;
     return accountOf(deliveryWallets.find((wallet) => wallet.userId === userId));
   };
+  const balanceKobo = Math.max(0, Math.min(Math.round(options.balanceKobo ?? 0), totalKobo));
+  const goodsKobo = Math.max(0, totalKobo - Math.round(Math.max(0, shippingNaira) * 100) - dropshipKobo);
+  const fees = splitFeeForBalance(platformFeeKobo(goodsKobo, fee), goodsKobo, balanceKobo);
   const plan = buildSplitPlan({
     gateway,
     delivery: delivery.map((share) => ({ shipmentKey: share.shipmentKey, partnerId: share.partnerId, subaccount: deliveryAccount(share.partnerId), kobo: Math.round(share.naira * 100) })),
-    totalKobo,
-    platformKobo: platformFeeKobo(Math.max(0, totalKobo - Math.round(Math.max(0, shippingNaira) * 100) - dropshipKobo), fee),
+    totalKobo: totalKobo - balanceKobo,
+    platformKobo: fees.nowKobo,
     sellerSubaccount: sellerAccount,
     suppliers: groups.map((group) => {
       const goodsKobo = Math.round(group.costTotal * 100);
@@ -352,13 +362,14 @@ export async function splitPlanForOrder(
     debts: orderId ? await debtsToDeduct(debtors, gateway) : [],
   });
   if (orderId) await holdPlannedDeductions(orderId, plan.deductions ?? []);
+  if (balanceKobo > 0) return { ...plan, balancePlan: buildSplitPlan({ gateway, totalKobo: balanceKobo, sellerSubaccount: sellerAccount, suppliers: [], platformKobo: fees.laterKobo }) };
   return plan;
 }
 
 /** Writes each business's share of a paid order to its statement, once (unique references). Never throws. */
 export async function recordOrderShares(orderId: string) {
   try {
-    const order = await db.retailOrder.findUnique({ where: { id: orderId }, select: { id: true, orderNumber: true, paymentSplit: true, paystackRef: true, store: { select: { userId: true } } } });
+    const order = await db.retailOrder.findUnique({ where: { id: orderId }, select: { id: true, orderNumber: true, paymentSplit: true, paystackRef: true, balanceSplit: true, balanceRef: true, balancePaidAt: true, store: { select: { userId: true } } } });
     const plan = readSplitPlan(order?.paymentSplit);
     if (!order || !plan) return;
     const seller = await db.wallet.findUnique({ where: { userId: order.store.userId }, select: { id: true } });
@@ -382,9 +393,13 @@ export async function recordOrderShares(orderId: string) {
         if (wallet) rows.push({ walletId: wallet.id, reference: `orderdelivery:${order.id}:${share.shipmentKey}`, kind: "delivery_fee", amountKobo: share.kobo, description: `Delivery fee, order ${order.orderNumber}`, orderId: order.id, paystackReference: order.paystackRef ?? order.id });
       }
     }
+    // A preorder deposit order: the balance paid by card is the seller's own entry, under its own reference (once).
+    const balance = order.balancePaidAt && order.balanceRef ? readSplitPlan(order.balanceSplit) : null;
+    if (seller && balance) rows.push({ walletId: seller.id, reference: `sale-balance:${order.id}`, kind: "sale", amountKobo: balance.sellerKobo, description: `Order ${order.orderNumber} (the rest of a preorder)`, orderId: order.id, paystackReference: order.balanceRef });
     if (rows.length) await db.walletEntry.createMany({ data: rows, skipDuplicates: true });
     // What the split took from the shares for money owed is now paid (once per order and debt).
     if (plan.deductions?.length) await applyDeductions({ key: order.id, deductions: plan.deductions, label: `order ${order.orderNumber}`, paystackReference: order.paystackRef, retailOrderId: order.id });
+    if (balance?.deductions?.length) await applyDeductions({ key: `${order.id}:balance`, deductions: balance.deductions, label: `order ${order.orderNumber}`, paystackReference: order.balanceRef, retailOrderId: order.id });
   } catch (error) {
     console.error(`[wallet] could not record the shares of order ${orderId}`, error);
   }

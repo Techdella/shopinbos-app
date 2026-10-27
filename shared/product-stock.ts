@@ -9,7 +9,7 @@
 //                       At 0 the product is sold out, unless continueSellingWhenOut (backorders).
 //   Dropship products always sell the supplier's stock instead (SupplierProduct.stockQuantity).
 
-import { preorderLine, preorderMaxQuantity, preorderState, type PreorderState } from "./preorder.ts";
+import { lineDepositPct, preorderLine, preorderMaxQuantity, preorderState, type PreorderState } from "./preorder.ts";
 
 export interface StockSettings {
   trackStock?: boolean | null;
@@ -139,6 +139,8 @@ interface ShopperShapeInput extends StockSettings {
   preorderLimit?: number | null;
   preorderTaken?: number | null;
   preorderNote?: string | null;
+  /** The seller's deposit at a card checkout (shared/preorder.ts storeOrderDeposit); never on dropship products. */
+  preorderDepositPct?: number | null;
   fulfillmentType?: string | null;
   variants?: unknown;
   supplierProduct?: SupplierStockRef | null;
@@ -162,7 +164,7 @@ function supplierForShoppers<S extends SupplierStockRef>(supplier: S): Omit<S, "
  */
 export function forShoppers<T extends ShopperShapeInput>(
   product: T,
-): Omit<T, "trackStock" | "continueSellingWhenOut" | "currentStock" | "reservedStock" | "preorderEnabled" | "preorderShipsAt" | "preorderLimit" | "preorderTaken" | "preorderNote"> & { stock: ShopperStock | null; preorder: PreorderState | null } {
+): Omit<T, "trackStock" | "continueSellingWhenOut" | "currentStock" | "reservedStock" | "preorderEnabled" | "preorderShipsAt" | "preorderLimit" | "preorderTaken" | "preorderNote" | "preorderDepositPct"> & { stock: ShopperStock | null; preorder: (PreorderState & { depositPct?: number }) | null } {
   const {
     trackStock: _track,
     continueSellingWhenOut: _continue,
@@ -173,6 +175,7 @@ export function forShoppers<T extends ShopperShapeInput>(
     preorderLimit,
     preorderTaken,
     preorderNote,
+    preorderDepositPct,
     ...rest
   } = product;
   void _track;
@@ -192,6 +195,7 @@ export function forShoppers<T extends ShopperShapeInput>(
     // The supplier's stock only for dropship; its raw preorder counts never reach shoppers (only `preorder` below).
     ...(product.supplierProduct ? { supplierProduct: { ...supplierForShoppers(product.supplierProduct), ...(dropship ? {} : { stockQuantity: null }) } } : {}),
     stock: dropship || preorder?.on ? null : shopperStock(product),
-    preorder: preorder?.on ? preorder : null,
+    // A deposit (1-99 %) on the seller's own preorder: "pay ₦X deposit now, the rest when it ships" on its page.
+    preorder: preorder?.on ? { ...preorder, ...(!dropship && lineDepositPct({ preorder: true, depositPct: preorderDepositPct }) ? { depositPct: lineDepositPct({ preorder: true, depositPct: preorderDepositPct }) } : {}) } : null,
   };
 }
