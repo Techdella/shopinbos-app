@@ -68,6 +68,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "quiet.off": "A kashe. Sanarwa za ta iya yin ƙara a kowane lokaci.",
   "quiet.midnight": "tsakar dare",
   "quiet.noon": "tsakar rana",
+  "category.announcements": "Labaran Shopinbos",
+  "help.announcements": "Sababbin abubuwa, tayi da shawarwari daga ƙungiyar Shopinbos.",
 };
 
 export default ha;

@@ -87,6 +87,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "channel.email": "Email",
   "channel.sms": "SMS",
   "channel.whatsapp": "WhatsApp",
+  "category.announcements": "Akụkọ Shopinbos",
+  "help.announcements": "Ihe ọhụrụ, onyinye na ndụmọdụ sitere n'aka ndị otu Shopinbos.",
 };
 
 export default ig;

@@ -87,6 +87,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "channel.email": "Email",
   "channel.sms": "SMS",
   "channel.whatsapp": "WhatsApp",
+  "category.announcements": "Shopinbos news",
+  "help.announcements": "New things, offers and tips from the Shopinbos team.",
 };
 
 export default pcm;

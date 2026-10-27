@@ -49,6 +49,8 @@ self.addEventListener("notificationclick", (event) => {
       if (notificationId) {
         // Clicking it reads it (cookies go with same-origin requests from the worker).
         fetch("/api/notifications", { method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: notificationId }) }).catch(() => {});
+        // The Push center's "opened" count (only its campaigns count).
+        fetch("/api/notifications/opened", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ notificationId }) }).catch(() => {});
       }
       const tabs = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
       for (const tab of tabs) {

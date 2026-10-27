@@ -274,6 +274,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   media: "Àwọn àwòrán",
   "supplier.products-import": "Gbé CSV sókè",
   "supplier.followers": "Àwọn olùtẹ̀lé",
+  "admin.push": "Ibùdó ìfitónilétí",
 };
 
 export default yo;

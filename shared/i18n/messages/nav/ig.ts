@@ -274,6 +274,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   media: "Mgbasa",
   "supplier.products-import": "Bulite CSV",
   "supplier.followers": "Ndị na-eso",
+  "admin.push": "Ebe ozi ngwa",
 };
 
 export default ig;

@@ -13,7 +13,7 @@ import { useT } from "@/components/i18n/I18nProvider";
 // for each kind of update, quiet hours, and "Send me a test notification". Saves each switch straight away.
 
 interface Settings {
-  categories: Array<{ key: NotifyCategory; label: string; help: string; channels: Record<NotifyChannel, boolean>; textAllowed: boolean }>;
+  categories: Array<{ key: NotifyCategory; label: string; help: string; channels: Record<NotifyChannel, boolean>; textAllowed: boolean; emailAllowed?: boolean }>;
   quietHours: { enabled: boolean; start: string; end: string; timezone: string };
   available: { webPush: boolean; email: boolean; sms: boolean; whatsapp: boolean };
   contact: { email: string | null; phone: string | null };
@@ -147,7 +147,8 @@ export function NotificationSettingsPanel({ className }: { className?: string })
                     </span>
                   </th>
                   {shown.map((channel) => {
-                    const blocked = (!row.textAllowed && (channel.key === "sms" || channel.key === "whatsapp")) || missing(channel.key);
+                    // Shopinbos news is push and bell only (emailAllowed false); older servers don't send the flag.
+                    const blocked = (!row.textAllowed && (channel.key === "sms" || channel.key === "whatsapp")) || (row.emailAllowed === false && channel.key === "email") || missing(channel.key);
                     return (
                       <td key={channel.key} className="py-3 text-center">
                         {blocked ? (

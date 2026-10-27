@@ -5,7 +5,7 @@ import * as Notifications from "expo-notifications";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppIcon } from "@/components/icons";
 import { T } from "@/components/ui";
-import { fetchUnreadCount, markNotificationsRead, onUnreadCount, openNotificationTarget, setUnreadCount } from "@/lib/notifications";
+import { fetchUnreadCount, markNotificationsRead, onUnreadCount, openNotificationTarget, reportPushOpened, setUnreadCount } from "@/lib/notifications";
 import { configurePush, pushSupported, registerPushDevice, setAppBadge } from "@/lib/push";
 import { riderToken } from "@/lib/rider";
 import { useSession } from "@/lib/session";
@@ -43,6 +43,8 @@ export function PushManager() {
       void markNotificationsRead({ id: data.notificationId }).then((count) => {
         if (count !== null) setUnreadCount(count);
       });
+      // The Push center's "opened" count (only Push center campaigns count; anything else is ignored).
+      reportPushOpened(data.notificationId);
     }
     openNotificationTarget(data);
   }, []);
