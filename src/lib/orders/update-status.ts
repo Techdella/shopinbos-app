@@ -8,6 +8,7 @@ import { recoverExpiredOrderPayment, releaseOrderDiscount, releaseOrderStock } f
 import { cancelSupplierOrdersFor, ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server";
 import { settlePaymentLinkForOrder } from "@/lib/payment-links/service.server";
 import { keptDeliveryPlan } from "@shared/delivery-market";
+import { storeBalanceDue } from "@shared/preorder";
 
 // Changing a retail order's status: PATCH /api/app/orders/[id] (web + mobile) and Peggy's mark_order tool
 // share these rules so an order moves the same way whoever moves it.
@@ -42,6 +43,11 @@ export async function updateOrderStatus(
   input: OrderStatusUpdate,
 ): Promise<OrderStatusResult> {
   const updateData: Record<string, unknown> = { status: input.status };
+  // A preorder paid with a deposit waits for the rest before it's prepared or sent (shared/preorder.ts): the shopper
+  // pays it from their order page, or the seller marks it paid another way. Cancelling stays open.
+  if (storeBalanceDue(order) && ["processing", "packed", "shipped", "delivered"].includes(input.status)) {
+    return { ok: false, error: "The customer still owes the rest of this pre-order. Wait for them to pay it, or mark it paid another way." };
+  }
   if (input.status === "paid" && order.status === "cancelled" && order.expiredAt) {
     // The buyer's transfer came in after the order expired unpaid: take the stock again if it's still there.
     const outcome = await recoverExpiredOrderPayment(order.id, { paymentMethod: input.paymentMethod ?? order.paymentMethod ?? "transfer" });

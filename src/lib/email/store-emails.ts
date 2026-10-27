@@ -150,3 +150,70 @@ export function leadMagnetEmail(input: { appUrl: string; store: StoreSender; nam
     }),
   };
 }
+
+/**
+ * A preorder paid in two parts (shared/preorder.ts, src/lib/commerce/store-balance.server.ts): "deposit received"
+ * (the rest is due once it's ready), "pay the rest" (the stock is ready, with the link), "paid in full", and "your
+ * deposit is owed back" (the store cancelled the preorder).
+ */
+export function preorderPaymentEmail(input: {
+  appUrl: string;
+  store: StoreSender;
+  buyerName?: string | null;
+  orderNumber: string;
+  kind: "deposit_received" | "balance_due" | "paid_in_full" | "deposit_back";
+  /** What's been paid so far, e.g. "₦4,500". */
+  paid: string;
+  /** What's left to pay (or was), e.g. "₦10,500". */
+  balance: string;
+  /** "Mon 3 Nov": when the balance is due (balance_due). */
+  dueBy?: string | null;
+  orderUrl?: string | null;
+}) {
+  const store = escapeHtml(input.store.name);
+  const hi = `Hi ${escapeHtml(first(input.buyerName))}, `;
+  const copy = {
+    deposit_received: {
+      subject: `Deposit received: ${input.orderNumber}`,
+      heading: "Your pre-order is reserved",
+      body: `${hi}we've received your deposit of <strong>${escapeHtml(input.paid)}</strong> for order <strong>${escapeHtml(input.orderNumber)}</strong> from <strong>${store}</strong>. The rest, <strong>${escapeHtml(input.balance)}</strong>, is due when the stock is ready. We'll email you a link to pay it then.`,
+      small: "You don't need to do anything now.",
+      cta: "View your order",
+    },
+    balance_due: {
+      subject: `Your pre-order is ready: pay the rest (${input.orderNumber})`,
+      heading: "Your pre-order is ready",
+      body: `${hi}good news: <strong>${store}</strong> has the stock for your pre-order <strong>${escapeHtml(input.orderNumber)}</strong>. Pay the rest, <strong>${escapeHtml(input.balance)}</strong>${input.dueBy ? ` by <strong>${escapeHtml(input.dueBy)}</strong>` : ""}, and they pack and send it.`,
+      small: `You've paid ${escapeHtml(input.paid)} so far. If the rest isn't paid in time, the store may cancel the order and send your deposit back.`,
+      cta: "Pay the rest",
+    },
+    paid_in_full: {
+      subject: `Paid in full: ${input.orderNumber}`,
+      heading: "Your pre-order is paid in full",
+      body: `${hi}thanks: order <strong>${escapeHtml(input.orderNumber)}</strong> from <strong>${store}</strong> is now paid in full (${escapeHtml(input.paid)}). The store prepares it and we'll tell you when it's on its way.`,
+      small: "You don't need to do anything.",
+      cta: "View your order",
+    },
+    deposit_back: {
+      subject: `Pre-order cancelled: ${input.orderNumber}`,
+      heading: "Your pre-order was cancelled",
+      body: `${hi}<strong>${store}</strong> cancelled pre-order <strong>${escapeHtml(input.orderNumber)}</strong> because the rest wasn't paid in time. Your deposit of <strong>${escapeHtml(input.paid)}</strong> goes back to you: the store will contact you about it.`,
+      small: "Reply to this email if you have questions.",
+      cta: "View your order",
+    },
+  }[input.kind];
+  return {
+    subject: copy.subject,
+    html: storeEmail({
+      appUrl: input.appUrl,
+      store: input.store,
+      kind: "transactional",
+      preheader: copy.subject,
+      eyebrow: `Order ${input.orderNumber}`,
+      heading: copy.heading,
+      bodyHtml: `${html.raw(copy.body)}${html.small(copy.small)}`,
+      cta: input.orderUrl ? { label: copy.cta, url: input.orderUrl } : null,
+      reason: `you placed order ${input.orderNumber} with ${input.store.name}`,
+    }),
+  };
+}

@@ -50,7 +50,8 @@ test("the Paystack webhook checks the charge and only moves a still-unpaid order
   assert.match(source, /afterRetailOrderPaid\(ref, moved\.count === 1/);
   const paid = read("src/lib/commerce/order-paid.server.ts");
   assert.match(paid, /if \(newlyPaid\) \{\n    await creditCampaignConversion/);
-  assert.match(paid, /if \(!newlyPaid\) return;\n\n  const resendKey/, "confirmation email only on the first transition");
+  // A preorder deposit's "paid" email is the deposit one (src/lib/commerce/store-balance.server.ts).
+  assert.match(paid, /if \(!newlyPaid( \|\| deposit)?\) return;\n\n  const resendKey/, "confirmation email only on the first transition");
   assert.match(source, /timingSafeEqual/);
   assert.doesNotMatch(source, /updateMany\(\{\s*where: \{ id: ref \},\s*data: \{ status: "paid"/);
   const action = read("src/app/actions/payments.ts");

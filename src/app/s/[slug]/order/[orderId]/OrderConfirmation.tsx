@@ -9,7 +9,8 @@ import { useCart } from "@/hooks/useCart";
 import { useStorePurchase } from "@/lib/analytics/storefront-events";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { formatStoreMoney } from "@/lib/storefront/shopper-info";
-import { ItemThumb, Panel, ShopperShell } from "@/components/storefront/shopper/ShopperShell";
+import { ItemThumb, Panel, PrimaryButton, ShopperShell } from "@/components/storefront/shopper/ShopperShell";
+import { payOrderBalance } from "./actions";
 import { resolveShopperTheme, type ShopperTheme } from "@/components/storefront/shopper/theme";
 import { TransferInstructions, payByText, type TransferDetails } from "./TransferInstructions";
 import { OrderRewardsPanel, type OrderRewards } from "@/components/storefront/gamification/Rewards";
@@ -69,11 +70,25 @@ interface Props {
   rewards?: OrderRewards | null;
   /** Delivery partners (Logistics marketplace): the timeline, the pickup point or the seller's pickup address. */
   delivery?: OrderDeliveryView | null;
+  /** A preorder paid with a deposit (src/lib/commerce/store-balance.server.ts shopperBalanceView): naira. */
+  balance?: BalanceView | null;
+}
+
+export interface BalanceView {
+  payNow: number;
+  balance: number;
+  paid: number;
+  due: number;
+  paidInFull: boolean;
+  /** The store said the stock is ready and asked for the rest. */
+  ready: boolean;
+  dueBy: string | null;
+  canPay: boolean;
 }
 
 const PAID = ["paid", "processing", "packed", "shipped", "delivered"];
 
-export function OrderConfirmation({ order, store, storeBasePath, transfer = null, deliveryCode = null, rewards = null, delivery = null, brandedTracking = true }: Props) {
+export function OrderConfirmation({ order, store, storeBasePath, transfer = null, deliveryCode = null, rewards = null, delivery = null, brandedTracking = true, balance = null }: Props) {
   const cart = useCart(store.slug);
   const theme = useMemo(() => resolveShopperTheme(store.brandSettings), [store.brandSettings]);
   const clearCart = cart.clear;
@@ -101,10 +116,16 @@ export function OrderConfirmation({ order, store, storeBasePath, transfer = null
   const area = [address?.city, address?.state].map((part) => part?.trim()).filter(Boolean).join(", ");
   const how = delivery?.kind === "self_pickup" ? null : delivery?.kind === "pickup_point" ? "Pickup point" : option?.name || delivery?.optionName || "Delivery";
   const wayLine = !onTheWay || !how ? null : delivery?.kind === "pickup_point" && delivery.point ? `${how} · ${delivery.point.name}` : area ? `${how} to ${area}` : how;
-  const headline = order.status === "cancelled" ? "Order cancelled" : onTheWay ? "On the way" : isPaid ? `Thank you, ${firstName}` : method === "paystack" ? "Waiting for payment" : `Thank you, ${firstName}`;
+  // A preorder paid with a deposit that still owes the rest ("Pay the rest" below).
+  const owing = balance && balance.due > 0 && order.status === "paid" ? balance : null;
+  const headline = order.status === "cancelled" ? "Order cancelled" : owing?.ready ? "Your pre-order is ready" : onTheWay ? "On the way" : isPaid ? `Thank you, ${firstName}` : method === "paystack" ? "Waiting for payment" : `Thank you, ${firstName}`;
   const subline = order.status === "cancelled"
     ? "This order was cancelled. Contact the store if you think this is a mistake."
-    : partly
+    : owing
+      ? owing.ready
+        ? `${store.name} has the stock for your pre-order. Pay the rest below${owing.dueBy ? ` by ${new Date(owing.dueBy).toLocaleDateString("en-NG", { weekday: "short", day: "numeric", month: "short" })}` : ""} and they send it.`
+        : `Your pre-order is reserved: we've received your deposit. The rest is due when it's ready to ship, and we'll email ${order.buyerEmail} a link.`
+      : partly
       ? `${partly}. It comes in more than one parcel, and we'll tell you when the rest is on its way.`
       : isPaid
       ? `Your order is confirmed. We've sent the details to ${order.buyerEmail}.`
@@ -125,13 +146,15 @@ export function OrderConfirmation({ order, store, storeBasePath, transfer = null
         <div className="grid min-w-0 gap-5">
           <div>
             <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[13px] font-semibold" style={isPaid ? { background: "#E7F5EC", color: "#14532D" } : { background: "#FFF4E0", color: "#7A4A00" }}>
-              <Icon name={onTheWay ? "truck" : isPaid ? "checkCircle" : "clock"} size={14} /> {onTheWay ? "On the way" : isPaid ? "Payment confirmed" : order.status === "cancelled" ? "Cancelled" : "Order received"}
+              <Icon name={onTheWay ? "truck" : isPaid ? "checkCircle" : "clock"} size={14} /> {onTheWay ? "On the way" : owing ? "Deposit paid" : isPaid ? "Payment confirmed" : order.status === "cancelled" ? "Cancelled" : "Order received"}
             </span>
             <h1 className="mt-3 text-[30px] font-semibold leading-tight sm:text-[36px]" style={{ fontFamily: theme.heading }}>{headline}</h1>
             {wayLine ? <p className="mt-1 text-[16px] font-medium">{wayLine}</p> : null}
             <p className="mt-2 max-w-[60ch] text-[15.5px] leading-7" style={{ color: theme.muted }} suppressHydrationWarning>{subline}</p>
             <p className="mt-2 text-[14px]">Order number <strong className="tabular-nums">{order.orderNumber}</strong></p>
           </div>
+
+          {owing ? <PayTheRest theme={theme} orderId={order.id} balance={owing} money={money} /> : null}
 
           <NextSteps
             theme={theme}
@@ -213,6 +236,12 @@ export function OrderConfirmation({ order, store, storeBasePath, transfer = null
             {pointsOff > 0 ? <div className="flex justify-between"><dt>Loyalty points</dt><dd className="m-0 tabular-nums">−{money(pointsOff)}</dd></div> : null}
             <div className="flex justify-between"><dt>Delivery</dt><dd className="m-0 tabular-nums">{Number(order.shippingFee) === 0 ? "Free" : money(order.shippingFee)}</dd></div>
             <div className="mt-1 flex justify-between border-t pt-3 text-[17px] font-semibold" style={{ borderColor: theme.border }}><dt>Total</dt><dd className="m-0 tabular-nums">{amount}</dd></div>
+            {balance && isPaid ? (
+              <>
+                <div className="flex justify-between"><dt>{balance.paidInFull ? "Paid in full" : "Deposit paid"}</dt><dd className="m-0 tabular-nums">{money(balance.paid)}</dd></div>
+                {balance.due > 0 ? <div className="flex justify-between font-semibold" style={{ color: "#7A4A00" }}><dt>Left to pay</dt><dd className="m-0 tabular-nums">{money(balance.due)}</dd></div> : null}
+              </>
+            ) : null}
           </dl>
           {address ? (
             <div className="border-t pt-4 text-[14px] leading-6" style={{ borderColor: theme.border }}>
@@ -230,6 +259,47 @@ export function OrderConfirmation({ order, store, storeBasePath, transfer = null
         </Panel>
       </div>
     </ShopperShell>
+  );
+}
+
+/** "Pay the rest": the balance of a preorder paid with a deposit, by card (Paystack brings the shopper back here). */
+function PayTheRest({ theme, orderId, balance, money }: { theme: ShopperTheme; orderId: string; balance: BalanceView; money: (amount: number) => string }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const dueBy = balance.dueBy ? new Date(balance.dueBy).toLocaleDateString("en-NG", { weekday: "short", day: "numeric", month: "short" }) : null;
+  async function pay() {
+    setBusy(true);
+    setError(null);
+    const result = await payOrderBalance(orderId).catch(() => ({ ok: false as const, error: "Something went wrong. Try again." }));
+    if (result.ok) {
+      window.location.assign(result.url);
+      return;
+    }
+    setError(result.error);
+    setBusy(false);
+  }
+  return (
+    <Panel theme={theme} className="grid gap-3 p-5" aria-labelledby="pay-rest">
+      <h2 id="pay-rest" className="text-[18px] font-semibold" style={{ fontFamily: theme.heading }}>{balance.ready ? "Pay the rest" : "Pre-order: the rest is due when it ships"}</h2>
+      <dl className="m-0 grid gap-1.5 text-[14.5px]">
+        <div className="flex justify-between gap-3"><dt>Deposit paid</dt><dd className="m-0 tabular-nums">{money(balance.paid)}</dd></div>
+        <div className="flex justify-between gap-3 font-semibold"><dt>Left to pay</dt><dd className="m-0 tabular-nums">{money(balance.due)}</dd></div>
+        {balance.ready && dueBy ? <div className="flex justify-between gap-3" style={{ color: theme.muted }}><dt>Pay by</dt><dd className="m-0">{dueBy}</dd></div> : null}
+      </dl>
+      <p className="m-0 text-[13.5px] leading-6" style={{ color: theme.muted }}>
+        {balance.ready
+          ? "The store has your item. Once the rest is paid they pack it and send it. If it isn't paid in time, the store may cancel the order and send your deposit back."
+          : "We'll email you when it's ready. You can also pay the rest now if you like."}
+      </p>
+      {balance.canPay ? (
+        <PrimaryButton theme={theme} type="button" onClick={() => void pay()} disabled={busy} className="w-full sm:w-auto" data-pay-rest>
+          {busy ? "Opening Paystack…" : `Pay the rest · ${money(balance.due)}`}
+        </PrimaryButton>
+      ) : (
+        <p className="m-0 text-[13.5px]">Contact the store to pay the rest.</p>
+      )}
+      {error ? <p role="alert" className="m-0 text-[13.5px]" style={{ color: "#B42318" }}>{error}</p> : null}
+    </Panel>
   );
 }
 

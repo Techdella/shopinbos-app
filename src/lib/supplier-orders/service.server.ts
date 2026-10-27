@@ -47,6 +47,7 @@ export async function ensureSupplierOrders(retailOrderId: string): Promise<{ cre
     select: {
       id: true, storeId: true, status: true, paymentMethod: true, items: true, deliveryAddress: true, buyerName: true, buyerPhone: true,
       currency: true, orderNumber: true, logisticsDetails: true, store: { select: { userId: true, name: true } },
+      depositKobo: true, balanceKobo: true, balancePaidAt: true,
     },
   });
   if (!order || !readyForSuppliers(order)) return { created: 0 };
@@ -158,6 +159,13 @@ export async function ensureSupplierOrders(retailOrderId: string): Promise<{ cre
 
 /** Never let a supplier-order problem break a payment webhook or checkout: log it and carry on. */
 export async function ensureSupplierOrdersSafely(retailOrderId: string) {
+  // A preorder whose shopper paid a deposit and still owes the rest: nothing is sent or booked until it's paid in
+  // full (store-balance.server.ts calls this again then).
+  const waiting = await db.retailOrder
+    .findUnique({ where: { id: retailOrderId }, select: { status: true, paymentMethod: true, depositKobo: true, balanceKobo: true, balancePaidAt: true } })
+    .then((order) => Boolean(order && (order.depositKobo ?? 0) > 0 && (order.balanceKobo ?? 0) > 0 && !order.balancePaidAt))
+    .catch(() => false);
+  if (waiting) return { created: 0 };
   // Every place an order goes live calls this, so the shop's own parcel goes to its delivery partner here too
   // (logistics marketplace; idempotent, never throws).
   const deliveries = import("@/lib/delivery-market/jobs.server").then((jobs) => jobs.dispatchOrderDeliveriesSafely(retailOrderId)).catch(() => undefined);

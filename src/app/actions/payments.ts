@@ -15,6 +15,9 @@ import { settlePaymentLinkForOrder } from "@/lib/payment-links/service.server";
 import { recordOrderShares } from "@/lib/wallet/wallet.server";
 import { refreshKorapayOrderPayment } from "@/lib/commerce/korapay-orders.server";
 import { linkWalletBank } from "@/lib/wallet/wallet.server";
+import { afterStoreDepositPaid, confirmStoreBalancePayment } from "@/lib/commerce/store-balance.server";
+import { firstChargeKobo } from "@/lib/commerce/paystack-charge";
+import { STORE_BALANCE_PREFIX, storeHasDeposit } from "@shared/preorder";
 
 interface PaystackTransaction {
   amount: number;
@@ -103,9 +106,16 @@ export async function updateOrderPayment(
   reference: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    // "Pay the rest" of a preorder came back with its own reference: confirmed with Paystack, for this order only.
+    if (reference.startsWith(STORE_BALANCE_PREFIX)) {
+      const result = await confirmStoreBalancePayment(reference);
+      if (result.ok && result.orderId !== orderId) return { success: false, error: "Payment does not belong to this order" };
+      revalidatePath("/home/orders");
+      return result.ok ? { success: true } : { success: false, error: result.error };
+    }
     const order = await db.retailOrder.findUnique({
       where: { id: orderId },
-      select: { id: true, total: true, currency: true, buyerEmail: true, status: true, paystackRef: true, expiredAt: true, paymentSplit: true },
+      select: { id: true, total: true, currency: true, buyerEmail: true, status: true, paystackRef: true, expiredAt: true, paymentSplit: true, depositKobo: true, balanceKobo: true },
     });
     if (!order) {
       return { success: false, error: "Order not found" };
@@ -138,9 +148,9 @@ export async function updateOrderPayment(
       return { success: false, error: "Payment has already been applied to another order" };
     }
 
-    const paidAmount = verification.data.amount / 100;
-    if (Math.round(paidAmount) < Math.round(Number(order.total))) {
-      return { success: false, error: "Verified payment amount is less than the order total" };
+    // A preorder deposit order was charged its deposit part (shared/preorder.ts), not the total.
+    if (Math.round(verification.data.amount) < firstChargeKobo(order)) {
+      return { success: false, error: storeHasDeposit(order) ? "Verified payment amount is less than the deposit due" : "Verified payment amount is less than the order total" };
     }
     if (verification.data.currency && verification.data.currency.toUpperCase() !== order.currency.toUpperCase()) {
       return { success: false, error: "Payment currency does not match this order" };
@@ -154,6 +164,7 @@ export async function updateOrderPayment(
       const outcome = await recoverExpiredOrderPayment(orderId, { reference });
       if (outcome === "reinstated") await creditCampaignConversion(orderId).catch(() => null);
       if (outcome === "reinstated") await settlePaymentLinkForOrder(orderId);
+      if (outcome === "reinstated" && storeHasDeposit(order)) await afterStoreDepositPaid(orderId);
       revalidatePath("/home/orders");
       return outcome === "needs_refund"
         ? { success: false, error: "This order expired before the payment arrived and the items have sold out. The store will refund you." }
@@ -170,7 +181,9 @@ export async function updateOrderPayment(
       },
     });
     if (moved.count === 1) await creditCampaignConversion(orderId).catch(() => null);
-    if (moved.count === 1) await notifyOrderCustomer(orderId, "payment_received"); // WhatsApp/SMS to the buyer, if switched on (sent once)
+    // WhatsApp/SMS to the buyer, if switched on (sent once); a preorder deposit gets "deposit received" instead (once).
+    if (storeHasDeposit(order)) await afterStoreDepositPaid(orderId);
+    else if (moved.count === 1) await notifyOrderCustomer(orderId, "payment_received");
     // Dropship items go to their suppliers (idempotent: the webhook may do the same).
     await ensureSupplierOrdersSafely(orderId);
     await settlePaymentLinkForOrder(orderId);

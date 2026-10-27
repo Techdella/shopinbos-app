@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { endStorePreorders, endSupplierPreorders, storeStockReady, supplierStockReady } from "@/lib/supplier-orders/preorders.server";
+import { cancelStoreOrderForUnpaidBalance, markStoreBalancePaidOffline } from "@/lib/commerce/store-balance.server";
 
 // The web's preorder buttons (/supplier/preorders and /home/preorders): "Stock is ready" and "End preorders".
 // Same services as the phone's APIs (src/lib/supplier-orders/preorders.server.ts).
@@ -48,7 +49,7 @@ export async function storeStockReadyAction(formData: FormData) {
   const result = await storeStockReady(store, id(formData), { end: ticked(formData, "end") });
   revalidatePath("/home/preorders");
   if (!result.ok) redirect(back("/home/preorders", { view: "shop", error: result.message }));
-  redirect(back("/home/preorders", { view: "shop", moved: result.data.moved, unpaid: result.data.unpaid, ...(result.data.ended ? { ended: 1 } : {}) }));
+  redirect(back("/home/preorders", { view: "shop", moved: result.data.moved, asked: result.data.asked, unpaid: result.data.unpaid, ...(result.data.ended ? { ended: 1 } : {}) }));
 }
 
 export async function storeEndPreordersAction(formData: FormData) {
@@ -57,4 +58,24 @@ export async function storeEndPreordersAction(formData: FormData) {
   revalidatePath("/home/preorders");
   if (!result.ok) redirect(back("/home/preorders", { view: "shop", error: result.message }));
   redirect(back("/home/preorders", { view: "shop", ended: 1 }));
+}
+
+const orderId = (formData: FormData) => String(formData.get("orderId") ?? "").slice(0, 40);
+
+/** A shopper paid the rest of their preorder another way (src/lib/commerce/store-balance.server.ts). */
+export async function storeBalancePaidAction(formData: FormData) {
+  const store = await storeOf();
+  const result = await markStoreBalancePaidOffline(store, orderId(formData));
+  revalidatePath("/home/preorders");
+  revalidatePath("/home/orders");
+  redirect(back("/home/preorders", { view: "shop", ...(result.ok ? { notice: result.message } : { error: result.message }) }));
+}
+
+/** The rest wasn't paid in time: cancel the order; the deposit is recorded as owed back to the shopper. */
+export async function storeCancelUnpaidBalanceAction(formData: FormData) {
+  const store = await storeOf();
+  const result = await cancelStoreOrderForUnpaidBalance(store, orderId(formData));
+  revalidatePath("/home/preorders");
+  revalidatePath("/home/orders");
+  redirect(back("/home/preorders", { view: "shop", ...(result.ok ? { notice: result.message } : { error: result.message }) }));
 }

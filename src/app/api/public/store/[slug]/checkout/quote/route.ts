@@ -82,7 +82,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       reason: priced.delivery.market?.reason ?? null,
       shipmentCount: priced.delivery.market?.shipmentCount ?? 1,
     },
-    items: priced.items.map((item) => ({ productId: item.productId, variant: item.variant ?? null, price: item.price, quantity: item.quantity })),
+    items: priced.items.map((item) => ({ productId: item.productId, variant: item.variant ?? null, price: item.price, quantity: item.quantity, ...(item.depositPct ? { depositPct: item.depositPct } : {}) })),
+    // Preorder deposits (shared/preorder.ts): paying by card charges payNow (naira) and the rest is due once the
+    // stock is ready. Other ways to pay take the whole total. Null: one payment.
+    deposit: priced.deposit ? { payNow: priced.deposit.payNowKobo / 100, balance: priced.deposit.balanceKobo / 100, methods: ["paystack"] } : null,
   }), CORS);
   res.headers.set("Cache-Control", "no-store");
   return res;

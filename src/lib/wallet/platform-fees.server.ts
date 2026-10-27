@@ -55,14 +55,16 @@ export async function platformFeeSummary(now = new Date(), limit = 30): Promise<
     where: { status: { in: [...PAID_STATUSES] }, paymentSplit: { not: Prisma.DbNull } },
     orderBy: { createdAt: "desc" },
     take: 5000,
-    select: { id: true, orderNumber: true, createdAt: true, paymentSplit: true, store: { select: { name: true } } },
+    select: { id: true, orderNumber: true, createdAt: true, paymentSplit: true, balanceSplit: true, balancePaidAt: true, balanceRef: true, store: { select: { name: true } } },
   });
   const rows: FeeOrder[] = [];
   for (const order of orders) {
     const plan = readSplitPlan(order.paymentSplit);
     if (!plan) continue;
     const commissionKobo = plan.suppliers.reduce((sum, supplier) => sum + (supplier.commissionKobo ?? 0), 0);
-    rows.push({ id: order.id, orderNumber: order.orderNumber, store: order.store.name, at: order.createdAt.toISOString(), totalKobo: plan.totalKobo, feeKobo: plan.platformKobo ?? 0, commissionKobo });
+    // A preorder deposit order: the balance's split carries the rest of the fee, counted once its card payment is in.
+    const balance = order.balancePaidAt && order.balanceRef ? readSplitPlan(order.balanceSplit) : null;
+    rows.push({ id: order.id, orderNumber: order.orderNumber, store: order.store.name, at: order.createdAt.toISOString(), totalKobo: plan.totalKobo + (balance?.totalKobo ?? 0), feeKobo: (plan.platformKobo ?? 0) + (balance?.platformKobo ?? 0), commissionKobo });
   }
   const startOfToday = new Date(now);
   startOfToday.setHours(0, 0, 0, 0);

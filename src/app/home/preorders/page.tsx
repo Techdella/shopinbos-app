@@ -11,22 +11,23 @@ import { formatDate, formatMoney } from "@shared/i18n";
 import type { PreorderStage, StorePreorderStage } from "@shared/preorder";
 import { sellerWholesaleRows, storePreorders } from "@/lib/supplier-orders/preorders.server";
 import { WHOLESALE_PAY_PREFIX, confirmWholesalePayment } from "@/lib/supplier-orders/wholesale-payments.server";
-import { storeEndPreordersAction, storeStockReadyAction } from "@/app/actions/preorders";
+import { storeBalancePaidAction, storeCancelUnpaidBalanceAction, storeEndPreordersAction, storeStockReadyAction } from "@/app/actions/preorders";
 
 export const dynamic = "force-dynamic";
 
 // The seller's preorders (src/lib/supplier-orders/preorders.server.ts), two views:
 //   ?view=shop       their store's preorders from shoppers, by product (ship-by date, units, each order); "Stock is
-//                    ready" moves the paid orders to processing (the usual status change tells the customer), and
-//                    can end the preorder too. Unpaid orders are left alone.
+//                    ready" moves the paid orders to processing (the usual status change tells the customer), asks
+//                    customers who paid a deposit for the rest ("Balance due": Paid another way, or Cancel once it's
+//                    overdue, the deposit then owed back), and can end the preorder too. Unpaid orders are left alone.
 //   ?view=suppliers  their bulk preorders from suppliers: stage, deposit paid / balance due, Pay deposit or Pay
 //                    balance (Paystack comes back here: the reference is confirmed before it says paid).
 // The phone has the same screen (apps/mobile/src/app/preorders.tsx).
 
 const WHOLESALE_TONE: Record<PreorderStage, Tone> = { waiting: "warning", pay_balance: "accent", ready: "success", shipped: "info", delivered: "success", cancelled: "muted" };
-const STORE_TONE: Record<StorePreorderStage, Tone> = { unpaid: "muted", waiting: "warning", preparing: "success" };
+const STORE_TONE: Record<StorePreorderStage, Tone> = { unpaid: "muted", waiting: "warning", balance_due: "accent", preparing: "success" };
 
-type PageProps = { searchParams?: Promise<{ view?: string; moved?: string; unpaid?: string; ended?: string; error?: string; reference?: string; trxref?: string }> };
+type PageProps = { searchParams?: Promise<{ view?: string; moved?: string; asked?: string; unpaid?: string; ended?: string; error?: string; notice?: string; reference?: string; trxref?: string }> };
 
 export default async function SellerPreordersPage({ searchParams }: PageProps) {
   const params = (await searchParams) ?? {};
@@ -55,10 +56,12 @@ export default async function SellerPreordersPage({ searchParams }: PageProps) {
         ? { tone: "success" as const, text: t("preorders.paidNotice") }
         : { tone: "error" as const, text: payment.error }
       : params.moved !== undefined
-        ? { tone: "success" as const, text: [t("preorders.movedDone", { count: params.moved }), Number(params.unpaid) > 0 ? t("preorders.unpaidLeft", { count: params.unpaid ?? "0" }) : null, params.ended ? t("preorders.endedDone") : null].filter(Boolean).join(" ") }
+        ? { tone: "success" as const, text: [t("preorders.movedDone", { count: params.moved }), Number(params.asked) > 0 ? t("preorders.askedDone", { count: params.asked ?? "0" }) : null, Number(params.unpaid) > 0 ? t("preorders.unpaidLeft", { count: params.unpaid ?? "0" }) : null, params.ended ? t("preorders.endedDone") : null].filter(Boolean).join(" ") }
         : params.ended
           ? { tone: "success" as const, text: t("preorders.endedDone") }
-          : null;
+          : params.notice
+            ? { tone: "success" as const, text: params.notice.slice(0, 200) }
+            : null;
 
   return (
     <AppPage
@@ -102,12 +105,15 @@ export default async function SellerPreordersPage({ searchParams }: PageProps) {
                     </p>
                   </div>
                   <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
-                    {group.waiting > 0 && (
+                    {(group.waiting > 0 || group.orders.some((order) => order.stage === "balance_due" && !order.balanceDueOn)) && (
                       <details className="w-full sm:w-auto">
                         <summary className="inline-flex min-h-[44px] cursor-pointer list-none items-center justify-center gap-2 whitespace-nowrap rounded-full bg-app-ink px-5 text-[14px] font-extrabold text-white"><Icon name="checkCircle" size={16} /> {t("preorders.stockReady")}</summary>
                         <form action={storeStockReadyAction} className="mt-2 grid gap-2 rounded-[16px] border border-app-line bg-white p-3 sm:w-[360px]">
                           <input type="hidden" name="productId" value={group.productId} />
-                          <p className="m-0 text-[13.5px] leading-[1.5]">{t("preorders.shopConfirm", { count: group.waiting, name: group.name })}</p>
+                          {group.waiting > 0 && <p className="m-0 text-[13.5px] leading-[1.5]">{t("preorders.shopConfirm", { count: group.waiting, name: group.name })}</p>}
+                          {group.orders.some((order) => order.stage === "balance_due" && !order.balanceDueOn) && (
+                            <p className="m-0 text-[13.5px] leading-[1.5]">{t("preorders.balanceAskConfirm", { count: group.orders.filter((order) => order.stage === "balance_due" && !order.balanceDueOn).length })}</p>
+                          )}
                           {group.unpaid > 0 && <p className="m-0 text-[12.5px] text-app-ink-soft">{t("preorders.unpaidStay", { count: group.unpaid })}</p>}
                           {group.product?.on && (
                             <label className="flex items-center gap-2 text-[13.5px]">
@@ -129,8 +135,35 @@ export default async function SellerPreordersPage({ searchParams }: PageProps) {
                 <ul className="m-0 mt-3 list-none divide-y divide-app-line rounded-[16px] border border-app-line p-0">
                   {group.orders.map((order) => (
                     <li key={order.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5 text-[13.5px]">
-                      <span className="min-w-0 flex-1 font-bold">#{order.orderNumber} · {order.buyerName} · × {order.quantity}</span>
-                      <Pill tone={STORE_TONE[order.stage]}>{t.dynamic(`preorders.storeStage.${order.stage}`, order.stage)}</Pill>
+                      <span className="min-w-0 flex-1">
+                        <span className="font-bold">#{order.orderNumber} · {order.buyerName} · × {order.quantity}</span>
+                        {order.stage === "balance_due" && (
+                          <span className={`block text-[12.5px] ${order.overdue ? "font-bold text-[#B42318]" : "text-app-ink-soft"}`}>
+                            {order.balanceDueOn
+                              ? order.overdue
+                                ? t("preorders.balanceOverdue", { amount: naira(order.dueKobo), date: day(order.balanceDueOn) })
+                                : t("preorders.balanceBy", { amount: naira(order.dueKobo), date: day(order.balanceDueOn) })
+                              : t("preorders.balanceOwed", { amount: naira(order.dueKobo) })}
+                          </span>
+                        )}
+                      </span>
+                      <Pill tone={order.overdue ? "danger" : STORE_TONE[order.stage]}>{t.dynamic(`preorders.storeStage.${order.stage}`, order.stage)}</Pill>
+                      {order.stage === "balance_due" && (
+                        <form action={storeBalancePaidAction}>
+                          <input type="hidden" name="orderId" value={order.id} />
+                          <button type="submit" className="inline-flex min-h-[36px] items-center justify-center whitespace-nowrap rounded-full border border-app-line bg-white px-3.5 text-[12.5px] font-extrabold">{t("preorders.markPaid")}</button>
+                        </form>
+                      )}
+                      {order.overdue && (
+                        <details>
+                          <summary className="inline-flex min-h-[36px] cursor-pointer list-none items-center justify-center whitespace-nowrap rounded-full border border-[#F3C5BE] bg-white px-3.5 text-[12.5px] font-extrabold text-[#B42318]">{t("preorders.cancelUnpaid")}</summary>
+                          <form action={storeCancelUnpaidBalanceAction} className="mt-2 grid gap-2 rounded-[14px] border border-app-line bg-white p-3 sm:w-[320px]">
+                            <input type="hidden" name="orderId" value={order.id} />
+                            <p className="m-0 text-[13px] leading-[1.5]">{t("preorders.cancelUnpaidConfirm", { number: order.orderNumber })}</p>
+                            <button type="submit" className="inline-flex min-h-[38px] items-center justify-center whitespace-nowrap rounded-full bg-[#B42318] px-4 text-[13px] font-extrabold text-white">{t("preorders.cancelUnpaidYes")}</button>
+                          </form>
+                        </details>
+                      )}
                       <PillLink href={`/home/orders/${order.id}`} size="sm" icon="arrow">{t("open")}</PillLink>
                     </li>
                   ))}

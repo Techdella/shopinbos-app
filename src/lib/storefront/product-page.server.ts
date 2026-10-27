@@ -116,6 +116,7 @@ const catalogSelect = {
   preorderLimit: true,
   preorderTaken: true,
   preorderNote: true,
+  preorderDepositPct: true,
 } as const;
 
 /**

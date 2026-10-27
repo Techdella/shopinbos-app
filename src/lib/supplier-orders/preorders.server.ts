@@ -12,6 +12,7 @@ import {
   hasDeposit,
   preorderDay,
   stockReadyTargets,
+  storeBalanceRequestTargets,
   storeStockReadyTargets,
   toKobo,
   wholesaleMoney,
@@ -248,7 +249,7 @@ export type SellerWholesaleRow = Awaited<ReturnType<typeof sellerWholesaleRows>>
 // ─── Seller: their store's preorders from shoppers ──────────────────────────────
 
 export interface StorePreordersView {
-  groups: Array<StorePreorderGroup & { product: { on: boolean; shipsOn: string | null; limit: number | null; taken: number } | null }>;
+  groups: Array<StorePreorderGroup & { product: { on: boolean; shipsOn: string | null; limit: number | null; taken: number; depositPct: number } | null }>;
 }
 
 const STORE_PREORDER_WINDOW_DAYS = 365;
@@ -271,7 +272,7 @@ export async function storePreorders(storeId: string): Promise<StorePreordersVie
   const rows = await openStorePreorderRows(storeId);
   const groups = groupStorePreorders(rows);
   const products = groups.length
-    ? await db.storeProduct.findMany({ where: { storeId, id: { in: groups.map((group) => group.productId) } }, select: { id: true, images: true, preorderEnabled: true, preorderShipsAt: true, preorderLimit: true, preorderTaken: true } })
+    ? await db.storeProduct.findMany({ where: { storeId, id: { in: groups.map((group) => group.productId) } }, select: { id: true, images: true, preorderEnabled: true, preorderShipsAt: true, preorderLimit: true, preorderTaken: true, preorderDepositPct: true } })
     : [];
   const byId = new Map(products.map((product) => [product.id, product]));
   return {
@@ -280,7 +281,7 @@ export async function storePreorders(storeId: string): Promise<StorePreordersVie
       return {
         ...group,
         image: group.image ?? (Array.isArray(product?.images) ? ((product.images as unknown[]).find((value): value is string => typeof value === "string") ?? null) : null),
-        product: product ? { on: product.preorderEnabled, shipsOn: preorderDay(product.preorderShipsAt), limit: product.preorderLimit, taken: product.preorderTaken } : null,
+        product: product ? { on: product.preorderEnabled, shipsOn: preorderDay(product.preorderShipsAt), limit: product.preorderLimit, taken: product.preorderTaken, depositPct: product.preorderDepositPct } : null,
       };
     }),
   };
@@ -289,13 +290,16 @@ export async function storePreorders(storeId: string): Promise<StorePreordersVie
 /**
  * "Stock is ready" on the seller's own product: each paid order holding a preorder line of it moves to processing
  * through the usual status change (the seller's order automations and the customer's order message say it's being
- * prepared). Unpaid orders are left as they are. `end`: stop taking preorders for the product too.
+ * prepared). Orders whose shopper paid a deposit and still owes the rest stay as they are and the shopper is asked
+ * for it (email with the pay-the-rest link, SMS when order texts are on; due in STORE_BALANCE_DAYS); they move to
+ * processing once it's paid (src/lib/commerce/store-balance.server.ts). Unpaid orders are left as they are. `end`:
+ * stop taking preorders for the product too.
  */
-export async function storeStockReady(store: { id: string; name: string }, productId: string, options: { end?: boolean } = {}): Promise<ServiceResult<{ moved: number; unpaid: number; ended: boolean }>> {
+export async function storeStockReady(store: { id: string; name: string }, productId: string, options: { end?: boolean } = {}): Promise<ServiceResult<{ moved: number; asked: number; unpaid: number; ended: boolean }>> {
   const product = await db.storeProduct.findFirst({ where: { id: productId, storeId: store.id }, select: { id: true, preorderEnabled: true } });
   const rows = await openStorePreorderRows(store.id);
   const targets = storeStockReadyTargets(rows, productId);
-  if (!product && !targets.length) return { ok: false, code: "NOT_FOUND", message: "Product not found" };
+  if (!product && !targets.length && !storeBalanceRequestTargets(rows, productId).length) return { ok: false, code: "NOT_FOUND", message: "Product not found" };
   const { updateOrderStatus } = await import("@/lib/orders/update-status");
   let moved = 0;
   for (const order of targets) {
@@ -305,13 +309,15 @@ export async function storeStockReady(store: { id: string; name: string }, produ
     });
     if (result?.ok) moved += 1;
   }
+  const { askForStoreBalances } = await import("@/lib/commerce/store-balance.server");
+  const asked = await askForStoreBalances(storeBalanceRequestTargets(rows, productId).map((order) => order.id));
   const unpaid = groupStorePreorders(rows).find((group) => group.productId === productId)?.unpaid ?? 0;
   let ended = false;
   if (options.end && product?.preorderEnabled) {
     await db.storeProduct.update({ where: { id: product.id }, data: { preorderEnabled: false } });
     ended = true;
   }
-  return { ok: true, data: { moved, unpaid, ended } };
+  return { ok: true, data: { moved, asked, unpaid, ended } };
 }
 
 /** The seller stops taking preorders on their product. */

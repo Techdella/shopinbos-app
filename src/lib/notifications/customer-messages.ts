@@ -327,3 +327,42 @@ export async function sweepAbandonedCartMessages(now = new Date()) {
   }
   return sent;
 }
+
+/** Preorders paid in two parts (shared/preorder.ts): the deposit is in, or the stock is ready and the rest is due. */
+export const PREORDER_DEPOSIT_SMS = "{{store}}: we got your deposit of {{paid}} for pre-order {{order_number}}. The rest ({{balance}}) is due when it's ready; we'll send you a link. {{order_url}}";
+export const PREORDER_BALANCE_SMS = "{{store}}: your pre-order {{order_number}} is ready. Pay the rest ({{balance}}) here and they send it: {{order_url}}";
+
+/**
+ * The preorder deposit / "pay the rest" message by SMS, once per order and kind, when the seller turned on the
+ * "Payment received" order message (WhatsApp needs an approved template for each wording, so like the partly-sent
+ * update this goes by SMS only; the email always goes). Never throws.
+ */
+export async function notifyOrderCustomerPreorderPayment(orderId: string, kind: "deposit" | "balance_due", amounts: { paid: string; balance: string }) {
+  try {
+    const order = await db.retailOrder.findUnique({ where: { id: orderId }, select: { id: true, storeId: true, orderNumber: true, buyerName: true, buyerPhone: true } });
+    const phone = normalizePhone(order?.buyerPhone);
+    if (!order || !phone) return [];
+    const settings = await getMessagingSettings(order.storeId);
+    if (!settings.transactional.payment_received.sms) return [];
+    const store = await db.store.findUnique({ where: { id: order.storeId }, select: MARKETING_STORE_SELECT });
+    if (!store) return [];
+    const recipient = { event: (kind === "deposit" ? "preorder_deposit" : "preorder_balance_due") as CustomerEvent, refId: order.id, phone, name: order.buyerName, values: {}, smsVars: {} } satisfies Recipient;
+    const id = await claim(store.id, recipient, "sms");
+    if (!id) return [];
+    const allowed = mayText({ channel: "sms", phone, purpose: "transactional", consent: true, optOuts: await loadOptOuts(store.id) });
+    if (!allowed.ok) {
+      await finish(id, { ok: false, error: allowed.reason, skipped: true });
+      return [{ channel: "sms" as const, ok: false, error: allowed.reason }];
+    }
+    const template = kind === "deposit" ? PREORDER_DEPOSIT_SMS : PREORDER_BALANCE_SMS;
+    const values = { store: store.name, order_number: order.orderNumber, order_url: storeUrl(store, `/order/${order.id}`), paid: amounts.paid, balance: amounts.balance };
+    const body = fillVariables(template, values as unknown as FlowVariables, "text").replace(/\s{2,}/g, " ").trim();
+    const send = await textSender(store, { senderId: settings.smsSenderId });
+    const outcome = await send.sms(phone, body).catch((error): SendOutcome => ({ ok: false, error: String(error) }));
+    await finish(id, outcome);
+    return [{ channel: "sms" as const, ok: outcome.ok }];
+  } catch (error) {
+    console.error(`[customer messages] preorder ${kind} for order ${orderId} failed`, error);
+    return [];
+  }
+}

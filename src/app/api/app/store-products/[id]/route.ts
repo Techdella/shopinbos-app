@@ -77,6 +77,7 @@ export const GET = withSeller(async (_req: NextRequest, { user, params }: { user
       preorderLimit: true,
       preorderTaken: true,
       preorderNote: true,
+      preorderDepositPct: true,
       dropship: {
         select: {
           id: true,
@@ -89,7 +90,7 @@ export const GET = withSeller(async (_req: NextRequest, { user, params }: { user
   });
   if (!product || product.status === "archived") return apiError("NOT_FOUND", "That product couldn't be found.", 404);
 
-  const { dropship, variants, variantOptions, productType, productDetails, preorderEnabled, preorderShipsAt, preorderLimit, preorderTaken, preorderNote, ...rest } = product;
+  const { dropship, variants, variantOptions, productType, productDetails, preorderEnabled, preorderShipsAt, preorderLimit, preorderTaken, preorderNote, preorderDepositPct, ...rest } = product;
   const supplierListing = dropship?.supplierProduct;
   const variantRows = normalizeVariants(variants).map(({ sourceIndex: _sourceIndex, ...row }) => row);
   return ok({
@@ -103,7 +104,8 @@ export const GET = withSeller(async (_req: NextRequest, { user, params }: { user
     variants: editableVariantRows(variants),
     productType: productTypeKey(productType),
     productDetails: readProductDetails(productDetails),
-    preorder: { enabled: preorderEnabled, shipsOn: preorderDay(preorderShipsAt), limit: preorderLimit, taken: preorderTaken, note: preorderNote },
+    // depositPct: what shoppers pay at a card checkout (0 = all of it; shared/preorder.ts storeOrderDeposit).
+    preorder: { enabled: preorderEnabled, shipsOn: preorderDay(preorderShipsAt), limit: preorderLimit, taken: preorderTaken, note: preorderNote, depositPct: preorderDepositPct },
     dropship: dropship
       ? {
           relationshipId: dropship.id,

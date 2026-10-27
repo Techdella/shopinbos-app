@@ -122,7 +122,11 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
   // Preorders: a real ship date and cap; never on dropship products (they sell the supplier's stock).
   const preorderParsed = preorder ? parsePreorderInput(preorder) : null;
   if (preorderParsed && !preorderParsed.ok) return apiError("BAD_REQUEST", preorderParsed.message);
-  const preorderData = preorderParsed?.ok ? preorderSaveData(preorderParsed.value, { dropship: rest.fulfillmentType === "dropship" || rest.inventoryType === "dropshipping" }) : {};
+  const preorderData = {
+    ...(preorderParsed?.ok ? preorderSaveData(preorderParsed.value, { dropship: rest.fulfillmentType === "dropship" || rest.inventoryType === "dropshipping" }) : {}),
+    // The deposit shoppers pay at checkout (0 = all of it then; shared/preorder.ts storeOrderDeposit).
+    ...(preorderParsed?.ok && typeof preorder?.depositPct === "number" ? { preorderDepositPct: preorder.depositPct } : {}),
+  };
   const planLimit = await productLimitProblem(user.id, store.id);
   if (planLimit) return apiError("PLAN_LIMIT", planLimit, 402);
   // Type, details, versions (checked and normalized) and related products.

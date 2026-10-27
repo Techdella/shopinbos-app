@@ -16,6 +16,19 @@ export interface PayableOrder {
   total: number | string | { toString(): string };
   currency: string;
   status: string;
+  /**
+   * A preorder deposit order (shared/preorder.ts storeFirstChargeKobo, the same rule): checkout charged depositKobo,
+   * not the total, and balanceKobo is paid later under its own reference.
+   */
+  depositKobo?: number | null;
+  balanceKobo?: number | null;
+}
+
+/** What the first payment (reference = order id) must cover, in kobo: the deposit part, else the whole total. */
+export function firstChargeKobo(order: Pick<PayableOrder, "total" | "depositKobo" | "balanceKobo">): number {
+  const totalKobo = Math.round(Number(order.total) * 100);
+  const deposit = (order.depositKobo ?? 0) > 0 && (order.balanceKobo ?? 0) > 0;
+  return deposit ? Math.min(totalKobo, Math.max(0, Math.round(order.depositKobo ?? 0))) : totalKobo;
 }
 
 /** Why this charge must not mark the order paid, or null when it may. */
@@ -26,7 +39,7 @@ export function retailChargeProblem(order: PayableOrder | null, charge: Paystack
   if (!(PAYABLE_ORDER_STATUSES as readonly string[]).includes(order.status)) return "order is not awaiting payment";
   const amountKobo = typeof charge.amount === "number" ? charge.amount : Number(charge.amount);
   if (!Number.isFinite(amountKobo)) return "charge has no amount";
-  if (Math.round(amountKobo) < Math.round(Number(order.total) * 100)) return "charge is less than the order total";
+  if (Math.round(amountKobo) < firstChargeKobo(order)) return order.depositKobo && order.balanceKobo ? "charge is less than the deposit due" : "charge is less than the order total";
   if (typeof charge.currency === "string" && charge.currency.toUpperCase() !== order.currency.toUpperCase()) {
     return "charge currency does not match the order";
   }

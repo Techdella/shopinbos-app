@@ -35,7 +35,7 @@ import { applySuggestion, type AssistantFormState, type SuggestionInput } from "
 import { friendlyError } from "@/lib/errors/report-client";
 import { uploadToFolder } from "@/components/media/media-client";
 import { checkShortCode } from "@shared/product-codes";
-import { PREORDER_NOTE_MAX, preorderDay, shipDateLabel } from "@shared/preorder";
+import { PREORDER_DEPOSIT_CHOICES, PREORDER_NOTE_MAX, preorderDay, productDepositKobo, shipDateLabel } from "@shared/preorder";
 import { SharePreorder } from "@/components/products/SharePreorder";
 
 interface Category {
@@ -94,6 +94,8 @@ interface Product {
   preorderLimit?: number | null;
   preorderTaken?: number;
   preorderNote?: string | null;
+  /** Shoppers pay this percent at a card checkout and the rest when the stock is ready (0 = all at checkout). */
+  preorderDepositPct?: number | null;
   /** The supplier's listing, for dropship products: they follow its preorders. */
   supplierProduct?: { preorderEnabled?: boolean; preorderShipsAt?: Date | string | null; preorderNote?: string | null } | null;
   /** This product's own page layout / parts (product-override.ts). */
@@ -251,6 +253,7 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
   const [preorderShipsOn, setPreorderShipsOn] = useState(preorderDay(product?.preorderShipsAt) ?? "");
   const [preorderLimit, setPreorderLimit] = useState(product?.preorderLimit ? String(product.preorderLimit) : "");
   const [preorderNote, setPreorderNote] = useState(product?.preorderNote ?? "");
+  const [preorderDepositPct, setPreorderDepositPct] = useState(product?.preorderDepositPct ?? 0);
 
   // This product's own page: null = the store's Product page settings (builder) for that part.
   const [pageOverride] = useState(() => readProductPageOverride(product?.pageLayout));
@@ -437,6 +440,7 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
         shipsAt: preorderShipsOn || null,
         limit: parseInt(preorderLimit) > 0 ? parseInt(preorderLimit) : null,
         note: preorderNote.trim() || null,
+        depositPct: preorderDepositPct,
       },
       // Only what the seller chose here overrides the store's product page settings.
       pageLayout: writeProductPageOverride({ layout: pageLayoutChoice, buyBox: buyBoxChoice, sections: sectionsChoice, ...(faqStyleChoice ? { faqStyle: faqStyleChoice } : {}) }),
@@ -820,6 +824,22 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
                           <input value={preorderLimit} onChange={(e) => setPreorderLimit(e.target.value)} type="number" inputMode="numeric" className={field.input} min={1} placeholder="No limit" />
                         </Field>
                       </div>
+                      <Field label="Deposit at checkout" hint={preorderDepositPct > 0 && preorderDepositPct < 100 ? `Customers paying by card pay ${preorderDepositPct}% now${productDepositKobo(Number(retailPrice) || 0, preorderDepositPct) ? ` (₦${Math.round(productDepositKobo(Number(retailPrice) || 0, preorderDepositPct)!.depositKobo / 100).toLocaleString("en-NG")} each)` : ""} and the rest when you say the stock is ready (Preorders › Stock is ready). You send it once it's all paid.` : "No deposit: customers pay the whole order at checkout."}>
+                        <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Deposit at checkout">
+                          {[...PREORDER_DEPOSIT_CHOICES, ...((PREORDER_DEPOSIT_CHOICES as readonly number[]).includes(preorderDepositPct) ? [] : [preorderDepositPct])].map((pct) => (
+                            <button
+                              key={pct}
+                              type="button"
+                              role="radio"
+                              aria-checked={preorderDepositPct === pct}
+                              onClick={() => setPreorderDepositPct(pct)}
+                              className={`inline-flex min-h-[40px] items-center whitespace-nowrap rounded-full border px-4 text-[13.5px] font-extrabold ${preorderDepositPct === pct ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink"}`}
+                            >
+                              {pct === 0 ? "None" : pct === 100 ? "100% (all now)" : `${pct}%`}
+                            </button>
+                          ))}
+                        </div>
+                      </Field>
                       <Field label="Your promise to customers" hint="Shown under the button. Say when it ships and what you'll do if it's late.">
                         <textarea value={preorderNote} onChange={(e) => setPreorderNote(e.target.value.slice(0, PREORDER_NOTE_MAX))} rows={2} className={field.textarea} placeholder="Ships by 15 Dec. If it's late, you can cancel for a full refund." />
                       </Field>
