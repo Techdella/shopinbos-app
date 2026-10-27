@@ -3,13 +3,15 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from "expo-audio";
 import { api } from "@/lib/api";
 import { introAudio, useIntroAudioStop } from "@/lib/intro-audio";
+import { nextTrack } from "@/lib/intro-audio-pure";
 import { DEFAULT_SOUND_PREFS, MUSIC_LEVEL, MUSIC_UNDER_VOICE, parseSoundPrefs, type IntroSoundPrefs } from "@shared/intro-narration";
 
 // Sound for the 60-second intro on the phone, like the web's (src/components/learn/useIntroSound.ts): a narrator
 // reads each scene in the app language (the stored clip from /api/learn/narration) over soft music that dips while
-// the voice speaks. The music is the same generated "chill" track as the web, as a short seamless loop
-// (assets/sounds/intro-music.m4a). `voiceBusy` is true while a scene's line loads or plays, so the intro waits for
-// the narrator. When the narration service is off, the captions carry on without a voice. Choices are kept on the phone.
+// the voice speaks. The music is an Afrobeats collection (assets/sounds/tips-*.m4a, 90-second mono cuts that fade
+// in and out so they loop cleanly); each intro plays the next track in turn (nextTrack). `voiceBusy` is true while a
+// scene's line loads or plays, so the intro waits for the narrator. When the narration service is off, the captions
+// carry on without a voice. Choices are kept on the phone.
 //
 // Stopping is strict, because the music used to carry on after the sheet closed and even after the app went to the
 // background: on Android `player.remove()` only drops the player from expo-audio's list (so its own "pause when the
@@ -19,7 +21,25 @@ import { DEFAULT_SOUND_PREFS, MUSIC_LEVEL, MUSIC_UNDER_VOICE, parseSoundPrefs, t
 
 const PREFS_KEY = "shopinbos.introSound";
 const CLIP_WAIT_MS = 6_000;
-const MUSIC = require("../../../assets/sounds/intro-music.m4a") as number;
+const TRACK_KEY = "shopinbos.introTrack";
+const TRACKS = [
+  require("../../../assets/sounds/tips-lets-go.m4a"),
+  require("../../../assets/sounds/tips-buckle-up.m4a"),
+  require("../../../assets/sounds/tips-kite-lines.m4a"),
+  require("../../../assets/sounds/tips-everywhere.m4a"),
+  require("../../../assets/sounds/tips-crazy.m4a"),
+] as number[];
+
+/** This intro's track (the next one after the last intro's). */
+function pickTrack(): number {
+  try {
+    const { index, store } = nextTrack(localStorage.getItem(TRACK_KEY), TRACKS.length);
+    localStorage.setItem(TRACK_KEY, store);
+    return TRACKS[index];
+  } catch {
+    return TRACKS[0];
+  }
+}
 
 function readPrefs(): IntroSoundPrefs {
   try {
@@ -53,6 +73,7 @@ export function useIntroSound({ introKey, sceneCount, locale, onInterrupt }: { i
   const prefsRef = useRef(prefs);
   prefsRef.current = prefs;
   const music = useRef<AudioPlayer | null>(null);
+  const track = useRef<number | null>(null);
   const voice = useRef<AudioPlayer | null>(null);
   const voiceSub = useRef<{ remove: () => void } | null>(null);
   const fade = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -135,7 +156,9 @@ export function useIntroSound({ introKey, sceneCount, locale, onInterrupt }: { i
     if (!prefsRef.current.music || off.current || pausedRef.current || !introAudio.allowed()) return;
     if (!music.current) {
       try {
-        music.current = createAudioPlayer(MUSIC);
+        // One track per intro: a resume after the app came back plays the same song, not the next.
+        track.current ??= pickTrack();
+        music.current = createAudioPlayer(track.current);
         music.current.loop = true;
         music.current.volume = 0;
       } catch {

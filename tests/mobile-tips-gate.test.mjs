@@ -263,3 +263,17 @@ test("call: a screen Peggy opens shows clearly; the minimized bar has its own st
   assert.match(read("apps/mobile/src/lib/peggy-call.ts"), /export const callBarShown = \(current: CallState\) => current\.engine && current\.minimized && \(current\.phase === "connecting" \|\| current\.phase === "live"\)/);
   assert.match(read("apps/mobile/src/app/_layout.tsx"), /<CallSpace>\s*<Stack /);
 });
+
+test("tips music: each intro plays the next Afrobeats track, starting at the first", () => {
+  const { nextTrack, TIPS_TRACK_COUNT } = guardLib;
+  assert.equal(TIPS_TRACK_COUNT, 5);
+  assert.deepEqual(nextTrack(null), { index: 0, store: "0" });
+  assert.deepEqual(nextTrack("0"), { index: 1, store: "1" });
+  assert.deepEqual(nextTrack("4"), { index: 0, store: "0" });
+  assert.deepEqual(nextTrack("junk"), { index: 0, store: "0" });
+  assert.deepEqual(nextTrack("-3"), { index: 0, store: "0" });
+  const hook = read("apps/mobile/src/components/learn/useIntroSound.ts");
+  const tracks = [...hook.matchAll(/assets\/sounds\/(tips-[a-z-]+\.m4a)/g)].map((m) => m[1]);
+  assert.equal(tracks.length, TIPS_TRACK_COUNT);
+  for (const file of tracks) assert.ok(statSync(new URL(`../apps/mobile/assets/sounds/${file}`, import.meta.url)).size > 100_000, file);
+});

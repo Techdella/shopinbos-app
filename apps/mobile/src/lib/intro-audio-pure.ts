@@ -54,3 +54,14 @@ export type AudioGuard = ReturnType<typeof createAudioGuard>;
 
 /** The app's single guard. */
 export const introAudio = createAudioGuard();
+
+/** How many Afrobeats tracks the tips rotate through (assets/sounds/tips-*.m4a, listed in useIntroSound). */
+export const TIPS_TRACK_COUNT = 5;
+
+/** The track this intro plays, and the one the next intro starts from: each opening moves on by one, so people hear
+ * the whole collection instead of the same song every time. A missing or broken stored value starts at the first. */
+export function nextTrack(stored: string | null, count = TIPS_TRACK_COUNT) {
+  const last = Number.parseInt(stored ?? "", 10);
+  const index = Number.isInteger(last) && last >= 0 ? (last + 1) % count : 0;
+  return { index, store: String(index) };
+}
