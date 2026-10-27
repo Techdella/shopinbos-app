@@ -45,6 +45,7 @@ export default async function SellerWholesaleOrdersPage({ searchParams }: { sear
     take: 100,
     select: {
       id: true, status: true, rejectReason: true, trackingCode: true, quantity: true, unitPrice: true, totalPrice: true, currency: true, createdAt: true, paidAt: true, paidOutAt: true,
+      preorder: true, preorderShipsAt: true,
       supplier: { select: { displayName: true, slug: true, userId: true } },
       supplierProduct: { select: { id: true, name: true, images: true } },
     },
@@ -86,6 +87,7 @@ export default async function SellerWholesaleOrdersPage({ searchParams }: { sear
     product: { id: order.supplierProduct.id, name: order.supplierProduct.name, image: order.supplierProduct.images[0] ?? null },
     paid: !!order.paidAt,
     canPay: payable.has(order.id),
+    preorder: order.preorder ? { ships: order.preorderShipsAt ? formatDate(order.preorderShipsAt, locale, { day: "numeric", month: "short", timeZone: "UTC" }) : null } : null,
   }));
 
   return (

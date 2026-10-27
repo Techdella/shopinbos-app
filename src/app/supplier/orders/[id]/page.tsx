@@ -13,6 +13,7 @@ import { messagesHref } from "@/lib/conversations/pure";
 import { listDropshipOrders } from "@/lib/supplier-orders/views.server";
 import { pickupState } from "@/lib/supplier-orders/pickup.server";
 import { wholesaleRef } from "@/lib/supplier-orders/wholesale.server";
+import { preorderDay, shipDateLabel } from "@shared/preorder";
 import { SELLER_CANCEL_PREFIX } from "@/lib/supplier-orders/pure";
 import { getT } from "@/lib/i18n/server";
 
@@ -58,6 +59,8 @@ export default async function SupplierOrderPage({ params, searchParams }: PagePr
     ref: string; status: string; shop: string; sellerUserId: string; createdAt: string; acceptBy: string | null; youGet: number; currency: string;
     title: string; image: string | null; lines: Array<{ name: string; quantity: number }>; label: null | { to: string; phone: string | null; address: string[]; collect: number };
     sendTo: string | null; notes: string | null; rejectReason: string | null; trackingCode: string | null; mixed: boolean;
+    /** A bulk preorder (shared/preorder.ts): the ship date the supplier gave, or null for "when it arrives". */
+    preorder?: { shipsOn: string | null };
   };
   if (kind === "dropship") {
     const { orders } = await listDropshipOrders(supplier.id, { id, take: 1 });
@@ -83,6 +86,7 @@ export default async function SupplierOrderPage({ params, searchParams }: PagePr
       title: `${order.supplierProduct.name} ×${order.quantity.toLocaleString("en-NG")}`, image: order.supplierProduct.images[0] ?? null,
       lines: [{ name: order.supplierProduct.name, quantity: order.quantity }], label: null, sendTo: order.deliveryAddress, notes: order.notes,
       rejectReason: order.expiredAt ? null : order.rejectReason, trackingCode: order.trackingCode, mixed: false,
+      ...(order.preorder ? { preorder: { shipsOn: preorderDay(order.preorderShipsAt) } } : {}),
     };
   }
 
@@ -113,7 +117,10 @@ export default async function SupplierOrderPage({ params, searchParams }: PagePr
           <Thumb src={view.image} label={view.title} size={64} />
           <div className="min-w-0 flex-1">
             <div className="text-[17px] font-extrabold leading-snug">{view.title}</div>
-            <div className="mt-1 flex flex-wrap items-center gap-2"><Pill tone={stage.tone} dot>{stage.label}</Pill></div>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <Pill tone={stage.tone} dot>{stage.label}</Pill>
+              {view.preorder && <Pill tone="warning">{view.preorder.shipsOn ? t("order.preorderShips", { date: shipDateLabel(view.preorder.shipsOn) }) : t("order.preorder")}</Pill>}
+            </div>
           </div>
           <div className="text-right">
             <div className="text-[13px] text-app-ink-soft">{t("orders.youGet")}</div>

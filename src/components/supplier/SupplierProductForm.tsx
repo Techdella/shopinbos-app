@@ -6,6 +6,7 @@ import { Mascot } from "@/components/brand/Mascot";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { MediaListField } from "@/components/media/MediaListField";
 import { getT } from "@/lib/i18n/server";
+import { PREORDER_NOTE_MAX, preorderDay } from "@shared/preorder";
 
 interface CategoryOption {
   id: string;
@@ -32,6 +33,12 @@ interface SupplierProductFormValue {
   deliveryRegions?: string[];
   processingTime?: string | null;
   status?: string;
+  /** Preorders (shared/preorder.ts). */
+  preorderEnabled?: boolean;
+  preorderShipsAt?: Date | string | null;
+  preorderLimit?: number | null;
+  preorderTaken?: number;
+  preorderNote?: string | null;
 }
 
 interface SupplierProductFormProps {
@@ -164,6 +171,28 @@ export async function SupplierProductForm({ mode, action, categories, product, e
           <Field id="product-tiers" label={t("productForm.tiers")} hint={t("productForm.tiersHint")} className="mt-4">
             <textarea id="product-tiers" className={`${textareaClass} font-mono text-[13.5px]`} name="pricingTiers" rows={3} defaultValue={pricingTierText(product)} placeholder={"10-49: 8500\n50-99: 7800\n100: 7200"} />
           </Field>
+        </Section>
+
+        <Section title={t("productForm.preorderTitle")} sub={t("productForm.preorderSub")}>
+          <label className="flex min-h-[56px] cursor-pointer items-start gap-3 rounded-[16px] border border-app-line px-4 py-3 has-[:checked]:border-app-ink">
+            <input type="checkbox" name="preorderEnabled" value="true" defaultChecked={Boolean(product?.preorderEnabled)} className="mt-0.5 h-5 w-5 shrink-0 accent-[#16141F]" />
+            <span className="min-w-0">
+              <span className="block text-[14px] font-bold">{t("productForm.preorderOn")}</span>
+              <span className="block text-[12.5px] text-app-ink-soft">{t("productForm.preorderOnHint")}</span>
+            </span>
+          </label>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <Field id="product-preorder-ships" label={t("productForm.preorderShips")} hint={t("productForm.preorderShipsHint")}>
+              <input id="product-preorder-ships" className={fieldClass} name="preorderShipsAt" type="date" defaultValue={preorderDay(product?.preorderShipsAt) ?? ""} />
+            </Field>
+            <Field id="product-preorder-limit" label={t("productForm.preorderLimit")} hint={t("productForm.preorderLimitHint", { count: String(product?.preorderEnabled ? product.preorderTaken ?? 0 : 0) })}>
+              <input id="product-preorder-limit" className={fieldClass} name="preorderLimit" type="number" min="1" step="1" defaultValue={product?.preorderLimit ?? ""} />
+            </Field>
+            <Field id="product-preorder-note" label={t("productForm.preorderNote")} className="sm:col-span-2">
+              <textarea id="product-preorder-note" className={textareaClass} name="preorderNote" rows={2} maxLength={PREORDER_NOTE_MAX} defaultValue={product?.preorderNote ?? ""} placeholder={t("productForm.preorderNotePlaceholder")} />
+            </Field>
+          </div>
+          <p className="mb-0 mt-4 rounded-[16px] bg-app-canvas px-4 py-3 text-[13px] leading-[1.55] text-app-ink-soft">{t("productForm.preorderMoney")}</p>
         </Section>
 
         <Section title={t("productForm.photosTitle")} sub={t("productForm.photosSub")}>

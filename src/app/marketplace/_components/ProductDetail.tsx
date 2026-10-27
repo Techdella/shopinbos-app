@@ -14,7 +14,7 @@ import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { BeforeYouList, type ListingInfo } from "./BeforeYouList";
 import { SupplierTrustBadges } from "./SupplierTrust";
-import { formatMoney, formatNumber } from "@shared/i18n";
+import { formatDate, formatMoney, formatNumber } from "@shared/i18n";
 import { localWholesaleStage } from "./wholesaleStage";
 import { Term } from "@/components/learn/Term";
 
@@ -37,7 +37,7 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
   const locale = useLocale();
   const money = (amount: number) => (locale === "en" ? naira(amount) : formatMoney(Math.round(amount), locale));
   const num = (value: number) => (locale === "en" ? value.toLocaleString("en-NG") : formatNumber(value, locale));
-  const [mode, setMode] = useState<"dropship" | "wholesale">(product.dropship && !(startWholesale && product.wholesale) ? "dropship" : "wholesale");
+  const [mode, setMode] = useState<"dropship" | "wholesale">(product.dropship && !(startWholesale && product.wholesale) && !(product.preorder?.on && product.wholesale) ? "dropship" : "wholesale");
   const [price, setPrice] = useState(() => clampSellingPrice(product.price, product.cost));
   const [quantity, setQuantity] = useState(product.moq);
   const [image, setImage] = useState(0);
@@ -53,6 +53,7 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
   const [messageOpen, setMessageOpen] = useState(false);
   const [pending, start] = useTransition();
 
+  const preorder = product.preorder?.on ? product.preorder : null;
   const sale = saleBreakdown(price, product.cost);
   const step = priceStep(price);
   const unit = tierPrice(product.tiers, quantity, product.cost);
@@ -279,6 +280,18 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
               <section className={cx(CARD, "p-4")}>
                 <h2 className="m-0 text-[14.5px] font-extrabold">{t("pd.buyWholesale")}</h2>
                 <p className="mb-0 mt-1 text-[13px] text-app-ink-soft">{t("pd.moq", { count: num(product.moq) })}</p>
+                {preorder && (
+                  // The supplier takes preorders: the stock isn't here yet and ships from their date (shared/preorder.ts).
+                  <div className="mt-3 grid gap-1 rounded-[14px] bg-[#FDF0D5] px-3 py-2.5 text-[13px] leading-[1.5] text-[#5C3D00]">
+                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1 font-bold">
+                      <span className="rounded-full bg-white/70 px-2 py-0.5 text-[12px]">{t("pd.preorder")}</span>
+                      {preorder.shipsOn ? t("pd.preorderShips", { date: formatDate(new Date(`${preorder.shipsOn}T12:00:00Z`), locale, { day: "numeric", month: "short" }) }) : t("pd.preorderSoon")}
+                      {preorder.left !== null && <span className="font-normal">· {preorder.open ? t("pd.preorderLeft", { count: num(preorder.left) }) : t("pd.preorderFull")}</span>}
+                    </span>
+                    {preorder.note && <span>{preorder.note}</span>}
+                    <span>{t("pd.preorderWhy")}</span>
+                  </div>
+                )}
                 <ul className="m-0 mt-3 grid list-none gap-1.5 p-0 text-[14px]">
                   {(product.tiers.length ? product.tiers : [{ minQty: product.moq, price: product.cost }]).map((tier) => (
                     <li key={tier.minQty} className={cx("flex justify-between gap-3 rounded-[12px] px-3 py-2", unit === tier.price && quantity >= tier.minQty ? "bg-app-canvas font-bold" : "")}>
@@ -338,8 +351,8 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
                     {t("pd.sent", { name: supplier.name })}
                   </p>
                 )}
-                <button type="button" onClick={placeWholesale} disabled={pending || quantity < product.moq} className="inline-flex min-h-[54px] w-full items-center justify-center rounded-full bg-app-ink px-5 text-[15.5px] font-bold text-white hover:bg-black disabled:opacity-60">
-                  {pending ? t("pd.sending") : t("pd.orderFor", { count: num(quantity), total: ` ${money(unit * quantity)}` }).replace("  ", " ")}
+                <button type="button" onClick={placeWholesale} disabled={pending || quantity < product.moq || (preorder !== null && !preorder.open)} className="inline-flex min-h-[54px] w-full items-center justify-center rounded-full bg-app-ink px-5 text-[15.5px] font-bold text-white hover:bg-black disabled:opacity-60">
+                  {pending ? t("pd.sending") : preorder ? (preorder.open ? t("pd.preorderFor", { count: num(quantity), total: money(unit * quantity) }) : t("pd.preorderFull")) : t("pd.orderFor", { count: num(quantity), total: ` ${money(unit * quantity)}` }).replace("  ", " ")}
                 </button>
                 {quoted ? (
                   <p role="status" className="m-0 text-[13px] font-bold text-app-success">

@@ -88,3 +88,17 @@ test("orders and sharing", () => {
   assert.match(sql, /ADD COLUMN IF NOT EXISTS "preorderEnabled" BOOLEAN NOT NULL DEFAULT false/);
   assert.doesNotMatch(sql, /DROP |DELETE /);
 });
+
+test("suppliers: preorder bulk orders take places under the cap, not stock, and give them back once", () => {
+  const wholesale = read("src/lib/supplier-orders/wholesale.server.ts");
+  assert.match(wholesale, /const reservation = preorder\.on \? \{ reserve: 0 \} : wholesaleReservation/, "a preorder reserves no stock");
+  assert.match(wholesale, /"preorderLimit" IS NULL OR "preorderTaken" \+ \$\{input\.quantity\} <= "preorderLimit"/, "the cap is checked as the place is taken");
+  assert.match(wholesale, /preorder: preorder\.on,\s+preorderShipsAt:/, "the order remembers it was a preorder and the date");
+  assert.match(wholesale, /OR: \[\{ stockReserved: \{ gt: 0 \} \}, \{ preorder: true \}\]/, "declines, cancels and expiry give preorder places back once");
+  assert.match(wholesale, /preorderTaken: \{ decrement: order\.quantity \}/);
+  const actions = read("src/app/actions/supplier.ts");
+  assert.match(actions, /preorderSaveData\(preorder\.value, \{ wasEnabled: product\.preorderEnabled \}\)/);
+  const form = read("src/components/supplier/SupplierProductForm.tsx");
+  for (const name of ["preorderEnabled", "preorderShipsAt", "preorderLimit", "preorderNote"]) assert.match(form, new RegExp(`name="${name}"`));
+  assert.match(read("src/app/marketplace/_components/ProductDetail.tsx"), /t\("pd\.preorderFor"/);
+});
