@@ -87,7 +87,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "ready.delivery": "Họrọ otu ị ga-esi eme delivery",
   "ready.share": "Kesaa ụlọ ahịa gị na WhatsApp",
   "qa.post": "Mee post",
-  "qa.delivery": "Delivery",
+  "qa.delivery": "Nnyefe",
   "qa.find": "Chọta stock",
   "qa.share": "Kesaa ụlọ ahịa",
   "ai.rex": "Jụọ Rex",

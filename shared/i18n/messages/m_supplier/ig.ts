@@ -475,7 +475,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "home.qa.add": "Tinye ngwaahịa",
   "home.qa.orders": "Order",
   "home.qa.create": "Mepụta",
-  "home.qa.delivery": "Delivery",
+  "home.qa.delivery": "Nnyefe",
   "home.peggy": "Jụọ Peggy",
   "home.peggySub": "Ọnụahịa, ihe kacha ere, ihe ị ga-azụkwa",
   "home.needsYou": "Ihe chọrọ gị",

@@ -1,6 +1,7 @@
 import { supplierPartCollect } from "@shared/cod-split";
 import { supplierPartnerIds } from "@/lib/suppliers/partners.server";
 import "server-only";
+import { preorderBlocksShipping } from "@shared/preorder";
 import { db } from "@/lib/db/client";
 import { addressLines } from "@/lib/labels";
 import { createNotification } from "@/lib/notifications/create";
@@ -187,6 +188,11 @@ export async function markPacked(supplierId: string, kind: SupplierOrderKind, or
   if (!order) return { ok: false, code: "NOT_FOUND", message: "Order not found" };
   if (order.packed) return { ok: true, data: { id: order.id } };
   if (!order.packable) return { ok: false, code: "CONFLICT", message: "Accept the order first, then pack it." };
+  if (kind === "wholesale") {
+    // A preorder with a deposit is packed once the shop has paid the rest (shared/preorder.ts).
+    const facts = await db.wholesaleOrder.findUnique({ where: { id: order.id }, select: { status: true, totalPrice: true, preorder: true, depositKobo: true, paidAt: true, paidOutAt: true } });
+    if (facts && preorderBlocksShipping(facts)) return { ok: false, code: "CONFLICT", message: "The shop hasn't paid the rest of this preorder yet. Pack it once it's paid." };
+  }
   const moved = kind === "dropship"
     ? await db.supplierOrder.updateMany({ where: { id: order.id, supplierId, status: "accepted", packedAt: null }, data: { packedAt: new Date() } })
     : await db.wholesaleOrder.updateMany({ where: { id: order.id, supplierId, status: "confirmed" }, data: { status: "processing" } });

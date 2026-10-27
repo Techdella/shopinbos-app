@@ -8,7 +8,6 @@ import { Screen } from "@/components/Screen";
 import { DoneView, FieldLabel, NoteCard, Pic } from "@/components/SupplierKit";
 import { Chip, Field, LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { VoiceInput } from "@/components/VoiceInput";
-import { AppIcon } from "@/components/icons";
 import { useT } from "@/lib/i18n";
 import { parseAmount, parseCount } from "@/lib/partner-pure";
 import { fetchQuote, replyToQuote } from "@/lib/supplier";
@@ -108,10 +107,7 @@ export default function QuoteRequestScreen() {
       footer={
         pending ? (
           <>
-            <PillButton tone="accent" busy={busy === "respond"} disabled={Boolean(busy)} onPress={() => void send()} accessibilityLabel={t("quote.sendPrice")}>
-              <AppIcon name="send" size={20} color={colors.ink} />
-              <T weight="extrabold" style={{ fontSize: 17, color: colors.ink }}>{t("quote.sendPrice")}</T>
-            </PillButton>
+            <PillButton tone="accent" busy={busy === "respond"} disabled={Boolean(busy)} onPress={() => void send()} accessibilityLabel={t("quote.sendPrice")} icon="send" title={t("quote.sendPrice")} />
             <LinkButton title={t("cantThisOne")} color={colors.inkSoft} onPress={cant} />
           </>
         ) : null

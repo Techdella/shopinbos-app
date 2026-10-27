@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Linking, View } from "react-native";
 import * as Clipboard from "expo-clipboard";
-import { AppIcon } from "@/components/icons";
-import { PillButton, T } from "@/components/ui";
+import { ButtonRow, PillButton, T } from "@/components/ui";
 import { shareText } from "@/lib/share";
 import { useT } from "@/lib/i18n";
 import { whatsappShareUrl, type LinkStatus } from "@/lib/paylinks-pure";
@@ -38,21 +37,12 @@ export function LinkShareButtons({ url, message, whatsappTo, showWhatsapp = true
       <View style={{ backgroundColor: colors.canvas, borderRadius: radii.field, paddingHorizontal: 14, paddingVertical: 12 }}>
         <T selectable style={{ fontSize: 14.5 }} numberOfLines={2}>{url.replace(/^https?:\/\//, "")}</T>
       </View>
-      <View style={{ flexDirection: "row", gap: 8 }}>
-        <PillButton size="md" tone="white" style={{ flex: 1 }} onPress={() => void copy()} accessibilityLabel={copied ? t("copied") : t("copy")}>
-          <AppIcon name={copied ? "check" : "doc"} size={18} />
-          <T weight="bold" style={{ fontSize: 16 }}>{copied ? t("copied") : t("copy")}</T>
-        </PillButton>
-        <PillButton size="md" tone="white" style={{ flex: 1 }} onPress={() => void shareText(message)} accessibilityLabel={t("share")}>
-          <AppIcon name="share" size={18} />
-          <T weight="bold" style={{ fontSize: 16 }}>{t("share")}</T>
-        </PillButton>
-      </View>
+      <ButtonRow labels={[copied ? t("copied") : t("copy"), t("share")]} icons gap={8}>
+        <PillButton size="md" tone="white" style={{ flex: 1 }} onPress={() => void copy()} accessibilityLabel={copied ? t("copied") : t("copy")} icon={copied ? "check" : "doc"} title={copied ? t("copied") : t("copy")} />
+        <PillButton size="md" tone="white" style={{ flex: 1 }} onPress={() => void shareText(message)} accessibilityLabel={t("share")} icon="share" title={t("share")} />
+      </ButtonRow>
       {showWhatsapp ? (
-        <PillButton size="md" tone="forest" onPress={() => void Linking.openURL(whatsappShareUrl(message, whatsappTo)).catch(() => undefined)} accessibilityLabel={t("whatsapp")}>
-          <AppIcon name="chat" size={18} color="#FFFFFF" />
-          <T weight="bold" style={{ fontSize: 16, color: "#FFFFFF" }}>{t("whatsapp")}</T>
-        </PillButton>
+        <PillButton size="md" tone="forest" onPress={() => void Linking.openURL(whatsappShareUrl(message, whatsappTo)).catch(() => undefined)} accessibilityLabel={t("whatsapp")} icon="chat" title={t("whatsapp")} />
       ) : null}
     </View>
   );

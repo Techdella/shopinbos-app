@@ -6,7 +6,7 @@ import { Mascot } from "@/components/brand/Mascot";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { MediaListField } from "@/components/media/MediaListField";
 import { getT } from "@/lib/i18n/server";
-import { PREORDER_NOTE_MAX, preorderDay } from "@shared/preorder";
+import { PREORDER_DEPOSIT_SUGGESTED, PREORDER_NOTE_MAX, preorderDay } from "@shared/preorder";
 
 interface CategoryOption {
   id: string;
@@ -39,6 +39,7 @@ interface SupplierProductFormValue {
   preorderLimit?: number | null;
   preorderTaken?: number;
   preorderNote?: string | null;
+  preorderDepositPct?: number | null;
 }
 
 interface SupplierProductFormProps {
@@ -187,6 +188,9 @@ export async function SupplierProductForm({ mode, action, categories, product, e
             </Field>
             <Field id="product-preorder-limit" label={t("productForm.preorderLimit")} hint={t("productForm.preorderLimitHint", { count: String(product?.preorderEnabled ? product.preorderTaken ?? 0 : 0) })}>
               <input id="product-preorder-limit" className={fieldClass} name="preorderLimit" type="number" min="1" step="1" defaultValue={product?.preorderLimit ?? ""} />
+            </Field>
+            <Field id="product-preorder-deposit" label={t("productForm.preorderDeposit")} hint={t("productForm.preorderDepositHint", { pct: String(PREORDER_DEPOSIT_SUGGESTED) })}>
+              <input id="product-preorder-deposit" className={fieldClass} name="preorderDepositPct" type="number" min="0" max="100" step="1" inputMode="numeric" defaultValue={product?.preorderDepositPct ?? 0} />
             </Field>
             <Field id="product-preorder-note" label={t("productForm.preorderNote")} className="sm:col-span-2">
               <textarea id="product-preorder-note" className={textareaClass} name="preorderNote" rows={2} maxLength={PREORDER_NOTE_MAX} defaultValue={product?.preorderNote ?? ""} placeholder={t("productForm.preorderNotePlaceholder")} />

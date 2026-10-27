@@ -17,6 +17,7 @@ import { SupplierTrustBadges } from "./SupplierTrust";
 import { formatDate, formatMoney, formatNumber } from "@shared/i18n";
 import { localWholesaleStage } from "./wholesaleStage";
 import { Term } from "@/components/learn/Term";
+import { depositSplit, toKobo } from "@shared/preorder";
 
 const CARD = "rounded-[20px] border border-app-line bg-white";
 
@@ -48,6 +49,8 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
   const [orderNote, setOrderNote] = useState("");
   const [placed, setPlaced] = useState<MyWholesaleOrder[]>(wholesaleOrders);
   const [justPlaced, setJustPlaced] = useState(false);
+  // A preorder placed here: the button turns into "Preorder placed" (no second order by a second tap).
+  const [preorderPlaced, setPreorderPlaced] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sampleOpen, setSampleOpen] = useState(false);
   const [messageOpen, setMessageOpen] = useState(false);
@@ -116,7 +119,7 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ supplierProductId: product.id, quantity, deliveryAddress: address.trim(), notes: orderNote.trim() || undefined }),
         }).catch(() => null);
-        const body = (await response?.json().catch(() => null)) as { data?: { id: string; quantity: number; totalPrice: number; status: string; createdAt: string }; error?: { message?: string } } | null;
+        const body = (await response?.json().catch(() => null)) as { data?: { id: string; quantity: number; totalPrice: number; status: string; createdAt: string; depositKobo?: number }; error?: { message?: string } } | null;
         if (!response?.ok || !body?.data) {
           setError(body?.error?.message ?? t("pd.placeError"));
           return;
@@ -125,6 +128,17 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
         setPlaced((list) => [{ id: order.id, quantity: order.quantity, totalPrice: order.totalPrice, status: order.status, trackingCode: null, rejectReason: null, createdAt: order.createdAt }, ...list]);
         setJustPlaced(true);
         setOrderNote("");
+        if (preorder) {
+          setPreorderPlaced(true);
+          // A deposit is paid now, by card, straight to the supplier's bank (shared/preorder.ts depositSplit):
+          // Paystack comes back to /home/preorders, which confirms it. If it can't start, Pay deposit is there.
+          if ((order.depositKobo ?? 0) > 0) {
+            const started = await fetch(`/api/app/wholesale/${encodeURIComponent(order.id)}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "pay" }) }).catch(() => null);
+            const payBody = (await started?.json().catch(() => null)) as { data?: { authorizationUrl?: string | null }; error?: { message?: string } } | null;
+            if (started?.ok && payBody?.data?.authorizationUrl) window.location.assign(payBody.data.authorizationUrl);
+            else setError(payBody?.error?.message ?? t("pd.depositLater"));
+          }
+        }
       }),
     );
 
@@ -289,6 +303,11 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
                       {preorder.left !== null && <span className="font-normal">{preorder.open ? t("pd.preorderLeft", { count: num(preorder.left) }) : t("pd.preorderFull")}</span>}
                     </span>
                     {preorder.note && <span>{preorder.note}</span>}
+                    {(preorder.depositPct ?? 0) > 0 && (
+                      <span className="font-bold">
+                        {t("pd.preorderDeposit", { pct: String(preorder.depositPct), amount: money(depositSplit(toKobo(unit * quantity), preorder.depositPct ?? 0).depositKobo / 100) })}
+                      </span>
+                    )}
                     <span>{t("pd.preorderWhy")}</span>
                   </div>
                 )}
@@ -351,9 +370,18 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
                     {t("pd.sent", { name: supplier.name })}
                   </p>
                 )}
+                {preorder && preorderPlaced ? (
+                  <div className="grid gap-2">
+                    <button type="button" disabled className="inline-flex min-h-[54px] w-full items-center justify-center gap-2 whitespace-nowrap rounded-full bg-app-success-tint px-5 text-[15.5px] font-bold text-app-success">
+                      <Icon name="check" size={16} /> {t("pd.preorderPlaced")}
+                    </button>
+                    <Link href="/home/preorders?view=suppliers" className="text-center text-[13.5px] font-extrabold text-app-accent-ink no-underline hover:underline">{t("pd.seePreorders")}</Link>
+                  </div>
+                ) : (
                 <button type="button" onClick={placeWholesale} disabled={pending || quantity < product.moq || (preorder !== null && !preorder.open)} className="inline-flex min-h-[54px] w-full items-center justify-center rounded-full bg-app-ink px-5 text-[15.5px] font-bold text-white hover:bg-black disabled:opacity-60">
                   {pending ? t("pd.sending") : preorder ? (preorder.open ? t("pd.preorderFor", { count: num(quantity), total: money(unit * quantity) }) : t("pd.preorderFull")) : t("pd.orderFor", { count: num(quantity), total: ` ${money(unit * quantity)}` }).replace("  ", " ")}
                 </button>
+                )}
                 {quoted ? (
                   <p role="status" className="m-0 text-[13px] font-bold text-app-success">
                     {t("pd.quoted", { name: supplier.name, count: num(quantity) })}

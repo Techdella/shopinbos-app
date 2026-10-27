@@ -224,6 +224,7 @@ export const PLAIN_NAV = new Set([
   "settings", "settings-store", "settings-main", "profile", "company", "notification-prefs", "customise", "team",
   "labels-designs", "labels-packaging", "labels-studio", "labels-request", "labels-orders", "packaging-requests", "print-orders",
   "social-posts", "social-calendar", "social-new", "social-designs", "social-accounts", "followers",
+  "orders-preorders", "preorders",
 ]);
 
 /** The glossary entry for a sidebar item, or null for plain words and unknown ids. */

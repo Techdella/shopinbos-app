@@ -163,9 +163,7 @@ function ConnectionForm({ role, connection, cover, onChanged }: { role: string; 
       <Sheet visible={podSheet} onClose={() => setPodSheet(false)} title={t("podSheet.title")}>
         <Sub>{t("pod.disclaimer")}</Sub>
         <Small>{t("podSheet.note", { name: partner.name })}</Small>
-        <PillButton tone="accent" busy={busy === "pod"} accessibilityLabel={t("podSheet.on")} onPress={() => void switchPod(true)}>
-          <T weight="extrabold" style={{ fontSize: 17 }}>{t("podSheet.on")}</T>
-        </PillButton>
+        <PillButton tone="accent" busy={busy === "pod"} accessibilityLabel={t("podSheet.on")} onPress={() => void switchPod(true)} title={t("podSheet.on")} />
         <PillButton title={t("cancel")} tone="white" onPress={() => setPodSheet(false)} />
       </Sheet>
     </Screen>

@@ -4,7 +4,7 @@ import * as Clipboard from "expo-clipboard";
 import { AppIcon } from "@/components/icons";
 import { ChipRow, EmptyState, ErrorState, LoadingBlock, SectionTitle } from "@/components/kit";
 import { Screen } from "@/components/Screen";
-import { Card, Chip, LinkButton, Notice, PillButton, T } from "@/components/ui";
+import { ButtonRow, Card, Chip, LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { shortTime } from "@/lib/inbox-pure";
 import { askForReviews, fetchAskData, REQUEST_CHANNELS, type AskableOrder, type AskOutcome, type RequestChannel } from "@/lib/reviews";
 import { channelReady, chooseAll, defaultChannel, keepReachable, visibleOrders } from "@/lib/review-ask";
@@ -187,10 +187,10 @@ export default function AskForReviews() {
           <Card style={{ gap: 10, borderRadius: radii.card }}>
             <T style={{ color: colors.inkSoft, lineHeight: 20 }}>{t("askScreen.wallBody")}</T>
             <T weight="semibold" style={{ fontSize: 14 }} selectable numberOfLines={1}>{ask.wall}</T>
-            <View style={{ flexDirection: "row", gap: 8 }}>
+            <ButtonRow labels={[t("share"), t("askScreen.copyLink")]} size="sm" gap={8}>
               <PillButton title={t("share")} size="sm" style={{ flex: 1 }} onPress={() => void Share.share({ message: t("askScreen.wallMessage", { url: ask.wall }) })} />
               <PillButton title={t("askScreen.copyLink")} size="sm" tone="white" style={{ flex: 1 }} onPress={() => void copyWall(ask.wall)} />
-            </View>
+            </ButtonRow>
           </Card>
         </>
       ) : null}

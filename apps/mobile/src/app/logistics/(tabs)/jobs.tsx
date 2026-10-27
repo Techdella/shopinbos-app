@@ -66,7 +66,7 @@ function TakingBlockLine({ block, strong }: { block: TakingBlock; strong: boolea
           hitSlop={6}
           style={({ pressed }) => ({ alignSelf: "flex-start", minHeight: 40, justifyContent: "center", paddingHorizontal: 14, borderRadius: 999, backgroundColor: "#FFFFFF", opacity: pressed ? 0.85 : 1 })}
         >
-          <T weight="extrabold" style={{ fontSize: 14, color: colors.forest }}>{t.dynamic(action.key)}</T>
+          <T weight="extrabold" numberOfLines={1} style={{ flexShrink: 1, fontSize: 14, color: colors.forest }}>{t.dynamic(action.key)}</T>
         </Pressable>
       ) : null}
     </View>

@@ -7,7 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { DEFAULT_DIAL_COUNTRY, DIAL_COUNTRIES, isValidEmail, splitE164, toE164, type DialCountry } from "@shared/phone";
 import { AccountCheckError, appleSignInAvailable, explainSignupConflict, fetchWhatsAppCodes, sendCode, signInWithApple, signInWithGoogle, signInWithPassword, signOutNow, syncAccount, type CodeTarget } from "@/lib/auth";
-import { BackButton, Field, Label, LinkButton, Notice, PillButton, T } from "@/components/ui";
+import { BackButton, BUTTON_TEXT, Field, Label, LinkButton, Notice, OneLine, PillButton, T } from "@/components/ui";
 import { Sub, Title } from "@/components/design";
 import { ChoiceRow, Sheet } from "@/components/Sheet";
 import { AppIcon } from "@/components/icons";
@@ -300,10 +300,7 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
               {tLegal("terms.after")}
             </T>
           )}
-          <PillButton tone="accent" busy={busy === "send"} disabled={Boolean(busy)} onPress={() => void submit()}>
-            {method === "phone" && whatsapp ? <AppIcon name="chat" size={20} color={colors.ink} /> : null}
-            <T weight="extrabold" style={{ color: colors.ink, fontSize: 17 }}>{primary}</T>
-          </PillButton>
+          <PillButton tone="accent" busy={busy === "send"} disabled={Boolean(busy)} onPress={() => void submit()} icon={method === "phone" && whatsapp ? "chat" : undefined} title={primary} />
         </View>
       </KeyboardShift>
       <Sheet visible={others} onClose={() => setOthers(false)} title={t("other.link")}>
@@ -323,7 +320,7 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
         )}
         <PillButton tone="white" size="md" busy={busy === "google"} disabled={Boolean(busy)} onPress={() => fromSheet(() => void google())}>
           <GoogleMark />
-          <T weight="bold" style={{ fontSize: 15 }}>{t("form.google")}</T>
+          <OneLine text={t("form.google")} size={BUTTON_TEXT.md} />
         </PillButton>
       </Sheet>
       <Modal visible={picking} transparent animationType="slide" onRequestClose={() => setPicking(false)}>

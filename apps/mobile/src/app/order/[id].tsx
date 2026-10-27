@@ -226,26 +226,14 @@ export default function OrderScreen() {
   const footer = deciding ? null : unpaid ? (
     <PillButton title={t("order.markPaid")} busy={busy === "paid"} onPress={() => void change("paid", { paymentMethod: paidWith })} />
   ) : needsPartner ? (
-    <PillButton tone="accent" accessibilityLabel={t("order2.sendAnother")} onPress={() => setReassign(needsPartner)}>
-      <AppIcon name="truck" size={20} color={colors.ink} />
-      <T weight="extrabold" style={{ fontSize: 17 }}>{t("order2.sendAnother")}</T>
-    </PillButton>
+    <PillButton tone="accent" accessibilityLabel={t("order2.sendAnother")} onPress={() => setReassign(needsPartner)} icon="truck" title={t("order2.sendAnother")} />
   ) : toReady?.job ? (
-    <PillButton tone="accent" busy={busy === "ready"} accessibilityLabel={t("order2.packed")} onPress={() => void onJob(toReady.job!.id, "ready")}>
-      <AppIcon name="box" size={20} color={colors.ink} />
-      <T weight="extrabold" style={{ fontSize: 17 }}>{t("order2.packed")}</T>
-    </PillButton>
+    <PillButton tone="accent" busy={busy === "ready"} accessibilityLabel={t("order2.packed")} onPress={() => void onJob(toReady.job!.id, "ready")} icon="box" title={t("order2.packed")} />
   ) : selfPickup && live ? (
     order.status === "packed" ? (
-      <PillButton busy={busy === "delivered"} accessibilityLabel={t("order2.collected")} onPress={() => void change("delivered")}>
-        <AppIcon name="check" size={20} color="#FFFFFF" />
-        <T weight="extrabold" style={{ fontSize: 17, color: "#FFFFFF" }}>{t("order2.collected")}</T>
-      </PillButton>
+      <PillButton busy={busy === "delivered"} accessibilityLabel={t("order2.collected")} onPress={() => void change("delivered")} icon="check" title={t("order2.collected")} />
     ) : (
-      <PillButton tone="accent" busy={busy === "packed"} accessibilityLabel={t("order2.readyTell")} onPress={() => void change("packed")}>
-        <AppIcon name="check" size={20} color={colors.ink} />
-        <T weight="extrabold" style={{ fontSize: 17 }}>{t("order2.readyTell")}</T>
-      </PillButton>
+      <PillButton tone="accent" busy={busy === "packed"} accessibilityLabel={t("order2.readyTell")} onPress={() => void change("packed")} icon="check" title={t("order2.readyTell")} />
     )
   ) : toSend ? (
     <PillButton title={t("order.getRider")} onPress={() => router.push("/delivery/find" as never)} />
@@ -408,20 +396,15 @@ export default function OrderScreen() {
             <Timeline steps={timeline.steps} />
           </View>
         ))}
-        {lead?.partner?.phone ? (
-          <PillButton testID="track-call" tone="white" size="md" accessibilityLabel={t("track.call", { name: lead.partner.name })} onPress={() => void Linking.openURL(`tel:${lead.partner!.phone!.replace(/[^\d+]/g, "")}`)}>
-            <AppIcon name="phone" size={18} />
-            <T weight="bold" style={{ fontSize: 16 }}>{t("track.call", { name: lead.partner.name })}</T>
-          </PillButton>
-        ) : null}
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-          {order.trackingUrl ? (
-            <PillButton testID="track-share" tone="white" size="sm" accessibilityLabel={t("track.share", { name: firstName })} onPress={() => void Share.share({ message: t("track.shareMessage", { name: firstName, url: order.trackingUrl! }) }).catch(() => null)}>
-              <AppIcon name="share" size={16} />
-              <T weight="bold" style={{ fontSize: 15 }}>{t("track.share", { name: firstName })}</T>
-            </PillButton>
+        {/* Call, Share tracking and Report a problem: one stack of full-width buttons, all the same size. */}
+        <View style={{ gap: 10 }}>
+          {lead?.partner?.phone ? (
+            <PillButton testID="track-call" tone="white" size="md" accessibilityLabel={t("track.call", { name: lead.partner.name })} onPress={() => void Linking.openURL(`tel:${lead.partner!.phone!.replace(/[^\d+]/g, "")}`)} icon="phone" title={t("track.call", { name: lead.partner.name })} />
           ) : null}
-          <PillButton testID="track-problem" tone="white" size="sm" title={t("track.problem")} onPress={() => setProblem(true)} />
+          {order.trackingUrl ? (
+            <PillButton testID="track-share" tone="white" size="md" accessibilityLabel={t("track.share", { name: firstName })} onPress={() => void Share.share({ message: t("track.shareMessage", { name: firstName, url: order.trackingUrl! }) }).catch(() => null)} icon="share" title={t("track.share", { name: firstName })} />
+          ) : null}
+          <PillButton testID="track-problem" tone="white" size="md" icon="help" title={t("track.problem")} onPress={() => setProblem(true)} />
         </View>
       </View>
 

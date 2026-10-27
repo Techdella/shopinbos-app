@@ -28,7 +28,7 @@ function DarkButton({ icon, label, onPress, primary }: { icon: AppIconName; labe
       style={({ pressed }) => ({ flex: 1, minHeight: 46, borderRadius: 999, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: primary ? "#73D8C8" : "rgba(255,255,255,0.12)", opacity: pressed ? 0.85 : 1 })}
     >
       <AppIcon name={icon} size={18} color={primary ? colors.ink : "#FFFFFF"} />
-      <T weight="bold" style={{ fontSize: 15.5, color: primary ? colors.ink : "#FFFFFF" }}>{label}</T>
+      <T weight="bold" numberOfLines={1} style={{ flexShrink: 1, fontSize: 15.5, color: primary ? colors.ink : "#FFFFFF" }}>{label}</T>
     </Pressable>
   );
 }

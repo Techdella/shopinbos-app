@@ -12,6 +12,8 @@ import { isStopWord } from "@/lib/member-messaging/tips-email";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// Room to copy big WhatsApp files (videos, documents) into the admin inbox.
+export const maxDuration = 60;
 
 // WhatsApp Cloud API webhook. Callback URL: https://<app>/api/webhooks/whatsapp, fields "messages" and
 // "message_template_status_update" (template approvals, so order messages start without a manual Sync).

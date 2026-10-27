@@ -144,14 +144,8 @@ export default function CreateResult() {
       footer={
         job?.status === "done" && design ? (
           <>
-            <PillButton tone="accent" onPress={() => setSheet("share")} accessibilityLabel={t("cr.shareNow")}>
-              <AppIcon name="share" size={20} color={colors.ink} />
-              <T weight="extrabold" style={{ fontSize: 17 }}>{t("cr.shareNow")}</T>
-            </PillButton>
-            <PillButton tone="white" size="md" onPress={() => setSheet("schedule")} accessibilityLabel={t("cr.schedule")}>
-              <AppIcon name="clock" size={18} color={colors.ink} />
-              <T weight="bold" style={{ fontSize: 16 }}>{t("cr.schedule")}</T>
-            </PillButton>
+            <PillButton tone="accent" onPress={() => setSheet("share")} accessibilityLabel={t("cr.shareNow")} icon="share" title={t("cr.shareNow")} />
+            <PillButton tone="white" size="md" onPress={() => setSheet("schedule")} accessibilityLabel={t("cr.schedule")} icon="clock" title={t("cr.schedule")} />
           </>
         ) : null
       }

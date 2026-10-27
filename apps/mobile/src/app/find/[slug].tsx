@@ -3,14 +3,15 @@ import { Dimensions, Pressable, ScrollView, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
 import { naira } from "@shared/onboarding";
-import { AppIcon } from "@/components/icons";
+import { Title } from "@/components/design";
 import { Badge, ErrorState, Initials, LoadingBlock } from "@/components/kit";
 import { OneLine, PreorderBox } from "@/components/Preorder";
 import { Screen } from "@/components/Screen";
 import { Card, Field, Label, Notice, PillButton, Segmented, T } from "@/components/ui";
 import { clampSellingPrice, priceStep, saleBreakdown, tierPrice } from "@/lib/find-pure";
 import { addToStore, fetchFindContext, fetchFindProduct, placeWholesaleOrder, requestQuote, type FindContext, type FindProduct, type Listing } from "@/lib/marketplace";
-import { preorderButton, preorderPillText } from "@/lib/preorder-pure";
+import { depositLineText, preorderButton, preorderPillText } from "@/lib/preorder-pure";
+import { payWholesaleOrder } from "@/lib/wallet";
 import { BeforeYouList, SupplierRiskCard, SupplierTrustBadges } from "@/components/SupplierTrust";
 import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
@@ -84,6 +85,8 @@ function ProductView({ product, listing, context, refreshing, onRefresh }: { pro
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [addedId, setAddedId] = useState<string | null>(null);
+  // A preorder placed here: the button becomes "Preorder placed", so a second tap can't order twice.
+  const [preordered, setPreordered] = useState(false);
   const [photo, setPhoto] = useState(0);
   const width = Dimensions.get("window").width - 36;
 
@@ -125,8 +128,15 @@ function ProductView({ product, listing, context, refreshing, onRefresh }: { pro
     setBusy(true);
     setNote(null);
     try {
-      await placeWholesaleOrder({ supplierId: product.supplier.id, supplierProductId: product.id, quantity, deliveryAddress: destination.trim() });
-      setNote({ tone: "success", text: tp("preorder.placed", { name: product.supplier.name }) });
+      const order = await placeWholesaleOrder({ supplierId: product.supplier.id, supplierProductId: product.id, quantity, deliveryAddress: destination.trim() });
+      setPreordered(true);
+      if ((order.depositKobo ?? 0) > 0) {
+        // The deposit is paid now, by card, straight to the supplier's bank; the rest once the stock is ready.
+        const paid = await payWholesaleOrder(order.id).catch(() => null);
+        setNote(paid?.outcome === "paid" ? { tone: "success", text: tp("preorders.depositPaidNote", { name: product.supplier.name }) } : { tone: "success", text: tp("preorders.depositLater", { name: product.supplier.name }) });
+      } else {
+        setNote({ tone: "success", text: tp("preorder.placed", { name: product.supplier.name }) });
+      }
     } catch (orderError) {
       setNote({ tone: "error", text: orderError instanceof Error ? orderError.message : tp("preorder.failed") });
     } finally {
@@ -145,6 +155,10 @@ function ProductView({ product, listing, context, refreshing, onRefresh }: { pro
       ) : mustAgree ? undefined : (
         <PillButton title={t("product.put", { price: naira(price) })} busy={busy} onPress={() => void add()} />
       )
+    ) : preorderCta && preordered ? (
+      <PillButton disabled accessibilityLabel={tp("preorders.placed")}>
+        <OneLine text={tp("preorders.placed")} color="#FFFFFF" />
+      </PillButton>
     ) : preorderCta ? (
       <PillButton busy={busy} disabled={preorderCta.disabled} accessibilityLabel={preorderCta.label} onPress={() => void placePreorder()}>
         <OneLine text={preorderCta.label} color="#FFFFFF" />
@@ -154,7 +168,7 @@ function ProductView({ product, listing, context, refreshing, onRefresh }: { pro
     );
 
   return (
-    <Screen title={product.name} refreshing={refreshing} onRefresh={onRefresh} footer={footer}>
+    <Screen title={t("product.title")} refreshing={refreshing} onRefresh={onRefresh} footer={footer}>
       {product.images.length ? (
         <View>
           <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} onMomentumScrollEnd={(event) => setPhoto(Math.round(event.nativeEvent.contentOffset.x / width))} style={{ borderRadius: radii.card }}>
@@ -170,6 +184,9 @@ function ProductView({ product, listing, context, refreshing, onRefresh }: { pro
         </View>
       ) : null}
 
+      {/* The whole name here (the header bar is one short line). */}
+      <Title size={24}>{product.name}</Title>
+
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
         <Badge label={t.dynamic(`category.${product.category}`, product.category)} />
         {product.ships ? <Badge label={product.ships.startsWith("Ships in ") ? t("ships", { time: product.ships.slice(9) }) : product.ships} /> : null}
@@ -178,19 +195,27 @@ function ProductView({ product, listing, context, refreshing, onRefresh }: { pro
         {already ? <Badge label={t("product.inShop")} bg={colors.successTint} fg={colors.success} /> : null}
       </View>
 
-      <Card style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <Initials name={product.supplier.name} bg={colors.mintTint} fg={colors.forest} />
-        <View style={{ flex: 1 }}>
-          <T weight="extrabold" style={{ fontSize: 15 }} numberOfLines={1}>{product.supplier.name}</T>
-          <T style={{ color: colors.inkSoft, fontSize: 14 }} numberOfLines={1}>
-            {[product.supplier.city, product.supplier.rating ? `★ ${product.supplier.rating.toFixed(1)}` : null, product.supplier.responds].filter(Boolean).join(" · ")}
-          </T>
-          <View style={{ marginTop: 6 }}><SupplierTrustBadges supplier={product.supplier} /></View>
+      {/* Who sells it, with Message beside the name; Verified, the risk score and the distance sit under them at full
+          width (shown once: the risk card below keeps only the reasons). */}
+      <Card style={{ gap: 12 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <Initials name={product.supplier.name} bg={colors.mintTint} fg={colors.forest} />
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <T weight="extrabold" style={{ fontSize: 15 }} numberOfLines={2}>{product.supplier.name}</T>
+            <T style={{ color: colors.inkSoft, fontSize: 14 }} numberOfLines={1}>
+              {[product.supplier.city, product.supplier.rating ? `★ ${product.supplier.rating.toFixed(1)}` : null, product.supplier.responds].filter(Boolean).join(" · ")}
+            </T>
+          </View>
+          <PillButton
+            tone="white"
+            size="sm"
+            icon="chat"
+            title={t("product.message")}
+            style={{ flexShrink: 0 }}
+            onPress={() => router.push({ pathname: "/partners/[id]", params: { id: product.supplier.id, name: product.supplier.name } })}
+          />
         </View>
-        <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: "/partners/[id]", params: { id: product.supplier.id, name: product.supplier.name } })} style={{ height: 38, borderRadius: radii.pill, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.canvas }}>
-          <AppIcon name="chat" size={16} />
-          <T weight="bold" style={{ fontSize: 14 }}>{t("product.message")}</T>
-        </Pressable>
+        <SupplierTrustBadges supplier={product.supplier} />
       </Card>
 
       {product.dropship && product.wholesale ? (
@@ -206,9 +231,17 @@ function ProductView({ product, listing, context, refreshing, onRefresh }: { pro
 
       {note ? <Notice tone={note.tone}>{note.text}</Notice> : null}
       {/* After "Request a quote": the price requests and wholesale orders (with Pay) are on Wholesale. */}
-      {note?.tone === "success" && mode !== "dropship" ? <PillButton title={t("wholesale.see")} tone="white" size="sm" style={{ alignSelf: "flex-start" }} onPress={() => router.push("/wholesale")} /> : null}
+      {note?.tone === "success" && mode !== "dropship" ? (
+        preordered ? (
+          <PillButton tone="white" size="sm" accessibilityLabel={tp("preorders.seeMine")} style={{ alignSelf: "flex-start" }} onPress={() => router.push({ pathname: "/preorders", params: { view: "suppliers" } })}>
+            <OneLine text={tp("preorders.seeMine")} size={15} />
+          </PillButton>
+        ) : (
+          <PillButton title={t("wholesale.see")} tone="white" size="sm" style={{ alignSelf: "flex-start" }} onPress={() => router.push("/wholesale")} />
+        )
+      ) : null}
 
-      <SupplierRiskCard supplier={product.supplier} />
+      <SupplierRiskCard supplier={product.supplier} badges={false} />
       {mustAgree ? <BeforeYouList product={product} listing={listing} onSent={onRefresh} /> : null}
 
       {mode === "dropship" ? (
@@ -233,7 +266,7 @@ function ProductView({ product, listing, context, refreshing, onRefresh }: { pro
       ) : (
         <Card style={{ gap: 8 }}>
           <T style={{ color: colors.inkSoft, lineHeight: 20, marginBottom: 6 }}>{t("product.wholesaleIntro", { moq: product.moq })}</T>
-          {preorder ? <PreorderBox state={preorder} /> : null}
+          {preorder ? <PreorderBox state={preorder} deposit={depositLineText(preorder.depositPct, unit * quantity, naira, tp)} /> : null}
           <Stepper
             label={t("product.quantity")}
             value={String(quantity)}

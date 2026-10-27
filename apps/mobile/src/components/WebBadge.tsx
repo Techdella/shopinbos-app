@@ -1,5 +1,5 @@
 import { View, type StyleProp, type ViewStyle } from "react-native";
-import { T } from "@/components/ui";
+import { BUTTON_TEXT, OneLine, T, buttonInk } from "@/components/ui";
 import { useT } from "@/lib/i18n";
 import { colors, radii } from "@/theme";
 
@@ -21,10 +21,10 @@ export function WebBadge({ style, dark }: { style?: StyleProp<ViewStyle>; dark?:
 /** The label inside a PillButton that opens the website: its title with "Opens website ↗" on a small line below. */
 export function WebButtonLabel({ title, tone = "ink", size = "lg" }: { title: string; tone?: "ink" | "white" | "accent" | "forest"; size?: "lg" | "md" | "sm" }) {
   const t = useT("m_ui");
-  const color = tone === "white" || tone === "accent" ? colors.ink : "#FFFFFF";
+  const color = buttonInk(tone);
   return (
-    <View style={{ alignItems: "center", paddingVertical: 4 }}>
-      <T weight={size === "lg" ? "extrabold" : "bold"} style={{ color, fontSize: size === "lg" ? 17 : size === "md" ? 16 : 15, textAlign: "center" }} numberOfLines={1}>{title}</T>
+    <View style={{ alignItems: "center", paddingVertical: 4, flexShrink: 1, maxWidth: "100%" }}>
+      <OneLine text={title} color={color} size={BUTTON_TEXT[size]} />
       <T weight="semibold" style={{ color, opacity: 0.75, fontSize: 12, textAlign: "center" }} numberOfLines={1}>{t("web.badge")}</T>
     </View>
   );

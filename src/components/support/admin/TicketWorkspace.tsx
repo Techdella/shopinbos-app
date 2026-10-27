@@ -16,6 +16,7 @@ import {
   type SupportStatus,
 } from "@/lib/support/pure";
 import { whatsappWindowHoursLeft, whatsappWindowOpen } from "@/lib/support/whatsapp-pure";
+import { formatBytes } from "../client";
 import { deskSelect, relativeTime } from "./ui";
 
 // One ticket in the support desk: the full thread (with internal notes and the customer's Peggy chat),
@@ -176,15 +177,38 @@ function ThreadItem({ message, customer, now }: { message: DeskMessage; customer
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={file.url} alt={file.name} className="h-[120px] w-auto max-w-[220px] object-cover" loading="lazy" />
               </a>
+            ) : file.type.startsWith("audio/") ? (
+              <div key={file.url} className="flex flex-col gap-1 rounded-[12px] border border-app-line bg-white px-3 py-2">
+                <audio controls preload="none" src={file.url} className="h-9 w-[260px] max-w-full" />
+                <AttachmentLink file={file} />
+              </div>
+            ) : file.type.startsWith("video/") ? (
+              <div key={file.url} className="flex flex-col gap-1 overflow-hidden rounded-[12px] border border-app-line bg-white">
+                <video controls preload="metadata" src={file.url} className="max-h-[260px] w-[320px] max-w-full bg-black" />
+                <div className="px-3 pb-2">
+                  <AttachmentLink file={file} />
+                </div>
+              </div>
             ) : (
-              <a key={file.url} href={file.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-[12px] border border-app-line bg-white px-3 py-2 text-[13px] font-semibold text-app-ink no-underline hover:border-app-line-strong">
+              <a key={file.url} href={file.url} target="_blank" rel="noopener noreferrer" download={file.name} className="inline-flex items-center gap-2 rounded-[12px] border border-app-line bg-white px-3 py-2 text-[13px] font-semibold text-app-ink no-underline hover:border-app-line-strong">
                 <Icon name="file" size={14} /> {file.name}
+                {file.size > 0 && <span className="font-normal text-app-ink-soft">· {formatBytes(file.size)}</span>}
               </a>
             ),
           )}
         </div>
       )}
     </li>
+  );
+}
+
+/** Open or download a voice note or video under its player. */
+function AttachmentLink({ file }: { file: { name: string; size: number; url: string } }) {
+  return (
+    <a href={file.url} target="_blank" rel="noopener noreferrer" download={file.name} className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-app-ink-soft no-underline hover:text-app-ink">
+      <Icon name="file" size={12} /> {file.name}
+      {file.size > 0 && <span className="font-normal">· {formatBytes(file.size)}</span>}
+    </a>
   );
 }
 

@@ -95,10 +95,7 @@ export default function NewPaymentLink() {
       footer={
         <View style={{ gap: 8 }}>
           {problem ? <Notice>{problem}</Notice> : null}
-          <PillButton testID="make-link" busy={busy} onPress={() => void make()} accessibilityLabel={t("create.make")}>
-            <AppIcon name="link" size={20} color="#FFFFFF" />
-            <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 17 }}>{total > 0 ? `${t("create.make")} · ${naira(total)}` : t("create.make")}</T>
-          </PillButton>
+          <PillButton testID="make-link" busy={busy} onPress={() => void make()} accessibilityLabel={t("create.make")} icon="link" title={total > 0 ? `${t("create.make")} · ${naira(total)}` : t("create.make")} />
         </View>
       }
     >
@@ -143,10 +140,7 @@ export default function NewPaymentLink() {
         </Card>
       ))}
       {lines.length < MAX_LINK_ITEMS ? (
-        <PillButton size="md" tone="white" onPress={() => setPicking(true)} accessibilityLabel={lines.length ? t("create.addAnother") : t("create.add")}>
-          <AppIcon name="plus" size={18} />
-          <T weight="bold" style={{ fontSize: 16 }}>{lines.length ? t("create.addAnother") : t("create.add")}</T>
-        </PillButton>
+        <PillButton size="md" tone="white" onPress={() => setPicking(true)} accessibilityLabel={lines.length ? t("create.addAnother") : t("create.add")} icon="plus" title={lines.length ? t("create.addAnother") : t("create.add")} />
       ) : null}
 
       <Card style={{ gap: 14 }}>

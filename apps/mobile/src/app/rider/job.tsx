@@ -5,7 +5,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { naira } from "@shared/onboarding";
 import { Banner, Eyebrow, Heading, Keypad, List, Row, Seg, Small, Sub, Tile, Title } from "@/components/design";
-import { AppIcon } from "@/components/icons";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { ChoiceSheet } from "@/components/partner";
 import { BigTile, Center, DoneCheck, mapUrl, TextLink } from "@/components/RiderKit";
@@ -331,10 +330,7 @@ export default function RiderJob() {
         title={say("pcode.title")}
         onBack={back}
         footer={pstate === "ok" ? (
-          <PillButton tone="forest" onPress={() => go("dropoff")}>
-            <AppIcon name="check" size={20} color="#FFFFFF" />
-            <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 17 }}>{say("gotParcel")}</T>
-          </PillButton>
+          <PillButton tone="forest" onPress={() => go("dropoff")} icon="check" title={say("gotParcel")} />
         ) : undefined}
       >
         <View style={{ gap: 8 }}>
@@ -384,15 +380,9 @@ export default function RiderJob() {
         onBack={back}
         footer={ready ? (
           drop.collect > 0 ? (
-            <PillButton tone="forest" onPress={() => { setGot(false); go("cash"); }}>
-              <AppIcon name="check" size={20} color="#FFFFFF" />
-              <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 17 }}>{say("noCode.next")}</T>
-            </PillButton>
+            <PillButton tone="forest" onPress={() => { setGot(false); go("cash"); }} icon="check" title={say("noCode.next")} />
           ) : (
-            <PillButton tone="forest" busy={busy === "deliver"} onPress={() => void deliver()}>
-              <AppIcon name="check" size={20} color="#FFFFFF" />
-              <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 17 }}>{say("cash.handed")}</T>
-            </PillButton>
+            <PillButton tone="forest" busy={busy === "deliver"} onPress={() => void deliver()} icon="check" title={say("cash.handed")} />
           )
         ) : undefined}
       >
@@ -400,10 +390,7 @@ export default function RiderJob() {
           <Heading style={{ textAlign: "center" }}>{say("noCode.title")}</Heading>
           <Sub style={{ textAlign: "center" }}>{say("noCode.sub")}</Sub>
         </View>
-        <PillButton tone={photoDone ? "white" : "forest"} busy={busy === "photo"} disabled={Boolean(busy)} onPress={() => void addPhoto()}>
-          <AppIcon name={photoDone ? "check" : "camera"} size={20} color={photoDone ? colors.ink : "#FFFFFF"} />
-          <T weight="extrabold" style={{ color: photoDone ? colors.ink : "#FFFFFF", fontSize: 17 }}>{photoDone ? say("noCode.photoAgain") : say("noCode.photo")}</T>
-        </PillButton>
+        <PillButton tone={photoDone ? "white" : "forest"} busy={busy === "photo"} disabled={Boolean(busy)} onPress={() => void addPhoto()} icon={photoDone ? "check" : "camera"} title={photoDone ? say("noCode.photoAgain") : say("noCode.photo")} />
         <View style={{ gap: 6 }}>
           <T weight="bold" style={{ fontSize: 14, color: colors.inkSoft }}>{say("noCode.who")}</T>
           <Field value={recipient} onChangeText={setRecipient} placeholder={drop.buyerName ?? ""} autoCapitalize="words" maxLength={80} accessibilityLabel={say("noCode.who")} style={{ height: 56, fontSize: 18 }} />
@@ -423,15 +410,9 @@ export default function RiderJob() {
         onBack={back}
         footer={ok ? (
           drop.collect > 0 ? (
-            <PillButton tone="forest" onPress={() => { setGot(false); go("cash"); }}>
-              <AppIcon name="check" size={20} color="#FFFFFF" />
-              <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 17 }}>{say("codeNext")}</T>
-            </PillButton>
+            <PillButton tone="forest" onPress={() => { setGot(false); go("cash"); }} icon="check" title={say("codeNext")} />
           ) : (
-            <PillButton tone="forest" busy={busy === "deliver"} onPress={() => void deliver()}>
-              <AppIcon name="check" size={20} color="#FFFFFF" />
-              <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 17 }}>{say("cash.handed")}</T>
-            </PillButton>
+            <PillButton tone="forest" busy={busy === "deliver"} onPress={() => void deliver()} icon="check" title={say("cash.handed")} />
           )
         ) : undefined}
       >
@@ -455,19 +436,18 @@ export default function RiderJob() {
         title={say("cash.header")}
         onBack={back}
         footer={!got ? (
-          <PillButton tone="forest" onPress={() => {
-            if (otherAmount !== null && !otherAmount.trim()) return setError(t.typeAmount);
-            setError(null);
-            setGot(true);
-          }}>
-            <AppIcon name="wallet" size={20} color="#FFFFFF" />
-            <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 17 }}>{say("cash.got")}</T>
-          </PillButton>
+          <PillButton
+            tone="forest"
+            icon="wallet"
+            title={say("cash.got")}
+            onPress={() => {
+              if (otherAmount !== null && !otherAmount.trim()) return setError(t.typeAmount);
+              setError(null);
+              setGot(true);
+            }}
+          />
         ) : (
-          <PillButton busy={busy === "deliver"} onPress={() => void deliver()}>
-            <AppIcon name="box" size={20} color="#FFFFFF" />
-            <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 17 }}>{say("cash.handed")}</T>
-          </PillButton>
+          <PillButton busy={busy === "deliver"} onPress={() => void deliver()} icon="box" title={say("cash.handed")} />
         )}
       >
         <Center top={24}>

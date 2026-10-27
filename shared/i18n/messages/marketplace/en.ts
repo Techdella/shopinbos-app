@@ -382,6 +382,12 @@ const en = {
   "ws.lead": "Things you bought in bulk from suppliers to keep and sell yourself.",
   "ws.tip": "Tip: you can cancel an order until the supplier starts packing it. Once they accept, pay here by card (it goes straight to their bank) or pay them directly.",
   "ds.tip": "Tip: if a product is running out at the supplier, tap Pause so customers can't order it. Tap Sell again when it's back.",
+  // Preorder lists, Stock is ready and deposits (shared/preorder.ts)
+  "ws.preorders": "Preorders",
+  "pd.preorderPlaced": "Preorder placed",
+  "pd.seePreorders": "See my preorders",
+  "pd.preorderDeposit": "Pay {pct}% now ({amount}). The rest when the stock is ready.",
+  "pd.depositLater": "Preorder placed. Pay the deposit from See my preorders to hold your place.",
 } satisfies Record<string, string>;
 
 export default en;

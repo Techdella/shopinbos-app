@@ -291,11 +291,14 @@ export default function SupplierOrderScreen() {
         </View>
       </View>
 
-      <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
-        <Pill label={orderKindLabel(data.kind, t)} tone={dropship ? "org" : "teal"} />
-        {data.kind === "wholesale" && data.paidAt ? <Pill label={t("order.paidInApp")} tone="ok" icon="check" /> : null}
-        <PreorderPill preorder={data.preorder} />
-        <Small style={{ flex: 1 }}>{dropship ? t("order.kindNoteDropship") : t("order.kindNoteWholesale")}</Small>
+      {/* The pills on one line (wrapping when they must), and the note under them at full width. */}
+      <View style={{ gap: 8 }}>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+          <Pill label={orderKindLabel(data.kind, t)} tone={dropship ? "org" : "teal"} />
+          {data.kind === "wholesale" && data.paidAt ? <Pill label={t("order.paidInApp")} tone="ok" icon="check" /> : null}
+          <PreorderPill preorder={data.preorder} />
+        </View>
+        <Small>{dropship ? t("order.kindNoteDropship") : t("order.kindNoteWholesale")}</Small>
       </View>
 
       {stage === "new" ? <AcceptCountdown acceptBy={data.acceptBy} big /> : null}
@@ -447,9 +450,9 @@ export default function SupplierOrderScreen() {
         <Sheet visible={labelOpen} onClose={() => setLabelOpen(false)} title={t("label.title")}>
           <T style={{ fontSize: 16, lineHeight: 24, color: colors.inkSoft, marginTop: -6 }}>{t("label.sub")}</T>
           <ShopLabel order={data} />
-          <View style={{ flexDirection: "row", gap: 10, marginTop: 6 }}>
-            <PillButton title={t("label.print")} style={{ flex: 1 }} onPress={() => void shareLabel(data)} />
-            <PillButton title={t("done")} tone="white" style={{ flex: 1 }} onPress={() => setLabelOpen(false)} />
+          <View style={{ gap: 10, marginTop: 6 }}>
+            <PillButton title={t("label.print")} onPress={() => void shareLabel(data)} />
+            <PillButton title={t("done")} tone="white" onPress={() => setLabelOpen(false)} />
           </View>
         </Sheet>
       ) : null}

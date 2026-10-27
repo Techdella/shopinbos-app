@@ -432,7 +432,7 @@ export const FEATURE_INTROS: FeatureIntro[] = [
     term: "orders",
     title: "Orders and order status",
     roles: ["seller"],
-    paths: ["/home/orders", "/seller/orders", "/orders", "/order"],
+    paths: ["/home/orders", "/seller/orders", "/orders", "/order", "/home/preorders", "/preorders"],
     helpTopic: "orders",
     cta: { label: "Record a sale", href: "/home/orders/new" },
     scenes: [
@@ -787,7 +787,7 @@ export const FEATURE_INTROS: FeatureIntro[] = [
     term: "fulfilment",
     title: "Orders and fulfilment",
     roles: ["supplier"],
-    paths: ["/supplier/orders", "/supplier/order"],
+    paths: ["/supplier/orders", "/supplier/order", "/supplier/preorders"],
     helpTopic: "supplier_orders",
     scenes: [
       { art: "phone-store", caption: "A shop sold your product.", sub: "Dropship orders come in when a seller’s customer pays.", durationMs: S, value: "₦9,000" },

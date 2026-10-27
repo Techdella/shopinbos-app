@@ -340,7 +340,7 @@ function BankFlow({ visible, banks, current, onClose, onSaved }: { visible: bool
             <T weight="extrabold" style={{ flex: 1, fontSize: 22, lineHeight: 28 }} accessibilityRole="header">{title}</T>
             <Pressable accessibilityRole="button" onPress={close} hitSlop={8} style={{ minHeight: 44, paddingHorizontal: 14, borderRadius: 22, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, flexDirection: "row", alignItems: "center", gap: 6 }}>
               <AppIcon name="x" size={16} />
-              <T weight="bold" style={{ fontSize: 15 }}>{t("close")}</T>
+              <T weight="bold" numberOfLines={1} style={{ flexShrink: 1, fontSize: 15 }}>{t("close")}</T>
             </Pressable>
           </View>
 

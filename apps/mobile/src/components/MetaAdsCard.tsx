@@ -77,7 +77,7 @@ export function MetaCard({ meta, onChanged }: { meta: MetaStatus; onChanged: () 
         </>
       ) : null}
       {meta.configured && (meta.status === "connected" || meta.status === "needs_account") ? (
-        <View style={{ flexDirection: "row", gap: 8 }}>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
           <PillButton title={meta.status === "needs_account" ? t("m.use") : t("m.change")} size="sm" tone={meta.status === "needs_account" ? "ink" : "white"} onPress={() => void openPicker()} />
           <PillButton title={t("m.disconnect")} size="sm" tone="white" onPress={() => setConfirmOff(true)} />
         </View>

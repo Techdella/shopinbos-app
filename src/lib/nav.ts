@@ -51,6 +51,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
           children: [
             { id: "orders-all", label: "All orders", href: "/home/orders" },
             { id: "orders-new", label: "Record a sale", href: "/home/orders/new" },
+            { id: "orders-preorders", label: "Preorders", href: "/home/preorders" },
             { id: "payment-links", label: "Payment links", href: "/home/payment-links" },
           ],
         },
@@ -253,6 +254,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
           children: [
             { id: "dropship-orders", label: "Dropship orders", href: "/supplier/orders" },
             { id: "wholesale-orders", label: "Wholesale orders", href: "/supplier/wholesale" },
+            { id: "preorders", label: "Preorders", href: "/supplier/preorders" },
           ],
         },
         { id: "quote-requests", label: "Quote requests", icon: "chat", href: "/supplier/quote-requests" },

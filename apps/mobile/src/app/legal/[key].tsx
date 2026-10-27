@@ -5,7 +5,7 @@ import * as WebBrowser from "expo-web-browser";
 import { Badge, ErrorState, LoadingBlock } from "@/components/kit";
 import { ChoiceRow } from "@/components/Sheet";
 import { Screen } from "@/components/Screen";
-import { Card, Field, Label, LinkButton, Notice, PillButton, T } from "@/components/ui";
+import { ButtonRow, Card, Field, Label, LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { canPublish, draftLegalText, fetchLegalText, saveLegalText, type LegalText } from "@/lib/legal";
 import { useLoad } from "@/lib/useLoad";
 import { formatDate } from "@shared/i18n";
@@ -100,7 +100,7 @@ function Editor({ initial, onSaved }: { initial: LegalText; onSaved: (page: Lega
 
   const working = busy !== null;
   const footer = (
-    <View style={{ flexDirection: "row", gap: 10 }}>
+    <ButtonRow labels={page.published ? [t("unpublish"), t("update")] : [t("saveDraft"), t("publish")]} primaryLast>
       {page.published ? (
         <>
           <PillButton title={t("unpublish")} tone="white" size="md" style={{ flex: 1 }} busy={busy === "unpublish"} disabled={working} onPress={() => void save(false, "unpublish")} />
@@ -112,7 +112,7 @@ function Editor({ initial, onSaved }: { initial: LegalText; onSaved: (page: Lega
           <PillButton title={t("publish")} size="md" style={{ flex: 1 }} busy={busy === "publish"} disabled={working || empty} onPress={() => void save(true, "publish")} />
         </>
       )}
-    </View>
+    </ButtonRow>
   );
 
   return (

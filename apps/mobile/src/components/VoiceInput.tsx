@@ -160,7 +160,7 @@ export function VoiceInput({
           style={({ pressed }) => ({ width: 50, height: 50, borderRadius: 25, backgroundColor: listening ? colors.accent : colors.surface, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.85 : 1 })}
         >
           {/* Fixed size so the chat box never jumps: while listening the timer replaces the mic. */}
-          {phase === "working" ? <ActivityIndicator color={colors.ink} /> : listening ? <T weight="bold" style={{ color: "#FFFFFF", fontSize: 14, fontVariant: ["tabular-nums"] }}>{voiceTimer(elapsed)}</T> : <AppIcon name="mic" size={20} color={colors.ink} />}
+          {phase === "working" ? <ActivityIndicator color={colors.ink} /> : listening ? <T weight="bold" numberOfLines={1} style={{ flexShrink: 1, color: "#FFFFFF", fontSize: 14, fontVariant: ["tabular-nums"] }}>{voiceTimer(elapsed)}</T> : <AppIcon name="mic" size={20} color={colors.ink} />}
         </Pressable>
       </View>
     );

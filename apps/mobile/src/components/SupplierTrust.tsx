@@ -35,12 +35,13 @@ export function SupplierTrustBadges({ supplier }: { supplier: FindProduct["suppl
   );
 }
 
-export function SupplierRiskCard({ supplier }: { supplier: FindProduct["supplier"] }) {
+/** The supplier's risk reasons. `badges={false}` when the screen already shows SupplierTrustBadges (no pills twice). */
+export function SupplierRiskCard({ supplier, badges = true }: { supplier: FindProduct["supplier"]; badges?: boolean }) {
   const t = useT("marketplace");
   if (!supplier.risk) return null;
   return (
     <Card style={{ gap: 8 }}>
-      <SupplierTrustBadges supplier={supplier} />
+      {badges ? <SupplierTrustBadges supplier={supplier} /> : null}
       {supplier.risk.reasons.length ? (
         supplier.risk.reasons.map((reason) => <T key={reason} style={{ fontSize: 14, lineHeight: 20 }}>{`• ${t.dynamic(`trust.reason.${reason}`, reason)}`}</T>)
       ) : (
@@ -135,7 +136,7 @@ export function BeforeYouList({ product, listing, onSent }: { product: FindProdu
           {listing.step === "declined" ? <Notice>{`${t("trust.declined", { name })}${listing.supplierNote ? ` "${listing.supplierNote}"` : ""}`}</Notice> : null}
           <Step n={1} title={t("trust.step.call", { name })}>
             {phone ? (
-              <View style={{ flexDirection: "row", gap: 8 }}>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
                 <PillButton title={listing.phone ?? ""} size="sm" onPress={() => void Linking.openURL(`tel:${phone}`)} />
                 <PillButton title="WhatsApp" tone="white" size="sm" onPress={() => void Linking.openURL(`https://wa.me/${phone.replace(/\D/g, "").replace(/^0/, "234")}`)} />
               </View>

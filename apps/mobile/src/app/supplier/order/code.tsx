@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Heading, Keypad, Sub } from "@/components/design";
-import { AppIcon } from "@/components/icons";
 import { Screen } from "@/components/Screen";
 import { PillButton, T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
@@ -40,10 +39,7 @@ export default function DeliveryCode() {
       title={t("code.title")}
       footer={
         code.length === LENGTH ? (
-          <PillButton tone="accent" busy={busy} disabled={busy} onPress={() => void handOver()} accessibilityLabel={t("code.handedOver")}>
-            <AppIcon name="check" size={20} color={colors.ink} strokeWidth={2.4} />
-            <T weight="extrabold" style={{ fontSize: 17, color: colors.ink }}>{t("code.handedOver")}</T>
-          </PillButton>
+          <PillButton tone="accent" busy={busy} disabled={busy} onPress={() => void handOver()} accessibilityLabel={t("code.handedOver")} icon="check" title={t("code.handedOver")} />
         ) : null
       }
     >
