@@ -107,6 +107,8 @@ export const NOTIFY_EVENTS = {
   "supplier_order.expired": { category: "orders" },
   "supplier_order.cancelled": { category: "orders" },
   "quote.request": { category: "orders", collapse: { key: "quote.request", one: "new quote request", many: "new quote requests" } },
+  // China imports (src/lib/imports): a quote is ready, the order moved a step, or it was cancelled.
+  "import.update": { category: "orders" },
   "pickup.update": { category: "deliveries" },
   "product.approved": { category: "account" },
   "product.rejected": { category: "account" },

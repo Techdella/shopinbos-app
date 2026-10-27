@@ -408,6 +408,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
         { id: "ad-requests", label: "Ad requests", icon: "megaphone", href: "/admin/ad-requests", core: true },
         { id: "packaging-requests", label: "Packaging requests", icon: "package", href: "/admin/packaging-requests", core: true },
         { id: "print-orders", label: "Print orders", icon: "truck", href: "/admin/print-orders", core: true },
+        { id: "imports", label: "China imports", icon: "globe", href: "/admin/imports", core: true },
       ],
     },
     {

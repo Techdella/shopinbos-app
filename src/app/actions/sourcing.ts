@@ -1,8 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { chinaImportProblem, productLimitProblem } from "@/lib/plans/gates.server";
-import { redirect } from "next/navigation";
+import { productLimitProblem } from "@/lib/plans/gates.server";
 import { z } from "zod";
 import { db } from "@/lib/db/client";
 import { withShortCode } from "@/lib/products/short-code.server";
@@ -10,20 +9,11 @@ import { getCurrentAppUser } from "@/lib/server-auth";
 import { mergeBrandSettings } from "@/lib/workspace";
 import { createNotification } from "@/lib/notifications/create";
 import { ConversationError, sendPartnerMessage } from "@/lib/conversations/service.server";
-import { uploadFileServer, uploadPath } from "@/lib/supabase/storage.server";
 import { VISIBLE_SUPPLIER, listingCheck, requestAgreement } from "@/lib/marketplace/agreements.server";
-import {
-  clampSellingPrice,
-  isSampleId,
-  nextImportRef,
-  parse1688Link,
-  parseSourcing,
-  type ImportRequest,
-  type SourcingSettings,
-} from "@/lib/marketplace/find";
+import { clampSellingPrice, isSampleId, parseSourcing, type SourcingSettings } from "@/lib/marketplace/find";
 
 // Find products (/marketplace) and My imports (/home/imports): add a supplier's product to the store, ask for a
-// wholesale quote, save, message the supplier, get told when suppliers join, and ask for a China import.
+// wholesale quote, save, message the supplier and get told when suppliers join. China imports: ./imports.ts.
 
 type Result<T = unknown> = ({ ok: true } & T) | { ok: false; error: string; sample?: boolean; code?: string };
 
@@ -233,97 +223,4 @@ export async function notifyWhenSuppliersJoin(): Promise<Result> {
     link: "/marketplace",
   }).catch(() => null);
   return { ok: true };
-}
-
-const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-const MAX_PHOTO_BYTES = 8 * 1024 * 1024;
-
-const ImportSchema = z.object({
-  query: z.string().trim().max(500),
-  quantity: z.number().int().min(1).max(100_000).nullable(),
-  shipping: z.enum(["air", "sea"]),
-});
-
-const CHINA_IMPORTS_OPEN = false;
-
-/** China · 1688 "Find it": a request to the sourcing partner. Shows up in My imports. */
-export async function requestChinaImport(formData: FormData) {
-  function back(error: string): never {
-    redirect(`/marketplace?tab=china&error=${encodeURIComponent(error)}`);
-  }
-  // Importing goes through sourcing middlemen and isn't open yet (the China tab says "Coming soon").
-  if (!CHINA_IMPORTS_OPEN) back("Importing from China is coming soon.");
-  const quantityRaw = Number(formData.get("quantity") || 0);
-  const parsed = ImportSchema.safeParse({
-    query: String(formData.get("query") || ""),
-    quantity: Number.isFinite(quantityRaw) && quantityRaw > 0 ? Math.floor(quantityRaw) : null,
-    shipping: formData.get("shipping") === "sea" ? "sea" : "air",
-  });
-  if (!parsed.success) back("Check the link and quantity and try again.");
-  const { query, quantity, shipping } = parsed.data;
-  const entry = formData.get("photo");
-  const photo = entry instanceof File && entry.size > 0 ? entry : null;
-
-  const looksLikeLink = /^(https?:\/\/|www\.)|\.(com|cn)\//i.test(query);
-  const link = looksLikeLink ? parse1688Link(query) : null;
-  if (looksLikeLink && !link) back("Paste a link from 1688.com, or describe the product.");
-  if (!link && !photo && query.length < 3) back("Paste a 1688 link, add a photo, or describe what you want.");
-  if (photo && (!IMAGE_TYPES.has(photo.type) || photo.size > MAX_PHOTO_BYTES)) back("Use a JPG, PNG or WebP photo under 8MB.");
-
-  const user = await getCurrentAppUser({ redirectTo: "/login" });
-  if (!user || user.role !== "seller") redirect("/login");
-  const importLimit = await chinaImportProblem(user.id);
-  if (importLimit) back(importLimit);
-  const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, brandSettings: true } });
-  if (!store) redirect("/builder?firstRun=1");
-
-  let photoUrl: string | null = null;
-  if (photo) {
-    try {
-      photoUrl = (await uploadFileServer("products", photo, uploadPath(`imports/${store.id}`, photo))).publicUrl;
-    } catch (error) {
-      console.error("[imports] photo upload failed", error);
-      back("That photo didn't upload. Try again.");
-    }
-  }
-
-  const sourcing = sourcingOf(store.brandSettings);
-  const now = new Date().toISOString();
-  const ref = nextImportRef(sourcing.imports);
-  const title = link ? (query && !looksLikeLink ? query : `1688 item${link.offerId ? ` ${link.offerId}` : ""}`) : query || "Product from your photo";
-  const request: ImportRequest = {
-    id: `imp_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
-    ref,
-    title: title.slice(0, 140),
-    link: link?.url ?? null,
-    photoUrl,
-    quantity,
-    shipping,
-    status: "requested",
-    total: null,
-    note: null,
-    qcPhotos: [],
-    createdAt: now,
-    updatedAt: now,
-  };
-  await saveSourcing(store.id, store.brandSettings, { ...sourcing, imports: [request, ...sourcing.imports].slice(0, 100) });
-
-  // The sourcing team works from admin alerts until imports have their own admin screen.
-  const admins = await db.user.findMany({ where: { role: "admin" }, select: { id: true }, take: 20 }).catch(() => []);
-  await Promise.all(
-    admins.map((admin) =>
-      createNotification({
-        userId: admin.id,
-        type: "marketplace",
-        priority: "warning",
-        title: `China import request ${ref}`,
-        description: `${store.name} wants ${quantity ? `${quantity} × ` : ""}${request.title} by ${shipping}.${request.link ? ` ${request.link}` : ""}`,
-        link: request.link ?? undefined,
-        metadata: { storeId: store.id, importId: request.id, photoUrl },
-        event: "admin.review",
-      }).catch(() => null),
-    ),
-  );
-  revalidatePath("/home/imports");
-  redirect(`/home/imports?requested=${encodeURIComponent(ref)}`);
 }

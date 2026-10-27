@@ -2,12 +2,13 @@ import Link from "next/link";
 import { PillLink } from "@/components/app-kit";
 import { cx } from "@/components/app-ui/cx";
 import { Icon, type IconName } from "@/components/ui/Icon";
-import { IMPORT_HOW_IT_WORKS, type FindProduct, type PeggyInsight, type TrendIdea } from "@/lib/marketplace/find";
+import { IMPORT_EXAMPLES, IMPORT_HOW_IT_WORKS, type FindProduct, type PeggyInsight, type TrendIdea } from "@/lib/marketplace/find";
 import { ProductGrid } from "./ProductGrid";
 import { Mascot } from "@/components/brand/Mascot";
 import { getT } from "@/lib/i18n/server";
 import { Term } from "@/components/learn/Term";
 import { TipsGate } from "./TipsGate";
+import { ChinaImportForm } from "./ChinaImportForm";
 
 export type FindTab = "nigeria" | "china" | "trending";
 
@@ -52,10 +53,12 @@ export interface FindProductsViewProps {
   focusPhoto?: boolean;
   /** For now only suppliers near the seller show; without a city set, none do. */
   nearby?: { hasPlace: boolean; city: string | null };
+  /** China imports are taking requests (CHINA_IMPORTS_OPEN, src/lib/imports/service.server.ts). */
+  importsOpen?: boolean;
 }
 
 /** Body of "Find products to sell" under the page title: tabs, search, and the active tab. */
-export async function FindProductsView({ tab, country, q, cat, categories, products, sampleMode, supplierName, insight, trends, addedIds, notified, nearby }: FindProductsViewProps) {
+export async function FindProductsView({ tab, country, q, cat, categories, products, sampleMode, supplierName, insight, trends, addedIds, notified, nearby, importsOpen = false, error, focusPhoto }: FindProductsViewProps) {
   const t = await getT("marketplace");
   const hrefFor = findHref;
   const tip = insightText(t, insight);
@@ -79,7 +82,7 @@ export async function FindProductsView({ tab, country, q, cat, categories, produ
               )}
             >
               {item.label}
-              {item.id === "china" ? <span className="ml-1.5 rounded-full bg-app-peach px-2 py-0.5 text-[11px] font-extrabold text-app-ink">{t("find.soon")}</span> : null}
+              {item.id === "china" && !importsOpen ? <span className="ml-1.5 rounded-full bg-app-peach px-2 py-0.5 text-[11px] font-extrabold text-app-ink">{t("find.soon")}</span> : null}
             </Link>
           ))}
         </nav>
@@ -161,7 +164,10 @@ export async function FindProductsView({ tab, country, q, cat, categories, produ
 
       {tab === "china" && (
         <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
-          {/* Importing goes through trusted middlemen; it isn't open to sellers yet. */}
+          {importsOpen ? (
+            <ChinaImportForm examples={IMPORT_EXAMPLES} error={error} focusPhoto={focusPhoto} />
+          ) : (
+          // Importing goes through the sourcing partner (ShopKonfam); until CHINA_IMPORTS_OPEN it says "Coming soon".
           <section className="rounded-[22px] border border-app-line bg-white p-5 sm:p-6">
             <span className="inline-flex rounded-full bg-app-peach px-3 py-1 text-[12px] font-extrabold uppercase tracking-[0.08em]">{t("find.comingSoon")}</span>
             <h2 className="m-0 mt-3 text-[20px] font-extrabold tracking-[-0.01em]"><Term k="sourcing-imports">{t("find.china.title")}</Term></h2>
@@ -172,8 +178,9 @@ export async function FindProductsView({ tab, country, q, cat, categories, produ
               {t("find.china.shop", { country })}
             </Link>
           </section>
+          )}
           <section className="rounded-[22px] border border-app-line bg-white p-4 sm:p-5">
-            <h2 className="m-0 text-[15.5px] font-extrabold">{t("find.howItWillWork")}</h2>
+            <h2 className="m-0 text-[15.5px] font-extrabold">{importsOpen ? t("find.howItWorks") : t("find.howItWillWork")}</h2>
             <ol className="m-0 mt-3 grid list-none gap-3 p-0">
               {IMPORT_HOW_IT_WORKS.map((step, index) => (
                 <li key={step} className="flex items-start gap-3">

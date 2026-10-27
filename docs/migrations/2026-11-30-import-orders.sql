@@ -1,0 +1,48 @@
+-- China imports through the sourcing partner (ShopKonfam): one row per seller request (src/lib/imports).
+CREATE TABLE IF NOT EXISTS "ImportOrder" (
+  "id" TEXT NOT NULL PRIMARY KEY,
+  "ref" TEXT NOT NULL,
+  "storeId" TEXT NOT NULL,
+  "sellerId" TEXT NOT NULL,
+  "partner" TEXT NOT NULL DEFAULT 'shopkonfam',
+  "source" TEXT NOT NULL,
+  "title" TEXT NOT NULL,
+  "link" TEXT,
+  "productRef" TEXT,
+  "photoUrl" TEXT,
+  "quantity" INTEGER,
+  "shipping" TEXT NOT NULL DEFAULT 'air',
+  "notes" TEXT,
+  "destination" TEXT,
+  "status" TEXT NOT NULL DEFAULT 'requested',
+  "currency" TEXT NOT NULL DEFAULT 'NGN',
+  "unitPrice" DOUBLE PRECISION,
+  "goodsTotal" DOUBLE PRECISION,
+  "freight" DOUBLE PRECISION,
+  "customs" DOUBLE PRECISION,
+  "serviceFee" DOUBLE PRECISION,
+  "total" DOUBLE PRECISION,
+  "quoteNote" TEXT,
+  "quoteValidUntil" TIMESTAMP(3),
+  "estimatedArrival" TIMESTAMP(3),
+  "paymentUrl" TEXT,
+  "quotedAt" TIMESTAMP(3),
+  "acceptedAt" TIMESTAMP(3),
+  "paidAt" TIMESTAMP(3),
+  "deliveredAt" TIMESTAMP(3),
+  "declineReason" TEXT,
+  "carrier" TEXT,
+  "trackingNumber" TEXT,
+  "qcPhotos" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+  "partnerNote" TEXT,
+  "teamNotes" TEXT,
+  "externalId" TEXT,
+  "events" JSONB NOT NULL DEFAULT '[]',
+  "storeProductId" TEXT,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "ImportOrder_ref_key" ON "ImportOrder"("ref");
+CREATE INDEX IF NOT EXISTS "ImportOrder_storeId_createdAt_idx" ON "ImportOrder"("storeId", "createdAt");
+CREATE INDEX IF NOT EXISTS "ImportOrder_status_updatedAt_idx" ON "ImportOrder"("status", "updatedAt");
+ALTER TABLE "ImportOrder" ENABLE ROW LEVEL SECURITY;
