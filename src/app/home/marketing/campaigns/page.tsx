@@ -86,8 +86,8 @@ export default async function CampaignsPage({ searchParams }: { searchParams?: P
       actions={
         <>
           <RexAICopywriter storeName={store?.name} />
-          <PillLink href="/home/marketing/templates" icon="mail">{t("campaigns.templates")}</PillLink>
-          <PillLink href="/home/marketing/whatsapp" icon="whatsapp">{t("hub.tool.whatsappTemplates")}</PillLink>
+          <PillLink href="/home/marketing/templates" icon="mail" iconOnlyOnPhone>{t("campaigns.templates")}</PillLink>
+          <PillLink href="/home/marketing/whatsapp" icon="whatsapp" iconOnlyOnPhone>{t("hub.tool.whatsappTemplates")}</PillLink>
           <PillLink href="/home/marketing/campaigns/new" tone="accent" icon="plus">{t("hub.newCampaign")}</PillLink>
         </>
       }

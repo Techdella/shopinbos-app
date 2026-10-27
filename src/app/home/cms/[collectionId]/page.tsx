@@ -87,11 +87,11 @@ export default async function CollectionPage({ params, searchParams }: { params:
       })()}
       actions={
         <>
-          <PillLink href="/home/cms" icon="arrowLeft">{t("col.allContent")}</PillLink>
-          <PillLink href="/home/cms/plan" icon="calendar">{t("plan.title")}</PillLink>
+          <PillLink href="/home/cms" icon="arrowLeft" iconOnlyOnPhone>{t("col.allContent")}</PillLink>
+          <PillLink href="/home/cms/plan" icon="calendar" iconOnlyOnPhone>{t("plan.title")}</PillLink>
           {collection.isPublished && (
-            <a href={`${origin}/${collection.slug}`} target="_blank" rel="noreferrer" className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-app-line bg-white px-5 text-[14px] font-extrabold text-app-ink no-underline hover:border-app-line-strong">
-              <Icon name="eye" size={16} /> {t("view")}
+            <a href={`${origin}/${collection.slug}`} target="_blank" rel="noreferrer" className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full border border-app-line bg-white px-5 text-[14px] font-extrabold text-app-ink no-underline hover:border-app-line-strong max-sm:w-11 max-sm:px-0">
+              <Icon name="eye" size={16} /> <span className="max-sm:sr-only">{t("view")}</span>
             </a>
           )}
           <PillLink href={`${base}/new`} tone="accent" icon="plus">{t("newItem", { label })}</PillLink>
@@ -127,9 +127,9 @@ export default async function CollectionPage({ params, searchParams }: { params:
                 { label: t("status.scheduled"), href: chipHref("scheduled"), count: count("scheduled"), active: status === "scheduled" },
               ]}
             />
-            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+            <div className="flex w-full items-center gap-2 sm:w-auto">
               <SearchForm action={base} defaultValue={q} placeholder={t("col.search", { label })} keep={keep} />
-              <div className="flex rounded-full border border-app-line bg-white p-1" role="group" aria-label={t("col.viewGroup")}>
+              <div className="flex shrink-0 rounded-full border border-app-line bg-white p-1" role="group" aria-label={t("col.viewGroup")}>
                 {(["list", "grid"] as const).map((v) => (
                   <Link key={v} href={`${base}?${new URLSearchParams({ ...(status ? { status } : {}), ...(q ? { q } : {}), view: v })}`} aria-current={view === v ? "true" : undefined} aria-label={v === "list" ? t("col.listView") : t("col.cardView")} className={cx("grid h-9 w-10 place-items-center rounded-full", view === v ? "bg-app-ink text-white" : "text-app-ink")}>
                     <Icon name={v === "list" ? "list" : "grid"} size={15} />

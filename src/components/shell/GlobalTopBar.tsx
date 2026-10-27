@@ -96,12 +96,12 @@ export function GlobalTopBar({
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3.5 border-b border-app-line bg-white/[0.92] px-4 font-app text-app-ink backdrop-blur sm:px-7">
-        <button type="button" aria-label={t("shell.openMenu")} onClick={() => window.dispatchEvent(new Event(TOGGLE_NAV_EVENT))} className="grid h-10 w-10 place-items-center rounded-full hover:bg-app-canvas lg:hidden">
+      <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-1.5 border-b border-app-line bg-white/[0.92] px-3 font-app text-app-ink backdrop-blur sm:gap-3.5 sm:px-7">
+        <button type="button" aria-label={t("shell.openMenu")} onClick={() => window.dispatchEvent(new Event(TOGGLE_NAV_EVENT))} className="grid h-10 w-10 shrink-0 place-items-center rounded-full hover:bg-app-canvas lg:hidden">
           <Icon name="list" size={19} />
         </button>
-        {title && <b className="whitespace-nowrap text-[15px] font-extrabold">{title}</b>}
-        <div className="flex flex-1 justify-center">
+        {title && <b className="min-w-0 truncate text-[15px] font-extrabold">{title}</b>}
+        <div className="flex min-w-0 flex-1 justify-center">
           <button
             type="button"
             data-tour="search"
@@ -113,7 +113,7 @@ export function GlobalTopBar({
             <kbd className="grid h-6 w-6 place-items-center rounded-full bg-white font-sans text-[12px] font-bold text-app-ink">/</kbd>
           </button>
         </div>
-        <button type="button" aria-label={t("shell.search")} onClick={() => setSearchOpen(true)} className="grid h-10 w-10 place-items-center rounded-full border border-app-line md:hidden">
+        <button type="button" aria-label={t("shell.search")} onClick={() => setSearchOpen(true)} className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-app-line md:hidden">
           <Icon name="search" size={17} />
         </button>
         {(role === "seller" || role === "supplier" || role === "logistics_partner") && <CreditsBadge manageHref={creditsUrlFor(role)} />}
@@ -125,7 +125,7 @@ export function GlobalTopBar({
         {/* Weekly updates from the Shopinbos team: shows only when there are some for this role. */}
         {role !== "admin" && <UpdatesRing role={role} />}
         {role !== "admin" && (
-          <button type="button" aria-label={messagesUnread ? t("shell.messagesUnread", { count: messagesUnread }) : t("shell.messages")} onClick={openChat} className="relative grid h-[42px] w-[42px] place-items-center rounded-full border border-app-line hover:border-app-line-strong">
+          <button type="button" aria-label={messagesUnread ? t("shell.messagesUnread", { count: messagesUnread }) : t("shell.messages")} onClick={openChat} className="relative grid h-10 w-10 shrink-0 place-items-center rounded-full border border-app-line hover:border-app-line-strong sm:h-[42px] sm:w-[42px]">
             <Icon name="chat" size={17} />
             {messagesUnread > 0 && (
               <span className="absolute -right-1 -top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-app-accent px-1 text-[10.5px] font-extrabold leading-none text-white ring-2 ring-white">
@@ -135,8 +135,8 @@ export function GlobalTopBar({
           </button>
         )}
         <NotificationBell role={role} initialUnread={unread} />
-        <div className="relative" ref={menuRef}>
-          <button type="button" aria-label={t("shell.account")} aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)} className="grid h-[42px] w-[42px] place-items-center overflow-hidden rounded-full bg-app-peach text-[13px] font-extrabold text-app-accent-ink">
+        <div className="relative shrink-0" ref={menuRef}>
+          <button type="button" aria-label={t("shell.account")} aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)} className="grid h-10 w-10 place-items-center overflow-hidden rounded-full bg-app-peach text-[13px] font-extrabold text-app-accent-ink sm:h-[42px] sm:w-[42px]">
             {me.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={me.avatarUrl} alt="" className="h-full w-full object-cover" />

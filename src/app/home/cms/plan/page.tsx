@@ -33,7 +33,7 @@ export default async function ContentPlanPage() {
       sub={t("plan.sub")}
       actions={
         <>
-          <PillLink href="/home/cms" icon="arrowLeft">{t("col.allContent")}</PillLink>
+          <PillLink href="/home/cms" icon="arrowLeft" iconOnlyOnPhone>{t("col.allContent")}</PillLink>
           <PillLink href="/home/marketing/social" icon="megaphone">{t("plan.socialPlanner")}</PillLink>
         </>
       }

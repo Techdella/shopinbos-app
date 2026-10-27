@@ -52,7 +52,7 @@ export default async function SellerPaymentsPage() {
       actions={
         <>
           <PillLink href="/home/invoices" icon="document">{t("invoices")}</PillLink>
-          <PillLink href="/home/payouts" icon="bank">{t("payouts")}</PillLink>
+          <PillLink href="/home/payouts" icon="bank" iconOnlyOnPhone>{t("payouts")}</PillLink>
           <PillLink href="/home/orders/new" tone="accent" icon="plus">{t("recordSale")}</PillLink>
         </>
       }

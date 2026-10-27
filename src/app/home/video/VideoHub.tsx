@@ -4,7 +4,7 @@ import { confirmDialog } from "@/components/ui/dialogs";
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Spinner, cx } from "@/components/app-ui";
+import { PHONE_SCROLL_ROW, Spinner, cx } from "@/components/app-ui";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import type { VideoPurpose, VideoStatus } from "@shared/video-projects";
@@ -79,13 +79,13 @@ export function VideoHub({ videos, tab, counts, paging }: { videos: HubVideo[]; 
       </section>
 
       <section className={cx(card, "p-5")}>
-        <nav aria-label={t("hub.yourVideos")} className="flex flex-wrap gap-2">
+        <nav aria-label={t("hub.yourVideos")} className={cx("flex gap-2", PHONE_SCROLL_ROW)}>
           {(["draft", "saved", "published"] as const).map((key) => (
             <Link
               key={key}
               href={`/home/video?tab=${key}`}
               aria-current={tab === key ? "page" : undefined}
-              className={cx("inline-flex min-h-[40px] items-center gap-2 rounded-full border px-4 text-[14px] font-bold no-underline", tab === key ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink")}
+              className={cx("inline-flex min-h-[40px] shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-4 text-[14px] font-bold no-underline", tab === key ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink")}
             >
               {t(`hub.tab.${key}`)} <span className={cx("rounded-full px-1.5 text-[12px]", tab === key ? "bg-white/20" : "bg-app-canvas")}>{counts[key]}</span>
             </Link>

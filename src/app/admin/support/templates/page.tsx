@@ -31,7 +31,7 @@ export default async function InboxTemplatesPage(props: { searchParams?: Promise
       sub="WhatsApp only lets a business start a chat with a template Meta has approved. Write your own here; approval usually takes minutes."
       actions={
         <>
-          <PillLink href="/admin/support" icon="arrowLeft">Inbox</PillLink>
+          <PillLink href="/admin/support" icon="arrowLeft" iconOnlyOnPhone>Inbox</PillLink>
           <PillLink href="/admin/support/new" tone="ink" icon="plus">New conversation</PillLink>
         </>
       }
