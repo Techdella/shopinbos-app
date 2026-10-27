@@ -237,6 +237,10 @@ export interface PaystackSettlement {
   status: string;
   /** Kobo. */
   totalAmount: number;
+  /** Kobo actually paid into the bank (after Paystack's fees), when Paystack says. */
+  effectiveAmount: number | null;
+  /** Kobo of Paystack's fees in this settlement, when Paystack says. */
+  totalFees: number | null;
   settlementDate: string | null;
 }
 
@@ -254,6 +258,8 @@ export async function listPaystackSettlements(subaccountCode: string, perPage = 
       id: String(row.id ?? ""),
       status: typeof row.status === "string" ? row.status : "",
       totalAmount: Number(row.total_amount ?? row.effective_amount ?? 0) || 0,
+      effectiveAmount: Number.isFinite(Number(row.effective_amount)) && row.effective_amount !== null && row.effective_amount !== undefined ? Number(row.effective_amount) : null,
+      totalFees: Number.isFinite(Number(row.total_fees)) && row.total_fees !== null && row.total_fees !== undefined ? Number(row.total_fees) : null,
       settlementDate: typeof row.settlement_date === "string" ? row.settlement_date : typeof row.settled_at === "string" ? row.settled_at : null,
     }));
   } catch {

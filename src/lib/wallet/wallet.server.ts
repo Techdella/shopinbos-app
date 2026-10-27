@@ -452,7 +452,8 @@ export async function loadWalletView(user: { id: string; role: WalletRole }): Pr
   const wallet = await finishWalletSavedWhilePaystackOff(await ensureWallet(user));
   const since = new Date(Date.now() - 30 * 24 * 60 * 60_000);
   const [entries, paid, last30, refunded, settlements, owed] = await Promise.all([
-    db.walletEntry.findMany({ where: { walletId: wallet.id }, orderBy: { createdAt: "desc" }, take: 50 }),
+    // Settlements have their own list below (read from Paystack); their entries only drive the "in your bank" alerts.
+    db.walletEntry.findMany({ where: { walletId: wallet.id, kind: { not: "settlement" } }, orderBy: { createdAt: "desc" }, take: 50 }),
     db.walletEntry.aggregate({ where: { walletId: wallet.id, status: "paid" }, _sum: { amountKobo: true } }),
     db.walletEntry.aggregate({ where: { walletId: wallet.id, status: "paid", createdAt: { gte: since } }, _sum: { amountKobo: true } }),
     db.walletEntry.aggregate({ where: { walletId: wallet.id, status: "refunded" }, _sum: { amountKobo: true } }),

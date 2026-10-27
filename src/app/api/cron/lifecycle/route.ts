@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cronDenied } from "@/lib/auth/cron-request";
 import { sendLifecycleEmails } from "@/lib/setup/lifecycle.server";
 import { provisionPendingWallets, sendQueuedWithdrawals } from "@/lib/wallet/balance.server";
+import { recordSettlements } from "@/lib/wallet/settlements.server";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -22,7 +23,12 @@ export async function GET(req: NextRequest) {
       console.error("[cron lifecycle] queued withdrawals failed", error instanceof Error ? error.message : "unknown");
       return { sent: 0, waiting: 0 };
     });
-    return NextResponse.json({ data: { ...(await sendLifecycleEmails()), wallets, withdrawals } });
+    // Paystack's settlements to each business's bank: on their statement, and "₦X is in your bank".
+    const settlements = await recordSettlements().catch((error) => {
+      console.error("[cron lifecycle] settlements failed", error instanceof Error ? error.message : "unknown");
+      return { checked: 0, recorded: 0 };
+    });
+    return NextResponse.json({ data: { ...(await sendLifecycleEmails()), wallets, withdrawals, settlements } });
   } catch (error) {
     console.error("[cron lifecycle] failed", error instanceof Error ? error.message : "unknown");
     return NextResponse.json({ error: { code: "INTERNAL_ERROR", message: "Lifecycle emails failed" } }, { status: 500 });
