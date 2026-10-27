@@ -158,7 +158,7 @@ export function RecordSaleForm({ products }: { products: CatalogProduct[] }) {
             onKeyDown={(event) => {
               if (event.key === "Enter") void findCode(event);
             }}
-            className="max-w-[220px] font-mono uppercase tracking-[0.08em]"
+            className="min-w-0 max-w-[220px] font-mono uppercase tracking-[0.08em]"
           />
           <PillButton type="button" tone="white" size="md" onClick={() => void findCode()} disabled={finding || !code.trim()}>{t("sale.codeFind")}</PillButton>
         </div>
@@ -183,13 +183,13 @@ export function RecordSaleForm({ products }: { products: CatalogProduct[] }) {
                     <span className="grid h-10 w-10 place-items-center rounded-[10px] bg-app-canvas text-[13px] font-extrabold">{product.name.charAt(0)}</span>
                   )}
                   <span className="min-w-0 flex-1">
-                    <span className="flex min-w-0 items-center gap-2">
-                      <span className="truncate text-[14px] font-bold">{product.name}</span>
+                    <span className="flex min-w-0 items-start gap-2 sm:items-center">
+                      <span className="line-clamp-2 min-w-0 break-words text-[14px] font-bold sm:line-clamp-1">{product.name}</span>
                       {product.shortCode ? <ProductCodeBadge code={product.shortCode} /> : null}
                     </span>
                     <span className="block text-[12.5px] text-app-ink-soft">{naira(product.price)}{product.stock === null ? null : <> · {product.stock > 0 ? t("sale.inStock", { count: product.stock }) : t("sale.soldOut")}</>}</span>
                   </span>
-                  <span className="text-[13px] font-extrabold text-app-accent-ink">{t("sale.add")}</span>
+                  <span className="shrink-0 text-[13px] font-extrabold text-app-accent-ink">{t("sale.add")}</span>
                 </button>
               </li>
             ))}
