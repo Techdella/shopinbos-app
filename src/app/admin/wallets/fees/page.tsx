@@ -2,6 +2,8 @@ import Link from "next/link";
 import { AppPage, Card, CardHead, EmptyState, StatGrid, StatTile } from "@/components/app-kit";
 import { adminFrame, formatDate } from "@/components/admin/AdminKit";
 import { requireRole } from "@/lib/server-auth";
+import { Icon } from "@/components/ui/Icon";
+import { EXPORT_PERIODS } from "@/lib/wallet/fees-export.server";
 import { platformFeeSummary } from "@/lib/wallet/platform-fees.server";
 import { PURCHASE_LABEL, purchaseSummary } from "@/lib/wallet/purchases.server";
 
@@ -19,9 +21,21 @@ export default async function AdminPlatformFeesPage() {
   const [summary, purchases] = await Promise.all([platformFeeSummary(), purchaseSummary()]);
   return (
     <AppPage frame={adminFrame(user)} title="Shopinbos fees" sub="What Shopinbos keeps from store payments split through Paystack (the rest settles straight to each business's bank), subscription payments, AI credits and everything else businesses buy.">
-      <p className="mb-4 mt-0 text-[13.5px]">
-        <Link href="/admin/wallets" className="font-bold underline underline-offset-4">← Wallets</Link>
-      </p>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <Link href="/admin/wallets" className="text-[13.5px] font-bold underline underline-offset-4">← Wallets</Link>
+        <form action="/api/admin/wallets/fees/export" method="get" className="flex flex-wrap items-center gap-2">
+          <label className="sr-only" htmlFor="fees-export-period">Period</label>
+          <select id="fees-export-period" name="period" defaultValue="month" className="min-h-[38px] rounded-full border border-app-line bg-white px-3.5 text-[13px] font-bold">
+            {Object.entries(EXPORT_PERIODS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+          </select>
+          <button type="submit" name="format" value="csv" className="inline-flex min-h-[38px] items-center gap-1.5 rounded-full border border-app-line bg-white px-4 text-[13px] font-extrabold">
+            <Icon name="download" size={14} /> CSV
+          </button>
+          <button type="submit" name="format" value="pdf" className="inline-flex min-h-[38px] items-center gap-1.5 rounded-full bg-app-ink px-4 text-[13px] font-extrabold text-white">
+            <Icon name="download" size={14} /> PDF
+          </button>
+        </form>
+      </div>
       <StatGrid className="mb-5">
         {summary.periods.map((period) => (
           <StatTile
