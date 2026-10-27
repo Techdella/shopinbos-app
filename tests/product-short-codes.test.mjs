@@ -108,6 +108,7 @@ function sourceFiles(dir) {
 test("every product create path assigns a code", () => {
   const creators = sourceFiles("src").filter((path) => /storeProduct\.(create|createMany|upsert)\(/.test(read(path)));
   const expected = [
+    "src/app/actions/imports.ts",
     "src/app/actions/sourcing.ts",
     "src/app/actions/workspace.ts",
     "src/app/api/app/dropship/start/route.ts",

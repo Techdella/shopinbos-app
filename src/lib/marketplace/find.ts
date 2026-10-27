@@ -454,38 +454,7 @@ export function trendsFromProducts(products: FindProduct[], limit = 6): TrendIde
     });
 }
 
-// ─── China imports (1688) ─────────────────────────────────────────────────────
-
-export const IMPORT_STEPS = [
-  { key: "requested", label: "Quote requested" },
-  { key: "quote_paid", label: "Quote paid" },
-  { key: "bought", label: "Bought from the factory" },
-  { key: "checked", label: "Checked, QC photos" },
-  { key: "shipping", label: "Shipping to Lagos" },
-  { key: "customs", label: "Customs in Lagos" },
-  { key: "in_stock", label: "In your stock" },
-] as const;
-
-export type ImportStatus = (typeof IMPORT_STEPS)[number]["key"];
-
-export interface ImportRequest {
-  id: string;
-  /** "IMP-204" */
-  ref: string;
-  title: string;
-  link: string | null;
-  photoUrl: string | null;
-  quantity: number | null;
-  shipping: "air" | "sea";
-  status: ImportStatus;
-  /** Landed cost in naira once quoted. */
-  total: number | null;
-  /** "Lands in Lagos about 16 Oct" — written by the sourcing team. */
-  note: string | null;
-  qcPhotos: string[];
-  createdAt: string;
-  updatedAt: string;
-}
+// ─── China imports (the request form and My imports: src/lib/imports) ────────
 
 export const IMPORT_HOW_IT_WORKS = [
   "Our sourcing partner in Guangzhou buys it in yuan. You pay in naira.",
@@ -496,80 +465,9 @@ export const IMPORT_HOW_IT_WORKS = [
 
 export const IMPORT_EXAMPLES = ["Women's linen two-piece set", "Bluetooth earbuds with case", "Mini bucket bag"];
 
-/** A 1688 product link, tidied ("https://detail.1688.com/offer/123.html"), or null if it isn't one. */
-export function parse1688Link(input: string): { url: string; offerId: string | null } | null {
-  const text = input.trim();
-  if (!text) return null;
-  let url: URL;
-  try {
-    url = new URL(/^https?:\/\//i.test(text) ? text : `https://${text}`);
-  } catch {
-    return null;
-  }
-  const host = url.hostname.toLowerCase();
-  if (!(host === "1688.com" || host.endsWith(".1688.com"))) return null;
-  if (url.protocol !== "https:" && url.protocol !== "http:") return null;
-  const offerId = url.pathname.match(/offer\/(\d{5,})/)?.[1] ?? url.searchParams.get("offerId") ?? null;
-  return { url: offerId ? `https://detail.1688.com/offer/${offerId}.html` : `https://${host}${url.pathname}`, offerId };
-}
-
-function text(value: unknown, max: number) {
-  return typeof value === "string" && value.trim() ? value.trim().slice(0, max) : null;
-}
-
-function isStatus(value: unknown): value is ImportStatus {
-  return IMPORT_STEPS.some((step) => step.key === value);
-}
-
-export function parseImports(value: unknown): ImportRequest[] {
-  if (!Array.isArray(value)) return [];
-  return value
-    .map((item) => (item && typeof item === "object" ? (item as Record<string, unknown>) : null))
-    .filter((item): item is Record<string, unknown> => Boolean(item && typeof item.id === "string" && typeof item.title === "string"))
-    .map((item) => ({
-      id: item.id as string,
-      ref: text(item.ref, 20) ?? "IMP",
-      title: (item.title as string).slice(0, 140),
-      link: text(item.link, 500),
-      photoUrl: text(item.photoUrl, 500),
-      quantity: Number(item.quantity) > 0 ? Math.floor(Number(item.quantity)) : null,
-      shipping: item.shipping === "sea" ? "sea" : "air",
-      status: isStatus(item.status) ? item.status : "requested",
-      total: Number(item.total) > 0 ? Number(item.total) : null,
-      note: text(item.note, 200),
-      qcPhotos: Array.isArray(item.qcPhotos) ? item.qcPhotos.filter((url): url is string => typeof url === "string").slice(0, 12) : [],
-      createdAt: typeof item.createdAt === "string" ? item.createdAt : "",
-      updatedAt: typeof item.updatedAt === "string" ? item.updatedAt : "",
-    }));
-}
-
-export function importStepIndex(status: ImportStatus) {
-  return IMPORT_STEPS.findIndex((step) => step.key === status);
-}
-
-export function importStatusLabel(status: ImportStatus) {
-  return status === "requested" ? "Waiting for a quote" : IMPORT_STEPS[importStepIndex(status)].label;
-}
-
-/** 0–100 for the progress bar. */
-export function importProgress(status: ImportStatus) {
-  return Math.round((importStepIndex(status) / (IMPORT_STEPS.length - 1)) * 100);
-}
-
-/** Imports still on their way (the "My imports · N" count). */
-export function activeImportCount(imports: ImportRequest[]) {
-  return imports.filter((item) => item.status !== "in_stock").length;
-}
-
-export function nextImportRef(imports: ImportRequest[]) {
-  const highest = imports.reduce((top, item) => Math.max(top, Number(item.ref.replace(/\D/g, "")) || 0), 100);
-  return `IMP-${highest + 1}`;
-}
-
 // ─── Seller's sourcing data (Store.brandSettings.sourcing, private) ──────────
 
 export interface SourcingSettings {
-  imports: ImportRequest[];
   /** Supplier product ids the seller saved. */
   saved: string[];
   /** "Get notified" when real suppliers list products. */
@@ -579,7 +477,6 @@ export interface SourcingSettings {
 export function parseSourcing(value: unknown): SourcingSettings {
   const raw = value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
   return {
-    imports: parseImports(raw.imports),
     saved: Array.isArray(raw.saved) ? [...new Set(raw.saved.filter((id): id is string => typeof id === "string" && id.length <= 64))].slice(0, 500) : [],
     notifyNewSuppliers: raw.notifyNewSuppliers === true,
   };

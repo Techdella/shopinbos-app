@@ -9,7 +9,6 @@ import { db } from "@/lib/db/client";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { PillLink } from "@/components/app-kit";
 import {
-  activeImportCount,
   categoriesOf,
   filterFindProducts,
   parseSourcing,
@@ -22,6 +21,8 @@ import {
 } from "@/lib/marketplace/find";
 import { FindProductsView, type FindTab } from "./_components/FindProductsView";
 import { getT } from "@/lib/i18n/server";
+import { activeImportCount, isImportStatus } from "@/lib/imports/pure";
+import { chinaImportsOpen } from "@/lib/imports/service.server";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +32,7 @@ export async function generateMetadata() {
 }
 
 // Find products to sell (seller app, "Find products" prototype): local suppliers who dropship or sell wholesale
-// (Nigeria tab), imports from China through the sourcing partner (China · 1688), and what's selling (Trending).
+// (Nigeria tab), imports from China through the sourcing partner, ShopKonfam (From China), and what's selling (Trending).
 
 type PageProps = {
   searchParams?: Promise<{ tab?: string; q?: string; cat?: string; category?: string; supplier?: string; trending?: string; product?: string; photo?: string; error?: string }>;
@@ -57,7 +58,7 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
   const customerProfile = (memory.customerProfile && typeof memory.customerProfile === "object" ? memory.customerProfile : {}) as Record<string, unknown>;
   const country = store.country || "Nigeria";
 
-  const [rows, inStore] = await Promise.all([
+  const [rows, inStore, imports] = await Promise.all([
     safeQuery(() => db.supplierProduct.findMany({
       // Verified or not (sellers see which, and the risk score), near the seller only: src/lib/marketplace/agreements.server.ts.
       where: { status: "published", supplier: { ...VISIBLE_SUPPLIER, country: { equals: country, mode: "insensitive" } } },
@@ -69,6 +70,7 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
       take: 300,
     }), []),
     safeQuery(() => db.storeProduct.findMany({ where: { storeId: store.id, supplierProductId: { not: null } }, select: { supplierProductId: true } }), []),
+    safeQuery(() => db.importOrder.findMany({ where: { storeId: store.id }, select: { status: true }, take: 100 }), []),
   ]);
 
   const nearby = await nearbyForSeller(user.id, rows.map(toFindProduct), new Map(rows.map((row) => [row.supplier.id, row.supplier.address])));
@@ -90,7 +92,7 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
     customers: typeof customerProfile.who === "string" ? customerProfile.who : null,
     categories,
   });
-  const importsOnTheWay = activeImportCount(sourcing.imports);
+  const importsOnTheWay = activeImportCount(imports.map((row) => ({ status: isImportStatus(row.status) ? row.status : "requested" })));
   const trends = sampleMode ? TREND_IDEAS : trendsFromProducts(live);
 
   return (
@@ -121,6 +123,7 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
         notified={sourcing.notifyNewSuppliers}
         error={params.error}
         focusPhoto={params.photo === "1"}
+        importsOpen={chinaImportsOpen()}
       />
     </SellerPage>
   );

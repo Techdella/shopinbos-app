@@ -163,6 +163,7 @@ const en = {
   "admin.ad-requests": "Ad requests",
   "admin.packaging-requests": "Packaging requests",
   "admin.print-orders": "Print orders",
+  "admin.imports": "China imports",
   "admin.support-macros": "Saved replies",
   "admin.sellers": "Sellers",
   "admin.suppliers": "Suppliers",

@@ -1,4 +1,4 @@
-// Find products (/marketplace), My imports and Rex's settings: pure helpers (Node strips the types natively).
+// Find products (/marketplace) and Rex's settings (China imports: tests/imports.test.mjs): pure helpers (Node strips the types natively).
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -130,41 +130,10 @@ test("live trends group trending products by category", () => {
   assert.match(trends[0].reason, /^2 trending in Shoes · keep up to \d+%$/);
 });
 
-test("1688 links are recognised and tidied; other sites are not", () => {
-  assert.deepEqual(find.parse1688Link("https://detail.1688.com/offer/712345678901.html?spm=a26352"), { url: "https://detail.1688.com/offer/712345678901.html", offerId: "712345678901" });
-  assert.deepEqual(find.parse1688Link("m.1688.com/offer/612345678.html"), { url: "https://detail.1688.com/offer/612345678.html", offerId: "612345678" });
-  assert.equal(find.parse1688Link("https://detail.1688.com.evil.com/offer/1.html"), null);
-  assert.equal(find.parse1688Link("https://www.aliexpress.com/item/1.html"), null);
-  assert.equal(find.parse1688Link("javascript:alert(1)"), null);
-  assert.equal(find.parse1688Link(""), null);
-});
-
-test("imports: parsing, progress, the 'My imports · N' count and the next reference", () => {
-  const imports = find.parseImports([
-    { id: "a", ref: "IMP-204", title: "Bluetooth earbuds with case", quantity: 50, shipping: "air", status: "shipping", total: 412600, note: "Lands in Lagos about 16 Oct" },
-    { id: "b", ref: "IMP-198", title: "Mini bucket bag", quantity: 30, shipping: "sea", status: "customs" },
-    { id: "c", ref: "IMP-190", title: "Women's linen two-piece set", status: "in_stock" },
-    { id: "d", title: "Odd", status: "teleported", qcPhotos: ["https://x/1.jpg", 4] },
-    { title: "no id" },
-  ]);
-  assert.equal(imports.length, 4);
-  assert.equal(imports[3].status, "requested");
-  assert.deepEqual(imports[3].qcPhotos, ["https://x/1.jpg"]);
-  assert.equal(imports[1].shipping, "sea");
-  assert.equal(find.activeImportCount(imports), 3);
-  assert.equal(find.nextImportRef(imports), "IMP-205");
-  assert.equal(find.nextImportRef([]), "IMP-101");
-  assert.equal(find.importProgress("requested"), 0);
-  assert.equal(find.importProgress("in_stock"), 100);
-  assert.equal(find.importStatusLabel("requested"), "Waiting for a quote");
-  assert.equal(find.importStatusLabel("shipping"), "Shipping to Lagos");
-  assert.deepEqual(find.IMPORT_STEPS.slice(1).map((s) => s.label), ["Quote paid", "Bought from the factory", "Checked, QC photos", "Shipping to Lagos", "Customs in Lagos", "In your stock"]);
-});
-
 test("sourcing settings parse safely", () => {
-  assert.deepEqual(find.parseSourcing(null), { imports: [], saved: [], notifyNewSuppliers: false });
+  assert.deepEqual(find.parseSourcing(null), { saved: [], notifyNewSuppliers: false });
   const parsed = find.parseSourcing({ saved: ["a", "a", 3, "b"], notifyNewSuppliers: true, imports: "nope" });
-  assert.deepEqual(parsed, { imports: [], saved: ["a", "b"], notifyNewSuppliers: true });
+  assert.deepEqual(parsed, { saved: ["a", "b"], notifyNewSuppliers: true });
 });
 
 test("Rex preferences: defaults, field-by-field parsing and form validation", () => {
