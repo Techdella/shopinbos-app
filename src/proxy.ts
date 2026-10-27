@@ -8,7 +8,7 @@ import { metadataNeedsAlign, roleToRepair } from "@/lib/auth/role-rules";
 import { csrfRejection } from "@/lib/auth/csrf";
 import { loginRedirectPath, PORTAL_API_PREFIXES, PROTECTED_PREFIXES, rolesForPath, type PortalRole } from "@/lib/auth/route-access";
 import { decodeAccessToken, sessionMaxAgeMs, sessionTooOld } from "@/lib/auth/session-claims";
-import { ACTIVITY_COOKIE, ACTIVITY_PATH, activityCookieValue, activitySecret, countsAsActivity, idleExpired, idleTimeoutMs, lastActiveAt, shouldRefreshActivity } from "@/lib/auth/idle";
+import { ACTIVITY_COOKIE, ACTIVITY_COOKIE_MAX_AGE, ACTIVITY_PATH, activityCookieValue, activitySecret, countsAsActivity, idleExpired, idleTimeoutMs, lastActiveAt, shouldRefreshActivity } from "@/lib/auth/idle";
 import { getPlatformRootDomain } from "@/lib/domains/storefront";
 import { resolveCustomDomainSlug } from "@/lib/domains/lookup";
 import { getOnboardingDestination } from "@/lib/onboarding-router";
@@ -258,7 +258,9 @@ export async function proxy(request: NextRequest) {
     }
     if (sessionKey && secret && (lastActive === null || countsAsActivity({ method: request.method, isApi, headers: request.headers })) && shouldRefreshActivity(lastActive, now)) {
       const value = await activityCookieValue(sessionKey, now, secret);
-      sessionCookies.push({ name: ACTIVITY_COOKIE, value, options: { ...SESSION_COOKIE_OPTIONS, httpOnly: true } });
+      // Outlives the browser closing (like Supabase's own cookies), so reopening it the next day still finds the
+      // session idle instead of starting the clock again.
+      sessionCookies.push({ name: ACTIVITY_COOKIE, value, options: { ...SESSION_COOKIE_OPTIONS, httpOnly: true, maxAge: ACTIVITY_COOKIE_MAX_AGE } });
       response = buildResponse();
     }
   }

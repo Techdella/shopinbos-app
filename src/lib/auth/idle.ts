@@ -12,6 +12,8 @@
 
 export const ACTIVITY_COOKIE = "sib_active";
 export const ACTIVITY_PATH = "/api/auth/activity";
+/** Seconds the cookie lives: past any session lifetime, so closing the browser doesn't reset the idle clock. */
+export const ACTIVITY_COOKIE_MAX_AGE = 30 * 86_400;
 
 export function idleTimeoutMs(role: string | null | undefined, env: Record<string, string | undefined>) {
   const minutes = Number(role === "admin" ? env.AUTH_ADMIN_IDLE_MINUTES ?? 15 : env.AUTH_IDLE_MINUTES ?? 60);

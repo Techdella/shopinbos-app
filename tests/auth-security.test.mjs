@@ -412,4 +412,5 @@ test("idle sign-out: signed activity cookie, limits per role, and what counts as
   const proxy = read("src/proxy.ts");
   assert.match(proxy, /idleExpired\(/);
   assert.match(proxy, /reason=\$\{reason\}/);
+  assert.match(proxy, /maxAge: ACTIVITY_COOKIE_MAX_AGE/, "survives the browser closing");
 });
