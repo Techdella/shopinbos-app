@@ -10,6 +10,7 @@ import { isEmailConfigured, sendEmail } from "@/lib/notifications/resend";
 import { sendSms } from "@/lib/notifications/service";
 import { getSupabaseServiceClient } from "@/lib/supabase/server";
 import { uploadPrivateFile } from "@/lib/supabase/storage.server";
+import { SNIFF_BYTES, uploadContentProblem } from "@/lib/security/upload-sniff";
 import { startOfLagosDay } from "@/lib/dashboard/compute";
 import {
   MAX_ATTACHMENTS,
@@ -28,6 +29,8 @@ import {
   preview,
   safeFileName,
   sanitizeText,
+  whatsappAttachmentProblem,
+  whatsappStoredType,
   subjectFrom,
   topicLabel,
   type AuthorType,
@@ -109,13 +112,26 @@ export function filesProblem(files: File[]) {
   return null;
 }
 
-async function storeFiles(ticketId: string, files: File[]): Promise<SupportAttachment[]> {
+/** With bestEffort, a file that won't store is left out instead of failing the message (files from WhatsApp). */
+async function storeFiles(ticketId: string, files: File[], bestEffort = false): Promise<SupportAttachment[]> {
   const stored: SupportAttachment[] = [];
   for (const file of files.slice(0, MAX_ATTACHMENTS)) {
-    const { path } = await uploadPrivateFile(`support/${ticketId}`, file);
-    stored.push({ path, name: safeFileName(file.name), type: file.type, size: file.size });
+    const upload = uploadPrivateFile(`support/${ticketId}`, file);
+    const result = bestEffort ? await upload.catch((error) => (console.error("[support] file not stored", file.type, error), null)) : await upload;
+    if (result) stored.push({ path: result.path, name: safeFileName(file.name), type: file.type, size: file.size });
   }
   return stored;
+}
+
+/**
+ * A WhatsApp file as the desk keeps it: whatever kind it is, under the type it really is. Anything a browser
+ * would run, or whose bytes don't match the type Meta gave, is kept as a plain download.
+ */
+async function whatsappFile(file: File): Promise<File> {
+  const type = whatsappStoredType(file.type);
+  const head = new Uint8Array(await file.slice(0, SNIFF_BYTES).arrayBuffer());
+  const safe = type !== "application/octet-stream" && uploadContentProblem(type, head) ? "application/octet-stream" : type;
+  return safe === file.type ? file : new File([file], file.name, { type: safe });
 }
 
 export interface MessageView {
@@ -202,7 +218,7 @@ async function openTicket(input: NewTicket) {
     },
   });
   // Files go under the ticket's own folder, so they're stored once the ticket exists.
-  const attachments = input.files?.length ? await storeFiles(ticket.id, input.files).catch(() => []) : [];
+  const attachments = input.files?.length ? await storeFiles(ticket.id, input.files, true).catch(() => []) : [];
   try {
     await db.supportMessage.create({
       data: {
@@ -400,7 +416,7 @@ async function recordUserMessage(
   input: { body: string; files: File[]; authorId: string | null; authorName: string; channel: "app" | "email" | "whatsapp"; externalId?: string | null },
 ) {
   const now = new Date();
-  const attachments = input.files.length ? await storeFiles(ticket.id, input.files) : [];
+  const attachments = input.files.length ? await storeFiles(ticket.id, input.files, input.channel === "whatsapp") : [];
   await db.supportMessage.create({
     data: {
       ticketId: ticket.id,
@@ -962,7 +978,8 @@ async function ingestSupportEmailOnce(email: InboundSupportEmail) {
 
 /**
  * A WhatsApp message to Shopinbos's own number (/api/webhooks/whatsapp). It joins the person's open conversation,
- * or a solved one (which reopens it); otherwise it starts a new one. Photos and files are copied from Meta.
+ * or a solved one (which reopens it); otherwise it starts a new one. Every file they send (photos, voice notes,
+ * videos, documents, stickers) is copied from Meta.
  */
 export async function ingestSupportWhatsApp(input: {
   phone: string;
@@ -982,7 +999,7 @@ export async function ingestSupportWhatsApp(input: {
   let skipped = 0;
   for (const attachment of input.attachments.slice(0, MAX_ATTACHMENTS)) {
     const file = attachment.mediaId ? await downloadInboxMedia(attachment.mediaId, attachment.name, attachment.contentType).catch(() => null) : null;
-    if (file && !attachmentProblem(file)) files.push(file);
+    if (file && !whatsappAttachmentProblem(file)) files.push(await whatsappFile(file));
     else skipped += 1;
   }
   const note = skipped ? `\n\n(${skipped} file${skipped === 1 ? "" : "s"} couldn't be copied: open WhatsApp to see ${skipped === 1 ? "it" : "them"})` : "";

@@ -5,6 +5,7 @@ import { metaTemplates, metaWhatsAppConfig, sendMetaTemplate, sendMetaText, type
 import { verifyMetaSignature } from "@/lib/inbox/pure";
 import { db } from "@/lib/db/client";
 import { TEAM_TEMPLATES, metaTeamTemplatePayload, readCustomTemplate, teamTemplateParams, type TeamTemplate, type TeamTemplateValues } from "./whatsapp-pure";
+import { WHATSAPP_MAX_ATTACHMENT_BYTES } from "./pure";
 
 // Templates the team writes in Admin › Inbox › WhatsApp templates, kept in PlatformSetting.
 const CUSTOM_KEY = "inbox.whatsapp_templates";
@@ -98,14 +99,16 @@ export async function sendInboxTemplate(to: string, template: TeamTemplate, valu
   return sendMetaTemplate(config, { to, template: template.name, language: template.language, params: teamTemplateParams(template, values) });
 }
 
-/** A photo, voice note or document someone sent, fetched from Meta so the inbox can show it. */
+/** A photo, voice note, video, sticker or document someone sent, fetched from Meta so the inbox can show it. */
 export async function downloadInboxMedia(mediaId: string, name: string | null, contentType: string | null): Promise<File | null> {
   const config = inboxWhatsAppConfig();
   if (!config || !mediaId) return null;
   const meta = await graph(mediaId, config.token, { timeoutMs: 10_000 }).catch(() => null);
   const url = meta?.ok ? String(meta.json.url ?? "") : "";
   if (!url) return null;
-  const response = await fetch(url, { headers: { Authorization: `Bearer ${config.token}` }, signal: AbortSignal.timeout(20_000), cache: "no-store" }).catch(() => null);
+  // Too big to keep: not downloaded at all (the message says to open WhatsApp for it).
+  if (Number(meta?.json.file_size) > WHATSAPP_MAX_ATTACHMENT_BYTES) return null;
+  const response = await fetch(url, { headers: { Authorization: `Bearer ${config.token}` }, signal: AbortSignal.timeout(45_000), cache: "no-store" }).catch(() => null);
   if (!response?.ok) return null;
   const type = (contentType || response.headers.get("content-type") || "application/octet-stream").split(";")[0]!;
   const extension = type.split("/")[1]?.replace(/[^a-z0-9]/gi, "") || "bin";

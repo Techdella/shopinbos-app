@@ -143,6 +143,23 @@ export function attachmentProblem(file: { type: string; size: number }) {
   return null;
 }
 
+/** WhatsApp files to the team's number: any kind people send (voice notes, videos, documents), up to 50 MB. */
+export const WHATSAPP_MAX_ATTACHMENT_BYTES = 50 * 1024 * 1024;
+
+/** Why a WhatsApp file can't be kept (only empty or too big: every type is welcome), or null. */
+export function whatsappAttachmentProblem(file: { size: number }) {
+  if (file.size <= 0) return "That file is empty.";
+  if (file.size > WHATSAPP_MAX_ATTACHMENT_BYTES) return "Files can be up to 50 MB.";
+  return null;
+}
+
+/** Types a browser would run (pages, scripts, SVG) are kept as plain downloads instead. */
+export function whatsappStoredType(type: string) {
+  const clean = type.toLowerCase().split(";")[0]!.trim();
+  if (!clean || /html|javascript|ecmascript|svg|xml/.test(clean)) return "application/octet-stream";
+  return clean;
+}
+
 export function safeFileName(name: string) {
   const cleaned = name.replace(INVISIBLE, "").replace(/[\\/:*?"<>|]+/g, "-").replace(/\s+/g, " ").trim();
   return (cleaned || "file").slice(0, 120);
