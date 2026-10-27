@@ -8,7 +8,7 @@ import { db } from "@/lib/db/client";
 import { chooseCodeChannel, whatsappCodesAvailable } from "@/lib/auth/otp-channel";
 import { channelUsedFor, rememberWantedChannel } from "@/lib/auth/otp-delivery.server";
 import { PHONE_TAKEN, phoneOwner, signsInWithPhone } from "@/lib/auth/phone-owner.server";
-import { ACCOUNT_CHECK_UNAVAILABLE, accountExistsMessage, accountFor, noAccountMessage } from "@/lib/auth/account-lookup.server";
+import { ACCOUNT_CHECK_UNAVAILABLE, accountExistsMessage, accountFor, noAccountMessage, profileEmailOwner } from "@/lib/auth/account-lookup.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -62,6 +62,13 @@ async function accountProblem(request: NextRequest, create: boolean, target: { e
   if (create && usePhone) {
     const owner = await phoneOwner(target.phone);
     if (owner && !(await signsInWithPhone(owner.supabaseId, target.phone))) return fail(PHONE_TAKEN, 409, "PHONE_TAKEN");
+  }
+  // Same for an email saved on an account that logs in another way (say, by phone): it has been used, so say so
+  // now, rather than sending a code that would sign them in to that account.
+  if (create && !usePhone) {
+    const owner = await profileEmailOwner(target.email);
+    if (owner === undefined) return fail(ACCOUNT_CHECK_UNAVAILABLE, 503, "UNAVAILABLE");
+    if (owner) return authError("ACCOUNT_EXISTS", accountExistsMessage(false), 409, { role: owner.role });
   }
   return null;
 }
