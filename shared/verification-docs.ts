@@ -2,7 +2,7 @@
 // pages, the upload API and the admin document viewer, so every screen agrees on what a document is
 // and when it really has a file behind it.
 
-export const DOC_TYPES = ["cac", "identity", "product-images", "tax", "utility", "bank", "insurance", "fleet", "other"] as const;
+export const DOC_TYPES = ["cac", "identity", "product-images", "tax", "utility", "bank", "insurance", "fleet", "other", "selfie", "courier-licence"] as const;
 export type DocType = (typeof DOC_TYPES)[number];
 
 export type DocStatus = "draft" | "uploaded" | "submitted" | "under_review" | "approved" | "rejected";
@@ -73,6 +73,8 @@ export const DOC_TYPE_LABELS: Record<DocType, string> = {
   insurance: "Insurance certificate",
   fleet: "Fleet or vehicle documents",
   other: "Other document",
+  selfie: "Selfie",
+  "courier-licence": "NIPOST courier licence",
 };
 
 export const SUPPLIER_DOC_TYPES: DocConfig[] = [
@@ -91,8 +93,26 @@ export const LOGISTICS_DOC_TYPES: DocConfig[] = [
   { type: "fleet", label: DOC_TYPE_LABELS.fleet, required: false, hint: "Vehicle registration, road worthiness" },
 ];
 
+/**
+ * Files in the tiered partner verification (shared/partner-tiers.ts, /logistics/verification). None is "required"
+ * here: the tier checklists decide what each tier needs (the selfie for Tier 1, the CAC certificate for Tier 2).
+ * LOGISTICS_DOC_TYPES above stays for the phone app's documents screen.
+ */
+export const LOGISTICS_TIER_DOC_TYPES: DocConfig[] = [
+  { type: "selfie", label: DOC_TYPE_LABELS.selfie, required: false, hint: "A clear photo of your face, looking at the camera" },
+  { type: "utility", label: DOC_TYPE_LABELS.utility, required: false, hint: "For address verification" },
+  { type: "cac", label: DOC_TYPE_LABELS.cac, required: false, hint: "BN or RC document accepted" },
+  { type: "courier-licence", label: DOC_TYPE_LABELS["courier-licence"], required: false, hint: "Optional. Shows a Licensed Courier badge" },
+];
+
 export function docTypesForRole(role: "supplier" | "logistics_partner"): DocConfig[] {
   return role === "supplier" ? SUPPLIER_DOC_TYPES : LOGISTICS_DOC_TYPES;
+}
+
+/** Every document type this role may upload (the upload API checks it). */
+export function uploadableDocTypes(role: "supplier" | "logistics_partner"): DocType[] {
+  if (role === "supplier") return SUPPLIER_DOC_TYPES.map((config) => config.type);
+  return [...new Set([...LOGISTICS_DOC_TYPES, ...LOGISTICS_TIER_DOC_TYPES].map((config) => config.type))];
 }
 
 // ─── Files ────────────────────────────────────────────────────────────────────

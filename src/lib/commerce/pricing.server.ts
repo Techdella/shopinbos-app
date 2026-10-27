@@ -224,7 +224,7 @@ export async function priceOrder(input: PricingInput): Promise<PricedOrder | { o
   // Delivery partners at checkout (the seller switched it on): their options replace the store's own zones. A fee
   // the seller agreed on a payment link replaces both.
   const market = input.store.userId && agreedFee === null
-    ? await marketChoiceForStore({ id: input.store.id, userId: input.store.userId, city: input.store.city ?? null }, items.map((item) => ({ productId: item.productId, quantity: item.quantity })), input.address)
+    ? await marketChoiceForStore({ id: input.store.id, userId: input.store.userId, city: input.store.city ?? null }, items.map((item) => ({ productId: item.productId, quantity: item.quantity })), input.address, subtotal)
     : null;
   let choice: DeliveryChoice;
   let option: DeliveryOption | null;

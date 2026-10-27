@@ -54,7 +54,7 @@ export const GET = withLogistics(async (_req: NextRequest, { user }) => {
       onboarded: isOnboardingComplete(partner),
       taking: partner.status === "active",
       // Why "Taking new jobs" can't be switched on yet (setup | documents | checking | rejected | hold), or null.
-      takingBlock: takingJobsBlock({ status: partner.status, verificationStatus: partner.verificationStatus, onboarded: isOnboardingComplete(partner), docsSent: docsSentFor(partner.verificationDocuments) }),
+      takingBlock: takingJobsBlock({ status: partner.status, verificationStatus: partner.verificationStatus, onboarded: isOnboardingComplete(partner), docsSent: Boolean(partner.kycSubmittedAt) || docsSentFor(partner.verificationDocuments) }),
     },
     firstName: user.name.split(" ")[0] ?? user.name,
     deliveredToday: deliveredToday.length,
