@@ -153,16 +153,17 @@ export default async function ProductsPage({
       title={t("list.title")}
       actions={
         <>
-          <PillLink href="/products/import" icon="upload">{t("list.import")}</PillLink>
+          {/* Phones: Import and Export shrink to icons so the actions fit on one row. */}
+          <PillLink href="/products/import" icon="upload" className="max-sm:w-11 max-sm:px-0"><span className="max-sm:sr-only">{t("list.import")}</span></PillLink>
           <a
             href="/api/products/export"
             download
-            className="inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-full border border-app-line bg-white px-5 text-[14px] font-extrabold text-app-ink no-underline transition hover:border-app-line-strong"
+            className="inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-full border border-app-line bg-white px-5 text-[14px] font-extrabold text-app-ink no-underline transition hover:border-app-line-strong max-sm:w-11 max-sm:px-0"
           >
             <Icon name="download" size={16} />
-            {t("list.export")}
+            <span className="max-sm:sr-only">{t("list.export")}</span>
           </a>
-          <PillLink href="/products/new" tone="accent" icon="plus">{t("addProduct")}</PillLink>
+          <PillLink href="/products/new" tone="accent" icon="plus" className="max-sm:px-3.5">{t("addProduct")}</PillLink>
         </>
       }
       toolbar={
@@ -177,15 +178,15 @@ export default async function ProductsPage({
         </>
       }
     >
-      <nav aria-label={t("list.whereShow")} className="-mt-1 mb-4 flex flex-wrap items-center gap-x-1 gap-y-1 text-[13px] text-app-ink-soft">
-        <span className="mr-1">{t("list.showing")}</span>
+      <nav aria-label={t("list.whereShow")} className="-mt-1 mb-4 flex items-center gap-1 overflow-x-auto whitespace-nowrap text-[13px] text-app-ink-soft [scrollbar-width:none] sm:flex-wrap sm:overflow-visible [&::-webkit-scrollbar]:hidden">
+        <span className="mr-1 shrink-0">{t("list.showing")}</span>
         {VISIBILITY.map((item) => (
           <Link
             key={item.key}
             href={href({ visibility: item.key })}
             aria-current={item.key === visibilityKey ? "page" : undefined}
             className={cx(
-              "inline-flex min-h-[32px] items-center rounded-full px-2.5 no-underline",
+              "inline-flex min-h-[32px] shrink-0 items-center rounded-full px-2.5 no-underline",
               item.key === visibilityKey ? "bg-white font-bold text-app-ink ring-1 ring-app-line" : "text-app-ink-soft hover:text-app-ink",
             )}
           >
@@ -253,8 +254,8 @@ export default async function ProductsPage({
                   <Thumb src={p.images[0]} label={p.name} />
                   <div className="grid min-w-0 flex-1 items-center gap-x-5 gap-y-2 md:grid-cols-[minmax(0,1.6fr)_minmax(0,1.2fr)_auto] xl:grid-cols-[minmax(0,2fr)_110px_minmax(0,0.9fr)_minmax(0,0.8fr)_120px]">
                     <div className="min-w-0">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <span className="truncate text-[15px] font-extrabold">{p.name}</span>
+                      <div className="flex min-w-0 items-start gap-2 sm:items-center">
+                        <span className="line-clamp-2 min-w-0 break-words text-[15px] font-extrabold leading-[1.3] sm:line-clamp-1">{p.name}</span>
                         {p.shortCode ? <ProductCodeBadge code={p.shortCode} /> : null}
                         {p.featured && <span className="shrink-0 text-app-accent" title={t("list.featured")}><Icon name="star" size={14} /><span className="sr-only">{t("list.featured")}</span></span>}
                         {campaignTimers[p.id] ? <ProductCampaignBadge campaign={campaignTimers[p.id]!} serverNow={campaignNow.toISOString()} /> : null}

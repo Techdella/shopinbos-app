@@ -57,7 +57,7 @@ export function UpdatesRing({ role }: { role: string }) {
         data-updates-ring={unseen ? "new" : "seen"}
         aria-label={unseen ? t("updates.ringNew", { count: unseen }) : t("updates.ring")}
         title={unseen ? t("updates.ringNew", { count: unseen }) : t("updates.ring")}
-        className="relative grid h-[42px] w-[42px] shrink-0 place-items-center rounded-full p-[2.5px]"
+        className="relative grid h-10 w-10 shrink-0 place-items-center rounded-full p-[2.5px] sm:h-[42px] sm:w-[42px]"
         style={{ background: unseen ? "conic-gradient(from 210deg, #73D8C8, #2E7E78, #F2A93B, #73D8C8)" : "rgb(14 42 56 / 0.14)" }}
       >
         <span className="grid h-full w-full place-items-center rounded-full border-2 border-white bg-[#0E2A38] text-[#73D8C8]">

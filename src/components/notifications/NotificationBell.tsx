@@ -69,7 +69,7 @@ export function NotificationBell({ role, initialUnread = 0 }: { role: string; in
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => setOpen(true)}
-        className="relative grid h-[42px] w-[42px] place-items-center rounded-full border border-app-line hover:border-app-line-strong"
+        className="relative grid h-10 w-10 shrink-0 place-items-center rounded-full border border-app-line hover:border-app-line-strong sm:h-[42px] sm:w-[42px]"
       >
         <Icon name="bell" size={17} />
         {unread > 0 && (

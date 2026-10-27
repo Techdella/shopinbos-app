@@ -77,7 +77,7 @@ export function PageHead({ title, sub, actions, learn }: { title: ReactNode; sub
         {sub && <p className="mb-0 mt-1.5 max-w-[720px] text-[14.5px] leading-[1.5] text-app-ink-soft">{sub}</p>}
         {learn}
       </div>
-      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+      {actions && <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">{actions}</div>}
     </header>
   );
 }
@@ -148,17 +148,17 @@ export function StageDot({ tone = "muted", children }: { tone?: Tone; children: 
   );
 }
 
-/** Link-based filter chips: "All · 6", "Live", "Drafts". The active one is ink. */
+/** Link-based filter chips: "All · 6", "Live", "Drafts". The active one is ink. One row that scrolls sideways on phones. */
 export function FilterChips({ items, className }: { items: Array<{ label: string; href: string; count?: number; active?: boolean }>; className?: string }) {
   return (
-    <nav aria-label="Filter" className={cx("flex flex-wrap gap-2", className)}>
+    <nav aria-label="Filter" className={cx("flex max-w-full gap-2 overflow-x-auto [scrollbar-width:none] sm:flex-wrap sm:overflow-visible [&::-webkit-scrollbar]:hidden", className)}>
       {items.map((item) => (
         <Link
           key={item.href}
           href={item.href}
           aria-current={item.active ? "page" : undefined}
           className={cx(
-            "inline-flex min-h-[40px] items-center rounded-full border px-4 text-[14px] font-bold no-underline",
+            "inline-flex min-h-[40px] shrink-0 items-center whitespace-nowrap rounded-full border px-4 text-[14px] font-bold no-underline",
             item.active ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink hover:border-app-line-strong",
           )}
         >
