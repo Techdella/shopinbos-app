@@ -73,6 +73,10 @@ export default async function AdminWalletsPage({ searchParams }: { searchParams?
   return (
     <AppPage frame={adminFrame(user)} title="Wallets" sub="Where each business's card payments are settled. Shopinbos holds no money.">
       <ChecksSummary working={idChecks.state === "ok" && cacProviders().length > 0} developer={canSeeDevelopers} />
+      <p className="mb-4 mt-0 text-[13.5px]">
+        <Link href="/admin/wallets/fees" className="font-bold underline underline-offset-4">Shopinbos fees →</Link>{" "}
+        <span className="text-app-ink-soft">What Shopinbos keeps from store payments and wallet spending.</span>
+      </p>
       <div className="mb-4 flex flex-wrap gap-2">
         {FILTERS.map((option) => (
           <Link key={option.id} href={withParams("/admin/wallets", { status: option.id || undefined })} className={`rounded-full border px-3.5 py-1.5 text-[13px] font-bold no-underline ${filter === option.id ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink"}`}>
