@@ -64,9 +64,9 @@ export default async function SellerMessagesPage({ searchParams }: { searchParam
       sub={unread ? t("waiting", { count: unread }) : t("sub")}
       actions={
         <>
-          <PillLink href="/home/inbox/auto-replies" icon="clock">{t("autoReplies")}</PillLink>
-          <PillLink href="/home/inbox/chatbot" icon="sparkle">{t("chatbot")}</PillLink>
-          <PillLink href="/home/inbox/settings" icon="settings">{t("settings")}</PillLink>
+          <PillLink href="/home/inbox/auto-replies" icon="clock" iconOnlyOnPhone>{t("autoReplies")}</PillLink>
+          <PillLink href="/home/inbox/chatbot" icon="sparkle" iconOnlyOnPhone>{t("chatbot")}</PillLink>
+          <PillLink href="/home/inbox/settings" icon="settings" iconOnlyOnPhone>{t("settings")}</PillLink>
           <PillLink href="/home/inbox/channels" icon="plug" tone="ink">{t("channelsOn", { count: connected.length + 2 })}</PillLink>
         </>
       }

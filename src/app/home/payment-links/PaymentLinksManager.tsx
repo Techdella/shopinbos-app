@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { confirmDialog } from "@/components/ui/dialogs";
 import { Notice, PillButton } from "@/components/app-ui";
-import { cx } from "@/components/app-ui/cx";
+import { cx, PHONE_SCROLL_ROW } from "@/components/app-ui/cx";
 import { Icon } from "@/components/ui/Icon";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { formatDate } from "@shared/i18n";
@@ -87,13 +87,13 @@ export function PaymentLinksManager({
         </Notice>
       ) : null}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <nav className="flex flex-wrap gap-1.5" aria-label={t("list.title")}>
+        <nav className={cx("flex gap-1.5", PHONE_SCROLL_ROW)} aria-label={t("list.title")}>
           {FILTERS.map((key) => (
             <Link
               key={key}
               href={key === "all" ? "/home/payment-links" : `/home/payment-links?status=${key}`}
               aria-current={filter === key ? "page" : undefined}
-              className={cx("inline-flex min-h-[40px] items-center rounded-full px-4 text-[13.5px] font-bold no-underline", filter === key ? "bg-app-ink text-white" : "border border-app-line bg-white text-app-ink")}
+              className={cx("inline-flex min-h-[40px] shrink-0 items-center whitespace-nowrap rounded-full px-4 text-[13.5px] font-bold no-underline", filter === key ? "bg-app-ink text-white" : "border border-app-line bg-white text-app-ink")}
             >
               {t(`filter.${key}`)}
             </Link>

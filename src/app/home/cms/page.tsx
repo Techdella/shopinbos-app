@@ -34,7 +34,7 @@ export default async function CmsPage() {
       sub={t("sub")}
       actions={
         <>
-          {store && <PillLink href="/home/cms/plan" icon="calendar">{t("plan.title")}</PillLink>}
+          {store && <PillLink href="/home/cms/plan" icon="calendar" iconOnlyOnPhone>{t("plan.title")}</PillLink>}
           <PillLink href={studioHref(REX_SETUP_PROMPT)} icon="sparkle">{t("askRexSetup")}</PillLink>
           {store && <NewCollectionButton takenSlugs={taken} />}
         </>

@@ -6,11 +6,11 @@ import { forwardRef, useEffect, useRef, type ButtonHTMLAttributes, type InputHTM
 import { Icon } from "@/components/ui/Icon";
 import { DIAL_COUNTRIES, OTP_LENGTH, type DialCountry } from "@shared/phone";
 
-import { cx } from "./cx";
+import { cx, PHONE_SCROLL_ROW } from "./cx";
 import { Mascot as BrandMascot, type MascotProps, type MascotWho } from "@/components/brand/Mascot";
 import { useT } from "@/components/i18n/I18nProvider";
 
-export { cx };
+export { cx, PHONE_SCROLL_ROW };
 
 export function Wordmark({ tone = "dark", className = "" }: { tone?: "dark" | "light"; className?: string }) {
   // eslint-disable-next-line @next/next/no-img-element
@@ -141,7 +141,7 @@ export function PhoneInput({
 
 export function Segmented<T extends string>({ options, value, onChange, className = "" }: { options: { value: T; label: string }[]; value: T; onChange: (value: T) => void; className?: string }) {
   return (
-    <div role="tablist" className={cx("flex rounded-full bg-white p-1", className)}>
+    <div role="tablist" className={cx("flex max-w-full overflow-x-auto rounded-full bg-white p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden", className)}>
       {options.map((option) => {
         const on = option.value === value;
         return (
@@ -151,7 +151,7 @@ export function Segmented<T extends string>({ options, value, onChange, classNam
             role="tab"
             aria-selected={on}
             onClick={() => onChange(option.value)}
-            className={cx("min-h-[42px] flex-1 rounded-full px-4 text-[14px] font-bold transition", on ? "bg-app-ink text-white" : "text-app-ink hover:bg-app-canvas")}
+            className={cx("min-h-[42px] flex-1 shrink-0 whitespace-nowrap rounded-full px-4 text-[14px] font-bold transition", on ? "bg-app-ink text-white" : "text-app-ink hover:bg-app-canvas")}
           >
             {option.label}
           </button>

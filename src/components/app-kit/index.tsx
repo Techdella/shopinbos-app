@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 import { AppFrame } from "@/components/shell/AppFrame";
-import { cx } from "@/components/app-ui/cx";
+import { cx, PHONE_SCROLL_ROW } from "@/components/app-ui/cx";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { HelpButton } from "@/components/simple/HelpButton";
 import { Mascot, type MascotMood } from "@/components/brand/Mascot";
@@ -110,8 +110,12 @@ const PILL_LINK = {
   white: "border border-app-line bg-white text-app-ink hover:border-app-line-strong",
 } as const;
 
-/** A link that looks like a pill button (top-right page actions, card actions). */
-export function PillLink({ href, tone = "white", size = "md", icon, children, className }: { href: string; tone?: keyof typeof PILL_LINK; size?: "sm" | "md"; icon?: IconName; children: ReactNode; className?: string }) {
+/**
+ * A link that looks like a pill button (top-right page actions, card actions). `iconOnlyOnPhone` shows just the icon
+ * below `sm` (the label stays for screen readers), for secondary header actions whose icon says enough.
+ */
+export function PillLink({ href, tone = "white", size = "md", icon, iconOnlyOnPhone = false, children, className }: { href: string; tone?: keyof typeof PILL_LINK; size?: "sm" | "md"; icon?: IconName; iconOnlyOnPhone?: boolean; children: ReactNode; className?: string }) {
+  const phoneIcon = iconOnlyOnPhone && icon;
   return (
     <Link
       href={href}
@@ -119,11 +123,12 @@ export function PillLink({ href, tone = "white", size = "md", icon, children, cl
         "inline-flex shrink-0 items-center justify-center gap-2 rounded-full font-extrabold no-underline transition",
         size === "sm" ? "min-h-[34px] px-3.5 text-[13px]" : "min-h-[44px] px-5 text-[14px]",
         PILL_LINK[tone],
+        phoneIcon && (size === "sm" ? "max-sm:w-[34px] max-sm:px-0" : "max-sm:w-11 max-sm:px-0"),
         className,
       )}
     >
       {icon && <Icon name={icon} size={size === "sm" ? 14 : 16} />}
-      {children}
+      {phoneIcon ? <span className="max-sm:sr-only">{children}</span> : children}
     </Link>
   );
 }
@@ -151,7 +156,7 @@ export function StageDot({ tone = "muted", children }: { tone?: Tone; children: 
 /** Link-based filter chips: "All · 6", "Live", "Drafts". The active one is ink. One row that scrolls sideways on phones. */
 export function FilterChips({ items, className }: { items: Array<{ label: string; href: string; count?: number; active?: boolean }>; className?: string }) {
   return (
-    <nav aria-label="Filter" className={cx("flex max-w-full gap-2 overflow-x-auto [scrollbar-width:none] sm:flex-wrap sm:overflow-visible [&::-webkit-scrollbar]:hidden", className)}>
+    <nav aria-label="Filter" className={cx("flex gap-2", PHONE_SCROLL_ROW, className)}>
       {items.map((item) => (
         <Link
           key={item.href}

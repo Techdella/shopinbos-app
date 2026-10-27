@@ -116,7 +116,7 @@ export default async function OrderDetailPage({ params, searchParams }: { params
       sub={t("detail.placedBy", { name: order.buyerName, date: formatDate(order.createdAt, locale) })}
       actions={
         <>
-          <PillLink href="/home/orders" icon="arrowLeft">{t("allOrders")}</PillLink>
+          <PillLink href="/home/orders" icon="arrowLeft" iconOnlyOnPhone>{t("allOrders")}</PillLink>
           <PillLink href={`/home/labels?orders=${order.id}`} tone="ink" icon="document">{t("detail.printLabel")}</PillLink>
         </>
       }

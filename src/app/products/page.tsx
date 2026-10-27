@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AppPage, EmptyState, FilterChips, ListCard, ListRow, Pill, PillLink, SearchForm, Thumb, cx } from "@/components/app-kit";
+import { PHONE_SCROLL_ROW } from "@/components/app-ui/cx";
 import { Icon } from "@/components/ui/Icon";
 import { sellerFrame } from "@/components/seller-core";
 import { requireRole } from "@/lib/server-auth";
@@ -154,7 +155,7 @@ export default async function ProductsPage({
       actions={
         <>
           {/* Phones: Import and Export shrink to icons so the actions fit on one row. */}
-          <PillLink href="/products/import" icon="upload" className="max-sm:w-11 max-sm:px-0"><span className="max-sm:sr-only">{t("list.import")}</span></PillLink>
+          <PillLink href="/products/import" icon="upload" iconOnlyOnPhone>{t("list.import")}</PillLink>
           <a
             href="/api/products/export"
             download
@@ -178,7 +179,7 @@ export default async function ProductsPage({
         </>
       }
     >
-      <nav aria-label={t("list.whereShow")} className="-mt-1 mb-4 flex items-center gap-1 overflow-x-auto whitespace-nowrap text-[13px] text-app-ink-soft [scrollbar-width:none] sm:flex-wrap sm:overflow-visible [&::-webkit-scrollbar]:hidden">
+      <nav aria-label={t("list.whereShow")} className={cx("-mt-1 mb-4 flex items-center gap-1 whitespace-nowrap text-[13px] text-app-ink-soft", PHONE_SCROLL_ROW)}>
         <span className="mr-1 shrink-0">{t("list.showing")}</span>
         {VISIBILITY.map((item) => (
           <Link

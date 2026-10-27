@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AppPage, Card, Pill, type Tone } from "@/components/app-kit";
 import { adminFrame, formatDate } from "@/components/admin/AdminKit";
-import { cx } from "@/components/app-ui/cx";
+import { cx, PHONE_SCROLL_ROW } from "@/components/app-ui/cx";
 import { Icon } from "@/components/ui/Icon";
 import { requireRole } from "@/lib/server-auth";
 import { EXPORT_PERIODS, feeLines, type ExportPeriod } from "@/lib/wallet/fees-export.server";
@@ -54,13 +54,13 @@ export default async function AdminPlatformFeesPage(props: { searchParams?: Prom
   return (
     <AppPage frame={adminFrame(user)} title="Shopinbos fees" sub="What Shopinbos earns: fees on store payments, subscriptions, AI credits and other purchases.">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <nav aria-label="Period" className="flex flex-wrap gap-1 rounded-full border border-app-line bg-white p-1">
+        <nav aria-label="Period" className={cx("flex gap-1 rounded-full border border-app-line bg-white p-1", PHONE_SCROLL_ROW)}>
           {(Object.keys(EXPORT_PERIODS) as ExportPeriod[]).map((key) => (
             <Link
               key={key}
               href={href({ period: key, type: undefined })}
               aria-current={key === period ? "page" : undefined}
-              className={cx("inline-flex min-h-[36px] items-center rounded-full px-4 text-[13.5px] font-bold no-underline", key === period ? "bg-app-ink text-white" : "text-app-ink hover:bg-app-canvas")}
+              className={cx("inline-flex min-h-[36px] shrink-0 items-center whitespace-nowrap rounded-full px-4 text-[13.5px] font-bold no-underline", key === period ? "bg-app-ink text-white" : "text-app-ink hover:bg-app-canvas")}
             >
               {EXPORT_PERIODS[key]}
             </Link>
@@ -141,14 +141,14 @@ export default async function AdminPlatformFeesPage(props: { searchParams?: Prom
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-app-line px-5 py-4">
           <h2 className="m-0 text-[17px] font-extrabold">Payments</h2>
           {report.totals.length > 1 ? (
-            <nav aria-label="Type" className="flex flex-wrap gap-1.5">
+            <nav aria-label="Type" className={cx("flex gap-1.5", PHONE_SCROLL_ROW)}>
               {[{ label: "All", value: undefined, count: report.lines.length }, ...report.totals.map((total) => ({ label: total.type, value: total.type, count: total.count }))].map((chip) => (
                 <Link
                   key={chip.label}
                   href={href({ type: chip.value })}
                   aria-current={chip.value === type ? "page" : undefined}
                   className={cx(
-                    "inline-flex min-h-[32px] items-center rounded-full border px-3 text-[13px] font-bold no-underline",
+                    "inline-flex min-h-[32px] shrink-0 items-center whitespace-nowrap rounded-full border px-3 text-[13px] font-bold no-underline",
                     chip.value === type ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink hover:border-app-line-strong",
                   )}
                 >

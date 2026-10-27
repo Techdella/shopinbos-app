@@ -34,7 +34,7 @@ export default async function SellerDeliveryAnalyticsPage({ searchParams }: { se
       sub={w("an.subSeller", { range: rangeLabel(w, days).toLowerCase() })}
       actions={
         <>
-          <PillLink href="/home/logistics" icon="arrowLeft">{w("logistics")}</PillLink>
+          <PillLink href="/home/logistics" icon="arrowLeft" iconOnlyOnPhone>{w("logistics")}</PillLink>
           <PillLink href="/home/logistics/exceptions">{w("an.exceptions")}</PillLink>
         </>
       }

@@ -75,7 +75,7 @@ export default async function LeadWhatsAppPage(props: { searchParams?: Promise<S
       sub={sub}
       actions={
         <>
-          <PillLink href="/admin/lead-campaigns" icon="arrowLeft">Campaigns</PillLink>
+          <PillLink href="/admin/lead-campaigns" icon="arrowLeft" iconOnlyOnPhone>Campaigns</PillLink>
           <PillLink href="/admin/lead-campaigns/new?channel=whatsapp" tone="ink" icon="whatsapp">New WhatsApp campaign</PillLink>
         </>
       }
