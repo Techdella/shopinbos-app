@@ -90,11 +90,14 @@ export function refundEmail(input: { appUrl: string; store: StoreSender; buyerNa
   };
 }
 
-export function reviewRequestEmail(input: { appUrl: string; store: StoreSender; customerName: string; link: string; items: string[] }) {
+/** A review request: with signed links it carries Unsubscribe and Update preferences, like marketing email. */
+export function reviewRequestEmail(input: { appUrl: string; store: StoreSender; customerName: string; link: string; items: string[]; unsubscribeUrl?: string | null; preferencesUrl?: string | null }) {
   return storeEmail({
     appUrl: input.appUrl,
     store: input.store,
-    kind: "transactional",
+    kind: input.unsubscribeUrl ? "marketing" : "transactional",
+    unsubscribeUrl: input.unsubscribeUrl,
+    preferencesUrl: input.preferencesUrl,
     preheader: `A quick rating helps other buyers. It takes about a minute.`,
     heading: `How was your order, ${first(input.customerName)}?`,
     bodyHtml: `${html.p(`Thank you for shopping with ${input.store.name}. A quick rating helps other buyers and helps us get better.`)}${html.list(input.items.slice(0, 6))}`,

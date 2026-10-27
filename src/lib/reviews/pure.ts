@@ -406,6 +406,16 @@ export function reviewRequestMessage(input: { storeName: string; customerName: s
   };
 }
 
+/**
+ * How to stop, on every review request text: "Reply STOP" when it comes from the shop's own two-way number (the
+ * webhook records the reply, src/lib/marketing/opt-outs.ts), else a link to the stop page (/s/<slug>/review/<token>/stop),
+ * since replies to the platform's sender ID don't reach anyone. Fits the message in `max` characters.
+ */
+export function withOptOut(message: string, how: { reply: true } | { link: string }, max = 300) {
+  const line = "reply" in how ? " Reply STOP to opt out." : ` Stop texts: ${how.link}`;
+  return `${message.slice(0, Math.max(0, max - line.length))}${line}`;
+}
+
 // ─── Sharing ──────────────────────────────────────────────────────────────────
 
 export function reviewShareText(item: Pick<ReviewItem, "rating" | "body" | "title" | "authorName">, storeName: string) {

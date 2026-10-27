@@ -5,11 +5,13 @@ import { verifyEmailToken, type EmailLinkTarget } from "@/lib/email/tokens";
 import { PLATFORM_REQUIRED, PLATFORM_TOPICS, STORE_TOPICS, type PlatformTopic, type StoreTopic } from "@/lib/email/preferences";
 import { contactPreferences, platformEmailPrefs, saveContactPreferences, savePlatformEmailPrefs } from "@/lib/email/preferences.server";
 import { notificationSettingsUrl, platformLegal, SENDER_STORE_SELECT, storeSender } from "@/lib/email/compliance.server";
+import { setWhatsAppMarketing, whatsappMarketingOn } from "@/lib/member-messaging/tips.server";
 
 // The email preference center, reached from the footer of every marketing and lifecycle email. Public: the signed
 // token in the URL is the credential (src/lib/email/tokens.ts), so nobody needs to sign in.
 //   store contacts (B): topics from that shop, SMS/WhatsApp marketing, unsubscribe from all
-//   Shopinbos users (A): product news, onboarding nudges, weekly summaries (security and billing always send)
+//   Shopinbos users (A): product news, onboarding nudges, weekly summaries (security and billing always send), and
+//   Shopinbos's WhatsApp tips and offers (the same switch as replying STOP / START on WhatsApp)
 // Changes are server actions, so a link scanner opening the page never changes anything.
 
 export const dynamic = "force-dynamic";
@@ -41,6 +43,10 @@ async function save(formData: FormData) {
     });
   } else {
     await savePlatformEmailPrefs(found.userId, Object.fromEntries(PLATFORM_TOPICS.map((t) => [t.key, on(`topic_${t.key}`)])) as Record<PlatformTopic, boolean>);
+    if (formData.get("has_whatsapp")) {
+      const user = await db.user.findUnique({ where: { id: found.userId }, select: { id: true, role: true } });
+      if (user) await setWhatsAppMarketing(user, on("whatsapp"));
+    }
   }
   redirect(`/email/preferences/${encodeURIComponent(token)}?saved=1`);
 }
@@ -131,9 +137,9 @@ export default async function EmailPreferencesPage({ params, searchParams }: Pag
       </>
     );
   } else {
-    const user = await db.user.findUnique({ where: { id: found.userId }, select: { email: true, role: true } });
+    const user = await db.user.findUnique({ where: { id: found.userId }, select: { email: true, role: true, phone: true } });
     if (!user) notFound();
-    const prefs = await platformEmailPrefs(found.userId);
+    const [prefs, whatsappOn] = await Promise.all([platformEmailPrefs(found.userId), whatsappMarketingOn(found.userId)]);
     const legal = platformLegal();
     email = user.email ?? "";
     footer = { name: legal.name, address: legal.address, privacyUrl: "https://shopinbos.com/privacy", contactUrl: "mailto:support@shopinbos.com" };
@@ -150,6 +156,15 @@ export default async function EmailPreferencesPage({ params, searchParams }: Pag
               <Toggle key={topic.key} name={`topic_${topic.key}`} label={topic.label} help={topic.help} defaultChecked={prefs[topic.key]} />
             ))}
           </ul>
+          {user.phone && (
+            <fieldset className="m-0 mt-5 border-0 p-0">
+              <legend className="mb-1 p-0 font-mono text-[11px] uppercase tracking-[0.16em] text-[#195754] dark:text-mint">WhatsApp to {user.phone.replace(/\d(?=\d{4})/g, "•")}</legend>
+              <input type="hidden" name="has_whatsapp" value="1" />
+              <ul className="m-0 list-none p-0">
+                <Toggle name="whatsapp" label="WhatsApp tips and offers" help="Weekly tips, set-up help and Shopinbos news on WhatsApp. You can also reply STOP (or START) on WhatsApp. Order, payout and security messages still arrive." defaultChecked={whatsappOn} />
+              </ul>
+            </fieldset>
+          )}
           <div className="mt-4 rounded-[14px] bg-cream px-4 py-3 dark:bg-[#0E2A38] text-[13.5px] text-muted dark:text-[#A9B8BB]">
             <span className="font-semibold text-navy dark:text-cream">Always sent:</span> {PLATFORM_REQUIRED.join(", ").toLowerCase()}. These keep your account safe and working.
           </div>

@@ -170,6 +170,11 @@ ${sub ? `<span style="display:block;margin-top:4px;font-size:13.5px;color:#5B677
 </a></td></tr></table>`;
 }
 
+/** A reply that means "send me tips again" ("START", "subscribe", "unstop"). */
+export function isStartWord(text: string | null | undefined) {
+  return /^\s*(start|subscribe|unstop|resume|start tips)\s*[.!]?\s*$/i.test(text ?? "");
+}
+
 /** A reply that means "stop sending me tips" ("STOP", "stop tips", "unsubscribe"). */
 export function isStopWord(text: string | null | undefined) {
   return /^\s*(stop|stop tips|stop all|unsubscribe|opt out|no more)\s*[.!]?\s*$/i.test(text ?? "");

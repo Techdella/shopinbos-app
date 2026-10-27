@@ -7,8 +7,8 @@ import { parseTemplateStatusUpdates } from "@/lib/marketing/text-channels";
 import { applyTemplateStatusUpdates } from "@/lib/marketing/whatsapp-templates.server";
 import { ingestSupportWhatsApp, updateSupportDelivery } from "@/lib/support/service.server";
 import { inboxSignatureOk, isInboxWhatsAppNumber } from "@/lib/support/whatsapp.server";
-import { stopWhatsAppTips } from "@/lib/member-messaging/tips.server";
-import { isStopWord } from "@/lib/member-messaging/tips-email";
+import { startWhatsAppTips, stopWhatsAppTips } from "@/lib/member-messaging/tips.server";
+import { isStartWord, isStopWord } from "@/lib/member-messaging/tips-email";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -48,6 +48,8 @@ export async function POST(req: NextRequest) {
       for (const message of messages.filter((m) => m.accountId === accountId)) {
         // "STOP" to a weekly tip: no more tips on WhatsApp for that number (the message still reaches the inbox).
         if (isStopWord(message.text)) await stopWhatsAppTips(message.contactPhone ?? message.threadId).catch((error) => console.error("[webhooks/whatsapp] tips stop failed", error));
+        // "START" switches them back on.
+        else if (isStartWord(message.text)) await startWhatsAppTips(message.contactPhone ?? message.threadId).catch((error) => console.error("[webhooks/whatsapp] tips start failed", error));
         await ingestSupportWhatsApp({ phone: message.contactPhone ?? message.threadId, name: message.contactName ?? null, text: message.text, messageId: message.externalId, attachments: message.attachments.map((a) => ({ mediaId: a.mediaId ?? null, name: a.name ?? null, contentType: a.contentType ?? null })) }).catch((error) =>
           console.error("[webhooks/whatsapp] inbox ingest failed", error),
         );
