@@ -56,6 +56,14 @@ test("files: screenshots and PDFs up to 10 MB, stored only under the ticket's fo
   assert.equal(s.attachmentProblem({ type: "image/png", size: 2000 }), null);
   assert.match(s.attachmentProblem({ type: "application/zip", size: 2000 }), /screenshot/);
   assert.match(s.attachmentProblem({ type: "image/png", size: 11 * 1024 * 1024 }), /10 MB/);
+  // WhatsApp files: any kind, up to 50 MB; anything a browser would run is kept as a download.
+  for (const type of ["audio/ogg", "video/mp4", "application/zip", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"]) assert.equal(s.whatsappAttachmentProblem({ type, size: 20 * 1024 * 1024 }), null, type);
+  assert.match(s.whatsappAttachmentProblem({ size: 51 * 1024 * 1024 }), /50 MB/);
+  assert.match(s.whatsappAttachmentProblem({ size: 0 }), /empty/);
+  assert.equal(s.whatsappStoredType("audio/ogg; codecs=opus"), "audio/ogg");
+  assert.equal(s.whatsappStoredType("text/html"), "application/octet-stream");
+  assert.equal(s.whatsappStoredType("image/svg+xml"), "application/octet-stream");
+  assert.equal(s.whatsappStoredType(""), "application/octet-stream");
   assert.equal(s.attachmentPathBelongs("support/t1/123-abc.png", "t1"), true);
   assert.equal(s.attachmentPathBelongs("support/t2/123-abc.png", "t1"), false);
   assert.equal(s.attachmentPathBelongs("support/t1/../t2/x.png", "t1"), false);
