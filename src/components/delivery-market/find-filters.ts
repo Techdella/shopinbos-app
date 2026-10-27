@@ -1,4 +1,5 @@
 import { PARTNER_SERVICES, canonicalState } from "@shared/delivery-market";
+import { isPartnerBadge, type PartnerBadge } from "@shared/partner-tiers";
 
 // "Find partners" filters from the page's search params (sellers and suppliers), for findPartners.
 
@@ -9,9 +10,11 @@ export interface FindFiltersShape {
   minRating: number | null;
   pickupPoints: boolean;
   q: string | null;
+  /** Only partners showing this badge (Verified Individual, Registered Business, …). */
+  badge: PartnerBadge | null;
 }
 
-export type FindSearch = { service?: string; state?: string; maxPrice?: string; minRating?: string; pickupPoints?: string; q?: string };
+export type FindSearch = { service?: string; state?: string; maxPrice?: string; minRating?: string; pickupPoints?: string; q?: string; badge?: string };
 
 export function readFindFilters(params: FindSearch): FindFiltersShape {
   const number = (value: string | undefined) => {
@@ -25,6 +28,7 @@ export function readFindFilters(params: FindSearch): FindFiltersShape {
     minRating: Math.min(number(params.minRating) ?? 0, 5) || null,
     pickupPoints: params.pickupPoints === "1" || params.pickupPoints === "on",
     q: params.q?.trim().slice(0, 80) || null,
+    badge: isPartnerBadge(params.badge) ? params.badge : null,
   };
 }
 

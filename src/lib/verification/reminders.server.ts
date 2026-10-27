@@ -6,10 +6,12 @@ import { isEmailConfigured } from "@/lib/notifications/resend";
 import { sendPlatformEmail } from "@/lib/email/compliance.server";
 import { platformEmailAllowed } from "@/lib/email/preferences.server";
 import { cacCheckEnabled } from "@/lib/kyb/verify-cac.server";
-import { LOGISTICS_DOC_TYPES, SUPPLIER_DOC_TYPES, missingRequiredDocs, normalizeVerificationDocs } from "@shared/verification-docs";
+import { SUPPLIER_DOC_TYPES, missingRequiredDocs, normalizeVerificationDocs } from "@shared/verification-docs";
 import { paystackPhone } from "@/lib/wallet/balance-rules";
 import { sendShopinbosTemplate } from "@/lib/member-messaging/send.server";
 import { dueNudge, sentNudges, verifyNudgeEmail } from "./reminders";
+import { partnerTierSnapshot } from "@/lib/logistics/partner-tiers.server";
+import { ITEM_LABELS, itemsWhere, tier1Checklist } from "@shared/partner-tiers";
 
 // The "verify your account" sequence for suppliers and delivery partners not verified yet, by email and WhatsApp
 // (see ./reminders.ts for the schedule and words): the first nudge now (with their wallet account number, if they
@@ -38,7 +40,7 @@ export async function sendVerificationReminders(now = new Date()) {
         onboardingState: true,
         verificationDocuments: true,
         verificationStatus: true,
-        ...(kind === "supplier" ? { businessName: true } : { companyName: true }),
+        ...(kind === "supplier" ? { businessName: true } : { companyName: true, kycSubmittedAt: true }),
         displayName: true,
         ...(kind === "supplier" ? { whatsappNumber: true } : { whatsappNumber: true, contactPhone: true }),
         user: { select: { id: true, name: true, email: true, role: true, phone: true, createdAt: true, wallet: { select: { topUpStatus: true, topUpAccountNumber: true, topUpBankName: true } } } },
@@ -50,10 +52,18 @@ export async function sendVerificationReminders(now = new Date()) {
     for (const row of rows) {
       if (sent >= BATCH) break;
       checked++;
-      const configs = kind === "supplier" ? SUPPLIER_DOC_TYPES : LOGISTICS_DOC_TYPES;
-      const missing = missingRequiredDocs(configs, normalizeVerificationDocs(row.verificationDocuments));
+      // Delivery partners are chased for what Tier 1 still needs (shared/partner-tiers.ts), never for CAC: they can
+      // start without it. Once they've sent it for review there's nothing to chase.
+      let missingLabels: string[];
+      if (kind === "supplier") {
+        missingLabels = missingRequiredDocs(SUPPLIER_DOC_TYPES, normalizeVerificationDocs(row.verificationDocuments)).map((config) => config.label);
+      } else {
+        if (row.kycSubmittedAt) continue;
+        const found = await partnerTierSnapshot(row.id);
+        missingLabels = found ? itemsWhere(tier1Checklist(found.snapshot), ["missing", "rejected"]).map((item) => ITEM_LABELS[item as keyof typeof ITEM_LABELS]) : [];
+      }
       // Everything is in and with the review team: nothing to chase.
-      if (!missing.length) continue;
+      if (!missingLabels.length) continue;
       const email = row.user?.email ?? null;
       const phone = paystackPhone(row.user?.phone ?? row.whatsappNumber ?? row.contactPhone);
       if (!email && !phone) continue;
@@ -69,7 +79,6 @@ export async function sendVerificationReminders(now = new Date()) {
       const firstName = String(row.user?.name ?? "").trim().split(/\s+/)[0] || "there";
       const wallet = row.user?.wallet?.topUpStatus === "ready" && row.user.wallet.topUpAccountNumber ? { number: row.user.wallet.topUpAccountNumber, bank: row.user.wallet.topUpBankName ?? "Wema Bank" } : null;
       const link = `${base}${kind === "supplier" ? "/supplier/verification" : "/logistics/verification"}`;
-      const missingLabels = missing.map((config: { label: string }) => config.label);
 
       // Record first, so a slow send can't make the next run message them twice.
       const state = row.onboardingState && typeof row.onboardingState === "object" ? row.onboardingState : {};
@@ -84,7 +93,7 @@ export async function sendVerificationReminders(now = new Date()) {
           businessName,
           missing: missingLabels,
           link,
-          cacEnabled,
+          cacEnabled: kind === "supplier" && cacEnabled,
           wallet,
           peggyImage: `${base}/brand/email/call-peggy.png`,
           dashboard: `${base}${kind === "supplier" ? "/supplier/dashboard" : "/logistics/dashboard"}`,

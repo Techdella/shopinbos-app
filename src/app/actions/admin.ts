@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { invalidatePublicMarketplaceCache } from "@/lib/api/cache";
 import { db } from "@/lib/db/client";
 import { notifyProductDecision, notifyVerificationDecision } from "@/lib/notifications/events.server";
+import { refreshPartnerTier } from "@/lib/logistics/partner-tiers.server";
 
 const VerificationStatusSchema = z.enum(["unverified", "pending", "verified", "rejected", "suspended"]);
 const ProductStatusSchema = z.enum(["draft", "pending_review", "published", "unpublished", "rejected"]);
@@ -125,6 +126,8 @@ export async function updateLogisticsVerification(formData: FormData) {
     : null;
 
   if (partner) {
+    // Keeps the tier and badges in step (shared/partner-tiers.ts).
+    await refreshPartnerTier(parsed.data.logisticsPartnerId).catch(() => null);
     await notifyVerificationDecision({ userId: partner.userId, status: parsed.data.status, portal: "logistics" });
     invalidatePublicMarketplaceCache({ logisticsSlug: partner.slug });
     revalidateAdminPaths("/admin/logistics-partners", "/admin/marketplace");
@@ -377,10 +380,11 @@ export async function bulkUpdateLogisticsVerification(formData: FormData) {
 
   const updated = await db.logisticsPartner.findMany({
     where: { id: { in: ids } },
-    select: { slug: true, userId: true },
+    select: { id: true, slug: true, userId: true },
   });
 
   for (const partner of updated) {
+    await refreshPartnerTier(partner.id).catch(() => null);
     invalidatePublicMarketplaceCache({ logisticsSlug: partner.slug });
     await notifyVerificationDecision({ userId: partner.userId, status: parsedStatus.data, portal: "logistics" });
   }

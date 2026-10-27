@@ -212,7 +212,7 @@ export async function connectionsForOwner(ownerId: string) {
   return db.deliveryConnection.findMany({
     where: { ownerUserId: ownerId, status: "active" },
     orderBy: { createdAt: "asc" },
-    include: { logisticsPartner: { select: { id: true, slug: true, displayName: true, logoUrl: true, status: true, verificationStatus: true, services: true, offersPayOnDelivery: true, userId: true } } },
+    include: { logisticsPartner: { select: { id: true, slug: true, displayName: true, logoUrl: true, status: true, verificationStatus: true, services: true, offersPayOnDelivery: true, userId: true, badges: true } } },
   });
 }
 
@@ -437,6 +437,8 @@ export interface FindFilters {
   minRating?: number | null;
   pickupPoints?: boolean;
   q?: string | null;
+  /** shared/partner-tiers.ts PARTNER_BADGES. */
+  badge?: string | null;
 }
 
 /** "Find partners" (spec §5.2): partners serving where the business sells from where it ships, best first. */
@@ -454,9 +456,10 @@ export async function findPartners(owner: { id: string; role: string }, filters:
       ...(q ? { OR: [{ displayName: { contains: q, mode: "insensitive" as const } }, { companyName: { contains: q, mode: "insensitive" as const } }] } : {}),
       ...(filters.service ? { services: { has: filters.service } } : {}),
       ...(filters.minRating ? { rating: { gte: filters.minRating } } : {}),
+      ...(filters.badge ? { badges: { has: filters.badge } } : {}),
     },
     select: {
-      id: true, slug: true, displayName: true, logoUrl: true, rating: true, ratingCount: true, verificationStatus: true, services: true, pickupAreas: true, deliveryAreas: true, offersPayOnDelivery: true,
+      id: true, slug: true, displayName: true, logoUrl: true, rating: true, ratingCount: true, verificationStatus: true, services: true, pickupAreas: true, deliveryAreas: true, offersPayOnDelivery: true, badges: true, vehicleTypes: true,
       rateCards: { where: { ownerUserId: null, status: "active" }, take: 1, orderBy: { createdAt: "desc" }, select: { rows: true } },
       _count: { select: { pickupPoints: { where: { active: true } } } },
     },
@@ -479,7 +482,7 @@ export async function findPartners(owner: { id: string; role: string }, filters:
         pickupPointCount: partner._count.pickupPoints,
         connectionId: connected.find((entry) => entry.logisticsPartnerId === partner.id)?.id ?? null,
         matchesShop: partnerMatchesShop(partner, { origin: origin.state ? origin : null, sellArea: state ? "selected" : settings.sellArea, sellStates: state ? [state] : settings.sellStates }),
-        score: rankScore({ stats: stat, rating: partner.rating, ratingCount: partner.ratingCount, match, verified: partner.verificationStatus === "verified" }),
+        score: rankScore({ stats: stat, rating: partner.rating, ratingCount: partner.ratingCount, match, verified: partner.verificationStatus === "verified", registered: partner.badges.includes("registered_business") }),
       };
     })
     .filter((row) => row.matchesShop && row.startingPrice !== null)
@@ -495,7 +498,7 @@ export async function partnerDetail(slug: string, viewerId: string | null) {
     where: { slug, ...LIVE_PARTNER_WHERE },
     select: {
       id: true, slug: true, userId: true, displayName: true, companyName: true, description: true, logoUrl: true, bannerUrl: true, rating: true, ratingCount: true, verificationStatus: true,
-      services: true, pickupAreas: true, deliveryAreas: true, offersPayOnDelivery: true, cacNumber: true, city: true,
+      services: true, pickupAreas: true, deliveryAreas: true, offersPayOnDelivery: true, cacNumber: true, city: true, badges: true, vehicleTypes: true,
       rateCards: { where: { ownerUserId: null, status: "active" }, take: 1, orderBy: { createdAt: "desc" } },
       pickupPoints: { where: { active: true }, orderBy: [{ state: "asc" }, { name: "asc" }] },
       reviews: { orderBy: { createdAt: "desc" }, take: 10, select: { id: true, rating: true, comment: true, response: true, createdAt: true, reviewer: { select: { name: true } } } },

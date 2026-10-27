@@ -7,7 +7,6 @@ import {
   OnboardingPill,
   onboardingSubmitted,
   VERIFICATION_STATUSES,
-  VerificationPill,
   adminFrame,
   buttonClass,
   fieldClass,
@@ -19,17 +18,25 @@ import {
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { SERVICE_LABELS, type PartnerService } from "@shared/delivery-market";
+import { BADGE_LABELS, isPartnerBadge, partnerVerificationState } from "@shared/partner-tiers";
+import { STATE_LABELS, STATE_TONES } from "./[id]/TierPanel";
+import { reviewQueue } from "./review-queue.server";
 
 const verificationStatuses: readonly string[] = VERIFICATION_STATUSES;
 
-export default async function AdminLogisticsPartnersPage(props: { searchParams?: Promise<{ status?: string; q?: string; saved?: string; error?: string }> }) {
+export default async function AdminLogisticsPartnersPage(props: { searchParams?: Promise<{ status?: string; q?: string; view?: string; saved?: string; error?: string }> }) {
   const user = await requireRole(["admin"], "/admin/login");
 
   const searchParams = await props.searchParams;
   const statusFilter = searchParams?.status && verificationStatuses.includes(searchParams.status) ? searchParams.status : undefined;
   const searchQuery = searchParams?.q?.trim() || undefined;
+  // "Waiting for review": partners who sent their tier verification, or have an item waiting for the team.
+  const reviewView = searchParams?.view === "review";
+  const queue = await reviewQueue();
+  const waiting = new Map(queue.map((entry) => [entry.id, entry.pending]));
 
   const where: Record<string, unknown> = {};
+  if (reviewView) where.id = { in: queue.map((entry) => entry.id) };
   if (statusFilter) {
     where.verificationStatus = statusFilter;
   }
@@ -44,7 +51,7 @@ export default async function AdminLogisticsPartnersPage(props: { searchParams?:
   const [partners, byStatus, total, submitted, suspended] = await Promise.all([
     db.logisticsPartner.findMany({
       where,
-      orderBy: [{ verificationStatus: "asc" }, { updatedAt: "desc" }],
+      orderBy: reviewView ? [{ kycSubmittedAt: { sort: "asc", nulls: "last" } }, { updatedAt: "asc" }] : [{ verificationStatus: "asc" }, { updatedAt: "desc" }],
       take: 100,
       select: {
         id: true,
@@ -55,6 +62,9 @@ export default async function AdminLogisticsPartnersPage(props: { searchParams?:
         city: true,
         logoUrl: true,
         verificationStatus: true,
+        verificationTier: true,
+        kycSubmittedAt: true,
+        badges: true,
         status: true,
         reliabilityScore: true,
         basePrice: true,
@@ -80,7 +90,7 @@ export default async function AdminLogisticsPartnersPage(props: { searchParams?:
 
   const countFor = (status: string) => byStatus.find((row) => row.verificationStatus === status)?._count._all ?? 0;
   const selectedIds = partners.map((s) => s.id);
-  const backTo = withParams("/admin/logistics-partners", { status: statusFilter, q: searchQuery });
+  const backTo = withParams("/admin/logistics-partners", { status: statusFilter, q: searchQuery, view: reviewView ? "review" : undefined });
 
   return (
     <AppPage
@@ -91,16 +101,18 @@ export default async function AdminLogisticsPartnersPage(props: { searchParams?:
         <>
           <FilterChips
             items={[
-              { label: "All", count: total, href: withParams("/admin/logistics-partners", { q: searchQuery }), active: !statusFilter },
+              { label: "All", count: total, href: withParams("/admin/logistics-partners", { q: searchQuery }), active: !statusFilter && !reviewView },
+              { label: "Waiting for review", count: queue.length, href: withParams("/admin/logistics-partners", { view: "review", q: searchQuery }), active: reviewView && !statusFilter },
               ...(["pending", "verified", "unverified", "rejected", "suspended"] as const).map((status) => ({
                 label: verificationLabel(status),
                 count: countFor(status),
                 href: withParams("/admin/logistics-partners", { status, q: searchQuery }),
-                active: statusFilter === status,
+                active: statusFilter === status && !reviewView,
               })),
             ]}
           />
-          <SearchForm action="/admin/logistics-partners" defaultValue={searchQuery} placeholder="Search by name or slug" keep={{ status: statusFilter }} />
+          <SearchForm action="/admin/logistics-partners" defaultValue={searchQuery} placeholder="Search by name or slug" keep={{ status: statusFilter, view: reviewView ? "review" : undefined }} />
+          <PillLink href="/admin/logistics-partners/tier-rules" size="sm" icon="settings">Tier rules</PillLink>
         </>
       }
     >
@@ -116,7 +128,7 @@ export default async function AdminLogisticsPartnersPage(props: { searchParams?:
       <CountRow
         items={[
           { label: "All partners", value: total },
-          { label: "Waiting for review", value: countFor("pending") },
+          { label: "Waiting for review", value: queue.length },
           { label: "Verified", value: countFor("verified") },
           { label: "Onboarding sent", value: submitted },
           { label: "Suspended", value: suspended },
@@ -131,7 +143,7 @@ export default async function AdminLogisticsPartnersPage(props: { searchParams?:
       )}
 
       {partners.length === 0 ? (
-        <EmptyState icon="truck" title={statusFilter || searchQuery ? "No partners match" : "No logistics partners yet"} action={statusFilter || searchQuery ? <PillLink href="/admin/logistics-partners">Clear filters</PillLink> : undefined}>
+        <EmptyState icon="truck" title={reviewView && !searchQuery ? "Nothing waiting for review" : statusFilter || searchQuery ? "No partners match" : "No logistics partners yet"} action={statusFilter || searchQuery ? <PillLink href="/admin/logistics-partners">Clear filters</PillLink> : undefined}>
           {statusFilter || searchQuery ? "Try another filter or search word." : "Delivery partners show up here as soon as they sign up."}
         </EmptyState>
       ) : (
@@ -165,9 +177,15 @@ export default async function AdminLogisticsPartnersPage(props: { searchParams?:
                     <div className="truncate text-[13px] text-app-ink-soft">
                       {row.companyName} · /{row.slug} · {row.city}, {row.country}
                     </div>
+                    {waiting.get(row.id)?.length ? (
+                      <div className="truncate text-[13px] font-bold text-[#8A5A00]">
+                        To check: {waiting.get(row.id)!.join(", ")}{row.kycSubmittedAt ? ` · sent ${formatDate(row.kycSubmittedAt)}` : ""}
+                      </div>
+                    ) : null}
                   </div>
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <VerificationPill status={row.verificationStatus} />
+                    <Pill tone={STATE_TONES[partnerVerificationState(row)]}>{STATE_LABELS[partnerVerificationState(row)]}</Pill>
+                    {row.badges.filter(isPartnerBadge).map((badge) => <Pill key={badge} tone="info">{BADGE_LABELS[badge]}</Pill>)}
                     {row.status !== "active" && <Pill tone={row.status === "paused" ? "warning" : "danger"}>{row.status === "suspended" ? "Account suspended" : row.status === "paused" ? "Paused by partner" : row.status}</Pill>}
                     {issuesFor(row.id) > 0 && <Pill tone="warning">{issuesFor(row.id)} open problem{issuesFor(row.id) === 1 ? "" : "s"}</Pill>}
                     <OnboardingPill status={onboardingSubmitted(row.onboardingState) ? "submitted" : "draft"} />

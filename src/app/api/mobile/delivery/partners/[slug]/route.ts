@@ -24,6 +24,9 @@ export const GET = withOwner(async (_req: NextRequest, { user, params }) => {
       rating: partner.rating,
       ratingCount: partner.ratingCount,
       verified: partner.verificationStatus === "verified",
+      /** shared/partner-tiers.ts PARTNER_BADGES, and how they deliver (bike, car, van, tricycle, other). */
+      badges: partner.badges,
+      deliveryMethods: partner.vehicleTypes,
       services: partner.services,
       pickupAreas: partner.pickupAreas,
       deliveryAreas: partner.deliveryAreas,

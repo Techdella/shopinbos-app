@@ -366,6 +366,25 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "exceptions.tip": "Move fast for here. If partner say no or dem no come, send the parcel to another partner so your customer no go wait too much.",
   "an.tip": "Check this one once every week. If one partner dey always late, give more of your parcels to the one wey dey reach on time.",
   "an.moreNumbers": "More numbers",
+  // Partner badges and delivery methods (shared/partner-tiers.ts)
+  "badge.verified_individual": "Verified Individual",
+  "badge.registered_business": "Registered Business",
+  "badge.licensed_courier": "Licensed Courier",
+  "badge.verified_payout": "Verified Payout",
+  "badgeTip.verified_individual": "Shopinbos don check dis person ID, bank, vehicle and guarantor. E never get CAC.",
+  "badgeTip.registered_business": "Business wey register for CAC, Shopinbos don check am.",
+  "badgeTip.licensed_courier": "E get NIPOST courier licence, Shopinbos don check am.",
+  "badgeTip.verified_payout": "Dem dey pay am enter business bank account wey carry the registered name.",
+  "find.badge": "Badge",
+  "find.anyBadge": "Any badge",
+  "find.methodsLabel": "E dey deliver with:",
+  "find.trustNote": "Shopinbos dey check partner ID and documents. Partners na independent operators.",
+  "method.bike": "Bike",
+  "method.car": "Car",
+  "method.van": "Van",
+  "method.tricycle": "Keke",
+  "method.truck": "Truck",
+  "method.other": "Other one",
 };
 
 export default pcm;

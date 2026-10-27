@@ -4,6 +4,7 @@ import { ok, apiError } from "@/lib/api/response";
 import { emitPartnerEvent } from "@/lib/logistics/webhooks";
 import { partnerJob } from "@/lib/logistics/partner-api-core";
 import { notifyJobOffered } from "@/lib/notifications/events.server";
+import { partnerJobLimitProblem } from "@/lib/logistics/partner-tiers.server";
 
 // Seller accepts a partner's quoted price: the quote becomes a booking at that price, offered to the partner
 // like any other booking. Only the seller's own quote, only once a price is in and before it expires.
@@ -23,6 +24,8 @@ export const POST = withSeller(async (_req, { user, params }) => {
   if (quote.logisticsPartner.status !== "active" || quote.logisticsPartner.verificationStatus !== "verified") {
     return apiError("BAD_REQUEST", "This delivery partner isn't taking bookings right now.");
   }
+  const limitProblem = await partnerJobLimitProblem(quote.logisticsPartnerId, 0);
+  if (limitProblem) return apiError("PARTNER_LIMIT", limitProblem, 409);
 
   const details = quote.packageDetails && typeof quote.packageDetails === "object" && !Array.isArray(quote.packageDetails)
     ? (quote.packageDetails as Record<string, unknown>)

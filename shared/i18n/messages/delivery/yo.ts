@@ -363,6 +363,25 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "exceptions.tip": "Yára níbí. Tí partner bá sọ pé rárá tàbí kò wá, fi ẹrù náà ránṣẹ́ sí partner míì kí oníbàárà rẹ má bàa dúró pẹ́.",
   "an.tip": "Wo èyí lẹ́ẹ̀kan lọ́sẹ̀. Tí partner kan bá ń pẹ́ dé ní gbogbo ìgbà, fún èyí tó ń dé lásìkò ní ẹrù rẹ púpọ̀ sí i.",
   "an.moreNumbers": "Àwọn nọ́ńbà míì",
+  // Partner badges and delivery methods (shared/partner-tiers.ts)
+  "badge.verified_individual": "Verified Individual",
+  "badge.registered_business": "Registered Business",
+  "badge.licensed_courier": "Licensed Courier",
+  "badge.verified_payout": "Verified Payout",
+  "badgeTip.verified_individual": "Shopinbos ti ṣàyẹ̀wò ID, bank, ọkọ̀ àti guarantor ẹni yìí. Kò tíì ní CAC.",
+  "badgeTip.registered_business": "Iṣẹ́ òwò tí a forúkọ rẹ̀ sílẹ̀ ní CAC, Shopinbos ti ṣàyẹ̀wò rẹ̀.",
+  "badgeTip.licensed_courier": "Ó ní NIPOST courier licence, Shopinbos ti ṣàyẹ̀wò rẹ̀.",
+  "badgeTip.verified_payout": "Wọ́n ń sanwó rẹ̀ sínú business bank account tí ó ní orúkọ iṣẹ́ òwò rẹ̀.",
+  "find.badge": "Badge",
+  "find.anyBadge": "Badge èyíkéyìí",
+  "find.methodsLabel": "Ó ń fi jíṣẹ́:",
+  "find.trustNote": "Shopinbos ń ṣàyẹ̀wò ID àti àwọn ìwé partner. Àwọn partner ń ṣiṣẹ́ fúnra wọn.",
+  "method.bike": "Ọ̀kadà",
+  "method.car": "Mọ́tò",
+  "method.van": "Van",
+  "method.tricycle": "Kẹ̀kẹ́ Marwa",
+  "method.truck": "Trọ́ọ̀kì",
+  "method.other": "Òmíràn",
 };
 
 export default yo;

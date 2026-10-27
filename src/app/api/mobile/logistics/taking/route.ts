@@ -23,7 +23,7 @@ export const POST = withLogistics(async (req: NextRequest, { user }) => {
     status: partner.status,
     verificationStatus: partner.verificationStatus,
     onboarded: isOnboardingComplete(partner),
-    docsSent: docsSentFor(partner.verificationDocuments),
+    docsSent: Boolean(partner.kycSubmittedAt) || docsSentFor(partner.verificationDocuments),
   });
   // Pausing is always allowed (except on hold); switching on needs a verified company.
   if (block === "hold" || (block && body.taking)) {

@@ -387,6 +387,25 @@ const en = {
   "exceptions.tip": "Act fast here. If a partner says no or doesn't come, send the parcel to another partner so your customer isn't kept waiting.",
   "an.tip": "Check this once a week. If one partner is often late, give more of your parcels to the one that arrives on time.",
   "an.moreNumbers": "More numbers",
+  // Partner badges and delivery methods (shared/partner-tiers.ts)
+  "badge.verified_individual": "Verified Individual",
+  "badge.registered_business": "Registered Business",
+  "badge.licensed_courier": "Licensed Courier",
+  "badge.verified_payout": "Verified Payout",
+  "badgeTip.verified_individual": "Shopinbos checked this person's ID, bank, vehicle and guarantor. No CAC yet.",
+  "badgeTip.registered_business": "A business registered with CAC, checked by Shopinbos.",
+  "badgeTip.licensed_courier": "Has a NIPOST courier licence, checked by Shopinbos.",
+  "badgeTip.verified_payout": "Gets paid into a business bank account in its registered name.",
+  "find.badge": "Badge",
+  "find.anyBadge": "Any badge",
+  "find.methodsLabel": "Delivers by:",
+  "find.trustNote": "Shopinbos verifies partner identity and documents. Partners are independent operators.",
+  "method.bike": "Bike",
+  "method.car": "Car",
+  "method.van": "Van",
+  "method.tricycle": "Tricycle (keke)",
+  "method.truck": "Truck",
+  "method.other": "Other",
 } satisfies Record<string, string>;
 
 export default en;

@@ -47,6 +47,7 @@ export const GET = withOwner(async (_req: NextRequest, { user }) => {
         services: connection.logisticsPartner.services,
         offersPayOnDelivery: connection.logisticsPartner.offersPayOnDelivery,
         live: connection.logisticsPartner.status === "active" && connection.logisticsPartner.verificationStatus === "verified",
+        badges: connection.logisticsPartner.badges,
         userId: connection.logisticsPartner.userId,
       },
       stats: stats.get(connection.logisticsPartnerId) ?? null,

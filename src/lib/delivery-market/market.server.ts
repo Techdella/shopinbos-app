@@ -1,5 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db/client";
+import { partnersOverLimit } from "@/lib/logistics/partner-tiers.server";
 import {
   buildMarketChoice,
   canonicalState,
@@ -60,8 +61,11 @@ const PARTNER_SELECT = {
   pickupPoints: { where: { active: true }, select: { id: true, name: true, address: true, state: true, area: true, hours: true, phone: true } },
 } as const;
 
-/** The active connections of these businesses, ready for buildMarketChoice. Suspended or paused partners drop out at once. */
-export async function marketConnectionsFor(ownerUserIds: string[]): Promise<Map<string, MarketConnection[]>> {
+/**
+ * The active connections of these businesses, ready for buildMarketChoice. Suspended or paused partners drop out at
+ * once. With `orderValue` (checkout), Tier 1 partners it would take over their limits drop out too.
+ */
+export async function marketConnectionsFor(ownerUserIds: string[], options: { orderValue?: number } = {}): Promise<Map<string, MarketConnection[]>> {
   const out = new Map<string, MarketConnection[]>(ownerUserIds.map((id) => [id, []]));
   if (!ownerUserIds.length) return out;
   const connections = await db.deliveryConnection.findMany({
@@ -79,7 +83,9 @@ export async function marketConnectionsFor(ownerUserIds: string[]): Promise<Map<
         select: { id: true, rows: true, ownerUserId: true, logisticsPartnerId: true },
       })
     : [];
+  const overLimit = options.orderValue !== undefined ? await partnersOverLimit([...new Set(connections.map((connection) => connection.logisticsPartnerId))], options.orderValue) : new Set<string>();
   for (const connection of connections) {
+    if (overLimit.has(connection.logisticsPartnerId)) continue;
     const partner = connection.logisticsPartner;
     const own = privateCards.find((card) => card.ownerUserId === connection.ownerUserId && card.logisticsPartnerId === connection.logisticsPartnerId);
     const card = own ?? partner.rateCards[0] ?? null;
@@ -138,6 +144,8 @@ export async function marketChoiceForStore(
   store: { id: string; userId: string; city: string | null },
   items: MarketBagItem[],
   address: { city?: string | null; state?: string | null },
+  /** The bag's value in naira: Tier 1 partners take orders up to their limit (shared/partner-tiers.ts). */
+  orderValue?: number,
 ): Promise<{ choice: MarketChoice; shipments: Shipment[] } | null> {
   const settings = await deliverySettingsFor(store.userId);
   if (settings.checkoutMode !== "partners") return null;
@@ -165,7 +173,7 @@ export async function marketChoiceForStore(
 
   const supplierUserIds = [...groups.values()].flatMap((group) => (group.supplier ? [group.supplier.userId] : []));
   const [connections, supplierSettings] = await Promise.all([
-    marketConnectionsFor([store.userId, ...supplierUserIds]),
+    marketConnectionsFor([store.userId, ...supplierUserIds], { orderValue: orderValue ?? 0 }),
     supplierUserIds.length ? db.deliverySettings.findMany({ where: { userId: { in: supplierUserIds } } }) : Promise.resolve([]),
   ]);
   const shopConnections = connections.get(store.userId) ?? [];
