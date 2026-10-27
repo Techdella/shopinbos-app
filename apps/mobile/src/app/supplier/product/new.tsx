@@ -57,7 +57,7 @@ export default function NewSupplierProduct() {
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [more, setMore] = useState(false);
-  const [preorder, setPreorder] = useState<PreorderForm>(() => preorderFormFrom(null));
+  const [preorder, setPreorder] = useState<PreorderForm>(() => ({ ...preorderFormFrom(null), depositPct: 0 }));
   // "unverified": asked to show it to shops, but the business isn't verified yet, so the server kept it as a draft.
   const [saved, setSaved] = useState<null | "draft" | "pending_review" | "unverified">(null);
 

@@ -68,6 +68,7 @@ export default function Orders() {
         ))}
         {/* Stock bought from suppliers (price requests, wholesale orders, Pay) lives on its own screen. */}
         <Seg label={t("list.wholesale")} on={false} onPress={() => router.push("/wholesale")} />
+        <Seg label={t("preorders.title")} on={false} onPress={() => router.push("/preorders")} />
       </FilterBar>
       <FilterSheet visible={sheet} onClose={() => setSheet(false)} title={t("filters.title")} doneLabel={t("filters.done")} clearLabel={t("filters.clear")} onClear={() => setFilters(NO_ORDER_FILTERS)}>
         <Field value={filters.q} onChangeText={(q) => set({ q })} placeholder={t("filters.search")} accessibilityLabel={t("filters.search")} returnKeyType="search" autoCorrect={false} style={{ height: 48 }} />

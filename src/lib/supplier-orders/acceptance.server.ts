@@ -8,6 +8,7 @@ import { expiryGuard, hoursInWords, reminderDue, type SupplierOrderKind } from "
 import { messageSupplierPhone } from "./deadline.server";
 import { EXPIRED_WHOLESALE_REASON, plainText, supplierOrderRef } from "./pure";
 import { releaseWholesaleStock, wholesaleRef } from "./wholesale.server";
+import { recordWholesaleRefundOwed } from "./preorders.server";
 import { switchedMessage } from "@shared/order-parts";
 import type { SwitchDecision } from "./switch.server";
 
@@ -190,7 +191,7 @@ async function sweepUndecided(now: Date, limit: number) {
 export async function expireWholesaleOrder(id: string, now = new Date()) {
   const row = await db.wholesaleOrder.findUnique({
     where: { id },
-    select: { id: true, sellerId: true, supplierId: true, quantity: true, supplierProductId: true, supplier: { select: { userId: true, displayName: true } }, supplierProduct: { select: { name: true } } },
+    select: { id: true, sellerId: true, supplierId: true, quantity: true, supplierProductId: true, depositPaidAt: true, supplier: { select: { userId: true, displayName: true } }, supplierProduct: { select: { name: true } } },
   });
   if (!row) return false;
   const done = await db.$transaction(async (tx) => {
@@ -201,6 +202,8 @@ export async function expireWholesaleOrder(id: string, now = new Date()) {
     return true;
   });
   if (!done) return false;
+  // A preorder deposit paid in the app is owed back (money owed, src/lib/supplier-orders/preorders.server.ts).
+  if (row.depositPaidAt) await recordWholesaleRefundOwed(row.id);
   const supplierName = plainText(row.supplier.displayName) || "The supplier";
   const what = `${row.quantity.toLocaleString("en-NG")} × ${plainText(row.supplierProduct.name)}`;
   await Promise.allSettled([
@@ -209,7 +212,7 @@ export async function expireWholesaleOrder(id: string, now = new Date()) {
       type: "suppliers",
       priority: "warning",
       title: `${supplierName} didn't answer your wholesale order in time`,
-      description: `${what}: they didn't accept it in time, so we cancelled it. You haven't paid anything. Find another supplier for it.`,
+      description: `${what}: they didn't accept it in time, so we cancelled it. ${row.depositPaidAt ? "The deposit you paid is owed back to you (see your Shopinbos Wallet)." : "You haven't paid anything."} Find another supplier for it.`,
       link: `/marketplace?q=${encodeURIComponent(row.supplierProduct.name.slice(0, 60))}`,
       actionLabel: "Find another supplier",
       actionUrl: `/marketplace?q=${encodeURIComponent(row.supplierProduct.name.slice(0, 60))}`,

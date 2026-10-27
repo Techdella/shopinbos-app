@@ -15,6 +15,7 @@ import { naira, parsePricingTiers } from "@/lib/marketplace/find";
 import { WHOLESALE_PAY_PREFIX, confirmWholesalePayment, payableWholesaleOrders } from "@/lib/supplier-orders/wholesale-payments.server";
 import { WholesaleOrders, type SellerWholesaleRow } from "../_components/WholesaleOrders";
 import { formatDate } from "@shared/i18n";
+import { wholesalePayStep } from "@shared/preorder";
 import { getLocale, getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
@@ -45,7 +46,7 @@ export default async function SellerWholesaleOrdersPage({ searchParams }: { sear
     take: 100,
     select: {
       id: true, status: true, rejectReason: true, trackingCode: true, quantity: true, unitPrice: true, totalPrice: true, currency: true, createdAt: true, paidAt: true, paidOutAt: true,
-      preorder: true, preorderShipsAt: true,
+      preorder: true, preorderShipsAt: true, preorderReadyAt: true, depositKobo: true, depositPaidAt: true,
       supplier: { select: { displayName: true, slug: true, userId: true } },
       supplierProduct: { select: { id: true, name: true, images: true } },
     },
@@ -87,6 +88,7 @@ export default async function SellerWholesaleOrdersPage({ searchParams }: { sear
     product: { id: order.supplierProduct.id, name: order.supplierProduct.name, image: order.supplierProduct.images[0] ?? null },
     paid: !!order.paidAt,
     canPay: payable.has(order.id),
+    payKobo: payable.has(order.id) ? wholesalePayStep(order)?.kobo ?? null : null,
     preorder: order.preorder ? { ships: order.preorderShipsAt ? formatDate(order.preorderShipsAt, locale, { day: "numeric", month: "short", timeZone: "UTC" }) : null } : null,
   }));
 
@@ -96,7 +98,12 @@ export default async function SellerWholesaleOrdersPage({ searchParams }: { sear
       store={storeSummary(store)}
       title={t("ws.title")}
       sub={t("ws.lead")}
-      actions={<PillLink href="/marketplace" icon="search">{t("ws.findProducts")}</PillLink>}
+      actions={
+        <>
+          <PillLink href="/home/preorders?view=suppliers" icon="clock">{t("ws.preorders")}</PillLink>
+          <PillLink href="/marketplace" icon="search">{t("ws.findProducts")}</PillLink>
+        </>
+      }
     >
       <div className="mb-4">
         <TipsGate>

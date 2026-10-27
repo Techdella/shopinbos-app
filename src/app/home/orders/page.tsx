@@ -103,6 +103,7 @@ export default async function OrdersPage({
             <Icon name="download" size={16} />
             <span className="max-sm:sr-only">{t("list.export")}</span>
           </a>
+          <PillLink href="/home/preorders" icon="clock" iconOnlyOnPhone>{t("preorders.title")}</PillLink>
           <PillLink href="/home/orders/new" tone="accent" icon="plus">{t("recordSale")}</PillLink>
         </>
       }

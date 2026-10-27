@@ -384,6 +384,12 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "badge.supplier": "Shiga a matsayin mai kawo kaya",
   "badge.partner": "Shiga a matsayin abokin isar da kaya",
   "badge.owner": "Wannan shi ne abin da mutane ke gani idan ka raba shafinka. Duk wanda ya shiga ta waɗannan maɓallan referral ɗinka ne.",
+  // Preorder lists, Stock is ready and deposits (shared/preorder.ts)
+  "ws.preorders": "Odar kafin lokaci",
+  "pd.preorderPlaced": "An yi odar kafin lokaci",
+  "pd.seePreorders": "Duba odar kafin lokaci ta",
+  "pd.preorderDeposit": "Biya {pct}% yanzu ({amount}). Sauran idan kaya sun shirya.",
+  "pd.depositLater": "An yi odar kafin lokaci. Biya ajiya daga Duba odar kafin lokaci ta don riƙe gurbinka.",
 };
 
 export default ha;

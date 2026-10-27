@@ -49,6 +49,7 @@ export default async function EditSupplierProductPage({
         preorderLimit: true,
         preorderTaken: true,
         preorderNote: true,
+        preorderDepositPct: true,
         updatedAt: true,
         category: { select: { name: true, slug: true } },
       },

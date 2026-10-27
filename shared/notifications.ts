@@ -394,6 +394,7 @@ const SIMPLE_SCREENS: Array<[RegExp, string]> = [
   [/^\/home\/(inventory|products)(\/.*)?$/, "/products"],
   [/^\/products(\/.*)?$/, "/products"],
   [/^\/marketplace\/wholesale$/, "/wholesale"],
+  [/^\/supplier\/preorders$/, "/supplier/preorders"],
   [/^\/marketplace(\/.*)?$/, "/find"],
   [/^\/home\/notifications(\/.*)?$/, "/notifications"],
   [/^\/home\/(payments|payouts)(\/.*)?$/, "/payments"],
@@ -473,6 +474,11 @@ export function appRouteFor(link: string | null | undefined): AppRoute | null {
   const job = queryParam(query, "job");
   if (/^\/logistics\/(bookings|jobs)$/.test(pathname) && job) return { pathname: "/logistics/job/[id]", params: { id: job } };
   if ((match = /^\/rider\/drop\/([\w-]+)$/.exec(pathname))) return { pathname: "/rider/drop/[id]", params: { id: match[1] } };
+  // Preorders: "Stock is ready: pay the rest" opens the seller's list on the right view.
+  if (pathname === "/home/preorders") {
+    const view = queryParam(query, "view");
+    return view === "suppliers" || view === "shop" ? { pathname: "/preorders", params: { view } } : { pathname: "/preorders" };
+  }
   // A supplier answered a seller's price request: the phone's Wholesale screen (price requests and orders, with Pay).
   if (/^\/marketplace\/(product\/[\w-]+|wholesale)$/.test(pathname) && queryParam(query, "quote")) return { pathname: "/wholesale" };
   // A seller's Social posts are the phone's posts calendar: "Your post is ready for WhatsApp" opens it with Share.

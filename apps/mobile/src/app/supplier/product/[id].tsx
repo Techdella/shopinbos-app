@@ -176,8 +176,8 @@ export default function SupplierProductScreen() {
           <Row
             lead={<Tile icon="clock" tone="gray" />}
             title={t("preorder.title")}
-            sub={preorderLineText(stateOf(savedFromColumns(data)), new Date(), t) ?? t("preorder.off")}
-            onPress={() => router.push({ pathname: "/supplier/product/edit", params: { id: data.id } })}
+            sub={[preorderLineText(stateOf(savedFromColumns(data)), new Date(), t) ?? t("preorder.off"), data.preorderEnabled && data.preorderDepositPct ? t("preorders.depositPct", { pct: data.preorderDepositPct }) : null].filter(Boolean).join(" · ")}
+            onPress={() => (data.preorderEnabled || (data.preorderTaken ?? 0) > 0 ? router.push("/supplier/preorders") : router.push({ pathname: "/supplier/product/edit", params: { id: data.id } }))}
           />
         ) : null}
       </List>

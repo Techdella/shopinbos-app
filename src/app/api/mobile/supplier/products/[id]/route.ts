@@ -54,11 +54,12 @@ export const PATCH = withSupplier(async (req: NextRequest, { user, params }) => 
       ...(input.wholesalePrice !== undefined ? { wholesalePrice: input.wholesalePrice } : {}),
       ...(input.suggestedRetailPrice !== undefined ? { suggestedRetailPrice: input.suggestedRetailPrice } : {}),
       ...(preorderParsed?.ok ? preorderSaveData(preorderParsed.value, { wasEnabled: product.preorderEnabled }) : {}),
+      ...(input.preorder?.depositPct !== undefined ? { preorderDepositPct: input.preorder.depositPct } : {}),
       status,
     },
     select: {
       id: true, name: true, status: true, stockQuantity: true, wholesalePrice: true, suggestedRetailPrice: true,
-      preorderEnabled: true, preorderShipsAt: true, preorderLimit: true, preorderTaken: true, preorderNote: true,
+      preorderEnabled: true, preorderShipsAt: true, preorderLimit: true, preorderTaken: true, preorderNote: true, preorderDepositPct: true,
     },
   });
   invalidatePublicMarketplaceCache({ productSlug: product.slug, supplierSlug: supplier.slug, categorySlug: product.category.slug });

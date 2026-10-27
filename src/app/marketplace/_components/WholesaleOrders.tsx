@@ -36,6 +36,8 @@ export interface SellerWholesaleRow {
   paid: boolean;
   /** Accepted by the supplier, not paid yet, and the supplier takes card payments. */
   canPay: boolean;
+  /** What "Pay" pays now in kobo, when it isn't the whole total (a preorder deposit, or the rest after it). */
+  payKobo?: number | null;
   /** Stock preordered before it arrives: the supplier's ship date, preformatted (null: when it arrives). */
   preorder?: { ships: string | null } | null;
 }
@@ -175,7 +177,7 @@ export function WholesaleOrders({ initial }: { initial: SellerWholesaleRow[] }) 
                 <div className="flex flex-wrap gap-2 lg:justify-end">
                   {row.canPay && (
                     <PillButton tone="accent" size="sm" busy={paying === row.id} disabled={paying !== null} onClick={() => void pay(row)} aria-label={t("ws.payLabel", { ref: row.ref })}>
-                      {t("ws.pay", { total: money(row.totalPrice, row.currency, locale) })}
+                      {t("ws.pay", { total: money(row.payKobo ? row.payKobo / 100 : row.totalPrice, row.currency, locale) })}
                     </PillButton>
                   )}
                   {canCancel && (

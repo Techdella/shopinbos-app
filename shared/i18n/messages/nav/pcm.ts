@@ -276,6 +276,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "supplier.products-import": "Upload CSV",
   "supplier.followers": "Followers",
   "admin.push": "Push center",
+  // Preorder lists, Stock is ready and deposits (shared/preorder.ts)
+  "orders-preorders": "Preorders",
+  "supplier.preorders": "Preorders",
 };
 
 export default pcm;
