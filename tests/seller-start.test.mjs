@@ -65,3 +65,20 @@ test("Rex draws four logo ideas at sign-up; the address route checks and moves t
   assert.match(address, /changeStoreSlug\(store\.id, body\.slug\)/);
   assert.match(address, /isStoreSlugTaken\(slug, store\.id\)/);
 });
+
+test("category chips start with everyday categories, then the marketplace's, never twice", () => {
+  const chips = onboarding.businessCategories(["Phones & Tablets", "Fashion", "Home & Kitchen", "Other"]);
+  assert.equal(chips[0], "Fashion");
+  assert.ok(chips.includes("Food and drinks"));
+  assert.ok(chips.includes("Phones & Tablets"));
+  assert.equal(chips.filter((name) => /^fashion$/i.test(name)).length, 1);
+  assert.ok(!chips.includes("Home & Kitchen"), "same as Home and kitchen");
+  assert.equal(chips.at(-1), "Other");
+  assert.equal(chips.filter((name) => name === "Other").length, 1);
+  assert.match(read("src/lib/kyc/supplier-onboarding.server.ts"), /businessCategories\(/);
+});
+
+test("verification screens have no page head or banner above the question", () => {
+  assert.match(read("src/app/logistics/verification/page.tsx"), /\bbare>/);
+  assert.match(read("src/components/verification/AnnouncementBanner.tsx"), /VERIFYING_PATHS/);
+});

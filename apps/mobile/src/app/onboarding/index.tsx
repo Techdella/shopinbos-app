@@ -5,7 +5,7 @@ import * as Clipboard from "expo-clipboard";
 import {
   BRAND_LOOKS,
   BRAND_PALETTES,
-  FALLBACK_SELL_CATEGORIES,
+  businessCategories,
   firstNameOf,
   lettermark,
   naira,
@@ -138,7 +138,7 @@ export default function SellerQuestions() {
 
   useEffect(() => {
     if (question !== "sell" || categories.length) return;
-    void fetchSellCategories().then((names) => setCategories(names.length ? names : [...FALLBACK_SELL_CATEGORIES]));
+    void fetchSellCategories().then((names) => setCategories(businessCategories(names)));
   }, [question, categories.length]);
 
   useEffect(() => {
