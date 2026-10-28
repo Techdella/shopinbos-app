@@ -10,6 +10,7 @@ import { NG_STATES } from "@shared/delivery-market";
 import { ID_TYPES, ITEM_SCREEN, TIER1_ITEMS, type FlowScreen, type IdType, type ItemState } from "@shared/partner-tiers";
 import { Choice, CodeConfirm, PhotoTake, QuestionFrame, StatusPill, jsonInit, kycCall, useAction, useKycT, type KycState } from "./kit";
 import { SelfieCapture, type SelfieValue } from "./SelfieCapture";
+import { SelfieWays } from "@/components/onboarding/SelfieWays";
 import type { ScreenProps } from "./QuestionScreens";
 
 // Screens 8–11 of the partner sign-up: where they're based (location, address, optional photo), a photo of their ID,
@@ -151,11 +152,25 @@ export function SelfieScreen({ state, onState, onDone, draft, onDraft }: ScreenP
     <QuestionFrame title={t("q.selfie.title")} sub={t("q.selfie.sub")} error={error} busy={busy === "selfie"} canContinue={(Boolean(shot) && (!byNin || ninReady)) || (sent && !shot)} onContinue={send}>
       {state.tier1.selfie === "rejected" && selfie?.rejectionReason && <Notice tone="error">{t("status.rejectedReason", { reason: selfie.rejectionReason })}</Notice>}
       {sent && !shot && <Notice tone="success">{state.tier1.selfie === "approved" ? t("selfie.matched") : t("selfie.waiting")}</Notice>}
-      <div className="grid place-items-center gap-2 rounded-[22px] bg-app-ink p-6 text-white">
-        <span aria-hidden className="grid h-36 w-28 place-items-center rounded-[50%] border-4 border-dashed border-white/70" />
-        <span className="text-center text-[15px]">{t("q.selfie.how")}</span>
-      </div>
-      <SelfieCapture value={shot} onChange={setShot} firstName={draft.firstName} lastName={draft.lastName} />
+      {/* On a computer: "Continue on my phone" (this page on the phone, moving on here once the selfie is in) or this camera. */}
+      <SelfieWays
+        phonePath="/logistics/verification?step=selfie"
+        check={async () => {
+          const next = await kycCall("");
+          const arrived = !sent && (next.tier1.selfie === "approved" || next.tier1.selfie === "pending");
+          if (arrived) onState(next);
+          return arrived;
+        }}
+        onArrived={onDone}
+      >
+        <div className="grid gap-3">
+          <div className="grid place-items-center gap-2 rounded-[22px] bg-app-ink p-6 text-white">
+            <span aria-hidden className="grid h-36 w-28 place-items-center rounded-[50%] border-4 border-dashed border-white/70" />
+            <span className="text-center text-[15px]">{t("q.selfie.how")}</span>
+          </div>
+          <SelfieCapture value={shot} onChange={setShot} firstName={draft.firstName} lastName={draft.lastName} />
+        </div>
+      </SelfieWays>
       {byNin && !ninReady && <NinFields draft={draft} onDraft={onDraft} />}
       {!state.idChecksReady && byNin && <p className="m-0 text-[14px] text-app-ink-soft">{t("id.ninManual")}</p>}
     </QuestionFrame>
@@ -249,6 +264,7 @@ export function ReviewScreen({ state, onState, goTo }: Omit<ScreenProps, "onDone
         </label>
       )}
       {blocking.length > 0 && <Notice tone="info">{t("rev.missing", { items: blocking.map((item) => t(`item.${item}`)).join(", ") })}</Notice>}
+      <p className="m-0 flex gap-2 text-[14px] leading-[1.5] text-app-ink-soft"><Icon name="lock" size={16} className="mt-0.5 shrink-0" /> {t("q.charge.podLater")}</p>
     </QuestionFrame>
   );
 }

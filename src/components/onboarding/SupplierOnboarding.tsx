@@ -8,6 +8,8 @@ import { useT } from "@/components/i18n/I18nProvider";
 import intentRouting from "@/lib/intent-routing";
 import { shrinkImage } from "@/lib/media/shrink-image";
 import { whatsappChatUrl } from "@/lib/support-contact";
+import { StepRail } from "./StepRail";
+import { SelfieWays } from "./SelfieWays";
 import type { SupplierOnboardingView } from "@/lib/kyc/supplier-onboarding.server";
 import { NG_STATES } from "@shared/delivery-market";
 import {
@@ -17,6 +19,7 @@ import {
   nextStep,
   previousStep,
   stepPosition,
+  supplierSteps,
   supplierTierBadges,
   type BuyMode,
   type CacAnswer,
@@ -30,6 +33,9 @@ import { SelfieCapture, readAsDataUri, type SelfieValue } from "./supplier/Selfi
 // large text, one answer, Continue at the bottom, back arrow top-left, "Step X of N" and a WhatsApp "Need help?".
 // Every Continue saves to /api/supplier/onboarding with the next screen, so leaving and coming back resumes there.
 // The ID photo and selfie go to /api/supplier/kyc/*, the first product to /api/supplier/onboarding/first-product.
+// Wide screens (2026 "Web onboarding, verify identity"): the steps listed on the left (./StepRail.tsx) with "No BVN
+// needed", and the selfie can be taken on the phone instead (./SelfieWays.tsx). Pre-order shows locked until the
+// Established level (shared/supplier-onboarding.ts cleanBuyModes; the API drops it too).
 
 type View = SupplierOnboardingView;
 type ApiAnswer<T> = { data?: T; error?: { message?: string } };
@@ -63,7 +69,8 @@ export function SupplierOnboarding({ initialView }: { initialView: View }) {
   const [cacNumber, setCacNumber] = useState(initialView.cac?.number ?? "");
   const [cacFound, setCacFound] = useState<{ name: string; verified: boolean } | null>(null);
   const [cats, setCats] = useState<string[]>(initialView.categories);
-  const [modes, setModes] = useState<BuyMode[]>(initialView.buyModes.filter((mode): mode is BuyMode => (BUY_MODES as readonly string[]).includes(mode)));
+  const preorderLocked = initialView.preorderLocked;
+  const [modes, setModes] = useState<BuyMode[]>(initialView.buyModes.filter((mode): mode is BuyMode => (BUY_MODES as readonly string[]).includes(mode) && !(mode === "preorder" && preorderLocked)));
   const [moq, setMoq] = useState(initialView.minimumOrder ?? 10);
   const [state, setState] = useState(initialView.originState ?? "");
   const [area, setArea] = useState(initialView.city && initialView.city !== initialView.originState ? initialView.city : "");
@@ -278,6 +285,19 @@ export function SupplierOnboarding({ initialView }: { initialView: View }) {
       <div className="grid gap-3">
         {BUY_MODES.map((mode) => {
           const on = modes.includes(mode);
+          if (mode === "preorder" && preorderLocked) {
+            return (
+              <div key={mode} className="flex min-h-[52px] items-center justify-between gap-3 rounded-[16px] border border-dashed border-app-line-strong bg-app-canvas px-4 py-3 text-left text-[16px] font-bold text-app-ink-soft" aria-disabled="true">
+                <span>
+                  {t("buy.preorder")}
+                  <span className="block text-[14px] font-normal">{t("buy.preorderLocked")}</span>
+                </span>
+                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[12px] font-bold">
+                  <Icon name="lock" size={13} /> {t("buy.locked")}
+                </span>
+              </div>
+            );
+          }
           return (
             <button key={mode} type="button" aria-pressed={on} className={chip(on)} onClick={() => setModes(on ? modes.filter((value) => value !== mode) : BUY_MODES.filter((value) => value === mode || modes.includes(value)))}>
               <span className="flex items-center justify-between gap-3">
@@ -290,6 +310,10 @@ export function SupplierOnboarding({ initialView }: { initialView: View }) {
             </button>
           );
         })}
+        <ul className="m-0 mt-1 grid list-none gap-2 p-0 text-[14px] leading-[1.45] text-app-ink-soft">
+          <li className="flex gap-2"><Icon name="tag" size={16} className="mt-0.5 shrink-0" /> {t("buy.pricesLater")}</li>
+          {modes.includes("dropship") && <li className="flex gap-2"><Icon name="package" size={16} className="mt-0.5 shrink-0" /> {t("buy.blindPacking")}</li>}
+        </ul>
       </div>
     );
     action = { label: t("continue"), onClick: () => (modes.length ? save({ buyModes: modes }, nextStep("buyModes", modes)) : setError(t("buy.need"))) };
@@ -336,6 +360,7 @@ export function SupplierOnboarding({ initialView }: { initialView: View }) {
           {t("loc.address")}
           <TextInput value={address} onChange={(event) => setAddress(event.target.value)} placeholder={t("loc.addressPlaceholder")} />
         </label>
+        <p className="m-0 flex gap-2 text-[14px] leading-[1.45] text-app-ink-soft"><Icon name="truck" size={16} className="mt-0.5 shrink-0" /> {t("loc.noDelivery")}</p>
       </div>
     );
     action = {
@@ -395,7 +420,21 @@ export function SupplierOnboarding({ initialView }: { initialView: View }) {
     const needsNin = view.idType === "nin_slip" && ninDetailsProblem() !== "";
     body = (
       <div className="grid gap-5">
-        <SelfieCapture value={selfie} onChange={setSelfie} firstName={firstName} lastName={lastName} />
+        <SelfieWays
+          phonePath="/supplier/onboarding"
+          check={async () => {
+            const next = await call<View>("/api/supplier/onboarding");
+            const arrived = Boolean(next.selfie && next.selfie.status !== "rejected" && (!view.selfie || view.selfie.status === "rejected"));
+            if (arrived) {
+              setView(next);
+              setNote(next.selfie?.status === "approved" ? t("selfie.approved") : t("selfie.pending"));
+            }
+            return arrived;
+          }}
+          onArrived={() => go("product")}
+        >
+          <SelfieCapture value={selfie} onChange={setSelfie} firstName={firstName} lastName={lastName} />
+        </SelfieWays>
         {view.selfie?.status === "rejected" && view.selfie.reason && <Notice tone="error">{view.selfie.reason}</Notice>}
         {needsNin && ninFields}
       </div>
@@ -515,43 +554,56 @@ export function SupplierOnboarding({ initialView }: { initialView: View }) {
   }
 
   const canGoBack = step !== "name" && !(step === "review" && view.completed);
+  const order = supplierSteps(modes);
+  const railSteps = order.map((key, position) => ({ key, label: t(`rail.${key}`), done: position < index || (key === "review" && view.completed) }));
   return (
-    <div className="flex min-h-dvh w-full flex-col bg-app-canvas font-app text-app-ink">
-      <header className="sticky top-0 z-20 grid gap-3 bg-app-canvas/90 px-4 py-3 backdrop-blur sm:px-6">
-        <div className="flex items-center gap-3">
-          {canGoBack ? <BackButton onClick={back} label={t("back")} /> : <Wordmark />}
-          <span className="flex-1 text-center text-[14px] font-bold text-app-ink-soft">{t("progress", { step: index + 1, total })}</span>
-          <a href={whatsappChatUrl(t("helpMessage"))} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[14px] font-bold text-app-ink underline underline-offset-4">
-            <Icon name="whatsapp" size={16} /> {t("help")}
-          </a>
-        </div>
-        <ProgressBars total={total} current={index} />
-      </header>
+    <div className="flex min-h-dvh w-full bg-app-canvas font-app text-app-ink">
+      <StepRail
+        className="sticky top-0 hidden h-dvh w-[280px] shrink-0 overflow-y-auto lg:flex"
+        who={name.trim() || view.displayName || view.businessName || t("rail.title")}
+        role={t("rail.title")}
+        steps={railSteps}
+        current={step}
+      />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-20 grid gap-3 bg-app-canvas/90 px-4 py-3 backdrop-blur sm:px-6 lg:px-12">
+          <div className="flex items-center gap-3">
+            {canGoBack ? <BackButton onClick={back} label={t("back")} /> : <Wordmark className="lg:invisible" />}
+            <span className="flex-1 text-center text-[14px] font-bold text-app-ink-soft lg:text-left">{t("progress", { step: index + 1, total })}</span>
+            <a href={whatsappChatUrl(t("helpMessage"))} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-[44px] items-center gap-1.5 text-[14px] font-bold text-app-ink underline underline-offset-4">
+              <Icon name="whatsapp" size={16} /> {t("help")}
+            </a>
+          </div>
+          <div className="lg:hidden">
+            <ProgressBars total={total} current={index} />
+          </div>
+        </header>
 
-      <main className="mx-auto flex w-full max-w-[560px] flex-1 flex-col px-4 pb-6 pt-6 sm:px-6">
-        <h1 className="m-0 text-[30px] font-extrabold leading-[1.12] tracking-[-0.6px] sm:text-[34px]">{title}</h1>
-        {hint && <p className="m-0 mt-2 text-[16px] leading-[1.5] text-app-ink-soft">{hint}</p>}
-        <div className="mt-6 grid gap-3">
-          {note && <Notice tone="success">{note}</Notice>}
-          {body}
-          {error && <Notice tone="error">{error}</Notice>}
-        </div>
-      </main>
+        <main className="mx-auto flex w-full max-w-[560px] flex-1 flex-col px-4 pb-6 pt-6 sm:px-6 lg:mx-0 lg:max-w-[760px] lg:px-12 lg:pt-12">
+          <h1 className="m-0 text-[30px] font-extrabold leading-[1.08] tracking-[-0.025em] sm:text-[34px] lg:text-[44px]">{title}</h1>
+          {hint && <p className="m-0 mt-2 max-w-[620px] text-[16px] leading-[1.5] text-app-ink-soft lg:mt-3 lg:text-[17px]">{hint}</p>}
+          <div className="mt-6 grid gap-3">
+            {note && <Notice tone="success">{note}</Notice>}
+            {body}
+            {error && <Notice tone="error">{error}</Notice>}
+          </div>
+        </main>
 
-      {(action || skip) && (
-        <footer className="sticky bottom-0 z-20 mx-auto grid w-full max-w-[560px] gap-2 bg-app-canvas/95 px-4 pb-5 pt-3 backdrop-blur sm:px-6">
-          {action && (
-            <PillButton tone="ink" busy={busy} disabled={action.disabled} onClick={action.onClick} className="w-full">
-              {action.label}
-            </PillButton>
-          )}
-          {skip && (
-            <button type="button" className="min-h-[44px] text-[15px] font-bold text-app-ink-soft underline underline-offset-4" disabled={busy} onClick={skip}>
-              {t("skip")}
-            </button>
-          )}
-        </footer>
-      )}
+        {(action || skip) && (
+          <footer className="sticky bottom-0 z-20 mx-auto grid w-full max-w-[560px] gap-2 bg-app-canvas/95 px-4 pb-5 pt-3 backdrop-blur sm:px-6 lg:mx-0 lg:flex lg:max-w-[760px] lg:items-center lg:gap-4 lg:px-12 lg:pb-10">
+            {action && (
+              <PillButton tone="ink" busy={busy} disabled={action.disabled} onClick={action.onClick} className="w-full lg:w-auto lg:min-w-[200px]">
+                {action.label}
+              </PillButton>
+            )}
+            {skip && (
+              <button type="button" className="min-h-[44px] text-[15px] font-bold text-app-ink-soft underline underline-offset-4" disabled={busy} onClick={skip}>
+                {t("skip")}
+              </button>
+            )}
+          </footer>
+        )}
+      </div>
     </div>
   );
 }
