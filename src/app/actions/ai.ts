@@ -15,10 +15,11 @@ import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { getSellerWorkspace, mergeBrandSettings } from "@/lib/workspace";
 import { answerPeggy, buildSellerSnapshot, greetingFor, orderItemCount, sellerSystemPrompt, fmtMoney } from "@/lib/ai/seller-context";
+import { realName } from "@shared/person-name";
 
 export async function getSuggestions(pathname?: string) {
   const user = await requireRole(["seller", "supplier", "logistics_partner"], "/login");
-  const name = user.name.split(" ")[0] || "there";
+  const name = realName(user.name).split(" ")[0] || "there";
   const rexSuggestions: string[] = [];
   const peggySuggestions: string[] = [];
 

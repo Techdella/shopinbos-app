@@ -103,6 +103,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "tour.3.body": "Ní kí Rex yí ṣọ́ọ̀bù rẹ padà. Béèrè lọ́wọ́ Peggy nípa títà, èsì àti ohun tí o máa ṣe tẹ̀lé e.",
   "create.post": "Ṣe post tàbí reel",
   "create.postSub": "Rex máa ṣe àwòṣe rẹ̀ fún Status, TikTok, Instagram rẹ",
+  "greeting.addName": "Fi orúkọ rẹ kún un",
 };
 
 export default yo;

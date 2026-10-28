@@ -43,6 +43,7 @@ import { PushPromptCard } from "@/components/PushPromptCard";
 import { NotificationBellButton } from "@/components/NotificationBellButton";
 import { CampaignsCard } from "@/components/CampaignsCard";
 import { useT } from "@/lib/i18n";
+import { realName } from "@shared/person-name";
 
 // Seller Home ("Familiar app" prototype `on.home`): the level ring round the seller's photo (Rewards), the shop name
 // and "Good morning, Ada", the bell; the Status row (suppliers and delivery partners); "Get your shop ready" for
@@ -203,7 +204,7 @@ export default function Home() {
     return <SlowNetwork offline={home.offline} cached={home.cached} attempting={home.attempting} nextRetryAt={home.nextRetryAt} onRetry={() => void load()} onUseCached={home.showCached} />;
   }
 
-  const firstName = data?.ownerName.split(/\s+/)[0] ?? "";
+  const firstName = realName(data?.ownerName).split(/\s+/)[0] ?? "";
   const shopName = data?.store.name ?? "";
   const items = data ? doNextItems(data.tasks, setup?.checklist.showStart && !setup.checklist.complete && setup.checklist.next ? { key: setup.checklist.next.key, ...stepWords(setup.checklist.next, t) } : null) : [];
 
@@ -300,6 +301,12 @@ export default function Home() {
             <View style={{ flex: 1, minWidth: 0 }}>
               <T weight="semibold" style={{ color: colors.inkSoft, fontSize: 13 }} numberOfLines={1}>{shopName || " "}</T>
               <Title size={24} style={{ marginTop: 1 }}>{firstName ? `${t(greeting())}, ${firstName}` : t(greeting())}</Title>
+              {/* No name yet (a phone sign-up that skipped it): ask for one instead of greeting nobody. */}
+              {data && !firstName ? (
+                <Pressable accessibilityRole="link" onPress={() => router.push("/settings")} hitSlop={6}>
+                  <T weight="bold" style={{ color: colors.accentInk, fontSize: 13 }} numberOfLines={1}>{t("greeting.addName")}</T>
+                </Pressable>
+              ) : null}
             </View>
             <NotificationBellButton />
             <HelpButton compact />

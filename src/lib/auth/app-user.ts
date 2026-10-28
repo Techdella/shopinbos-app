@@ -7,6 +7,7 @@ import { slugify } from "@/lib/workspace";
 import { getSupabaseServiceClient } from "@/lib/supabase/server";
 import { decideAccountRole, metadataNeedsAlign } from "@/lib/auth/role-rules";
 import { phoneOwner } from "@/lib/auth/phone-owner.server";
+import { PLACEHOLDER_NAME, isPlaceholderName, realName } from "@shared/person-name";
 
 type AppUserInput = {
   supabaseId: string;
@@ -24,7 +25,7 @@ function normalizeRole(role: AppUserInput["role"]): Role {
 }
 
 function displayNameFromEmail(email: string | null) {
-  return email?.split("@")[0]?.replace(/[._-]/g, " ") || "Shopinbos User";
+  return email?.split("@")[0]?.replace(/[._-]/g, " ") || PLACEHOLDER_NAME;
 }
 
 /** Supabase stores phones without the plus sign ("2348031234567"). */
@@ -65,19 +66,20 @@ export function appUserInputFromSupabaseUser(user: SupabaseUser): AppUserInput {
 
 export async function ensureAppUserForSupabaseUser(input: AppUserInput) {
   const email = input.email?.trim().toLowerCase() || null;
-  const fullName = input.fullName || displayNameFromEmail(email);
+  const typedName = realName(input.fullName);
+  const fullName = typedName || displayNameFromEmail(email);
 
   // First check by supabaseId, then fall back to email (handles supabaseId mismatches
   // that occur when an account is recreated or provisioned externally with a different ID)
   let existingUser = await db.user.findUnique({
     where: { supabaseId: input.supabaseId },
-    select: { id: true, role: true },
+    select: { id: true, role: true, name: true },
   });
 
   if (!existingUser && email) {
     const byEmail = await db.user.findUnique({
       where: { email },
-      select: { id: true, role: true },
+      select: { id: true, role: true, name: true },
     });
     // Re-link only when Supabase says this login owns the address (confirmed email); otherwise anyone could sign
     // up with someone else's email and take over their account.
@@ -116,7 +118,9 @@ export async function ensureAppUserForSupabaseUser(input: AppUserInput) {
     update: {
       // Never clear a stored email when signing in with a phone number.
       ...(email ? { email } : {}),
-      ...(input.fullName ? { name: fullName } : {}),
+      // A typed name fills in the stand-in; it never overwrites a name the person already has (one they changed in
+      // settings would otherwise be put back to the sign-up name, or to "Shopinbos User", on the next sign-in).
+      ...(typedName && (isPlaceholderName(existingUser?.name) || existingUser?.name === displayNameFromEmail(email)) ? { name: typedName } : {}),
       phone,
       role,
     },

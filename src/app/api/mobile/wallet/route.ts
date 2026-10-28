@@ -4,6 +4,7 @@ import { cashOwedToSeller } from "@/lib/logistics/seller-payins.server";
 import { loadWalletView, walletBankNames } from "@/lib/wallet/wallet.server";
 import type { WalletRole } from "@/lib/wallet/rules";
 import { withWalletOwner } from "./_shared";
+import { realName } from "@shared/person-name";
 
 export const dynamic = "force-dynamic";
 
@@ -12,5 +13,5 @@ export const dynamic = "force-dynamic";
 export const GET = withWalletOwner(async (_req: NextRequest, { user }) => {
   const role = user.role as WalletRole;
   const [view, cashToReceive, banks] = await Promise.all([loadWalletView({ id: user.id, role }), role === "seller" ? cashOwedToSeller(user.id) : Promise.resolve([]), walletBankNames()]);
-  return ok({ role, ownerName: user.name, view, cashToReceive, banks });
+  return ok({ role, ownerName: realName(user.name), view, cashToReceive, banks });
 });

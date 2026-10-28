@@ -103,6 +103,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "tour.3.body": "Ask Rex to change your shop. Ask Peggy about sales, replies and wetin to do next.",
   "create.post": "Make post or reel",
   "create.postSub": "Rex go design am for your Status, TikTok, Instagram",
+  "greeting.addName": "Put your name",
 };
 
 export default pcm;

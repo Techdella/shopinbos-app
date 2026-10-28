@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { getSellerWorkspace } from "@/lib/workspace";
 import { computeDashboard, startOfLagosDay, type DashboardOrder } from "@/lib/dashboard/compute";
 import { aggregateCustomers, lowStockProducts, periodSales } from "./pure";
+import { realName } from "@shared/person-name";
 
 // What Peggy and Rex know about a seller's shop: a compact, accurate snapshot. Also feeds getPeggyData,
 // getSuggestions and Rex's system prompt (src/app/actions/ai.ts).
@@ -226,7 +227,7 @@ export async function buildSellerSnapshot(userId: string, now = new Date()) {
 export type SellerSnapshot = Awaited<ReturnType<typeof buildSellerSnapshot>>;
 
 export function greetingFor(name: string, snapshot: SellerSnapshot) {
-  const firstName = name.split(" ")[0] || "there";
+  const firstName = realName(name).split(" ")[0] || "there";
   const storeName = snapshot.store?.name ?? "your store";
   const urgent: string[] = [];
   const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;

@@ -103,6 +103,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "tour.3.body": "Ka tambayi Rex ya canza shagonka. Ka tambayi Peggy game da ciniki, amsoshi da abin da za ka yi gaba.",
   "create.post": "Yi post ko gajeren bidiyo",
   "create.postSub": "Rex zai tsara shi don Status, TikTok, Instagram ɗinka",
+  "greeting.addName": "Saka sunanka",
 };
 
 export default ha;
