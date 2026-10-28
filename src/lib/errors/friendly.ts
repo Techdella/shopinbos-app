@@ -17,7 +17,7 @@ export const DEFAULT_FRIENDLY = "Something went wrong. Please try again.";
 const RULES: Array<[ErrorKind, RegExp]> = [
   ["storage", /SecurityError|Access is denied for this document|(session|local)Storage|indexedDB|QuotaExceeded|The operation is insecure/i],
   ["update", /ChunkLoadError|Loading (CSS )?chunk|dynamically imported module|Importing a module script failed|Server Action .* was not found/i],
-  ["network", /Failed to fetch|NetworkError|Network request failed|Load failed|ERR_[A-Z_]+|timed? ?out|AbortError|signal is aborted|The operation was aborted|ECONNRESET|ETIMEDOUT|socket hang up/i],
+  ["network", /Failed to fetch|Network ?Error|Network request failed|Load failed|ERR_[A-Z_]+|timed? ?out|AbortError|signal is aborted|The operation was aborted|ECONNRESET|ETIMEDOUT|socket hang up/i],
   ["permission", /NotAllowedError|Permission denied|permission was denied/i],
   [
     "code",

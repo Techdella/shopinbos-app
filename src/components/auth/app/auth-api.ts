@@ -136,7 +136,7 @@ function cookiesBlocked() {
 export async function ensureSessionSaved() {
   if (await waitForSession()) return;
   if (!cookiesBlocked()) return;
-  reportClientError(new Error("Signed in, but the browser blocks cookies, so the session was not saved"), { source: "shown", shown: FRIENDLY_TEXT.storage });
+  reportClientError(new Error("Signed in, but the browser blocks cookies, so the session was not saved"), { source: "shown", shown: FRIENDLY_TEXT.storage, kind: "storage" });
   throw new Error(FRIENDLY_TEXT.storage);
 }
 
