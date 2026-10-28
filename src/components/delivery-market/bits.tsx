@@ -48,6 +48,8 @@ export async function VerifiedPill({ status }: { status: string }) {
 const BADGE_TONE: Record<PartnerBadge, "success" | "info" | "muted"> = {
   verified_individual: "success",
   registered_business: "success",
+  payout_ready: "info",
+  address_verified: "info",
   licensed_courier: "info",
   verified_payout: "info",
 };

@@ -300,6 +300,56 @@ export const fetchSupplierSetup = () => api<SupplierSetup>("/api/supplier/onboar
 export const saveSupplierSetup = (input: { businessName?: string; displayName?: string; city?: string; address?: string; categories?: string[]; docsLater?: boolean }) =>
   api<unknown>("/api/supplier/onboarding", { method: "PATCH", json: input });
 
+/**
+ * Supplier onboarding, one question per screen (GET/PATCH /api/supplier/onboarding; shared/supplier-onboarding.ts):
+ * every answer so far, the ID check's state and the screen to resume on.
+ */
+export interface SupplierJoin {
+  businessName: string;
+  displayName: string;
+  categories: string[];
+  categoryOptions: string[];
+  source: "make" | "import" | "resell" | null;
+  buyModes: string[];
+  minimumOrder: number | null;
+  city: string;
+  address: string;
+  originState: string | null;
+  pickupLat: number | null;
+  pickupLng: number | null;
+  cacAnswer: "yes" | "no" | "registering" | null;
+  cac: { status: string; registeredName: string | null; number: string | null; verified: boolean } | null;
+  cacCheckEnabled: boolean;
+  idType: "nin_slip" | "drivers_licence" | "voters_card" | "passport" | null;
+  idDocument: { status: string; reason: string | null } | null;
+  selfie: { status: string; reason: string | null } | null;
+  owner: { firstName: string; lastName: string };
+  catalogueRequested: boolean;
+  step: string | null;
+  completed: boolean;
+  verificationStatus: string;
+  tiers: { verifiedIndividual: boolean; registeredBusiness: boolean; payoutReady: boolean };
+}
+
+export const fetchSupplierJoin = () => api<SupplierJoin>("/api/supplier/onboarding");
+
+/** Saves one screen's answer and the screen to resume on (`completed` sends it for review). */
+export const saveSupplierJoin = (input: Record<string, unknown>) => api<SupplierJoin>("/api/supplier/onboarding", { method: "PATCH", json: input });
+
+/** "Is this your company?": the CAC number looked up against the registry with the business name. */
+export const checkSupplierCac = (input: { businessName: string; number: string }) =>
+  api<{ outcome: string; message: string; registeredName?: string }>("/api/supplier/verification/cac", { method: "POST", json: input });
+
+export const sendSupplierId = (input: { idType: string; photo: string }) => api<SupplierJoin>("/api/supplier/kyc/id-document", { method: "POST", json: input });
+
+export const sendSupplierSelfie = (input: { selfie: string; liveness?: { reference: string; passed: boolean } | null; nin?: string; firstName?: string; lastName?: string; dateOfBirth?: string }) =>
+  api<SupplierJoin>("/api/supplier/kyc/selfie", { method: "POST", json: input });
+
+export const addFirstSupplierProduct = (input: { photo: string; name: string; price: number }) =>
+  api<{ id: string; name: string }>("/api/supplier/onboarding/first-product", { method: "POST", json: input });
+
+export const requestCatalogueListing = () => api<{ requested: boolean }>("/api/supplier/onboarding/catalogue", { method: "POST" });
+
 /** Changes the business once it's set up (PATCH /api/supplier/profile: no change to the verification status). */
 export const saveSupplierProfile = (input: { businessName?: string; displayName?: string; city?: string; address?: string; categories?: string[] }) =>
   api<unknown>("/api/supplier/profile", { method: "PATCH", json: input });

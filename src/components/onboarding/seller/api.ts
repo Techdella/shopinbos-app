@@ -110,6 +110,119 @@ export function finishOnboarding(live: boolean) {
   return call("/api/app/store", json("PATCH", { firstDashboardVisitComplete: true, onboardingState: live ? "LIVE" : "INCOMPLETE" }), "Couldn't finish setup.");
 }
 
+// ── One question per screen (shared/onboarding.ts SELLER_QUESTIONS) ─────────────────────
+
+/** Uploads one picture (POST /api/upload, into the seller's media library) and returns its https address. */
+export async function uploadPicture(file: File, folder: "brand" | "products") {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("folder", folder);
+  const data = await call<{ publicUrl: string }>("/api/upload", { method: "POST", body: form }, "That picture didn't upload. Check your connection and try again.");
+  return data.publicUrl;
+}
+
+export function saveLogo(logoUrl: string | null) {
+  return call("/api/app/store", json("PATCH", { logoUrl }), "Couldn't save your logo.");
+}
+
+export interface LogoIdea {
+  style: string;
+  label: string;
+  url: string;
+}
+
+/** Four logo ideas from the store name ("Show me more" passes the next round; `notes` is what to change). */
+export async function drawLogos(input: { businessName: string; businessDescription?: string; round: number; notes?: string }) {
+  const response = await fetch("/api/ai/generate-logo", json("POST", { ...input, count: 4 }));
+  const body = (await response.json().catch(() => null)) as { logos?: LogoIdea[]; error?: { code?: string; message?: string } } | null;
+  if (!response.ok || !body?.logos?.length) {
+    const error = new Error(body?.error?.message ?? "Rex couldn't draw logos just now.") as Error & { unavailable?: boolean };
+    // No image key, no allowance or credits left, or the model failed: the seller carries on with initials.
+    error.unavailable = true;
+    throw error;
+  }
+  return body.logos;
+}
+
+/** Root marketplace categories for "What do you sell?" (names only). */
+export async function fetchSellCategories(): Promise<string[]> {
+  const response = await fetch("/api/public/categories?rootOnly=true");
+  if (!response.ok) return [];
+  const body = (await response.json().catch(() => null)) as { data?: Array<{ name: string; slug: string }> } | null;
+  return (body?.data ?? []).map((row) => row.name).filter(Boolean);
+}
+
+export interface SupplierPick {
+  id: string;
+  name: string;
+  price: number;
+  currency: string;
+  supplier: string;
+  imageUrl?: string;
+}
+
+/** Supplier products open to dropshipping, for the swipe on "Add your first product" (dropship path). */
+export async function fetchSupplierPicks(): Promise<SupplierPick[]> {
+  const response = await fetch("/api/public/products?dropship=true&limit=20");
+  if (!response.ok) return [];
+  const body = (await response.json().catch(() => null)) as {
+    data?: Array<{ id: string; name: string; wholesalePrice: number; currency: string; supplier?: { displayName?: string }; images?: string[] }>;
+  } | null;
+  return (body?.data ?? []).map((row) => ({ id: row.id, name: row.name, price: row.wholesalePrice, currency: row.currency, supplier: row.supplier?.displayName ?? "", imageUrl: row.images?.[0] }));
+}
+
+/** Adds a supplier product to the store as a dropship listing. "terms" when the supplier asks the seller to accept terms first. */
+export async function addSupplierPick(supplierProductId: string, retailPrice: number): Promise<"added" | "terms"> {
+  const response = await fetch("/api/app/store-products/add-from-supplier", json("POST", { supplierProductId, retailPrice, fulfillmentType: "dropship", visibility: "storefront" }));
+  if (response.status === 409) return "terms";
+  if (!response.ok) throw new Error(await readError(response, "Couldn't add that product."));
+  return "added";
+}
+
+/** Creates the first product from its photo, name and price. */
+export function createFirstProduct(input: { name: string; price: number; imageUrl: string }) {
+  return call(
+    "/api/store/products",
+    json("POST", { name: input.name.trim(), images: [input.imageUrl], retailPrice: input.price, currentStock: 10, status: "published", visibility: "storefront", sourceType: "seller" }),
+    "Couldn't add your product.",
+  );
+}
+
+export interface StoreAddress {
+  slug: string;
+  url: string;
+  host: string;
+  available?: boolean;
+  problem?: string | null;
+}
+
+export function checkAddress(slug: string) {
+  return call<StoreAddress>(`/api/app/onboarding/address?slug=${encodeURIComponent(slug)}`, { method: "GET" }, "Couldn't check that address.");
+}
+
+export function saveAddress(slug: string) {
+  return call<StoreAddress>("/api/app/onboarding/address", json("PUT", { slug }), "Couldn't save that address.");
+}
+
+export interface DomainResult {
+  domain: string;
+  available: boolean;
+  price: number | null;
+  free: boolean;
+}
+
+export function searchDomains(query: string) {
+  return call<DomainResult[]>(`/api/domains/search?q=${encodeURIComponent(query)}`, { method: "GET" }, "Domain search isn't working just now.");
+}
+
+/** Publishes the store (free on every plan). The reason it can't go live yet, or null when it is live. */
+export async function publishStore(): Promise<string | null> {
+  const response = await fetch("/api/store/editor/publish", { method: "POST" });
+  if (response.ok) return null;
+  const body = (await response.json().catch(() => null)) as { error?: { message?: string; blockers?: string[] } } | null;
+  return body?.error?.blockers?.[0] ?? body?.error?.message ?? "Something stopped it. Try again.";
+}
+
 // ── Rex store build ──────────────────────────────────────────────────────────
 
 export interface BuildInput {

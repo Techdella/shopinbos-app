@@ -111,6 +111,21 @@ export const SupplierOnboardingSchema = z.object({
   completed: z.boolean().default(false),
   /** "I'll add my documents later": opens the portal (unverified) instead of submitting. */
   docsLater: z.boolean().optional(),
+  // One question per screen (shared/supplier-onboarding.ts): the screen to resume on and each answer as it's given.
+  step: z.enum(["name", "cac", "categories", "source", "buyModes", "moq", "location", "id", "selfie", "product", "review"]).optional(),
+  cacAnswer: z.enum(["yes", "no", "registering"]).optional(),
+  source: z.enum(["make", "import", "resell"]).optional(),
+  buyModes: z.array(z.enum(["dropship", "wholesale", "preorder"])).max(3).optional(),
+  minimumOrder: z.number().int().min(1).max(100_000).nullable().optional(),
+  pickup: z
+    .object({
+      state: z.string().min(2).max(40),
+      area: z.string().max(80).optional(),
+      address: z.string().min(3).max(200),
+      lat: z.number().min(-90).max(90).nullable().optional(),
+      lng: z.number().min(-180).max(180).nullable().optional(),
+    })
+    .optional(),
 });
 
 export const SupplierSchema = SupplierCreateSchema.extend({

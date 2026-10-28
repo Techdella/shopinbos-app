@@ -80,6 +80,9 @@ test("provider requests and responses", () => {
   assert.deepEqual(otp.readWhatsAppSend("sendchamp", true, { status: "success" }), { ok: true });
   assert.deepEqual(otp.readWhatsAppSend("sendchamp", true, { status: "error", message: "Template not approved" }), { ok: false, error: "Template not approved" });
   assert.match(otp.signInCodeMessage("111222"), /111222/);
+  // SMS codes end with the WebOTP line, so Android Chrome fills the code in on app.shopinbos.com.
+  assert.match(otp.signInCodeSms("111222"), /\n\n@app\.shopinbos\.com #111222$/);
+  assert.match(otp.signInCodeSms("111222"), /^Your Shopinbos code is 111222\./);
 });
 
 test("wiring: send route, hook, flag endpoint, env docs and the migration", () => {

@@ -8,6 +8,7 @@ import { PeggyCallNotes } from "@/components/admin/PeggyCallNotes";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { parseVerificationDocs } from "@/lib/verification-utils";
+import { ID_TYPE_LABELS, readSupplierIdentity, sourceForBusinessType, supplierTiers } from "@shared/supplier-onboarding";
 
 export default async function AdminSupplierDetailPage(props: { params: Promise<{ id: string }> }) {
   const user = await requireRole(["admin"], "/admin/login");
@@ -33,6 +34,15 @@ export default async function AdminSupplierDetailPage(props: { params: Promise<{
       acceptHoursWholesale: true,
       missedOrders: true,
       verificationDocuments: true,
+      identityChecks: true,
+      onboardingState: true,
+      businessType: true,
+      buyModes: true,
+      minimumOrder: true,
+      pickupLat: true,
+      pickupLng: true,
+      address: true,
+      payoutAccount: { select: { verificationStatus: true } },
       createdAt: true,
       updatedAt: true,
       _count: { select: { products: true } },
@@ -42,6 +52,11 @@ export default async function AdminSupplierDetailPage(props: { params: Promise<{
   if (!supplier) notFound();
 
   const docs = parseVerificationDocs(supplier.verificationDocuments);
+  const identity = readSupplierIdentity(supplier.identityChecks);
+  const tiers = supplierTiers({ verificationStatus: String(supplier.verificationStatus), docs, identity, payoutVerified: supplier.payoutAccount?.verificationStatus === "verified" });
+  const onboarding = supplier.onboardingState && typeof supplier.onboardingState === "object" && !Array.isArray(supplier.onboardingState) ? (supplier.onboardingState as Record<string, unknown>) : {};
+  const selfie = docs.find((doc) => doc.type === "selfie");
+  const source = sourceForBusinessType(supplier.businessType);
 
   return (
     <AppPage
@@ -115,6 +130,47 @@ export default async function AdminSupplierDetailPage(props: { params: Promise<{
           </label>
           <button type="submit" className="inline-flex min-h-[40px] items-center rounded-full bg-app-ink px-4 text-[13.5px] font-bold text-white">Save</button>
         </form>
+      </section>
+
+      <section aria-labelledby="identity" className="mb-5 rounded-[18px] border border-app-line bg-white p-5">
+        <h2 id="identity" className="m-0 text-[17px] font-extrabold">Onboarding answers and ID check</h2>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Pill tone={tiers.verifiedIndividual ? "success" : "muted"} dot>Verified Individual</Pill>
+          <Pill tone={tiers.registeredBusiness ? "success" : "muted"} dot>Registered Business</Pill>
+          <Pill tone={tiers.payoutReady ? "success" : "muted"} dot>Payout ready</Pill>
+        </div>
+        <dl className="mt-3 grid gap-x-6 gap-y-2 text-[14px] sm:grid-cols-2">
+          <div><dt className="font-bold">ID</dt><dd className="m-0 text-app-ink-soft">{identity.idType ? ID_TYPE_LABELS[identity.idType] : "Not sent yet"}{identity.fullName ? ` · ${identity.fullName}` : ""}</dd></div>
+          <div>
+            <dt className="font-bold">NIN check</dt>
+            <dd className="m-0 text-app-ink-soft">
+              {identity.nin ? `Ending ${identity.nin.last4} · ${identity.nin.status}${identity.nin.provider ? ` (${identity.nin.provider})` : ""}${identity.nin.nameOnRecord ? ` · on record: ${identity.nin.nameOnRecord}` : ""}` : "No NIN (another ID: compare the ID photo with the selfie)"}
+            </dd>
+          </div>
+          <div>
+            <dt className="font-bold">Selfie</dt>
+            <dd className="m-0 text-app-ink-soft">
+              {selfie ? `${selfie.status}${selfie.faceMatch ? ` · face match ${selfie.faceMatch.match === null ? "no result" : selfie.faceMatch.match ? "yes" : "no"}${selfie.faceMatch.confidence !== null ? ` (${selfie.faceMatch.confidence}%)` : ""}` : " · no face match: compare it yourself"}${selfie.liveness ? " · liveness passed" : ""}` : "Not taken yet"}
+            </dd>
+          </div>
+          <div><dt className="font-bold">CAC</dt><dd className="m-0 text-app-ink-soft">{onboarding.cacAnswer === "yes" ? "Registered" : onboarding.cacAnswer === "registering" ? "Registering now" : onboarding.cacAnswer === "no" ? "Works as an individual" : "Not answered"}</dd></div>
+          <div><dt className="font-bold">Makes, imports or resells</dt><dd className="m-0 text-app-ink-soft">{source === "make" ? "Makes it" : source === "import" ? "Imports it" : "Resells it"}</dd></div>
+          <div><dt className="font-bold">How shops can buy</dt><dd className="m-0 text-app-ink-soft">{supplier.buyModes.length ? supplier.buyModes.join(", ") : "Not answered"}{supplier.minimumOrder ? ` · minimum order ${supplier.minimumOrder}` : ""}</dd></div>
+          <div>
+            <dt className="font-bold">Goods leave from</dt>
+            <dd className="m-0 text-app-ink-soft">
+              {supplier.address || supplier.city}
+              {supplier.pickupLat !== null && supplier.pickupLng !== null && (
+                <>
+                  {" · "}
+                  <a className="font-bold text-app-ink underline" href={`https://www.google.com/maps?q=${supplier.pickupLat},${supplier.pickupLng}`} target="_blank" rel="noopener noreferrer">Map</a>
+                </>
+              )}
+            </dd>
+          </div>
+          {typeof onboarding.catalogueRequestedAt === "string" && <div><dt className="font-bold">WhatsApp catalogue</dt><dd className="m-0 text-app-ink-soft">Asked us to list it ({formatDate(new Date(onboarding.catalogueRequestedAt))})</dd></div>}
+        </dl>
+        <p className="m-0 mt-3 text-[13px] text-app-ink-soft">The ID photo and selfie are in the documents below. Approving both (or Verify above) lists the supplier to shops.</p>
       </section>
 
       <PeggyCallNotes userId={supplier.userId} />

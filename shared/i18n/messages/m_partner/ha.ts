@@ -138,7 +138,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "today.menu": "Menu",
   "today.loading": "Ana loda na yau…",
   "today.finish": "Kammala saiti",
-  "today.finishHint": "Tabbatar da kanka a matakai 4 gajeru: kai, asusun bankinka, yadda kake kai kaya, sannan ka aika. Za ka iya karɓar ayyuka da zarar mun duba su.",
+  "today.finishHint": "Wasu gajerun tambayoyi, hoton katin shaidarka da selfie. Babu takardu, babu bayanan banki. Za ka iya karɓar ayyuka da zarar mun duba su.",
   "today.taking": "Ina karɓar sababbin ayyuka",
   "today.notTaking": "Ba na karɓar sababbin ayyuka",
   "today.takingHint": "Shaguna a {areas} za su iya zaɓar ka.",

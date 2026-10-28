@@ -169,6 +169,22 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "code.continue": "Ci gaba",
   "form.signupLink": "Sabo ne? Buɗe asusu",
   "form.riderLink": "Kana tuƙi don kamfanin isarwa? Shigar mahaya",
+  // One question per screen (sign up)
+  "q.progress": "Mataki {step} cikin {total}",
+  "q.name": "Mene ne sunanka?",
+  "q.nameSub": "Sunanka na farko da na ƙarshe. Rex da Peggy za su yi amfani da shi.",
+  "q.firstName": "Suna na farko",
+  "q.lastName": "Sunan iyali",
+  "q.needName": "Rubuta sunanka na farko da na ƙarshe.",
+  "q.phone": "Mene ne lambar wayarka?",
+  "q.phoneSubNamed": "Na gode, {name}. Za mu aiko maka da lamba don tabbatar da ita. Ba kwa buƙatar kalmar sirri.",
+  "q.email": "Mene ne imel ɗinka?",
+  "q.code": "Shigar da lambar da muka aiko maka.",
+  "q.role": "Me ya kawo ka Shopinbos?",
+  "q.roleSub": "Zaɓi ɗaya don farawa.",
+  "q.role.seller": "Ina so in sayar",
+  "q.role.logistics_partner": "Ina kai oda",
+  "q.role.supplier": "Ina samar da kayayyaki",
 };
 
 export default ha;

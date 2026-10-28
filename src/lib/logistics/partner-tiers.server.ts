@@ -23,6 +23,7 @@ import {
 } from "@shared/partner-tiers";
 import { notifyVerificationDecision } from "@/lib/notifications/events.server";
 import { invalidatePublicMarketplaceCache } from "@/lib/api/cache";
+import { sendPlatformSms } from "@/lib/sms";
 
 // Tiered delivery partner verification, server side (the rules are shared/partner-tiers.ts). refreshPartnerTier is
 // called after anything that can change a partner's checks (a partner saving a step, the team approving or
@@ -136,8 +137,18 @@ export async function refreshPartnerTier(partnerId: string) {
     },
   });
   invalidatePublicMarketplaceCache({ logisticsSlug: row.slug });
-  if (status !== String(row.verificationStatus)) await notifyVerificationDecision({ userId: row.userId, status, portal: "logistics" });
+  if (status !== String(row.verificationStatus)) {
+    await notifyVerificationDecision({ userId: row.userId, status, portal: "logistics" });
+    if (status === "verified") await textVerified(snapshot.identity.phone?.status === "approved" ? snapshot.identity.phone.value : null);
+  }
   return { tier, status, badges };
+}
+
+/** "You're verified" by text too (the bell, push and email come from notifyVerificationDecision). Never throws. */
+async function textVerified(phone: string | null) {
+  if (!phone) return;
+  const sent = await sendPlatformSms({ to: [phone], body: "Shopinbos: you're verified. Sellers can now find you and send you delivery jobs. Open the app to go online." }).catch((error: Error) => ({ ok: false as const, error: error.message }));
+  if (!sent.ok) console.warn("[partner-tiers] verified text not sent", sent.error);
 }
 
 // ─── Record, graduation and limits ───────────────────────────────────────────

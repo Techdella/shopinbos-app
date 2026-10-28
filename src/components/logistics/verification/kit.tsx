@@ -6,14 +6,14 @@ import { Notice, cx } from "@/components/app-ui";
 import { field } from "@/components/seller-core";
 import { useT } from "@/components/i18n/I18nProvider";
 import { friendlyError } from "@/lib/errors/report-client";
-import { readyToSend } from "@/lib/media/shrink-image";
+import { readyToSend, shrinkImage } from "@/lib/media/shrink-image";
 import { DOC_FILE_ACCEPT, validateDocFile, type DocType, type VerificationDoc } from "@shared/verification-docs";
 import type { ItemState } from "@shared/partner-tiers";
 import type { KycState } from "@/lib/logistics/partner-kyc.server";
 import { docFileUrl, uploadVerificationFile } from "@/components/verification/upload-client";
 
-// Shared pieces of the partner verification flow (/logistics/verification): the API caller, status pills, a file
-// picker that goes through the existing verification upload route, and small layout helpers.
+// Shared pieces of the partner sign-up flow (/logistics/verification): the API caller, status pills, the one-question
+// screen frame and its choice buttons, photos as data URIs, and the CAC certificate upload.
 
 export type { KycState };
 export type KycT = ReturnType<typeof useKycT>;
@@ -66,41 +66,6 @@ export function StatusPill({ state, optional = false }: { state: ItemState; opti
   const t = useKycT();
   if (state === "missing" && optional) return <Pill tone="muted">{t("status.optional")}</Pill>;
   return <Pill tone={TONES[state]} dot>{t(`status.${state}`)}</Pill>;
-}
-
-/** A document's status as a check (see src/lib/logistics/partner-tiers.server.ts docCheckStatus). */
-export function docItemState(doc: VerificationDoc | undefined): ItemState {
-  if (!doc || (!doc.filePath && !doc.registry?.verified)) return "missing";
-  if (doc.status === "approved") return "approved";
-  if (doc.status === "rejected") return "rejected";
-  return doc.status === "draft" ? "missing" : "pending";
-}
-
-export function StepCard({ title, sub, children }: { title: string; sub?: string; children: ReactNode }) {
-  return (
-    <section className="grid gap-5 rounded-[22px] border border-app-line bg-white p-5 sm:p-6">
-      <div>
-        <h2 className="m-0 text-[20px] font-extrabold tracking-[-0.3px]">{title}</h2>
-        {sub && <p className="m-0 mt-1 text-[14.5px] leading-[1.5] text-app-ink-soft">{sub}</p>}
-      </div>
-      {children}
-    </section>
-  );
-}
-
-/** A labelled row inside a step: what it is, its status, and the controls under it. */
-export function Row({ label, state, optional, reason, children }: { label: string; state?: ItemState; optional?: boolean; reason?: string | null; children?: ReactNode }) {
-  const t = useKycT();
-  return (
-    <div className="grid gap-3 border-t border-app-line pt-4 first:border-t-0 first:pt-0">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-[15px] font-extrabold">{label}</span>
-        {state && <StatusPill state={state} optional={optional} />}
-      </div>
-      {state === "rejected" && reason && <Notice tone="error">{t("status.rejectedReason", { reason })}</Notice>}
-      {children}
-    </div>
-  );
 }
 
 export function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
@@ -175,29 +140,107 @@ export function DocUpload({ type, doc, hint, imagesOnly = false, onDone }: { typ
   );
 }
 
-/** Picks a file without uploading it (vehicle photos go up together with the vehicle). */
-export function FilePick({ label, file, onPick, imagesOnly = true }: { label: string; file: File | null; onPick: (file: File | null) => void; imagesOnly?: boolean }) {
+// ─── One question per screen ─────────────────────────────────────────────────
+
+/** A sign-up screen: one question in large type, its input, and Continue at the bottom. */
+export function QuestionFrame({ title, sub, error, children, onContinue, continueLabel, busy = false, canContinue = true }: {
+  title: string;
+  sub?: string;
+  error?: string;
+  children?: ReactNode;
+  onContinue?: () => void;
+  continueLabel?: string;
+  busy?: boolean;
+  canContinue?: boolean;
+}) {
   const t = useKycT();
-  const id = useId();
   return (
-    <div className="grid gap-1.5">
-      <span className={field.label}>{label}</span>
-      <div className="flex flex-wrap items-center gap-2">
-        <input
-          id={id}
-          type="file"
-          accept={imagesOnly ? "image/jpeg,image/png,image/webp" : DOC_FILE_ACCEPT}
-          className="sr-only"
-          onChange={async (event) => {
-            const picked = event.target.files?.[0];
-            onPick(picked ? await readyToSend(picked) : null);
-          }}
-        />
-        <label htmlFor={id} className="inline-flex min-h-[40px] cursor-pointer items-center rounded-full border border-app-line bg-white px-4 text-[13px] font-bold hover:border-app-line-strong">
-          {file ? t("file.replace") : t("file.choose")}
-        </label>
-        {file && <span className="min-w-0 truncate text-[13.5px] text-app-ink-soft">{file.name}</span>}
+    <section className="grid gap-6">
+      <div className="grid gap-2">
+        <h2 className="m-0 text-[26px] font-extrabold leading-[1.15] tracking-[-0.5px] sm:text-[32px]">{title}</h2>
+        {sub && <p className="m-0 text-[16px] leading-[1.5] text-app-ink-soft">{sub}</p>}
       </div>
+      {children}
+      <StepError error={error ?? ""} />
+      {onContinue && (
+        <button
+          type="button"
+          onClick={onContinue}
+          disabled={busy || !canContinue}
+          className="inline-flex min-h-[56px] w-full items-center justify-center gap-2 rounded-full bg-app-ink px-6 text-[17px] font-extrabold text-white transition disabled:opacity-40"
+        >
+          {busy ? t("flow.saving") : continueLabel ?? t("flow.continue")}
+        </button>
+      )}
+    </section>
+  );
+}
+
+/** A big tap target for a one-tap answer (or one of several, with `selected`). */
+export function Choice({ label, sub, icon, selected = false, onPick, disabled = false }: { label: string; sub?: string; icon?: ReactNode; selected?: boolean; onPick: () => void; disabled?: boolean }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={selected}
+      disabled={disabled}
+      onClick={onPick}
+      className={cx(
+        "flex min-h-[64px] w-full items-center gap-3 rounded-[18px] border-2 px-5 py-3 text-left transition disabled:opacity-50",
+        selected ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink hover:border-app-line-strong",
+      )}
+    >
+      {icon && <span aria-hidden className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/15 text-[22px]">{icon}</span>}
+      <span className="min-w-0 flex-1">
+        <span className="block text-[17px] font-extrabold">{label}</span>
+        {sub && <span className={cx("block text-[14px]", selected ? "text-white/80" : "text-app-ink-soft")}>{sub}</span>}
+      </span>
+    </button>
+  );
+}
+
+export function readAsDataUri(file: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(reader.error ?? new Error("read failed"));
+    reader.readAsDataURL(file);
+  });
+}
+
+/** A photo from the camera, shrunk to a JPEG data URI the kyc routes take. Null when it isn't a photo. */
+export async function photoDataUri(file: File, maxSide = 1280): Promise<string | null> {
+  const small = await shrinkImage(file, maxSide, "image/jpeg");
+  return /^image\/(jpeg|png|webp)$/.test(small.type) ? readAsDataUri(small) : null;
+}
+
+/** "Take a photo" with the back camera, showing the photo once taken. */
+export function PhotoTake({ value, onChange, takeLabel, retakeLabel, alt, facing = "environment" }: { value: string | null; onChange: (dataUri: string | null) => void; takeLabel: string; retakeLabel: string; alt: string; facing?: "environment" | "user" }) {
+  const t = useKycT();
+  const input = useRef<HTMLInputElement>(null);
+  const [problem, setProblem] = useState("");
+  return (
+    <div className="grid gap-3">
+      {value && <img src={value} alt={alt} className="max-h-[260px] w-full rounded-[18px] border border-app-line object-contain" />}
+      <input
+        ref={input}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        capture={facing}
+        className="sr-only"
+        onChange={async (event) => {
+          const file = event.target.files?.[0];
+          event.target.value = "";
+          if (!file) return;
+          setProblem("");
+          const uri = await photoDataUri(file).catch(() => null);
+          if (!uri) return setProblem(t("selfie.badPhoto"));
+          onChange(uri);
+        }}
+      />
+      <button type="button" onClick={() => input.current?.click()} className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full border-2 border-app-ink bg-white px-5 text-[16px] font-extrabold">
+        {value ? retakeLabel : takeLabel}
+      </button>
+      {problem && <p className="m-0 text-[14px] font-bold text-app-danger" role="alert">{problem}</p>}
     </div>
   );
 }

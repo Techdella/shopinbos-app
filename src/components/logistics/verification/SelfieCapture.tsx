@@ -6,9 +6,10 @@ import { Icon } from "@/components/ui/Icon";
 import { shrinkImage } from "@/lib/media/shrink-image";
 import { useKycT } from "./kit";
 
-// The selfie for the Identity step. The server matches it against the photo on the partner's NIN (Korapay facial
-// matching, src/app/api/logistics/kyc/nin). When Korapay's liveness check is set up (NEXT_PUBLIC_KORAPAY_PUBLIC_KEY),
-// it runs first (kora-identity-web-sdk, loaded only when used) and its reference goes with the selfie for the team.
+// The "Quick selfie video" screen's capture. With a NIN slip the server matches it against the NIN's photo (Korapay
+// facial matching, src/app/api/logistics/kyc/nin); with another ID the team compares it with the ID photo. When
+// Korapay's liveness check is set up (NEXT_PUBLIC_KORAPAY_PUBLIC_KEY) it runs first (kora-identity-web-sdk, loaded
+// only when used: the short video where they turn their head) and its reference goes with the selfie.
 
 export type SelfieValue = { dataUri: string; liveness: { reference: string; passed: boolean } | null };
 
@@ -87,7 +88,6 @@ export function SelfieCapture({ value, onChange, firstName, lastName }: { value:
   const needsLiveness = LIVENESS_ON && !liveness;
   return (
     <div className="grid gap-2">
-      <p className="m-0 text-[13.5px] text-app-ink-soft">{t("selfie.how")}</p>
       {LIVENESS_ON && (
         <div className="flex flex-wrap items-center gap-2">
           {liveness ? (

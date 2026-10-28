@@ -88,11 +88,19 @@ export const POST = withSupplier(async (req: NextRequest, { user }: { user: Auth
   const baseSlug = slugify(parsed.data.name);
   const slug = `${baseSlug}-${supplier.id.slice(0, 6)}`;
 
+  // What onboarding asked ("How can sellers buy from you?", "What's your minimum order?") fills what the form left out.
+  const raw = (body ?? {}) as Record<string, unknown>;
+  const defaults = {
+    ...(raw.dropshipAvailable === undefined && supplier.buyModes.length ? { dropshipAvailable: supplier.buyModes.includes("dropship") } : {}),
+    ...(raw.moq === undefined && supplier.minimumOrder && supplier.buyModes.includes("wholesale") ? { moq: supplier.minimumOrder } : {}),
+  };
+
   const product = await db.supplierProduct.create({
     data: {
       ...fields,
       ...(preorderParsed?.ok ? preorderSaveData(preorderParsed.value) : {}),
       ...(preorder?.depositPct !== undefined ? { preorderDepositPct: preorder.depositPct } : {}),
+      ...defaults,
       supplierId: supplier.id,
       slug,
       status: parsed.data.status === "pending_review" && !unverified ? "pending_review" : "draft",

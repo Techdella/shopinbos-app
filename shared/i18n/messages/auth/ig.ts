@@ -245,6 +245,27 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "portal.opening.supplier": "Nke a bụ account onye na-enye ngwaahịa. Anyị na-emepe portal gị…",
   "portal.opening.logistics_partner": "Nke a bụ account onye mmekọ nnyefe. Anyị na-emepe portal nnyefe gị…",
   "portal.opening.admin": "Nke a bụ account admin. Anyị na-emepe admin panel…",
+  // One question per screen (sign up)
+  "q.back": "Laghachi",
+  "q.progress": "Nzọụkwụ {step} n'ime {total}",
+  "q.name": "Kedu aha gị?",
+  "q.nameSub": "Aha mbụ na aha nna gị. Rex na Peggy ga-eji ya.",
+  "field.firstName": "Aha mbụ",
+  "field.lastName": "Aha nna",
+  "error.needFullName": "Dee aha mbụ na aha nna gị.",
+  "q.phone": "Kedu nọmba ekwentị gị?",
+  "q.phoneSub": "Anyị ga-ezitere gị koodu iji kwado ya. Ọ dịghị mkpa paswọọdụ.",
+  "q.phoneSubNamed": "Daalụ, {name}. Anyị ga-ezitere gị koodu iji kwado ya. Ọ dịghị mkpa paswọọdụ.",
+  "q.email": "Kedu email gị?",
+  "q.loginPhone": "Nnọọ ọzọ. Kedu nọmba ekwentị gị?",
+  "q.loginEmail": "Nnọọ ọzọ. Kedu email gị?",
+  "q.loginSub": "Jiri nke i ji debanye aha. Anyị ga-ezitere gị koodu.",
+  "q.code": "Tinye koodu anyị zitere gị.",
+  "q.role": "Gịnị kpọtara gị na Shopinbos?",
+  "q.roleSub": "Họrọ otu ka ị malite.",
+  "q.role.seller": "Achọrọ m ire ahịa",
+  "q.role.logistics_partner": "Ana m ebuga ọda",
+  "q.role.supplier": "Ana m eweta ngwaahịa",
 };
 
 export default ig;

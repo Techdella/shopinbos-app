@@ -1,5 +1,5 @@
-import type { BrandLook, BrandPalette, DeliveryZone, PaymentMethodKey } from "@shared/onboarding";
-import { api, API_URL } from "./api";
+import type { BrandLook, BrandPalette, DeliveryZone, PaymentMethodKey, ProductPath, SellerQuestion } from "@shared/onboarding";
+import { api, ApiError, API_URL } from "./api";
 import { supabase } from "./supabase";
 
 // Seller onboarding calls for the app; same endpoints as the web onboarding (src/components/onboarding/seller/api.ts).
@@ -9,8 +9,10 @@ export interface OnboardingMemory {
   storeName?: string;
   templateId?: string;
   category?: string;
+  categories?: string[];
+  productPath?: ProductPath;
   languages?: string[];
-  screen?: "chat" | "brand" | "products" | "where" | "payments";
+  screen?: "chat" | "brand" | "products" | "where" | "payments" | SellerQuestion;
   palette?: { id?: string; name?: string; colors?: Record<string, string> } | null;
 }
 
@@ -90,6 +92,70 @@ export const finishOnboarding = (live: boolean) =>
 
 /** Puts the shop live. Publishing is free, so the phone can do it too. */
 export const publishStore = () => api("/api/store/editor/publish", { method: "POST" });
+
+// ── One question per screen (shared/onboarding.ts SELLER_QUESTIONS; same calls as the web's seller/api.ts) ─────
+
+export const saveLogo = (logoUrl: string | null) => api("/api/app/store", { method: "PATCH", json: { logoUrl } });
+
+export interface LogoIdea {
+  style: string;
+  label: string;
+  url: string;
+}
+
+/** Four logo ideas from the store name. Throws when Rex can't draw now (the seller carries on with initials). */
+export async function drawLogos(input: { businessName: string; businessDescription?: string; round: number; notes?: string }) {
+  const body = await api<{ logos?: LogoIdea[] }>("/api/ai/generate-logo", { method: "POST", json: { ...input, count: 4 } });
+  if (!body?.logos?.length) throw new ApiError("", 503);
+  return body.logos;
+}
+
+/** Root marketplace categories for "What do you sell?" (names only). */
+export async function fetchSellCategories(): Promise<string[]> {
+  const rows = await api<Array<{ name: string }>>("/api/public/categories?rootOnly=true").catch(() => []);
+  return (rows ?? []).map((row) => row.name).filter(Boolean);
+}
+
+export interface SupplierPick {
+  id: string;
+  name: string;
+  price: number;
+  supplier: string;
+  imageUrl?: string;
+}
+
+/** Supplier products open to dropshipping (the dropship path's "Add your first product"). */
+export async function fetchSupplierPicks(): Promise<SupplierPick[]> {
+  const rows = await api<Array<{ id: string; name: string; wholesalePrice: number; supplier?: { displayName?: string }; images?: string[] }>>("/api/public/products?dropship=true&limit=20");
+  return (rows ?? []).map((row) => ({ id: row.id, name: row.name, price: row.wholesalePrice, supplier: row.supplier?.displayName ?? "", imageUrl: row.images?.[0] }));
+}
+
+/** Adds a supplier product as a dropship listing; "terms" when the supplier wants their terms accepted first. */
+export async function addSupplierPick(supplierProductId: string, retailPrice: number): Promise<"added" | "terms"> {
+  try {
+    await api("/api/app/store-products/add-from-supplier", { method: "POST", json: { supplierProductId, retailPrice, fulfillmentType: "dropship", visibility: "storefront" } });
+    return "added";
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 409) return "terms";
+    throw error;
+  }
+}
+
+/** The first product, from its photo, name and price. */
+export const createFirstProduct = (input: { name: string; price: number; imageUrl: string }) =>
+  api("/api/store/products", { method: "POST", json: { name: input.name.trim(), images: [input.imageUrl], retailPrice: input.price, currentStock: 10, status: "published", visibility: "storefront", sourceType: "seller" } });
+
+export interface StoreAddress {
+  slug: string;
+  url: string;
+  host: string;
+  available?: boolean;
+  problem?: string | null;
+}
+
+export const checkAddress = (slug: string) => api<StoreAddress>(`/api/app/onboarding/address?slug=${encodeURIComponent(slug)}`);
+
+export const saveAddress = (slug: string) => api<StoreAddress>("/api/app/onboarding/address", { method: "PUT", json: { slug } });
 
 // ── Rex store build (mirrors the web onboarding) ─────────────────────────────
 

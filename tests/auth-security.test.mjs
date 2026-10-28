@@ -372,7 +372,8 @@ test("sign-in codes paste in any shape, and the typed phone or email carries ove
   assert.match(verify, /Clipboard\.getStringAsync\(\)/);
   assert.match(verify, /codeFromText\(text\)/);
   const form = read("apps/mobile/src/components/AuthForm.tsx");
-  assert.match(form, /params: \{ step: "role", \.\.\.carried \}/);
+  // "Sign up now" opens sign up (name first) with the typed phone or email already in place.
+  assert.match(form, /pathname: "\/signup", params: carried/);
   assert.match(form, /pathname: "\/login", params: carried/);
   const mobileAuth = read("apps/mobile/src/lib/auth.ts");
   assert.doesNotMatch(mobileAuth, /send by SMS straight from Supabase below/);

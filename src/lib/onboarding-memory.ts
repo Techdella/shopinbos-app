@@ -34,7 +34,11 @@ export interface StoreOnboardingMemory {
   role?: OnboardingRoleMemory;
   step?: number;
   /** Screen of the 2026 seller onboarding (shared/onboarding.ts) to resume on. */
-  screen?: "chat" | "brand" | "verify" | "products" | "where" | "payments";
+  screen?: "chat" | "brand" | "verify" | "products" | "where" | "payments" | import("@shared/onboarding").SellerQuestion;
+  /** What the seller sells (the "What do you sell?" chips). `category` keeps the first one. */
+  categories?: string[];
+  /** "I have products" or "Find me a supplier" (dropship). */
+  productPath?: import("@shared/onboarding").ProductPath;
   preferredName?: string;
   city?: string;
   country?: string;
