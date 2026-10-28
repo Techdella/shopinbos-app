@@ -171,6 +171,7 @@ const en = {
   "selfie.livenessPassed": "Face check passed",
   "selfie.livenessFailed": "The face check didn't pass. Try again in good light, with your face in the circle.",
   "selfie.livenessUnavailable": "The face check couldn't start. Check your camera permission and try again.",
+  "selfie.livenessOff": "The face check isn't available right now. Take a normal selfie instead; our team will check it.",
   "selfie.livenessFirst": "Do the face check first, then take your selfie.",
   "selfie.matched": "Your selfie matches the photo on your NIN.",
   "selfie.waiting": "Our team is checking your selfie.",

@@ -109,6 +109,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "selfie.livenessFirst": "Fara yin duba fuska, sannan ka ɗauki selfie.",
   "selfie.livenessFailed": "Duba fuska bai yi nasara ba. Sake gwadawa a wuri mai haske.",
   "selfie.livenessUnavailable": "Duba fuska bai fara ba. Ɗauki selfie maimakon haka.",
+  "selfie.livenessOff": "Binciken fuska ba ya aiki yanzu. Ɗauki selfie na yau da kullum maimakon haka; ƙungiyarmu za ta duba shi.",
   "selfie.take": "Ɗauki selfie",
   "selfie.retake": "Sake ɗauka",
   "selfie.preview": "Selfie ɗinka",

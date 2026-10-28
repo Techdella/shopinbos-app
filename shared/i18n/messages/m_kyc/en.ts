@@ -129,6 +129,7 @@ const en = {
   "selfie.livenessPassed": "Face check passed",
   "selfie.livenessFailed": "The face check didn't pass. Try again in good light, with your face in the circle.",
   "selfie.livenessUnavailable": "The face check couldn't start. Allow the camera and try again.",
+  "selfie.livenessOff": "The face check isn't available right now. Take a normal selfie instead; our team will check it.",
   "selfie.livenessFirst": "Do the face check first, then take your selfie.",
   "nin.number": "NIN (11 digits)",
   "nin.manual": "Our team checks your NIN by hand for now. This can take a working day.",

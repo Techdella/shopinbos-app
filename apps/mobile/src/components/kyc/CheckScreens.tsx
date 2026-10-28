@@ -15,6 +15,7 @@ import { birthDate, digitsUpTo, itemsWhereOpen, selfieDataUri } from "@/lib/kyc-
 import { colors } from "@/theme";
 import { ItemStatus, Question, openOnWeb, useStepAction, type ScreenProps, type StepProps } from "./KycKit";
 import { LIVENESS_ON, useKoraLiveness, type LivenessPass } from "./KoraLiveness";
+import { livenessStartProblem } from "@shared/liveness-name";
 
 // Screens 8–11 of the partner sign-up on the phone: where they're based (the phone's location, the address, an
 // optional photo), a photo of their ID, the selfie (Korapay's liveness check first when it's switched on), then
@@ -156,6 +157,8 @@ export function SelfieScreen({ state, onState, onDone, draft, onDraft }: ScreenP
   const [selfie, setSelfie] = useState<{ uri: string; dataUri: string } | null>(null);
   const liveness = useKoraLiveness();
   const [passed, setPassed] = useState<LivenessPass | null>(null);
+  /** Korapay refused to start the check: the selfie goes without it, and the team checks it. */
+  const [livenessOff, setLivenessOff] = useState(false);
   const [checking, setChecking] = useState(false);
   const byNin = state.identity.idDocument?.type === "nin_slip" && state.identity.nin?.status !== "approved";
   const sent = state.tier1.selfie === "approved" || state.tier1.selfie === "pending";
@@ -168,8 +171,11 @@ export function SelfieScreen({ state, onState, onDone, draft, onDraft }: ScreenP
       const result = await liveness.start({ firstName: draft.firstName, lastName: draft.lastName });
       if (result) setPassed(result);
       else action.setError(t("selfie.livenessFailed"));
-    } catch {
-      action.setError(t("selfie.livenessUnavailable"));
+    } catch (error) {
+      if (livenessStartProblem(error) === "service") {
+        setLivenessOff(true);
+        action.setError(t("selfie.livenessOff"));
+      } else action.setError(t("selfie.livenessUnavailable"));
     } finally {
       setChecking(false);
     }
@@ -185,7 +191,7 @@ export function SelfieScreen({ state, onState, onDone, draft, onDraft }: ScreenP
 
   function send() {
     if (!selfie) return onDone();
-    if (LIVENESS_ON && !passed) return action.setError(t("selfie.livenessFirst"));
+    if (LIVENESS_ON && !passed && !livenessOff) return action.setError(t("selfie.livenessFirst"));
     const extra = passed ? { liveness: passed } : {};
     if (byNin) {
       const born = birthDate(draft.dob);
@@ -208,14 +214,14 @@ export function SelfieScreen({ state, onState, onDone, draft, onDraft }: ScreenP
         )}
         <T style={{ color: "#FFFFFF", textAlign: "center" }}>{t("q.selfie.how")}</T>
       </View>
-      {LIVENESS_ON ? (
+      {LIVENESS_ON && !livenessOff ? (
         passed ? (
           <T weight="bold" style={{ color: colors.success }}>{t("selfie.livenessPassed")}</T>
         ) : (
           <PillButton title={t("selfie.livenessStart")} tone="white" busy={checking} onPress={() => void faceCheck()} />
         )
       ) : null}
-      <PillButton title={selfie ? t("selfie.retake") : t("selfie.take")} icon="camera" tone="white" disabled={LIVENESS_ON && !passed} onPress={() => void takeSelfie()} />
+      <PillButton title={selfie ? t("selfie.retake") : t("selfie.take")} icon="camera" tone="white" disabled={LIVENESS_ON && !passed && !livenessOff} onPress={() => void takeSelfie()} />
       {byNin && !ninReady(draft) ? <NinFields draft={draft} onDraft={onDraft} /> : null}
       {byNin && !state.idChecksReady ? <T style={{ color: colors.inkSoft, fontSize: 13 }}>{t("nin.manual")}</T> : null}
       {liveness.screen}

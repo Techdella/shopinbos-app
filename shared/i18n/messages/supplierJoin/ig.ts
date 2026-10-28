@@ -109,6 +109,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "selfie.livenessFirst": "Buru ụzọ mee nleba anya ihu, wee see selfie gị.",
   "selfie.livenessFailed": "Nleba anya ihu agafeghị. Nwaa ọzọ ebe ìhè dị.",
   "selfie.livenessUnavailable": "Nleba anya ihu ebidoghị. See selfie kama.",
+  "selfie.livenessOff": "Nlele ihu adịghị arụ ọrụ ugbu a. Were selfie nkịtị kama; ndị otu anyị ga-elele ya.",
   "selfie.take": "See selfie",
   "selfie.retake": "See ya ọzọ",
   "selfie.preview": "Selfie gị",

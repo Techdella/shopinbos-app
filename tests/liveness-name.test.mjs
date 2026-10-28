@@ -17,3 +17,16 @@ test("every liveness start goes through livenessUser", () => {
     assert.match(read(file), /user: livenessUser\(/, file);
   }
 });
+
+test("Korapay refusing the liveness session lets the selfie through to the team; a camera problem doesn't", async () => {
+  const { livenessStartProblem } = await import("../shared/liveness-name.ts");
+  assert.equal(livenessStartProblem(new Error("Access to liveness check is restricted")), "service");
+  assert.equal(livenessStartProblem(new Error("One or more fields are invalid. Please fix them and try again.")), "service");
+  assert.equal(livenessStartProblem(Object.assign(new Error("Permission denied"), { name: "NotAllowedError" })), "camera");
+  assert.equal(livenessStartProblem(new Error("Could not start video source: camera in use")), "camera");
+  for (const file of ["src/components/logistics/verification/SelfieCapture.tsx", "src/components/onboarding/supplier/SelfieCapture.tsx", "apps/mobile/src/components/kyc/CheckScreens.tsx", "apps/mobile/src/components/supplier/SupplierJoinFlow.tsx"]) {
+    const source = read(file);
+    assert.match(source, /livenessStartProblem\(error\) === "service"/, file);
+    assert.match(source, /livenessOff/, file);
+  }
+});

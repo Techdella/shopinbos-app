@@ -5,7 +5,7 @@ import { PillButton } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { useT } from "@/components/i18n/I18nProvider";
 import { shrinkImage } from "@/lib/media/shrink-image";
-import { livenessUser } from "@shared/liveness-name";
+import { livenessStartProblem, livenessUser } from "@shared/liveness-name";
 
 // "Quick selfie video" for supplier onboarding. When Korapay's liveness check is set up
 // (NEXT_PUBLIC_KORAPAY_PUBLIC_KEY), it runs first (kora-identity-web-sdk, loaded only when used: the face outline and
@@ -48,6 +48,8 @@ export function SelfieCapture({ value, onChange, firstName, lastName, onStartFai
   const [liveness, setLiveness] = useState<SelfieValue["liveness"]>(value?.liveness ?? null);
   const [checking, setChecking] = useState(false);
   const [problem, setProblem] = useState("");
+  /** Korapay refused to start the check: the selfie goes without it, and the team checks it. */
+  const [livenessOff, setLivenessOff] = useState(false);
 
   async function runLiveness() {
     setProblem("");
@@ -79,8 +81,13 @@ export function SelfieCapture({ value, onChange, firstName, lastName, onStartFai
     } catch (error) {
       console.error("[selfie] liveness check couldn't start", error);
       setChecking(false);
-      setProblem(t("selfie.livenessUnavailable"));
-      onStartFailed?.();
+      if (livenessStartProblem(error) === "service") {
+        setLivenessOff(true);
+        setProblem(t("selfie.livenessOff"));
+      } else {
+        setProblem(t("selfie.livenessUnavailable"));
+        onStartFailed?.();
+      }
     }
   }
 
@@ -95,7 +102,7 @@ export function SelfieCapture({ value, onChange, firstName, lastName, onStartFai
     onChange({ dataUri: await readAsDataUri(small), liveness });
   }
 
-  const needsLiveness = LIVENESS_ON && !liveness;
+  const needsLiveness = LIVENESS_ON && !liveness && !livenessOff;
   return (
     <div className="grid justify-items-center gap-4 text-center">
       <div className="grid h-44 w-44 place-items-center overflow-hidden rounded-full border-4 border-dashed border-app-line bg-white">
