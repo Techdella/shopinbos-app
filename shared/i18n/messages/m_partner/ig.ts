@@ -663,7 +663,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "kyc.introTitle": "Ị chọghị CAC iji bido",
   "kyc.introSub": "Mgbe set-up gachara, ị ga-akwado onwe gị na ekwentị. Kwadebe ihe ndị a:",
   "kyc.need.id": "NIN gị na otu selfie",
-  "kyc.need.bank": "BVN gị, ma ọ bụ bank account n'aha gị",
+  "kyc.need.bank": "Bank account n'aha gị",
   "kyc.need.vehicle": "Foto ụgbọ gị na licence onye na-anya ya",
   "kyc.need.guarantor": "Onye nkwado nwere ike ịkwado site na text",
   "kyc.introCac": "Ị nwere CAC? Tinye ya n'oge verification ka ị bụrụ Registered Business na-enweghị order limits.",

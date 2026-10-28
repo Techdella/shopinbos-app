@@ -141,7 +141,9 @@ test("path matching picks the right intro for web and mobile screens", () => {
   assert.equal(at("/supplier/wholesale", "supplier"), "supplier-wholesale");
   assert.equal(at("/supplier/(tabs)/home", "supplier"), "supplier-home");
   assert.equal(at("/logistics/(tabs)/riders", "logistics_partner"), "partner-riders");
-  assert.equal(at("/logistics/verification", "logistics_partner"), "verification");
+  // Delivery partners have their own verification intro (no CAC to start, never a BVN); suppliers keep theirs.
+  assert.equal(at("/logistics/verification", "logistics_partner"), "partner-verification");
+  assert.equal(at("/supplier/verification", "supplier"), "verification");
   assert.equal(at("/supplier/quote-requests", "supplier"), "supplier-quotes");
   assert.equal(at("/supplier/(tabs)/quotes", "supplier"), "supplier-quotes", "Expo groups are ignored");
   assert.equal(at("/supplier/(tabs)/money", "supplier"), "supplier-payouts");

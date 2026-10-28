@@ -68,6 +68,7 @@ const en = {
   "partner-connections.title": "Connected businesses",
   "partner-connect.title": "Connect your system",
   "verification.title": "Verification",
+  "partner-verification.title": "Verification",
   "partner-inbox.title": "Inbox",
   "partner-performance.title": "Performance and reviews",
   "company-profile.title": "Company profile and settings",

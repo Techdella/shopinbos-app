@@ -64,6 +64,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "partner-connections.title": "Connected businesses",
   "partner-connect.title": "So system rẹ pọ̀",
   "verification.title": "Verification",
+  "partner-verification.title": "Verification",
   "partner-inbox.title": "Inbox",
   "partner-performance.title": "Performance àti reviews",
   "company-profile.title": "Company profile àti settings",

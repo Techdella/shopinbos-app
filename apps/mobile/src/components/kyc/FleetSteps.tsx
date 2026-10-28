@@ -8,27 +8,23 @@ import { TonePill } from "@/components/partner";
 import { PillButton, Segmented, T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
 import { deleteVehicle, fetchPayoutBanks, resendGuarantor, saveGuarantor, saveKycCoverage, savePayout, saveVehicle, type PickedPhoto } from "@/lib/kyc";
-import { birthDate, digitsUpTo, ITEM_TONE } from "@/lib/kyc-pure";
+import { digitsUpTo, ITEM_TONE } from "@/lib/kyc-pure";
 import { deliveryAreasFor, STATE_CHIPS, stateLabel, statesIn } from "@/lib/logistics-pure";
 import { pickPhotos, type PhotoSource } from "@/lib/photos";
 import { colors } from "@/theme";
 import { NATIONWIDE } from "@shared/delivery-market";
 import { ItemStatus, StepCard, useStepAction, type StepProps } from "./KycKit";
 
-// Bank (BVN, or a bank account in the NIN's name), Vehicles (photo + licence each, checked by the team), Coverage
+// Bank (a bank account in the NIN's name; partners are never asked for a BVN), Vehicles (photo + licence each, checked by the team), Coverage
 // (where and how the partner delivers) and Guarantor (confirms by the code texted to them).
 
 export function BankStep({ state, onState }: StepProps) {
   const t = useT("m_kyc");
   const payout = state.identity.payout;
   const action = useStepAction(onState);
-  const [method, setMethod] = useState<"bank" | "bvn">(payout?.method ?? "bank");
   const [banks, setBanks] = useState<string[]>([]);
   const [bank, setBank] = useState<string | null>(payout?.bankName ?? null);
   const [account, setAccount] = useState("");
-  const [bvn, setBvn] = useState("");
-  const [dob, setDob] = useState("");
-  const words = (state.identity.fullName ?? "").trim().split(/\s+/).filter(Boolean);
 
   useEffect(() => {
     let live = true;
@@ -39,16 +35,8 @@ export function BankStep({ state, onState }: StepProps) {
   }, []);
 
   function save() {
-    if (method === "bank") {
-      if (!bank || account.length !== 10) return action.setError(t("bank.needAccount"));
-      void action.run("save", () => savePayout({ method: "bank", bankName: bank, accountNumber: account }), () => action.setDone(t("bank.checked")));
-      return;
-    }
-    const born = birthDate(dob);
-    if (bvn.length !== 11) return action.setError(t("bvn.length"));
-    if (!born) return action.setError(t("dob.invalid"));
-    if (words.length < 2) return action.setError(t("bank.ninFirst"));
-    void action.run("save", () => savePayout({ method: "bvn", bvn, firstName: words[0], lastName: words[words.length - 1], dateOfBirth: born }), () => action.setDone(t("bank.checked")));
+    if (!bank || account.length !== 10) return action.setError(t("bank.needAccount"));
+    void action.run("save", () => savePayout({ method: "bank", bankName: bank, accountNumber: account }), () => action.setDone(t("bank.checked")));
   }
 
   return (
@@ -56,37 +44,20 @@ export function BankStep({ state, onState }: StepProps) {
       <ItemStatus label={t("item.name.payout")} state={state.tier1.payout} reason={payout?.rejectionReason} />
       {payout ? (
         <T style={{ color: colors.inkSoft, fontSize: 14 }}>
-          {payout.method === "bvn" ? t("bvn.ending", { last4: payout.last4 }) : t("bank.ending", { bank: payout.bankName ?? "", last4: payout.last4, name: payout.accountName ?? "" })}
+          {t("bank.ending", { bank: payout.bankName ?? "", last4: payout.last4, name: payout.accountName ?? "" })}
         </T>
       ) : null}
       {state.tier1.payout !== "approved" ? (
         <>
-          <Segmented
-            options={[
-              { value: "bank", label: t("bank.account") },
-              { value: "bvn", label: t("bvn.label") },
-            ]}
-            value={method}
-            onChange={setMethod}
-          />
-          {method === "bank" ? (
-            <>
-              {banks.length ? (
-                <ChipWrap label={t("bank.pick")}>
-                  {banks.map((name) => (
-                    <Seg key={name} label={name} on={bank === name} onPress={() => setBank(name)} />
-                  ))}
-                </ChipWrap>
-              ) : null}
-              <LabeledInput label={t("bank.number")} value={account} onChangeText={(text) => setAccount(digitsUpTo(text, 10))} keyboardType="number-pad" />
-              <T style={{ color: colors.inkSoft, fontSize: 13 }}>{t("bank.ownName")}</T>
-            </>
-          ) : (
-            <>
-              <LabeledInput label={t("bvn.number")} value={bvn} onChangeText={(text) => setBvn(digitsUpTo(text, 11))} keyboardType="number-pad" />
-              <LabeledInput label={t("dob.label")} value={dob} onChangeText={setDob} placeholder={t("dob.placeholder")} keyboardType="numbers-and-punctuation" />
-            </>
-          )}
+          {banks.length ? (
+            <ChipWrap label={t("bank.pick")}>
+              {banks.map((name) => (
+                <Seg key={name} label={name} on={bank === name} onPress={() => setBank(name)} />
+              ))}
+            </ChipWrap>
+          ) : null}
+          <LabeledInput label={t("bank.number")} value={account} onChangeText={(text) => setAccount(digitsUpTo(text, 10))} keyboardType="number-pad" />
+          <T style={{ color: colors.inkSoft, fontSize: 13 }}>{t("bank.ownName")}</T>
           <PillButton title={t("bank.check")} busy={action.busy === "save"} disabled={Boolean(action.busy)} onPress={save} />
         </>
       ) : null}

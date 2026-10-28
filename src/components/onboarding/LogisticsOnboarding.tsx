@@ -96,6 +96,8 @@ export function LogisticsOnboarding({ initialUser }: { initialUser?: InitialUser
   // Partner terms (shared/partner-tiers.ts): ticked at the last step; already true when they accepted this version.
   const [termsCurrent, setTermsCurrent] = useState(false);
   const [agreed, setAgreed] = useState(false);
+  // Where "Finish" goes: verified partners to the dashboard, everyone else on to the verification steps.
+  const [verified, setVerified] = useState(false);
 
   useEffect(() => {
     fetch("/api/logistics/onboarding")
@@ -120,6 +122,7 @@ export function LogisticsOnboarding({ initialUser }: { initialUser?: InitialUser
         if (data.basePrice) setBasePrice(data.basePrice);
         if (data.estimatedSpeed) setEstimatedSpeed(data.estimatedSpeed);
         if (data.termsCurrent === true) setTermsCurrent(true);
+        if (data.verificationStatus === "verified") setVerified(true);
       })
       .catch(() => null)
       .finally(() => setLoading(false));
@@ -187,7 +190,8 @@ export function LogisticsOnboarding({ initialUser }: { initialUser?: InitialUser
     try {
       await persist(true);
       const destination = getContinuationPath({ role: "logistics_partner", ...extractIntentParams(searchParams) });
-      router.push(destination || "/logistics/dashboard");
+      // Set-up done: a partner who isn't verified yet goes straight on to the verification steps.
+      router.push(destination || (verified ? "/logistics/dashboard" : "/logistics/verification"));
     } catch (cause) {
       setError(cause instanceof Error ? friendlyError(cause) : String(cause));
       setSaving(false);
@@ -384,15 +388,16 @@ export function LogisticsOnboarding({ initialUser }: { initialUser?: InitialUser
 
                 {step === VERIFY_STEP && (
                   <>
-                    <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.8px] sm:text-[34px]">Verify your business</h1>
+                    <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.8px] sm:text-[34px]">Get verified to take jobs</h1>
                     <p className="mb-0 mt-2 max-w-[640px] text-[15px] leading-[1.5] text-app-ink-soft">
-                      Shops only see verified delivery partners, and jobs only come once you&apos;re verified. Check your CAC or business name (BN) registration. You can skip for now and finish later from Verification.
+                      You don&apos;t need CAC to start. Right after set-up you&apos;ll verify your identity (NIN and a selfie), your bank, one vehicle and a guarantor. Shops see you and jobs come once that&apos;s done.
                     </p>
                     <div className="mt-6 grid gap-4">
+                      <p className="m-0 text-[14.5px] font-bold">Have a CAC or business name (BN) registration? Check it now to become a Registered Business with no order limits. Optional.</p>
                       <CacInstantCheck apiPath="/api/logistics/verification/cac" defaultName={companyName} cacDoc={cacDoc} onVerified={setCacDoc} />
                     </div>
                     <button type="button" onClick={() => void goTo(step + 1)} className="mt-4 text-[14px] font-bold text-app-ink-soft underline-offset-4 hover:text-app-ink hover:underline" disabled={saving}>
-                      Skip for now. I&apos;ll verify before taking jobs.
+                      No CAC? Continue.
                     </button>
                   </>
                 )}

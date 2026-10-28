@@ -676,7 +676,7 @@ const en = {
   "kyc.introTitle": "You don't need CAC to start",
   "kyc.introSub": "After set-up you'll verify yourself on the phone. Have these ready:",
   "kyc.need.id": "Your NIN and a selfie",
-  "kyc.need.bank": "Your BVN, or a bank account in your name",
+  "kyc.need.bank": "A bank account in your name",
   "kyc.need.vehicle": "A photo of your vehicle and the driver's or rider's licence",
   "kyc.need.guarantor": "A guarantor who can confirm by text",
   "kyc.introCac": "Have CAC? Add it during verification to become a Registered Business with no order limits.",

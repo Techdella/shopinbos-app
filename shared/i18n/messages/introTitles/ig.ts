@@ -64,6 +64,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "partner-connections.title": "Connected businesses",
   "partner-connect.title": "Jikọọ system gị",
   "verification.title": "Verification",
+  "partner-verification.title": "Verification",
   "partner-inbox.title": "Inbox",
   "partner-performance.title": "Performance na reviews",
   "company-profile.title": "Company profile na settings",

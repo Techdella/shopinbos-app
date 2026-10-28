@@ -15,7 +15,7 @@ const PARTNER_SIDE = new Set(["phone", "email"]);
 const WORDS: Record<string, string> = {
   nin: "NIN",
   selfie: "selfie",
-  payout: "BVN/bank",
+  payout: "Bank account",
   vehicles: "vehicle",
   guarantor: "guarantor",
   cacCertificate: "CAC certificate",

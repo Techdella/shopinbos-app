@@ -8,7 +8,7 @@ import { db } from "@/lib/db/client";
 import { readIdentityChecks } from "@shared/partner-tiers";
 import { refreshPartnerTier } from "@/lib/logistics/partner-tiers.server";
 
-// The team decides a partner's NIN or BVN/bank check by hand: when no KYC provider is set up (the partner sent a
+// The team decides a partner's NIN or bank account check by hand: when no KYC provider is set up (the partner sent a
 // NIN slip instead) or the names didn't match and the team checked another way. Only an existing check can be
 // decided; the full number is never stored, so there's nothing else to edit.
 const Schema = z.discriminatedUnion("action", [

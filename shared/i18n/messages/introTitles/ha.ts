@@ -64,6 +64,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "partner-connections.title": "Kasuwancin da aka haɗa",
   "partner-connect.title": "Haɗa system ɗinka",
   "verification.title": "Verification",
+  "partner-verification.title": "Verification",
   "partner-inbox.title": "Inbox",
   "partner-performance.title": "Performance da reviews",
   "company-profile.title": "Company profile da settings",

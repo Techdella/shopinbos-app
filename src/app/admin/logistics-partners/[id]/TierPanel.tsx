@@ -47,7 +47,7 @@ const ITEM_LABELS: Record<string, string> = {
   email: "Email",
   nin: "NIN",
   selfie: "Selfie (face match)",
-  payout: "BVN or bank account",
+  payout: "Bank account",
   address: "Address",
   coverage: "Coverage areas",
   methods: "Delivery methods",

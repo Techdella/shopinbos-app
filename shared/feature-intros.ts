@@ -1117,14 +1117,29 @@ export const FEATURE_INTROS: FeatureIntro[] = [
     key: "verification",
     term: "verification",
     title: "Verification",
-    roles: ["supplier", "logistics_partner"],
-    paths: ["/supplier/verification", "/logistics/verification"],
+    roles: ["supplier"],
+    paths: ["/supplier/verification"],
     scenes: [
       { art: "badge-verify", caption: "Verification shows you’re real.", sub: "We check your papers so shops can trust you with their orders and money.", durationMs: S, label: "Verified", chips: ["CAC", "ID", "Address"] },
       { art: "invoice-paper", caption: "Upload your CAC papers.", sub: "Your CAC certificate or business name papers, and the owner’s ID card.", durationMs: S, label: "CAC CERTIFICATE", chips: ["RC 1234567"] },
       { art: "flow-nodes", caption: "We check them quickly.", sub: "Most checks take one or two working days. We’ll message you if anything’s missing.", durationMs: S, chips: ["Upload", "Review", "Verified"] },
       { art: "badge-verify", caption: "Get the Verified badge.", sub: "It shows on your profile and listings. Verified partners get more orders.", durationMs: S, label: "Verified", chips: ["Profile", "Listings"] },
       { art: "money-flow", caption: "Payouts open up too.", sub: "Once verified, your earnings go safely to your business bank account.", durationMs: S, label: "Business account", value: "₦186,000" },
+    ],
+  },
+  {
+    // Delivery partners verify in tiers (shared/partner-tiers.ts): no CAC to start, and never a BVN.
+    key: "partner-verification",
+    term: "verification",
+    title: "Verification",
+    roles: ["logistics_partner"],
+    paths: ["/logistics/verification"],
+    scenes: [
+      { art: "badge-verify", caption: "Verification lets you take jobs.", sub: "Shops only see verified delivery partners, so this is your first step.", durationMs: S, label: "Verified", chips: ["NIN", "Selfie", "Bank"] },
+      { art: "flow-nodes", caption: "You don’t need CAC to start.", sub: "Check your NIN with a selfie, add a bank account in your name, your address and a guarantor.", durationMs: S, chips: ["Identity", "Bank", "Guarantor"] },
+      { art: "bike-route", caption: "Add a vehicle and where you deliver.", sub: "A photo of your bike, car or van with its plate and your licence, then the areas you cover.", durationMs: S, chips: ["Bike", "Car", "Van"] },
+      { art: "badge-verify", caption: "Start as a Verified Individual.", sub: "You take jobs with small limits at first. Good deliveries and good ratings lift them.", durationMs: S, label: "Verified Individual" },
+      { art: "invoice-paper", caption: "Add CAC later for no limits.", sub: "Register your business name with CAC and you become a Registered Business, with no order limits.", durationMs: S, label: "CAC CERTIFICATE", chips: ["Registered Business"] },
     ],
   },
   {
