@@ -65,3 +65,15 @@ test("the selfie and ID screens offer the phone, and move on when it's sent", ()
   assert.match(read("src/app/api/logistics/kyc/handoff/route.ts"), /createHandoff\("logistics", user\.id/);
   assert.match(read("src/app/api/supplier/kyc/handoff/route.ts"), /createHandoff\("supplier", user\.id/);
 });
+
+test("browser screens never import the node:crypto half of the handoff", async () => {
+  const { readdirSync, readFileSync, statSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  const root = new URL("../src/", import.meta.url).pathname;
+  const walk = (dir) => readdirSync(dir).flatMap((name) => { const path = join(dir, name); return statSync(path).isDirectory() ? walk(path) : /\.tsx?$/.test(name) ? [path] : []; });
+  for (const file of walk(root)) {
+    const source = readFileSync(file, "utf8");
+    if (!/^["']use client["']/m.test(source)) continue;
+    assert.doesNotMatch(source, /from "@\/lib\/kyc\/handoff"/, `${file} imports the server half; use @/lib/kyc/handoff-shared`);
+  }
+});

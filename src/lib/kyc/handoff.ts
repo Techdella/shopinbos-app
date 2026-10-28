@@ -6,14 +6,11 @@
 
 import { timingSafeEqual } from "node:crypto";
 import { keyedHash } from "../logistics/partner-kyc.ts";
+import { HANDOFF_KINDS, HANDOFF_TTL_MS, isHandoffPurpose, type HandoffKind, type HandoffPurpose } from "./handoff-shared.ts";
 
-export const HANDOFF_KINDS = ["logistics", "supplier"] as const;
-export type HandoffKind = (typeof HANDOFF_KINDS)[number];
-export const HANDOFF_PURPOSES = ["selfie", "id"] as const;
-export type HandoffPurpose = (typeof HANDOFF_PURPOSES)[number];
+// Server only (node:crypto): client screens import the shared half from ./handoff-shared.
+export * from "./handoff-shared.ts";
 
-/** How long a phone link works. */
-export const HANDOFF_TTL_MS = 20 * 60_000;
 
 export interface Handoff {
   kind: HandoffKind;
@@ -23,9 +20,6 @@ export interface Handoff {
   expiresAt: number;
 }
 
-export function isHandoffPurpose(value: unknown): value is HandoffPurpose {
-  return (HANDOFF_PURPOSES as readonly unknown[]).includes(value);
-}
 
 function signature(secret: string, payload: string) {
   return Buffer.from(keyedHash(secret, "handoff", payload), "hex").toString("base64url");
@@ -59,12 +53,4 @@ export function readHandoff(secret: string, token: unknown, now = Date.now()): {
   return { ok: true, handoff: { kind: data.k as HandoffKind, purpose: data.p, userId: data.u, expiresAt: data.e } };
 }
 
-/** The phone page for a token. */
-export function handoffPath(token: string) {
-  return `/verify/phone/${encodeURIComponent(token)}`;
-}
 
-/** "Has the selfie (or ID photo) changed since the QR code was shown?": a document's upload and status times. */
-export function docStamp(doc: { uploadedAt?: string | null; updatedAt?: string | null; status?: string | null } | null | undefined) {
-  return doc ? `${doc.uploadedAt ?? ""}|${doc.updatedAt ?? ""}|${doc.status ?? ""}` : "";
-}

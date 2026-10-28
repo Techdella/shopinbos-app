@@ -11,7 +11,7 @@ import { ID_TYPES, ITEM_SCREEN, TIER1_ITEMS, type FlowScreen, type IdType, type 
 import { Choice, CodeConfirm, PhotoTake, QuestionFrame, StatusPill, jsonInit, kycCall, useAction, useKycT, type KycState } from "./kit";
 import { SelfieCapture, type SelfieValue } from "./SelfieCapture";
 import { PhoneOrThisDevice } from "@/components/kyc/PhoneHandoff";
-import { docStamp } from "@/lib/kyc/handoff";
+import { docStamp } from "@/lib/kyc/handoff-shared";
 import type { ScreenProps } from "./QuestionScreens";
 
 // Screens 8–11 of the partner sign-up: where they're based (location, address, optional photo), a photo of their ID,

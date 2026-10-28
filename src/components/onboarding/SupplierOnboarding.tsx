@@ -28,7 +28,7 @@ import {
 } from "@shared/supplier-onboarding";
 import { SelfieCapture, readAsDataUri, type SelfieValue } from "./supplier/SelfieCapture";
 import { PhoneOrThisDevice } from "@/components/kyc/PhoneHandoff";
-import { docStamp } from "@/lib/kyc/handoff";
+import { docStamp } from "@/lib/kyc/handoff-shared";
 
 // Supplier onboarding, one question per screen (shared/supplier-onboarding.ts has the order and rules): one question in
 // large text, one answer, Continue at the bottom, back arrow top-left, "Step X of N" and a WhatsApp "Need help?".

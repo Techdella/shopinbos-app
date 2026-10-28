@@ -5,7 +5,7 @@ import { PillButton } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { useT } from "@/components/i18n/I18nProvider";
 import { QrCode } from "@/components/payment-links/QrCode";
-import type { HandoffPurpose } from "@/lib/kyc/handoff";
+import type { HandoffPurpose } from "@/lib/kyc/handoff-shared";
 
 // "Do it on your phone" for the selfie and ID photo screens (delivery partner and supplier sign-up): a QR code for a
 // 20-minute phone link (/verify/phone/[token], src/lib/kyc/handoff.ts), then the screen checks every 3 seconds and
