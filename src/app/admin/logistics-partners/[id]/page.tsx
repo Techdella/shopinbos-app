@@ -5,6 +5,7 @@ import { partnerVerificationState } from "@shared/partner-tiers";
 import { AdminDocumentViewer } from "@/components/verification/AdminDocumentViewer";
 import { PeggyCallNotes } from "@/components/admin/PeggyCallNotes";
 import { db } from "@/lib/db/client";
+import { PLAN_SOURCE_SELECT, planSource, runningGrants } from "@/lib/admin/plan-source.server";
 import { requireRole } from "@/lib/server-auth";
 import { parseVerificationDocs } from "@/lib/verification-utils";
 import { connectionsForPartner, rateCardsForPartner, statsForPartners } from "@/lib/delivery-market/manage.server";
@@ -63,6 +64,12 @@ export default async function AdminLogisticsDetailPage(props: { params: Promise<
   if (!partner) notFound();
 
   const docs = parseVerificationDocs(partner.verificationDocuments);
+  // The partner's plan, and whether it was paid through Paystack or is free time (a referral welcome month).
+  const [planUser, grants] = await Promise.all([
+    db.user.findUnique({ where: { id: partner.userId }, select: { ...PLAN_SOURCE_SELECT, planInterval: true, planPaidUntil: true } }),
+    runningGrants([partner.userId], new Date()),
+  ]);
+  const plan = planSource("logistics_partner", planUser, grants.get(partner.userId));
 
 
   // Logistics marketplace: rate cards, pickup points, connected businesses, in-app stats and customers' problems.
@@ -100,11 +107,11 @@ export default async function AdminLogisticsDetailPage(props: { params: Promise<
       }
     >
       <section aria-label="Partner summary" className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-6">
-        <StatTile tone="card" label="Verification" value={<Pill tone={STATE_TONES[partnerVerificationState(partner)]} dot>{STATE_LABELS[partnerVerificationState(partner)]}</Pill>} />
+        <StatTile tone="card" label="Verification" value={<Pill tone={STATE_TONES[partnerVerificationState(partner)]} dot>{STATE_LABELS[partnerVerificationState(partner)]}</Pill>} hint={`${docs.length} document${docs.length === 1 ? "" : "s"}`} />
         <StatTile tone="card" label="Account" value={<Pill tone={partner.status === "active" ? (partner.codPaused ? "warning" : "success") : partner.status === "paused" ? "warning" : "danger"} dot>{partner.status === "active" ? (partner.codPaused ? "Active · prepaid only" : "Active") : partner.status === "paused" ? "Paused by partner" : partner.status}</Pill>} />
         <StatTile tone="card" label="Reliability score" value={`${partner.reliabilityScore ?? 0}/100`} />
         <StatTile tone="card" label="Base price" value={partner.basePrice ? formatMoney(partner.basePrice) : "-"} />
-        <StatTile tone="card" label="Documents" value={docs.length} />
+        <StatTile tone="card" label="Plan" value={<span className="text-[20px]">{plan.plan}</span>} hint={planUser?.planStatus ? `${planUser.planInterval ?? ""} ${planUser.planStatus}${planUser.planPaidUntil ? `, paid to ${formatDate(planUser.planPaidUntil)}` : ""}` : plan.giftNote ?? undefined} />
         <StatTile tone="card" label="Joined" value={<span className="text-[20px]">{formatDate(partner.createdAt)}</span>} />
       </section>
 

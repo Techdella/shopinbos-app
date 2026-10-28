@@ -2,6 +2,7 @@ import "server-only";
 
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
+import { phoneTail, pickPhoneMatch } from "./whatsapp-pure";
 
 // Who the team can message from Admin › Inbox › New conversation: sellers, suppliers and delivery partners (by
 // their name, business, email or phone) and website leads who haven't signed up yet.
@@ -106,4 +107,18 @@ export async function personByKey(key: string | null | undefined): Promise<Perso
     return lead ? { key: `lead:${lead.id}`, userId: null, leadId: lead.id, role: "lead", name: lead.name?.trim() || lead.email || lead.phone || "Lead", business: null, email: lead.email, phone: lead.phone, status: null } : null;
   }
   return null;
+}
+
+/**
+ * The account a signed-out email or phone belongs to: by email, else by phone, however either side wrote the
+ * number ("+234…", "234…" from Supabase Auth or a WhatsApp wa_id, "0…"). Only for context, never proof it's them.
+ */
+export async function accountByContact(email: string | null | undefined, phone: string | null | undefined) {
+  const select = { id: true, role: true, name: true, phone: true } as const;
+  const byEmail = email ? await db.user.findUnique({ where: { email }, select }).catch(() => null) : null;
+  if (byEmail) return byEmail;
+  const tail = phoneTail(phone);
+  if (!tail) return null;
+  const candidates = await db.user.findMany({ where: { phone: { endsWith: tail } }, select, take: 5 }).catch(() => []);
+  return pickPhoneMatch(phone, candidates);
 }

@@ -163,7 +163,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "followers.short": "Shagunan da ke binka don su fara jin labarin sababbin kayanka, rage farashi da dawowar kaya.",
   "followers.example": "Shaguna 62 suna binka, don haka saƙonka na “sababbin Ankara 200” ya isa ga duka 62.",
   "verification.short": "Duba ID ɗinka ko takardun kamfaninka don shaguna da masu saye su amince da kai.",
-  "verification.example": "Ɗora takardar CAC ɗinka ka samu alamar “Verified”.",
+  "verification.example": "Duba NIN ɗinka, ko takardun CAC ɗinka, ka samu alamar “Verified”.",
   "dashboard.short": "Allonka na farko: sayarwar yau, abin da ya kamata ka yi da shawarwari, duk a wuri ɗaya.",
   "dashboard.example": "“Orders 3 da za a ɗaure, sababbin chats 5, an sayar da ₦86,500 yau.”",
   "orders.short": "Kowace sayarwa, tare da wanda ya saya, abin da ya saya, yadda ya biya da inda kayan suke yanzu.",

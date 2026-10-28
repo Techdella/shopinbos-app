@@ -88,13 +88,13 @@ async function getLogisticsActor() {
 
 function assertVerifiedLogistics(partner: { verificationStatus: string; onboardingState: unknown }) {
   if (!isOnboardingComplete(partner)) redirect("/logistics/onboarding");
-  if (partner.verificationStatus !== "verified") redirect("/logistics/profile?verification=pending");
+  if (partner.verificationStatus !== "verified") redirect("/logistics/verification");
 }
 
 /** Moving jobs it already has: verified, or suspended (existing jobs carry on to completion). */
 function assertCanWorkJobs(partner: { verificationStatus: string; onboardingState: unknown }) {
   if (!isOnboardingComplete(partner)) redirect("/logistics/onboarding");
-  if (!canWorkExistingJobs(partner)) redirect("/logistics/profile?verification=pending");
+  if (!canWorkExistingJobs(partner)) redirect("/logistics/verification");
 }
 
 /** `stateCount`: the distinct states the partner's coverage would span (coverageStateCount). */

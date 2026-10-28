@@ -43,6 +43,7 @@ import {
 import { agentReplyEmail, newConversationEmail, newTicketEmail, receivedEmail, replyAddressFor, supportInbox } from "./email.server";
 import { downloadInboxMedia, findTeamTemplate, sendInboxTemplate, sendInboxText } from "./whatsapp.server";
 import { queuePeggyAutoReply } from "./peggy.server";
+import { accountByContact } from "./people.server";
 
 /** The agent id Peggy's own auto-replies use (not a user). */
 export const PEGGY_ID = "peggy";
@@ -269,11 +270,7 @@ export async function createPublicRequest(input: {
 
   // Match an existing account for the desk's context panel only: a signed-out form can't prove who sent it,
   // so it never lands in that account's in-app history.
-  const matched = input.email
-    ? await db.user.findUnique({ where: { email: input.email }, select: { id: true, role: true } }).catch(() => null)
-    : input.phone
-      ? await db.user.findFirst({ where: { phone: input.phone }, select: { id: true, role: true } }).catch(() => null)
-      : null;
+  const matched = await accountByContact(input.email, input.phone);
 
   const ticket = await openTicket({
     userId: null,
@@ -658,7 +655,13 @@ export async function getTicketForAgent(number: number, agentId: string) {
     await db.supportTicket.update({ where: { id: ticket.id }, data: { agentReadAt: new Date() } }).catch(() => null);
   }
   const meta = (ticket.meta && typeof ticket.meta === "object" && !Array.isArray(ticket.meta) ? ticket.meta : {}) as Record<string, unknown>;
-  const contextUserId = ticket.userId ?? (typeof meta.matchedUserId === "string" ? meta.matchedUserId : null);
+  // Tickets matched to no account when they came in (or before phone matching ignored the format) are looked up
+  // again, so an account made later, or one stored as "2348…" against a "+2348…" ticket, still shows.
+  const contextUserId =
+    ticket.userId ??
+    (typeof meta.matchedUserId === "string" ? meta.matchedUserId : null) ??
+    (await accountByContact(ticket.email, ticket.phone))?.id ??
+    null;
   const [admins, context, previous] = await Promise.all([
     adminUsers(),
     contextUserId ? userContext(contextUserId).catch(() => null) : Promise.resolve(null),
@@ -1023,7 +1026,7 @@ export async function ingestSupportWhatsApp(input: {
       queuePeggyAutoReply(existing.id);
       return "reply";
     }
-    const matched = await db.user.findFirst({ where: { phone: { endsWith: phone.slice(-10) } }, select: { id: true, role: true, name: true } }).catch(() => null);
+    const matched = await accountByContact(null, phone);
     const ticket = await openTicket({
       userId: null,
       name: input.name || matched?.name || lead?.name || phone,
@@ -1145,7 +1148,7 @@ export async function startConversation(agent: Viewer, input: StartConversation)
 
   const phone = whatsappPhone(input.phone);
   if (!phone) throw new SupportError("BAD_REQUEST", "Enter a WhatsApp number with its country code, like +234 803 412 7790.");
-  const matched = account ?? (await db.user.findFirst({ where: { phone: { endsWith: phone.slice(-10) } }, select: { id: true, role: true, name: true } }).catch(() => null));
+  const matched = account ?? (await accountByContact(null, phone));
   const open = await db.supportTicket.findFirst({ where: { source: "whatsapp", phone, status: { not: "closed" } }, orderBy: { lastMessageAt: "desc" } });
   const values = { name: name || open?.name || matched?.name || null, agent: agent.name, note: input.note ?? null, business: input.business ?? null };
 
@@ -1248,11 +1251,7 @@ export async function conversationFromLead(leadId: string): Promise<number | nul
   if (existing) return existing.number;
   const email = lead.email?.trim().toLowerCase() || null;
   const phone = whatsappPhone(lead.phone);
-  const matched = email
-    ? await db.user.findUnique({ where: { email }, select: { id: true, role: true } }).catch(() => null)
-    : phone
-      ? await db.user.findFirst({ where: { phone: { endsWith: phone.slice(-10) } }, select: { id: true, role: true } }).catch(() => null)
-      : null;
+  const matched = await accountByContact(email, phone);
   try {
     const ticket = await openTicket({
       userId: null,

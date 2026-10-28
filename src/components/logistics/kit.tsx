@@ -31,7 +31,16 @@ type FrameProps = Omit<ComponentProps<typeof AppFrame>, "children">;
 
 export interface PartnerFrameInput {
   user: { name: string; avatarUrl?: string | null; email?: string | null };
-  partner: { displayName: string; city?: string | null; logoUrl?: string | null; verificationStatus?: string };
+  partner: { displayName: string; city?: string | null; logoUrl?: string | null; verificationStatus?: string; kycSubmittedAt?: Date | null };
+}
+
+/**
+ * The status the portal's verification banner shows. A new partner's verificationStatus starts as "pending" before
+ * anything is sent, so "pending" without a submission (kycSubmittedAt, shared/partner-tiers.ts) reads as not sent yet.
+ */
+export function bannerStatus(partner: PartnerFrameInput["partner"]) {
+  if (partner.verificationStatus === "pending" && "kycSubmittedAt" in partner && !partner.kycSubmittedAt) return "unverified";
+  return partner.verificationStatus;
 }
 
 export function partnerFrame({ user, partner }: PartnerFrameInput, t?: Translate): FrameProps {
@@ -47,7 +56,7 @@ export function partnerFrame({ user, partner }: PartnerFrameInput, t?: Translate
     userInitials: user.name.split(" ").map((part) => part[0]).join("").toUpperCase().slice(0, 2),
     avatarUrl: user.avatarUrl ?? null,
     userEmail: user.email ?? null,
-    verificationStatus: partner.verificationStatus,
+    verificationStatus: bannerStatus(partner),
   };
 }
 

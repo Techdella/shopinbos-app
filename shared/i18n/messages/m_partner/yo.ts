@@ -663,7 +663,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "kyc.introTitle": "O kò nílò CAC láti bẹ̀rẹ̀",
   "kyc.introSub": "Lẹ́yìn set-up, o máa verify ara rẹ lórí fóònù. Ṣètò àwọn wọ̀nyí sílẹ̀:",
   "kyc.need.id": "NIN rẹ àti selfie kan",
-  "kyc.need.bank": "BVN rẹ, tàbí bank account ní orúkọ rẹ",
+  "kyc.need.bank": "Bank account ní orúkọ rẹ",
   "kyc.need.vehicle": "Fọ́tò ọkọ̀ rẹ àti licence awakọ̀",
   "kyc.need.guarantor": "Onígbọ̀wọ́ tó lè jẹ́rìí sí i nípasẹ̀ text",
   "kyc.introCac": "Ṣé o ní CAC? Fi kún un nígbà verification kí o di Registered Business láìsí order limits.",

@@ -663,7 +663,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "kyc.introTitle": "You no need CAC to start",
   "kyc.introSub": "After set-up you go verify yourself for phone. Get these ready:",
   "kyc.need.id": "Your NIN and one selfie",
-  "kyc.need.bank": "Your BVN, or bank account for your name",
+  "kyc.need.bank": "Bank account for your name",
   "kyc.need.vehicle": "Photo of your vehicle and the driver or rider licence",
   "kyc.need.guarantor": "Guarantor wey fit confirm by text",
   "kyc.introCac": "You get CAC? Add am during verification make you be Registered Business, no order limits.",

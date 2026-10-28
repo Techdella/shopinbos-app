@@ -228,7 +228,7 @@ export const ITEM_LABELS: Record<ChecklistItem, string> = {
   email: "Email",
   nin: "NIN",
   selfie: "Selfie",
-  payout: "BVN or bank account",
+  payout: "Bank account",
   address: "Address",
   coverage: "Coverage areas",
   methods: "Delivery methods",

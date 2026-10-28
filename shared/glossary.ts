@@ -137,7 +137,7 @@ export const GLOSSARY: GlossaryEntry[] = [
   { key: "api-key", term: "API key", short: "A secret code that lets another app work with your Shopinbos account.", example: "Paste it into your dispatch software, and keep it secret like a password.", aliases: ["api keys", "secret key"], introKey: "partner-connect" },
   { key: "buyers", term: "Buyers", short: "The shops that sell or buy your products.", example: "14 shops sell your sandals; 3 buy in bulk every month.", aliases: ["buyer", "shops selling your products"], introKey: "supplier-buyers" },
   { key: "followers", term: "Followers", short: "Shops that follow you to hear first about your new stock, price drops and restocks.", example: "62 shops follow you, so your “200 new Ankara prints” update reaches all 62.", aliases: ["follower", "follows"], introKey: "supplier-buyers" },
-  { key: "verification", term: "Verification", short: "Checking your ID or company papers so shops and buyers can trust you.", example: "Upload your CAC certificate and get a “Verified” badge.", aliases: ["verify", "kyc", "kyb", "cac", "verified"], introKey: "verification" },
+  { key: "verification", term: "Verification", short: "Checking your ID or company papers so shops and buyers can trust you.", example: "Check your NIN, or your CAC papers, and get a “Verified” badge.", aliases: ["verify", "kyc", "kyb", "cac", "verified"], introKey: "verification" },
 ];
 
 const BY_KEY = new Map(GLOSSARY.map((entry) => [entry.key, entry]));

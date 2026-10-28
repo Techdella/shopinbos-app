@@ -2,7 +2,7 @@
 // (with the page, browser and, on the server, the signed-in account) to /api/public/client-errors.
 
 import * as Sentry from "@sentry/nextjs";
-import { DEFAULT_FRIENDLY, errorDetails, errorKind, friendlyText } from "./friendly";
+import { DEFAULT_FRIENDLY, errorDetails, errorKind, friendlyText, type ErrorKind } from "./friendly";
 
 type Source = "shown" | "unhandled" | "boundary";
 
@@ -60,16 +60,17 @@ function watchTrail() {
 }
 
 /** Send a technical error to the admin error log. Never throws; each distinct error is sent once per page load. */
-export function reportClientError(error: unknown, options: { source?: Source; shown?: string; digest?: string } = {}) {
+export function reportClientError(error: unknown, options: { source?: Source; shown?: string; digest?: string; kind?: ErrorKind } = {}) {
   try {
     if (typeof window === "undefined") return;
     const details = errorDetails(error);
     const key = `${details.message}|${location.pathname}`;
     if (sent.has(key) || sent.size >= MAX_PER_PAGE) return;
     sent.add(key);
+    const kind = options.kind ?? errorKind(error) ?? "code";
     const body = JSON.stringify({
       ...details,
-      kind: errorKind(error) ?? "code",
+      kind,
       source: options.source ?? "shown",
       shown: options.shown?.slice(0, 500) ?? null,
       digest: options.digest ?? null,
@@ -77,7 +78,7 @@ export function reportClientError(error: unknown, options: { source?: Source; sh
       path: `${location.pathname}${location.search}`.slice(0, 500),
     });
     // Error pages and bugs also go to Sentry, which keeps a replay of the session (it records uncaught errors itself).
-    if (options.source === "boundary" || (options.source !== "unhandled" && errorKind(error) === "code")) {
+    if (options.source === "boundary" || (options.source !== "unhandled" && kind === "code")) {
       Sentry.captureException(error, { tags: { source: options.source ?? "shown", page: location.pathname }, extra: { trail: trailText(), digest: options.digest } });
     }
     void fetch("/api/public/client-errors", { method: "POST", headers: { "Content-Type": "application/json" }, body, keepalive: true, credentials: "same-origin" }).catch(() => undefined);
@@ -107,8 +108,8 @@ export function listenForUnhandledErrors() {
   const noise = /ResizeObserver loop|^Script error\.?$|chrome-extension:|moz-extension:|safari-extension:|Non-Error promise rejection captured/i;
   window.addEventListener("error", (event) => {
     const error = event.error ?? event.message;
-    const text = `${event.message ?? ""} ${event.filename ?? ""}`;
-    if (noise.test(text)) return;
+    // Tested apart: a cross-origin "Script error." has no filename, and a joined "Script error. " would slip past ^…$.
+    if (noise.test(event.message ?? "") || noise.test(event.filename ?? "")) return;
     reportClientError(error, { source: "unhandled" });
   });
   window.addEventListener("unhandledrejection", (event) => {

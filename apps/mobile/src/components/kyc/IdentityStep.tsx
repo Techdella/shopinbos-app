@@ -8,10 +8,12 @@ import { checkNin, saveIdentity, sendEmailCode, sendPhoneCode, verifyEmailCode, 
 import { birthDate, digitsUpTo, selfieDataUri } from "@/lib/kyc-pure";
 import { colors } from "@/theme";
 import { ItemStatus, StepCard, useStepAction, type StepProps } from "./KycKit";
+import { LIVENESS_ON, useKoraLiveness, type LivenessPass } from "./KoraLiveness";
 
 // Identity: name and address, phone and email codes, then the selfie with the NIN. The server matches the selfie to
 // the NIN photo (Korapay) in the same check, so the two are always sent together; a new selfie means checking the
-// NIN again. Only the last 4 digits of the NIN ever come back.
+// NIN again. Only the last 4 digits of the NIN ever come back. With Korapay's liveness check switched on
+// (EXPO_PUBLIC_KORAPAY_PUBLIC_KEY), the face check comes first and its reference goes with the selfie.
 
 function nameParts(full: string | null) {
   const words = (full ?? "").trim().split(/\s+/).filter(Boolean);
@@ -44,8 +46,25 @@ export function IdentityStep({ state, onState }: StepProps) {
   // Selfie and NIN
   const id = useStepAction(onState);
   const [selfie, setSelfie] = useState<{ uri: string; dataUri: string } | null>(null);
+  const liveness = useKoraLiveness();
+  const [passed, setPassed] = useState<LivenessPass | null>(null);
+  const [checking, setChecking] = useState(false);
   const [nin, setNin] = useState("");
   const [dob, setDob] = useState("");
+
+  async function faceCheck() {
+    id.setError(null);
+    setChecking(true);
+    try {
+      const result = await liveness.start({ firstName: first, lastName: last });
+      if (result) setPassed(result);
+      else id.setError(t("selfie.livenessFailed"));
+    } catch {
+      id.setError(t("selfie.livenessUnavailable"));
+    } finally {
+      setChecking(false);
+    }
+  }
 
   async function takeSelfie() {
     id.setError(null);
@@ -61,13 +80,15 @@ export function IdentityStep({ state, onState }: StepProps) {
 
   function sendNin() {
     const born = birthDate(dob);
+    if (LIVENESS_ON && !passed) return id.setError(t("selfie.livenessFirst"));
     if (!selfie) return id.setError(t("selfie.needed"));
     if (nin.length !== 11) return id.setError(t("nin.length"));
     if (!first.trim() || !last.trim()) return id.setError(t("name.needed"));
     if (!born) return id.setError(t("dob.invalid"));
-    void id.run("nin", () => checkNin({ nin, firstName: first.trim(), lastName: last.trim(), dateOfBirth: born, selfie: selfie.dataUri }), () => {
+    void id.run("nin", () => checkNin({ nin, firstName: first.trim(), lastName: last.trim(), dateOfBirth: born, selfie: selfie.dataUri, ...(passed ? { liveness: passed } : {}) }), () => {
       setNin("");
       setSelfie(null);
+      setPassed(null);
       id.setDone(t("nin.checked"));
     });
   }
@@ -174,9 +195,19 @@ export function IdentityStep({ state, onState }: StepProps) {
         {identity.nin ? <T style={{ color: colors.inkSoft, fontSize: 14 }}>{t("nin.ending", { last4: identity.nin.last4 })}</T> : null}
         {tier1.nin !== "approved" || tier1.selfie !== "approved" ? (
           <>
+            {LIVENESS_ON ? (
+              passed ? (
+                <T style={{ color: colors.success, fontWeight: "700" }}>{t("selfie.livenessPassed")}</T>
+              ) : (
+                <>
+                  <PillButton title={t("selfie.livenessStart")} size="sm" tone="white" style={{ alignSelf: "flex-start" }} busy={checking} disabled={Boolean(id.busy) || checking} onPress={() => void faceCheck()} />
+                  <T style={{ color: colors.inkSoft, fontSize: 13 }}>{t("selfie.livenessFirst")}</T>
+                </>
+              )
+            ) : null}
             <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
               {selfie ? <Image source={{ uri: selfie.uri }} style={{ width: 72, height: 72, borderRadius: 36 }} accessibilityLabel={t("selfie.taken")} /> : null}
-              <PillButton title={selfie ? t("selfie.retake") : t("selfie.take")} size="sm" tone="white" onPress={() => void takeSelfie()} disabled={Boolean(id.busy)} />
+              <PillButton title={selfie ? t("selfie.retake") : t("selfie.take")} size="sm" tone="white" onPress={() => void takeSelfie()} disabled={Boolean(id.busy) || (LIVENESS_ON && !passed)} />
             </View>
             <T style={{ color: colors.inkSoft, fontSize: 13 }}>{t("selfie.hint")}</T>
             <LabeledInput label={t("nin.number")} value={nin} onChangeText={(text) => setNin(digitsUpTo(text, 11))} keyboardType="number-pad" />
@@ -187,6 +218,7 @@ export function IdentityStep({ state, onState }: StepProps) {
         ) : null}
         {id.notes}
       </StepCard>
+      {liveness.screen}
     </>
   );
 }
