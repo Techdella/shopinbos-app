@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { BackButton, Notice, PillButton, ProgressBars, TextInput, Wordmark, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
@@ -9,7 +9,6 @@ import intentRouting from "@/lib/intent-routing";
 import { shrinkImage } from "@/lib/media/shrink-image";
 import { whatsappChatUrl } from "@/lib/support-contact";
 import { StepRail } from "./StepRail";
-import { SelfieWays } from "./SelfieWays";
 import type { SupplierOnboardingView } from "@/lib/kyc/supplier-onboarding.server";
 import { NG_STATES } from "@shared/delivery-market";
 import {
@@ -28,13 +27,15 @@ import {
   type SupplySource,
 } from "@shared/supplier-onboarding";
 import { SelfieCapture, readAsDataUri, type SelfieValue } from "./supplier/SelfieCapture";
+import { PhoneOrThisDevice } from "@/components/kyc/PhoneHandoff";
+import { docStamp } from "@/lib/kyc/handoff";
 
 // Supplier onboarding, one question per screen (shared/supplier-onboarding.ts has the order and rules): one question in
 // large text, one answer, Continue at the bottom, back arrow top-left, "Step X of N" and a WhatsApp "Need help?".
 // Every Continue saves to /api/supplier/onboarding with the next screen, so leaving and coming back resumes there.
 // The ID photo and selfie go to /api/supplier/kyc/*, the first product to /api/supplier/onboarding/first-product.
 // Wide screens (2026 "Web onboarding, verify identity"): the steps listed on the left (./StepRail.tsx) with "No BVN
-// needed", and the selfie can be taken on the phone instead (./SelfieWays.tsx). Pre-order shows locked until the
+// needed", and the selfie and ID photo can be taken on the phone instead (src/components/kyc/PhoneHandoff.tsx). Pre-order shows locked until the
 // Established level (shared/supplier-onboarding.ts cleanBuyModes; the API drops it too).
 
 type View = SupplierOnboardingView;
@@ -89,6 +90,33 @@ export function SupplierOnboarding({ initialView }: { initialView: View }) {
   const [productPrice, setProductPrice] = useState("");
   const idInput = useRef<HTMLInputElement>(null);
   const productInput = useRef<HTMLInputElement>(null);
+  const [cameraFailed, setCameraFailed] = useState(false);
+  // "Do it on your phone": the ID photo's and selfie's stamps when their screen opened, and the view the phone produced.
+  const opened = useRef({ id: docStamp(initialView.idDocument), selfie: docStamp(initialView.selfie) });
+  const fromPhone = useRef<View | null>(null);
+  const viewRef = useRef(view);
+  viewRef.current = view;
+  useEffect(() => {
+    opened.current = { id: docStamp(viewRef.current.idDocument), selfie: docStamp(viewRef.current.selfie) };
+  }, [step]);
+  const phoneArrived = (kind: "id" | "selfie") => async () => {
+    const fresh = await call<View>("/api/supplier/onboarding");
+    fromPhone.current = fresh;
+    return docStamp(kind === "id" ? fresh.idDocument : fresh.selfie) !== opened.current[kind];
+  };
+  function phoneSent(kind: "id" | "selfie") {
+    const fresh = fromPhone.current;
+    if (!fresh) return;
+    setView(fresh);
+    opened.current = { id: docStamp(fresh.idDocument), selfie: docStamp(fresh.selfie) };
+    if (kind === "id") {
+      setIdType(fresh.idType);
+      save({}, "selfie");
+    } else if (fresh.selfie?.status !== "rejected") {
+      setNote(fresh.selfie?.status === "approved" ? t("selfie.approved") : t("selfie.pending"));
+      save({}, "product");
+    }
+  }
 
   const { index, total } = stepPosition(step, modes);
 
@@ -376,6 +404,7 @@ export function SupplierOnboarding({ initialView }: { initialView: View }) {
     hint = t("id.hint");
     const saved = view.idDocument && view.idDocument.status !== "rejected" && view.idType === idType;
     body = (
+      <PhoneOrThisDevice purpose="id" createUrl="/api/supplier/kyc/handoff" arrived={phoneArrived("id")} onArrived={() => phoneSent("id")}>
       <div className="grid gap-4">
         <div className="grid gap-2 sm:grid-cols-2">
           {SUPPLIER_ID_TYPES.map((value) => (
@@ -395,6 +424,7 @@ export function SupplierOnboarding({ initialView }: { initialView: View }) {
         )}
         {idType === "nin_slip" && ninFields}
       </div>
+      </PhoneOrThisDevice>
     );
     action = {
       label: t("continue"),
@@ -420,23 +450,11 @@ export function SupplierOnboarding({ initialView }: { initialView: View }) {
     const needsNin = view.idType === "nin_slip" && ninDetailsProblem() !== "";
     body = (
       <div className="grid gap-5">
-        <SelfieWays
-          phonePath="/supplier/onboarding"
-          check={async () => {
-            const next = await call<View>("/api/supplier/onboarding");
-            const arrived = Boolean(next.selfie && next.selfie.status !== "rejected" && (!view.selfie || view.selfie.status === "rejected"));
-            if (arrived) {
-              setView(next);
-              setNote(next.selfie?.status === "approved" ? t("selfie.approved") : t("selfie.pending"));
-            }
-            return arrived;
-          }}
-          onArrived={() => go("product")}
-        >
-          <SelfieCapture value={selfie} onChange={setSelfie} firstName={firstName} lastName={lastName} />
-        </SelfieWays>
         {view.selfie?.status === "rejected" && view.selfie.reason && <Notice tone="error">{view.selfie.reason}</Notice>}
-        {needsNin && ninFields}
+        <PhoneOrThisDevice purpose="selfie" createUrl="/api/supplier/kyc/handoff" arrived={phoneArrived("selfie")} onArrived={() => phoneSent("selfie")} cameraFailed={cameraFailed}>
+          <SelfieCapture value={selfie} onChange={setSelfie} firstName={firstName} lastName={lastName} onStartFailed={() => setCameraFailed(true)} />
+          {needsNin && ninFields}
+        </PhoneOrThisDevice>
       </div>
     );
     action = {

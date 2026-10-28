@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Notice, cx } from "@/components/app-ui";
 import { Pill } from "@/components/app-kit";
 import { field } from "@/components/seller-core";
@@ -10,7 +10,8 @@ import { NG_STATES } from "@shared/delivery-market";
 import { ID_TYPES, ITEM_SCREEN, TIER1_ITEMS, type FlowScreen, type IdType, type ItemState } from "@shared/partner-tiers";
 import { Choice, CodeConfirm, PhotoTake, QuestionFrame, StatusPill, jsonInit, kycCall, useAction, useKycT, type KycState } from "./kit";
 import { SelfieCapture, type SelfieValue } from "./SelfieCapture";
-import { SelfieWays } from "@/components/onboarding/SelfieWays";
+import { PhoneOrThisDevice } from "@/components/kyc/PhoneHandoff";
+import { docStamp } from "@/lib/kyc/handoff";
 import type { ScreenProps } from "./QuestionScreens";
 
 // Screens 8–11 of the partner sign-up: where they're based (location, address, optional photo), a photo of their ID,
@@ -18,6 +19,27 @@ import type { ScreenProps } from "./QuestionScreens";
 
 /** NIN details typed on the ID screen, checked with the selfie on the next one (never stored before the check). */
 export type NinDraft = { nin: string; firstName: string; lastName: string; dateOfBirth: string };
+
+/** "Has the phone sent it yet?" for the QR card: the document's stamp, compared with when the screen opened. */
+function usePhoneArrival(docType: "selfie" | "identity", state: KycState, onState: (state: KycState) => void, onDone: () => void) {
+  const opened = useRef(docStamp(state.docs.find((doc) => doc.type === docType)));
+  const latest = useRef<KycState | null>(null);
+  return {
+    arrived: async () => {
+      const fresh = await kycCall("");
+      latest.current = fresh;
+      return docStamp(fresh.docs.find((doc) => doc.type === docType)) !== opened.current;
+    },
+    onArrived: () => {
+      const fresh = latest.current;
+      if (!fresh) return;
+      onState(fresh);
+      // A selfie Korapay turned down stays on this screen, with the reason.
+      if (fresh.docs.find((doc) => doc.type === docType)?.status !== "rejected") onDone();
+      else opened.current = docStamp(fresh.docs.find((doc) => doc.type === docType));
+    },
+  };
+}
 
 export function BaseScreen({ state, onState, onDone }: ScreenProps) {
   const t = useKycT();
@@ -91,6 +113,7 @@ export function IdScreen({ state, onState, onDone, draft, onDraft }: ScreenProps
   const ninNeeded = idType === "nin_slip" && !ninDone;
   const ninReady = !ninNeeded || (draft.nin.length === 11 && draft.firstName.trim().length >= 2 && draft.lastName.trim().length >= 2 && Boolean(draft.dateOfBirth));
   const canContinue = Boolean(idType) && (Boolean(photo) || (sent && idType === state.identity.idDocument?.type)) && ninReady;
+  const phone = usePhoneArrival("identity", state, onState, onDone);
 
   return (
     <QuestionFrame
@@ -101,16 +124,18 @@ export function IdScreen({ state, onState, onDone, draft, onDraft }: ScreenProps
       canContinue={canContinue}
       onContinue={() => (photo ? void run("id", () => kycCall("/id-document", jsonInit("POST", { idType, photo })), onDone) : onDone())}
     >
-      <div className="grid gap-3 sm:grid-cols-2">
-        {ID_TYPES.map((type) => <Choice key={type} label={t(`idType.${type}` as "idType.nin_slip")} selected={idType === type} onPick={() => setIdType(type)} />)}
-      </div>
-      {idType && (
-        <>
-          {sent && !photo && idType === state.identity.idDocument?.type && <Notice tone="success">{t("q.id.sent")}</Notice>}
-          <PhotoTake value={photo} onChange={setPhoto} takeLabel={t("q.id.take")} retakeLabel={t("q.photo.retake")} alt={t("q.id.title")} />
-          {ninNeeded && <NinFields draft={draft} onDraft={onDraft} />}
-        </>
-      )}
+      {sent && !photo && <Notice tone="success">{t("q.id.sent")}</Notice>}
+      <PhoneOrThisDevice purpose="id" createUrl="/api/logistics/kyc/handoff" arrived={phone.arrived} onArrived={phone.onArrived}>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {ID_TYPES.map((type) => <Choice key={type} label={t(`idType.${type}` as "idType.nin_slip")} selected={idType === type} onPick={() => setIdType(type)} />)}
+        </div>
+        {idType && (
+          <>
+            <PhotoTake value={photo} onChange={setPhoto} takeLabel={t("q.id.take")} retakeLabel={t("q.photo.retake")} alt={t("q.id.title")} />
+            {ninNeeded && <NinFields draft={draft} onDraft={onDraft} />}
+          </>
+        )}
+      </PhoneOrThisDevice>
     </QuestionFrame>
   );
 }
@@ -139,6 +164,8 @@ export function SelfieScreen({ state, onState, onDone, draft, onDraft }: ScreenP
   const ninReady = draft.nin.length === 11 && draft.firstName.trim().length >= 2 && draft.lastName.trim().length >= 2 && Boolean(draft.dateOfBirth);
   const sent = state.tier1.selfie === "approved" || state.tier1.selfie === "pending";
   const selfie = state.docs.find((doc) => doc.type === "selfie");
+  const phone = usePhoneArrival("selfie", state, onState, onDone);
+  const [cameraFailed, setCameraFailed] = useState(false);
 
   function send() {
     if (!shot) return onDone();
@@ -152,26 +179,14 @@ export function SelfieScreen({ state, onState, onDone, draft, onDraft }: ScreenP
     <QuestionFrame title={t("q.selfie.title")} sub={t("q.selfie.sub")} error={error} busy={busy === "selfie"} canContinue={(Boolean(shot) && (!byNin || ninReady)) || (sent && !shot)} onContinue={send}>
       {state.tier1.selfie === "rejected" && selfie?.rejectionReason && <Notice tone="error">{t("status.rejectedReason", { reason: selfie.rejectionReason })}</Notice>}
       {sent && !shot && <Notice tone="success">{state.tier1.selfie === "approved" ? t("selfie.matched") : t("selfie.waiting")}</Notice>}
-      {/* On a computer: "Continue on my phone" (this page on the phone, moving on here once the selfie is in) or this camera. */}
-      <SelfieWays
-        phonePath="/logistics/verification?step=selfie"
-        check={async () => {
-          const next = await kycCall("");
-          const arrived = !sent && (next.tier1.selfie === "approved" || next.tier1.selfie === "pending");
-          if (arrived) onState(next);
-          return arrived;
-        }}
-        onArrived={onDone}
-      >
-        <div className="grid gap-3">
-          <div className="grid place-items-center gap-2 rounded-[22px] bg-app-ink p-6 text-white">
-            <span aria-hidden className="grid h-36 w-28 place-items-center rounded-[50%] border-4 border-dashed border-white/70" />
-            <span className="text-center text-[15px]">{t("q.selfie.how")}</span>
-          </div>
-          <SelfieCapture value={shot} onChange={setShot} firstName={draft.firstName} lastName={draft.lastName} />
+      <PhoneOrThisDevice purpose="selfie" createUrl="/api/logistics/kyc/handoff" arrived={phone.arrived} onArrived={phone.onArrived} cameraFailed={cameraFailed}>
+        <div className="grid place-items-center gap-2 rounded-[22px] bg-app-ink p-6 text-white">
+          <span aria-hidden className="grid h-36 w-28 place-items-center rounded-[50%] border-4 border-dashed border-white/70" />
+          <span className="text-center text-[15px]">{t("q.selfie.how")}</span>
         </div>
-      </SelfieWays>
-      {byNin && !ninReady && <NinFields draft={draft} onDraft={onDraft} />}
+        <SelfieCapture value={shot} onChange={setShot} firstName={draft.firstName} lastName={draft.lastName} onStartFailed={() => setCameraFailed(true)} />
+        {byNin && !ninReady && <NinFields draft={draft} onDraft={onDraft} />}
+      </PhoneOrThisDevice>
       {!state.idChecksReady && byNin && <p className="m-0 text-[14px] text-app-ink-soft">{t("id.ninManual")}</p>}
     </QuestionFrame>
   );

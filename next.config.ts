@@ -96,8 +96,13 @@ const nextConfig: NextConfig = {
     return [
       {
         // Every page but partner verification and supplier onboarding (which get the liveness hosts and the camera, below).
-        source: "/:path((?!logistics/verification$|supplier/onboarding$).*)",
+        source: "/:path((?!logistics/verification$|supplier/onboarding$|verify/phone/).*)",
         headers: baseHeaders(false),
+      },
+      {
+        // "Do it on your phone" (src/lib/kyc/handoff.ts): the same selfie and face check, opened from the QR code.
+        source: "/verify/phone/:token",
+        headers: baseHeaders(true),
       },
       {
         source: "/logistics/verification",

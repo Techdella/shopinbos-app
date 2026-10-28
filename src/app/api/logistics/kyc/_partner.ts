@@ -1,8 +1,8 @@
 import type { NextRequest, NextResponse } from "next/server";
 import { withLogistics } from "@/lib/auth/middleware";
-import { apiError, ok } from "@/lib/api/response";
+import { apiError } from "@/lib/api/response";
 import type { AuthUser } from "@/lib/auth/types";
-import { kycPartnerFor, kycState, type KycPartner } from "@/lib/logistics/partner-kyc.server";
+import { kycPartnerFor, type KycPartner } from "@/lib/logistics/partner-kyc.server";
 
 // Shared by the /api/logistics/kyc routes: the signed-in partner's company, and the page state every change answers with.
 
@@ -16,12 +16,8 @@ export function withKycPartner(handler: KycHandler) {
   });
 }
 
-/** The verification page state after a change. */
-export async function stateResponse(partnerId: string, status = 200) {
-  const state = await kycState(partnerId);
-  if (!state) return apiError("NOT_FOUND", "We couldn't find your company. Log out and in again.", 404);
-  return ok(state, status);
-}
+/** The verification page state after a change (src/lib/logistics/kyc-steps.server.ts). */
+export { stateResponse } from "@/lib/logistics/kyc-steps.server";
 
 export async function readJson(req: NextRequest): Promise<Record<string, unknown>> {
   const body = await req.json().catch(() => null);

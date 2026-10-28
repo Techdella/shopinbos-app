@@ -255,7 +255,7 @@ export const ROUTE_NAMESPACES: ReadonlyArray<readonly [string, readonly string[]
   ["/logistics/signup", ["auth","common","nav","settings","support","ui"]],
   ["/logistics/story", ["auth","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/logistics/terms", ["auth","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
-  ["/logistics/verification", ["auth","common","glossary","help","introTitles","learn","nav","notifications","partnerKyc","rex","settings","shell","support","tour","ui","verification"]],
+  ["/logistics/verification", ["auth","common","glossary","handoff","help","introTitles","learn","nav","notifications","partnerKyc","rex","settings","shell","support","tour","ui","verification"]],
   ["/logistics/wallet", ["auth","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification","wallet"]],
   ["/marketplace", ["auth","common","glossary","help","introTitles","learn","marketplace","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/marketplace/logistics", ["auth","common","glossary","help","introTitles","learn","marketplace","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
@@ -356,7 +356,7 @@ export const ROUTE_NAMESPACES: ReadonlyArray<readonly [string, readonly string[]
   ["/supplier/inbox", ["auth","common","glossary","help","inbox","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/supplier/level", ["auth","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/supplier/login", ["auth","common","nav","settings","support","ui"]],
-  ["/supplier/onboarding", ["common","nav","supplierJoin","ui","verification"]],
+  ["/supplier/onboarding", ["common","handoff","nav","supplierJoin","ui","verification"]],
   ["/supplier/orders", ["auth","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","supplier","support","tour","ui","verification"]],
   ["/supplier/orders/[id]", ["auth","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","supplier","support","tour","ui","verification"]],
   ["/supplier/payouts", ["auth","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
@@ -381,4 +381,5 @@ export const ROUTE_NAMESPACES: ReadonlyArray<readonly [string, readonly string[]
   ["/suppliers/[slug]", ["auth","common","glossary","help","introTitles","learn","marketplace","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/team/join", ["common","nav","ui"]],
   ["/theme-demo/[id]", ["campaigns","common","nav","ui"]],
+  ["/verify/phone/[token]", ["auth","common","glossary","handoff","help","introTitles","learn","nav","notifications","partnerKyc","rex","settings","shell","support","tour","ui","verification"]],
 ];

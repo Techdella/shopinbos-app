@@ -174,19 +174,6 @@ const en = {
   "rail.done": "done",
   "rail.current": "you are here",
   "rail.noBvn": "No BVN needed. Your ID and selfie are only used to confirm it's really you.",
-  "phone.choose": "How to take the selfie",
-  "phone.easiest": "Easiest",
-  "phone.option": "Continue on my phone",
-  "phone.optionSub": "Scan a code and your phone camera opens. This page moves on by itself when you're done.",
-  "phone.computer": "Use this computer's camera",
-  "phone.computerSub": "Needs a webcam and good light in front of you.",
-  "phone.qr": "QR code to continue on your phone",
-  "phone.scanTitle": "Scan with your phone camera",
-  "phone.scanSub": "It opens this sign-up on your phone. Sign in with the same account if asked, then take the selfie.",
-  "phone.waiting": "Waiting for your phone…",
-  "phone.whatsapp": "Send link on WhatsApp",
-  "phone.whatsappText": "Finish my Shopinbos selfie on my phone: {url}",
-  "phone.app": "Or use the Shopinbos app",
 } satisfies Record<string, string>;
 
 export default en;
