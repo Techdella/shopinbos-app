@@ -172,6 +172,22 @@ const en = {
   "code.continue": "Continue",
   "form.signupLink": "New here? Create an account",
   "form.riderLink": "Riding for a delivery company? Rider sign-in",
+  // One question per screen (sign up)
+  "q.progress": "Step {step} of {total}",
+  "q.name": "What's your name?",
+  "q.nameSub": "Your first and last name. Rex and Peggy will use it.",
+  "q.firstName": "First name",
+  "q.lastName": "Last name",
+  "q.needName": "Type your first and last name.",
+  "q.phone": "What's your phone number?",
+  "q.phoneSubNamed": "Thanks, {name}. We'll send you a code to confirm it. No password needed.",
+  "q.email": "What's your email?",
+  "q.code": "Enter the code we sent you.",
+  "q.role": "What brings you to Shopinbos?",
+  "q.roleSub": "Pick one to get started.",
+  "q.role.seller": "I want to sell",
+  "q.role.logistics_partner": "I deliver orders",
+  "q.role.supplier": "I supply products",
 } satisfies Record<string, string>;
 
 export default en;

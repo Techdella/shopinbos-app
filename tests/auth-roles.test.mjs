@@ -117,32 +117,43 @@ test("server wiring: one decision for every sign-up path, metadata only fills a 
   assert.match(middleware, /!identity\.metadataRole && allowedRoles\?\.length === 1/, "a seller's first supplier API call can't make them a supplier");
 });
 
-test("web screens: role cards first, unless the link already says; the chosen role stays in sight", () => {
+test("web screens: one question per screen; the role is asked last, unless the link already says", () => {
   const auth = read("src/components/auth/app/AppAuth.tsx");
-  assert.match(auth, /function roleAlreadyClear/);
-  for (const key of ["intent", "productSlug", "role", "next"]) assert.match(auth, new RegExp(`"${key}"`));
-  assert.match(auth, /const \[picked, setPicked\] = useState\(\(\) => isAdmin \|\| roleAlreadyClear\(role, params\)\)/);
-  assert.match(auth, /portalSignupPath\(item\) : portalLoginPath\(item\)/, "supplier and delivery cards go to their own pages");
-  assert.match(auth, /t\(`as\.\$\{mode\}\.\$\{signupRole\}`\)/, "Sign up as a supplier / Log in as a supplier");
+  assert.match(auth, /export function signupRoleKnown/);
+  for (const key of ["intent", "productSlug", "role"]) assert.match(auth, new RegExp(`"${key}"`));
+  assert.match(auth, /type Screen = "name" \| "details" \| "code" \| "role" \| "ready"/);
+  assert.match(auth, /useState<Screen>\(mode === "signup" && !isAdmin \? "name" : "details"\)/, "sign up opens on the name");
+  assert.match(auth, /if \(mode === "signup" && !roleKnown\) \{[\s\S]*?goTo\("role"\)/, "the role comes after the code");
+  assert.match(auth, /role: roleKnown \? signupRole : undefined/, "the code carries the role only when it is known");
+  assert.match(auth, /role: wanted,/, "sync-user gets the picked role");
   assert.match(auth, /t\(`change\.\$\{signupRole\}`\)/, "Not a supplier? Change");
   assert.match(auth, /conflictMessage\(syncedRole/);
   assert.match(auth, /withPortalNote\(roleDestination\(syncedRole\), role\)/);
   assert.match(auth, /signInWithGoogle\(role, nextUrl, mode\)/);
   assert.match(read("src/components/ClientLayout.tsx"), /<PortalNote \/>/);
+  // sync-user: the role sent from the sign-up page wins for a brand-new account.
+  assert.match(read("src/app/api/auth/sync-user/route.ts"), /requestedSignupRole\(claims\.user_metadata\?\.rawRole, body\.role, body\.source === "signup"\)/);
 });
 
-test("phone app: cards on Welcome, the picked role is the one sent, and no client-side role writes", () => {
+test("phone app: one question per screen; the role is asked after the code unless a link picked it", () => {
   const welcome = read("apps/mobile/src/app/welcome.tsx");
-  assert.match(welcome, /SIGNUP_ROLES\.map/);
+  assert.match(welcome, /router\.push\("\/signup"\)/, "Get started opens sign up (name first)");
+  assert.match(welcome, /SIGNUP_ROLES\.map/, "older ?step=role links still show the cards");
   assert.match(welcome, /pathname: "\/signup", params: \{ method: email && !phone \? "email" : "phone", role, \.\.\.carried \}/);
   const signup = read("apps/mobile/src/app/signup.tsx");
-  assert.match(signup, /if \(!picked\) return <Redirect href="\/welcome" \/>/);
+  assert.doesNotMatch(signup, /<Redirect href="\/welcome" \/>/, "no role needed to start");
+  assert.match(signup, /initialRole=\{picked\}/);
   const form = read("apps/mobile/src/components/AuthForm.tsx");
+  assert.match(form, /useState<"name" \| "contact">\(mode === "signup" \? "name" : "contact"\)/, "sign up opens on the name");
+  assert.match(form, /t\("q\.name"\)/);
   assert.match(form, /t\(`as\.\$\{role\}`\)/);
   assert.match(form, /t\(`change\.\$\{role\}`\)/);
   assert.doesNotMatch(form, /setRole\(/, "the role can't drift away from the card that was picked");
   const lib = read("apps/mobile/src/lib/auth.ts");
   assert.doesNotMatch(lib, /updateUser\(\{ data: \{ role/, "the phone never writes a role onto an existing login");
   assert.match(lib, /source: payload\.signup \? "signup" : undefined/);
-  assert.match(read("apps/mobile/src/app/verify.tsx"), /explainSignupConflict\(actual, role, target\.kind\)/);
+  const verify = read("apps/mobile/src/app/verify.tsx");
+  assert.match(verify, /if \(signup && !linkRole\) \{[\s\S]*?setAskRole\(true\)/, "What brings you to Shopinbos? comes after the code");
+  assert.match(verify, /t\("q\.role"\)/);
+  assert.match(verify, /explainSignupConflict\(actual, role, target\.kind\)/);
 });
