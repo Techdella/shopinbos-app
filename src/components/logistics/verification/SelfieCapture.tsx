@@ -33,7 +33,14 @@ function livenessReference(result: unknown): string | null {
   return typeof reference === "string" ? reference.trim().slice(0, 120) : null;
 }
 
-export function SelfieCapture({ value, onChange, firstName, lastName }: { value: SelfieValue | null; onChange: (value: SelfieValue | null) => void; firstName: string; lastName: string }) {
+export function SelfieCapture({ value, onChange, firstName, lastName, onStartFailed }: {
+  value: SelfieValue | null;
+  onChange: (value: SelfieValue | null) => void;
+  firstName: string;
+  lastName: string;
+  /** The face check couldn't start here (no camera, camera blocked, Korapay refused): offer the phone instead. */
+  onStartFailed?: () => void;
+}) {
   const t = useKycT();
   const input = useRef<HTMLInputElement>(null);
   const [liveness, setLiveness] = useState<SelfieValue["liveness"]>(value?.liveness ?? null);
@@ -71,6 +78,7 @@ export function SelfieCapture({ value, onChange, firstName, lastName }: { value:
       console.error("[selfie] liveness check couldn't start", error);
       setChecking(false);
       setProblem(t("selfie.livenessUnavailable"));
+      onStartFailed?.();
     }
   }
 

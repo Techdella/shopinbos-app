@@ -11,6 +11,17 @@ const k = await import("../src/lib/logistics/partner-kyc.ts");
 const root = new URL("..", import.meta.url).pathname;
 const read = (path) => readFileSync(join(root, path), "utf8");
 
+/** A route's source, or the shared step it hands to (the phone link runs the same step, src/lib/kyc/handoff.server.ts). */
+function stepSource(path) {
+  const src = read(path);
+  const shared = /import \{ (\w+) \} from "@\/lib\/(logistics\/kyc-steps|kyc\/supplier-steps)\.server"/.exec(src);
+  if (!shared) return src;
+  const lib = read(`src/lib/${shared[2]}.server.ts`);
+  const start = lib.indexOf(`export async function ${shared[1]}(`);
+  const next = lib.indexOf("\nexport async function ", start + 1);
+  return lib.slice(start, next === -1 ? undefined : next);
+}
+
 function files(dir) {
   return readdirSync(join(root, dir)).flatMap((name) => {
     const path = join(dir, name);
@@ -50,10 +61,11 @@ test("ID hashes are keyed: the same NIN under another secret is a different hash
 
 
 test("every kyc route that changes something refreshes the tier", () => {
-  const routes = files("src/app/api/logistics/kyc").filter((path) => path.endsWith("route.ts") && path !== "src/app/api/logistics/kyc/route.ts");
+  // The phone-link route only makes a link (the phone's selfie then runs the shared steps below).
+  const routes = files("src/app/api/logistics/kyc").filter((path) => path.endsWith("route.ts") && path !== "src/app/api/logistics/kyc/route.ts" && !path.endsWith("/handoff/route.ts"));
   assert.ok(routes.length >= 11, routes.join(", "));
   for (const path of routes) {
-    const src = read(path);
+    const src = stepSource(path);
     if (["payout", "nin", "phone", "email", "identity", "base", "id-document"].some((name) => path.endsWith(`/${name}/route.ts`))) {
       assert.match(src, /updateIdentityChecks/, path);
     } else if (path.endsWith("/answers/route.ts")) {
@@ -71,7 +83,7 @@ test("every kyc route that changes something refreshes the tier", () => {
 
 test("NIN and BVN are stored as last 4 digits and a keyed hash, never whole", () => {
   for (const path of ["src/app/api/logistics/kyc/nin/route.ts", "src/app/api/logistics/kyc/payout/route.ts"]) {
-    const src = read(path);
+    const src = stepSource(path);
     assert.match(src, /last4: (nin|bvn|accountNumber)\.slice\(-4\)/, path);
     assert.doesNotMatch(src, /nin: nin[,\s}]|bvn: bvn[,\s}]|accountNumber: accountNumber/, path);
   }
@@ -130,7 +142,7 @@ test("a liveness report keeps only a plain Korapay reference", () => {
 });
 
 test("wiring: the NIN check sends the selfie to Korapay and the generic upload refuses selfies", () => {
-  const route = read("src/app/api/logistics/kyc/nin/route.ts");
+  const route = stepSource("src/app/api/logistics/kyc/nin/route.ts");
   assert.match(route, /verifyKorapayIdentity\(\{ \.\.\.typed, selfie: selfie\.dataUri \}\)/);
   assert.match(route, /selfieDecision\(face\)/);
   assert.match(route, /korapayLivenessReady\(\) && !liveness/, "with liveness on, a selfie without it waits for the team");
@@ -202,7 +214,7 @@ test("Korapay runs every CAC check when it's set up, with the business name, and
 });
 
 test("a NIN check Korapay refuses with the selfie is retried without it, and the selfie goes to the team", () => {
-  const route = read("src/app/api/logistics/kyc/nin/route.ts");
+  const route = stepSource("src/app/api/logistics/kyc/nin/route.ts");
   assert.match(route, /const plain = await verifyKorapayIdentity\(typed\);/);
   assert.match(route, /const face = viaKorapay && !faceMatchRefused \? identity\.selfie \?\? null : null;/);
 });
