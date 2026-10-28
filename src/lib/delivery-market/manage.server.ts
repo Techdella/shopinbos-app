@@ -550,7 +550,7 @@ export async function partnerDetail(slug: string, viewerId: string | null) {
 
 // ─── Delivery problems (spec §6.4) ───────────────────────────────────────────
 
-export async function reportDeliveryIssue(input: { orderId: string; storeId: string; kind: string; message?: unknown; reporterName?: unknown }): Promise<Result> {
+export async function reportDeliveryIssue(input: { orderId: string; storeId: string; kind: string; message?: unknown; reporterName?: unknown; photos?: string[] }): Promise<Result> {
   if (!(ISSUE_KINDS as readonly string[]).includes(input.kind)) return { ok: false, error: "Pick what went wrong." };
   const kind = input.kind as IssueKind;
   const order = await db.retailOrder.findFirst({ where: { id: input.orderId, storeId: input.storeId }, select: { id: true, orderNumber: true, store: { select: { userId: true } } } });
@@ -560,7 +560,7 @@ export async function reportDeliveryIssue(input: { orderId: string; storeId: str
   const job = await db.deliveryBooking.findFirst({ where: { orderId: order.id, status: { notIn: ["cancelled", "declined"] } }, orderBy: { createdAt: "desc" }, select: { id: true, logisticsPartnerId: true, logisticsPartner: { select: { userId: true } } } });
   const toPartner = !!job && PARTNER_ISSUES.includes(kind);
   const issue = await db.deliveryIssue.create({
-    data: { retailOrderId: order.id, storeId: input.storeId, bookingId: job?.id ?? null, logisticsPartnerId: toPartner ? job!.logisticsPartnerId : null, kind, message: text(input.message, 1000), reporterName: text(input.reporterName, 80) },
+    data: { retailOrderId: order.id, storeId: input.storeId, bookingId: job?.id ?? null, logisticsPartnerId: toPartner ? job!.logisticsPartnerId : null, kind, message: text(input.message, 1000), reporterName: text(input.reporterName, 80), photos: (input.photos ?? []).filter((url) => /^https:\/\/\S{4,1000}$/.test(url)).slice(0, 4) },
   });
   const words = { late: "is late", not_delivered: "wasn't delivered", damaged: "arrived damaged", wrong_item: "had the wrong item" }[kind];
   await createNotification({ userId: order.store.userId, type: "logistics", priority: "critical", title: `Customer says order ${order.orderNumber} ${words}`, description: issue.message ?? "Contact your customer to sort it out.", link: `/home/orders/${order.id}`, event: "delivery.update", dedupeKey: `delivery.issue:${issue.id}` }).catch(() => null);

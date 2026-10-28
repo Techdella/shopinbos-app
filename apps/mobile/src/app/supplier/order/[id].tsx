@@ -275,6 +275,9 @@ export default function SupplierOrderScreen() {
     );
   } else if (self && stage === "with-rider") {
     footer = <PillButton title={t("order.enterCode")} tone="accent" onPress={() => router.push({ pathname: "/supplier/order/code", params: { id: self.id } })} />;
+  } else if (stage === "label" && !dropship) {
+    // A bulk order: the two packing photos (the item in the open box, the sealed parcel) before it's packed.
+    footer = <PillButton title={t("order.packedReady")} tone="accent" icon="camera" onPress={() => router.push({ pathname: "/supplier/order/pack", params: { id: data.id, kind: "wholesale" } })} />;
   } else if (stage === "label") {
     footer = (
       <>

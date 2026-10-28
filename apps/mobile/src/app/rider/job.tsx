@@ -20,6 +20,7 @@ import { useLoad } from "@/lib/useLoad";
 import QRCode from "react-native-qrcode-svg";
 import { PAY_AT_DOOR_WAIT_MINUTES } from "@shared/pay-at-door";
 import { colors } from "@/theme";
+import { useT } from "@/lib/i18n";
 
 // Riders app, one job's steps (E2E-Rider pickup → pcode → dropoff → dcode → cash → rdone, and "problem"):
 //   Step 1 Pick up: Call, Open in maps, "I'm there, enter code" → the shop's 4-digit pickup code on the keypad →
@@ -32,8 +33,11 @@ import { colors } from "@/theme";
 //   Pay on delivery (shared/pay-at-door.ts) has no cash step: at the drop-off the customer pays in the app (the link we
 //   texted them, or the QR code here) and gets the code; no code, no drop, and no photo instead. Only older jobs that
 //   still carry a cash amount use the cash step.
+//   The sealed-parcel photos (shared/fault-matrix.ts: they decide most disputes): a shop's or supplier's parcel is
+//   photographed sealed at pickup before "Got the parcel" (pphoto), and every drop is photographed as it's handed over
+//   (hphoto) before "Parcel handed over". The server refuses both steps without them.
 
-type Step = "pickup" | "pcode" | "dropoff" | "dcode" | "cash" | "done" | "help";
+type Step = "pickup" | "pphoto" | "pcode" | "dropoff" | "dcode" | "hphoto" | "cash" | "done" | "help";
 type CodeState = "idle" | "checking" | "ok" | "bad";
 
 export default function RiderJob() {
@@ -41,6 +45,7 @@ export default function RiderJob() {
   const jobId = String(id ?? "");
   const rider = useLoad(fetchRider);
   const { t, say } = useRiderStrings();
+  const f = useT("m_faults");
   const [step, setStep] = useState<Step | null>(null);
   const [helpFrom, setHelpFrom] = useState<Step>("pickup");
   const [helpSent, setHelpSent] = useState(false);
@@ -54,6 +59,9 @@ export default function RiderJob() {
   const [otherAmount, setOtherAmount] = useState<string | null>(null);
   const [got, setGot] = useState(false);
   const [photoDone, setPhotoDone] = useState(false);
+  const [pickupPhoto, setPickupPhoto] = useState(false);
+  // After the pickup photo: the shop's code, or straight to "Got the parcel" for jobs without one.
+  const [afterPickupPhoto, setAfterPickupPhoto] = useState<"pcode" | "direct">("pcode");
   // No code from the customer: a proof photo plus who received it instead.
   const [noCode, setNoCode] = useState(false);
   const [recipient, setRecipient] = useState("");
@@ -71,7 +79,11 @@ export default function RiderJob() {
   // Keep the latest copy (adjusting state while rendering, guarded so it settles at once).
   if (found && (found.run !== held?.run || found.drop !== held?.drop)) {
     setHeld(found);
-    if (!step) setStep(isCarrying(found.drop.status) ? "dropoff" : "pickup");
+    if (!step) {
+      setStep(isCarrying(found.drop.status) ? "dropoff" : "pickup");
+      setPhotoDone(found.drop.hasProof);
+      setPickupPhoto(Boolean(found.drop.hasPickupPhoto));
+    }
   }
 
   const run = held?.run;
@@ -79,7 +91,9 @@ export default function RiderJob() {
   const who = firstName(drop?.buyerName) ?? t.customer;
 
   const previous = useCallback((): Step | "exit" => {
-    if (step === "pcode") return "pickup";
+    if (step === "pphoto") return "pickup";
+    if (step === "pcode") return drop?.needsPickupPhoto ? "pphoto" : "pickup";
+    if (step === "hphoto") return "dcode";
     if (step === "dropoff") return drop && isCarrying(drop.status) ? "exit" : "pickup";
     if (step === "dcode") return "dropoff";
     if (step === "cash") return "dcode";
@@ -220,7 +234,7 @@ export default function RiderJob() {
     }
   }
 
-  async function addPhoto() {
+  async function addPhoto(kind: "handover" | "pickup" = "handover") {
     if (!drop) return;
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) return setError(t.cameraOff);
@@ -229,8 +243,9 @@ export default function RiderJob() {
     const asset = result.assets[0];
     setBusy("photo");
     try {
-      await uploadRiderProof(drop.id, { uri: asset.uri, mimeType: asset.mimeType, fileName: asset.fileName });
-      setPhotoDone(true);
+      await uploadRiderProof(drop.id, { uri: asset.uri, mimeType: asset.mimeType, fileName: asset.fileName }, kind);
+      if (kind === "pickup") setPickupPhoto(true);
+      else setPhotoDone(true);
     } catch (photoError) {
       setError(photoError instanceof Error ? photoError.message : t.tryAgain);
     } finally {
@@ -318,9 +333,9 @@ export default function RiderJob() {
         onBack={back}
         footer={
           drop.hasPickupCode ? (
-            <PillButton tone="forest" title={say("there")} onPress={() => { setPcode(""); setPstate("idle"); go("pcode"); }} />
+            <PillButton tone="forest" title={say("there")} onPress={() => { setPcode(""); setPstate("idle"); if (drop.needsPickupPhoto && !pickupPhoto) { setAfterPickupPhoto("pcode"); go("pphoto"); } else go("pcode"); }} />
           ) : (
-            <PillButton tone="forest" title={t.have} busy={busy === "pickup"} onPress={() => void pickUp(null)} />
+            <PillButton tone="forest" title={t.have} busy={busy === "pickup"} onPress={() => { if (drop.needsPickupPhoto && !pickupPhoto) { setAfterPickupPhoto("direct"); go("pphoto"); } else void pickUp(null); }} />
           )
         }
       >
@@ -341,6 +356,66 @@ export default function RiderJob() {
             : drop.hasPickupCode ? say("pickup.ask") : say("pickup.noCode")}
         </Small>
         {run.drops.length > 1 ? <Small>{t.parcels({ count: run.drops.length })}</Small> : null}
+        {errorNotice}
+        {helpLink}
+      </Screen>
+    );
+  }
+
+  if (step === "pphoto") {
+    // The sealed parcel as the rider takes it: the photo that shows it left the shop or supplier in one piece.
+    return (
+      <Screen
+        title={f("rider.pickupPhotoHeader")}
+        onBack={back}
+        footer={
+          pickupPhoto ? (
+            afterPickupPhoto === "pcode" ? (
+              <PillButton tone="forest" icon="check" title={f("rider.next")} onPress={() => go("pcode")} />
+            ) : (
+              <PillButton tone="forest" icon="check" busy={busy === "pickup"} title={t.have} onPress={() => void pickUp(null)} />
+            )
+          ) : (
+            <PillButton tone="white" disabled icon="box" title={afterPickupPhoto === "pcode" ? f("rider.next") : t.have} onPress={() => undefined} />
+          )
+        }
+      >
+        <Center top={24}>
+          <BigTile icon="camera" bg={colors.mintTint} fg={colors.forest} />
+          <Title style={{ textAlign: "center" }}>{f("rider.pickupPhotoTitle")}</Title>
+          <Sub style={{ textAlign: "center" }}>{f("rider.pickupPhotoSub", { name: run.pickupName })}</Sub>
+        </Center>
+        <PillButton tone={pickupPhoto ? "white" : "forest"} busy={busy === "photo"} disabled={Boolean(busy)} icon={pickupPhoto ? "check" : "camera"} title={pickupPhoto ? f("rider.retake") : f("rider.takePhoto")} onPress={() => void addPhoto("pickup")} />
+        {pickupPhoto ? <Banner title={f("rider.photoAdded")} tone="mint" icon="check" /> : null}
+        {errorNotice}
+        {helpLink}
+      </Screen>
+    );
+  }
+
+  if (step === "hphoto") {
+    // Every drop: the sealed parcel as it's handed over (the server refuses "delivered" without it).
+    return (
+      <Screen
+        title={f("rider.handoverHeader")}
+        onBack={back}
+        footer={photoDone ? (
+          drop.collect > 0 ? (
+            <PillButton tone="forest" onPress={() => { setGot(false); go("cash"); }} icon="check" title={say("codeNext")} />
+          ) : (
+            <PillButton tone="forest" busy={busy === "deliver"} onPress={() => void deliver()} icon="box" title={say("cash.handed")} />
+          )
+        ) : (
+          <PillButton tone="white" disabled icon="box" title={say("cash.handed")} onPress={() => undefined} />
+        )}
+      >
+        <Center top={24}>
+          <BigTile icon="camera" bg={colors.mintTint} fg={colors.forest} />
+          <Title style={{ textAlign: "center" }}>{f("rider.handoverTitle")}</Title>
+          <Sub style={{ textAlign: "center" }}>{f("rider.handoverSub")}</Sub>
+        </Center>
+        <PillButton tone={photoDone ? "white" : "forest"} busy={busy === "photo"} disabled={Boolean(busy)} icon={photoDone ? "check" : "camera"} title={photoDone ? f("rider.retake") : f("rider.takePhoto")} onPress={() => void addPhoto("handover")} />
+        {photoDone ? <Banner title={f("rider.photoAdded")} tone="mint" icon="check" /> : null}
         {errorNotice}
         {helpLink}
       </Screen>
@@ -453,7 +528,10 @@ export default function RiderJob() {
         title={say("dcode.title")}
         onBack={back}
         footer={ok ? (
-          drop.collect > 0 ? (
+          // The handover photo comes next (every drop needs one), then the cash step or "Parcel handed over".
+          !photoDone ? (
+            <PillButton tone="forest" onPress={() => go("hphoto")} icon="camera" title={f("rider.next")} />
+          ) : drop.collect > 0 ? (
             <PillButton tone="forest" onPress={() => { setGot(false); go("cash"); }} icon="check" title={say("codeNext")} />
           ) : (
             <PillButton tone="forest" busy={busy === "deliver"} onPress={() => void deliver()} icon="check" title={say("cash.handed")} />
@@ -467,7 +545,7 @@ export default function RiderJob() {
         <Keypad value={dcode} length={4} onChange={typeDrop} />
         <CodeLine state={dstate} bad={say("codeBad")} ok={say("codeOk")} />
         {errorNotice}
-        {ok ? <TextLink title={photoDone ? t.photoDone : t.photo} color={colors.inkSoft} onPress={() => { if (!photoDone && busy !== "photo") void addPhoto(); }} /> : null}
+        {ok && photoDone ? <TextLink title={t.photoDone} color={colors.inkSoft} onPress={() => go("hphoto")} /> : null}
         {/* Pay on delivery: the code is the customer's proof of payment, so there's no photo instead. */}
         {!ok && !drop.payInApp ? <TextLink title={say("noCode.link")} onPress={() => { setNoCode(true); setError(null); }} /> : null}
         {helpLink}

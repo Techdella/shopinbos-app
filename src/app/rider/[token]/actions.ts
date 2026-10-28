@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db/client";
 import { transitionJob } from "@/lib/logistics/jobs";
-import { pickupCodeCheck, WRONG_PICKUP_CODE } from "@/lib/logistics/job-rules";
+import { handoverPhotoProblem, pickupCodeCheck, pickupPhotoProblem, WRONG_PICKUP_CODE } from "@/lib/logistics/job-rules";
 import { riderFromToken, type RiderSession } from "@/lib/logistics/rider-session";
 import { checkRateLimitShared, rateLimitKey } from "@/lib/rate-limit";
 import { getT } from "@/lib/i18n/server";
@@ -43,15 +43,25 @@ export async function setRiderOnline(token: string, online: boolean): Promise<Ri
  * existed) don't block the pickup. Callers that don't know about pickup codes yet (the web Riders app, older app
  * builds) leave `codes` out.
  */
-export async function startRun(token: string, jobIds: string[], codes?: Record<string, string> | null): Promise<RiderActionResult> {
+export async function startRun(token: string, jobIds: string[], codes?: Record<string, string> | null, options: { requirePhotos?: boolean } = {}): Promise<RiderActionResult> {
   const session = await rider(token);
   if (!session.ok) return session;
   const ids = Array.isArray(jobIds) ? jobIds.filter((id) => typeof id === "string").slice(0, 50) : [];
   const jobs = await db.deliveryBooking.findMany({
     where: { id: { in: ids }, riderId: session.rider.id, logisticsPartnerId: session.rider.partnerId, status: "confirmed" },
-    select: { id: true, pickupCode: true },
+    select: { id: true, pickupCode: true, orderId: true, pickupPhotoUrl: true },
   });
   if (jobs.length === 0) return { ok: false, error: (await getT("rider"))("error.nothingLeft") };
+  // The phone Riders app photographs the sealed parcel at pickup (shop and supplier parcels): no photo, no pickup.
+  // One photo of the sealed parcels covers the run's other parcels from the same pickup (they're taken together).
+  if (options.requirePhotos) {
+    const photo = jobs.find((job) => job.pickupPhotoUrl)?.pickupPhotoUrl ?? null;
+    for (const job of jobs) {
+      if (!pickupPhotoProblem(job)) continue;
+      if (!photo) return { ok: false, error: pickupPhotoProblem(job)! };
+      await db.deliveryBooking.updateMany({ where: { id: job.id, pickupPhotoUrl: null }, data: { pickupPhotoUrl: photo, pickupPhotoAt: new Date() } });
+    }
+  }
   if (codes && typeof codes === "object") {
     for (const job of jobs) {
       if (!job.pickupCode) continue;
@@ -72,10 +82,17 @@ export async function startRun(token: string, jobIds: string[], codes?: Record<s
 export async function markDelivered(
   token: string,
   input: { jobId: string; code: string; recipientName?: string | null; codCollected?: number | null; codMethod?: string | null },
+  options: { requirePhoto?: boolean } = {},
 ): Promise<RiderActionResult> {
   const session = await rider(token);
   if (!session.ok) return session;
   const jobId = String(input?.jobId ?? "");
+  // The phone Riders app photographs the parcel as it's handed over, every drop.
+  if (options.requirePhoto) {
+    const job = await db.deliveryBooking.findFirst({ where: { id: jobId, riderId: session.rider.id }, select: { proofUrl: true } });
+    const problem = job ? handoverPhotoProblem(job) : null;
+    if (problem) return { ok: false, error: problem };
+  }
   // Delivery codes are 4 digits, so guesses are capped per job across every server instance (fails closed).
   if (!(await checkRateLimitShared(rateLimitKey("rider:code", jobId), { maxRequests: 6, windowMs: 15 * 60_000, failClosed: true })).allowed) {
     return { ok: false, error: (await getT("rider"))("error.tooManyCodes") };

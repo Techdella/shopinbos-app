@@ -136,6 +136,7 @@ const en = {
   "call.screen.create": "Make a post",
   "call.screen.customers": "Customers",
   "call.screen.delivery": "Delivery",
+  "call.screen.returns": "Returns",
   "call.screen.delivery_areas": "Where you deliver",
   "call.screen.delivery_partners": "Find a delivery company",
   "call.screen.domain": "Web address",

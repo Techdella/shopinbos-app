@@ -80,6 +80,21 @@ export function pickupCodeCheck(job: { pickupCode: string | null }, typed: strin
 /** startRun's error when a pickup code doesn't match (the phone app shows its own words for it, by this text). */
 export const WRONG_PICKUP_CODE = "That pickup code doesn't match. Check it with the shop and try again.";
 
+/**
+ * The Riders app's photos of the sealed parcel (shared/fault-matrix.ts: they decide most disputes): at pickup for a
+ * shop's or supplier's parcel (a job that carries an order), and at handover for every drop.
+ */
+export const PICKUP_PHOTO_NEEDED = "Take a photo of the sealed parcel as you pick it up.";
+export const HANDOVER_PHOTO_NEEDED = "Take a photo of the parcel as you hand it over. Every delivery needs one.";
+
+export function pickupPhotoProblem(job: { orderId: string | null; pickupPhotoUrl: string | null }) {
+  return job.orderId && !job.pickupPhotoUrl ? PICKUP_PHOTO_NEEDED : null;
+}
+
+export function handoverPhotoProblem(job: { proofUrl: string | null }) {
+  return job.proofUrl ? null : HANDOVER_PHOTO_NEEDED;
+}
+
 /** A rider may skip (hand back) a job the partner gave them until they have picked the parcel up. */
 export function riderCanSkip(job: { status: string }) {
   return job.status === "confirmed";

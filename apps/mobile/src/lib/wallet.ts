@@ -15,7 +15,8 @@ export interface WalletView {
   bank: { bankName: string; accountName: string; accountEnding: string } | null;
   settlement: { status: string; error: string | null; frozen: boolean; frozenReason: string | null; korapay: boolean };
   totals: { paidKobo: number; last30Kobo: number };
-  entries: { id: string; description: string; amountKobo: number; status: string; orderId: string | null; createdAt: string }[];
+  /** kind "deduction": money taken for what this business owes (a negative amount, with why in the description). */
+  entries: { id: string; kind?: string; description: string; amountKobo: number; status: string; orderId: string | null; createdAt: string }[];
   settlements: { id: string; date: string | null; status: string; amountKobo: number }[];
   sellerSettles: { orderId: string; orderNumber: string; amountKobo: number }[];
   toReturn: { orderId: string; orderNumber: string; otherParty: string; amountKobo: number }[];

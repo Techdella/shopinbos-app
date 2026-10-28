@@ -6,6 +6,8 @@ import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { debtReasonLabel, remainingKobo, PAY_WITHIN_DAYS } from "@/lib/money-owed/rules";
 import { DebtDecision, RecordDebtForm } from "./MoneyOwedActions";
+import { SupplierReviewDone } from "./SupplierReview";
+import { STRIKE_DAYS, STRIKE_LABELS, type StrikeKind } from "@shared/fault-matrix";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Money owed" };
@@ -31,6 +33,7 @@ const FILTERS = [
   { id: "open", label: "Owed" },
   { id: "claimed", label: "Waiting for an answer" },
   { id: "closed", label: "Closed" },
+  { id: "review", label: "Suppliers to review" },
 ] as const;
 
 const naira = (kobo: number) => `₦${(kobo / 100).toLocaleString("en-NG", { maximumFractionDigits: 2 })}`;
@@ -47,7 +50,11 @@ export default async function AdminMoneyOwedPage({ searchParams }: { searchParam
     : show === "claimed" ? { status: "claimed" }
     : show === "closed" ? { status: { in: ["paid", "rejected", "waived"] } }
     : { OR: [{ status: "disputed" }, { status: "claimed", createdAt: { lte: unanswered } }] };
-  const debts = await db.businessDebt.findMany({
+  // Three strikes in 90 days (shared/fault-matrix.ts): flagged for the team, never suspended automatically.
+  const flagged = show === "review"
+    ? await db.supplier.findMany({ where: { reviewFlaggedAt: { not: null } }, orderBy: { reviewFlaggedAt: "asc" }, take: 100, select: { id: true, displayName: true, reviewFlaggedAt: true, user: { select: { email: true } }, strikes: { where: { expiresAt: { gt: now } }, orderBy: { createdAt: "desc" }, select: { id: true, kind: true, createdAt: true, retailOrderId: true } } } })
+    : [];
+  const debts = show === "review" ? [] : await db.businessDebt.findMany({
     where,
     orderBy: [{ createdAt: "asc" }],
     take: 200,
@@ -69,7 +76,26 @@ export default async function AdminMoneyOwedPage({ searchParams }: { searchParam
           </Link>
         ))}
       </div>
-      {debts.length ? (
+      {show === "review" ? (
+        flagged.length ? (
+          <div className="grid gap-3">
+            {flagged.map((supplier) => (
+              <Card key={supplier.id} className="grid gap-2 p-4 text-[13.5px]">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="font-extrabold">{supplier.displayName} · {supplier.user.email}</div>
+                  <Pill tone="danger">{supplier.strikes.length} strikes in {STRIKE_DAYS} days</Pill>
+                </div>
+                <ul className="m-0 grid list-none gap-1 p-0 text-app-ink-soft">
+                  {supplier.strikes.map((strike) => <li key={strike.id}>{STRIKE_LABELS[strike.kind as StrikeKind] ?? strike.kind} · {formatDate(strike.createdAt)}</li>)}
+                </ul>
+                <SupplierReviewDone supplierId={supplier.id} />
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <EmptyState icon="coin" title="No supplier to review">Suppliers with 3 strikes in {STRIKE_DAYS} days (late or out of stock after payment) show up here.</EmptyState>
+        )
+      ) : debts.length ? (
         <div className="grid gap-3">
           {debts.map((debt) => {
             const status = STATUS[debt.status] ?? STATUS.open!;

@@ -21,9 +21,13 @@ import { colors } from "@/theme";
 // bank" card (paid by shops, waiting for delivery to be confirmed) with the day the next payment lands, the mint
 // "This week" total, the bank it goes to with Change, and "Recent": what Paystack paid in (wallet entries) or,
 // before any, the finished orders. The Shopinbos Wallet and Account stay one tap away, and the app language.
+// "To be paid": the split pays the supplier at checkout and Paystack settles it the next working day (no Friday run).
+// Money taken for what the supplier owes (who pays when things go wrong) shows as its own line: "−₦14,250 deducted
+// for order SB-1001: wrong or damaged item, the packing photo showed it".
 
 export default function SupplierMoney() {
   const t = useT("m_supplier", "m_partner", "m_ui", "common");
+  const f = useT("m_faults");
   const loaded = useLoad(async () => {
     const [overview, wallet, done] = await Promise.all([fetchSupplierOverview(), fetchWallet().catch(() => null), fetchSupplierOrders("done").catch(() => null)]);
     const finished = done ? ([...done.dropship, ...done.wholesale] as SupplierOrder[]).sort((a, b) => b.createdAt.localeCompare(a.createdAt)) : [];
@@ -49,10 +53,10 @@ export default function SupplierMoney() {
       {loaded.error && !data ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} /> : null}
       {data ? (
         <>
-          <View accessible accessibilityLabel={`${t("home.coming")} ${naira(data.overview.owed ?? 0)}. ${day ? t("money.arrives", { day }) : t("home.afterConfirm")}`} style={{ backgroundColor: colors.ink, borderRadius: 24, padding: 20, gap: 8 }}>
-            <T weight="bold" style={{ color: "rgba(255,255,255,0.72)", fontSize: 14 }}>{t("home.coming")}</T>
+          <View accessible accessibilityLabel={`${f("money.toBePaid")} ${naira(data.overview.owed ?? 0)}. ${day ? f("money.paidOn", { day }) : f("money.paidNextDay")}`} style={{ backgroundColor: colors.ink, borderRadius: 24, padding: 20, gap: 8 }}>
+            <T weight="bold" style={{ color: "rgba(255,255,255,0.72)", fontSize: 14 }}>{f("money.toBePaid")}</T>
             <BigNumber color="#FFFFFF">{naira(data.overview.owed ?? 0)}</BigNumber>
-            <T weight="bold" style={{ color: "#73D8C8", fontSize: 14, lineHeight: 20 }}>{day ? t("money.arrives", { day }) : t("home.afterConfirm")}</T>
+            <T weight="bold" style={{ color: "#73D8C8", fontSize: 14, lineHeight: 20 }}>{day ? f("money.paidOn", { day }) : f("money.paidNextDay")}</T>
           </View>
 
           <View accessible accessibilityLabel={`${t("money.thisWeek")} ${naira(data.week.amount)}, ${t("money.weekOrders", { count: data.week.count })}`} style={{ backgroundColor: colors.mintTint, borderRadius: 24, padding: 18, gap: 4 }}>
@@ -80,15 +84,19 @@ export default function SupplierMoney() {
             <Eyebrow>{t("money.recent")}</Eyebrow>
             {data.entries.length ? (
               <List>
-                {data.entries.map((entry) => (
-                  <Row
-                    key={entry.id}
-                    lead={<Tile icon="coin" tone="ok" />}
-                    title={entry.description}
-                    sub={`${friendlyDay(entry.createdAt, new Date(), t)}${bank ? ` · ${t("money.paidTo", { bank: bank.bankName })}` : ""}`}
-                    right={<T weight="extrabold" style={{ fontSize: 15, color: entry.status === "refunded" ? colors.inkSoft : colors.success }}>+{nairaFromKobo(entry.amountKobo)}</T>}
-                  />
-                ))}
+                {data.entries.map((entry) => {
+                  // Taken for what the supplier owes: its own line, with why (shared/money-owed.ts deductionLine).
+                  const deducted = entry.kind === "deduction";
+                  return (
+                    <Row
+                      key={entry.id}
+                      lead={<Tile icon={deducted ? "receipt" : "coin"} tone={deducted ? "peach" : "ok"} />}
+                      title={deducted ? <T weight="bold" style={{ fontSize: 15, lineHeight: 20 }}>{entry.description}</T> : entry.description}
+                      sub={`${friendlyDay(entry.createdAt, new Date(), t)}${deducted ? ` · ${f("money.deductedSub")}` : bank ? ` · ${t("money.paidTo", { bank: bank.bankName })}` : ""}`}
+                      right={<T weight="extrabold" style={{ fontSize: 15, color: deducted ? colors.danger : entry.status === "refunded" ? colors.inkSoft : colors.success }}>{deducted ? `−${nairaFromKobo(Math.abs(entry.amountKobo))}` : `+${nairaFromKobo(entry.amountKobo)}`}</T>}
+                    />
+                  );
+                })}
               </List>
             ) : data.orders.length ? (
               <List>

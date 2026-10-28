@@ -22,6 +22,8 @@ const IssueSchema = z.object({
   kind: z.enum(ISSUE_KINDS, { message: "Pick what went wrong." }),
   message: z.string().trim().max(1000).optional(),
   name: z.string().trim().max(80).optional(),
+  // Photos of the wrong item or the damage (POST …/photos first); the team sees them beside the packing photos.
+  photos: z.array(z.string().url().max(1000)).max(4).optional(),
 });
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ slug: string; orderId: string }> }) {
@@ -39,7 +41,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   if (!order) return withCors(req, apiError("NOT_FOUND", "We couldn't find this order.", 404), CORS);
   if (order.status === "cancelled") return withCors(req, apiError("BAD_REQUEST", "This order was cancelled. Contact the store if you need help."), CORS);
 
-  const result = await reportDeliveryIssue({ orderId: order.id, storeId: store.id, kind: parsed.data.kind, message: parsed.data.message, reporterName: parsed.data.name });
+  const result = await reportDeliveryIssue({ orderId: order.id, storeId: store.id, kind: parsed.data.kind, message: parsed.data.message, reporterName: parsed.data.name, photos: parsed.data.photos });
   if (!result.ok) return withCors(req, apiError("BAD_REQUEST", result.error), CORS);
   return withCors(req, ok({ reported: true }), CORS);
 }

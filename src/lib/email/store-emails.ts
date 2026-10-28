@@ -90,6 +90,27 @@ export function refundEmail(input: { appUrl: string; store: StoreSender; buyerNa
   };
 }
 
+/** "Who pays when things go wrong" (shared/fault-matrix.ts): what the customer gets back, and who sends it. */
+export function faultRefundEmail(input: { appUrl: string; store: StoreSender; buyerName: string; orderNumber: string; what: string; paystack: string | null; byStore: string | null }) {
+  const parts = [
+    input.paystack ? `<strong>${escapeHtml(input.paystack)}</strong> is on its way back to your card or bank through Paystack (5 to 10 working days, depending on your bank).` : "",
+    input.byStore ? `${escapeHtml(input.store.name)} is sending you <strong>${escapeHtml(input.byStore)}</strong> and will contact you about it.` : "",
+  ].filter(Boolean);
+  return {
+    subject: `Refund for order ${input.orderNumber}`,
+    html: storeEmail({
+      appUrl: input.appUrl,
+      store: input.store,
+      kind: "transactional",
+      preheader: `About your order ${input.orderNumber} and your refund.`,
+      eyebrow: `Order ${input.orderNumber}`,
+      heading: "About your refund",
+      bodyHtml: `${html.raw(`Hi ${escapeHtml(first(input.buyerName))}, about order <strong>${escapeHtml(input.orderNumber)}</strong> from <strong>${escapeHtml(input.store.name)}</strong>: ${escapeHtml(input.what)}`)}${parts.length ? html.raw(parts.join(" ")) : ""}${html.small("Reply to this email if you have questions.")}`,
+      reason: `you placed order ${input.orderNumber} with ${input.store.name}`,
+    }),
+  };
+}
+
 export function reviewRequestEmail(input: { appUrl: string; store: StoreSender; customerName: string; link: string; items: string[] }) {
   return storeEmail({
     appUrl: input.appUrl,
