@@ -11,6 +11,7 @@ import { normalizePhone } from "@/lib/marketing/segment-rules";
 import { CUSTOMER_EVENTS, customerEventFor, mayText, type CustomerEvent, type CustomerEventSetting, type OptOutLookup, type TextChannel, type VariableValues } from "@/lib/marketing/text-channels";
 import { refreshTemplateStatus, resolvePresetTemplate, resolveTemplate, sendTemplate } from "@/lib/marketing/whatsapp-templates.server";
 import { deliveryEventFor, deliveryMessage } from "./delivery-messages";
+import { payAtDoorDue } from "@shared/pay-at-door";
 
 // Order and cart messages to a store's customers by WhatsApp and/or SMS, as the seller switched on in
 // Marketing › Order messages (StoreMessagingSettings.transactional). Order code calls one function,
@@ -162,9 +163,13 @@ export async function notifyDeliveryStage(bookingId: string, to: string) {
     });
     // Moved on again before we got here (or handed to another partner): that step speaks for itself.
     if (!job?.orderId || job.replacedById || job.status !== to) return [];
-    const order = await db.retailOrder.findUnique({ where: { id: job.orderId }, select: { id: true, storeId: true, orderNumber: true, buyerName: true, buyerPhone: true, status: true } });
+    const order = await db.retailOrder.findUnique({ where: { id: job.orderId }, select: { id: true, storeId: true, orderNumber: true, buyerName: true, buyerPhone: true, status: true, paymentMethod: true, paystackStatus: true } });
     const phone = normalizePhone(order?.buyerPhone);
     if (!order || !phone || order.status === "cancelled") return [];
+    // Pay on delivery not paid yet (shared/pay-at-door.ts): the code is only for a customer who has paid. When the
+    // parcel goes out (or reaches the pickup point) they get the payment link instead, whatever the shop's settings.
+    const unpaid = payAtDoorDue(order);
+    if (unpaid && (to === "out_for_delivery" || to === "at_pickup_point")) return await textPayAtDoorLink(order.id);
     const event = deliveryEventFor(to)!;
     const settings = await getMessagingSettings(order.storeId);
     const setting = settings.transactional[event];
@@ -183,7 +188,7 @@ export async function notifyDeliveryStage(bookingId: string, to: string) {
       bookingId: job.id,
       failedAttempts: job.failedAttempts,
       failedReason: job.failedReason,
-      deliveryCode: job.deliveryCode,
+      deliveryCode: unpaid ? null : job.deliveryCode,
       service: job.service,
       connection: connection ? { ...connection, partnerName: job.logisticsPartner.displayName } : null,
       point,
@@ -272,6 +277,72 @@ export async function textSelfDeliveryCode(orderId: string, code: string) {
     return [{ channel: "sms" as const, ok: outcome.ok }];
   } catch (error) {
     console.error(`[customer messages] self-delivery code for order ${orderId} failed`, error);
+    return [];
+  }
+}
+
+/** Pay on delivery (shared/pay-at-door.ts): the payment link, and the code once paid. Sent in the shop's name. */
+export const PAY_AT_DOOR_LINK_SMS = "{{store}}: your order {{order_number}} is on its way. Check it when it arrives, then pay {{amount}} here: {{order_url}} You'll get the code for the rider once it's paid.";
+export const PAY_AT_DOOR_CODE_SMS = "{{store}}: payment received for order {{order_number}}. Give the rider this code: {{delivery_code}}. {{order_url}}";
+
+/** One SMS to the customer of an order, transactional, never after STOP; `refId` makes it once per thing. */
+async function textOrderCustomer(orderId: string, input: { event: string; refId: string; template: string; values: (order: { orderNumber: string; total: number; currency: string }) => Record<string, string> }) {
+  const order = await db.retailOrder.findUnique({ where: { id: orderId }, select: { id: true, storeId: true, orderNumber: true, buyerName: true, buyerPhone: true, total: true, currency: true } });
+  const phone = normalizePhone(order?.buyerPhone);
+  if (!order || !phone) return [];
+  const store = await db.store.findUnique({ where: { id: order.storeId }, select: MARKETING_STORE_SELECT });
+  if (!store) return [];
+  const recipient = { event: input.event as CustomerEvent, refId: input.refId, phone, name: order.buyerName, values: {}, smsVars: {} } satisfies Recipient;
+  const id = await claim(store.id, recipient, "sms");
+  if (!id) return [];
+  const allowed = mayText({ channel: "sms", phone, purpose: "transactional", consent: true, optOuts: await loadOptOuts(store.id) });
+  if (!allowed.ok) {
+    await finish(id, { ok: false, error: allowed.reason, skipped: true });
+    return [{ channel: "sms" as const, ok: false, error: allowed.reason }];
+  }
+  const settings = await getMessagingSettings(order.storeId);
+  const values = { store: store.name, order_number: order.orderNumber, order_url: storeUrl(store, `/order/${order.id}`), ...input.values({ ...order, total: Number(order.total) }) };
+  const body = fillVariables(input.template, values as unknown as FlowVariables, "text").replace(/\s{2,}/g, " ").trim();
+  const send = await textSender(store, { senderId: settings.smsSenderId });
+  const outcome = await send.sms(phone, body).catch((error): SendOutcome => ({ ok: false, error: String(error) }));
+  await finish(id, outcome);
+  return [{ channel: "sms" as const, ok: outcome.ok }];
+}
+
+const nairaText = (amount: number, currency: string) => {
+  try {
+    return new Intl.NumberFormat("en-NG", { style: "currency", currency, maximumFractionDigits: 0 }).format(amount);
+  } catch {
+    return `${currency} ${Math.round(amount).toLocaleString("en-NG")}`;
+  }
+};
+
+/**
+ * The pay-on-delivery payment link (src/lib/commerce/pay-at-door.server.ts): once when the parcel goes out (or reaches
+ * the pickup point), and again when the rider asks. Sent whatever the shop's message settings, since without it the
+ * parcel can't be handed over. Never throws.
+ */
+export async function textPayAtDoorLink(orderId: string, options: { resend?: boolean } = {}) {
+  try {
+    return await textOrderCustomer(orderId, {
+      event: "order_pay_at_door",
+      refId: options.resend ? `${orderId}:link:${Date.now()}` : `${orderId}:link`,
+      template: PAY_AT_DOOR_LINK_SMS,
+      values: (order) => ({ amount: nairaText(order.total, order.currency) }),
+    });
+  } catch (error) {
+    console.error(`[customer messages] pay-at-door link for order ${orderId} failed`, error);
+    return [];
+  }
+}
+
+/** The code for the rider, once the customer has paid at the door (once per set of codes). Never throws. */
+export async function textPayAtDoorCode(orderId: string, codes: string[]) {
+  try {
+    const code = codes.join(" or ");
+    return await textOrderCustomer(orderId, { event: "order_pay_at_door_code", refId: `${orderId}:code:${codes.join(",")}`, template: PAY_AT_DOOR_CODE_SMS, values: () => ({ delivery_code: code }) });
+  } catch (error) {
+    console.error(`[customer messages] pay-at-door code for order ${orderId} failed`, error);
     return [];
   }
 }

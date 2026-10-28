@@ -499,8 +499,10 @@ test("checkout offers the payment methods the seller chose, in a fixed order, an
   const keys = (settings, context) => pay.checkoutPaymentOptions(settings, context).map((option) => option.key);
 
   assert.deepEqual(keys(all, { city: "Lekki", total: 20000 }), ["paystack", "pay_on_delivery"]);
-  // Paystack needs real keys; transfer needs the full payout account.
-  assert.deepEqual(keys({ ...all, paystackReady: false, transferReady: false }, { city: "Lekki", total: 20000 }), ["pay_on_delivery"]);
+  // Paystack needs real keys; transfer needs the full payout account. Pay on delivery is paid in the app at the door
+  // (shared/pay-at-door.ts), so it needs Paystack too.
+  assert.deepEqual(keys({ ...all, paystackReady: false, transferReady: false }, { city: "Lekki", total: 20000 }), []);
+  assert.equal(pay.payOnDeliveryBlock({ ...all, paystackReady: false }, { city: "Lekki", total: 20000 }), "Pay on delivery isn't available at this store yet.");
   // Pay on delivery respects the cap, pickup-only zones and uncovered addresses.
   assert.deepEqual(keys(all, { city: "Lekki", total: 60000 }), ["paystack"]);
   assert.deepEqual(keys(all, { city: "Ikeja", total: 1000 }), ["paystack"]);
@@ -512,7 +514,7 @@ test("checkout offers the payment methods the seller chose, in a fixed order, an
   // Bank transfer goes through Paystack (split, confirmed by Paystack) when the store takes it; the seller's own
   // account only when Paystack can't.
   assert.deepEqual(keys({ ...all, methods: { transfer: true, card: false, cod: false, wa: false } }, {}), ["paystack"]);
-  assert.deepEqual(keys({ ...all, paystackReady: false }, { city: "Lekki", total: 20000 }), ["transfer", "pay_on_delivery"]);
+  assert.deepEqual(keys({ ...all, paystackReady: false }, { city: "Lekki", total: 20000 }), ["transfer"]);
   // Nothing configured: card, but only when the wallet takes it. Nothing that can work: no options, never a card
   // payment bound to fail (a store whose wallet is in review, transfer off and the order over the pay on delivery cap).
   assert.deepEqual(keys({ ...all, methods: null }, {}), ["paystack"]);
@@ -520,7 +522,8 @@ test("checkout offers the payment methods the seller chose, in a fixed order, an
   assert.deepEqual(keys({ ...all, methods: { transfer: false, card: false, cod: false, wa: true } }, {}), []);
   const stuck = { ...all, paystackReady: false, transferReady: false, zones: [] };
   assert.deepEqual(keys(stuck, { total: 1115800 }), []);
-  assert.match(pay.noWayToPayText(stuck, { total: 1115800 }), /^Pay on delivery is for orders up to ₦50,000\. .*message the store/);
+  assert.match(pay.noWayToPayText(stuck, { total: 1115800 }), /^Pay on delivery isn't available at this store yet\. .*message the store/);
+  assert.match(pay.noWayToPayText({ ...stuck, paystackReady: true, methods: { cod: true } }, { total: 1115800 }), /^Pay on delivery is for orders up to ₦50,000\. .*message the store/);
   assert.match(pay.noWayToPayText({ ...stuck, methods: { card: true } }, {}), /can't take payments here yet/);
 
   assert.equal(pay.normalizeCheckoutMethod("inline"), "paystack");

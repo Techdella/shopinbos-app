@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
 import { Notice, PillButton, Segmented, cx } from "@/components/app-ui";
 import { naira } from "@shared/onboarding";
-import { markDelivered, markFailed, markStage, setRiderOnline, startRun, type RiderActionResult } from "./actions";
+import { markDelivered, markFailed, markStage, resendPayLink, setRiderOnline, startRun, type RiderActionResult } from "./actions";
+import { PAY_AT_DOOR_WAIT_MINUTES } from "@shared/pay-at-door";
 import { useT } from "@/components/i18n/I18nProvider";
 
 export interface RiderDrop {
@@ -18,7 +19,10 @@ export interface RiderDrop {
   buyerName: string | null;
   /** E.164, e.g. +2348034127790. */
   buyerPhone: string | null;
+  /** Cash to collect: only older jobs. Pay on delivery is paid in the app at the door (payInApp). */
   collect: number;
+  /** Pay on delivery: the customer pays in the app and gets the code; `url` is their order page (the QR code). */
+  payInApp?: { amount: number; paid: boolean; url: string } | null;
   item: string;
 }
 
@@ -501,6 +505,7 @@ function RunCard({ token, run, paySet, onError }: { token: string; run: RiderRun
   const [pending, startTransition] = useTransition();
   const toPickUp = run.drops.filter((drop) => drop.status === "confirmed").map((drop) => drop.id);
   const cashCount = run.drops.filter((drop) => drop.collect > 0).length;
+  const appCount = run.drops.filter((drop) => drop.payInApp && !drop.payInApp.paid).length;
 
   function accept() {
     onError(null);
@@ -519,6 +524,11 @@ function RunCard({ token, run, paySet, onError }: { token: string; run: RiderRun
           {cashCount > 0 && (
             <span className="rounded-full bg-[#FFB38F]/20 px-2.5 py-1 text-[12.5px] font-bold text-[#FFB38F]">
               {t("run.cashCollections", { count: cashCount })}
+            </span>
+          )}
+          {appCount > 0 && (
+            <span className="rounded-full bg-app-teal-mid/20 px-2.5 py-1 text-[12.5px] font-bold text-app-teal-mid">
+              {t("run.payInApp", { count: appCount })}
             </span>
           )}
         </div>
@@ -627,14 +637,21 @@ function DropRow({ token, drop, index, last }: { token: string; drop: RiderDrop;
         <span className={cx("grid h-8 w-8 place-items-center rounded-full text-[13px] font-extrabold", onTheRoad ? "bg-app-forest text-white" : "bg-app-canvas text-app-ink")}>{index + 1}</span>
       </span>
       <div className="min-w-0 flex-1 rounded-[18px] border border-app-line p-3.5">
-      <div className="flex items-start gap-3">
-        <div className="min-w-0 flex-1">
+      <div className="flex flex-wrap items-start gap-x-3 gap-y-2.5">
+        <div className="min-w-[180px] flex-1">
           <p className="m-0 break-words text-[15.5px] font-bold leading-snug">{drop.address}</p>
           <p className="m-0 mt-0.5 text-[13.5px] text-app-ink-soft">
             {[drop.buyerName, drop.item].filter(Boolean).join(" · ")}
           </p>
           {drop.collect > 0 && (
             <p className="m-0 mt-1.5 inline-block rounded-full bg-app-peach px-3 py-1 text-[13px] font-extrabold text-app-accent-ink">{t("drop.collect", { amount: naira(drop.collect) })}</p>
+          )}
+          {drop.payInApp && (
+            drop.payInApp.paid ? (
+              <p className="m-0 mt-1.5 inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-app-success-tint px-3 py-1 text-[13px] font-extrabold text-app-success"><Icon name="check" size={14} />{t("pay.paid")}</p>
+            ) : (
+              <p className="m-0 mt-1.5 inline-block rounded-[12px] bg-app-mint px-3 py-1 text-[13px] font-extrabold leading-snug text-app-forest">{t("pay.pill", { amount: naira(drop.payInApp.amount) })}</p>
+            )
           )}
         </div>
         <div className="flex shrink-0 gap-1.5">
@@ -652,12 +669,14 @@ function DropRow({ token, drop, index, last }: { token: string; drop: RiderDrop;
         </div>
       </div>
 
+      {onTheRoad && mode === "idle" && drop.payInApp && !drop.payInApp.paid && !drop.toPickupPoint && <PayAtDoorBox token={token} drop={drop} pay={drop.payInApp} />}
+
       {!onTheRoad ? (
         <p className="m-0 mt-2.5 text-[13px] text-app-ink-soft">{t("drop.acceptFirst")}</p>
       ) : mode === "idle" ? (
-        <div className="mt-3 grid grid-cols-2 gap-2">
+        <div className="mt-3 grid grid-cols-1 gap-2 min-[480px]:grid-cols-2">
           {canGoOut && (
-            <PillButton tone="white" size="md" className="col-span-2" busy={pending} onClick={() => run(() => markStage(token, { jobId: drop.id, to: "out_for_delivery" }))}>
+            <PillButton tone="white" size="md" className="min-[480px]:col-span-2" busy={pending} onClick={() => run(() => markStage(token, { jobId: drop.id, to: "out_for_delivery" }))}>
               {t.dynamic("drop.outForDelivery", "On my way to the customer")}
             </PillButton>
           )}
@@ -671,7 +690,7 @@ function DropRow({ token, drop, index, last }: { token: string; drop: RiderDrop;
       ) : mode === "deliver" ? (
         <form onSubmit={submitDelivered} className="mt-3 grid gap-3">
           <div>
-            <label htmlFor={`code-${drop.id}`} className="mb-1.5 block text-[14px] font-bold">{t("drop.code")}</label>
+            <label htmlFor={`code-${drop.id}`} className="mb-1.5 block text-[14px] font-bold">{drop.payInApp ? t("pay.codeLabel") : t("drop.code")}</label>
             <input
               id={`code-${drop.id}`}
               value={code}
@@ -729,5 +748,55 @@ function DropRow({ token, drop, index, last }: { token: string; drop: RiderDrop;
       {mode === "idle" && error && <div className="mt-2"><Notice>{error}</Notice></div>}
       </div>
     </li>
+  );
+}
+
+/**
+ * Pay on delivery at the door (shared/pay-at-door.ts): the customer checks the parcel, then pays in the app with the
+ * link we texted them or by scanning this QR code (their order page). Once the money is in they get the code; no code,
+ * no drop. The rider never takes cash.
+ */
+function PayAtDoorBox({ token, drop, pay }: { token: string; drop: RiderDrop; pay: { amount: number; url: string } }) {
+  const router = useRouter();
+  const t = useT("rider");
+  const [qr, setQr] = useState<string | null>(null);
+  const [showQr, setShowQr] = useState(false);
+  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
+  const [pending, startTransition] = useTransition();
+  const [checking, startCheck] = useTransition();
+
+  useEffect(() => {
+    if (!showQr || qr) return;
+    let live = true;
+    void import("qrcode").then((QRCode) => QRCode.toDataURL(pay.url, { margin: 1, width: 480 })).then((data) => { if (live) setQr(data); }).catch(() => null);
+    return () => { live = false; };
+  }, [showQr, qr, pay.url]);
+
+  function resend() {
+    setNote(null);
+    startTransition(async () => {
+      const result = await resendPayLink(token, drop.id);
+      setNote(result.ok ? { ok: true, text: t("pay.resent") } : { ok: false, text: result.error });
+    });
+  }
+
+  return (
+    <div className="mt-3 rounded-[16px] bg-app-mint p-3.5">
+      <p className="m-0 flex items-center gap-2 text-[14.5px] font-extrabold text-app-forest"><Icon name="lock" size={15} />{t("pay.title", { amount: naira(pay.amount) })}</p>
+      <p className="m-0 mt-1 text-[13.5px] leading-[1.5] text-app-ink">{t("pay.body")}</p>
+      {showQr && (
+        <div className="mt-3 grid justify-items-center rounded-[14px] bg-white p-3">
+          {qr ? <img src={qr} alt={t("pay.qrAlt")} width={240} height={240} className="h-60 w-60" /> : <span className="grid h-60 w-60 place-items-center text-[13px] text-app-ink-soft">…</span>}
+          <p className="m-0 mt-2 text-center text-[12.5px] text-app-ink-soft">{t("pay.qrHint")}</p>
+        </div>
+      )}
+      <div className="mt-3 grid grid-cols-1 gap-2 min-[480px]:grid-cols-2">
+        <PillButton tone="white" size="md" onClick={() => setShowQr((open) => !open)}>{showQr ? t("pay.hideQr") : t("pay.showQr")}</PillButton>
+        <PillButton tone="white" size="md" busy={pending} onClick={resend}>{t("pay.resend")}</PillButton>
+        <PillButton tone="ink" size="md" className="min-[480px]:col-span-2" busy={checking} onClick={() => startCheck(() => router.refresh())}>{t("pay.check")}</PillButton>
+      </div>
+      {note && <p role={note.ok ? "status" : "alert"} className={cx("m-0 mt-2 text-[13px] font-bold", note.ok ? "text-app-success" : "text-app-danger")}>{note.text}</p>}
+      <p className="m-0 mt-2 text-[12.5px] text-app-ink-soft">{t("pay.wait", { minutes: PAY_AT_DOOR_WAIT_MINUTES })}</p>
+    </div>
   );
 }

@@ -79,7 +79,10 @@ export interface RiderDrop {
   area: string;
   buyerName: string | null;
   buyerPhone: string | null;
+  /** Cash to collect: only older jobs. Pay on delivery is paid in the app at the door (payInApp). */
   collect: number;
+  /** Pay on delivery: the customer pays in the app and gets the code; `url` (their order page) is the QR code. */
+  payInApp?: { amount: number; paid: boolean; url: string } | null;
   /** What this drop pays. */
   fee?: number;
   item: string;
@@ -158,7 +161,8 @@ export type RiderAction =
   | { action: "skip"; jobId: string }
   | { action: "help"; jobId: string; reason: string }
   | { action: "check_code"; jobId: string; code: string }
-  | { action: "language"; language: "en" | "pcm" | "yo" | "ha" | "ig" };
+  | { action: "language"; language: "en" | "pcm" | "yo" | "ha" | "ig" }
+  | { action: "pay_link"; jobId: string };
 
 export const riderAction = (body: RiderAction) =>
   riderFetch<{ done: true }>("", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });

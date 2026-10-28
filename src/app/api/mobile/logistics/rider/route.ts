@@ -1,3 +1,5 @@
+import { isPayOnDelivery, payAtDoorPaid } from "@shared/pay-at-door";
+import { buildStorefrontUrl } from "@/lib/domains/storefront";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db/client";
@@ -8,7 +10,7 @@ import { cashToPayIn, riderAmount, WRONG_PICKUP_CODE } from "@/lib/logistics/job
 import { askForHelp, checkDeliveryCode, RIDER_LANGUAGES, riderWeek, saveRiderLanguage, skipJob } from "@/lib/logistics/rider-app.server";
 import { riderFromToken } from "@/lib/logistics/rider-session";
 import { lagosStartOfToday, packageSummary } from "@/components/logistics/kit";
-import { markDelivered, markFailed, markStage, setRiderOnline, startRun } from "@/app/rider/[token]/actions";
+import { markDelivered, markFailed, markStage, resendPayLink, setRiderOnline, startRun } from "@/app/rider/[token]/actions";
 import { toE164 } from "@shared/phone";
 import { areaFromText, haversineMeters } from "@shared/delivery-geo";
 import { pickupWindowText } from "@shared/supplier-pickup";
@@ -27,6 +29,7 @@ export const dynamic = "force-dynamic";
 //        | { action: "help", jobId, reason }    tell the partner what's wrong; the job keeps its status
 //        | { action: "check_code", jobId, code } is the customer's code right? (before taking the cash)
 //        | { action: "language", language }   en | pcm | yo | ha | ig
+//        | { action: "pay_link", jobId }      pay on delivery: text the customer the payment link again
 // start_run with codes: { [jobId]: "1234" } checks the pickup code the shop gave the rider; a wrong one answers
 // 409 WRONG_PICKUP_CODE.
 
@@ -61,7 +64,7 @@ export async function GET(req: NextRequest) {
   ]);
 
   const orderIds = active.map((job) => job.orderId).filter((id): id is string => Boolean(id));
-  const orders = orderIds.length ? await db.retailOrder.findMany({ where: { id: { in: orderIds } }, select: { id: true, orderNumber: true, buyerName: true, buyerPhone: true, deliveryAddress: true } }) : [];
+  const orders = orderIds.length ? await db.retailOrder.findMany({ where: { id: { in: orderIds } }, select: { id: true, orderNumber: true, buyerName: true, buyerPhone: true, deliveryAddress: true, total: true, paymentMethod: true, status: true, paystackStatus: true, store: { select: { slug: true, customDomain: true } } } }) : [];
   const orderById = new Map(orders.map((order) => [order.id, order]));
 
   // The rider's map: pickup and drop-off pins for the job in hand (the one being carried, else the next to pick up).
@@ -114,6 +117,11 @@ export async function GET(req: NextRequest) {
       buyerName: order?.buyerName ?? null,
       buyerPhone: order?.buyerPhone ? toE164(order.buyerPhone) : null,
       collect: job.codAmount && job.codAmount > 0 ? job.codAmount : 0,
+      // Pay on delivery (shared/pay-at-door.ts): the customer pays in the app at the door and gets the code; the rider
+      // shows `url` as a QR code. No cash.
+      payInApp: order && isPayOnDelivery(order) && !(job.codAmount && job.codAmount > 0)
+        ? { amount: Number(order.total), paid: payAtDoorPaid(order), url: buildStorefrontUrl(order.store, `/order/${order.id}#pay`) }
+        : null,
       // What this one drop pays the rider once their pay is set, else its delivery fee (the run's fees add these up).
       fee: riderAmount(rider, job),
       item: packageSummary(job.packageDetails),
@@ -169,6 +177,7 @@ const Body = z.discriminatedUnion("action", [
   z.object({ action: z.literal("help"), jobId: z.string().max(64), reason: z.string().trim().min(1).max(200) }),
   z.object({ action: z.literal("check_code"), jobId: z.string().max(64), code: z.string().max(12) }),
   z.object({ action: z.literal("language"), language: z.enum(RIDER_LANGUAGES) }),
+  z.object({ action: z.literal("pay_link"), jobId: z.string().max(64) }),
 ]);
 
 export async function POST(req: NextRequest) {
@@ -198,6 +207,7 @@ export async function POST(req: NextRequest) {
     : input.action === "start_run" ? await startRun(token, input.jobIds, input.codes ?? null)
     : input.action === "failed" ? await markFailed(token, { jobId: input.jobId, reason: input.reason })
     : input.action === "stage" ? await markStage(token, { jobId: input.jobId, to: input.to })
+    : input.action === "pay_link" ? await resendPayLink(token, input.jobId)
     : await markDelivered(token, { jobId: input.jobId, code: input.code, recipientName: input.recipientName ?? null, codCollected: input.codCollected ?? null, codMethod: input.codMethod ?? null });
   if (!result.ok) {
     if (result.error === WRONG_PICKUP_CODE) return apiError("WRONG_PICKUP_CODE", result.error, 409);

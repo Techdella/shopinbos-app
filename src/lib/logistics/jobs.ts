@@ -1,3 +1,4 @@
+import { payAtDoorBlock } from "@shared/pay-at-door";
 import "server-only";
 import { db } from "@/lib/db/client";
 import { updateOrderStatus } from "@/lib/orders/update-status";
@@ -45,6 +46,12 @@ export async function transitionJob(input: {
 
   const check = checkTransition(job, input);
   if (!check.ok) return check;
+  // Pay on delivery: no payment, no drop (shared/pay-at-door.ts). Whoever closes it: rider, partner portal or API.
+  if (input.to === "delivered" && job.orderId) {
+    const order = await db.retailOrder.findUnique({ where: { id: job.orderId }, select: { paymentMethod: true, status: true, paystackStatus: true } });
+    const blocked = payAtDoorBlock(order, job);
+    if (blocked) return { ok: false, error: blocked };
+  }
 
   const now = new Date();
   const data: Record<string, unknown> = { status: input.to };

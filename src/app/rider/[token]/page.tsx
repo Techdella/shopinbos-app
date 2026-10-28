@@ -9,7 +9,8 @@ import { toE164 } from "@shared/phone";
 import { RiderApp, type RiderRun, type RiderWeek } from "./RiderApp";
 import { pickupWindowText } from "@shared/supplier-pickup";
 import { getT } from "@/lib/i18n/server";
-import { payOnDeliveryOf } from "@/components/logistics/market";
+import { buildStorefrontUrl } from "@/lib/domains/storefront";
+import { isPayOnDelivery, payAtDoorPaid } from "@shared/pay-at-door";
 
 // Shopinbos Riders app: a phone-first page the partner shares as a private link. No account, no login.
 
@@ -109,7 +110,7 @@ export default async function RiderPage({ params }: { params: Promise<{ token: s
   // Only what the rider needs at the door: name, phone and address of each buyer on an open job.
   const orderIds = active.map((job) => job.orderId).filter((id): id is string => Boolean(id));
   const orders = orderIds.length
-    ? await db.retailOrder.findMany({ where: { id: { in: orderIds } }, select: { id: true, buyerName: true, buyerPhone: true, deliveryAddress: true } })
+    ? await db.retailOrder.findMany({ where: { id: { in: orderIds } }, select: { id: true, buyerName: true, buyerPhone: true, deliveryAddress: true, total: true, paymentMethod: true, status: true, paystackStatus: true, store: { select: { slug: true, customDomain: true } } } })
     : [];
   const orderById = new Map(orders.map((order) => [order.id, order]));
 
@@ -136,8 +137,11 @@ export default async function RiderPage({ params }: { params: Promise<{ token: s
       area: job.destination,
       buyerName: order?.buyerName ?? null,
       buyerPhone: phone,
-      // Marketplace pay on delivery is settled between the shop and the partner (no codAmount), but the rider still collects it.
-      collect: job.codAmount && job.codAmount > 0 ? job.codAmount : (payOnDeliveryOf(job.packageDetails)?.amount ?? 0),
+      // Cash only on older jobs that still carry an amount; pay on delivery is paid in the app at the door now.
+      collect: job.codAmount && job.codAmount > 0 ? job.codAmount : 0,
+      payInApp: order && isPayOnDelivery(order) && !(job.codAmount && job.codAmount > 0)
+        ? { amount: Number(order.total), paid: payAtDoorPaid(order), url: buildStorefrontUrl(order.store, `/order/${order.id}#pay`) }
+        : null,
       item: packageSummary(job.packageDetails, t),
     });
     runs.set(key, run);

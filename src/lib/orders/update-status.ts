@@ -60,6 +60,8 @@ export async function updateOrderStatus(
     const status = statusWhenMarkedPaid(order.logisticsDetails);
     updateData.status = status;
     updateData.paymentMethod = input.paymentMethod ?? order.paymentMethod ?? "transfer";
+    // Pay on delivery the seller says is already paid (shared/pay-at-door.ts): the rider can hand it over with the code.
+    if (updateData.paymentMethod === "pay_on_delivery") updateData.paystackStatus = "offline";
     if (status === "delivered") updateData.deliveredAt = new Date();
   }
   // An order with supplier parcels and lines the seller sends themselves: "sent" / "delivered" is the seller's own
