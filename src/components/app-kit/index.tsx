@@ -47,6 +47,7 @@ export function AppPage({
   children,
   className,
   bare,
+  bleed,
 }: {
   frame: Omit<ComponentProps<typeof AppFrame>, "children">;
   title: ReactNode;
@@ -58,10 +59,12 @@ export function AppPage({
   className?: string;
   /** No page head: for one-question-per-screen flows, where the question is the heading. */
   bare?: boolean;
+  /** Full bleed: no page padding, at least the full height, for layouts with their own edge-to-edge panels. */
+  bleed?: boolean;
 }) {
   return (
     <AppFrame {...frame}>
-      <div className={cx("w-full px-4 py-6 font-app text-app-ink sm:px-6 xl:px-8 2xl:px-10", className)}>
+      <div className={cx("w-full font-app text-app-ink", bleed ? "min-h-full" : "px-4 py-6 sm:px-6 xl:px-8 2xl:px-10", className)}>
         {!bare && <PageHead
           title={typeof title === "string" ? <TitleTerm title={title} /> : title}
           sub={sub}

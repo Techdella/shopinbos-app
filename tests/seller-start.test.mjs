@@ -79,6 +79,6 @@ test("category chips start with everyday categories, then the marketplace's, nev
 });
 
 test("verification screens have no page head or banner above the question", () => {
-  assert.match(read("src/app/logistics/verification/page.tsx"), /\bbare>/);
+  assert.match(read("src/app/logistics/verification/page.tsx"), /\bbare bleed>/);
   assert.match(read("src/components/verification/AnnouncementBanner.tsx"), /VERIFYING_PATHS/);
 });
