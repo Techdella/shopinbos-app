@@ -18,6 +18,7 @@ import {
   type SizeBand,
 } from "@shared/delivery-market";
 import { deliverySettingsFor, marketConnectionsFor, originOf } from "./market.server";
+import { highValueOrder } from "@/lib/logistics/partner-reach.server";
 
 // Delivery jobs from the logistics marketplace: an order's parcels become partner jobs once the order is live (paid,
 // or placed as pay on delivery); the partner accepts or declines; the shop marks the parcel ready; a declined or
@@ -155,6 +156,8 @@ async function marketJobInput(input: {
     // and the partner settles with the shop directly, so it isn't a Shopinbos cash pay-in (codAmount stays empty).
     codAmount: null,
     notes: [pod ? `Pay on delivery: collect ${money(Number(order.total))} and settle it with ${order.store.name} directly.` : null, order.buyerPhone ? `Customer: ${order.buyerPhone}.` : null].filter(Boolean).join(" ") || null,
+    // High-value orders went only to Top partners at checkout; the flag keeps it that way on accept and reassign.
+    highValue: await highValueOrder(order),
     marketplace: {
       service: part.service === "pickup_point" ? "pickup_point" : "doorstep",
       sizeBand: part.sizeBand,
@@ -196,7 +199,8 @@ export async function reassignOptions(sellerId: string, bookingId: string) {
   const order = await db.retailOrder.findUnique({ where: { id: job.orderId }, select: { deliveryAddress: true, store: { select: { city: true } } } });
   if (!order) return [];
   const settings = await deliverySettingsFor(sellerId);
-  const connections = (await marketConnectionsFor([sellerId])).get(sellerId) ?? [];
+  // A high-value job only goes to another Top partner (shared/partner-reach.ts).
+  const connections = (await marketConnectionsFor([sellerId], { highValue: job.highValue })).get(sellerId) ?? [];
   const service: RateService = job.service === "pickup_point" ? "pickup_point" : "doorstep";
   const shipment = { origin: originOf(settings, order.store.city), sizeBand: (job.sizeBand ?? settings.defaultSizeBand) as SizeBand };
   const destination = placeOf(order.deliveryAddress as { city?: string; state?: string });

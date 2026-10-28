@@ -108,6 +108,8 @@ export default function LogisticsBusiness() {
       <Small style={{ marginTop: -10 }}>{t("biz.statsNote")}</Small>
 
       <List>
+        {/* Reach tier (Tier 1 Verified → Tier 2 Trusted → Tier 3 Top partner): what it unlocks and what's next. */}
+        <Row lead={<Tile icon="shield" tone="mint" />} title={t("lvl.title")} sub={partner?.level ? t.dynamic(`lvl.tier.${partner.level}`) : undefined} onPress={() => router.push("/logistics/level")} />
         <Row lead={<Tile icon="globe" />} title={t("biz.coverage")} sub={coverage} onPress={() => router.push("/logistics/coverage")} />
         <Row lead={<Tile icon="truck" />} title={t("biz.services")} sub={services} onPress={() => router.push("/logistics/services")} />
         <Row lead={<Tile icon="pin" />} title={t("biz.points")} sub={market.data ? t("biz.pointsSub", { count: market.data.pickupPoints.length }) : undefined} onPress={() => router.push("/logistics/points")} />

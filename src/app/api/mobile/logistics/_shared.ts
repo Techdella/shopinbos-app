@@ -17,6 +17,8 @@ export const JOB_SELECT = {
   trackingCode: true, estimatedDelivery: true, pickedUpAt: true, deliveredAt: true, failedReason: true, proofUrl: true,
   notes: true, createdAt: true, riderId: true, pickupWindowStart: true, pickupWindowEnd: true,
   pickupLat: true, pickupLng: true, pickupGeoSource: true, pickupGeocodedAt: true,
+  // A high-value parcel (shared/partner-reach.ts): a pill on the job card; only Top partners get these.
+  highValue: true,
   rider: { select: { id: true, name: true } },
   seller: { select: { id: true, name: true, store: { select: { name: true } } } },
 } satisfies Prisma.DeliveryBookingSelect;
@@ -52,6 +54,7 @@ export function jobView(job: JobRow, order?: OrderRow, pickupGeo?: LatLng | null
     to: job.destination,
     item: packageSummary(job.packageDetails),
     fragile: Boolean(pkg.fragile),
+    highValue: job.highValue,
     fee: bookingNet(job),
     deliveryFee: job.deliveryFee,
     currency: job.currency,

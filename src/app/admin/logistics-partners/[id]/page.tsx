@@ -14,6 +14,7 @@ import { IssueList } from "../../delivery-issues/IssueList";
 import { MarketplacePanel } from "./MarketplacePanel";
 import { STATE_LABELS, STATE_TONES, TierPanel } from "./TierPanel";
 import { TierActionButton } from "./TierActionButton";
+import { ReachPanel } from "./ReachPanel";
 
 export default async function AdminLogisticsDetailPage(props: { params: Promise<{ id: string }>; searchParams?: Promise<{ saved?: string; error?: string }> }) {
   const user = await requireRole(["admin"], "/admin/login");
@@ -125,6 +126,8 @@ export default async function AdminLogisticsDetailPage(props: { params: Promise<
 
       <TierPanel partnerId={partner.id} />
 
+      <ReachPanel partnerId={partner.id} />
+
       <AdminDocumentViewer
         role="logistics_partner"
         entityId={partner.id}
@@ -179,7 +182,7 @@ function PartnerStatusActions({ partnerId, verificationStatus, name }: { partner
         <>
           <TierActionButton url={url} body={{ action: "reject" }} label="Reject" tone="danger" reason={{ title: `Reject ${name}?`, message: "They see this reason and can fix and resubmit." }} />
           <TierActionButton url={url} body={{ action: "approve" }} label="Approve" confirm={`Approve ${name}? Their tier comes from the checks below.`} />
-          <TierActionButton url={url} body={{ action: "approve", tier: "tier1" }} label="Approve as Tier 1" tone="white" confirm={`Approve ${name} as a Verified Individual without every check? Only if you checked them another way.`} />
+          <TierActionButton url={url} body={{ action: "approve", tier: "tier1" }} label="Approve as Verified Individual" tone="white" confirm={`Approve ${name} as a Verified Individual without every check? Only if you checked them another way.`} />
         </>
       )}
       <TierActionButton url={url} body={{ action: "suspend" }} label="Suspend" tone="danger" reason={{ title: `Suspend ${name}?`, message: "They leave checkout and discovery at once; jobs they have carry on. They see this reason." }} />

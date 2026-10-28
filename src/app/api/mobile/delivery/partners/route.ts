@@ -44,6 +44,9 @@ export const GET = withOwner(async (req: NextRequest, { user }) => {
       stats: row.stats,
       pickupPointCount: row.pickupPointCount,
       connectionId: row.connectionId,
+      // Reach tiers (shared/partner-reach.ts): featured Top partners come first; the tier for the badge.
+      featured: row.featured,
+      tier: row.tier,
     })),
   });
 });

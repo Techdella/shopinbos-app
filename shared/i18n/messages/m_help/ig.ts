@@ -158,6 +158,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "call.screen.products": "Ngwaahịa",
   "call.screen.profile": "Nkọwa ụlọ ọrụ",
   "call.screen.quotes": "Ọnụahịa a rịọrọ",
+  "call.screen.level": "Ọkwa gị",
   "call.screen.rates": "Ọnụahịa",
   "call.screen.reviews": "Nyocha",
   "call.screen.riders": "Ndị na-agba ọgba",

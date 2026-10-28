@@ -122,8 +122,8 @@ const en = {
   "state.suspended.body": "Talk to the Shopinbos team in Help to switch it back on.",
   "state.reason": "Reason: {reason}",
   "tier.none": "Not verified",
-  "tier.tier1": "Tier 1 · Verified Individual",
-  "tier.tier2": "Tier 2 · Registered Business",
+  "tier.tier1": "Verified Individual",
+  "tier.tier2": "Registered Business",
   // Badges
   "badge.verified_individual": "Verified Individual",
   "badge.registered_business": "Registered Business",
@@ -196,7 +196,7 @@ const en = {
   "rev.fix": "Fix",
   // Dashboard card
   "card.title": "Your verification",
-  "card.limits": "Your limits",
+  "card.limits": "Safety limits (new partners)",
   "card.maxOrder": "Orders up to {amount}",
   "card.maxActive": "Up to {count} jobs at once",
   "card.noLimits": "No order limits",

@@ -153,5 +153,5 @@ test("pay on delivery opens only at Cash trusted: the server refuses it, the API
   assert.match(read("src/lib/logistics/jobs.ts"), /input\.to === "delivered"\) void import\("\.\/partner-levels\.server"\)\.then\(\(levels\) => levels\.refreshPartnerLevel\(input\.partnerId\)\)/);
   const coverage = read("src/app/logistics/coverage/page.tsx");
   assert.match(coverage, /level && !level\.podOpen \? \(\s*<PodLocked view=\{level\} \/>/);
-  assert.match(read("src/components/logistics/PartnerLevel.tsx"), /Unlocks at Cash trusted/);
+  assert.match(read("src/components/logistics/PartnerLevel.tsx"), /Unlocks at Top partner/);
 });

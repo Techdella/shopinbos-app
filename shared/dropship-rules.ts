@@ -14,7 +14,8 @@
 //   Seller branding      blind packing and the seller's name on tracking are always on; packing slips, the seller's
 //                        stickers and custom packaging are extras the supplier offers.
 //   Supplier levels      New → Trusted → Established, from the delivery record. Pre-orders open at Established.
-//   Partner levels       Verified → Trusted → Cash trusted. Pay on delivery opens at Cash trusted, with a cash cap.
+//   Partner levels       Tier 1 Verified → Tier 2 Trusted → Tier 3 Top partner. Tiers control reach (interstate,
+//                        place in shops' lists, high-value parcels, featured: shared/partner-reach.ts), not cash.
 
 import { NG_REGIONS, SIZE_BANDS, type Place, type SizeBand } from "./delivery-market.ts";
 
@@ -557,13 +558,31 @@ export function brandingOfferFor(level: string | null | undefined, offer: Brandi
   return supplierPerks(level).branding ? offer : { ...NO_BRANDING_OFFER, custom: offer.custom };
 }
 
-// ─── Delivery partner levels: pay on delivery unlocks at Cash trusted ────────
+// ─── Delivery partner levels (reach tiers) ───────────────────────────────────
+//
+// Tier 1 Verified (ID + selfie passed): prepaid and pay-on-delivery jobs in their areas. Tier 2 Trusted (50 delivered,
+// rating 4.3+, under 2% failed drops, base address verified): interstate jobs and a higher place in shops' rider
+// lists. Tier 3 Top partner (150 delivered, 60+ days, CAC or a guarantor): high-value parcels and "Apply to be
+// featured". What each tier unlocks lives in shared/partner-reach.ts. The stored values stay verified | trusted |
+// cash_trusted (cash_trusted is Tier 3, "Top partner"), so nothing is migrated. These are separate from the
+// verification tiers in shared/partner-tiers.ts (Verified Individual / Registered Business), whose order-value and
+// open-jobs limits are the "safety limits" for new partners.
 
 export const PARTNER_LEVELS = ["verified", "trusted", "cash_trusted"] as const;
 export type PartnerLevel = (typeof PARTNER_LEVELS)[number];
-export const PARTNER_LEVEL_LABELS: Record<PartnerLevel, string> = { verified: "Verified", trusted: "Trusted", cash_trusted: "Cash trusted" };
+export const PARTNER_LEVEL_LABELS: Record<PartnerLevel, string> = { verified: "Verified", trusted: "Trusted", cash_trusted: "Top partner" };
+/** The tier number shown with the name: "Tier 1 · Verified". */
+export const PARTNER_LEVEL_TIER: Record<PartnerLevel, 1 | 2 | 3> = { verified: 1, trusted: 2, cash_trusted: 3 };
 export const isPartnerLevel = (value: unknown): value is PartnerLevel => (PARTNER_LEVELS as readonly string[]).includes(String(value));
+/** A stored level, anything unknown or missing read as Tier 1. */
+export const partnerLevelOf = (value: unknown): PartnerLevel => (isPartnerLevel(value) ? value : "verified");
+/** "Tier 2 · Trusted". */
+export function partnerTierName(level: unknown) {
+  const key = partnerLevelOf(level);
+  return `Tier ${PARTNER_LEVEL_TIER[key]} · ${PARTNER_LEVEL_LABELS[key]}`;
+}
 
+/** `cashTrusted` is Tier 3 (Top partner); the key keeps its old name because pay-on-delivery code reads it. */
 export const PARTNER_LEVEL_RULES = {
   trusted: { delivered: 50, rating: 4.3, failedRate: 0.02 },
   cashTrusted: { delivered: 150, days: 60 },
@@ -583,8 +602,9 @@ export interface PartnerRecord {
   /** Their base pinned and checked. */
   baseVerified: boolean;
   createdAt: Date | string;
-  /** Late cash pay-ins counted against them (LogisticsPartner.payInStrikes). */
-  lateRemittances: number;
+  /** Late cash pay-ins counted against them (LogisticsPartner.payInStrikes). Kept for pay on delivery; no longer part
+   * of the Tier 3 rule (the owner's tiers control reach, and riders don't hold cash). */
+  lateRemittances?: number;
   /** A CAC registration or a confirmed guarantor. */
   cacOrGuarantor: boolean;
   now?: Date;
@@ -601,8 +621,8 @@ export function partnerLevel(record: PartnerRecord): PartnerLevel {
   const c = PARTNER_LEVEL_RULES.cashTrusted;
   const trusted = record.verified && record.delivered >= t.delivered && record.rating >= t.rating && failRate(record) < t.failedRate && record.baseVerified;
   if (!trusted) return "verified";
-  const cash = record.delivered >= c.delivered && daysSince(record.createdAt, now) >= c.days && record.lateRemittances === 0 && record.cacOrGuarantor;
-  return cash ? "cash_trusted" : "trusted";
+  const top = record.delivered >= c.delivered && daysSince(record.createdAt, now) >= c.days && record.cacOrGuarantor;
+  return top ? "cash_trusted" : "trusted";
 }
 
 export function partnerLevelGoals(record: PartnerRecord): { level: PartnerLevel; next: PartnerLevel | null; goals: LevelGoal[] } {
@@ -630,7 +650,6 @@ export function partnerLevelGoals(record: PartnerRecord): { level: PartnerLevel;
     goals: [
       { key: "delivered", label: "Delivered jobs", have: record.delivered, need: c.delivered, done: record.delivered >= c.delivered, kind: "count" },
       { key: "days", label: "Days on Shopinbos", have: days, need: c.days, done: days >= c.days, kind: "count" },
-      { key: "remittances", label: "No late cash pay-ins", have: record.lateRemittances, need: 0, done: record.lateRemittances === 0, kind: "check" },
       { key: "cac", label: "CAC or a guarantor", have: record.cacOrGuarantor ? 1 : 0, need: 1, done: record.cacOrGuarantor, kind: "check" },
     ],
   };
@@ -642,7 +661,7 @@ export function canOfferPayOnDelivery(partner: { level?: string | null; codPause
 }
 
 export const POD_LOCKED_MESSAGE =
-  "Pay on delivery opens at Cash trusted: 150 delivered jobs, 60 days on Shopinbos, no late cash pay-ins and a CAC or a guarantor. Keep taking prepaid jobs to get there.";
+  "Pay on delivery opens at Top partner: 150 delivered jobs, 60 days on Shopinbos and a CAC or a guarantor. Keep taking prepaid jobs to get there.";
 
 /** The cash cap for a Cash trusted partner: ₦100,000 to start, +₦10,000 for every 50 deliveries past 150, plus any deposit. */
 export function podCashCap(record: { delivered: number; deposit?: number | null }): number {

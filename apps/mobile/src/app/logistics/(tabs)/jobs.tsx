@@ -171,12 +171,15 @@ export default function LogisticsJobs() {
 
   const newCount = jobs.data?.counts.new ?? data?.counts.new ?? 0;
   const activeCount = jobs.data?.counts.active ?? data?.counts.active ?? 0;
-  const week = earnings.data ? naira(earnings.data.week.amount) : null;
+  // The one number: "Earned this week · paid on Thu" (Monday to now; the next working day, when fees split to the
+  // partner settle). Older servers: the last 7 days from Money, without the day.
+  const week = data?.week ? naira(data.week.amount) : earnings.data ? naira(earnings.data.week.amount) : null;
+  const weekLine = data?.week ? t("lvl.weekPaid", { day: t.dynamic(`lvl.dayShort.${data.week.payoutDay.weekday}`) }) : t("fam.sum.week");
 
   const statusWord = (job: Job) => t.dynamic(`pst.${job.status}`, STATUS_WORD[job.status] ?? job.status.replace(/_/g, " "));
   const when = (job: Job) => job.pickupWindow || (view === "done" && job.deliveredAt ? dayWord(job.deliveredAt, undefined, t) : timeAgo(job.createdAt, undefined, t));
   const sub = (job: Job) =>
-    [when(job), job.item, job.collect > 0 ? t("jobs.pod") : null, view !== "new" ? statusWord(job) : null, view === "active" && job.rider ? job.rider.name.split(" ")[0] : null].filter(Boolean).join(" · ");
+    [when(job), job.item, job.highValue ? t("lvl.highValue") : null, job.collect > 0 ? t("jobs.pod") : null, view !== "new" ? statusWord(job) : null, view === "active" && job.rider ? job.rider.name.split(" ")[0] : null].filter(Boolean).join(" · ");
 
   const header = (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 50 }}>
@@ -238,12 +241,12 @@ export default function LogisticsJobs() {
             {week ? (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={t("fam.sum.weekLabel", { amount: week })}
+                accessibilityLabel={`${weekLine}: ${week}`}
                 onPress={() => router.navigate("/logistics/earnings")}
                 style={({ pressed }) => ({ flex: 1, alignItems: "flex-end", minHeight: 44, justifyContent: "flex-end", opacity: pressed ? 0.8 : 1 })}
               >
                 <T numberOfLines={1} adjustsFontSizeToFit style={{ fontFamily: fonts.display, fontSize: 24, color: "#FFFFFF" }}>{week}</T>
-                <T weight="semibold" style={{ fontSize: 13, color: "#BFE6DD" }}>{t("fam.sum.week")}</T>
+                <T weight="semibold" numberOfLines={2} style={{ fontSize: 13, color: "#BFE6DD", textAlign: "right" }}>{weekLine}</T>
               </Pressable>
             ) : null}
           </View>

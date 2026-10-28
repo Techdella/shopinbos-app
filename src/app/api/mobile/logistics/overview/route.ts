@@ -9,6 +9,7 @@ import { payInConfig } from "@/lib/logistics/payin-deadline";
 import { payInOverdueView } from "@/lib/logistics/payin-standing.server";
 import { owedAfterCredit, payInDue } from "@/lib/logistics/payin-rules";
 import { ACTIVE_STATUSES, bookingNet, lagosStartOfToday } from "@/components/logistics/kit";
+import { earnedThisWeek } from "@/lib/logistics/partner-reach.server";
 import { JOB_SELECT, dispatchRiders, jobView, ordersFor, partnerForUser, pickupGeoFor } from "../_shared";
 
 export const dynamic = "force-dynamic";
@@ -40,7 +41,7 @@ export const GET = withLogistics(async (_req: NextRequest, { user }) => {
     }),
   ]);
 
-  const [orders, riderList, pickupGeo, overdue] = await Promise.all([ordersFor(newJobs), dispatchRiders(partner.id, now), pickupGeoFor(newJobs, partner.country), payInOverdueView(partner.id, now)]);
+  const [orders, riderList, pickupGeo, overdue, week] = await Promise.all([ordersFor(newJobs), dispatchRiders(partner.id, now), pickupGeoFor(newJobs, partner.country), payInOverdueView(partner.id, now), earnedThisWeek(partner.id, now)]);
   const out = riders.filter((rider) => isRiderOut(rider, now)).length;
   const onTime = timed.length ? Math.round((timed.filter((job) => job.deliveredAt! <= job.estimatedDelivery!).length / timed.length) * 100) : null;
 
@@ -59,6 +60,9 @@ export const GET = withLogistics(async (_req: NextRequest, { user }) => {
     firstName: user.name.split(" ")[0] ?? user.name,
     deliveredToday: deliveredToday.length,
     earnedToday: deliveredToday.reduce((sum, job) => sum + bookingNet(job), 0),
+    // The partner's one number: "Earned this week · paid on Thursday" (Monday to now, Lagos; the next working day,
+    // when the fees split to them settle). { amount, jobs, payoutDay: { date: "YYYY-MM-DD", weekday: 0-6 } }.
+    week,
     counts: { new: newCount, quotes: quoteCount, active: activeCount, issues: issueCount },
     newJobs: newJobs.map((job) => jobView(job, job.orderId ? orders.get(job.orderId) : undefined, pickupGeo.get(job.id))),
     riders: { total: riders.length, out, offline: riders.length - out },

@@ -48,6 +48,13 @@ export default function FindPartners() {
                     <View style={{ gap: 2 }}>
                       {/* "Connected" under the name rather than beside it, so the details keep the row's width. */}
                       {partner.connectionId ? <Pill label={t("connected")} tone="ok" style={{ marginVertical: 2 }} /> : null}
+                      {/* Featured Top partners are listed first, with a badge; Tier 2 and 3 say so. */}
+                      {partner.featured || (partner.tier ?? 1) > 1 ? (
+                        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginVertical: 2 }}>
+                          {partner.featured ? <Pill label={t("find.featured")} tone="teal" icon="star" /> : null}
+                          {(partner.tier ?? 1) > 1 ? <Pill label={t(partner.tier === 3 ? "find.tier3" : "find.tier2")} tone="gray" /> : null}
+                        </View>
+                      ) : null}
                       <T style={{ fontSize: 14, lineHeight: 19, color: colors.inkSoft }}>{parts.join(" · ")}</T>
                       <T style={{ fontSize: 14, lineHeight: 19, color: colors.inkSoft }}>{partner.services.map((key) => t.dynamic(`service.${key}`, key)).join(" · ")}</T>
                     </View>

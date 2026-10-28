@@ -127,12 +127,16 @@ test("pre-orders only at Established; the locked card shows progress to it", () 
 
 const partner = (over = {}) => ({ verified: true, delivered: 64, failed: 0, rating: 4.6, baseVerified: true, createdAt: "2026-09-17T00:00:00Z", lateRemittances: 0, cacOrGuarantor: false, now, ...over });
 
-test("partner levels: pay on delivery only at Cash trusted, and paused after late cash", () => {
+test("partner levels: Tier 3 (stored cash_trusted) needs 150 jobs, 60 days and CAC or a guarantor; pay on delivery rules unchanged", () => {
   assert.equal(r.partnerLevel(partner({ delivered: 10 })), "verified");
   assert.equal(r.partnerLevel(partner()), "trusted");
   const cash = partner({ delivered: 150, createdAt: "2026-08-01T00:00:00Z", cacOrGuarantor: true });
   assert.equal(r.partnerLevel(cash), "cash_trusted");
-  assert.equal(r.partnerLevel({ ...cash, lateRemittances: 1 }), "trusted");
+  // Tiers control reach, not cash: late pay-ins no longer hold back Tier 3 (the owner's rule).
+  assert.equal(r.partnerLevel({ ...cash, lateRemittances: 1 }), "cash_trusted");
+  assert.equal(r.partnerLevel({ ...cash, cacOrGuarantor: false }), "trusted");
+  assert.equal(r.partnerLevel({ ...cash, createdAt: "2026-09-20T00:00:00Z" }), "trusted", "60 days");
+  assert.equal(r.partnerLevelGoals(cash).goals.some((g) => g.key === "remittances"), false);
   assert.equal(r.canOfferPayOnDelivery({ level: "trusted" }), false);
   assert.equal(r.canOfferPayOnDelivery({ level: "cash_trusted", codPaused: true }), false);
   assert.equal(r.canOfferPayOnDelivery({ level: "cash_trusted", codPaused: false }), true);

@@ -5,6 +5,7 @@ import { updateOrderStatus } from "@/lib/orders/update-status";
 import { checkTransition, makeDeliveryCode, makePickupCode, riderPayFor, type JobActor } from "./job-rules";
 import { emitPartnerEvent } from "./webhooks";
 import { notifyJobMoved, notifyRiderAssigned } from "@/lib/notifications/events.server";
+import { canTakeHighValue } from "@shared/partner-reach";
 
 // Server side of delivery jobs: one place that moves a job, keeps the seller's order in step and tells the
 // partner's systems. Used by the partner portal, the Riders app and the partner API.
@@ -52,6 +53,11 @@ export async function transitionJob(input: {
     const blocked = payAtDoorBlock(order, job);
     if (blocked) return { ok: false, error: blocked };
   }
+  // High-value parcels (shared/partner-reach.ts): only a Top partner (Tier 3) can accept one.
+  if (input.to === "confirmed" && job.highValue && !job.acceptedAt) {
+    const partner = await db.logisticsPartner.findUnique({ where: { id: input.partnerId }, select: { level: true } });
+    if (!canTakeHighValue(partner?.level)) return { ok: false, error: "This is a high-value parcel. Only Top partners (Tier 3) can take it, so decline it and the shop will send it to another partner." };
+  }
 
   const now = new Date();
   const data: Record<string, unknown> = { status: input.to };
@@ -88,7 +94,7 @@ export async function transitionJob(input: {
   if (input.trackingCode) data.trackingCode = input.trackingCode;
   await db.deliveryBooking.update({ where: { id: job.id }, data });
   void import("@/lib/rewards/rewards.server").then((rewards) => rewards.rewardJobMoved(job.id, input.to)).catch(() => undefined);
-  // A delivered job counts towards the partner's level (Verified → Trusted → Cash trusted, where pay on delivery opens).
+  // A delivered job counts towards the partner's tier (Tier 1 Verified → Tier 2 Trusted → Tier 3 Top partner).
   if (input.to === "delivered") void import("./partner-levels.server").then((levels) => levels.refreshPartnerLevel(input.partnerId)).catch(() => undefined);
 
   // Keep the seller's order in step (shipped when picked up, delivered — and paid, for pay on delivery — when dropped off).

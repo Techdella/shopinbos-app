@@ -198,6 +198,9 @@ const en = {
   "pay.paid": "Paid in the app",
   "pay.paidSub": "Ask for the code they got after paying, then hand over the parcel.",
   "pay.codeHint": "Ask for the 4-digit code the customer got after paying in the app",
+  // Reach tiers (shared/partner-reach.ts)
+  "earn.weekLine": "Earned this week: {amount}",
+  "earn.paidBy": "{company} pays you",
 } satisfies Record<string, string>;
 
 export default en;

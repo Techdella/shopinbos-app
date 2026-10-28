@@ -389,6 +389,10 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "method.tricycle": "Keke",
   "method.truck": "Ụgbọ ala ibu",
   "method.other": "Ọzọ",
+  // Reach tiers (shared/partner-reach.ts)
+  "find.featured": "A na-egosipụta",
+  "find.tier2": "Ọkwa 2 · A tụkwasịrị obi",
+  "find.tier3": "Ọkwa 3 · Onye mmekọ kacha elu",
 };
 
 export default ig;
