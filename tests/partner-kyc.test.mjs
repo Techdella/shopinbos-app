@@ -216,3 +216,10 @@ test("the old set-up wizard sends partners to the one flow, and saving 'Your del
   assert.match(coverage, /onboardingState: \{ \.\.\.state, completed: true/);
   assert.match(read("src/lib/role-queries.ts"), /db\.logisticsPartner\.upsert/, "no redirect loop when the partner row is missing");
 });
+
+test("partner kyc: failed calls keep the HTTP status for App errors and show friendly words", () => {
+  const kit = read("src/components/logistics/verification/kit.tsx");
+  assert.match(kit, /`HTTP \$\{response\.status\} from/);
+  assert.match(kit, /setError\(friendlyError\(cause, t\("page\.failed"\)\)\)/);
+  assert.match(read("src/app/api/logistics/kyc/nin/route.ts"), /export const maxDuration = 90;/);
+});

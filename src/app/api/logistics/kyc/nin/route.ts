@@ -11,6 +11,8 @@ import { selfieDecision } from "@shared/partner-tiers";
 import { readJson, stateResponse, withKycPartner } from "../_partner";
 
 export const runtime = "nodejs";
+// Korapay can take up to 30s with the selfie and 30s again without it, plus saving the selfie: never cut it short.
+export const maxDuration = 90;
 
 // Identity step: the partner's NIN with their name and date of birth, and a selfie (Korapay Identity, else Youverify).
 // Korapay also matches the selfie against the NIN's photo (facial matching): a confident match approves the selfie,
