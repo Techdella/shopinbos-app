@@ -53,6 +53,20 @@
   --color-app-danger:     #B42318;
   --color-app-danger-tint:#FDECEA;
   --font-app: var(--font-jakarta), 'Plus Jakarta Sans', system-ui, sans-serif;
+  /* Design system (shopinbos tokens.json): display face, accents and soft fields used by the 2026 screens. */
+  --font-app-display: 'Bricolage Grotesque', var(--font-jakarta), 'Plus Jakarta Sans', system-ui, sans-serif;
+  --color-app-sun:        #FFE27A;
+  --color-app-sun-tint:   #FFF6D6;
+  --color-app-warn:       #8A5A08;
+  --color-app-warn-tint:  #FDF0D5;
+  --color-app-violet:     #5B3FD6;
+  --color-app-violet-tint:#E7E1FF;
+  --color-app-blue:       #1F5FBF;
+  --color-app-blue-tint:  #E3EEFD;
+  --color-app-teal-mid:   #8BE3D3;
+  --color-app-line-soft:  #F1EFF5;
+  --color-app-gray-ink:   #4A4658;
+  --color-app-locked:     #D9D6E2;
 
   /* ── Typography ── */
   --font-display:  'Plus Jakarta Sans', 'Space Grotesk', system-ui, sans-serif;

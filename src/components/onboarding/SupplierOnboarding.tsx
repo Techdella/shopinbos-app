@@ -557,7 +557,7 @@ export function SupplierOnboarding({ initialView }: { initialView: View }) {
   const order = supplierSteps(modes);
   const railSteps = order.map((key, position) => ({ key, label: t(`rail.${key}`), done: position < index || (key === "review" && view.completed) }));
   return (
-    <div className="flex min-h-dvh w-full bg-app-canvas font-app text-app-ink">
+    <div className="flex min-h-dvh w-full bg-app-canvas font-app text-app-ink lg:bg-white">
       <StepRail
         className="sticky top-0 hidden h-dvh w-[280px] shrink-0 overflow-y-auto lg:flex"
         who={name.trim() || view.displayName || view.businessName || t("rail.title")}
@@ -566,7 +566,7 @@ export function SupplierOnboarding({ initialView }: { initialView: View }) {
         current={step}
       />
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 grid gap-3 bg-app-canvas/90 px-4 py-3 backdrop-blur sm:px-6 lg:px-12">
+        <header className="sticky top-0 z-20 grid gap-3 bg-app-canvas/90 px-4 py-3 backdrop-blur sm:px-6 lg:bg-white/90 lg:px-12">
           <div className="flex items-center gap-3">
             {canGoBack ? <BackButton onClick={back} label={t("back")} /> : <Wordmark className="lg:invisible" />}
             <span className="flex-1 text-center text-[14px] font-bold text-app-ink-soft lg:text-left">{t("progress", { step: index + 1, total })}</span>
@@ -580,7 +580,7 @@ export function SupplierOnboarding({ initialView }: { initialView: View }) {
         </header>
 
         <main className="mx-auto flex w-full max-w-[560px] flex-1 flex-col px-4 pb-6 pt-6 sm:px-6 lg:mx-0 lg:max-w-[760px] lg:px-12 lg:pt-12">
-          <h1 className="m-0 text-[30px] font-extrabold leading-[1.08] tracking-[-0.025em] sm:text-[34px] lg:text-[44px]">{title}</h1>
+          <h1 className="m-0 font-app-display text-[30px] font-extrabold leading-[1.05] tracking-[-0.025em] sm:text-[34px] lg:text-[44px]">{title}</h1>
           {hint && <p className="m-0 mt-2 max-w-[620px] text-[16px] leading-[1.5] text-app-ink-soft lg:mt-3 lg:text-[17px]">{hint}</p>}
           <div className="mt-6 grid gap-3">
             {note && <Notice tone="success">{note}</Notice>}
@@ -590,7 +590,7 @@ export function SupplierOnboarding({ initialView }: { initialView: View }) {
         </main>
 
         {(action || skip) && (
-          <footer className="sticky bottom-0 z-20 mx-auto grid w-full max-w-[560px] gap-2 bg-app-canvas/95 px-4 pb-5 pt-3 backdrop-blur sm:px-6 lg:mx-0 lg:flex lg:max-w-[760px] lg:items-center lg:gap-4 lg:px-12 lg:pb-10">
+          <footer className="sticky bottom-0 z-20 mx-auto grid w-full max-w-[560px] gap-2 bg-app-canvas/95 px-4 pb-5 pt-3 backdrop-blur sm:px-6 lg:mx-0 lg:flex lg:max-w-[760px] lg:items-center lg:gap-4 lg:bg-white/95 lg:px-12 lg:pb-10">
             {action && (
               <PillButton tone="ink" busy={busy} disabled={action.disabled} onClick={action.onClick} className="w-full lg:w-auto lg:min-w-[200px]">
                 {action.label}

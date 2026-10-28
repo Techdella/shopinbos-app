@@ -73,12 +73,13 @@ export default async function SupplierDeliveryPage({ searchParams }: { searchPar
           </Card>
         </form>
         {/* Delivery prices (shared/dropship-rules.ts): partner rates, or the supplier's own zone × size card. */}
-        <Card className="p-5">
-          <CardHead title="Delivery prices" sub="Checkout shows customers the fee and arrival date, worked out from these prices and their address." />
-          <div className="mt-4">
-            <DeliveryRateCard initial={rates} />
+        <section aria-labelledby="delivery-prices-title" className="grid gap-3">
+          <div className="px-1">
+            <h2 id="delivery-prices-title" className="m-0 font-app-display text-[22px] font-extrabold tracking-[-0.02em]">Delivery prices</h2>
+            <p className="mb-0 mt-0.5 text-[13.5px] text-app-ink-soft">Checkout shows customers the fee and arrival date, worked out from these prices and their address.</p>
           </div>
-        </Card>
+          <DeliveryRateCard initial={rates} />
+        </section>
         <MyPartners role="supplier" connections={connections} cards={cards} detailBase="/supplier/delivery/partners" back="/supplier/delivery" findHref="/supplier/delivery#find" />
         <FindPartners found={found} filters={filters} path="/supplier/delivery" detailBase="/supplier/delivery/partners" back="/supplier/delivery" originLabel={originLabel(found.origin)} />
       </div>

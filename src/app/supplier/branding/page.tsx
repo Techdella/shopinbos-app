@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { requireRole } from "@/lib/server-auth";
 import { ensureSupplierAccess, getSupplierForUser } from "@/lib/role-queries";
-import { AppPage, Card } from "@/components/app-kit";
+import { AppPage } from "@/components/app-kit";
 import { supplierFrame } from "@/components/supplier/supplier-kit";
 import { BrandingOfferForm } from "@/components/supplier/BrandingOfferForm";
 import { supplierBrandingView } from "@/lib/supplier-dropship.server";
@@ -21,9 +21,7 @@ export default async function SupplierBrandingPage() {
   return (
     <AppPage frame={supplierFrame(user, supplier)} title="Branding you offer" sub="What you can do for shops that dropship from you">
       <div className="mx-auto grid max-w-[720px] gap-4">
-        <Card className="p-5">
-          <BrandingOfferForm initial={view} />
-        </Card>
+        <BrandingOfferForm initial={view} />
       </div>
     </AppPage>
   );

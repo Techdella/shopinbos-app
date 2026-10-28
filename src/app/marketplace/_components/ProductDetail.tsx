@@ -265,6 +265,7 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
 
           {mode === "dropship" ? (
             <>
+              {terms ? null : (
               <section className={cx(CARD, "p-4 text-center")}>
                 <h2 className="m-0 text-[13px] font-bold text-app-ink-soft">{t("pd.sellingPrice")}</h2>
                 <div className="mx-auto mt-2 inline-flex items-center gap-3 rounded-full bg-app-canvas p-1">
@@ -280,8 +281,10 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
                   <p className="mb-0 mt-2 text-[12.5px] text-app-ink-soft">{t("pd.similar", { low: money(product.similar[0]), high: money(product.similar[1]) })}</p>
                 )}
               </section>
+              )}
 
               {terms ? (
+                <>
                 <DropshipTermsPanel
                   terms={terms}
                   price={price}
@@ -292,7 +295,20 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
                   money={money}
                   problem={priceProblem}
                   disabled={added}
+                  priceControl={
+                    <span className="mt-0.5 flex items-center gap-0.5 normal-case tracking-normal">
+                      <button type="button" disabled={added} aria-label={t("pd.lower", { amount: money(step) })} onClick={() => setPrice((value) => clampPrice(value - priceStep(value - 1)))} className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-app-canvas text-app-ink hover:bg-app-line focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent disabled:opacity-40">
+                        <Icon name="minus" size={13} strokeWidth={2.6} />
+                      </button>
+                      <output aria-live="polite" aria-label={t("pd.sellingPrice")} className="min-w-0 flex-1 truncate text-center font-app-display text-[16px] font-extrabold text-app-ink">{money(price)}</output>
+                      <button type="button" disabled={added} aria-label={t("pd.raise", { amount: money(step) })} onClick={() => setPrice((value) => clampPrice(value + priceStep(value)))} className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-app-ink text-white hover:bg-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent disabled:opacity-40">
+                        <Icon name="plus" size={13} strokeWidth={2.6} />
+                      </button>
+                    </span>
+                  }
                 />
+                {product.similar && <p className="m-0 px-1 text-[12px] text-app-ink-soft">{t("pd.similar", { low: money(product.similar[0]), high: money(product.similar[1]) })}</p>}
+                </>
               ) : (
               <section className={cx(CARD, "p-4")}>
                 <h2 className="m-0 text-[14.5px] font-extrabold">{t("pd.eachSale")}</h2>
@@ -319,7 +335,7 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
                   <Link href="/products" className="text-app-success underline-offset-2 hover:underline">{t("pd.viewProducts")}</Link>
                 </div>
               ) : (
-                <button type="button" onClick={add} disabled={pending || !!priceProblem} className="inline-flex min-h-[54px] w-full items-center justify-center rounded-full bg-app-accent px-5 text-[15.5px] font-bold text-white hover:brightness-95 disabled:opacity-60">
+                <button type="button" onClick={add} disabled={pending || !!priceProblem} className="inline-flex min-h-[54px] w-full items-center justify-center rounded-full bg-app-accent px-5 text-[16px] font-extrabold text-app-ink hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-ink focus-visible:ring-offset-2 disabled:opacity-60">
                   {pending ? t("pd.adding") : t("pd.addAt", { price: ` ${money(price)}` }).replace("  ", " ")}
                 </button>
               )}

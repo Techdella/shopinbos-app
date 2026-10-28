@@ -3,7 +3,10 @@
 import { useState } from "react";
 import { BRANDING_FEE_MAX, type BrandingOffer } from "@shared/dropship-rules";
 import { friendlyError } from "@/lib/errors/report-client";
-import { fieldClass } from "./supplier-kit";
+import { cx } from "@/components/app-ui/cx";
+import { Icon, type IconName } from "@/components/ui/Icon";
+import { buttonClass } from "./supplier-kit";
+import { CapsPill, IconTile, RowText, SwitchRow } from "./dropship-ui";
 
 // "Branding you offer" (/supplier/branding): what the supplier can do for shops that dropship from them. Blind
 // packing and the seller's name on tracking are always on; the seller's packing slip and stickers unlock at Trusted;
@@ -15,14 +18,15 @@ export interface BrandingInitial {
   allowed: boolean;
 }
 
-function AlwaysOn({ title, sub }: { title: string; sub: string }) {
+/** A white row (`.it` on P-Branding): icon tile, title and grey line, then a pill or a switch. */
+const ROW = "rounded-[18px] bg-white px-4 py-3";
+
+function AlwaysOn({ icon, tint, title, sub }: { icon: IconName; tint: string; title: string; sub: string }) {
   return (
-    <div className="flex items-start gap-3 rounded-[16px] border border-app-line bg-app-canvas px-4 py-3">
-      <span className="min-w-0 flex-1">
-        <span className="block text-[14.5px] font-bold">{title}</span>
-        <span className="block text-[12.5px] text-app-ink-soft">{sub}</span>
-      </span>
-      <span className="shrink-0 rounded-full bg-app-success-tint px-2.5 py-1 text-[11px] font-extrabold tracking-[0.08em] text-app-success">ALWAYS ON</span>
+    <div className={cx(ROW, "flex min-h-[64px] items-center gap-3")}>
+      <IconTile className={tint}><Icon name={icon} size={18} /></IconTile>
+      <span className="min-w-0 flex-1"><RowText title={title} sub={sub} /></span>
+      <CapsPill>Always on</CapsPill>
     </div>
   );
 }
@@ -59,22 +63,27 @@ export function BrandingOfferForm({ initial }: { initial: BrandingInitial }) {
     }
   }
 
-  const extra = (key: "packingSlip" | "stickers", title: string, sub: string, fee: string, setFee: (value: string) => void, feeLabel: string) => {
+  const extra = (key: "packingSlip" | "stickers", icon: IconName, tint: string, title: string, sub: string, fee: string, setFee: (value: string) => void, feeLabel: string) => {
     const locked = !allowed;
+    const on = offer[key] && !locked;
     return (
-      <div className={`grid gap-3 rounded-[16px] border px-4 py-3 ${offer[key] && !locked ? "border-app-ink" : "border-app-line"} ${locked ? "opacity-70" : ""}`}>
-        <label className={`flex items-start gap-3 ${locked ? "cursor-not-allowed" : "cursor-pointer"}`}>
-          <input type="checkbox" checked={offer[key] && !locked} disabled={locked} onChange={(event) => setOffer({ ...offer, [key]: event.target.checked })} className="mt-0.5 h-5 w-5 shrink-0 accent-[#16141F]" />
-          <span className="min-w-0 flex-1">
-            <span className="block text-[14.5px] font-bold">{title}</span>
-            <span className="block text-[12.5px] text-app-ink-soft">{sub}</span>
-          </span>
-          {locked && <span className="shrink-0 rounded-full bg-app-canvas px-2.5 py-1 text-[11px] font-extrabold tracking-[0.08em] text-app-ink-soft">UNLOCKS AT TRUSTED</span>}
-        </label>
-        {offer[key] && !locked && (
-          <div className="max-w-[260px] pl-8">
-            <label htmlFor={`fee-${key}`} className="mb-1 block text-[13px] font-bold">{feeLabel}</label>
-            <input id={`fee-${key}`} className={fieldClass} type="number" min="0" max={BRANDING_FEE_MAX} step="1" inputMode="numeric" placeholder="0 = free" value={fee} onChange={(event) => setFee(event.target.value)} />
+      <div className={cx(ROW, "grid gap-2", locked && "opacity-80")}>
+        <SwitchRow
+          checked={on}
+          disabled={locked}
+          onChange={(event) => setOffer({ ...offer, [key]: event.target.checked })}
+          icon={<IconTile className={tint}><Icon name={icon} size={18} /></IconTile>}
+          aside={locked ? <CapsPill tone="muted">UNLOCKS AT TRUSTED</CapsPill> : undefined}
+        >
+          <RowText title={title} sub={sub} />
+        </SwitchRow>
+        {on && (
+          <div className="ml-[52px] flex flex-wrap items-center gap-2 text-[13px] font-bold text-app-gray-ink">
+            <label htmlFor={`fee-${key}`}>{feeLabel}</label>
+            <span className="inline-flex h-[34px] items-center gap-0.5 rounded-[10px] border-2 border-app-ink px-2.5 focus-within:ring-2 focus-within:ring-app-accent focus-within:ring-offset-1">
+              <span aria-hidden className="font-app-display text-[15px] font-extrabold text-app-ink">₦</span>
+              <input id={`fee-${key}`} className="w-[6ch] bg-transparent font-app-display text-[15px] font-extrabold text-app-ink outline-none placeholder:font-app placeholder:text-[12px] placeholder:font-bold placeholder:text-app-ink-faint [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" type="number" min="0" max={BRANDING_FEE_MAX} step="1" inputMode="numeric" placeholder="0 = free" value={fee} onChange={(event) => setFee(event.target.value)} />
+            </span>
           </div>
         )}
       </div>
@@ -82,22 +91,20 @@ export function BrandingOfferForm({ initial }: { initial: BrandingInitial }) {
   };
 
   return (
-    <div className="grid gap-3">
-      <p className="m-0 text-[14px] leading-[1.55] text-app-ink-soft">Customers should feel the parcel came from the seller&apos;s shop. The first two are always on.</p>
-      <AlwaysOn title="Blind packing" sub="No price tag, receipt or your name inside the parcel" />
-      <AlwaysOn title="Seller's name on tracking" sub="Texts and WhatsApp updates come from the seller's shop" />
-      {extra("packingSlip", "Print the seller's packing slip", "Their logo, thank-you note and SKU. Needs a printer.", slipFee, setSlipFee, "Your fee per parcel (₦, optional)")}
-      {extra("stickers", "Use the seller's stickers or bags", "They send you a pack once. You use one per order and we count it down.", stickerFee, setStickerFee, "Your fee per parcel (₦)")}
-      <label className={`flex cursor-pointer items-start gap-3 rounded-[16px] border px-4 py-3 ${offer.custom ? "border-app-ink" : "border-app-line"}`}>
-        <input type="checkbox" checked={offer.custom} onChange={(event) => setOffer({ ...offer, custom: event.target.checked })} className="mt-0.5 h-5 w-5 shrink-0 accent-[#16141F]" />
-        <span className="min-w-0">
-          <span className="block text-[14.5px] font-bold">Custom packaging</span>
-          <span className="block text-[12.5px] text-app-ink-soft">Boxes, cards, gift wrap. You quote in chat, per order.</span>
-        </span>
-      </label>
+    <div className="grid gap-2">
+      <p className="m-0 mb-1 text-[14px] leading-[1.45] text-app-gray-ink">Customers should feel the parcel came from the seller&apos;s shop. The first two are always on.</p>
+      <AlwaysOn icon="package" tint="bg-app-line" title="Blind packing" sub="No price tag, receipt or your name inside the parcel" />
+      <AlwaysOn icon="chat" tint="bg-app-success-tint" title="Seller's name on tracking" sub="Texts and WhatsApp updates come from the seller's shop" />
+      {extra("packingSlip", "document", "bg-app-peach", "Print the seller's packing slip", "Their logo, thank-you note and SKU. Needs a printer.", slipFee, setSlipFee, "Your fee per parcel (optional)")}
+      {extra("stickers", "tag", "bg-app-violet-tint", "Use the seller's stickers or bags", "They send you a pack once. You use one per order and we count it down.", stickerFee, setStickerFee, "Your fee per parcel")}
+      <div className={ROW}>
+        <SwitchRow checked={offer.custom} onChange={(event) => setOffer({ ...offer, custom: event.target.checked })} icon={<IconTile className="bg-app-sun-tint"><Icon name="box" size={18} /></IconTile>}>
+          <RowText title="Custom packaging" sub="Boxes, cards, gift wrap. You quote in chat, per order." />
+        </SwitchRow>
+      </div>
       {!allowed && (
         <p className="m-0 text-[13px] text-app-ink-soft">
-          Packing slips and stickers open at Trusted: 25 delivered orders and a 4.3 rating. <a href="/supplier/level" className="font-bold text-app-ink underline underline-offset-4">See your level</a>
+          Packing slips and stickers open at Trusted: 25 delivered orders and a 4.3 rating. <a href="/supplier/level" className="font-bold text-app-accent-ink underline underline-offset-4 hover:text-app-ink">See your level</a>
         </p>
       )}
       {message && (
@@ -105,8 +112,8 @@ export function BrandingOfferForm({ initial }: { initial: BrandingInitial }) {
           {message.text}
         </p>
       )}
-      <div className="flex justify-end">
-        <button type="button" onClick={() => void save()} disabled={busy} className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-app-ink px-5 text-[14px] font-extrabold text-white disabled:opacity-60">
+      <div className="mt-1 flex justify-end">
+        <button type="button" onClick={() => void save()} disabled={busy} className={buttonClass.orange}>
           {busy ? "Saving…" : "Save"}
         </button>
       </div>

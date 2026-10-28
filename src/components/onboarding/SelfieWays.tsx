@@ -84,8 +84,8 @@ export function SelfieWays({ phonePath, check, onArrived, children }: {
       )}
     >
       {badge && <span className="self-start rounded-full bg-[#FFE27A] px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.05em] text-app-ink">{badge}</span>}
-      <span className="text-[19px] font-extrabold">{title}</span>
-      <span className="text-[14px] leading-[1.45] text-app-ink-soft">{sub}</span>
+      <span className="font-app-display text-[20px] font-extrabold tracking-[-0.01em]">{title}</span>
+      <span className="text-[14px] leading-[1.45] text-app-gray-ink">{sub}</span>
     </button>
   );
 
@@ -99,8 +99,8 @@ export function SelfieWays({ phonePath, check, onArrived, children }: {
         <div className="flex flex-wrap items-center gap-7 rounded-[28px] bg-app-canvas p-6">
           {url ? <QrCode value={url} label={t("phone.qr")} size={184} /> : <span className="block h-[184px] w-[184px] rounded-[12px] bg-white" aria-hidden />}
           <div className="grid min-w-[240px] flex-1 gap-2.5">
-            <b className="text-[21px] font-extrabold">{t("phone.scanTitle")}</b>
-            <span className="text-[15px] leading-[1.5] text-app-ink-soft">{t("phone.scanSub")}</span>
+            <b className="font-app-display text-[22px] font-extrabold tracking-[-0.01em]">{t("phone.scanTitle")}</b>
+            <span className="text-[15px] leading-[1.5] text-app-gray-ink">{t("phone.scanSub")}</span>
             <span className="inline-flex items-center gap-2 text-[14px] font-bold text-app-forest" role="status">
               <span aria-hidden className="h-2.5 w-2.5 animate-pulse rounded-full bg-app-success shadow-[0_0_0_5px_var(--color-app-success-tint)]" />
               {t("phone.waiting")}

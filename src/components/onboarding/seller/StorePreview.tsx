@@ -59,18 +59,18 @@ export function StorePreview({ host, storeName, logoUrl, lettermark, categories,
 
   return (
     <section aria-label={labels.aria} className="flex w-full flex-col items-center gap-3.5">
-      <p className="m-0 flex items-center gap-2 font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-app-ink-soft">
+      <p className="m-0 flex items-center gap-2 text-[12px] font-extrabold uppercase tracking-[0.06em] text-app-ink-soft">
         {live && <span aria-hidden className="h-2 w-2 rounded-full bg-app-success shadow-[0_0_0_4px_var(--color-app-success-tint)]" />}
         {live ? labels.live : labels.heading}
       </p>
       <div className="w-full max-w-[520px] overflow-hidden rounded-[20px] bg-white shadow-[0_30px_60px_-36px_rgba(22,20,31,0.35)]">
-        <div className="flex items-center gap-2 border-b border-app-line px-3.5 py-2.5 text-[13px] text-app-ink-soft">
+        <div className="flex items-center gap-2 border-b border-app-line px-3.5 py-2.5 text-[13px] text-app-gray-ink">
           <span aria-hidden className="flex gap-[5px]">
             <i className="h-[9px] w-[9px] rounded-full bg-app-line" />
             <i className="h-[9px] w-[9px] rounded-full bg-app-line" />
             <i className="h-[9px] w-[9px] rounded-full bg-app-line" />
           </span>
-          <span className="min-w-0 flex-1 truncate rounded-full bg-app-canvas px-3 py-1.5 font-mono font-bold text-app-ink">{host}</span>
+          <span className="min-w-0 flex-1 truncate rounded-full bg-app-canvas px-3 py-1.5 font-bold text-app-gray-ink">{host}</span>
         </div>
         <div className="flex flex-col gap-3 p-4 transition-colors duration-300" style={{ background: colours.background, color: colours.ink }}>
           <div className="flex min-w-0 items-center gap-2.5">
@@ -78,14 +78,14 @@ export function StorePreview({ host, storeName, logoUrl, lettermark, categories,
               // eslint-disable-next-line @next/next/no-img-element
               <img src={logoUrl} alt="" className="h-10 w-10 shrink-0 rounded-full bg-white object-contain" />
             ) : lettermark ? (
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-[14px] font-extrabold text-white" style={{ background: colours.logo }}>{lettermark}</span>
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full font-app-display text-[15px] font-extrabold tracking-[-0.04em] text-white" style={{ background: colours.logo }}>{lettermark}</span>
             ) : (
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full border-2 border-dashed border-app-line-strong text-[11px] font-bold text-app-ink-faint">{labels.logo}</span>
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full border-2 border-dashed border-app-locked text-[12px] font-bold text-[#8A8697]">{labels.logo}</span>
             )}
-            <span className="truncate text-[18px] font-extrabold" style={{ fontFamily: font }}>{storeName}</span>
+            <span className={cx("truncate text-[18px] font-extrabold", !font && "font-app-display")} style={{ fontFamily: font }}>{storeName}</span>
           </div>
           <div className="flex min-h-[150px] flex-col justify-end gap-2 rounded-[16px] p-5 transition-colors duration-300" style={{ background: colours.hero, color: colours.onHero }}>
-            <span className="text-[24px] font-extrabold leading-[1.05] tracking-[-0.02em]" style={{ fontFamily: font }}>{heroText}</span>
+            <span className={cx("text-[26px] font-extrabold leading-[1.05] tracking-[-0.02em]", !font && "font-app-display")} style={{ fontFamily: font }}>{heroText}</span>
             <span className="inline-flex h-8 w-fit items-center rounded-full px-3.5 text-[12px] font-extrabold" style={{ background: colours.accent, color: colours.onAccent }}>{labels.shopNow}</span>
           </div>
           {categories.length > 0 && (

@@ -375,8 +375,8 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
 
   const title = (text: string, sub?: string, eyebrow?: string) => (
     <div className="mb-7">
-      {eyebrow && <p className="m-0 mb-2.5 font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-app-accent-ink">{eyebrow}</p>}
-      <h1 className="m-0 text-[30px] font-extrabold leading-[1.08] tracking-[-0.025em] sm:text-[40px]">{text}</h1>
+      {eyebrow && <p className="m-0 mb-2.5 text-[13px] font-extrabold uppercase tracking-[0.06em] text-app-accent-ink">{eyebrow}</p>}
+      <h1 className="m-0 font-app-display text-[32px] font-extrabold leading-[1.05] tracking-[-0.025em] sm:text-[44px]">{text}</h1>
       {sub && <p className="m-0 mt-3 text-[15px] leading-[1.5] text-app-ink-soft sm:text-[17px]">{sub}</p>}
     </div>
   );
@@ -906,13 +906,13 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
   const header = (
     <header className="sticky top-0 z-20 border-b border-app-line bg-white/95 backdrop-blur">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3 px-[18px] py-3 sm:px-8 sm:py-4">
-        <Wordmark className="h-5" />
+        <Wordmark className="!h-4 sm:!h-5" />
         <div className="order-3 w-full sm:order-none sm:mx-auto sm:w-auto sm:max-w-[520px] sm:flex-1">
-          <div className="mb-1.5 flex justify-between gap-3 font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-app-ink-soft">
+          <div className="mb-1.5 flex justify-between gap-3 text-[12px] font-extrabold uppercase tracking-[0.05em] text-app-ink-soft">
             <span>{t("group.store")}</span>
-            <span>{t("count", { current: overall, total: totalSteps })}</span>
+            <span className="normal-case">{t("count", { current: overall, total: totalSteps })}</span>
           </div>
-          <ProgressBars total={totalSteps} current={overall - 1} />
+          <ProgressBars tone="accent" total={totalSteps} current={overall - 1} />
         </div>
         <a
           href={whatsappChatUrl(t("helpMessage"))}
@@ -933,12 +933,12 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
       {actionNote}
       <div className="flex flex-wrap items-center gap-3">
         {showBack && previous && (
-          <PillButton tone="white" disabled={busy} onClick={() => go(previous)} className="border-2">
+          <PillButton tone="white" disabled={busy} onClick={() => go(previous)} className="border-2 font-extrabold">
             {t("back")}
           </PillButton>
         )}
         {action && (
-          <PillButton busy={busy} disabled={action.disabled} onClick={action.onClick} className="min-w-0 flex-1 sm:flex-none sm:px-8">
+          <PillButton tone="orange" busy={busy} disabled={action.disabled} onClick={action.onClick} className="min-w-0 flex-1 text-[17px] font-extrabold sm:flex-none sm:px-8">
             {action.label}
           </PillButton>
         )}

@@ -138,31 +138,28 @@ export default async function SupplierOrderPage({ params, searchParams }: PagePr
         </Card>
 
         {pack && ["pending", "accepted"].includes(view.status) && (
-          <Card className="grid gap-4 p-5">
-            <div className="flex items-center gap-3">
+          <section aria-labelledby="pack-title" className="grid gap-2">
+            <div className="flex items-center gap-3 rounded-[20px] bg-white p-3">
               {pack.branding.logoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={pack.branding.logoUrl} alt="" className="h-12 w-12 shrink-0 rounded-full border border-app-line object-cover" />
+                <img src={pack.branding.logoUrl} alt="" className="h-11 w-11 shrink-0 rounded-full border border-app-line object-cover" />
               ) : (
-                <span aria-hidden className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-app-ink text-[18px] font-extrabold text-white">{pack.branding.sellerName.charAt(0).toUpperCase()}</span>
+                <span aria-hidden className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-app-accent font-app-display text-[15px] font-extrabold text-app-ink">{pack.branding.sellerName.split(/\s+/).map((word) => word.charAt(0)).join("").slice(0, 2).toLowerCase()}.</span>
               )}
               <div className="min-w-0 flex-1">
-                <div className="text-[13px] text-app-ink-soft">For</div>
-                <div className="truncate text-[18px] font-extrabold">{pack.branding.sellerName}</div>
+                <div className="truncate text-[15px] font-extrabold">For {pack.branding.sellerName}</div>
+                <div className="mt-0.5 truncate text-[12.5px] text-app-ink-soft">{BRANDING_CHOICE_LABELS[pack.branding.choice]}</div>
               </div>
-              <Pill tone={pack.branding.choice === "blind" ? "muted" : "info"}>{BRANDING_CHOICE_LABELS[pack.branding.choice]}</Pill>
+              {pack.branding.skus.length > 0 && (
+                <span className="shrink-0 rounded-[8px] bg-app-canvas px-2 py-1.5 text-[11px] font-extrabold tracking-[0.03em]"><span className="sr-only">Their SKU: </span>{pack.branding.skus.join(", ")}</span>
+              )}
             </div>
-            {pack.branding.skus.length > 0 && (
-              <div className="text-[14px]"><span className="font-bold">Their SKU:</span> <span className="font-mono">{pack.branding.skus.join(", ")}</span></div>
-            )}
-            <div>
-              <div className="mb-2 text-[16px] font-extrabold">Pack it {pack.branding.sellerName}&apos;s way</div>
-              <PackChecklist
-                editable={view.status === "accepted" && !pack.packed}
-                initial={{ orderId: pack.orderId, steps: pack.steps, packSteps: pack.packSteps, photoUrl: pack.photoUrl, packed: pack.packed, problem: pack.problem }}
-              />
-            </div>
-          </Card>
+            <h2 id="pack-title" className="m-0 mt-3 font-app-display text-[19px] font-extrabold tracking-[-0.01em]">Pack it {pack.branding.sellerName}&apos;s way</h2>
+            <PackChecklist
+              editable={view.status === "accepted" && !pack.packed}
+              initial={{ orderId: pack.orderId, steps: pack.steps, packSteps: pack.packSteps, photoUrl: pack.photoUrl, packed: pack.packed, problem: pack.problem }}
+            />
+          </section>
         )}
 
         {view.status === "expired" && (
