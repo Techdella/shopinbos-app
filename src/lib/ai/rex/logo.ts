@@ -32,6 +32,20 @@ export const LOGO_STYLES: {
   },
 ];
 
+/** The fourth idea sign-up shows ("Do you have a logo already?" → No, Rex shows four). */
+export const LOGO_FOURTH_STYLE: (typeof LOGO_STYLES)[number] = {
+  style: "monogram",
+  label: "Monogram",
+  prompt: (name, business, paletteHint) =>
+    `A high quality monogram logo for "${name}", a ${business}. A distinctive lettermark built from the initials inside a simple shape, with the full name in clean lettering underneath. Two colours at most, white or transparent background, crisp enough to work as a small profile picture.${paletteHint ? ` ${paletteHint}` : ""}`,
+  palette: { primary: "#16141F", secondary: "#73D8C8", accent: "#FAF7F1" },
+};
+
+/** The styles drawn for `count` ideas: the usual three, plus the monogram when four are asked for. */
+export function logoStylesFor(count: number) {
+  return count >= 4 ? [...LOGO_STYLES, LOGO_FOURTH_STYLE] : LOGO_STYLES;
+}
+
 export type LogoOption = { style: string; label: string; url: string; palette: { primary: string; secondary: string; accent: string } };
 
 /** Fresh directions for "New ideas" (round 2, 3, …), so a new round doesn't repeat the last one. */
@@ -74,15 +88,16 @@ async function settle(jobs: Array<Promise<LogoOption>>) {
   };
 }
 
-/** Draws all three logo ideas; keeps the ones that worked and the reasons the others failed. */
+/** Draws the logo ideas (three, or four with `count`); keeps the ones that worked and the reasons the others failed. */
 export async function drawLogoOptions(
   input: LogoInput,
   draw: (prompt: string, path: string) => Promise<string>,
+  count = LOGO_STYLES.length,
 ): Promise<{ logos: LogoOption[]; failures: string[] }> {
   const round = input.round ?? 1;
   const fresh = round > 1 ? ` ${FRESH_DIRECTIONS[(round - 2) % FRESH_DIRECTIONS.length]}` : "";
   return settle(
-    LOGO_STYLES.map(async ({ style, label, prompt, palette }) => {
+    logoStylesFor(count).map(async ({ style, label, prompt, palette }) => {
       const url = await draw(`${prompt(input.businessName.trim().slice(0, 80), (input.business || "retail business").slice(0, 300), input.paletteHint?.slice(0, 200))}${fresh}${logoContext(input)}`, `logos/${input.userId}/${style}-${Date.now()}`);
       return { style, label, url, palette };
     }),

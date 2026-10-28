@@ -10,7 +10,7 @@ import { drawLogoOptions, drawLogoVariations, LOGO_STYLES } from "@/lib/ai/rex/l
 export const runtime = "nodejs";
 export const maxDuration = 120;
 
-// Logo studio: three logo ideas for the business. `round` > 1 asks for a fresh direction ("New ideas");
+// Logo studio: three logo ideas for the business (four with `count: 4`, from sign-up). `round` > 1 asks for a fresh direction ("New ideas");
 // `likeUrl` (one of the seller's logos) makes three variations of it ("More like this"). Each logo is one
 // picture from the daily allowance (then credits); the reply says how much of today's allowance is used.
 export const POST = withSeller(async (req: NextRequest, { user }) => {
@@ -18,15 +18,17 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
     return NextResponse.json({ error: { code: "no_key", message: aiConfigured() ? "Logos need an OpenAI key (OPENAI_API_KEY)." : "AI isn't switched on yet." } }, { status: 503 });
   }
 
-  const body = (await req.json().catch(() => ({}))) as { businessName?: string; businessDescription?: string; paletteHint?: string; round?: number; likeUrl?: string; notes?: string; referenceUrls?: unknown };
+  const body = (await req.json().catch(() => ({}))) as { businessName?: string; businessDescription?: string; paletteHint?: string; round?: number; likeUrl?: string; notes?: string; referenceUrls?: unknown; count?: number };
   const { businessName, businessDescription, paletteHint } = body;
 
   if (!businessName?.trim()) {
     return NextResponse.json({ error: { code: "missing_name", message: "Business name is required." } }, { status: 400 });
   }
   const likeUrl = typeof body.likeUrl === "string" && isOwnImageUrl(body.likeUrl) ? body.likeUrl : null;
+  // Sign-up asks for four ideas ("Do you have a logo already?" → No); everywhere else gets three.
+  const wanted = !likeUrl && body.count === 4 ? 4 : LOGO_STYLES.length;
 
-  const metered = await meterAiCharged(user.id, "image", LOGO_STYLES.length);
+  const metered = await meterAiCharged(user.id, "image", wanted);
   if (metered.blocked) return metered.blocked;
 
   // Context the seller added: notes, and up to 3 inspiration pictures (photos or video stills) in our storage.
@@ -36,11 +38,11 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
   const input = { businessName, business: businessDescription || "retail business", paletteHint, userId: user.id, round: Math.max(1, Math.min(20, Number(body.round) || 1)), notes, inspiration: inspiration.length };
   const references = [...likeRef, ...inspiration];
   const draw = (prompt: string, path: string) => generateImage({ prompt, size: "1024x1024", path, references });
-  const { logos, failures } = likeRef.length ? await drawLogoVariations(input, draw) : await drawLogoOptions(input, draw);
+  const { logos, failures } = likeRef.length ? await drawLogoVariations(input, draw) : await drawLogoOptions(input, draw, wanted);
 
   // Logos that failed to draw are given back (credits and the day's cap).
-  const failed = Math.max(0, LOGO_STYLES.length - logos.length);
-  if (failed) await refundAi(user.id, "image", failed, Math.round((metered.credits / LOGO_STYLES.length) * failed));
+  const failed = Math.max(0, wanted - logos.length);
+  if (failed) await refundAi(user.id, "image", failed, Math.round((metered.credits / wanted) * failed));
 
   if (logos.length === 0) {
     return NextResponse.json({ error: { code: "generation_failed", message: `Logo generation failed. (${failures.join("; ")})` } }, { status: 500 });

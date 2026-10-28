@@ -5,6 +5,7 @@ import { api, ApiError } from "@/lib/api";
 import { onboardingFinished, rememberOnboardingFinished, rememberStoreName } from "@/lib/launch";
 import { useSession } from "@/lib/session";
 import type { OnboardingStatus } from "@/lib/onboarding";
+import { isSellerQuestion } from "@shared/onboarding";
 import { homeFor } from "@/lib/partner-pure";
 import { riderToken } from "@/lib/rider";
 import { useRole } from "@/lib/role";
@@ -38,8 +39,10 @@ export default function Gate() {
         if (status.finished) {
           rememberOnboardingFinished(uid);
           setTarget("/home");
-        } else if (status.store.live) setTarget("/onboarding/live");
-        else setTarget(status.memory?.screen && status.memory.screen !== "chat" ? `/onboarding/${status.memory.screen}` : "/onboarding");
+        } else if (isSellerQuestion(status.memory?.screen)) setTarget("/onboarding");
+        // Sellers part-way through the older, longer flow carry on where they were.
+        else if (status.store.live) setTarget("/onboarding/live");
+        else setTarget(status.memory?.screen && status.memory.screen !== "chat" && status.memory.screen !== "brand" ? `/onboarding/${status.memory.screen}` : "/onboarding");
       })
       .catch((error) => {
         if (cancelled) return;
