@@ -74,15 +74,6 @@ export function nextStepPath(role: CallRole, next: string | null | undefined): s
   return NEXT[role][next] ?? null;
 }
 
-/** The supplier setup wizard's step after a call: business, pickup address, bank, else where they sell. */
-export function supplierWizardStep(steps: readonly SetupStepView[]): "biz" | "pickup" | "where" | "bank" {
-  const missing = (id: string) => steps.some((step) => step.id === id && !step.done);
-  if (missing("profile")) return "biz";
-  if (missing("pickup")) return "pickup";
-  if (missing("bank")) return "bank";
-  return "where";
-}
-
 /** Call length as m:ss. */
 export function callClock(seconds: number) {
   const s = Math.max(0, Math.floor(seconds));

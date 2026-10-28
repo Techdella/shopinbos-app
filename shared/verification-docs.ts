@@ -96,9 +96,14 @@ export const DOC_TYPE_LABELS: Record<DocType, string> = {
   "courier-licence": "NIPOST courier licence",
 };
 
+/**
+ * Supplier documents. None is required: a supplier is verified on their ID photo and selfie (onboarding,
+ * shared/supplier-onboarding.ts), and the CAC number lookup replaces the certificate, uploaded only when the lookup
+ * fails. The rest earn trust and badges.
+ */
 export const SUPPLIER_DOC_TYPES: DocConfig[] = [
-  { type: "cac", label: DOC_TYPE_LABELS.cac, required: true, hint: "BN or RC document accepted" },
-  { type: "product-images", label: DOC_TYPE_LABELS["product-images"], required: true, hint: "Photos of your products, combined into one PDF or a single clear image" },
+  { type: "cac", label: DOC_TYPE_LABELS.cac, required: false, hint: "Only if the CAC number check didn't find your business. BN or RC document accepted" },
+  { type: "product-images", label: DOC_TYPE_LABELS["product-images"], required: false, hint: "Photos of your products, combined into one PDF or a single clear image" },
   { type: "tax", label: DOC_TYPE_LABELS.tax, required: false, hint: "TIN certificate or tax document. Boosts your trust score" },
   { type: "utility", label: DOC_TYPE_LABELS.utility, required: false, hint: "For address verification. Boosts your trust score" },
   { type: "bank", label: DOC_TYPE_LABELS.bank, required: false, hint: "Bank letter or statement header that matches your business name" },

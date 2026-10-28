@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { Choice, Eyebrow, Seg, Small, Sub, Title } from "@/components/design";
+import { Choice, Seg, Small } from "@/components/design";
 import { AppIcon } from "@/components/icons";
-import { CallPeggyButton } from "@/components/CallPeggyButton";
 import { ErrorState, LoadingBlock } from "@/components/kit";
-import { DoneView, FieldLabel, FlowFrame, NoteCard } from "@/components/SupplierKit";
+import { FieldLabel, FlowFrame, NoteCard } from "@/components/SupplierKit";
+import { SupplierJoinFlow } from "@/components/supplier/SupplierJoinFlow";
 import { Field, LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { useVerificationDocs, VerificationDocList } from "@/components/VerificationScreen";
 import { useT } from "@/lib/i18n";
@@ -13,27 +13,28 @@ import { fetchDeliveryWhere, fetchSupplierMe, fetchSupplierOverview, fetchSuppli
 import { popularBanks, SELL_AREAS, SELL_STATES, SETUP_CITIES, SUPPLY_CATEGORIES, type SellAreaKey } from "@/lib/supplier-pure";
 import { useLoad } from "@/lib/useLoad";
 import { checkWalletAccount, fetchWallet, linkWalletBank } from "@/lib/wallet";
-import { usePeggyContinue, usePeggySaved } from "@/lib/peggy-call";
-import { supplierWizardStep } from "@/lib/peggy-call-pure";
+import { usePeggySaved } from "@/lib/peggy-call";
 import { colors } from "@/theme";
 import { StatePicker } from "@/components/StatePicker";
 
-// Setting up a supplier ("Simple app, end to end" supplier prototype: sWelcome → sBiz → sPickup → sWhere → sBank →
-// sDocs → sReady). The business name and what it supplies, and the city and address parcels leave from, go to PATCH
-// /api/supplier/onboarding (PATCH /api/supplier/profile once set up, so a check in progress isn't reset); where it
-// sells and ships from to the delivery settings (PUT /api/mobile/delivery/settings); the bank to the Shopinbos
-// Wallet (check the account name, then link it); the documents are photos sent for review in the app (the
-// Verification screen's own pieces), and "Send for review" shows the server's real answer. After "Where do you sell?"
-// the app opens for the business; documents can also follow later (Account → Verification), and until the business
-// is verified products are saved for later, not shown to shops. Account opens one step with ?edit=biz|pickup|where|bank|docs.
+// Supplier set-up. A new supplier gets onboarding, one question per screen (SupplierJoinFlow: business name, CAC,
+// what they supply, how shops buy, where goods leave from, ID photo and selfie, first product; no bank account until
+// the first payout). Account, Home and Money open one thing to change with ?edit=biz|pickup|where|bank|docs: the
+// business name and what it supplies and the address parcels leave from go to PATCH /api/supplier/onboarding (PATCH
+// /api/supplier/profile once set up, so a check in progress isn't reset); where it sells to the delivery settings
+// (PUT /api/mobile/delivery/settings); the bank to the Shopinbos Wallet (check the account name, then link it); the
+// documents are the Verification screen's own pieces.
 
-type Step = "welcome" | "biz" | "pickup" | "where" | "bank" | "docs" | "ready";
-const NUMBERED: Step[] = ["biz", "pickup", "where", "bank", "docs"];
+type Step = "biz" | "pickup" | "where" | "bank" | "docs";
 const EDITABLE: Step[] = ["biz", "pickup", "where", "bank", "docs"];
 
 export default function SupplierSetup() {
   const { edit } = useLocalSearchParams<{ edit?: string }>();
   const editing = EDITABLE.includes(edit as Step) ? (edit as Step) : null;
+  return editing ? <SupplierSetupEditor editing={editing} /> : <SupplierJoinFlow />;
+}
+
+function SupplierSetupEditor({ editing }: { editing: Step }) {
   const t = useT("m_supplier", "common");
   const loaded = useLoad(async () => {
     const [setup, overview, where, wallet] = await Promise.all([fetchSupplierSetup(), fetchSupplierOverview().catch(() => null), fetchDeliveryWhere().catch(() => null), fetchWallet().catch(() => null)]);
@@ -45,9 +46,8 @@ export default function SupplierSetup() {
     const me = await fetchSupplierMe();
     return { status: me.supplier.verificationStatus, docs: me.supplier.verificationDocuments, trustScore: me.supplier.trustScore };
   });
-  const [docsSent, setDocsSent] = useState(false);
 
-  const [step, setStep] = useState<Step>(editing ?? "welcome");
+  const step = editing;
   const [filled, setFilled] = useState(false);
   const [name, setName] = useState("");
   const [cats, setCats] = useState<string[]>([]);
@@ -91,19 +91,10 @@ export default function SupplierSetup() {
   }, [lookupKey, bankName, account]);
   const shownHolder = holder && holder.key === lookupKey ? holder : null;
 
-  // On a call with Peggy: what she saves (pickup address, where they sell) fills the steps here as she goes, and
-  // after the call the first step that's still missing opens.
+  // On a call with Peggy: what she saves (pickup address, where they sell) fills the screen here as she goes.
   usePeggySaved(() => {
     setFilled(false);
     void loaded.reload();
-  });
-  usePeggyContinue((status) => {
-    if (editing) return false;
-    if (status) {
-      setError(null);
-      setStep(supplierWizardStep(status.steps));
-    }
-    return true;
   });
 
   if (!data) {
@@ -124,17 +115,15 @@ export default function SupplierSetup() {
   const walletBank = data.wallet?.view.bank ?? null;
   const matches = search.trim() ? banks.filter((bank) => bank.toLowerCase().includes(search.trim().toLowerCase())).slice(0, 8) : [];
 
-  function go(next: Step) {
+  // Each screen saves one thing, then goes back to where it was opened from.
+  function go() {
     setError(null);
-    if (editing) router.back();
-    else setStep(next);
+    router.back();
   }
 
   function back() {
     setError(null);
-    if (editing || step === "welcome") return router.back();
-    const order: Step[] = ["welcome", ...NUMBERED];
-    setStep(order[Math.max(0, order.indexOf(step) - 1)]);
+    router.back();
   }
 
   async function attempt(work: () => Promise<void>) {
@@ -155,7 +144,7 @@ export default function SupplierSetup() {
     void attempt(async () => {
       const same = !data!.setup.displayName || data!.setup.displayName === data!.setup.businessName;
       await saveBusiness({ businessName: business, ...(same ? { displayName: business } : {}), ...(cats.length ? { categories: cats } : {}) });
-      go("pickup");
+      go();
     });
   }
 
@@ -165,7 +154,7 @@ export default function SupplierSetup() {
     void attempt(async () => {
       await saveBusiness({ city, address: address.trim() });
       await saveDeliveryWhere({ originState: city, originArea: city, originAddress: address.trim() });
-      go("where");
+      go();
     });
   }
 
@@ -176,68 +165,27 @@ export default function SupplierSetup() {
       await saveDeliveryWhere({ sellArea: area, sellStates: area === "one_state" ? [city || data!.where?.originState || ""] : area === "selected" ? states : [] });
       // The app opens for the business now; documents can follow (Account → Verification).
       if (!onboarded) await saveSupplierSetup({ docsLater: true });
-      go("bank");
+      go();
     });
   }
 
   function saveBank() {
-    if (walletBank && !newBank) return go("docs");
+    if (walletBank && !newBank) return go();
     if (!bankName) return setBankError(t("setup.needBank"));
     if (account.length !== 10) return setBankError(t("setup.needAccount"));
     setBusy(true);
     setBankError(null);
     linkWalletBank({ bankName, accountNumber: account })
-      .then(() => go("docs"))
+      .then(() => go())
       .catch((failure) => setBankError(failure instanceof Error ? failure.message : t("product.saveFailed")))
       .finally(() => setBusy(false));
   }
 
-  const peggy = editing ? undefined : <CallPeggyButton variant="compact" />;
-  const stepLabel = editing || !NUMBERED.includes(step) ? undefined : t("setup.stepOf", { step: NUMBERED.indexOf(step) + 1, total: NUMBERED.length });
-  const nextButton = (onPress: () => void, accent = false) => <PillButton title={editing ? t("setup.save") : t("next")} tone={accent || editing ? "accent" : "ink"} busy={busy} disabled={busy} onPress={onPress} />;
-
-  if (step === "welcome") {
-    return (
-      <FlowFrame
-        footer={
-          <>
-            <PillButton title={t("setup.start")} tone="accent" onPress={() => setStep("biz")} />
-            <Small style={{ textAlign: "center" }}>{t("setup.free")}</Small>
-            <CallPeggyButton style={{ marginTop: 6 }} />
-          </>
-        }
-      >
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 18, paddingTop: 60 }}>
-          <View style={{ width: 96, height: 96, borderRadius: 32, backgroundColor: colors.peach, alignItems: "center", justifyContent: "center" }}>
-            <AppIcon name="box" size={46} color={colors.accentInk} />
-          </View>
-          <Eyebrow>{t("setup.forSuppliers")}</Eyebrow>
-          <Title style={{ textAlign: "center" }}>{t("setup.welcomeTitle")}</Title>
-          <Sub style={{ textAlign: "center" }}>{t("setup.welcomeSub")}</Sub>
-        </View>
-      </FlowFrame>
-    );
-  }
-
-  if (step === "ready") {
-    const verified = docs.data.data?.status === "verified";
-    return (
-      <DoneView
-        title={t("setup.readyTitle")}
-        sub={verified ? t("setup.readySubVerified") : docsSent || docs.sent ? t("setup.readySubChecking") : t("setup.readySub")}
-        footer={
-          <>
-            <PillButton tone="accent" onPress={() => router.replace("/supplier/product/new")} accessibilityLabel={t("setup.addFirst")} icon="plus" title={t("setup.addFirst")} />
-            <PillButton title={t("setup.later")} tone="white" onPress={() => router.replace("/supplier/home")} />
-          </>
-        }
-      />
-    );
-  }
+  const nextButton = (onPress: () => void, _accent = false) => <PillButton title={t("setup.save")} tone="accent" busy={busy} disabled={busy} onPress={onPress} />;
 
   if (step === "biz") {
     return (
-      <FlowFrame step={stepLabel} onBack={back} aside={peggy} title={t("setup.bizTitle")} footer={nextButton(saveBiz)}>
+      <FlowFrame onBack={back} title={t("setup.bizTitle")} footer={nextButton(saveBiz)}>
         {error ? <Notice>{error}</Notice> : null}
         <View>
           <FieldLabel>{t("setup.bizName")}</FieldLabel>
@@ -258,7 +206,7 @@ export default function SupplierSetup() {
 
   if (step === "pickup") {
     return (
-      <FlowFrame step={stepLabel} onBack={back} aside={peggy} title={t("setup.pickupTitle")} footer={nextButton(savePickup)}>
+      <FlowFrame onBack={back} title={t("setup.pickupTitle")} footer={nextButton(savePickup)}>
         {error ? <Notice>{error}</Notice> : null}
         <View>
           <FieldLabel>{t("setup.city")}</FieldLabel>
@@ -276,7 +224,7 @@ export default function SupplierSetup() {
 
   if (step === "where") {
     return (
-      <FlowFrame step={stepLabel} onBack={back} aside={peggy} title={t("setup.whereTitle")} sub={t("setup.whereSub", { city: city || t("setup.yourCity") })} footer={nextButton(saveWhere)}>
+      <FlowFrame onBack={back} title={t("setup.whereTitle")} sub={t("setup.whereSub", { city: city || t("setup.yourCity") })} footer={nextButton(saveWhere)}>
         {error ? <Notice>{error}</Notice> : null}
         <View accessibilityRole="radiogroup" style={{ gap: 10 }}>
           {SELL_AREAS.map((key) => <Choice key={key} title={t.dynamic(`where.${key}`)} sub={t.dynamic(`where.${key}.sub`)} on={area === key} onPress={() => setArea(key)} />)}
@@ -297,24 +245,23 @@ export default function SupplierSetup() {
     const verified = docs.data.data?.status === "verified";
     const sendDocs = async () => {
       if (await docs.send()) {
-        setDocsSent(true);
-        go("ready");
+        go();
       }
     };
     return (
       <FlowFrame
-        step={stepLabel}
-        aside={peggy}
+       
+       
         onBack={back}
         title={t("setup.docsTitle")}
         sub={t("setup.docsSub")}
         footer={
           verified || docs.sent ? (
-            <PillButton title={editing ? t("done") : t("next")} tone="accent" onPress={() => go("ready")} />
+            <PillButton title={t("done")} tone="accent" onPress={() => go()} />
           ) : (
             <>
               <PillButton title={t("setup.docsSend")} tone="accent" busy={docs.busy === "send"} disabled={Boolean(docs.busy)} onPress={() => void sendDocs()} />
-              <LinkButton title={t("setup.later")} color={colors.inkSoft} onPress={() => go("ready")} />
+              <LinkButton title={t("setup.later")} color={colors.inkSoft} onPress={() => go()} />
             </>
           )
         }
@@ -332,15 +279,14 @@ export default function SupplierSetup() {
   const pickingBank = !walletBank || newBank;
   return (
     <FlowFrame
-      step={stepLabel}
-      aside={peggy}
+     
+     
       onBack={back}
       title={t("setup.bankTitle")}
       sub={t("setup.bankSub")}
       footer={
         <>
           {nextButton(saveBank, true)}
-          {editing ? null : <LinkButton title={t("setup.later")} color={colors.inkSoft} onPress={() => go("docs")} />}
         </>
       }
     >

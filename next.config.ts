@@ -88,18 +88,24 @@ const nextConfig: NextConfig = {
       { key: "X-Content-Type-Options", value: "nosniff" },
       { key: "X-Frame-Options", value: "DENY" },
       { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-      { key: "Permissions-Policy", value: liveness ? "camera=(self), microphone=(self), geolocation=()" : "camera=(), microphone=(self), geolocation=()" },
+      // Supplier onboarding also asks "Where do goods leave from?" with the browser's location.
+      { key: "Permissions-Policy", value: liveness ? "camera=(self), microphone=(self), geolocation=(self)" : "camera=(), microphone=(self), geolocation=()" },
       { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
       { key: "Content-Security-Policy", value: contentSecurityPolicy(liveness) },
     ];
     return [
       {
-        // Every page but partner verification (which gets the liveness hosts and the camera, below).
-        source: "/:path((?!logistics/verification$).*)",
+        // Every page but partner verification and supplier onboarding (which get the liveness hosts and the camera, below).
+        source: "/:path((?!logistics/verification$|supplier/onboarding$).*)",
         headers: baseHeaders(false),
       },
       {
         source: "/logistics/verification",
+        headers: baseHeaders(true),
+      },
+      {
+        // Supplier onboarding's selfie runs the same liveness check (src/components/kyc/SelfieCapture.tsx).
+        source: "/supplier/onboarding",
         headers: baseHeaders(true),
       },
       {

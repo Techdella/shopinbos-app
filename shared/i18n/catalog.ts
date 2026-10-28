@@ -17,6 +17,7 @@ import glossary from "./messages/glossary/index.ts";
 import intros from "./messages/intros/index.ts";
 import introTitles from "./messages/introTitles/index.ts";
 import supplier from "./messages/supplier/index.ts";
+import supplierJoin from "./messages/supplierJoin/index.ts";
 import logistics from "./messages/logistics/index.ts";
 import delivery from "./messages/delivery/index.ts";
 import rider from "./messages/rider/index.ts";
@@ -115,6 +116,7 @@ export const CATALOGS = {
   intros,
   introTitles,
   supplier,
+  supplierJoin,
   logistics,
   delivery,
   rider,
