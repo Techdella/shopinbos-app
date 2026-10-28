@@ -38,6 +38,8 @@ import { isAppSession } from "@/lib/app-session.server";
 import { StoreAddressFields } from "@/components/seller-settings/StoreAddressFields";
 import { getPlatformRootDomain } from "@/lib/domains/storefront";
 import { slugCooldownDaysLeft } from "@shared/store-address";
+import { parseSourcing } from "@/lib/marketplace/find";
+import { DEFAULT_MARKUP, markupLabel } from "@shared/supplier-markup";
 
 export const dynamic = "force-dynamic";
 
@@ -60,6 +62,7 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
   const activeTab = params?.tab ? TAB_ALIASES[params.tab] ?? params.tab : "Store";
   const user = await requireRole(["seller"], "/login");
   const t = await getT("account", "common");
+  const tm = await getT("marketplace");
   const tPay = await getT("payments");
   const inApp = await isAppSession();
   const workspace = await getSellerWorkspace(user.id);
@@ -80,6 +83,8 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const brandSettings = (store?.brandSettings ?? {}) as Record<string, any>;
   const peggyPrefs = brandSettings.peggyPreferences ?? {};
+  // The markup added to supplier prices when the seller adds their products (changed on /marketplace/mine#markup).
+  const supplierMarkup = parseSourcing(brandSettings.sourcing).markup ?? DEFAULT_MARKUP;
   const savedCommStyle = peggyPrefs.communicationStyle ?? "Friendly";
   const savedDailyBrief = peggyPrefs.dailyBrief ?? "Morning only";
 
@@ -113,6 +118,14 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
                       hint={t("logo.hint")}
                     />
                   </div>
+                </Card>
+
+                <Card className="p-5">
+                  <CardHead
+                    title={tm("markup.settingsRow")}
+                    sub={tm("mine.markupLine", { markup: markupLabel(supplierMarkup) })}
+                    action={<PillLink href="/marketplace/mine#markup" size="sm">{tm("packs.changeMarkup")}</PillLink>}
+                  />
                 </Card>
 
                 <form action={saveStoreSettings}>

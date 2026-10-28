@@ -52,7 +52,7 @@ export default function Settings() {
 }
 
 function SettingsForm({ initial, identity }: { initial: SellerProfile; identity: Identity | null }) {
-  const t = useT("m_settings", "m_products", "common");
+  const t = useT("m_settings", "m_products", "m_find", "common");
   const tUi = useT("m_ui");
   const [saved, setSaved] = useState(initial);
   const [shop, setShop] = useState<ShopForm>(shopForm(initial));
@@ -218,6 +218,8 @@ function SettingsForm({ initial, identity }: { initial: SellerProfile; identity:
         <LanguageRow first />
         <TipsRow />
         <LinkRow icon="bell" label={t("set.notifications")} hint={t("set.notificationsHint")} onPress={() => router.push("/notifications/settings")} />
+        {/* The markup added to supplier prices when the seller adds their products (app/find/markup.tsx). */}
+        <LinkRow icon="tag" label={t("markup.settingsRow")} hint={t("markup.settingsHint")} onPress={() => router.push("/find/markup")} />
         <LinkRow icon="help" label={t("set.help")} hint={t("set.helpHint")} onPress={() => router.push("/help")} />
       </Card>
 

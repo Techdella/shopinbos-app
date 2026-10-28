@@ -23,6 +23,8 @@ import { FindProductsView, type FindTab } from "./_components/FindProductsView";
 import { getT } from "@/lib/i18n/server";
 import { activeImportCount, isImportStatus } from "@/lib/imports/pure";
 import { chinaImportsOpen } from "@/lib/imports/service.server";
+import { inShopIds, sameState, sellerState, starterPacksFor } from "@/lib/marketplace/quick-add.server";
+import { DEFAULT_MARKUP } from "@shared/supplier-markup";
 
 export const dynamic = "force-dynamic";
 
@@ -58,7 +60,7 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
   const customerProfile = (memory.customerProfile && typeof memory.customerProfile === "object" ? memory.customerProfile : {}) as Record<string, unknown>;
   const country = store.country || "Nigeria";
 
-  const [rows, inStore, imports] = await Promise.all([
+  const [rows, inStore, imports, state, packs] = await Promise.all([
     safeQuery(() => db.supplierProduct.findMany({
       // Verified or not (sellers see which, and the risk score), near the seller only: src/lib/marketplace/agreements.server.ts.
       where: { status: "published", supplier: { ...VISIBLE_SUPPLIER, country: { equals: country, mode: "insensitive" } } },
@@ -69,11 +71,21 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
       orderBy: [PRODUCT_PLAN_FIRST, { trendScore: "desc" }, { createdAt: "desc" }],
       take: 300,
     }), []),
-    safeQuery(() => db.storeProduct.findMany({ where: { storeId: store.id, supplierProductId: { not: null } }, select: { supplierProductId: true } }), []),
+    // In the shop (removed ones can be added again).
+    safeQuery(() => inShopIds(store.id), []),
     safeQuery(() => db.importOrder.findMany({ where: { storeId: store.id }, select: { status: true }, take: 100 }), []),
+    safeQuery(() => sellerState(user.id), null),
+    // Starter packs at the top of the list (shared/starter-packs.ts), only on the plain list.
+    tab === "nigeria" && !params.q && !params.cat ? safeQuery(() => starterPacksFor(user.id), null) : Promise.resolve(null),
   ]);
 
-  const nearby = await nearbyForSeller(user.id, rows.map(toFindProduct), new Map(rows.map((row) => [row.supplier.id, row.supplier.address])));
+  const addressOf = new Map(rows.map((row) => [row.supplier.id, row.supplier.address]));
+  const nearby = await nearbyForSeller(
+    user.id,
+    // "Delivers to my state": the supplier is in the seller's state.
+    rows.map((row) => { const product = toFindProduct(row); return { ...product, supplier: { ...product.supplier, sameState: sameState(state, { city: row.supplier.city, address: row.supplier.address }) } }; }),
+    addressOf,
+  );
   const live = nearby.products;
   const sampleMode = live.length === 0;
   const catalogue: FindProduct[] = sampleMode ? SAMPLE_PRODUCTS : live;
@@ -119,7 +131,9 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
         insight={insight}
         trends={trends}
         nearby={{ hasPlace: nearby.hasPlace, city: store.city ?? null }}
-        addedIds={inStore.map((row) => row.supplierProductId).filter((id): id is string => Boolean(id))}
+        addedIds={inStore}
+        markup={{ markup: sourcing.markup ?? DEFAULT_MARKUP, asked: Boolean(sourcing.markup) }}
+        packs={packs?.packs ?? []}
         notified={sourcing.notifyNewSuppliers}
         error={params.error}
         focusPhoto={params.photo === "1"}

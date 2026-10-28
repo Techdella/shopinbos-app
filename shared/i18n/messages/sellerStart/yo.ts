@@ -43,6 +43,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "ready.ownHint": "Wàá ya fọ́tò ti àkọ́kọ́ báyìí",
   "ready.dropship": "Rárá, wá supplier fún mi",
   "ready.dropshipHint": "Dropship: àwọn ló ń tọ́jú ọjà, àwọn ló sì ń fi ránṣẹ́",
+  "ready.packs": "Tàbí bẹ̀rẹ̀ pẹ̀lú àpò ọjà tí a ti ṣètò",
 
   "product.title": "Fi ọjà àkọ́kọ́ rẹ kún un.",
   "product.snap": "Ṣí kámẹ́rà",

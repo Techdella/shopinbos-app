@@ -117,9 +117,16 @@ export interface FindFilters {
   /** A supplier's city, or "" for anywhere. */
   city: string;
   verified: boolean;
+  /** "near": within NEAR_ME_KM of the seller; "state": the supplier is in the seller's state (delivers there). */
+  near?: "" | "near" | "state";
+  /** Hide what's already in the shop (the screen applies it with the shop's ids: withoutAdded). */
+  notInShop?: boolean;
 }
 
-export const NO_FIND_FILTERS: FindFilters = { q: "", category: "", way: "", price: "", city: "", verified: false };
+export const NO_FIND_FILTERS: FindFilters = { q: "", category: "", way: "", price: "", city: "", verified: false, near: "", notInShop: false };
+
+/** "Near me": a supplier this close (Find shows suppliers up to 50 km away). */
+export const NEAR_ME_KM = 15;
 
 interface Filterable {
   name: string;
@@ -128,7 +135,7 @@ interface Filterable {
   cost: number;
   dropship: boolean;
   wholesale: boolean;
-  supplier: { name: string; city: string; verificationStatus: string };
+  supplier: { name: string; city: string; verificationStatus: string; km?: number | null; sameState?: boolean };
 }
 
 /** Every word must appear (plurals folded), in the name, description, category or the supplier. */
@@ -150,13 +157,21 @@ export function filterFind<P extends Filterable>(products: readonly P[], filters
       (!band || (product.cost >= band.min && product.cost < band.max)) &&
       (!city || product.supplier.city.trim().toLowerCase() === city) &&
       (!filters.verified || product.supplier.verificationStatus === "verified") &&
+      // No distance means the city matched by name (Find only lists near suppliers), so it counts as near.
+      (filters.near !== "near" || product.supplier.km == null || product.supplier.km <= NEAR_ME_KM) &&
+      (filters.near !== "state" || product.supplier.sameState === true) &&
       findMatches(product, filters.q),
   );
 }
 
+/** "Not in my shop yet": drops what the shop already has when the filter is on. */
+export function withoutAdded<P extends { id: string }>(products: readonly P[], added: ReadonlySet<string>, on: boolean | undefined): P[] {
+  return on ? products.filter((product) => !added.has(product.id)) : [...products];
+}
+
 /** Filters picked in the sheet (search and the category chips are counted apart). */
 export function findFilterCount(filters: FindFilters) {
-  return (filters.way ? 1 : 0) + (filters.price ? 1 : 0) + (filters.city ? 1 : 0) + (filters.verified ? 1 : 0);
+  return (filters.way ? 1 : 0) + (filters.price ? 1 : 0) + (filters.city ? 1 : 0) + (filters.verified ? 1 : 0) + (filters.near ? 1 : 0) + (filters.notInShop ? 1 : 0);
 }
 
 /** Suppliers' cities for the Location filter, most products first. */

@@ -575,6 +575,8 @@ export default function SellerQuestions() {
           {choice("own", t("ready.own"), t("ready.ownHint"), "camera", path === "own", () => chooseReady("own"))}
           {choice("dropship", t("ready.dropship"), t("ready.dropshipHint"), "truck", path === "dropship", () => chooseReady("dropship"))}
         </View>
+        {/* Ready-made starter packs of supplier products (app/find/packs.tsx). */}
+        <LinkButton testID="onboarding-starter-packs" title={t("ready.packs")} style={{ marginTop: 14 }} onPress={() => router.push("/find/packs")} />
       </>
     );
   }

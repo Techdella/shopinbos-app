@@ -43,6 +43,7 @@ const en = {
   "ready.ownHint": "You'll snap your first one next",
   "ready.dropship": "No, find me a supplier",
   "ready.dropshipHint": "Dropship: they keep the stock and deliver",
+  "ready.packs": "Or start with a ready-made pack of products",
 
   "product.title": "Add your first product.",
   "product.snap": "Open the camera",

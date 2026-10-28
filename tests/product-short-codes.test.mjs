@@ -109,15 +109,16 @@ test("every product create path assigns a code", () => {
   const creators = sourceFiles("src").filter((path) => /storeProduct\.(create|createMany|upsert)\(/.test(read(path)));
   const expected = [
     "src/app/actions/imports.ts",
-    "src/app/actions/sourcing.ts",
     "src/app/actions/workspace.ts",
     "src/app/api/app/dropship/start/route.ts",
     "src/app/api/app/store-products/add-from-supplier/route.ts",
     "src/app/api/app/store-products/route.ts",
-    "src/app/api/mobile/marketplace/route.ts",
     "src/app/api/products/import/route.ts",
     "src/app/api/store/products/route.ts",
     "src/lib/ai/rex/build-store.ts",
+    // Adding a supplier product (web, phone, one-tap, bulk): src/app/actions/sourcing.ts and
+    // /api/mobile/marketplace go through its linkSupplierProduct.
+    "src/lib/marketplace/quick-add.server.ts",
     "src/lib/products/bulk/publish.server.ts",
   ];
   assert.deepEqual(creators.sort(), expected);
@@ -128,6 +129,11 @@ test("every product create path assigns a code", () => {
     // Each create is the callback that receives the code.
     for (const match of source.matchAll(/storeProduct\.create\(/g)) {
       const before = source.slice(Math.max(0, match.index - 120), match.index);
+      // In a transaction (the store's lock before the create): withShortCode retries the whole transaction.
+      if (/\btx\.$/.test(before)) {
+        assert.match(source, /\(shortCode\) => db\.\$transaction\(async \(tx\) =>/, `${path}: a transaction create outside withShortCode`);
+        continue;
+      }
       assert.match(before, /\(shortCode(: string \| null)?\) =>\s*db\.$/, `${path}: a create outside withShortCode`);
     }
     assert.match(source, /^\s+shortCode,$/m, `${path}: the code goes into the row`);
