@@ -296,7 +296,7 @@ test("onboarding memory is durable and shared with Rex builder", () => {
   const supplierOnboardingRoute = read("src/app/api/supplier/onboarding/route.ts");
   const logisticsOnboardingRoute = read("src/app/api/logistics/onboarding/route.ts");
   const storeRouteApp = read("src/app/api/app/store/route.ts");
-  const supplierOnboardingComponent = withWords("src/components/onboarding/SupplierOnboarding.tsx", "onboarding");
+  const supplierOnboardingComponent = withWords("src/components/onboarding/SupplierOnboarding.tsx", "supplierJoin");
   const supplierOnboarding = read("src/app/supplier/onboarding/page.tsx");
   const logisticsOnboarding = read("src/app/logistics/onboarding/page.tsx");
   const builder = withWords("src/components/builder/ChipBuilder.tsx", "builder");
@@ -319,10 +319,11 @@ test("onboarding memory is durable and shared with Rex builder", () => {
   assert.equal(exists("src/components/onboarding/OnboardingFlow.tsx"), false);
 
   assert.match(supplierOnboardingComponent, /export function SupplierOnboarding/);
-  assert.match(supplierOnboardingComponent, /Submit for admin review/);
-  assert.match(supplierOnboardingComponent, /Verify your business/);
+  // One question per screen (shared/supplier-onboarding.ts): the ID photo and selfie, then "Send for review".
+  assert.match(supplierOnboardingComponent, /Send for review/);
+  assert.match(supplierOnboardingComponent, /Snap a photo of your ID/);
   assert.match(supplierOnboardingComponent, /\/api\/supplier\/onboarding/);
-  assert.match(supplierOnboardingComponent, /manual admin verification/);
+  assert.match(supplierOnboardingComponent, /\/api\/supplier\/kyc\/selfie/);
   assert.match(onboardingCss, /\.onb-step-header/);
   assert.match(onboardingCss, /\.phone-mini/);
   assert.match(onboardingCss, /\.steps \.s\.on/);
@@ -338,7 +339,7 @@ test("onboarding memory is durable and shared with Rex builder", () => {
   assert.match(logisticsOnboardingRoute, /onboardingState/);
   assert.match(storeRouteApp, /"onboardingState"/);
   assert.match(storeRouteApp, /"firstDashboardVisitComplete"/);
-  assert.match(supplierOnboarding, /initialSupplier/);
+  assert.match(supplierOnboarding, /initialView=/);
   // Delivery partners set up in the one verification flow; the old set-up page sends them there.
   assert.match(logisticsOnboarding, /redirect\(`\/logistics\/verification/);
   assert.equal(exists("src/components/onboarding/LogisticsOnboarding.tsx"), false);
@@ -472,7 +473,9 @@ test("supplier and logistics onboarding require manual verification before platf
   assert.match(authSync, /ensureAppUserForSupabaseUser/);
   assert.match(appUser, /verificationStatus: "unverified"/);
   assert.match(appUser, /onboardingState: \{ source: "signup", completed: false \}/);
-  assert.match(supplierRoute, /parsed\.data\.completed \? "pending" : "unverified"/);
+  // Suppliers: verified at once when the ID and selfie are approved, else pending for the team (src/lib/kyc/supplier.server.ts).
+  assert.match(supplierRoute, /if \(input\.completed\) await refreshSupplierVerification/);
+  assert.match(read("shared/supplier-onboarding.ts"), /return tiers\.verifiedIndividual \? "verified" : "pending"/);
   assert.match(logisticsRoute, /parsed\.data\.completed \? "pending" : "unverified"/);
   assert.match(supplierDashboard, /ensureSupplierAccess\(supplier\)/);
   assert.match(logisticsDashboard, /ensureLogisticsAccess\(partner\)/);

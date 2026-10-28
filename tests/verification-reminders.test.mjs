@@ -53,7 +53,9 @@ test("'add documents later' opens the portal but never trading or review", () =>
   assert.match(roles, /docsLaterAt/, "onboarding counts as done once documents are deferred");
   const api = readFileSync("src/app/api/supplier/onboarding/route.ts", "utf8");
   assert.match(api, /docsLater/);
-  assert.match(api, /parsed\.data\.completed \? "pending" : "unverified"/, "deferring never marks the account pending or verified");
+  // Only sending for review (completed) runs the status change; deferring leaves the account as it is.
+  assert.match(api, /if \(input\.completed\) await refreshSupplierVerification/, "deferring never marks the account pending or verified");
+  assert.doesNotMatch(api, /verificationStatus:/);
   const actions = readFileSync("src/app/actions/supplier.ts", "utf8");
   assert.match(actions, /wantsReview && verified \? "pending_review" : "draft"/, "unverified suppliers can only save drafts");
   assert.match(actions, /function assertVerifiedSupplier/, "quotes and orders still need verification");
@@ -67,10 +69,12 @@ test("'add documents later' opens the portal but never trading or review", () =>
   // cronDenied (src/lib/auth/cron-request.ts): QStash signature or Bearer CRON_SECRET via constant-time cronAuthorization.
   assert.match(cron, /export async function GET\(req: NextRequest\) \{\s*const denied = await cronDenied\(req\);\s*if \(denied\) return denied;/);
   assert.match(readFileSync("src/lib/auth/cron-request.ts", "utf8"), /cronAuthorization\(req\.headers\.get\("authorization"\), secret\) !== "ok"/);
-  // Copy lives in the onboarding catalog; the component shows it through t().
-  const ui = readFileSync("src/components/onboarding/SupplierOnboarding.tsx", "utf8") + readFileSync("shared/i18n/messages/onboarding/en.ts", "utf8");
-  assert.match(ui, /Continue without documents/);
-  assert.match(ui, /CacInstantCheck/);
+  // Copy lives in the supplierJoin catalog; the ID screens can be skipped ("Skip for now" → docsLater) and the CAC
+  // number is looked up instead of a certificate upload.
+  const ui = readFileSync("src/components/onboarding/SupplierOnboarding.tsx", "utf8") + readFileSync("shared/i18n/messages/supplierJoin/en.ts", "utf8");
+  assert.match(ui, /skip = \(\) => save\(\{ docsLater: true \}, "product"\)/);
+  assert.match(ui, /Skip for now/);
+  assert.match(ui, /\/api\/supplier\/verification\/cac/);
 });
 
 test("verify sequence: the first nudge now, then 3 and 7 days after it, never two in a day", () => {

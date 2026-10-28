@@ -609,6 +609,16 @@ model Supplier {
   /// What this supplier takes back and how (shown to sellers before they list a product). Empty: the minimum in the
   /// Supplier terms applies (wrong, damaged or not-as-described items).
   returnPolicy       String?
+  /// The owner's ID check from onboarding (shared/supplier-onboarding.ts readSupplierIdentity): the kind of ID they
+  /// photographed and, for a NIN slip, the NIN's last 4 digits, keyed hash and Korapay result. Never the whole number.
+  identityChecks     Json               @default("{}")
+  /// How shops can buy (dropship | wholesale | preorder): the defaults for new products.
+  buyModes           String[]           @default([])
+  /// Smallest wholesale order, the default MOQ for new products.
+  minimumOrder       Int?
+  /// Where goods leave from ("Use my current location" in onboarding), next to DeliverySettings.originAddress.
+  pickupLat          Float?
+  pickupLng          Float?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 

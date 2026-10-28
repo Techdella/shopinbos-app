@@ -1,366 +1,557 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FieldLabel, Mascot, Notice, PillButton, ProgressBars, TextInput, Wordmark, cx } from "@/components/app-ui";
+import { BackButton, Notice, PillButton, ProgressBars, TextInput, Wordmark, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
-import { VerificationDocUploader } from "@/components/verification/VerificationDocUploader";
-import { CacInstantCheck } from "@/components/verification/CacInstantCheck";
-import { deleteVerificationFile, uploadVerificationFile } from "@/components/verification/upload-client";
-import intentRouting from "@/lib/intent-routing";
 import { useT } from "@/components/i18n/I18nProvider";
+import intentRouting from "@/lib/intent-routing";
+import { shrinkImage } from "@/lib/media/shrink-image";
+import { whatsappChatUrl } from "@/lib/support-contact";
+import type { SupplierOnboardingView } from "@/lib/kyc/supplier-onboarding.server";
+import { NG_STATES } from "@shared/delivery-market";
 import {
-  SUPPLIER_DOC_TYPES,
-  docDisplayState,
-  findDoc,
-  missingRequiredDocs,
-  normalizeVerificationDocs,
-  type DocType,
-  type VerificationDoc,
-} from "@shared/verification-docs";
+  BUY_MODES,
+  SUPPLIER_ID_TYPES,
+  SUPPLY_SOURCES,
+  nextStep,
+  previousStep,
+  stepPosition,
+  supplierTierBadges,
+  type BuyMode,
+  type CacAnswer,
+  type SupplierIdType,
+  type SupplierOnboardingStep,
+  type SupplySource,
+} from "@shared/supplier-onboarding";
+import { SelfieCapture, readAsDataUri, type SelfieValue } from "./supplier/SelfieCapture";
 
-const UPLOAD_ENDPOINT = "/api/supplier/verification/upload";
+// Supplier onboarding, one question per screen (shared/supplier-onboarding.ts has the order and rules): one question in
+// large text, one answer, Continue at the bottom, back arrow top-left, "Step X of N" and a WhatsApp "Need help?".
+// Every Continue saves to /api/supplier/onboarding with the next screen, so leaving and coming back resumes there.
+// The ID photo and selfie go to /api/supplier/kyc/*, the first product to /api/supplier/onboarding/first-product.
 
-interface InitialUser {
-  name: string | null;
-  city: string | null;
-  country: string | null;
+type View = SupplierOnboardingView;
+type ApiAnswer<T> = { data?: T; error?: { message?: string } };
+
+async function call<T>(url: string, init: RequestInit & { json?: unknown } = {}): Promise<T> {
+  const { json, ...rest } = init;
+  const response = await fetch(url, { ...rest, headers: json === undefined ? rest.headers : { "Content-Type": "application/json" }, body: json === undefined ? rest.body : JSON.stringify(json) });
+  const body = (await response.json().catch(() => null)) as ApiAnswer<T> | null;
+  if (!response.ok || !body || body.data === undefined) throw new Error(body?.error?.message || "");
+  return body.data;
 }
 
-interface SupplierOnboardingProps {
-  /** The owner's Shopinbos Wallet ID check: passing it approves the ID document. */
-  initialUser?: InitialUser | null;
-  initialSupplier?: {
-    businessName: string | null;
-    displayName: string | null;
-    country: string | null;
-    city: string | null;
-    address: string | null;
-    description: string | null;
-    categories: string[];
-    verificationDocuments?: unknown;
-    onboardingState?: { completed?: boolean; readinessScore?: number } | null;
-  } | null;
-}
+const chip = (on: boolean) =>
+  cx(
+    "min-h-[52px] rounded-[16px] border px-4 text-left text-[16px] font-bold transition",
+    on ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink hover:border-app-line-strong",
+  );
 
-const categoryOptions = [
-  "Fashion & clothing",
-  "Beauty & skincare",
-  "Food & groceries",
-  "Electronics & gadgets",
-  "Home & living",
-  "Kids & baby",
-  "Health & wellness",
-  "Other",
-];
-
-export function SupplierOnboarding({ initialUser, initialSupplier }: SupplierOnboardingProps) {
-  const t = useT("onboarding", "common");
-  const tDocs = useT("verification");
+export function SupplierOnboarding({ initialView }: { initialView: View }) {
+  const t = useT("supplierJoin");
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { extractIntentParams, getContinuationPath } = intentRouting;
-
-  const [step, setStep] = useState(1);
-  const [businessName, setBusinessName] = useState(initialSupplier?.businessName ?? "");
-  const [displayName, setDisplayName] = useState(initialSupplier?.displayName ?? initialSupplier?.businessName ?? "");
-  const [country, setCountry] = useState(initialSupplier?.country ?? initialUser?.country ?? "Nigeria");
-  const [city, setCity] = useState(initialSupplier?.city ?? initialUser?.city ?? "Lagos");
-  const [address, setAddress] = useState(initialSupplier?.address ?? "");
-  const [description, setDescription] = useState(initialSupplier?.description ?? "");
-  const [categories, setCategories] = useState<string[]>(initialSupplier?.categories?.length ? initialSupplier.categories : []);
-  const [documents, setDocuments] = useState<VerificationDoc[]>(() => normalizeVerificationDocs(initialSupplier?.verificationDocuments));
-  const [uploadsInFlight, setUploadsInFlight] = useState(0);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(initialSupplier?.onboardingState?.completed ? t("supplier.submitted") : "");
+  const [view, setView] = useState(initialView);
+  const [step, setStep] = useState<SupplierOnboardingStep>(initialView.completed ? "review" : initialView.step ?? "name");
+  const [cacPhase, setCacPhase] = useState<"ask" | "number" | "confirm">("ask");
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [note, setNote] = useState("");
 
-  function toggleCategory(cat: string) {
-    setCategories((prev) =>
-      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat],
+  const [name, setName] = useState(initialView.displayName || initialView.businessName || "");
+  const [cacNumber, setCacNumber] = useState(initialView.cac?.number ?? "");
+  const [cacFound, setCacFound] = useState<{ name: string; verified: boolean } | null>(null);
+  const [cats, setCats] = useState<string[]>(initialView.categories);
+  const [modes, setModes] = useState<BuyMode[]>(initialView.buyModes.filter((mode): mode is BuyMode => (BUY_MODES as readonly string[]).includes(mode)));
+  const [moq, setMoq] = useState(initialView.minimumOrder ?? 10);
+  const [state, setState] = useState(initialView.originState ?? "");
+  const [area, setArea] = useState(initialView.city && initialView.city !== initialView.originState ? initialView.city : "");
+  const [address, setAddress] = useState(initialView.address ?? "");
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(initialView.pickupLat !== null && initialView.pickupLng !== null ? { lat: initialView.pickupLat, lng: initialView.pickupLng } : null);
+  const [locating, setLocating] = useState(false);
+  const [idType, setIdType] = useState<SupplierIdType | null>(initialView.idType);
+  const [idPhoto, setIdPhoto] = useState<string | null>(null);
+  const [nin, setNin] = useState("");
+  const [firstName, setFirstName] = useState(initialView.owner.firstName);
+  const [lastName, setLastName] = useState(initialView.owner.lastName);
+  const [dob, setDob] = useState("");
+  const [selfie, setSelfie] = useState<SelfieValue | null>(null);
+  const [productPhoto, setProductPhoto] = useState<string | null>(null);
+  const [productName, setProductName] = useState("");
+  const [productPrice, setProductPrice] = useState("");
+  const idInput = useRef<HTMLInputElement>(null);
+  const productInput = useRef<HTMLInputElement>(null);
+
+  const { index, total } = stepPosition(step, modes);
+
+  function go(next: SupplierOnboardingStep) {
+    setError("");
+    setStep(next);
+    if (typeof window !== "undefined") window.scrollTo({ top: 0 });
+  }
+
+  async function run(work: () => Promise<void>) {
+    setBusy(true);
+    setError("");
+    try {
+      await work();
+    } catch (failure) {
+      setError((failure instanceof Error && failure.message) || t("saveFailed"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** Saves this screen's answer with the screen to resume on, then opens it. */
+  function save(patch: Record<string, unknown>, next: SupplierOnboardingStep) {
+    void run(async () => {
+      setView(await call<View>("/api/supplier/onboarding", { method: "PATCH", json: { ...patch, step: next } }));
+      setNote("");
+      go(next);
+    });
+  }
+
+  function back() {
+    if (step === "cac" && cacPhase !== "ask") return setCacPhase(cacPhase === "confirm" ? "number" : "ask");
+    const previous = previousStep(step, modes);
+    if (previous) go(previous);
+  }
+
+  function finishedPath() {
+    const intent = intentRouting.extractIntentParams(searchParams) as Record<string, string | undefined>;
+    return intentRouting.getContinuationPath({ role: "supplier", ...intent }) || "/supplier/dashboard";
+  }
+
+  async function photoFrom(file: File | undefined, max: number) {
+    if (!file) return null;
+    const small = await shrinkImage(file, max, "image/jpeg");
+    return /^image\/(jpeg|png|webp)$/.test(small.type) ? readAsDataUri(small) : null;
+  }
+
+  function useMyLocation() {
+    if (typeof navigator === "undefined" || !navigator.geolocation) return setError(t("loc.denied"));
+    setLocating(true);
+    setError("");
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocating(false);
+        setCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
+        setNote(t("loc.found"));
+      },
+      () => {
+        setLocating(false);
+        setError(t("loc.denied"));
+      },
+      { enableHighAccuracy: true, timeout: 15_000 },
     );
   }
 
-  // The file goes to the same upload route the verification page uses; the row only shows as
-  // uploaded once the server returns the stored record. Errors are thrown back to the row.
-  async function handleDocumentUpload(type: DocType, file: File, onProgress?: (percent: number) => void) {
-    setError("");
-    setSaved("");
-    setUploadsInFlight((count) => count + 1);
-    try {
-      const doc = await uploadVerificationFile(UPLOAD_ENDPOINT, type, file, onProgress);
-      setDocuments((current) => [...current.filter((d) => d.type !== type), doc]);
-    } finally {
-      setUploadsInFlight((count) => count - 1);
-    }
-  }
+  const ninDetailsProblem = () => {
+    if (nin.replace(/\D/g, "").length !== 11) return t("id.needNin");
+    if (firstName.trim().length < 2 || lastName.trim().length < 2) return t("id.needName");
+    if (!dob) return t("id.needDob");
+    return "";
+  };
 
-  async function handleDocumentRemove(docId: string) {
-    setError("");
-    setSaved("");
-    await deleteVerificationFile(UPLOAD_ENDPOINT, docId);
-    setDocuments((current) => current.filter((d) => d.id !== docId));
-  }
+  const ninFields = (
+    <div className="grid gap-3 text-left">
+      <div>
+        <p className="m-0 text-[16px] font-bold">{t("id.ninTitle")}</p>
+        <p className="m-0 mt-1 text-[14px] text-app-ink-soft">{t("id.ninHint")}</p>
+      </div>
+      <TextInput inputMode="numeric" autoComplete="off" maxLength={14} aria-label={t("id.nin")} placeholder={t("id.nin")} value={nin} onChange={(event) => setNin(event.target.value.replace(/[^\d ]/g, ""))} />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <TextInput aria-label={t("id.firstName")} placeholder={t("id.firstName")} value={firstName} onChange={(event) => setFirstName(event.target.value)} />
+        <TextInput aria-label={t("id.lastName")} placeholder={t("id.lastName")} value={lastName} onChange={(event) => setLastName(event.target.value)} />
+      </div>
+      <label className="grid gap-1 text-[14px] font-bold">
+        {t("id.dob")}
+        <TextInput type="date" value={dob} onChange={(event) => setDob(event.target.value)} />
+      </label>
+    </div>
+  );
 
-  // Only send name fields once they're long enough for the API; blanks keep what's saved.
-  function textOrUndefined(value: string) {
-    const trimmed = value.trim();
-    return trimmed.length >= 2 ? trimmed : undefined;
-  }
+  // ─── Screens ───────────────────────────────────────────────────────────────
 
-  async function save(completed: boolean, docsLater = false) {
-    setSaving(true);
-    setSaved("");
-    setError("");
-    try {
-      const missingDocs = missingRequiredDocs(SUPPLIER_DOC_TYPES, documents);
+  let title = "";
+  let hint = "";
+  let body: ReactNode = null;
+  let action: { label: string; onClick: () => void; disabled?: boolean } | null = { label: t("continue"), onClick: () => undefined };
+  let skip: (() => void) | null = null;
 
-      if (completed && !textOrUndefined(businessName)) {
-        setError(t("supplier.needName"));
-        setStep(1);
-        return;
-      }
-      if (completed && uploadsInFlight > 0) {
-        setError(t("supplier.waitUploads"));
-        return;
-      }
-      if (completed && missingDocs.length > 0) {
-        setError(t("supplier.uploadMissing", { docs: missingDocs.map((doc) => tDocs.dynamic(`doc.${doc.type}.label`, doc.label)).join(", ") }));
-        return;
-      }
-
-      // Documents are saved as they upload; the server re-checks them on submit.
-      const requiredCount = SUPPLIER_DOC_TYPES.filter((config) => config.required).length;
-      const readinessScore = Math.round(((requiredCount - missingDocs.length) / Math.max(requiredCount, 1)) * 100);
-
-      const response = await fetch("/api/supplier/onboarding", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          businessName: textOrUndefined(businessName),
-          displayName: textOrUndefined(displayName) ?? textOrUndefined(businessName),
-          country: textOrUndefined(country),
-          city: textOrUndefined(city),
-          address,
-          description,
-          categories,
-          readinessScore,
-          completed,
-          ...(docsLater ? { docsLater: true } : {}),
-        }),
-      }).catch(() => null);
-
-      if (!response?.ok) {
-        const body = await response?.json().catch(() => null);
-        setError(body?.error?.message ?? t("saveFailed"));
-        return;
-      }
-
-      if (docsLater) {
-        router.push("/supplier/dashboard?docs=later");
-        return;
-      }
-      if (completed) {
-        const intentParams = extractIntentParams(searchParams);
-        const destination = getContinuationPath({
-          role: "supplier",
-          ...intentParams,
+  if (step === "name") {
+    title = t("name.title");
+    hint = t("name.hint");
+    body = <TextInput autoFocus value={name} onChange={(event) => setName(event.target.value)} placeholder={t("name.placeholder")} className="h-[60px] text-[18px]" onKeyDown={(event) => event.key === "Enter" && action?.onClick()} />;
+    action = { label: t("continue"), onClick: () => (name.trim().length < 2 ? setError(t("name.need")) : save({ businessName: name.trim() }, "cac")) };
+  } else if (step === "cac" && cacPhase === "ask") {
+    title = t("cac.title");
+    const answer = (value: CacAnswer) => {
+      if (value === "yes") {
+        void run(async () => {
+          setView(await call<View>("/api/supplier/onboarding", { method: "PATCH", json: { cacAnswer: "yes", step: "cac" } }));
+          setCacPhase("number");
         });
-        router.push(destination || "/supplier/dashboard");
-      } else {
-        setSaved(t("supplier.progressSaved"));
-      }
-    } finally {
-      setSaving(false);
-    }
+      } else save({ cacAnswer: value }, "categories");
+    };
+    body = (
+      <div className="grid gap-3">
+        {(["yes", "no", "registering"] as const).map((value) => (
+          <button key={value} type="button" className={chip(view.cacAnswer === value)} onClick={() => answer(value)} disabled={busy}>
+            {t(`cac.${value}`)}
+          </button>
+        ))}
+        <p className="m-0 text-[14px] text-app-ink-soft">{t("cac.noteNo")}</p>
+      </div>
+    );
+    action = null;
+  } else if (step === "cac" && cacPhase === "number") {
+    title = t("cac.numberTitle");
+    hint = view.cacCheckEnabled ? t("cac.numberHint") : t("cac.off");
+    body = view.cacCheckEnabled ? (
+      <div className="grid gap-3">
+        <TextInput autoFocus value={cacNumber} onChange={(event) => setCacNumber(event.target.value.toUpperCase())} placeholder={t("cac.numberPlaceholder")} className="h-[60px] text-[18px] uppercase" />
+        {error && <PillButton tone="white" size="md" onClick={() => go("categories")}>{t("cac.skipCheck")}</PillButton>}
+      </div>
+    ) : null;
+    action = view.cacCheckEnabled
+      ? {
+          label: t("cac.check"),
+          onClick: () => {
+            if (cacNumber.trim().length < 3) return setError(t("cac.needNumber"));
+            void run(async () => {
+              const result = await call<{ outcome: string; message: string; registeredName?: string }>("/api/supplier/verification/cac", {
+                method: "POST",
+                json: { businessName: view.businessName || name, number: cacNumber.trim() },
+              });
+              if (!result.registeredName) throw new Error(result.message);
+              setCacFound({ name: result.registeredName, verified: result.outcome === "verified" });
+              setCacPhase("confirm");
+            });
+          },
+        }
+      : { label: t("continue"), onClick: () => go("categories") };
+    skip = () => go("categories");
+  } else if (step === "cac") {
+    title = t("cac.confirmTitle");
+    body = (
+      <div className="grid gap-4">
+        <div className="rounded-[18px] border border-app-line bg-white p-5 text-[20px] font-extrabold">{cacFound?.name}</div>
+        {cacFound?.verified && <Notice tone="success">{t("cac.verified")}</Notice>}
+        <PillButton tone="white" size="md" onClick={() => setCacPhase("number")}>{t("cac.confirmNo")}</PillButton>
+      </div>
+    );
+    action = { label: t("cac.confirmYes"), onClick: () => save({}, "categories") };
+  } else if (step === "categories") {
+    title = t("cats.title");
+    hint = t("cats.hint");
+    body = (
+      <div className="flex flex-wrap gap-2">
+        {view.categoryOptions.map((option) => {
+          const on = cats.includes(option);
+          return (
+            <button key={option} type="button" aria-pressed={on} className={cx(chip(on), "rounded-full")} onClick={() => setCats(on ? cats.filter((value) => value !== option) : [...cats, option])}>
+              {option}
+            </button>
+          );
+        })}
+      </div>
+    );
+    action = { label: t("continue"), onClick: () => (cats.length ? save({ categories: cats }, "source") : setError(t("cats.need"))) };
+  } else if (step === "source") {
+    title = t("source.title");
+    body = (
+      <div className="grid gap-3">
+        {SUPPLY_SOURCES.map((value: SupplySource) => (
+          <button key={value} type="button" className={chip(view.source === value)} disabled={busy} onClick={() => save({ source: value }, "buyModes")}>
+            {t(`source.${value}`)}
+          </button>
+        ))}
+      </div>
+    );
+    action = null;
+  } else if (step === "buyModes") {
+    title = t("buy.title");
+    hint = t("buy.hint");
+    body = (
+      <div className="grid gap-3">
+        {BUY_MODES.map((mode) => {
+          const on = modes.includes(mode);
+          return (
+            <button key={mode} type="button" aria-pressed={on} className={chip(on)} onClick={() => setModes(on ? modes.filter((value) => value !== mode) : BUY_MODES.filter((value) => value === mode || modes.includes(value)))}>
+              <span className="flex items-center justify-between gap-3">
+                <span>
+                  {t(`buy.${mode}`)}
+                  <span className={cx("block text-[14px] font-normal", on ? "text-white/80" : "text-app-ink-soft")}>{t(`buy.${mode}Sub`)}</span>
+                </span>
+                {on && <Icon name="check" size={20} />}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    );
+    action = { label: t("continue"), onClick: () => (modes.length ? save({ buyModes: modes }, nextStep("buyModes", modes)) : setError(t("buy.need"))) };
+  } else if (step === "moq") {
+    title = t("moq.title");
+    hint = t("moq.hint");
+    const stepBy = moq >= 100 ? 10 : 1;
+    body = (
+      <div className="flex items-center justify-center gap-4">
+        <button type="button" aria-label={t("moq.less")} className="grid h-14 w-14 place-items-center rounded-full border border-app-line bg-white" onClick={() => setMoq(Math.max(1, moq - stepBy))}>
+          <Icon name="minus" size={22} />
+        </button>
+        <div className="min-w-[140px] text-center">
+          <input inputMode="numeric" aria-label={t("moq.title")} value={moq} onChange={(event) => setMoq(Math.max(1, Math.min(100_000, Number(event.target.value.replace(/\D/g, "")) || 1)))} className="w-full bg-transparent text-center text-[44px] font-extrabold outline-none" />
+          <div className="text-[15px] text-app-ink-soft">{t("moq.items", { count: moq })}</div>
+        </div>
+        <button type="button" aria-label={t("moq.more")} className="grid h-14 w-14 place-items-center rounded-full border border-app-line bg-white" onClick={() => setMoq(Math.min(100_000, moq + stepBy))}>
+          <Icon name="plus" size={22} />
+        </button>
+      </div>
+    );
+    action = { label: t("continue"), onClick: () => save({ minimumOrder: moq }, "location") };
+  } else if (step === "location") {
+    title = t("loc.title");
+    body = (
+      <div className="grid gap-3">
+        <PillButton tone={coords ? "white" : "ink"} size="md" busy={locating} onClick={useMyLocation}>
+          <Icon name={coords ? "check" : "pin"} size={16} /> {coords ? t("loc.found") : t("loc.useMine")}
+        </PillButton>
+        <label className="grid gap-1 text-[14px] font-bold">
+          {t("loc.state")}
+          <select value={state} onChange={(event) => setState(event.target.value)} className="h-[54px] w-full rounded-[16px] border border-app-line bg-white px-4 text-[16px] font-normal">
+            <option value="">{t("loc.statePick")}</option>
+            {NG_STATES.map((value) => (
+              <option key={value} value={value}>{value}</option>
+            ))}
+          </select>
+        </label>
+        <label className="grid gap-1 text-[14px] font-bold">
+          {t("loc.area")}
+          <TextInput value={area} onChange={(event) => setArea(event.target.value)} placeholder={t("loc.areaPlaceholder")} />
+        </label>
+        <label className="grid gap-1 text-[14px] font-bold">
+          {t("loc.address")}
+          <TextInput value={address} onChange={(event) => setAddress(event.target.value)} placeholder={t("loc.addressPlaceholder")} />
+        </label>
+      </div>
+    );
+    action = {
+      label: t("continue"),
+      onClick: () => {
+        if (!state) return setError(t("loc.needState"));
+        if (address.trim().length < 3) return setError(t("loc.needAddress"));
+        save({ pickup: { state, area: area.trim() || undefined, address: address.trim(), lat: coords?.lat ?? null, lng: coords?.lng ?? null } }, "id");
+      },
+    };
+  } else if (step === "id") {
+    title = t("id.title");
+    hint = t("id.hint");
+    const saved = view.idDocument && view.idDocument.status !== "rejected" && view.idType === idType;
+    body = (
+      <div className="grid gap-4">
+        <div className="grid gap-2 sm:grid-cols-2">
+          {SUPPLIER_ID_TYPES.map((value) => (
+            <button key={value} type="button" aria-pressed={idType === value} className={chip(idType === value)} onClick={() => setIdType(value)}>
+              {t(`id.type.${value}`)}
+            </button>
+          ))}
+        </div>
+        {idType && (
+          <div className="grid justify-items-center gap-3">
+            {idPhoto ? <img src={idPhoto} alt={t("id.preview")} className="max-h-56 rounded-[16px] border border-app-line object-contain" /> : saved ? <Notice tone="success">{t("id.saved")}</Notice> : null}
+            <input ref={idInput} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className="sr-only" onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; void photoFrom(file, 1600).then((uri) => (uri ? setIdPhoto(uri) : file && setError(t("selfie.badPhoto")))); }} />
+            <PillButton tone={idPhoto || saved ? "white" : "ink"} size="md" onClick={() => idInput.current?.click()}>
+              <Icon name="image" size={16} /> {idPhoto || saved ? t("id.retake") : t("id.take")}
+            </PillButton>
+          </div>
+        )}
+        {idType === "nin_slip" && ninFields}
+      </div>
+    );
+    action = {
+      label: t("continue"),
+      onClick: () => {
+        if (!idType) return setError(t("id.needType"));
+        if (!idPhoto && !saved) return setError(t("id.needPhoto"));
+        if (idType === "nin_slip") {
+          const problem = ninDetailsProblem();
+          if (problem) return setError(problem);
+        }
+        void run(async () => {
+          if (idPhoto) setView(await call<View>("/api/supplier/kyc/id-document", { method: "POST", json: { idType, photo: idPhoto } }));
+          setIdPhoto(null);
+          setView(await call<View>("/api/supplier/onboarding", { method: "PATCH", json: { step: "selfie" } }));
+          go("selfie");
+        });
+      },
+    };
+    skip = () => save({ docsLater: true }, "product");
+  } else if (step === "selfie") {
+    title = t("selfie.title");
+    hint = t("selfie.hint");
+    const needsNin = view.idType === "nin_slip" && ninDetailsProblem() !== "";
+    body = (
+      <div className="grid gap-5">
+        <SelfieCapture value={selfie} onChange={setSelfie} firstName={firstName} lastName={lastName} />
+        {view.selfie?.status === "rejected" && view.selfie.reason && <Notice tone="error">{view.selfie.reason}</Notice>}
+        {needsNin && ninFields}
+      </div>
+    );
+    action = {
+      label: t("continue"),
+      onClick: () => {
+        if (!selfie) return setError(t("selfie.need"));
+        if (view.idType === "nin_slip") {
+          const problem = ninDetailsProblem();
+          if (problem) return setError(problem);
+        }
+        void run(async () => {
+          const next = await call<View>("/api/supplier/kyc/selfie", {
+            method: "POST",
+            json: { selfie: selfie.dataUri, liveness: selfie.liveness, ...(view.idType === "nin_slip" ? { nin: nin.replace(/\D/g, ""), firstName: firstName.trim(), lastName: lastName.trim(), dateOfBirth: dob } : {}) },
+          });
+          setView(next);
+          if (next.selfie?.status === "rejected") {
+            setSelfie(null);
+            throw new Error(next.selfie.reason || t("selfie.badPhoto"));
+          }
+          setView(await call<View>("/api/supplier/onboarding", { method: "PATCH", json: { step: "product" } }));
+          setNote(next.selfie?.status === "approved" ? t("selfie.approved") : t("selfie.pending"));
+          go("product");
+        });
+      },
+    };
+    skip = () => save({ docsLater: true }, "product");
+  } else if (step === "product") {
+    title = t("product.title");
+    hint = t("product.hint");
+    body = (
+      <div className="grid gap-4">
+        <div className="grid justify-items-center gap-3">
+          {productPhoto && <img src={productPhoto} alt={t("product.preview")} className="max-h-60 rounded-[16px] border border-app-line object-contain" />}
+          <input ref={productInput} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className="sr-only" onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; void photoFrom(file, 1600).then((uri) => (uri ? setProductPhoto(uri) : file && setError(t("selfie.badPhoto")))); }} />
+          <PillButton tone={productPhoto ? "white" : "ink"} size="md" onClick={() => productInput.current?.click()}>
+            <Icon name="image" size={16} /> {productPhoto ? t("product.retake") : t("product.take")}
+          </PillButton>
+        </div>
+        {productPhoto && (
+          <div className="grid gap-3">
+            <TextInput aria-label={t("product.name")} placeholder={t("product.namePlaceholder")} value={productName} onChange={(event) => setProductName(event.target.value)} />
+            <TextInput inputMode="numeric" aria-label={t("product.price")} placeholder={t("product.price")} value={productPrice} onChange={(event) => setProductPrice(event.target.value.replace(/[^\d]/g, ""))} />
+          </div>
+        )}
+        <button
+          type="button"
+          className="rounded-[16px] border border-dashed border-app-line bg-white p-4 text-left text-[15px] font-bold"
+          disabled={busy || view.catalogueRequested}
+          onClick={() =>
+            void run(async () => {
+              await call("/api/supplier/onboarding/catalogue", { method: "POST" });
+              setView(await call<View>("/api/supplier/onboarding", { method: "PATCH", json: { step: "review" } }));
+              setNote(t("product.whatsappDone"));
+              go("review");
+            })
+          }
+        >
+          <Icon name="whatsapp" size={18} /> {view.catalogueRequested ? t("product.whatsappDone") : t("product.whatsapp")}
+        </button>
+      </div>
+    );
+    action = {
+      label: t("product.add"),
+      onClick: () => {
+        if (!productPhoto) return setError(t("product.needPhoto"));
+        if (productName.trim().length < 2) return setError(t("product.needName"));
+        if (!Number(productPrice)) return setError(t("product.needPrice"));
+        void run(async () => {
+          const product = await call<{ name: string }>("/api/supplier/onboarding/first-product", { method: "POST", json: { photo: productPhoto, name: productName.trim(), price: Number(productPrice) } });
+          setView(await call<View>("/api/supplier/onboarding", { method: "PATCH", json: { step: "review" } }));
+          setNote(t("product.added", { name: product.name }));
+          setProductPhoto(null);
+          go("review");
+        });
+      },
+    };
+    skip = () => save({}, "review");
+  } else {
+    const idSent = Boolean(view.idDocument && view.selfie && view.idDocument.status !== "rejected" && view.selfie.status !== "rejected");
+    const verified = view.verificationStatus === "verified";
+    const badges = supplierTierBadges(view.tiers);
+    title = view.completed ? (verified ? t("review.verifiedTitle") : t("review.title")) : idSent ? t("review.readyTitle") : t("review.missingTitle");
+    hint = view.completed ? (verified ? t("review.verifiedSub") : t("review.sub")) : idSent ? t("review.readySub") : t("review.missingSub");
+    body = (
+      <div className="grid gap-4">
+        {badges.length > 0 && (
+          <div>
+            <p className="m-0 mb-2 text-[14px] font-bold">{t("review.badges")}</p>
+            <div className="flex flex-wrap gap-2">
+              {badges.map((badge) => (
+                <span key={badge} className="inline-flex items-center gap-1.5 rounded-full bg-app-ink px-3 py-1.5 text-[14px] font-bold text-white">
+                  <Icon name="checkCircle" size={15} /> {t(`badge.${badge}` as "badge.verified_individual")}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+        {!view.completed && !idSent && <PillButton tone="white" size="md" onClick={() => go("id")}>{t("review.addId")}</PillButton>}
+        <p className="m-0 text-[14px] text-app-ink-soft">{t("review.payoutLater")}</p>
+      </div>
+    );
+    action = view.completed
+      ? { label: t("review.open"), onClick: () => router.push(finishedPath()) }
+      : idSent
+        ? { label: t("review.send"), onClick: () => void run(async () => setView(await call<View>("/api/supplier/onboarding", { method: "PATCH", json: { completed: true, step: "review" } }))) }
+        : {
+            label: t("review.later"),
+            onClick: () =>
+              void run(async () => {
+                await call<View>("/api/supplier/onboarding", { method: "PATCH", json: { docsLater: true, step: "review" } });
+                router.push("/supplier/dashboard?docs=later");
+              }),
+          };
   }
 
-  const needsReupload = SUPPLIER_DOC_TYPES.filter((config) => docDisplayState(findDoc(documents, config.type)) === "needs_file").length;
-  const textareaClass = "w-full rounded-[16px] border border-app-line bg-white px-4 py-3 text-[16px] text-app-ink outline-none transition placeholder:text-app-ink-faint focus:border-app-ink";
-
+  const canGoBack = step !== "name" && !(step === "review" && view.completed);
   return (
-    <div className="min-h-dvh w-full bg-app-canvas font-app text-app-ink">
-      <header className="sticky top-0 z-20 flex flex-wrap items-center gap-4 bg-app-canvas/90 px-4 py-3 backdrop-blur sm:px-6 xl:px-8">
-        <Wordmark />
-        <div className="order-3 w-full sm:order-none sm:w-auto sm:flex-1"><ProgressBars total={2} current={step - 1} /></div>
-        <span className="ml-auto text-[13px] font-bold text-app-ink-soft sm:ml-0">{t("stepOf", { step, total: 2 })}</span>
+    <div className="flex min-h-dvh w-full flex-col bg-app-canvas font-app text-app-ink">
+      <header className="sticky top-0 z-20 grid gap-3 bg-app-canvas/90 px-4 py-3 backdrop-blur sm:px-6">
+        <div className="flex items-center gap-3">
+          {canGoBack ? <BackButton onClick={back} label={t("back")} /> : <Wordmark />}
+          <span className="flex-1 text-center text-[14px] font-bold text-app-ink-soft">{t("progress", { step: index + 1, total })}</span>
+          <a href={whatsappChatUrl(t("helpMessage"))} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[14px] font-bold text-app-ink underline underline-offset-4">
+            <Icon name="whatsapp" size={16} /> {t("help")}
+          </a>
+        </div>
+        <ProgressBars total={total} current={index} />
       </header>
 
-      <main className="w-full px-4 pb-10 pt-4 sm:px-6 xl:px-8">
-        <div className="grid gap-3">
+      <main className="mx-auto flex w-full max-w-[560px] flex-1 flex-col px-4 pb-6 pt-6 sm:px-6">
+        <h1 className="m-0 text-[30px] font-extrabold leading-[1.12] tracking-[-0.6px] sm:text-[34px]">{title}</h1>
+        {hint && <p className="m-0 mt-2 text-[16px] leading-[1.5] text-app-ink-soft">{hint}</p>}
+        <div className="mt-6 grid gap-3">
+          {note && <Notice tone="success">{note}</Notice>}
+          {body}
           {error && <Notice tone="error">{error}</Notice>}
-          {saved && <Notice tone="success">{saved}</Notice>}
         </div>
-
-        {step === 1 && (
-          <div className="mt-4 grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
-            <section className="min-w-0">
-              <h1 className="m-0 text-[30px] font-extrabold leading-[1.1] tracking-[-0.8px] sm:text-[34px]">{t("supplier.aboutTitle")}</h1>
-              <p className="mb-0 mt-2 max-w-[640px] text-[15px] leading-[1.5] text-app-ink-soft">
-                {t("supplier.aboutSub")}
-              </p>
-
-              <div className="mt-6 grid gap-5 rounded-[22px] border border-app-line bg-white p-5 sm:p-6">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <FieldLabel htmlFor="onb-business">{t("supplier.businessName")}</FieldLabel>
-                    <TextInput id="onb-business" value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder={t("supplier.businessNamePlaceholder")} />
-                  </div>
-                  <div>
-                    <FieldLabel htmlFor="onb-display">{t("supplier.displayName")}</FieldLabel>
-                    <TextInput id="onb-display" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder={t("supplier.displayNamePlaceholder")} />
-                  </div>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <FieldLabel htmlFor="onb-country">{t("country")}</FieldLabel>
-                    <TextInput id="onb-country" value={country} onChange={(e) => setCountry(e.target.value)} />
-                  </div>
-                  <div>
-                    <FieldLabel htmlFor="onb-city">{t("city")}</FieldLabel>
-                    <TextInput id="onb-city" value={city} onChange={(e) => setCity(e.target.value)} />
-                  </div>
-                </div>
-                <div>
-                  <FieldLabel htmlFor="onb-address">{t("supplier.address")}</FieldLabel>
-                  <TextInput id="onb-address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder={t("supplier.addressPlaceholder")} />
-                </div>
-                <div>
-                  <FieldLabel htmlFor="onb-description">{t("supplier.makeSell")}</FieldLabel>
-                  <textarea id="onb-description" className={textareaClass} rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("supplier.makeSellPlaceholder")} />
-                </div>
-                <fieldset className="m-0 border-0 p-0">
-                  <legend className="mb-2 text-[14px] font-bold">{t("supplier.categories")}</legend>
-                  <div className="flex flex-wrap gap-2">
-                    {categoryOptions.map((cat) => {
-                      const on = categories.includes(cat);
-                      return (
-                        <button
-                          key={cat}
-                          type="button"
-                          aria-pressed={on}
-                          onClick={() => toggleCategory(cat)}
-                          className={cx(
-                            "inline-flex min-h-[40px] items-center rounded-full border px-4 text-[14px] font-bold transition",
-                            on ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink hover:border-app-line-strong",
-                          )}
-                        >
-                          {t.dynamic(`cat.${cat}`, cat)}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </fieldset>
-              </div>
-
-              <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-                <PillButton tone="white" size="md" onClick={() => void save(false)} busy={saving}>{t("saveProgress")}</PillButton>
-                <PillButton tone="ink" size="md" onClick={() => setStep(2)}>
-                  {t("supplier.toDocs")} <Icon name="arrow" size={15} />
-                </PillButton>
-              </div>
-            </section>
-
-            <aside className="flex items-start gap-3 rounded-[22px] bg-app-mint p-5 xl:mt-[92px] xl:self-start">
-              <Mascot name="peggy" className="h-12 w-12 shrink-0" alt="Peggy" />
-              <p className="m-0 text-[14.5px] leading-[1.55]">
-                {t("supplier.peggyNote")}
-              </p>
-            </aside>
-          </div>
-        )}
-
-        {step === 2 && (
-          <div className="mt-4 grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
-            <section className="min-w-0">
-              <div className="text-[14px] text-app-ink-soft">{[displayName || businessName, city, country].filter(Boolean).join(" · ")}</div>
-              <h1 className="mb-0 mt-1 text-[30px] font-extrabold leading-[1.1] tracking-[-0.8px] sm:text-[34px]">{t("supplier.verifyTitle")}</h1>
-              <p className="mb-0 mt-2 max-w-[640px] text-[15px] leading-[1.5] text-app-ink-soft">
-                {t("supplier.verifySub")}
-              </p>
-
-              {needsReupload > 0 && (
-                <div className="mt-6">
-                  <Notice tone="error">
-                    {t("supplier.reupload", { count: needsReupload })}
-                  </Notice>
-                </div>
-              )}
-
-
-              <div className="mt-4">
-                <CacInstantCheck
-                  apiPath="/api/supplier/verification/cac"
-                  defaultName={businessName}
-                  cacDoc={documents.find((d) => d.type === "cac")}
-                  onVerified={(doc) => setDocuments((current) => [...current.filter((d) => d.type !== "cac"), doc])}
-                />
-              </div>
-
-              <div className="mt-4">
-                <VerificationDocUploader
-                  role="supplier"
-                  docs={documents}
-                  docConfigs={SUPPLIER_DOC_TYPES}
-                  onUpload={handleDocumentUpload}
-                  onDelete={handleDocumentRemove}
-                />
-              </div>
-              <p className="mb-0 mt-1 text-[13px] text-app-ink-soft">{t("supplier.filesSave")}</p>
-
-              <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-                <PillButton tone="ghost" size="md" onClick={() => setStep(1)}>
-                  <Icon name="arrowLeft" size={15} /> {t("back")}
-                </PillButton>
-                <div className="flex flex-wrap gap-2">
-                  <PillButton tone="white" size="md" onClick={() => void save(false)} disabled={saving}>{t("saveProgress")}</PillButton>
-                  <PillButton tone="accent" size="md" onClick={() => void save(true)} busy={saving} disabled={uploadsInFlight > 0}>
-                    {t("supplier.submit")} <Icon name="arrow" size={15} />
-                  </PillButton>
-                </div>
-              </div>
-
-              {/* Not everyone has their papers to hand. Let them in to set up, and remind them to finish. */}
-              <div className="mt-6 flex flex-wrap items-center gap-4 rounded-[22px] border border-dashed border-app-line-strong bg-white p-5">
-                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-app-peach text-app-ink"><Icon name="clock" size={18} /></span>
-                <div className="min-w-0 flex-1 basis-[260px]">
-                  <h2 className="m-0 text-[16px] font-extrabold">{t("supplier.notReady")}</h2>
-                  <p className="mb-0 mt-1 text-[14px] leading-[1.5] text-app-ink-soft">
-                    {t("supplier.notReadySub")}
-                  </p>
-                </div>
-                <PillButton tone="ink" size="md" onClick={() => void save(false, true)} disabled={saving || uploadsInFlight > 0}>
-                  {t("supplier.withoutDocs")} <Icon name="arrow" size={15} />
-                </PillButton>
-              </div>
-            </section>
-
-            <aside className="grid content-start gap-4 xl:mt-[118px]">
-              <div className="rounded-[22px] border border-app-line bg-white p-5">
-                <h2 className="m-0 text-[17px] font-extrabold">{t("whatNext")}</h2>
-                <ol className="m-0 mt-3 grid list-none gap-3 p-0 text-[14px] leading-[1.5]">
-                  {[
-                    t("supplier.next1"),
-                    t("supplier.next2"),
-                    t("supplier.next3"),
-                  ].map((line, index) => (
-                    <li key={line} className="flex gap-3">
-                      <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-app-ink text-[12px] font-extrabold text-white">{index + 1}</span>
-                      <span>{line}</span>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-              <div className="flex items-start gap-3 rounded-[22px] bg-app-mint p-5">
-                <Mascot name="peggy" className="h-12 w-12 shrink-0" alt="Peggy" />
-                <p className="m-0 text-[14.5px] leading-[1.55]">
-                  {t("supplier.peggyNote")}
-                </p>
-              </div>
-            </aside>
-          </div>
-        )}
       </main>
+
+      {(action || skip) && (
+        <footer className="sticky bottom-0 z-20 mx-auto grid w-full max-w-[560px] gap-2 bg-app-canvas/95 px-4 pb-5 pt-3 backdrop-blur sm:px-6">
+          {action && (
+            <PillButton tone="ink" busy={busy} disabled={action.disabled} onClick={action.onClick} className="w-full">
+              {action.label}
+            </PillButton>
+          )}
+          {skip && (
+            <button type="button" className="min-h-[44px] text-[15px] font-bold text-app-ink-soft underline underline-offset-4" disabled={busy} onClick={skip}>
+              {t("skip")}
+            </button>
+          )}
+        </footer>
+      )}
     </div>
   );
 }
