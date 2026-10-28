@@ -1,57 +1,37 @@
-// Delivery partner verification on the phone (tiered: shared/partner-tiers.ts): which step is where, the tier a
-// partner will reach, the selfie and date checks. Pure, unit-tested in tests/mobile-partner-tiers.test.mjs.
-import { ITEM_STEP, ONBOARDING_STEPS, type ItemState, type OnboardingStep } from "../../../../shared/partner-tiers.ts";
+// Delivery partner sign-up on the phone (one question per screen: shared/partner-tiers.ts PARTNER_FLOW): where to
+// open, the screen order, and the selfie, NIN and date checks. Pure, unit-tested in tests/mobile-partner-tiers.test.mjs.
+import { PARTNER_FLOW, isFlowScreen, type FlowScreen, type ItemState } from "../../../../shared/partner-tiers.ts";
 import type { Tone } from "./partner-pure.ts";
 
-export type StepState = "done" | "pending" | "todo" | "rejected" | "optional";
+/** Step names older links used (the earlier 4-step flow) → the screen that asks for it now. */
+const OLD_STEPS: Record<string, FlowScreen> = { identity: "id", bank: "review", delivery: "areas", coverage: "areas", vehicles: "vehicles", guarantor: "review" };
 
-export const KYC_STEPS = ONBOARDING_STEPS;
-
-type Checklists = { tier1: Record<string, ItemState>; tier2: Record<string, ItemState> };
-
-/** The items filled in on one step, with their state. */
-export function stepItems(state: Checklists, step: OnboardingStep): Array<{ key: string; state: ItemState }> {
-  const all = { ...state.tier1, ...state.tier2 };
-  return Object.entries(all)
-    .filter(([key]) => ITEM_STEP[key as keyof typeof ITEM_STEP] === step)
-    .map(([key, value]) => ({ key, state: value }));
+/** The screen to open: the one asked for (?step=…), else the first unanswered one the server worked out. */
+export function openScreen(first: FlowScreen, asked?: string | null): FlowScreen {
+  if (isFlowScreen(asked)) return asked;
+  return (asked && OLD_STEPS[asked]) || first;
 }
 
-/** One step's state: anything rejected, then anything missing, then anything still being checked. CAC is optional. */
-export function stepState(state: Checklists, step: OnboardingStep): StepState {
-  if (step === "review") return "todo";
-  const items = stepItems(state, step);
-  if (step === "cac" && items.every((item) => item.state === "missing")) return "optional";
-  if (items.some((item) => item.state === "rejected")) return "rejected";
-  if (items.some((item) => item.state === "missing")) return "todo";
-  if (items.some((item) => item.state === "pending")) return "pending";
-  return "done";
+export const nextScreen = (screen: FlowScreen): FlowScreen => PARTNER_FLOW[Math.min(PARTNER_FLOW.indexOf(screen) + 1, PARTNER_FLOW.length - 1)];
+export const previousScreen = (screen: FlowScreen): FlowScreen | null => (PARTNER_FLOW.indexOf(screen) > 0 ? PARTNER_FLOW[PARTNER_FLOW.indexOf(screen) - 1] : null);
+/** "3 of 11". */
+export const screenNumber = (screen: FlowScreen) => ({ step: PARTNER_FLOW.indexOf(screen) + 1, total: PARTNER_FLOW.length });
+
+/** "Lagos: Ikeja" (an LGA in the state) or "Lagos" (all of it): the marketplace's area tokens. */
+export const areaToken = (state: string, lga?: string | null) => (lga ? `${state}: ${lga}` : state);
+
+/** Fee per delivery typed as "₦2,500" or "2500": whole naira from 100, else null. */
+export function feeAmount(text: string): number | null {
+  const amount = Number(String(text).replace(/[₦,\s]/g, ""));
+  return Number.isFinite(amount) && amount >= 100 && amount <= 1_000_000 ? Math.round(amount) : null;
 }
 
-/** Where to open the flow: the first Tier 1 step that still needs something, else Review. */
-export function firstOpenStep(state: Checklists): OnboardingStep {
-  for (const step of KYC_STEPS) {
-    if (step === "cac" || step === "review") continue;
-    if (stepItems({ tier1: state.tier1, tier2: {} }, step).some((item) => item.state === "missing" || item.state === "rejected")) return step;
-  }
-  return "review";
-}
-
-/** The tier sending now would reach once everything is checked: Tier 2 with all of CAC in, Tier 1 without, null when Tier 1 isn't ready. */
-export function tierOnSubmit(state: Checklists): "tier1" | "tier2" | null {
-  const ok = (value: ItemState) => value === "approved" || value === "pending";
-  // Terms are accepted with the send itself, so they don't count here.
-  if (!Object.entries(state.tier1).every(([key, value]) => key === "terms" || ok(value))) return null;
-  return Object.values(state.tier2).every(ok) ? "tier2" : "tier1";
-}
-
-export const STEP_TONE: Record<StepState, Tone> = { done: "success", pending: "info", todo: "accent", rejected: "danger", optional: "muted" };
 export const ITEM_TONE: Record<ItemState, Tone> = { approved: "success", pending: "info", missing: "muted", rejected: "danger" };
 
-/** Largest selfie we send (base64 characters, about 1.1 MB of JPEG): bigger photos are retaken at lower quality. */
+/** Largest photo we send (base64 characters, about 1.1 MB of JPEG): bigger photos are retaken at lower quality. */
 export const SELFIE_MAX_BASE64 = 1_500_000;
 
-/** The selfie as the data URI the NIN check takes, or null when it's missing or too big to send. */
+/** A photo (selfie, ID, base) as the data URI the kyc routes take, or null when it's missing or too big to send. */
 export function selfieDataUri(base64: string | null | undefined, mimeType?: string | null): string | null {
   if (!base64 || base64.length > SELFIE_MAX_BASE64) return null;
   const type = mimeType === "image/png" ? "image/png" : "image/jpeg";
@@ -74,10 +54,10 @@ export function birthDate(text: string, now = new Date()): string | null {
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
-/** Only digits, at most `length` of them (NIN and BVN are 11, account numbers 10). */
+/** Only digits, at most `length` of them (NIN 11, account numbers 10). */
 export const digitsUpTo = (text: string, length: number) => text.replace(/\D/g, "").slice(0, length);
 
-/** The Tier 1 items still missing or rejected, in checklist order (Review lists them). */
+/** The Tier 1 items still missing or rejected, in checklist order (the review screen lists them). */
 export function itemsWhereOpen(tier1: Record<string, ItemState>): Array<{ key: string; state: ItemState }> {
   return Object.entries(tier1)
     .filter(([, value]) => value === "missing" || value === "rejected")

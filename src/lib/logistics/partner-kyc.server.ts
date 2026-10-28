@@ -10,19 +10,22 @@ import { youverifyReady } from "@/lib/youverify";
 import { notifyAdminsToReview } from "@/lib/notifications/events.server";
 import { DOC_TYPE_LABELS, LOGISTICS_TIER_DOC_TYPES, normalizeVerificationDocs, submitUploadedDocs, type FaceMatchCheck, type LivenessCheck, type VerificationDoc } from "@shared/verification-docs";
 import { removePrivateFile, uploadPrivateFile } from "@/lib/supabase/storage.server";
+import { e164 } from "@/lib/sms/pure";
 import {
+  ITEM_LABELS,
   PARTNER_TERMS_VERSION,
+  flowProgress,
   itemsWhere,
   partnerVerificationState,
+  readFlowAnswers,
   readIdentityChecks,
   readyToSubmit,
   tier1Checklist,
   tier2Checklist,
+  type FlowAnswers,
   type IdentityChecks,
 } from "@shared/partner-tiers";
 import { checkGraduation, partnerTierSnapshot, refreshPartnerTier } from "./partner-tiers.server";
-import {
-} from "./partner-kyc";
 
 // The partner's own verification steps (/logistics/verification, /api/logistics/kyc/*). The tier rules are
 // shared/partner-tiers.ts; every change here is followed by refreshPartnerTier so the tier, badges and status follow.
@@ -55,6 +58,49 @@ export async function updateIdentityChecks(partnerId: string, update: (current: 
   return next;
 }
 
+/** The account's own phone (+234…), when Supabase confirmed it with the sign-up code (auth.users). Null otherwise. */
+export async function confirmedAuthPhone(supabaseId: string): Promise<string | null> {
+  const rows = await db.$queryRaw<Array<{ phone: string | null; confirmed: Date | null }>>`
+    SELECT u."phone" AS "phone", u."phone_confirmed_at" AS "confirmed" FROM auth.users u WHERE u."id"::text = ${supabaseId} LIMIT 1`.catch(() => null);
+  const row = rows?.[0];
+  return row?.phone && row.confirmed ? e164(row.phone.startsWith("+") ? row.phone : `+${row.phone}`) : null;
+}
+
+/**
+ * The phone the partner signed up with was already confirmed by its code, so it counts for Tier 1 without another
+ * one. Only fills a phone that isn't confirmed yet; one they confirmed here themselves stays.
+ */
+export async function syncSignUpPhone(partner: KycPartner, supabaseId: string) {
+  const current = readIdentityChecks(partner.identityChecks);
+  if (current.phone?.status === "approved") return;
+  const phone = await confirmedAuthPhone(supabaseId);
+  if (!phone) return;
+  await updateIdentityChecks(partner.id, (checks) => ({ ...checks, phone: { value: phone, status: "approved", verifiedAt: new Date().toISOString() } }));
+}
+
+/** Saves flow answers (onboardingState.partnerFlow) next to whatever else onboardingState holds, with other fields. */
+export async function saveFlowAnswers(partnerId: string, update: Partial<FlowAnswers>, data: Prisma.LogisticsPartnerUpdateInput = {}) {
+  const row = await db.logisticsPartner.findUnique({ where: { id: partnerId }, select: { onboardingState: true, deliveryAreas: true } });
+  const state = row?.onboardingState && typeof row.onboardingState === "object" && !Array.isArray(row.onboardingState) ? (row.onboardingState as Record<string, unknown>) : {};
+  const answers = { ...readFlowAnswers(state), ...update };
+  // Set-up is done once they've said where they deliver: the rest of the portal opens.
+  const areas = Array.isArray(data.deliveryAreas) ? data.deliveryAreas : row?.deliveryAreas ?? [];
+  const completed = state.completed === true || areas.length > 0;
+  await db.logisticsPartner.update({
+    where: { id: partnerId },
+    data: {
+      ...data,
+      onboardingState: {
+        ...state,
+        partnerFlow: answers,
+        flow: "questions",
+        ...(completed ? { completed: true, completedAt: typeof state.completedAt === "string" ? state.completedAt : new Date().toISOString() } : {}),
+      } as Prisma.InputJsonValue,
+    },
+  });
+  await refreshPartnerTier(partnerId);
+}
+
 /** The account's own email, when Supabase has confirmed it (auth.users). Null when it can't be read. */
 export async function confirmedAuthEmail(supabaseId: string): Promise<string | null> {
   const rows = await db.$queryRaw<Array<{ email: string | null; confirmed: Date | null }>>`
@@ -75,6 +121,7 @@ export async function kycState(partnerId: string) {
         verificationStatus: true, verificationTier: true, kycSubmittedAt: true, statusReason: true, badges: true, limitsLiftedAt: true,
         termsVersion: true, termsAcceptedAt: true, registeredName: true, cacType: true, cacNumber: true, businessAddress: true,
         deliveryAreas: true, vehicleTypes: true, verificationDocuments: true, displayName: true, companyName: true,
+        onboardingState: true, services: true, basePrice: true, user: { select: { name: true } },
       },
     }),
     db.logisticsVehicle.findMany({ where: { logisticsPartnerId: partnerId }, orderBy: { createdAt: "asc" } }),
@@ -84,6 +131,8 @@ export async function kycState(partnerId: string) {
   const identity = snapshot.identity;
   const tier1 = tier1Checklist(snapshot);
   const tier2 = tier2Checklist(snapshot);
+  const answers = readFlowAnswers(partner.onboardingState);
+  const flow = flowProgress(snapshot, answers, Boolean(partner.kycSubmittedAt));
   const graduation = await checkGraduation({ id: partnerId, verificationTier: partner.verificationTier, limitsLiftedAt: partner.limitsLiftedAt });
   return {
     state: partnerVerificationState(partner),
@@ -94,9 +143,13 @@ export async function kycState(partnerId: string) {
     termsCurrent: partner.termsVersion === PARTNER_TERMS_VERSION,
     idChecksReady: idChecksReady(),
     displayName: partner.displayName,
+    /** The account holder's name (sign-up), for "Just use my name" and the NIN fields. */
+    accountName: partner.user.name,
     identity: {
       fullName: identity.fullName ?? null,
       address: identity.address ?? null,
+      base: identity.base ?? null,
+      idDocument: identity.idDocument ?? null,
       phone: identity.phone ?? null,
       email: identity.email ?? null,
       nin: identity.nin ? { last4: identity.nin.last4, status: identity.nin.status, rejectionReason: identity.nin.rejectionReason ?? null } : null,
@@ -122,7 +175,9 @@ export async function kycState(partnerId: string) {
       status: vehicle.status,
       rejectionReason: vehicle.rejectionReason,
     })),
-    coverage: { deliveryAreas: partner.deliveryAreas, deliveryMethods: partner.vehicleTypes },
+    coverage: { deliveryAreas: partner.deliveryAreas, deliveryMethods: partner.vehicleTypes, interstate: partner.services.includes("interstate") },
+    pricing: { basePrice: partner.basePrice },
+    flow: { answers, done: flow.done, first: flow.first },
     business: { registeredName: partner.registeredName, cacType: partner.cacType, cacNumber: partner.cacNumber, businessAddress: partner.businessAddress, companyName: partner.companyName },
     tier1,
     tier2,
@@ -135,19 +190,15 @@ export type KycState = NonNullable<Awaited<ReturnType<typeof kycState>>>;
 
 export type SubmitResult = { ok: true } | { ok: false; status: number; error: string; missing?: string[] };
 
-/** English names of checklist items, for the error the phone app shows when something is missing. */
+/** English names of checklist items, for the error shown when something is missing. */
 const ITEM_WORDS: Record<string, string> = {
   terms: "accept the partner terms",
-  fullName: "your full name",
-  phone: "verify your phone",
-  email: "verify your email",
-  nin: "your NIN",
+  phone: "confirm your phone",
+  idDocument: "a photo of your ID",
   selfie: "a selfie",
-  payout: "your BVN or bank account",
-  address: "your address",
   coverage: "where you deliver",
-  methods: "how you deliver",
-  vehicles: "a vehicle",
+  methods: "what you deliver with",
+  base: "where you're based",
 };
 
 /**
@@ -170,7 +221,7 @@ export async function submitPartnerKyc(userId: string): Promise<SubmitResult> {
       ok: false,
       status: 400,
       missing,
-      error: `Before sending for review, add: ${missing.map((key) => ITEM_WORDS[key] ?? key).join(", ")}. Open Verification on the web to finish.`,
+      error: `Before sending for review, add: ${missing.map((key) => ITEM_WORDS[key] ?? ITEM_LABELS[key as keyof typeof ITEM_LABELS] ?? key).join(", ")}.`,
     };
   }
   const docs = normalizeVerificationDocs(partner.verificationDocuments);
@@ -185,7 +236,7 @@ export async function submitPartnerKyc(userId: string): Promise<SubmitResult> {
   });
   await notifyAdminsToReview({
     title: `${String(partner.displayName || partner.companyName || "A delivery partner").slice(0, 60)} sent their verification`,
-    description: "A delivery partner is waiting for verification. Check their ID and vehicles.",
+    description: "A delivery partner is waiting for verification. Check their ID photo against their selfie.",
     link: `/admin/logistics-partners/${partner.id}`,
     dedupeKey: `admin.verify:${partner.id}:${new Date().toISOString().slice(0, 10)}`,
   });
@@ -193,32 +244,45 @@ export async function submitPartnerKyc(userId: string): Promise<SubmitResult> {
   return { ok: true };
 }
 
-// ─── Selfie ──────────────────────────────────────────────────────────────────
+// ─── Photos taken in the flow ────────────────────────────────────────────────
 
-/**
- * Stores the selfie taken in the Identity step privately and records it as the partner's "selfie" document, with the
- * facial match (and the liveness reference, when the browser or phone ran one) and the status they decide. Replaces an
- * earlier selfie and its file.
- */
+export type FlowPhotoType = "selfie" | "identity" | "base-photo";
+const FLOW_PHOTO_LABELS: Record<FlowPhotoType, string> = { selfie: DOC_TYPE_LABELS.selfie, identity: "Photo of an ID", "base-photo": DOC_TYPE_LABELS["base-photo"] };
+
+/** The selfie, with its face match and liveness reference: see savePartnerPhoto. */
 export async function saveSelfie(
   partnerId: string,
   selfie: { bytes: Buffer; mimeType: string; ext: string },
   outcome: { status: "pending" | "approved" | "rejected"; reason?: string; faceMatch?: FaceMatchCheck; liveness?: LivenessCheck },
 ) {
-  const file = new File([new Uint8Array(selfie.bytes)], `selfie.${selfie.ext}`, { type: selfie.mimeType });
-  const { path } = await uploadPrivateFile(`logistics-verifications/${partnerId}/selfie`, file);
+  return savePartnerPhoto(partnerId, "selfie", selfie, outcome);
+}
+
+/**
+ * Stores a photo taken in the sign-up flow (selfie, ID, base) privately and records it as that document, with the
+ * status it gets now (pending waits for the team, like a sent document) and, for a selfie, the facial match and the
+ * liveness reference. Replaces an earlier photo of the same kind and its file.
+ */
+export async function savePartnerPhoto(
+  partnerId: string,
+  type: FlowPhotoType,
+  photo: { bytes: Buffer; mimeType: string; ext: string },
+  outcome: { status: "pending" | "approved" | "rejected"; reason?: string; faceMatch?: FaceMatchCheck; liveness?: LivenessCheck },
+) {
+  const file = new File([new Uint8Array(photo.bytes)], `${type}.${photo.ext}`, { type: photo.mimeType });
+  const { path } = await uploadPrivateFile(`logistics-verifications/${partnerId}/${type}`, file);
   const partner = await db.logisticsPartner.findUnique({ where: { id: partnerId }, select: { verificationDocuments: true } });
   const docs = normalizeVerificationDocs(partner?.verificationDocuments);
-  const previous = docs.filter((doc) => doc.type === "selfie");
+  const previous = docs.filter((doc) => doc.type === type);
   const now = new Date().toISOString();
   const doc: VerificationDoc = {
-    id: previous[0]?.id ?? `selfie-${Date.now()}`,
-    type: "selfie",
-    label: DOC_TYPE_LABELS.selfie,
+    id: previous[0]?.id ?? `${type}-${Date.now()}`,
+    type,
+    label: FLOW_PHOTO_LABELS[type],
     fileName: file.name,
     filePath: path,
     fileSize: file.size,
-    mimeType: selfie.mimeType,
+    mimeType: photo.mimeType,
     // Decided now: an approved or rejected selfie is final; a pending one waits for the team like a sent document.
     status: outcome.status === "pending" ? "submitted" : outcome.status,
     uploadedAt: now,
@@ -230,7 +294,7 @@ export async function saveSelfie(
   try {
     await db.logisticsPartner.update({
       where: { id: partnerId },
-      data: { verificationDocuments: [...docs.filter((row) => row.type !== "selfie"), doc] as unknown as Prisma.InputJsonValue },
+      data: { verificationDocuments: [...docs.filter((row) => row.type !== type), doc] as unknown as Prisma.InputJsonValue },
     });
   } catch (error) {
     await removePrivateFile(path).catch(() => undefined);

@@ -54,8 +54,10 @@ test("every kyc route that changes something refreshes the tier", () => {
   assert.ok(routes.length >= 11, routes.join(", "));
   for (const path of routes) {
     const src = read(path);
-    if (path.endsWith("/payout/route.ts") || path.endsWith("/nin/route.ts") || path.endsWith("/phone/route.ts") || path.endsWith("/email/route.ts") || path.endsWith("/identity/route.ts")) {
+    if (["payout", "nin", "phone", "email", "identity", "base", "id-document"].some((name) => path.endsWith(`/${name}/route.ts`))) {
       assert.match(src, /updateIdentityChecks/, path);
+    } else if (path.endsWith("/answers/route.ts")) {
+      assert.match(src, /saveFlowAnswers/, path);
     } else if (path.endsWith("/submit/route.ts")) {
       assert.match(src, /submitPartnerKyc/, path);
     } else {
@@ -64,6 +66,7 @@ test("every kyc route that changes something refreshes the tier", () => {
   }
   assert.match(read("src/lib/logistics/partner-kyc.server.ts"), /export async function updateIdentityChecks[\s\S]*?refreshPartnerTier\(partnerId\)/);
   assert.match(read("src/lib/logistics/partner-kyc.server.ts"), /export async function submitPartnerKyc[\s\S]*?refreshPartnerTier\(partner\.id\)/);
+  assert.match(read("src/lib/logistics/partner-kyc.server.ts"), /export async function saveFlowAnswers[\s\S]*?refreshPartnerTier\(partnerId\)/);
 });
 
 test("NIN and BVN are stored as last 4 digits and a keyed hash, never whole", () => {
@@ -86,19 +89,18 @@ test("the old submit route (phone app) uses the tiered submit and names what's m
 
 
 test("terms at setup, the CAC banner and link, and the spec's pages", () => {
-  // Terms are accepted on the Review step of the one sign-up flow (the old set-up wizard is gone).
-  assert.match(read("src/components/logistics/verification/CacReviewSteps.tsx"), /kycCall\("\/terms", \{ method: "POST" \}\)/);
+  // Terms are accepted on the last screen of the one-question sign-up (the old set-up wizard is gone).
+  assert.match(read("src/components/logistics/verification/CheckScreens.tsx"), /kycCall\("\/terms", \{ method: "POST" \}\)/);
   assert.match(read("src/app/api/logistics/onboarding/route.ts"), /termsVersion: PARTNER_TERMS_VERSION/);
   const en = read("shared/i18n/messages/partnerKyc/en.ts");
-  assert.match(en, /"page.noCacBanner": "You don't need CAC to start\. Add it later to unlock more orders\."/);
+  assert.match(en, /"q.cac.sub": "You can start without it\. Any answer is fine\."/);
   assert.match(en, /"page.cacHelpLink": "Don't have CAC\? Learn how to register"/);
   assert.match(en, /icrp\.cac\.gov\.ng/);
   assert.match(en, /SMEDAN/);
   for (const point of ["independent operator", "licences, permits and legal compliance", "documents you submit are true", "suspend your account"]) assert.ok(en.includes(point), point);
   assert.match(read("src/app/logistics/terms/page.tsx"), /lawyer/);
-  const flow = read("src/components/logistics/verification/PartnerVerificationFlow.tsx");
-  assert.match(flow, /\/logistics\/cac-help/);
-  assert.match(read("shared/partner-tiers.ts"), /ONBOARDING_STEPS = \["identity", "bank", "delivery", "review", "cac"\]/);
+  assert.match(read("src/components/logistics/verification/CheckScreens.tsx"), /\/logistics\/cac-help/);
+  assert.match(read("shared/partner-tiers.ts"), /PARTNER_FLOW = \["name", "cac", "state", "areas", "vehicles", "interstate", "charge", "base", "id", "selfie", "review"\]/);
   assert.match(read("src/app/logistics/dashboard/page.tsx"), /<TierCard partnerId=/);
 });
 
@@ -145,14 +147,17 @@ test("wiring: the NIN check sends the selfie to Korapay and the generic upload r
 test("partners are never asked for a BVN: bank account only, on the web, the phone and the server", () => {
   const route = read("src/app/api/logistics/kyc/payout/route.ts");
   assert.doesNotMatch(route, /method === "bvn"|verifyKorapayIdentity|idNumberHash\(secret, "bvn"/);
-  for (const path of ["src/components/logistics/verification/IdentityBankSteps.tsx", "apps/mobile/src/components/kyc/FleetSteps.tsx"]) {
+  const screens = ["src/components/logistics/verification/QuestionScreens.tsx", "src/components/logistics/verification/CheckScreens.tsx", "apps/mobile/src/components/kyc/QuestionScreens.tsx", "apps/mobile/src/components/kyc/CheckScreens.tsx"];
+  for (const path of screens) {
     assert.doesNotMatch(read(path).replace(/^\s*\/\/.*$/gm, ""), /bvn/i, `${path} asks for a BVN`);
   }
   for (const ns of ["partnerKyc", "m_kyc"]) {
     for (const locale of ["en", "pcm", "yo", "ha", "ig"]) assert.doesNotMatch(read(`shared/i18n/messages/${ns}/${locale}.ts`), /BVN/, `${ns}/${locale} mentions BVN`);
   }
   assert.doesNotMatch(read("shared/i18n/messages/m_partner/en.ts"), /"kyc\.need\.bank": "[^"]*BVN/);
-  assert.match(read("shared/partner-tiers.ts"), /payout: "Bank account"/);
+  // The bank account isn't part of sign-up at all: it's asked at the first withdrawal (the Payout ready badge).
+  for (const path of screens) assert.doesNotMatch(read(path), /\/payout"|kyc\/payout/, path);
+  assert.match(read("shared/partner-tiers.ts"), /payout_ready: "Payout ready"/);
 });
 
 test("unverified partners are sent to verify: after set-up, from blocked job pages, and the banner tells the truth", async () => {

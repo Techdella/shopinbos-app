@@ -46,7 +46,7 @@ const nextConfig: NextConfig = {
     // Delivery partner verification (/logistics/verification) runs Korapay's liveness check (kora-identity-web-sdk,
     // src/components/logistics/verification/SelfieCapture.tsx). It loads Youverify's liveness scripts and the
     // MediaPipe face model, talks to Korapay, Youverify and (passive liveness) Microsoft's face API, and needs the
-    // camera. Only that page gets these hosts and the camera.
+    // camera. Only that page gets these hosts, the camera and the location ("Use my current location" for the base).
     const LIVENESS_HOSTS = {
       script: "https://cdn.jsdelivr.net/npm/youverify-liveness-web/ https://cdn.jsdelivr.net/npm/youverify-passive-liveness-web/ https://cdn.jsdelivr.net/npm/@mediapipe/",
       connect: "https://api.korapay.com https://checkout.koraapi.com https://*.youverify.co https://*.svc.youverify.co https://cdn.jsdelivr.net https://storage.googleapis.com https://virginia.api.cognitive.microsoft.us",
@@ -88,7 +88,7 @@ const nextConfig: NextConfig = {
       { key: "X-Content-Type-Options", value: "nosniff" },
       { key: "X-Frame-Options", value: "DENY" },
       { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-      { key: "Permissions-Policy", value: liveness ? "camera=(self), microphone=(self), geolocation=()" : "camera=(), microphone=(self), geolocation=()" },
+      { key: "Permissions-Policy", value: liveness ? "camera=(self), microphone=(self), geolocation=(self)" : "camera=(), microphone=(self), geolocation=()" },
       { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
       { key: "Content-Security-Policy", value: contentSecurityPolicy(liveness) },
     ];

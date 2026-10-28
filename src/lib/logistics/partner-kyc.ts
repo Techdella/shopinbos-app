@@ -81,16 +81,21 @@ export type SelfieUpload = { ok: true; mimeType: string; ext: string; bytes: Buf
 
 /** Reads the selfie the partner took ("data:image/jpeg;base64,…"): a JPEG, PNG or WebP photo, not too big. */
 export function readSelfieDataUri(value: unknown): SelfieUpload {
+  return readPhotoDataUri(value, "selfie", "Take a selfie first.");
+}
+
+/** Reads a photo taken in the sign-up flow (selfie, ID, base) the same way; `what` names it in the errors. */
+export function readPhotoDataUri(value: unknown, what: string, missing = `Take a photo of your ${what} first.`): SelfieUpload {
   const raw = typeof value === "string" ? value.trim() : "";
-  if (!raw) return { ok: false, error: "Take a selfie first." };
+  if (!raw) return { ok: false, error: missing };
   const match = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=\s]+)$/.exec(raw);
-  if (!match) return { ok: false, error: "That selfie isn't a photo we can read. Take it again." };
+  if (!match) return { ok: false, error: `That ${what} isn't a photo we can read. Take it again.` };
   const mimeType = match[1];
   const base64 = match[2].replace(/\s+/g, "");
-  if (base64.length > Math.ceil((SELFIE_MAX_BYTES * 4) / 3) + 4) return { ok: false, error: "That selfie is too big. Take it again." };
+  if (base64.length > Math.ceil((SELFIE_MAX_BYTES * 4) / 3) + 4) return { ok: false, error: `That ${what} photo is too big. Take it again.` };
   const bytes = Buffer.from(base64, "base64");
-  if (bytes.length < 1024) return { ok: false, error: "That selfie is too small to check. Take it again." };
-  if (bytes.length > SELFIE_MAX_BYTES) return { ok: false, error: "That selfie is too big. Take it again." };
+  if (bytes.length < 1024) return { ok: false, error: `That ${what} photo is too small to check. Take it again.` };
+  if (bytes.length > SELFIE_MAX_BYTES) return { ok: false, error: `That ${what} photo is too big. Take it again.` };
   return { ok: true, mimeType, ext: SELFIE_TYPES[mimeType], bytes, dataUri: `data:${mimeType};base64,${base64}` };
 }
 

@@ -138,7 +138,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "today.menu": "Menu",
   "today.loading": "We dey load today…",
   "today.finish": "Finish your setup",
-  "today.finishHint": "Verify yourself for 4 short steps: you, your bank account, your delivery, then send am. You fit take jobs once we don check dem.",
+  "today.finishHint": "Small quick questions, photo of your ID and selfie. No papers, no bank details. You fit take jobs once we don check dem.",
   "today.taking": "I dey take new jobs",
   "today.notTaking": "I no dey take new jobs",
   "today.takingHint": "Shops for {areas} fit book you.",

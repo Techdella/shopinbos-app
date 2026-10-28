@@ -153,7 +153,7 @@ test("phone: minimize, live lines, ticks, and the summary that goes to the next 
   assert.equal(pure.nextStepPath("supplier", null), null);
   // Delivery partners sign up in one 4-step flow: after a call it reloads and opens the first step still open.
   assert.equal(pure.partnerWizardStep, undefined);
-  assert.match(read("apps/mobile/src/app/logistics/verification.tsx"), /usePeggyContinue\(\(\) => \{[\s\S]*setStep\(firstOpenStep\(fresh\)\)/);
+  assert.match(read("apps/mobile/src/app/logistics/verification.tsx"), /usePeggyContinue\(\(\) => \{[\s\S]*setScreen\(fresh\.flow\.first\)/);
   assert.equal(pure.supplierWizardStep([{ id: "pickup", done: false }, { id: "documents", done: false }]), "pickup");
   assert.equal(pure.callClock(75), "1:15");
   // Setup screens refresh as she saves and take Continue to their own next step.

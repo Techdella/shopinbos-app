@@ -2,7 +2,7 @@
 // pages, the upload API and the admin document viewer, so every screen agrees on what a document is
 // and when it really has a file behind it.
 
-export const DOC_TYPES = ["cac", "identity", "product-images", "tax", "utility", "bank", "insurance", "fleet", "other", "selfie", "courier-licence"] as const;
+export const DOC_TYPES = ["cac", "identity", "product-images", "tax", "utility", "bank", "insurance", "fleet", "other", "selfie", "courier-licence", "base-photo"] as const;
 export type DocType = (typeof DOC_TYPES)[number];
 
 export type DocStatus = "draft" | "uploaded" | "submitted" | "under_review" | "approved" | "rejected";
@@ -94,6 +94,7 @@ export const DOC_TYPE_LABELS: Record<DocType, string> = {
   other: "Other document",
   selfie: "Selfie",
   "courier-licence": "NIPOST courier licence",
+  "base-photo": "Photo of the base or shop",
 };
 
 export const SUPPLIER_DOC_TYPES: DocConfig[] = [
@@ -114,11 +115,14 @@ export const LOGISTICS_DOC_TYPES: DocConfig[] = [
 
 /**
  * Files in the tiered partner verification (shared/partner-tiers.ts, /logistics/verification). None is "required"
- * here: the tier checklists decide what each tier needs (the selfie for Tier 1, the CAC certificate for Tier 2).
+ * here: the tier checklists decide what each tier needs (the ID photo and selfie for Tier 1, CAC for Tier 2). The
+ * selfie, ID photo and base photo are taken in the sign-up flow (/api/logistics/kyc/*), not through the upload route.
  * LOGISTICS_DOC_TYPES above stays for the phone app's documents screen.
  */
 export const LOGISTICS_TIER_DOC_TYPES: DocConfig[] = [
   { type: "selfie", label: DOC_TYPE_LABELS.selfie, required: false, hint: "A clear photo of your face, looking at the camera" },
+  { type: "identity", label: "Photo of an ID", required: false, hint: "NIN slip, driver's licence, voter's card or passport" },
+  { type: "base-photo", label: DOC_TYPE_LABELS["base-photo"], required: false, hint: "Optional. With the base pin it earns the Address Verified badge" },
   { type: "utility", label: DOC_TYPE_LABELS.utility, required: false, hint: "For address verification" },
   { type: "cac", label: DOC_TYPE_LABELS.cac, required: false, hint: "BN or RC document accepted" },
   { type: "courier-licence", label: DOC_TYPE_LABELS["courier-licence"], required: false, hint: "Optional. Shows a Licensed Courier badge" },
