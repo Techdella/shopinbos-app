@@ -53,16 +53,21 @@ export function PartnerVerificationFlow({ accountName }: { accountName: string }
 
   const railSteps = PARTNER_FLOW.map((key) => ({ key, label: t(`rail.${key}`), done: key === "review" ? Boolean(state.submittedAt) : state.flow.done[key] }));
   return (
-    <div className="mx-auto w-full max-w-[600px] pb-10 lg:grid lg:max-w-[1040px] lg:grid-cols-[240px_minmax(0,1fr)] lg:items-start lg:gap-10">
+    // Full bleed on wide screens (W-Onboard-Verify): the step rail runs the whole height against the menu, the
+    // question sits in the open space beside it.
+    <div className="w-full lg:grid lg:flex-1 lg:grid-cols-[260px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)]">
+      <div className="hidden bg-app-forest lg:block">
       <StepRail
-        className="sticky top-4 hidden rounded-[24px] lg:flex"
+        className="sticky top-0 hidden lg:flex lg:min-h-[calc(100dvh-4rem)] lg:px-6 lg:py-9 xl:px-7 lg:[@media(max-height:820px)]:gap-4 lg:[@media(max-height:820px)]:py-6 lg:[@media(max-height:820px)]:[&_li]:py-[7px]"
         showLogo={false}
         who={state.business.companyName || accountName || t("rail.title")}
         role={t("rail.title")}
         steps={railSteps}
         current={screen}
       />
-      <div className="grid w-full max-w-[640px] gap-6">
+      </div>
+      <div className="px-4 py-6 pb-10 sm:px-6 lg:px-10 lg:py-10 xl:px-14">
+      <div className="mx-auto grid w-full max-w-[600px] gap-6 lg:mx-0 lg:max-w-[680px]">
       <header className="grid gap-3">
         <div className="flex items-center gap-3">
           {index > 0 ? (
@@ -95,6 +100,7 @@ export function PartnerVerificationFlow({ accountName }: { accountName: string }
       {screen !== "review" && state.flow.done[screen] && (
         <button type="button" onClick={onDone} className="justify-self-center text-[15px] font-bold text-app-ink-soft underline underline-offset-4">{t("flow.skipDone")}</button>
       )}
+      </div>
       </div>
     </div>
   );

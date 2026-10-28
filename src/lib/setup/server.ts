@@ -50,7 +50,7 @@ export async function getSetupOverview(userId: string) {
   });
   if (!store) return null;
 
-  const [products, productsWithPhotos, zones, subscribers, campaignsSent, onlineOrders, socialsConnected] = await Promise.all([
+  const [products, productsWithPhotos, zones, subscribers, campaignsSent, onlineOrders, socialsConnected, signupForms] = await Promise.all([
     db.storeProduct.count({ where: { storeId: store.id, status: { not: "archived" } } }),
     db.storeProduct.count({ where: { storeId: store.id, status: { not: "archived" }, images: { isEmpty: false } } }),
     db.shippingZone.findMany({ where: { storeId: store.id, active: true }, orderBy: { sortOrder: "asc" }, select: { id: true, name: true, regions: true, rates: true } }),
@@ -58,6 +58,8 @@ export async function getSetupOverview(userId: string) {
     db.broadcastCampaign.count({ where: { storeId: store.id, status: "sent" } }),
     db.retailOrder.count({ where: { storeId: store.id, channel: "online_store" } }),
     db.inboxChannel.count({ where: { storeId: store.id, channel: { in: ["whatsapp", "messenger", "instagram"] }, status: "connected" } }),
+    // A live sign-up form or pop-up counts for "Get subscribers": the seller did the step, even before anyone signs up.
+    db.storeForm.count({ where: { storeId: store.id, active: true, OR: [{ isPopup: true }, { type: { in: ["newsletter", "popup", "waitlist"] } }] } }),
   ]);
 
   // Delivery companies the seller connected (logistics marketplace). Tolerates a database without the table yet.
@@ -86,6 +88,7 @@ export async function getSetupOverview(userId: string) {
     customDomain: Boolean(store.customDomain),
     subscribers,
     campaignsSent,
+    signupForms,
   };
 
   return {

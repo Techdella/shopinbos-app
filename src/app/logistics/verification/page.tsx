@@ -18,7 +18,7 @@ export default async function LogisticsVerificationPage() {
   const partner = await getLogisticsPartnerForUser(user);
   const t = await getT("partnerKyc");
   return (
-    <PartnerPage frame={{ user, partner }} title={t("page.title")} sub={t("page.sub")} bare>
+    <PartnerPage frame={{ user, partner }} title={t("page.title")} sub={t("page.sub")} bare bleed>
       <PartnerVerificationFlow accountName={user.name ?? ""} />
     </PartnerPage>
   );
