@@ -19,7 +19,8 @@ import {
   type ProductPath,
   type SellerQuestion,
 } from "@shared/onboarding";
-import { Chip, Field, Label, Mascot, Notice, PillButton, T } from "@/components/ui";
+import { Chip, Field, Label, LinkButton, Mascot, Notice, PillButton, T } from "@/components/ui";
+import { List, Row, Tile } from "@/components/design";
 import { AppIcon, type AppIconName } from "@/components/icons";
 import { OnboardingFrame } from "@/components/OnboardingFrame";
 import { OnboardingWelcome, onboardingWelcomeSeen } from "@/components/OnboardingWelcome";
@@ -61,6 +62,8 @@ import { colors, fonts, radii } from "@/theme";
 const OPTIONAL: SellerQuestion[] = ["logo", "product", "details"];
 /** Looks shown at a time on "Pick a look". */
 const LOOKS_PAGE = 8;
+/** 13-RexTheme's starting vibes for "Ask Rex to design it" (sellerStart look.vibe.*). */
+const VIBES = ["bold", "soft", "gold", "clean"] as const;
 
 export default function SellerQuestions() {
   const { status, refresh, lang, setLang } = useOnboarding();
@@ -112,6 +115,10 @@ export default function SellerQuestions() {
   const [live, setLive] = useState(false);
   const [liveProblem, setLiveProblem] = useState<string | null>(null);
   const [shareNote, setShareNote] = useState<string | null>(null);
+  // 05-StoreName: "adaskloset.shopinbos.com is free" under the name, checked as they type.
+  const [nameAddress, setNameAddress] = useState<StoreAddress | null>(null);
+  // 11-Details: "Add another one" saved a product and came back to the camera.
+  const [productNote, setProductNote] = useState<string | null>(null);
 
   // The status arrives after the first render: take the saved answers once.
   useEffect(() => {
@@ -192,6 +199,18 @@ export default function SellerQuestions() {
     return () => clearTimeout(timer);
   }, [question, addressChoice, slug]);
 
+  useEffect(() => {
+    if (question !== "name") return;
+    const wanted = shopSlug(storeName);
+    if (!wanted) return setNameAddress(null);
+    const timer = setTimeout(() => {
+      void checkAddress(wanted)
+        .then(setNameAddress)
+        .catch(() => setNameAddress(null));
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [question, storeName]);
+
   const published = useRef(false);
   useEffect(() => {
     if (question !== "live" || published.current || !status) return;
@@ -267,6 +286,7 @@ export default function SellerQuestions() {
     setError(null);
     try {
       setPhotoUrl(await uploadPhoto(photos[0], "products"));
+      setProductNote(null);
       setBusy(false);
     } catch (cause) {
       fail(cause);
@@ -283,7 +303,8 @@ export default function SellerQuestions() {
     }
   }
 
-  async function saveProduct() {
+  /** Saves the product; "Add another one" (11-Details) goes back to the camera for the next instead of on. */
+  async function saveProduct(another = false) {
     const amount = Number(price.replace(/[^\d]/g, ""));
     if (!productName.trim()) return setError(t("details.needName"));
     if (!amount) return setError(t("details.needPrice"));
@@ -291,7 +312,12 @@ export default function SellerQuestions() {
     setBusy(true);
     try {
       await createFirstProduct({ name: productName, price: amount, imageUrl: photoUrl });
-      forward();
+      if (!another) return forward();
+      setProductNote(t("details.addedNext", { name: productName.trim() }));
+      setPhotoUrl(null);
+      setProductName("");
+      setPrice("");
+      go("product");
     } catch (cause) {
       fail(cause);
     }
@@ -344,11 +370,13 @@ export default function SellerQuestions() {
     }
   }
 
-  async function finish() {
+  /** Home; a next step on "Your store is live!" (15-Live) opens its screen over Home. */
+  async function finish(next?: "/wallet" | "/delivery" | "/add-products") {
     setBusy(true);
     await finishOnboarding(live).catch(() => null);
     await refresh().catch(() => null);
     router.replace("/home");
+    if (next) router.push(next);
   }
 
   async function share(app: "whatsapp" | "instagram" | "tiktok" | "copy" | "more") {
@@ -410,8 +438,18 @@ export default function SellerQuestions() {
   if (question === "name") {
     body = (
       <>
-        {title(name ? t("name.title", { name }) : t("name.titleNoName"), t("name.hint"))}
+        {name ? <T weight="bold" style={{ color: colors.accentInk, fontSize: 15, marginBottom: 6 }}>{t("name.welcome", { name })}</T> : null}
+        {title(t("name.titleNoName"), t("name.hintKnown"))}
+        <Label>{t("name.label")}</Label>
         <Field autoFocus value={storeName} onChangeText={setStoreName} placeholder={t("name.placeholder")} accessibilityLabel={t("name.titleNoName")} maxLength={60} returnKeyType="next" onSubmitEditing={() => void saveName()} style={{ fontSize: 20, fontFamily: fonts.bold }} />
+        {storeName.trim() && nameAddress && !nameAddress.problem && nameAddress.host ? (
+          <View testID="onboarding-name-free" accessibilityLiveRegion="polite" style={{ flexDirection: "row", alignItems: "center", alignSelf: "flex-start", gap: 10, marginTop: 12, backgroundColor: colors.surface, borderRadius: radii.pill, paddingVertical: 8, paddingLeft: 8, paddingRight: 16 }}>
+            <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: colors.successTint, alignItems: "center", justifyContent: "center" }}>
+              <AppIcon name="check" size={14} color={colors.success} strokeWidth={3} />
+            </View>
+            <T style={{ fontSize: 14, flexShrink: 1 }}>{t("name.free", { host: nameAddress.host })}</T>
+          </View>
+        ) : null}
         {/* The app's language, picked once here (shared/i18n); Rex writes the store in it too. */}
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 28 }}>
           {ONBOARDING_LANGUAGES.map((item) => (
@@ -436,7 +474,7 @@ export default function SellerQuestions() {
   if (question === "logo") {
     body = (
       <>
-        {title(t("logo.title"))}
+        {title(t("logo.title"), t("logo.sub", { name: displayName }))}
         <View style={{ gap: 12 }}>
           {choice("yes", t("logo.yes"), t("logo.yesHint"), "camera", logoMode === "upload", () => setLogoMode("upload"))}
           {logoMode === "upload" ? (
@@ -469,7 +507,12 @@ export default function SellerQuestions() {
             ) : null}
             {logos.length ? (
               <>
-                <T style={{ color: colors.inkSoft }}>{t("logo.pick")}</T>
+                <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 10 }}>
+                  <Mascot name="rex" size={34} />
+                  <View style={{ flex: 1, backgroundColor: colors.mintTint, borderRadius: 18, borderBottomLeftRadius: 6, paddingHorizontal: 14, paddingVertical: 10 }}>
+                    <T style={{ fontSize: 14, lineHeight: 20 }}>{t("logo.rexSaid", { name: displayName })}</T>
+                  </View>
+                </View>
                 <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
                   {logos.map((logo, index) => (
                     <Pressable
@@ -516,17 +559,24 @@ export default function SellerQuestions() {
         </View>
       </>
     );
-    footer = continueButton(() => (chosen.length ? forward({ categories: chosen, category: chosen[0] }) : setError(t("sell.needed"))), !chosen.length);
+    footer = (
+      <>
+        {chosen.length ? <T style={{ fontSize: 14, color: colors.inkSoft, textAlign: "center" }}>{t("sell.picked", { count: chosen.length })}</T> : null}
+        {continueButton(() => (chosen.length ? forward({ categories: chosen, category: chosen[0] }) : setError(t("sell.needed"))), !chosen.length)}
+      </>
+    );
   }
 
   if (question === "ready") {
     body = (
       <>
-        {title(t("ready.title"))}
+        {title(t("ready.title"), t("ready.sub"))}
         <View style={{ gap: 12 }}>
           {choice("own", t("ready.own"), t("ready.ownHint"), "camera", path === "own", () => chooseReady("own"))}
           {choice("dropship", t("ready.dropship"), t("ready.dropshipHint"), "truck", path === "dropship", () => chooseReady("dropship"))}
         </View>
+        {/* Ready-made starter packs of supplier products (app/find/packs.tsx). */}
+        <LinkButton testID="onboarding-starter-packs" title={t("ready.packs")} style={{ marginTop: 14 }} onPress={() => router.push("/find/packs")} />
       </>
     );
   }
@@ -534,7 +584,8 @@ export default function SellerQuestions() {
   if (question === "product" && path !== "dropship") {
     body = (
       <>
-        {title(t("product.title"))}
+        {productNote ? <View style={{ marginBottom: 16 }}><Notice tone="success">{productNote}</Notice></View> : null}
+        {title(productNote ? t("product.titleNext") : t("product.title"), t("product.tip"))}
         {photoUrl ? (
           <View style={{ borderRadius: 24, overflow: "hidden", backgroundColor: colors.surface }}>
             <Image source={{ uri: photoUrl }} style={{ width: "100%", aspectRatio: 1 }} />
@@ -597,15 +648,23 @@ export default function SellerQuestions() {
   if (question === "details") {
     body = (
       <>
+        {photoUrl ? <Image source={{ uri: photoUrl }} accessibilityLabel={t("product.photoReady")} style={{ width: 120, height: 120, borderRadius: 20, marginBottom: 18, backgroundColor: colors.surface }} /> : null}
         {title(t("details.title"))}
         <Label>{t("details.name")}</Label>
         <Field autoFocus value={productName} onChangeText={setProductName} placeholder={t("details.namePlaceholder")} maxLength={120} />
         <View style={{ height: 16 }} />
         <Label>{t("details.price")}</Label>
         <Field value={price} onChangeText={(value) => setPrice(value.replace(/[^\d]/g, ""))} keyboardType="number-pad" placeholder={t("details.pricePlaceholder")} />
+        <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20, marginTop: 14 }}>{t("details.later")}</T>
       </>
     );
-    footer = continueButton(() => void saveProduct(), !productName.trim() || !price);
+    footer = (
+      <>
+        {error ? <Notice>{error}</Notice> : null}
+        <PillButton title={t("details.add")} busy={busy} disabled={!productName.trim() || !price} onPress={() => void saveProduct()} />
+        <LinkButton testID="onboarding-add-another" title={t("details.another")} onPress={() => (busy || !productName.trim() || !price ? undefined : void saveProduct(true))} />
+      </>
+    );
   }
 
   if (question === "look") {
@@ -671,7 +730,15 @@ export default function SellerQuestions() {
             ) : null}
           </>
         )}
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 16, backgroundColor: colors.surface, borderRadius: 20, padding: 12 }}>
+        {/* 12-Look / 13-RexTheme: "Ask Rex to design it", with the vibes to start from. */}
+        <T weight="extrabold" style={{ fontSize: 16, marginTop: 20, marginBottom: 10 }}>{t("look.askRex")}</T>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+          {VIBES.map((key) => {
+            const words = t(`look.vibe.${key}`);
+            return <Chip key={key} label={words} on={vibe.trim() === words} onPress={() => setVibe(vibe.trim() === words ? "" : words)} />;
+          })}
+        </View>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 12, backgroundColor: colors.surface, borderRadius: 20, padding: 12 }}>
           <Mascot name="rex" size={40} />
           <TextInput
             value={vibe}
@@ -714,9 +781,15 @@ export default function SellerQuestions() {
           {choice("have", t("address.have"), t("address.haveHint"), "link", addressChoice === "have", () => setAddressChoice("have"))}
           {addressChoice === "have" ? <Notice tone="info">{t("address.haveNote")}</Notice> : null}
         </View>
+        {addressChoice === "free" ? <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20, marginTop: 16 }}>{t("address.noRush")}</T> : null}
       </>
     );
-    footer = continueButton(() => void saveStoreAddress(), addressChoice === "free" && (checking || Boolean(address?.problem)));
+    footer = (
+      <>
+        {error ? <Notice>{error}</Notice> : null}
+        <PillButton title={addressChoice === "free" ? t("address.continueFree") : t("continue")} busy={busy} disabled={addressChoice === "free" && (checking || Boolean(address?.problem))} onPress={() => void saveStoreAddress()} />
+      </>
+    );
   }
 
   if (question === "live") {
@@ -726,6 +799,7 @@ export default function SellerQuestions() {
         <View style={{ alignItems: "center", gap: 12, marginTop: 12 }}>
           <Mascot name="rex" mood="wave" size={96} />
           <T accessibilityRole="header" style={{ fontFamily: fonts.display, fontSize: 32, lineHeight: 36, textAlign: "center" }}>{t("live.title")}</T>
+          {name ? <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21, textAlign: "center" }}>{t("live.subPhone", { name })}</T> : null}
           {host ? <T selectable weight="bold" style={{ color: colors.forest, fontSize: 15 }}>{host}</T> : null}
         </View>
         <T weight="bold" style={{ fontSize: 15, marginTop: 28, marginBottom: 10 }}>{t("live.share")}</T>
@@ -741,7 +815,13 @@ export default function SellerQuestions() {
           </View>
           {shareNote ? <Notice tone="success">{shareNote}</Notice> : null}
         </View>
-        <T style={{ color: colors.inkSoft, fontSize: 13, textAlign: "center", marginTop: 18 }}>{t("live.later")}</T>
+        {/* 15-Live: what to do next, each opening its screen over Home. */}
+        <T weight="bold" style={{ fontSize: 15, marginTop: 24, marginBottom: 10 }}>{t("live.next")}</T>
+        <List>
+          <Row testID="live-next-bank" lead={<Tile icon="wallet" tone="peach" />} title={t("live.next.bank")} sub={t("live.next.bankSub")} onPress={() => void finish("/wallet")} />
+          <Row testID="live-next-delivery" lead={<Tile icon="truck" tone="mint" />} title={t("live.next.delivery")} sub={t("live.next.deliverySub")} onPress={() => void finish("/delivery")} />
+          <Row testID="live-next-products" lead={<Tile icon="camera" tone="blue" />} title={t("live.next.products")} sub={t("live.next.productsSub")} onPress={() => void finish("/add-products")} />
+        </List>
       </>
     ) : (
       <>{title(liveProblem ? t("live.notYet", { reason: liveProblem }) : t("live.publishing"))}</>

@@ -26,6 +26,7 @@ function back() {
 
 export default function Products() {
   const t = useT("m_products", "common");
+  const tBulk = useT("bulkAdd");
   const [products, setProducts] = useState<ProductItem[] | null>(null);
   const [categories, setCategories] = useState<StoreCategory[]>([]);
   const [query, setQuery] = useState<ProductListQuery>(DEFAULT_PRODUCT_QUERY);
@@ -77,7 +78,10 @@ export default function Products() {
       refreshing={refreshing}
       onRefresh={async () => { setRefreshing(true); await load(query); setRefreshing(false); }}
       footer={
-        <PillButton tone="accent" accessibilityLabel={t("add.title")} onPress={() => router.push("/add-products")} icon="plus" title={t("add.title")} />
+        <>
+          <PillButton tone="accent" accessibilityLabel={t("add.title")} onPress={() => router.push("/add-products")} icon="plus" title={t("add.title")} />
+          <PillButton testID="products-bulk-add" tone="white" size="md" onPress={() => router.push("/bulk-add")} icon="sparkle" title={tBulk("entry.title")} />
+        </>
       }
     >
       <FilterBar testID="products-filters" onMore={() => setSheet(true)} moreLabel={t("filters.title")} moreCount={productFilterCount(query)}>

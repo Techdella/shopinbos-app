@@ -6,6 +6,7 @@ import { unsplashUrl } from "../store-templates/demo-photos.ts";
 import { preorderState, type PreorderState } from "../../../shared/preorder.ts";
 import { dropshipOptionWords, dropshipUnitPrice, retailFloor } from "../../../shared/dropship-rules.ts";
 import type { DropshipTerms } from "../../../shared/dropship-checkout.ts";
+import { readMarkup, type Markup } from "../../../shared/supplier-markup.ts";
 
 export interface FindPricingTier {
   minQty: number;
@@ -36,6 +37,8 @@ export interface FindSupplier {
   area?: string | null;
   /** The seller and this supplier both accepted the Dropship agreement, so its products can be listed. */
   agreed?: boolean;
+  /** The supplier is in the seller's state ("Delivers to my state"). */
+  sameState?: boolean;
 }
 
 export interface FindProduct {
@@ -506,6 +509,8 @@ export interface SourcingSettings {
   saved: string[];
   /** "Get notified" when real suppliers list products. */
   notifyNewSuppliers: boolean;
+  /** The seller's markup on supplier prices (shared/supplier-markup.ts); null until they pick one (30% is used). */
+  markup?: Markup | null;
 }
 
 export function parseSourcing(value: unknown): SourcingSettings {
@@ -513,5 +518,6 @@ export function parseSourcing(value: unknown): SourcingSettings {
   return {
     saved: Array.isArray(raw.saved) ? [...new Set(raw.saved.filter((id): id is string => typeof id === "string" && id.length <= 64))].slice(0, 500) : [],
     notifyNewSuppliers: raw.notifyNewSuppliers === true,
+    ...(readMarkup(raw.markup) ? { markup: readMarkup(raw.markup) } : {}),
   };
 }

@@ -104,6 +104,16 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "create.post": "Ṣe post tàbí reel",
   "create.postSub": "Rex máa ṣe àwòṣe rẹ̀ fún Status, TikTok, Instagram rẹ",
   "greeting.addName": "Fi orúkọ rẹ kún un",
+  "create.video": "Ṣe fídíò pẹ̀lú Rex",
+  "create.videoSub": "Yan ọjà kan. Rex yóò ṣe fídíò ìṣẹ́jú-àáyá 15 fún TikTok àti Status.",
+  "create.more": "Ọ̀nà míì láti tà",
+  "create.ad": "Gbé e ga pẹ̀lú ìpolówó",
+  "create.adSub": "Dé ọ̀dọ̀ èèyàn púpọ̀ sí i lórí Instagram àti Facebook",
+  "create.sale": "Ṣe àtàjà pẹ̀lú aago ìkàsẹ̀yìn",
+  "create.saleSub": "Black Friday, Kérésìmesì tàbí àtàjà tìrẹ",
+  "create.preorders": "Gba àṣẹ ṣáájú",
+  "create.preordersSub": "Tà kí ọjà rẹ tó dé",
+  "create.web": "Ṣé o fẹ́ àyè púpọ̀ sí i? Ṣàtúnṣe fídíò, ìròyìn ìpolówó àti àwòrán ṣọ́ọ̀bù rẹ ní shopinbos.com.",
 };
 
 export default yo;

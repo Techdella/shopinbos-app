@@ -271,6 +271,8 @@ export function ReviewScreen({ state, onState, goTo }: StepProps & { goTo: (scre
         <Pressable accessibilityRole="link" onPress={() => openOnWeb("/logistics/cac-help")}>
           <T weight="bold" style={{ color: colors.forest }}>{t("noCac.link")}</T>
         </Pressable>
+        {/* L11-Review: into the app while the check runs (jobs show once verified). */}
+        <PillButton testID="kyc-look-around" title={verified ? t("q.done.open") : t("q.done.lookAround")} onPress={() => router.replace("/logistics/jobs")} />
       </View>
     );
   }

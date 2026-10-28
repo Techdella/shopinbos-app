@@ -4,7 +4,7 @@ import { z } from "zod";
 import { withSeller } from "@/lib/auth/middleware";
 import { apiError, ok } from "@/lib/api/response";
 import { db } from "@/lib/db/client";
-import { withShortCode } from "@/lib/products/short-code.server";
+import { inShopIds, linkSupplierProduct } from "@/lib/marketplace/quick-add.server";
 import { mergeBrandSettings } from "@/lib/workspace";
 import { VISIBLE_SUPPLIER, listingCheck } from "@/lib/marketplace/agreements.server";
 import { ListingChoiceSchema, checkDropshipListing, dropshipTermsFor, skuFields } from "@/lib/marketplace/dropship-listing.server";
@@ -41,14 +41,15 @@ function clampSellingPrice(price: number, cost: number) {
 export const GET = withSeller(async (req: NextRequest, { user }) => {
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, city: true, country: true } });
   if (!store) return apiError("NOT_FOUND", "Store not found", 404);
-  const added = await db.storeProduct.findMany({ where: { storeId: store.id, supplierProductId: { not: null } }, select: { supplierProductId: true } });
+  // Removed (archived) products don't count as in the shop: they can be added again.
+  const addedIds = await inShopIds(store.id);
   const productId = req.nextUrl.searchParams.get("productId")?.slice(0, 64) || null;
   const product = productId ? await db.supplierProduct.findFirst({ where: { id: productId, status: "published", supplier: VISIBLE_SUPPLIER } }) : null;
   const dropship = product?.dropshipAvailable ? (await dropshipTermsFor([product], user.id)).get(product.id) ?? null : null;
   return ok({
     country: store.country || "Nigeria",
     destination: [store.city, store.country].filter(Boolean).join(", ") || "Nigeria",
-    addedIds: added.map((row) => row.supplierProductId).filter((id): id is string => Boolean(id)),
+    addedIds,
     ...(productId ? { dropship } : {}),
   });
 });
@@ -66,7 +67,7 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
     include: { supplier: { select: { verificationStatus: true } } },
   });
   if (!product) return apiError("NOT_FOUND", "This product isn't available any more.", 404);
-  const existing = await db.storeProduct.findFirst({ where: { storeId: store.id, supplierProductId: product.id }, select: { id: true } });
+  const existing = await db.storeProduct.findFirst({ where: { storeId: store.id, supplierProductId: product.id, status: { not: "archived" } }, select: { id: true } });
   if (existing) return ok({ storeProductId: existing.id, already: true });
 
   // The same checks as the web (src/lib/marketplace/agreements.server.ts): dropship needs the agreement.
@@ -85,36 +86,19 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
   const costPrice = check?.ok ? check.costPrice : product.wholesalePrice;
   const planLimit = await productLimitProblem(user.id, store.id, 1, dropship);
   if (planLimit) return apiError("PLAN_LIMIT", planLimit, 402);
-  const storeProduct = await withShortCode(store.id, { name: product.name, categoryId: product.categoryId }, (shortCode) => db.storeProduct.create({
-    data: {
-      storeId: store.id,
-      userId: user.id,
-      supplierProductId: product.id,
-      name: product.name,
-      shortCode,
-      description: product.description,
-      images: product.images,
-      retailPrice,
-      costPrice,
-      currency: product.currency,
-      margin: retailPrice - costPrice,
-      ...(check?.ok ? { deliveryPayer: check.deliveryPayer, deliveryFlatFee: check.deliveryFlatFee, brandingChoice: check.brandingChoice } : {}),
-      ...skuFields(parsed.data),
-      categoryId: product.categoryId,
-      fulfillmentType: dropship ? "dropship" : "merchant_fulfilled",
-      inventoryType: dropship ? "dropshipping" : "seller",
-      sourceType: dropship ? "dropship" : "supplier",
-      supplierStock: product.stockQuantity,
-      supplierLastSync: new Date(),
-      status: "draft",
-    },
-  }));
-  void import("@/lib/rewards/rewards.server").then((rewards) => rewards.recordRewardEvent({ userId: user.id, kind: "product_added", ref: storeProduct.id })).catch(() => undefined);
-  if (dropship) {
-    await db.dropshipRelationship.create({
-      data: { sellerId: user.id, storeId: store.id, supplierId: product.supplierId, supplierProductId: product.id, storeProductId: storeProduct.id },
-    });
-  }
+  // Made under the store's lock, so a second tap or another phone never adds it twice (quick-add.server.ts).
+  const linked = await linkSupplierProduct({
+    storeId: store.id,
+    userId: user.id,
+    product,
+    retailPrice,
+    costPrice,
+    dropship,
+    ...(check?.ok ? { deliveryPayer: check.deliveryPayer, deliveryFlatFee: check.deliveryFlatFee, brandingChoice: check.brandingChoice } : {}),
+    ...skuFields(parsed.data),
+  });
+  if (linked.already) return ok({ storeProductId: linked.storeProductId, already: true });
+  void import("@/lib/rewards/rewards.server").then((rewards) => rewards.recordRewardEvent({ userId: user.id, kind: "product_added", ref: linked.storeProductId })).catch(() => undefined);
   await db.store.update({ where: { id: store.id }, data: { brandSettings: mergeBrandSettings(store.brandSettings, { setup: { productAdded: true } }) } });
-  return ok({ storeProductId: storeProduct.id, already: false }, 201);
+  return ok({ storeProductId: linked.storeProductId, already: false }, 201);
 });

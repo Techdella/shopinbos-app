@@ -2,6 +2,8 @@ import { api } from "./api";
 import { parsePricingTiers, shipsLabel, shortCategory, type FindTier } from "./find-pure";
 import type { PreorderState } from "./preorder-pure";
 import type { DropshipTerms } from "@shared/dropship-checkout";
+import { dropshipUnitPrice, retailFloor } from "@shared/dropship-rules";
+import { quickAddPrice, type Markup } from "@shared/supplier-markup";
 
 // Find products: supplier products from /api/mobile/marketplace/products (the same rows the web's /marketplace
 // shows: suppliers near the seller, verified or not, with their risk score), plus the seller's own bits from
@@ -24,6 +26,10 @@ interface RawProduct {
   bulkOrderAvailable: boolean;
   processingTime: string | null;
   trendScore: number;
+  /** Channel prices (newer servers): the dropship price and the lowest allowed retail price. */
+  priceMode?: string | null;
+  dropshipPrice?: number | null;
+  minRetailPrice?: number | null;
   /** The supplier takes preorders (ship date, places left, promise; shared/preorder.ts). Newer servers. `depositPct`:
    * the share paid when the preorder is placed (newer servers; 0 or absent: none). */
   preorder?: (PreorderState & { depositPct?: number }) | null;
@@ -43,6 +49,8 @@ interface RawProduct {
     agreed?: boolean;
     /** Track record level: new | trusted | established (newer servers). */
     level?: string | null;
+    /** In the seller's state (newer servers). */
+    sameState?: boolean;
   };
   category: { name: string } | null;
 }
@@ -77,9 +85,14 @@ export interface FindProduct {
     /** new | trusted | established, and how many shops rated them ("Trusted supplier · ★ 4.7 from 18 shops"). */
     level: string | null;
     ratingCount: number;
+    /** In the seller's state ("Delivers to my state"). */
+    sameState: boolean;
   };
   /** What the supplier charges per unit (dropship). */
   cost: number;
+  /** What the seller pays per piece when they add it (the dropship price for dropship), and the lowest price allowed. */
+  addCost: number;
+  floor: number | null;
   /** Suggested selling price. */
   price: number;
   ships: string;
@@ -116,8 +129,11 @@ function toFindProduct(row: RawProduct): FindProduct {
       agreed: row.supplier.agreed === true,
       level: row.supplier.level ?? null,
       ratingCount: row.supplier.ratingCount ?? 0,
+      sameState: row.supplier.sameState === true,
     },
     cost: Number(row.wholesalePrice) || 0,
+    addCost: row.dropshipAvailable ? dropshipUnitPrice({ ...row, wholesalePrice: Number(row.wholesalePrice) || 0 }) : Number(row.wholesalePrice) || 0,
+    floor: row.dropshipAvailable ? retailFloor({ ...row, wholesalePrice: Number(row.wholesalePrice) || 0 }) : row.minRetailPrice && row.minRetailPrice > 0 ? row.minRetailPrice : null,
     price: Number(row.suggestedRetailPrice) || 0,
     ships: shipsLabel(row.processingTime),
     stock: row.stockQuantity,
@@ -137,9 +153,12 @@ function toFindProduct(row: RawProduct): FindProduct {
 export async function fetchFindProducts(q?: string) {
   const params = new URLSearchParams();
   if (q?.trim()) params.set("q", q.trim().slice(0, 120));
-  const result = await api<{ hasPlace: boolean; city: string | null; products: RawProduct[] }>(`/api/mobile/marketplace/products${params.toString() ? `?${params.toString()}` : ""}`);
-  return { hasPlace: result.hasPlace, city: result.city, products: result.products.map(toFindProduct) };
+  const result = await api<{ hasPlace: boolean; city: string | null; state?: string | null; products: RawProduct[] }>(`/api/mobile/marketplace/products${params.toString() ? `?${params.toString()}` : ""}`);
+  return { hasPlace: result.hasPlace, city: result.city, state: result.state ?? null, products: result.products.map(toFindProduct) };
 }
+
+/** The price one tap lists it at: the supplier's suggested price, else cost + the seller's markup (the server decides). */
+export const oneTapPrice = (product: FindProduct, markup: Markup | null) => quickAddPrice({ cost: product.addCost, suggested: product.price, minRetail: product.floor, markup }).price;
 
 /** What the seller does before dropshipping a supplier's products (the web's "Before you sell" steps). */
 export type ListingStep = "agree" | "waiting" | "declined" | "ready" | "far" | "noPlace";

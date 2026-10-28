@@ -11,6 +11,8 @@ export const productSelect = {
   id: true, name: true, slug: true, description: true, images: true, wholesalePrice: true, suggestedRetailPrice: true, moq: true,
   stockQuantity: true, pricingTiers: true, dropshipAvailable: true, bulkOrderAvailable: true, processingTime: true, trendScore: true,
   preorderEnabled: true, preorderShipsAt: true, preorderLimit: true, preorderTaken: true, preorderNote: true, preorderDepositPct: true,
+  // For the one-tap price (shared/supplier-markup.ts quickAddPrice): the dropship price and the lowest allowed price.
+  priceMode: true, dropshipPrice: true, minRetailPrice: true,
   category: { select: { name: true } },
   supplier: { select: { id: true, displayName: true, slug: true, city: true, address: true, rating: true, ratingCount: true, description: true, responseTimeLabel: true, verificationStatus: true, returnPolicy: true, level: true } },
 } as const satisfies Prisma.SupplierProductSelect;

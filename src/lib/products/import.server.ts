@@ -21,3 +21,25 @@ export function parseImageMap(raw: FormDataEntryValue | null) {
   }
   return map;
 }
+
+/**
+ * Adds the photos this person uploaded with "Add many with Peggy" (their recent sessions) to the sheet's photo map, by
+ * file name, so a row naming "IMG_2041.jpg" finds the photo already uploaded from the phone. Photos sent with the sheet
+ * win over these.
+ */
+export async function withBulkPhotos(userId: string, map: Map<string, string>) {
+  const { db } = await import("@/lib/db/client");
+  const rows = await db.bulkProductItem
+    .findMany({
+      where: { session: { userId, updatedAt: { gt: new Date(Date.now() - 30 * 24 * 3600_000) } }, fileName: { not: null } },
+      orderBy: { createdAt: "desc" },
+      take: 1000,
+      select: { fileName: true, photos: true },
+    })
+    .catch(() => []);
+  for (const row of rows) {
+    const key = row.fileName ? imageFileKey(row.fileName) : "";
+    if (key && row.photos[0] && !map.has(key)) map.set(key, row.photos[0]);
+  }
+  return map;
+}

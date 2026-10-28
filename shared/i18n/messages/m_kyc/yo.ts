@@ -161,6 +161,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "badge.address_verified": "Address Verified",
   "badge.licensed_courier": "Licensed Courier",
   "badge.verified_payout": "Verified Payout",
+  "q.done.lookAround": "Wo àyíká nígbà tí o bá ń dúró",
+  "q.done.open": "Lọ sí iṣẹ́ mi",
 };
 
 export default yo;

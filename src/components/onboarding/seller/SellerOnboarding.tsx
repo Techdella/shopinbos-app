@@ -632,6 +632,8 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
           {choice({ key: "own", title: t("ready.own"), hint: t("ready.ownHint"), icon: "image", on: path === "own", onClick: () => chooseReady("own") })}
           {choice({ key: "dropship", title: t("ready.dropship"), hint: t("ready.dropshipHint"), icon: "truck", on: path === "dropship", onClick: () => chooseReady("dropship") })}
         </div>
+        {/* Ready-made starter packs of supplier products (/marketplace/packs). */}
+        <a href="/marketplace/packs" className="mt-4 inline-flex min-h-[44px] items-center text-[15px] font-bold text-app-ink underline underline-offset-4">{t("ready.packs")}</a>
       </>
     );
   }

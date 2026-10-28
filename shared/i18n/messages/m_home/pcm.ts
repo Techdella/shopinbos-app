@@ -104,6 +104,16 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "create.post": "Make post or reel",
   "create.postSub": "Rex go design am for your Status, TikTok, Instagram",
   "greeting.addName": "Put your name",
+  "create.video": "Make video with Rex",
+  "create.videoSub": "Pick one product. Rex go make 15-second video for TikTok and Status.",
+  "create.more": "More ways to sell",
+  "create.ad": "Boost am with ad",
+  "create.adSub": "Reach more people for Instagram and Facebook",
+  "create.sale": "Run sale with countdown",
+  "create.saleSub": "Black Friday, Christmas or your own sale",
+  "create.preorders": "Collect pre-orders",
+  "create.preordersSub": "Sell before your stock land",
+  "create.web": "You want more space? Edit videos, ad reports and your store design for shopinbos.com.",
 };
 
 export default pcm;

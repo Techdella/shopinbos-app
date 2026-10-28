@@ -175,6 +175,8 @@ const en = {
   "badge.address_verified": "Address Verified",
   "badge.licensed_courier": "Licensed Courier",
   "badge.verified_payout": "Verified Payout",
+  "q.done.lookAround": "Look around while you wait",
+  "q.done.open": "Go to my jobs",
 } satisfies Record<string, string>;
 
 export default en;

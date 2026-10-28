@@ -10,7 +10,7 @@ import { aiText, firstJsonObject } from "@/lib/ai/text";
 import { meterAi } from "@/lib/ai/usage";
 import { urlShapeProblem } from "@/lib/security/ssrf";
 import { safeFetch } from "@/lib/security/safe-fetch.server";
-import { parseImageMap } from "@/lib/products/import.server";
+import { parseImageMap, withBulkPhotos } from "@/lib/products/import.server";
 import {
   IMPORT_MAX_ROWS,
   analyseImport,
@@ -114,7 +114,7 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
   const file = formData.get("csv");
   if (!(file instanceof File)) return apiError("BAD_REQUEST", "No CSV file provided");
   if (file.size > 10 * 1024 * 1024) return apiError("BAD_REQUEST", "The file is bigger than 10MB. Split it into smaller files.");
-  const imageMap = parseImageMap(formData.get("imageMap"));
+  const imageMap = await withBulkPhotos(user.id, parseImageMap(formData.get("imageMap")));
 
   const parsed = Papa.parse<Row>(await file.text(), { header: true, skipEmptyLines: "greedy", transformHeader: (header) => header.replace(/^﻿/, "").trim() });
   const headers = (parsed.meta.fields ?? []).filter(Boolean);

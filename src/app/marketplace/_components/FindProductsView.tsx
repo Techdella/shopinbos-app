@@ -9,6 +9,9 @@ import { getT } from "@/lib/i18n/server";
 import { Term } from "@/components/learn/Term";
 import { TipsGate } from "./TipsGate";
 import { ChinaImportForm } from "./ChinaImportForm";
+import { PackStrip } from "./StarterPacks";
+import type { MarkupState } from "./QuickAddKit";
+import type { StarterPackView } from "@/lib/marketplace/quick-add.server";
 
 export type FindTab = "nigeria" | "china" | "trending";
 
@@ -55,10 +58,14 @@ export interface FindProductsViewProps {
   nearby?: { hasPlace: boolean; city: string | null };
   /** China imports are taking requests (CHINA_IMPORTS_OPEN, src/lib/imports/service.server.ts). */
   importsOpen?: boolean;
+  /** The seller's markup on supplier prices, and whether they picked it (else the first add asks). */
+  markup: MarkupState;
+  /** Starter packs for the top of the list. */
+  packs?: StarterPackView[];
 }
 
 /** Body of "Find products to sell" under the page title: tabs, search, and the active tab. */
-export async function FindProductsView({ tab, country, q, cat, categories, products, sampleMode, supplierName, insight, trends, addedIds, notified, nearby, importsOpen = false, error, focusPhoto }: FindProductsViewProps) {
+export async function FindProductsView({ tab, country, q, cat, categories, products, sampleMode, supplierName, insight, trends, addedIds, notified, nearby, importsOpen = false, error, focusPhoto, markup, packs = [] }: FindProductsViewProps) {
   const t = await getT("marketplace");
   const hrefFor = findHref;
   const tip = insightText(t, insight);
@@ -125,6 +132,15 @@ export async function FindProductsView({ tab, country, q, cat, categories, produ
             </ul>
           </section>
 
+          {/* Ready-made packs and the supplier products already in the shop (bulk price changes). */}
+          {!sampleMode ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <PillLink href="/marketplace/mine" icon="tag" size="sm">{t("mine.link", { count: addedIds.length })}</PillLink>
+              <PillLink href="/marketplace/packs" icon="package" size="sm">{t("packs.heading")}</PillLink>
+            </div>
+          ) : null}
+          {packs.length ? <PackStrip packs={packs} /> : null}
+
           {nearby ? (
             <div className={cx("flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[16px] px-4 py-3", nearby.hasPlace ? "border border-app-line bg-white" : "bg-[#FDF0D5]")}>
               <Icon name={nearby.hasPlace ? "pin" : "shield"} size={17} className="shrink-0" />
@@ -157,6 +173,7 @@ export async function FindProductsView({ tab, country, q, cat, categories, produ
             addedIds={addedIds}
             chips={[{ label: t("find.all"), href: hrefFor("nigeria", { q }), active: !cat }, ...categories.map((name) => ({ label: name, href: hrefFor("nigeria", { q, cat: name.toLowerCase() }), active: cat === name }))]}
             notified={notified}
+            markup={markup}
             emptyText={q ? (cat ? t("find.noMatchIn", { q, cat }) : t("find.noMatch", { q })) : t("find.nothingYet")}
           />
         </>

@@ -37,6 +37,7 @@ export default async function SupplierProductsPage({ searchParams }: PageProps) 
   const supplier = await getSupplierForUser(user);
   ensureSupplierAccess(supplier);
   const t = await getT("supplier", "common");
+  const tBulk = await getT("bulkAdd");
   const tipT = await getT("tips");
 
   const show = params.show && FILTERS[params.show] ? params.show : undefined;
@@ -86,6 +87,7 @@ export default async function SupplierProductsPage({ searchParams }: PageProps) 
       actions={
         <>
           <PillLink href="/supplier/products/import" icon="upload" iconOnlyOnPhone>{t("imp.button")}</PillLink>
+          <PillLink href="/supplier/products/bulk" icon="sparkle">{tBulk("entry.title")}</PillLink>
           <PillLink href="/supplier/products/new" tone="accent" icon="plus">{t("dashboard.addProduct")}</PillLink>
         </>
       }
