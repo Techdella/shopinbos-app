@@ -180,7 +180,7 @@ function ProductView({ product, listing, context, terms, refreshing, onRefresh }
       already ? (
         <PillButton title={t("product.seeInProducts")} onPress={() => router.push("/products")} />
       ) : mustAgree ? undefined : (
-        <PillButton title={t("product.put", { price: naira(listed ? listed.retailPrice : price) })} busy={busy} disabled={Boolean(priceProblem)} onPress={() => void add()} />
+        <PillButton title={t("product.put", { price: naira(listed ? listed.retailPrice : price) })} tone={terms ? "accent" : "ink"} busy={busy} disabled={Boolean(priceProblem)} onPress={() => void add()} />
       )
     ) : preorderCta && preordered ? (
       <PillButton disabled accessibilityLabel={tp("preorders.placed")}>

@@ -279,9 +279,10 @@ export function Notice({ tone = "error", children }: { tone?: "error" | "info" |
   );
 }
 
-export function Toggle({ on, onChange, label }: { on: boolean; onChange: (on: boolean) => void; label: string }) {
+/** An on/off switch. `tone="accent"`: orange when on, like the 2026 rules boards (P-Dropship, P-Branding). */
+export function Toggle({ on, onChange, label, tone = "success" }: { on: boolean; onChange: (on: boolean) => void; label: string; tone?: "success" | "accent" }) {
   return (
-    <Pressable accessibilityRole="switch" accessibilityLabel={label} accessibilityState={{ checked: on }} onPress={() => onChange(!on)} hitSlop={6} style={{ width: 52, height: 32, borderRadius: 16, backgroundColor: on ? colors.success : colors.toggleOff, justifyContent: "center" }}>
+    <Pressable accessibilityRole="switch" accessibilityLabel={label} accessibilityState={{ checked: on }} onPress={() => onChange(!on)} hitSlop={6} style={{ width: 52, height: 32, borderRadius: 16, backgroundColor: on ? (tone === "accent" ? colors.accent : colors.success) : colors.toggleOff, justifyContent: "center" }}>
       <View style={{ position: "absolute", left: on ? 23 : 3, width: 26, height: 26, borderRadius: 13, backgroundColor: "#FFFFFF" }} />
     </Pressable>
   );

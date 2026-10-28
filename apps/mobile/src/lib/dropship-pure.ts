@@ -21,8 +21,9 @@ import {
   type PriceMode,
   type ZoneRates,
 } from "../../../../shared/dropship-rules.ts";
-import { listingEarn, listingProblem, type DropshipTerms, type ListingChoice } from "../../../../shared/dropship-checkout.ts";
+import { cleanListingChoice, listingProblem, type DropshipTerms, type ListingChoice } from "../../../../shared/dropship-checkout.ts";
 import { NG_REGIONS, type SizeBand } from "../../../../shared/delivery-market.ts";
+import { paymentFee } from "./find-pure.ts";
 
 export type Vars = Record<string, string | number | null | undefined>;
 /** The app-language translator's `dynamic` (useT(...) on the phone). */
@@ -44,6 +45,11 @@ export const naira = (value: number) => `₦${Math.round(value).toLocaleString("
 export function amountOf(text: string | null | undefined): number | null {
   const value = Number(String(text ?? "").replace(/[,₦\s]/g, ""));
   return String(text ?? "").trim() !== "" && Number.isFinite(value) && value > 0 ? value : null;
+}
+
+/** "9500" shown as "9,500" in a naira box (what's typed is kept without the commas). */
+export function groupDigits(text: string): string {
+  return /^\d+$/.test(text) ? Number(text).toLocaleString("en-NG") : text;
 }
 
 const countOf = (text: string) => {
@@ -305,18 +311,47 @@ export function sellerInitials(name: string): string {
 
 // ─── Seller: add a supplier's product (A-Seller-AddSupplier) ─────────────────
 
-export interface ListingView {
+/**
+ * "On each order", line by line, exactly as the web's Find products panel works it out
+ * (src/app/marketplace/_components/DropshipTermsPanel.tsx with paymentFee from src/lib/marketplace/find.ts, mirrored in
+ * ./find-pure.ts): your price, less what you pay the supplier, the delivery you cover (the dearest zone when you pay
+ * it, the rest above a flat fee), the branding fee per parcel and the card payment fee on the sale.
+ */
+export interface ListingMoney {
+  price: number;
+  cost: number;
+  /** The customer pays delivery (the line reads "Customer pays"). */
+  customerPays: boolean;
+  deliveryShare: number;
+  brandingFee: number;
+  cardFee: number;
   earn: number;
+}
+
+export function listingMoney(terms: DropshipTerms, choice: ListingChoice): ListingMoney {
+  const clean = cleanListingChoice(terms, choice);
+  const price = choice.retailPrice;
+  const deliveryShare = clean.payer === "seller" ? terms.dearestDelivery : clean.payer === "flat" ? Math.max(0, terms.dearestDelivery - (clean.flatFee ?? 0)) : 0;
+  const cardFee = paymentFee(Math.max(0, Math.round(price)));
+  return { price, cost: terms.cost, customerPays: clean.payer === "customer", deliveryShare, brandingFee: clean.brandingFee, cardFee, earn: price - terms.cost - deliveryShare - clean.brandingFee - cardFee };
+}
+
+export interface ListingView {
+  /** What the web shows as "You earn": after the supplier, delivery you cover, branding and the card payment fee. */
+  earn: number;
+  money: ListingMoney;
   problem: string | null;
   /** The money row: You pay / Your price / You earn. */
   pay: number;
   floorLine: string | null;
 }
 
-/** You earn and the refusal line, live as the seller types (shared/dropship-checkout.ts, the POST's own rules). */
+/** You earn (as the web shows it) and the refusal line (the POST's own listingProblem), live as the seller types. */
 export function listingView(terms: DropshipTerms, choice: ListingChoice, words = wordsOf()): ListingView {
+  const money = listingMoney(terms, choice);
   return {
-    earn: listingEarn(terms, choice),
+    earn: money.earn,
+    money,
     problem: listingProblem(terms, choice),
     pay: terms.cost,
     floorLine: terms.floor > terms.cost || terms.minRetailPrice ? words("add.floor", "Lowest price allowed: {price}.", { price: naira(terms.floor) }) : null,

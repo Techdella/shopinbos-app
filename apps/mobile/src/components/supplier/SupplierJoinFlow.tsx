@@ -308,7 +308,7 @@ export function SupplierJoinFlow() {
           // Pre-order opens at Established (shared/supplier-onboarding.ts preorderLocked; the server drops it too):
           // shown locked with what unlocks it, and not selectable.
           if (mode === "preorder" && preorderIsLocked) return <LockedChoice key={mode} title={t("buy.preorder")} sub={t("buy.preorderLocked")} badge={t("buy.locked")} />;
-          return <Choice key={mode} multi title={t(`buy.${mode}`)} sub={t(`buy.${mode}Sub`)} on={on} onPress={() => setModes(on ? modes.filter((item) => item !== mode) : BUY_MODES.filter((item) => item === mode || modes.includes(item)))} />;
+          return <ModeChoice key={mode} title={t(`buy.${mode}`)} sub={t(`buy.${mode}Sub`)} on={on} onPress={() => setModes(on ? modes.filter((item) => item !== mode) : BUY_MODES.filter((item) => item === mode || modes.includes(item)))} />;
         })}
       </View>
     );
@@ -546,6 +546,7 @@ export function SupplierJoinFlow() {
       footer={
         action || skip ? (
           <>
+            {step === "buyModes" && modes.length ? <T style={{ fontSize: 14, textAlign: "center", color: colors.inkSoft }}>{t.dynamic("buy.picked", "{count} picked", { count: modes.length })}</T> : null}
             {action ? <PillButton title={action.label} tone="accent" busy={busy} disabled={busy} onPress={action.onPress} /> : null}
             {skip ? <LinkButton title={t("skip")} color={colors.inkSoft} onPress={skip} /> : null}
           </>
@@ -559,7 +560,28 @@ export function SupplierJoinFlow() {
   );
 }
 
-/** A choice the supplier can't pick yet (`.choice` with a dashed border and a "Locked" badge), like the web. */
+/** A way to buy (S05-HowBuy `.opt`): peach with an orange ring and an orange tick box when picked. */
+function ModeChoice({ title, sub, on, onPress }: { title: string; sub?: string; on: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: on }}
+      accessibilityLabel={sub ? `${title}. ${sub}` : title}
+      onPress={onPress}
+      style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 14, minHeight: 76, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 22, borderWidth: 2, borderColor: on ? colors.accent : colors.line, backgroundColor: on ? colors.peach : colors.surface, opacity: pressed ? 0.9 : 1 })}
+    >
+      <View style={{ flex: 1, gap: 3 }}>
+        <T weight="extrabold" style={{ fontSize: 17 }}>{title}</T>
+        {sub ? <T style={{ fontSize: 13, lineHeight: 19, color: colors.inkSoft }}>{sub}</T> : null}
+      </View>
+      <View style={{ width: 28, height: 28, borderRadius: 8, borderWidth: on ? 0 : 2, borderColor: colors.lineStrong, backgroundColor: on ? colors.accent : colors.surface, alignItems: "center", justifyContent: "center" }}>
+        {on ? <AppIcon name="check" size={15} color={colors.ink} strokeWidth={3} /> : null}
+      </View>
+    </Pressable>
+  );
+}
+
+/** A choice the supplier can't pick yet (S05-HowBuy's locked Pre-order: grey, a dashed edge and a lock), like the web. */
 function LockedChoice({ title, sub, badge }: { title: string; sub: string; badge: string }) {
   return (
     <View
@@ -567,16 +589,13 @@ function LockedChoice({ title, sub, badge }: { title: string; sub: string; badge
       accessibilityRole="checkbox"
       accessibilityState={{ checked: false, disabled: true }}
       accessibilityLabel={`${title}. ${sub}. ${badge}`}
-      style={{ flexDirection: "row", alignItems: "center", gap: 14, minHeight: 64, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 20, borderWidth: 1.5, borderStyle: "dashed", borderColor: colors.lineStrong, backgroundColor: colors.canvas }}
+      style={{ flexDirection: "row", alignItems: "center", gap: 14, minHeight: 76, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 22, borderWidth: 2, borderStyle: "dashed", borderColor: colors.line, backgroundColor: colors.grayTint }}
     >
       <View style={{ flex: 1, gap: 3 }}>
-        <T weight="bold" style={{ fontSize: 16, color: colors.inkSoft }}>{title}</T>
-        <T style={{ fontSize: 14, lineHeight: 19, color: colors.inkSoft }}>{sub}</T>
+        <T weight="extrabold" style={{ fontSize: 17 }}>{title}</T>
+        <T style={{ fontSize: 13, lineHeight: 19, color: colors.inkSoft }}>{sub}</T>
       </View>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.surface, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 }}>
-        <AppIcon name="lock" size={13} color={colors.inkSoft} />
-        <T weight="bold" style={{ fontSize: 12, color: colors.inkSoft }}>{badge}</T>
-      </View>
+      <AppIcon name="lock" size={18} color={colors.inkSoft} />
     </View>
   );
 }

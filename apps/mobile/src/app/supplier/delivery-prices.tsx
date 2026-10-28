@@ -2,9 +2,9 @@ import { useState } from "react";
 import { Pressable, TextInput, View } from "react-native";
 import { router } from "expo-router";
 import { DELIVERY_ZONES, ZONE_LABELS, type RateSource, type ZoneRates } from "@shared/dropship-rules";
-import { Banner } from "@/components/design";
+import { AppIcon } from "@/components/icons";
 import { ErrorState, LoadingBlock } from "@/components/kit";
-import { Screen } from "@/components/Screen";
+import { BoardScreen } from "@/components/Screen";
 import { useWords } from "@/components/supplier/DropshipKit";
 import { Notice, PillButton, T } from "@/components/ui";
 import { naira, rateDraftFrom, readRateDraft, zoneDaysWords, zoneExamples, type RateDraft } from "@/lib/dropship-pure";
@@ -64,43 +64,47 @@ function RatesForm({ view }: { view: DeliveryRatesView }) {
         accessibilityState={{ checked: on }}
         accessibilityLabel={`${title}. ${sub}`}
         onPress={() => setSource(value)}
-        style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 64, paddingHorizontal: 16, paddingVertical: 12, borderRadius: radii.card, borderWidth: on ? 2.5 : 1.5, borderColor: on ? colors.ink : colors.line, backgroundColor: colors.surface }}
+        style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 18, borderWidth: 2, borderColor: on ? colors.accent : colors.line, backgroundColor: on ? colors.peach : colors.surface }}
       >
         <View style={{ flex: 1, gap: 2 }}>
           <T weight="extrabold" style={{ fontSize: 15 }}>{title}</T>
-          <T style={{ fontSize: 13, lineHeight: 18, color: colors.inkSoft }}>{sub}</T>
+          <T style={{ fontSize: 12, lineHeight: 16, color: "#5E5A6C" }}>{sub}</T>
         </View>
-        <View style={{ width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: on ? colors.ink : colors.lineStrong, alignItems: "center", justifyContent: "center" }}>
-          {on ? <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: colors.ink }} /> : null}
+        <View style={{ width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: on ? colors.accent : "#D9D6E2", alignItems: "center", justifyContent: "center" }}>
+          {on ? <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colors.accent }} /> : null}
         </View>
       </Pressable>
     );
   };
 
   return (
-    <Screen
+    <BoardScreen
       title={words("rates.title", "Delivery prices")}
       sub={from ? words("rates.shipsFrom", "Ships from {place}", { place: from }) : undefined}
       footer={<PillButton title={words("rates.save", "Save delivery prices")} tone="accent" busy={busy} onPress={() => void save()} />}
+      gap={12}
     >
-      <Banner tone="ok" icon="truck" title={words("rates.never", "You never pay for delivery.")}>{words("rates.neverSub", "The customer or the seller pays it at checkout.")}</Banner>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: colors.successTint, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 12 }}>
+        <AppIcon name="check" size={18} color={colors.success} strokeWidth={2.6} />
+        <T style={{ flex: 1, fontSize: 14, lineHeight: 20 }}>{`${words("rates.never", "You never pay for delivery.")} ${words("rates.neverSub", "The customer or the seller pays it at checkout.")}`}</T>
+      </View>
       {!from ? (
         <Notice tone="info">{words("rates.noOrigin", "Add where you send parcels from (Account › Where parcels leave from) so we can work out each zone.")}</Notice>
       ) : null}
-      <View accessibilityRole="radiogroup" style={{ gap: 10 }}>
+      <View accessibilityRole="radiogroup" style={{ gap: 8 }}>
         {option("partners", words("rates.partners", "Use Shopinbos partner rates"), words("rates.partnersSub", "Prices from verified riders on each route. Nothing to type."))}
         {option("own", words("rates.own", "Set my own rates"), words("rates.ownSub", "If you already use a courier or park waybill"))}
       </View>
 
-      <View style={{ backgroundColor: colors.surface, borderRadius: radii.card, padding: 14, gap: 4 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 }}>
-          <T weight="extrabold" style={{ fontSize: 15, flex: 1 }}>{own ? words("rates.yours", "Your rates") : words("rates.partnerCard", "Partner rates")}</T>
+      <View style={{ backgroundColor: colors.surface, borderRadius: radii.card, paddingHorizontal: 14, paddingVertical: 12 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
+          <T style={{ fontFamily: fonts.display, fontSize: 16, flex: 1 }}>{own ? words("rates.yours", "Your rates") : words("rates.partnerCard", "Partner rates")}</T>
           <View accessibilityRole="tablist" style={{ flexDirection: "row", backgroundColor: colors.canvas, borderRadius: 999, padding: 3 }}>
             {SIZES.map((entry) => {
               const on = size === entry.band;
               return (
-                <Pressable key={entry.band} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => setSize(entry.band)} style={{ paddingHorizontal: 12, minHeight: 32, borderRadius: 999, justifyContent: "center", backgroundColor: on ? colors.ink : "transparent" }}>
-                  <T weight="bold" style={{ fontSize: 13, color: on ? "#FFFFFF" : colors.ink }}>{words(`ds.size.${entry.band}`, entry.english)}</T>
+                <Pressable key={entry.band} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => setSize(entry.band)} style={{ paddingHorizontal: 10, height: 30, borderRadius: 999, justifyContent: "center", backgroundColor: on ? colors.ink : "transparent" }}>
+                  <T weight="extrabold" style={{ fontSize: 12, color: on ? "#FFFFFF" : colors.grayInk }}>{words(`ds.size.${entry.band}`, entry.english)}</T>
                 </Pressable>
               );
             })}
@@ -112,10 +116,10 @@ function RatesForm({ view }: { view: DeliveryRatesView }) {
           const label = words(`zone.${zone}`, ZONE_LABELS[zone]);
           const sizeWord = words(`ds.size.${size}`, SIZES.find((entry) => entry.band === size)!.english);
           return (
-            <View key={zone} style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 56, borderTopWidth: index ? 1 : 0, borderTopColor: colors.line }}>
-              <View style={{ flex: 1, gap: 2 }}>
-                <T weight="bold" style={{ fontSize: 15 }}>{label}</T>
-                <T style={{ fontSize: 12.5, color: colors.inkSoft }} numberOfLines={1}>{sub}</T>
+            <View key={zone} style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: own ? 6 : 11, minHeight: 56, borderTopWidth: index ? 1 : 0, borderTopColor: colors.grayTint }}>
+              <View style={{ flex: 1, gap: 1 }}>
+                <T weight="extrabold" style={{ fontSize: 14 }}>{label}</T>
+                <T style={{ fontSize: 12, color: colors.inkSoft }} numberOfLines={1}>{sub}</T>
               </View>
               {own ? (
                 <TextInput
@@ -125,20 +129,20 @@ function RatesForm({ view }: { view: DeliveryRatesView }) {
                   accessibilityLabel={words("rates.priceFor", "{zone}, {size}: price", { zone: label, size: sizeWord })}
                   placeholder="₦"
                   placeholderTextColor={colors.inkFaint}
-                  style={{ width: 104, minHeight: 44, borderRadius: 14, borderWidth: 2, borderColor: colors.line, paddingHorizontal: 12, textAlign: "right", fontSize: 17, fontFamily: fonts.display, color: colors.ink }}
+                  style={{ width: 104, height: 44, borderRadius: 14, borderWidth: 2, borderColor: colors.line, paddingHorizontal: 12, textAlign: "right", fontSize: 18, fontFamily: fonts.display, color: colors.ink }}
                 />
               ) : (
-                <T style={{ fontFamily: fonts.display, fontSize: 17 }}>{view.defaults[zone][size] ? words("rates.about", "~{price}", { price: naira(view.defaults[zone][size]!) }) : "–"}</T>
+                <T style={{ fontFamily: fonts.display, fontSize: 18 }}>{view.defaults[zone][size] ? naira(view.defaults[zone][size]!) : "–"}</T>
               )}
             </View>
           );
         })}
-        <T style={{ fontSize: 12.5, lineHeight: 18, color: colors.inkSoft, marginTop: 6 }}>
+        <T style={{ fontSize: 12, lineHeight: 17, color: colors.inkSoft, marginTop: 4 }}>
           {own ? words("rates.ownHint", "Leave a box empty if you don't send that size there. Farther should cost the same or more.") : words("rates.partnerHint", "About what partners charge; the real price comes from the partner on each route.")}
         </T>
       </View>
       {error ? <Notice>{error}</Notice> : null}
-    </Screen>
+    </BoardScreen>
   );
 }
 
@@ -148,9 +152,9 @@ export default function DeliveryPricesScreen() {
   // The form starts from what was saved (its state is set once, so a quiet reload doesn't undo typing).
   if (rates.data) return <RatesForm view={rates.data} />;
   return (
-    <Screen title={words("rates.title", "Delivery prices")}>
+    <BoardScreen title={words("rates.title", "Delivery prices")}>
       {rates.loading ? <LoadingBlock /> : null}
       {rates.error ? <ErrorState message={rates.error} onRetry={() => void rates.reload()} /> : null}
-    </Screen>
+    </BoardScreen>
   );
 }

@@ -15,6 +15,8 @@ const app = (path) => read(`apps/mobile/src/${path}`);
 const pure = await import("../apps/mobile/src/lib/dropship-pure.ts");
 const rules = await import("../shared/dropship-rules.ts");
 const checkout = await import("../shared/dropship-checkout.ts");
+const webFind = await import("../src/lib/marketplace/find.ts");
+const findPure = await import("../apps/mobile/src/lib/find-pure.ts");
 
 const form = (patch = {}) => ({ ...pure.pricesFormFrom(null), base: "9000", suggested: "14000", ...patch });
 
@@ -106,7 +108,7 @@ test("Dropship settings, delivery rate card, level meter and the pack button", (
   assert.equal(pure.sellerInitials("Ada's Kloset"), "ak.");
 });
 
-test("Add to your store: You earn and the refusal are the server's listingEarn / listingProblem", () => {
+test("Add to your store: You earn is the web's, and the refusal is the server's listingProblem", () => {
   const terms = checkout.dropshipTerms({
     product: { priceMode: "per_channel", wholesalePrice: 9000, dropshipPrice: 9500, suggestedRetailPrice: 14000, minRetailPrice: 12000, stockQuantity: 86, sizeBand: "small" },
     supplier: { city: "Port Harcourt", level: "trusted", brandingOffer: { stickers: true, stickerFee: 200 } },
@@ -122,10 +124,11 @@ test("Add to your store: You earn and the refusal are the server's listingEarn /
     { retailPrice: 11000, payer: "customer" },
   ]) {
     const view = pure.listingView(terms, choice);
-    assert.equal(view.earn, checkout.listingEarn(terms, choice));
+    // The server's margin (no card fee) less the card payment fee on the sale is what the web shows.
+    assert.equal(view.earn, checkout.listingEarn(terms, choice) - webFind.paymentFee(choice.retailPrice));
     assert.equal(view.problem, checkout.listingProblem(terms, choice));
   }
-  assert.equal(pure.listingView(terms, { retailPrice: 14000, payer: "customer", brandingChoice: "stickers" }).earn, 4300);
+  assert.equal(pure.listingView(terms, { retailPrice: 14000, payer: "customer", brandingChoice: "stickers" }).earn, 3990);
   assert.match(pure.listingView(terms, { retailPrice: 11000, payer: "customer" }).problem, /lowest price for this is ₦12,000/);
   assert.equal(pure.listingView(terms, { retailPrice: 14000 }).floorLine, "Lowest price allowed: ₦12,000.");
   assert.equal(pure.deliveryLine(terms, "Lagos"), "Lagos: ₦4,500 · 3–7 days", "3–6 days on the road plus a day to pack");
@@ -134,6 +137,53 @@ test("Add to your store: You earn and the refusal are the server's listingEarn /
   assert.equal(pure.brandingLabel({ label: "My stickers or bags", fee: 200 }), "My stickers or bags +₦200");
   assert.equal(pure.supplierBadgeLine({ level: "trusted", rating: 4.7, ratingCount: 18 }), "Trusted supplier · ★ 4.7 from 18 shops");
   assert.equal(pure.supplierBadgeLine({ level: "new", rating: null, ratingCount: 0 }), null);
+});
+
+// The web's "On each order" (src/app/marketplace/_components/DropshipTermsPanel.tsx), line for line: ProductDetail
+// passes paymentFee={saleBreakdown(price, cost).fee} (src/lib/marketplace/find.ts).
+function webOnEachOrder(terms, choice) {
+  const clean = checkout.cleanListingChoice(terms, { retailPrice: choice.retailPrice, payer: choice.payer, flatFee: choice.flatFee ?? null, brandingChoice: choice.brandingChoice });
+  const deliveryShare = clean.payer === "seller" ? terms.dearestDelivery : clean.payer === "flat" ? Math.max(0, terms.dearestDelivery - (clean.flatFee ?? 0)) : 0;
+  const paymentFee = webFind.saleBreakdown(choice.retailPrice, terms.cost).fee;
+  return { deliveryShare, brandingFee: clean.brandingFee, paymentFee, earn: choice.retailPrice - terms.cost - deliveryShare - clean.brandingFee - paymentFee };
+}
+
+test("You earn on the phone is exactly the web's: card payment fee and branding fee taken off", () => {
+  const panel = read("src/app/marketplace/_components/DropshipTermsPanel.tsx");
+  assert.match(panel, /const deliveryShare = clean\.payer === "seller" \? terms\.dearestDelivery : clean\.payer === "flat" \? Math\.max\(0, terms\.dearestDelivery - \(clean\.flatFee \?\? 0\)\) : 0;/, "the web's formula is the one mirrored here");
+  assert.match(panel, /const earn = price - terms\.cost - deliveryShare - clean\.brandingFee - paymentFee;/);
+  assert.match(read("src/app/marketplace/_components/ProductDetail.tsx"), /paymentFee=\{sale\.fee\}/);
+  for (const amount of [0, 900, 2499, 2500, 14000, 13000, 120000, 500000]) assert.equal(findPure.paymentFee(amount), webFind.paymentFee(amount), `card fee on ${amount}`);
+
+  const terms = checkout.dropshipTerms({
+    product: { priceMode: "per_channel", wholesalePrice: 9000, dropshipPrice: 9500, suggestedRetailPrice: 14000, stockQuantity: 86, sizeBand: "small" },
+    supplier: { city: "Port Harcourt", level: "trusted", brandingOffer: { stickers: true, stickerFee: 200, packingSlip: true, packingSlipFee: 150 } },
+    delivery: { rateSource: "own", zoneRates: rules.DEFAULT_ZONE_RATES },
+    origin: { state: "Rivers", area: "Port Harcourt" },
+    sellerPlace: { state: "Lagos", area: "Yaba" },
+  });
+  assert.equal(terms.dearestDelivery, 4500);
+  const cases = [
+    [{ retailPrice: 14000, payer: "customer", brandingChoice: "blind" }, 4190],
+    [{ retailPrice: 14000, payer: "customer", brandingChoice: "stickers" }, 3990],
+    [{ retailPrice: 14000, payer: "seller", brandingChoice: "blind" }, -310],
+    [{ retailPrice: 18000, payer: "seller", brandingChoice: "stickers" }, 18000 - 9500 - 4500 - 200 - 370],
+    [{ retailPrice: 14000, payer: "flat", flatFee: 2000, brandingChoice: "packing_slip" }, 14000 - 9500 - 2500 - 150 - 310],
+    [{ retailPrice: 2000, payer: "customer", brandingChoice: "blind" }, 2000 - 9500 - 30],
+  ];
+  for (const [choice, earn] of cases) {
+    const web = webOnEachOrder(terms, choice);
+    const phone = pure.listingView(terms, choice);
+    assert.equal(phone.earn, web.earn, JSON.stringify(choice));
+    assert.equal(phone.earn, earn, JSON.stringify(choice));
+    assert.deepEqual([phone.money.deliveryShare, phone.money.brandingFee, phone.money.cardFee], [web.deliveryShare, web.brandingFee, web.paymentFee]);
+  }
+  const blind = pure.listingView(terms, { retailPrice: 14000, payer: "customer", brandingChoice: "blind" }).money;
+  assert.deepEqual(blind, { price: 14000, cost: 9500, customerPays: true, deliveryShare: 0, brandingFee: 0, cardFee: 310, earn: 4190 });
+
+  // The phone shows the web's lines under the three tiles.
+  const add = app("components/seller/AddFromSupplier.tsx");
+  for (const words of ['"Your price"', '"You pay {name}"', '"Delivery"', '"Delivery you cover (up to)"', '"Branding per parcel"', '"Card payment fee"', '"You earn"']) assert.ok(add.includes(words), words);
 });
 
 test("pay on delivery: locked below Cash trusted, never locked off for a partner already offering it", () => {

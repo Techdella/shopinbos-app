@@ -3,10 +3,9 @@ import { Alert, Pressable, ScrollView, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import { Heading, Sub } from "@/components/design";
 import { AppIcon } from "@/components/icons";
 import { ChipRow, ErrorState, LoadingBlock } from "@/components/kit";
-import { Screen } from "@/components/Screen";
+import { BoardScreen, Screen } from "@/components/Screen";
 import { FieldLabel } from "@/components/SupplierKit";
 import { ChannelPrices, DropshipSettings, LockedPreorderCard, useWords } from "@/components/supplier/DropshipKit";
 import { PreorderEditor } from "@/components/Preorder";
@@ -150,45 +149,40 @@ export default function EditSupplierProduct() {
   const title = part === "prices" ? words("prices.title", "Prices") : part === "dropship" ? words("ds.title", "Dropship settings") : t("edit.title");
 
   if (!data) {
+    const Frame = part ? BoardScreen : Screen;
     return (
-      <Screen title={title}>
+      <Frame title={title}>
         {product.loading ? <LoadingBlock /> : null}
         {product.error ? <ErrorState message={product.error} onRetry={() => void product.reload()} /> : null}
-      </Screen>
+      </Frame>
     );
   }
 
   const cta = part === "prices" ? words("prices.save", "Save prices") : part === "dropship" ? t("save") : t("product.save");
   // A listing already taking pre-orders stays editable (and can be switched off); otherwise they open at Established.
   const preorderEditable = data.preorderEnabled !== undefined && (preorderOpen || data.preorderEnabled === true);
+  const footer = (
+    <>
+      {busy && busy !== "save" ? <T style={{ color: colors.inkSoft, textAlign: "center", fontSize: 15 }}>{busy}</T> : null}
+      <PillButton title={cta} tone="accent" busy={Boolean(busy)} onPress={() => void save()} />
+    </>
+  );
+
+  // Prices (P-Pricing) and Dropship settings (P-Dropship) are drawn like their boards: the product's name under the title.
+  if (part) {
+    return (
+      <BoardScreen title={title} sub={part === "prices" ? data.name : words("ds.sub", "Sellers see these before they add your product")} footer={footer}>
+        {error ? <Notice>{error}</Notice> : null}
+        {part === "prices" ? <ChannelPrices value={prices} onChange={setPrices} level={level.data ?? null} /> : <DropshipSettings value={shipping} onChange={setShipping} />}
+        <LinkButton title={t("edit.everything")} color={colors.inkSoft} onPress={() => router.setParams({ focus: "" })} />
+      </BoardScreen>
+    );
+  }
 
   return (
-    <Screen
-      title={title}
-      footer={
-        <>
-          {busy && busy !== "save" ? <T style={{ color: colors.inkSoft, textAlign: "center", fontSize: 15 }}>{busy}</T> : null}
-          <PillButton title={cta} tone="accent" busy={Boolean(busy)} onPress={() => void save()} />
-        </>
-      }
-    >
+    <Screen title={title} footer={footer}>
       {error ? <Notice>{error}</Notice> : null}
-      {part === "prices" ? (
-        <>
-          <Heading>{data.name}</Heading>
-          <ChannelPrices value={prices} onChange={setPrices} level={level.data ?? null} />
-          <LinkButton title={t("edit.everything")} color={colors.inkSoft} onPress={() => router.setParams({ focus: "" })} />
-        </>
-      ) : part === "dropship" ? (
-        <>
-          <View style={{ gap: 4 }}>
-            <Heading>{data.name}</Heading>
-            <Sub>{words("ds.sub", "Sellers see these before they add your product")}</Sub>
-          </View>
-          <DropshipSettings value={shipping} onChange={setShipping} />
-          <LinkButton title={t("edit.everything")} color={colors.inkSoft} onPress={() => router.setParams({ focus: "" })} />
-        </>
-      ) : (
+      {(
         <>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
             {photos.map((photo, index) => (
