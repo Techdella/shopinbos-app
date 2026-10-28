@@ -58,7 +58,7 @@ export function PartnerVerificationFlow({ accountName }: { accountName: string }
     <div className="w-full lg:grid lg:flex-1 lg:grid-cols-[260px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)]">
       <div className="hidden bg-app-forest lg:block">
       <StepRail
-        className="sticky top-0 hidden lg:flex lg:min-h-[calc(100dvh-4rem)] lg:px-6 lg:py-9 xl:px-7"
+        className="sticky top-0 hidden lg:flex lg:min-h-[calc(100dvh-4rem)] lg:px-6 lg:py-9 xl:px-7 lg:[@media(max-height:820px)]:gap-4 lg:[@media(max-height:820px)]:py-6 lg:[@media(max-height:820px)]:[&_li]:py-[7px]"
         showLogo={false}
         who={state.business.companyName || accountName || t("rail.title")}
         role={t("rail.title")}
