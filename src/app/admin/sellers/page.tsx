@@ -8,7 +8,7 @@ import { storeUrl } from "@/lib/marketing/brand";
 // Admin › Sellers: every shop, like Suppliers and Logistics. Shop and business details only; the owner's contact
 // details are on the shop's page, masked until revealed with a reason (Nigeria Data Protection Act 2023).
 
-const FILTER_LABELS: Record<SellerFilter, string> = { active: "Live", suspended: "Paused", paid: "On a paid plan", new: "New this week" };
+const FILTER_LABELS: Record<SellerFilter, string> = { active: "Live", suspended: "Paused", paid: "On a paid plan", gifted: "Free plan time", new: "New this week" };
 
 export default async function AdminSellersPage(props: { searchParams?: Promise<{ filter?: string; q?: string; page?: string }> }) {
   const user = await requireAdminSection("partners");
@@ -42,7 +42,7 @@ export default async function AdminSellersPage(props: { searchParams?: Promise<{
           { label: "All shops", value: counts.all },
           { label: "Live", value: counts.active },
           { label: "Paused", value: counts.suspended },
-          { label: "On a paid plan", value: counts.paid },
+          { label: "On a paid plan", value: counts.paid, hint: counts.gifted ? `+ ${counts.gifted} on free plan time` : "Paid through Paystack" },
           { label: "New this week", value: counts.new },
         ]}
       />
@@ -70,6 +70,7 @@ export default async function AdminSellersPage(props: { searchParams?: Promise<{
                 <div className="flex flex-wrap items-center gap-1.5">
                   <Pill tone={row.status === "active" ? "success" : "danger"} dot>{row.status === "active" ? "Live" : "Paused"}</Pill>
                   <Pill tone={row.paidPlan ? "accent" : "muted"}>{row.plan}</Pill>
+                  {row.giftNote && <span className="text-[12px] text-app-ink-soft">{row.giftNote}</span>}
                 </div>
                 <div className="w-full text-[13px] text-app-ink-soft sm:w-auto lg:w-[220px] lg:shrink-0 lg:text-right">
                   {row.products} products · {row.orders30} paid orders (30 days)

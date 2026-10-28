@@ -10,17 +10,24 @@ import { PLANS_BY_ROLE, PLAN_MARKERS, PLAN_NAMES, planKeyFor } from "@shared/pla
 // shop's customers are only ever counted, never listed.
 
 const DAY = 86_400_000;
-export const SELLER_FILTERS = ["active", "suspended", "paid", "new"] as const;
+export const SELLER_FILTERS = ["active", "suspended", "paid", "gifted", "new"] as const;
 export type SellerFilter = (typeof SELLER_FILTERS)[number];
 export const SELLERS_PER_PAGE = 50;
 
 const PAID_SELLER_MARKERS = PLANS_BY_ROLE.seller.filter((key) => key in PLAN_MARKERS).map((key) => PLAN_MARKERS[key as keyof typeof PLAN_MARKERS]);
 const paidStatuses = [...PAID_ORDER_STATUSES];
 
+// A paid tier is only "paid" when money came in through Paystack: a redeemed payment or a live subscription. A tier
+// without either is free time (a referral welcome month, a milestone or an admin gift, PlanGrant) and is counted apart.
+const PAID_THROUGH_PAYSTACK: Prisma.UserWhereInput = {
+  OR: [{ planStatus: { in: ["active", "non_renewing"] } }, { paymentReceipts: { some: {} } }],
+};
+
 function filterWhere(filter: SellerFilter | undefined, now: Date): Prisma.StoreWhereInput {
   if (filter === "active") return { status: "active" };
   if (filter === "suspended") return { status: { not: "active" } };
-  if (filter === "paid") return { user: { aiCredits: { in: PAID_SELLER_MARKERS } } };
+  if (filter === "paid") return { user: { aiCredits: { in: PAID_SELLER_MARKERS }, ...PAID_THROUGH_PAYSTACK } };
+  if (filter === "gifted") return { user: { aiCredits: { in: PAID_SELLER_MARKERS }, NOT: PAID_THROUGH_PAYSTACK } };
   if (filter === "new") return { createdAt: { gte: new Date(now.getTime() - 7 * DAY) } };
   return {};
 }
@@ -50,18 +57,19 @@ export async function listSellers(input: { filter?: SellerFilter; q?: string; pa
       take: SELLERS_PER_PAGE,
       select: {
         id: true, name: true, slug: true, logoUrl: true, city: true, country: true, status: true, customDomain: true, createdAt: true, userId: true,
-        user: { select: { name: true, aiCredits: true } },
+        user: { select: { name: true, aiCredits: true, planStatus: true, _count: { select: { paymentReceipts: true } } } },
         _count: { select: { storeProducts: true } },
       },
     }),
   ]);
   const ids = stores.map((store) => store.id);
   const userIds = stores.map((store) => store.userId);
-  const [orders, active] = await Promise.all([
+  const [orders, active, grants] = await Promise.all([
     ids.length
       ? db.retailOrder.groupBy({ by: ["storeId"], where: { storeId: { in: ids }, status: { in: paidStatuses }, createdAt: { gte: new Date(now.getTime() - 30 * DAY) } }, _count: { _all: true }, _sum: { total: true } })
       : [],
     userIds.length ? db.userActivityDay.groupBy({ by: ["userId"], where: { userId: { in: userIds } }, _max: { day: true } }).catch(() => []) : [],
+    userIds.length ? runningGrants(userIds, now) : new Map<string, GrantInfo>(),
   ]);
   const orderBy = new Map(orders.map((row) => [row.storeId, row]));
   const activeBy = new Map(active.map((row) => [row.userId, row._max.day]));
@@ -73,12 +81,36 @@ export async function listSellers(input: { filter?: SellerFilter; q?: string; pa
       ...store,
       ownerFirstName: store.user.name.trim().split(/\s+/)[0] ?? "",
       plan: PLAN_NAMES[planKeyFor("seller", store.user.aiCredits)],
-      paidPlan: PAID_SELLER_MARKERS.includes(store.user.aiCredits),
+      ...planSource(store.user, grants.get(store.userId)),
       products: store._count.storeProducts,
       orders30: orderBy.get(store.id)?._count._all ?? 0,
       sales30: orderBy.get(store.id)?._sum.total ?? 0,
       lastActive: activeBy.get(store.userId) ?? null,
     })),
+  };
+}
+
+type GrantInfo = { source: string; endsAt: Date };
+
+/** The free time running for each user (the latest-ending grant), so a gifted tier says where it came from. */
+async function runningGrants(userIds: string[], now: Date) {
+  const rows = await db.planGrant
+    .findMany({ where: { userId: { in: userIds }, endsAt: { gt: now } }, orderBy: { endsAt: "asc" }, select: { userId: true, source: true, endsAt: true } })
+    .catch(() => []);
+  return new Map(rows.map((row) => [row.userId, { source: row.source, endsAt: row.endsAt }]));
+}
+
+const GRANT_LABELS: Record<string, string> = { referral: "referral reward", referral_welcome: "referral welcome", milestone: "milestone reward", admin: "admin gift" };
+
+/** Whether a seller's tier was paid through Paystack, or is free time (and which kind, until when). */
+function planSource(user: { aiCredits: number; planStatus: string | null; _count: { paymentReceipts: number } }, grant: GrantInfo | undefined) {
+  const tiered = PAID_SELLER_MARKERS.includes(user.aiCredits);
+  const paidPlan = tiered && (user.planStatus === "active" || user.planStatus === "non_renewing" || user._count.paymentReceipts > 0);
+  const giftedPlan = tiered && !paidPlan;
+  return {
+    paidPlan,
+    giftedPlan,
+    giftNote: giftedPlan ? `Free · ${grant ? `${GRANT_LABELS[grant.source] ?? grant.source}, ends ${grant.endsAt.toISOString().slice(0, 10)}` : "not paid"}` : null,
   };
 }
 
@@ -90,6 +122,7 @@ export async function sellerDetail(storeId: string, now = new Date()) {
       user: {
         select: {
           id: true, name: true, email: true, phone: true, aiCredits: true, planInterval: true, planStatus: true, planPaidUntil: true, createdAt: true,
+          _count: { select: { paymentReceipts: true } },
           wallet: { select: { bankName: true, accountNumber: true, kycStatus: true, status: true } },
         },
       },
@@ -99,16 +132,18 @@ export async function sellerDetail(storeId: string, now = new Date()) {
   if (!store) return null;
   const since = new Date(now.getTime() - 30 * DAY);
   const paid = { storeId, status: { in: paidStatuses } };
-  const [all, recent, customers, lastActive] = await Promise.all([
+  const [all, recent, customers, lastActive, grants] = await Promise.all([
     db.retailOrder.aggregate({ where: paid, _count: { _all: true }, _sum: { total: true } }),
     db.retailOrder.aggregate({ where: { ...paid, createdAt: { gte: since } }, _count: { _all: true }, _sum: { total: true } }),
     // A count of distinct buyers only: their names and details are the seller's data, not ours to browse.
     db.retailOrder.groupBy({ by: ["buyerEmail"], where: paid }).then((rows) => rows.length),
     db.userActivityDay.findFirst({ where: { userId: store.userId }, orderBy: { day: "desc" }, select: { day: true } }).catch(() => null),
+    runningGrants([store.userId], now),
   ]);
   return {
     ...store,
     plan: PLAN_NAMES[planKeyFor("seller", store.user.aiCredits)],
+    ...planSource(store.user, grants.get(store.userId)),
     stats: {
       products: store._count.storeProducts,
       orders: all._count._all,

@@ -58,3 +58,11 @@ test("admin sellers: in the Partners section and the nav; logged actions; no buy
   assert.match(server, /groupBy\(\{ by: \["buyerEmail"\][\s\S]*rows\.length/);
   assert.match(server, /email: \{ equals: q/);
 });
+
+test("admin sellers: 'paid plan' means paid through Paystack; free plan time (PlanGrant) is counted apart", () => {
+  const server = read("src/lib/admin/sellers.server.ts");
+  assert.match(server, /PAID_THROUGH_PAYSTACK[\s\S]*planStatus: \{ in: \["active", "non_renewing"\] \}[\s\S]*paymentReceipts: \{ some: \{\} \}/);
+  assert.match(server, /filter === "paid"\) return \{ user: \{ aiCredits: \{ in: PAID_SELLER_MARKERS \}, \.\.\.PAID_THROUGH_PAYSTACK \} \}/);
+  assert.match(server, /filter === "gifted"\) return \{ user: \{ aiCredits: \{ in: PAID_SELLER_MARKERS \}, NOT: PAID_THROUGH_PAYSTACK \} \}/);
+  assert.ok(!/paidPlan: PAID_SELLER_MARKERS\.includes/.test(server), "a tier marker alone is not a payment");
+});
