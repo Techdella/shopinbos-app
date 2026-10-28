@@ -163,7 +163,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "followers.short": "Ụlọ ahịa na-eso gị ka ha bụrụ ndị mbụ nụrụ maka ngwaahịa ọhụrụ, mbelata ọnụahịa na ngwaahịa laghachiri.",
   "followers.example": "Ụlọ ahịa 62 na-eso gị, ya mere ozi “Ankara ọhụrụ 200” gị ruru ha niile 62.",
   "verification.short": "Inyocha ID gị ma ọ bụ akwụkwọ ụlọ ọrụ gị ka ụlọ ahịa na ndị na-azụ tụkwasị gị obi.",
-  "verification.example": "Bulite asambodo CAC gị ma nweta akara “Verified”.",
+  "verification.example": "Lelee NIN gị, ma ọ bụ akwụkwọ CAC gị, ka ị nweta akara “Verified”.",
   "dashboard.short": "Ihuenyo mbụ gị: ire taa, ihe ị ga-eme na ndụmọdụ, niile n'otu ebe.",
   "dashboard.example": "“Orders 3 ị ga-ekechi, chats ọhụrụ 5, ₦86,500 ere taa.”",
   "orders.short": "Ire ọ bụla, ya na onye zụrụ, ihe ọ zụrụ, otu o si kwụọ na ebe ngwugwu ahụ dị ugbu a.",

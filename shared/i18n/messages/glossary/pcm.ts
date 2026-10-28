@@ -163,7 +163,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "followers.short": "Shops wey dey follow you so dem go first hear about your new stock, price drop and restock.",
   "followers.example": "62 shops dey follow you, so your “200 new Ankara prints” update go reach all 62.",
   "verification.short": "To check your ID or company papers so shops and buyers fit trust you.",
-  "verification.example": "Upload your CAC certificate and get “Verified” badge.",
+  "verification.example": "Check your NIN, or your CAC papers, make you get “Verified” badge.",
   "dashboard.short": "Your first screen: today sales, wetin you need do and tips, all for one place.",
   "dashboard.example": "“3 orders to pack, 5 new chats, ₦86,500 sold today.”",
   "orders.short": "Every sale, with who buy, wetin dem buy, how dem pay and where the parcel dey now.",

@@ -210,3 +210,13 @@ test("unverified partners are sent to verify: after set-up, from blocked job pag
   const setup = read("src/lib/onboarding/setup-status.server.ts");
   assert.match(setup, /tier1Checklist\(found\.snapshot\)/, "the set-up checklist follows the tier steps, not CAC + insurance");
 });
+
+test("the partners' 60-second verification intro says no CAC to start and never mentions a BVN", async () => {
+  const { introForPath } = await import("../shared/feature-intros.ts");
+  const intro = introForPath("/logistics/verification", "logistics_partner");
+  assert.equal(intro?.key, "partner-verification");
+  const words = intro.scenes.map((scene) => `${scene.caption} ${scene.sub} ${(scene.chips ?? []).join(" ")}`).join(" ");
+  assert.match(words, /don’t need CAC to start/);
+  assert.doesNotMatch(words, /BVN|Upload your CAC/);
+  assert.equal(introForPath("/supplier/verification", "supplier")?.key, "verification");
+});

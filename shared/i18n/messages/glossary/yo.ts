@@ -163,7 +163,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "followers.short": "Àwọn ṣọ́ọ̀bù tó ń tẹ̀lé ọ kí wọ́n lè kọ́kọ́ gbọ́ nípa ọjà tuntun, ìdínkù owó àti ọjà tó padà dé.",
   "followers.example": "Ṣọ́ọ̀bù 62 ń tẹ̀lé ọ, nítorí náà ìròyìn “200 Ankara tuntun” rẹ dé ọ̀dọ̀ gbogbo 62.",
   "verification.short": "Ṣíṣàyẹ̀wò ID tàbí ìwé ilé-iṣẹ́ rẹ kí àwọn ṣọ́ọ̀bù àti olùrà lè gbẹ́kẹ̀lé ọ.",
-  "verification.example": "Gbé ìwé-ẹ̀rí CAC rẹ sókè, kí o sì gba àmì “Verified”.",
+  "verification.example": "Ṣàyẹ̀wò NIN rẹ, tàbí ìwé CAC rẹ, kí o sì gba bàájì “Verified”.",
   "dashboard.short": "Ojú-ìwé àkọ́kọ́ rẹ: títà òní, ohun tó yẹ kí o ṣe àti ìmọ̀ràn, gbogbo rẹ̀ níbì kan.",
   "dashboard.example": "“Order 3 láti dì, chat tuntun 5, ₦86,500 tí o tà lónìí.”",
   "orders.short": "Gbogbo títà, pẹ̀lú ẹni tó rà, ohun tó rà, bí ó ṣe sanwó àti ibi tí ẹrù wà báyìí.",

@@ -206,7 +206,7 @@ const en = {
   "followers.short": "Shops that follow you to hear first about your new stock, price drops and restocks.",
   "followers.example": "62 shops follow you, so your “200 new Ankara prints” update reaches all 62.",
   "verification.short": "Checking your ID or company papers so shops and buyers can trust you.",
-  "verification.example": "Upload your CAC certificate and get a “Verified” badge.",
+  "verification.example": "Check your NIN, or your CAC papers, and get a “Verified” badge.",
 } satisfies Record<string, string>;
 
 export default en;
