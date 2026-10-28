@@ -9,7 +9,7 @@ import {
   addressFromName,
   BRAND_LOOKS,
   BRAND_PALETTES,
-  FALLBACK_SELL_CATEGORIES,
+  businessCategories,
   firstNameOf,
   lettermark,
   naira,
@@ -149,7 +149,7 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
   // ── Loaders for the screens that need data ─────────────────────────────────
   useEffect(() => {
     if (question !== "sell" || categories.length) return;
-    void fetchSellCategories().then((names) => setCategories(names.length ? names : [...FALLBACK_SELL_CATEGORIES]));
+    void fetchSellCategories().then((names) => setCategories(businessCategories(names)));
   }, [question, categories.length]);
 
   useEffect(() => {

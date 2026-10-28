@@ -306,6 +306,24 @@ export const FALLBACK_SELL_CATEGORIES = [
   "Other",
 ] as const;
 
+/**
+ * The chips for "What do you sell?" / "What do you supply?": the everyday categories first (the marketplace's own
+ * list is only as broad as the catalogues imported so far), then the marketplace's categories not already
+ * covered, then "Other".
+ */
+export function businessCategories(marketplace: readonly string[]): string[] {
+  const key = (name: string) => name.toLowerCase().replace(/&/g, "and").replace(/[^a-z]+/g, " ").trim();
+  const starters = FALLBACK_SELL_CATEGORIES.filter((name) => name !== "Other") as string[];
+  const seen = new Set(starters.map(key));
+  const extra = marketplace.filter((name) => {
+    const k = key(name);
+    if (!k || seen.has(k) || k === "other") return false;
+    seen.add(k);
+    return true;
+  });
+  return [...starters, ...extra, "Other"];
+}
+
 /** The free web address before ".shopinbos.com" suggested from the store name. */
 export function addressFromName(name: string) {
   return shopSlug(name).slice(0, 40).replace(/-+$/g, "");

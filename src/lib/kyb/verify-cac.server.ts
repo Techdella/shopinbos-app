@@ -104,6 +104,7 @@ async function lookupKorapayCac(rcNumber: string, companyType: CacCompanyType, r
     if (status === 400 || status === 422) {
       // A refused number is "no record"; a refused key, consent or balance is ours to fix (the person gets the upload route).
       const message = typeof reply?.message === "string" ? reply.message : "";
+      console.error("[kyb/cac] Korapay refused the lookup", status, message, JSON.stringify((json as { data?: unknown; errors?: unknown } | null)?.errors ?? (json as { data?: unknown } | null)?.data ?? null).slice(0, 400));
       return /not found|no record|invalid (rc|bn|cac|registration|id)|does not exist/i.test(message) ? { ok: true, record: null } : { ok: false, reason: "unavailable" };
     }
     if (status < 200 || status >= 300 || reply?.status !== true) {

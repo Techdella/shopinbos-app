@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { cacCheckEnabled } from "@/lib/kyb/verify-cac.server";
 import { deliverySettingsFor } from "@/lib/delivery-market/market.server";
 import { normalizeVerificationDocs } from "@shared/verification-docs";
+import { businessCategories } from "@shared/onboarding";
 import { CAC_ANSWERS, isSupplierStep, preorderLocked, readSupplierIdentity, sourceForBusinessType, supplierTiers, type CacAnswer } from "@shared/supplier-onboarding";
 import { supplierIdChecksReady } from "./supplier.server";
 
@@ -13,7 +14,7 @@ import { supplierIdChecksReady } from "./supplier.server";
 /** Top-level marketplace categories, for "What do you supply?". */
 export async function supplierCategoryOptions(): Promise<string[]> {
   const rows = await db.category.findMany({ where: { parentId: null }, orderBy: [{ sortOrder: "asc" }, { name: "asc" }], select: { name: true }, take: 40 }).catch(() => []);
-  return rows.map((row) => row.name);
+  return businessCategories(rows.map((row) => row.name));
 }
 
 function stateOf(value: unknown): Record<string, unknown> {
