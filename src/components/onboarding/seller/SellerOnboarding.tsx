@@ -7,11 +7,10 @@ import { cx, Mascot, Notice, PillButton, ProgressBars, Spinner, TextInput, Wordm
 import intentRouting from "@/lib/intent-routing";
 import {
   addressFromName,
-  BRAND_LOOKS,
-  BRAND_PALETTES,
   businessCategories,
   firstNameOf,
   lettermark,
+  lookFromTheme,
   naira,
   nextSellerQuestion,
   ONBOARDING_LANGUAGES,
@@ -28,6 +27,8 @@ import { localeFromName } from "@shared/i18n";
 import { useLocale, useSetLocale, useT } from "@/components/i18n/I18nProvider";
 import {
   addSupplierPick,
+  applyTheme,
+  fetchThemeAccess,
   buildStore,
   checkAddress,
   createFirstProduct,
@@ -52,6 +53,21 @@ import { friendlyError } from "@/lib/errors/report-client";
 import { whatsappChatUrl } from "@/lib/support-contact";
 import { PLAY_STORE_WEB_URL } from "@shared/app-release";
 import { StorePreview } from "./StorePreview";
+import { ThemePreviewDialog, ThemeThumbnail, TIER_BADGE } from "@/components/builder/theme-preview/ThemePreview";
+import { ALL_THEMES_FREE } from "@shared/plans";
+import { TIER_PLAN_LABEL } from "@/lib/theme-access";
+import {
+  chipForStoreCategory,
+  filterThemes,
+  isLibraryTheme,
+  pickThemeByRules,
+  themeCategoryChips,
+  themeLibraryEntry,
+  tierIncludes,
+  THEME_LIBRARY,
+  type ThemeChipId,
+  type ThemeLibraryEntry,
+} from "@/lib/store-templates/theme-library";
 
 // Seller sign-up to a live store, one question per screen (shared/onboarding.ts SELLER_QUESTIONS): store name, logo,
 // what you sell, products ready?, first product, its name and price, a look, the store address, then "Your store is
@@ -67,11 +83,14 @@ const ACCOUNT_STEPS = 4;
 
 /** Screens with a "Skip for now". */
 const OPTIONAL: SellerQuestion[] = ["logo", "product", "details"];
+/** Looks shown at a time on "Pick a look" (each card renders a real storefront). */
+const LOOKS_PAGE = 8;
 
 export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingStatus }) {
   const router = useRouter();
   const params = useSearchParams();
   const t = useT("sellerStart", "common");
+  const tb = useT("builder");
   const tSettings = useT("settings");
   const appLocale = useLocale();
   const setAppLocale = useSetLocale();
@@ -103,7 +122,12 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
   const [added, setAdded] = useState<Set<string>>(new Set());
   const [termsFirst, setTermsFirst] = useState<Set<string>>(new Set());
   // 7 Look
-  const [lookIndex, setLookIndex] = useState(Math.max(0, BRAND_LOOKS.findIndex((look) => look.templateId === memory?.templateId)));
+  // The theme library (/builder/templates): the seller's own pick, else the one that suits what they sell.
+  const [themeId, setThemeId] = useState<string>(() => (isLibraryTheme(memory?.templateId) ? memory!.templateId! : pickThemeByRules({ storeCategory: (memory?.categories ?? []).join(", ") || memory?.category }).themeId));
+  const [themeChip, setThemeChip] = useState<ThemeChipId | null>(null);
+  const [themesShown, setThemesShown] = useState(LOOKS_PAGE);
+  const [previewThemeId, setPreviewThemeId] = useState<string | null>(null);
+  const [themeAccess, setThemeAccess] = useState<{ tier: "basic" | "premium" | "platinum"; owned: string[] } | null>(null);
   const [askOpen, setAskOpen] = useState(false);
   const [vibe, setVibe] = useState("");
   const [buildNote, setBuildNote] = useState<string | null>(null);
@@ -151,6 +175,18 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
     if (question !== "sell" || categories.length) return;
     void fetchSellCategories().then((names) => setCategories(businessCategories(names)));
   }, [question, categories.length]);
+
+  // "Pick a look": the plan's themes, the chip for what they sell, and (before they've picked) the theme that suits it.
+  useEffect(() => {
+    if (question !== "look") return;
+    if (!themeAccess) void fetchThemeAccess().then((access) => access && setThemeAccess(access));
+    if (themeChip === null) {
+      const wanted = chipForStoreCategory(chosen.join(", "));
+      setThemeChip(themeCategoryChips().some((chip) => chip.id === wanted) ? wanted : "all");
+    }
+    if (!isLibraryTheme(memory?.templateId)) setThemeId(pickThemeByRules({ storeCategory: chosen.join(", ") }).themeId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [question]);
 
   useEffect(() => {
     if (question !== "product" || path !== "dropship" || picks) return;
@@ -279,23 +315,32 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
     }
   }
 
-  const look = BRAND_LOOKS[lookIndex] ?? BRAND_LOOKS[0];
-  const lookPalette = BRAND_PALETTES[lookIndex % BRAND_PALETTES.length];
+  const theme = themeLibraryEntry(themeId) ?? THEME_LIBRARY[0];
+  const { look, palette: lookPalette } = lookFromTheme(theme);
+  // Until the plan is known every theme shows as usable; the server checks again when the look is applied.
+  const lockedPlan = (entry: ThemeLibraryEntry) => (themeAccess && !tierIncludes(themeAccess.tier, entry.tier) && !themeAccess.owned.includes(entry.id) ? TIER_PLAN_LABEL[entry.tier] : null);
 
-  async function buildLook() {
+  async function buildLook(chosenThemeId: string = themeId) {
+    const picked = themeLibraryEntry(chosenThemeId) ?? theme;
+    const { look, palette: lookPalette } = lookFromTheme(picked);
+    if (lockedPlan(picked)) return setError(t("look.locked", { plan: lockedPlan(picked) ?? "" }));
+    setThemeId(picked.id);
+    setPreviewThemeId(null);
     setBusy(true);
     setError(null);
     const [primary, accent, background] = lookPalette.swatches;
-    await saveMemory({ templateId: look.templateId, palette: { id: lookPalette.key, name: lookPalette.label, colors: { primary, accent, background } } }).catch(() => null);
+    await saveMemory({ templateId: picked.id, palette: { id: lookPalette.key, name: lookPalette.label, colors: { primary, accent, background } } }).catch(() => null);
     setBuildNote(t("look.building"));
     try {
+      // The theme first (its pages and sections), then Rex's words and colours on it.
+      await applyTheme(picked.id);
       // buildStore always saves a design: Rex's, or the plain name, colours and look when Rex is unavailable.
       await buildStore(
         { storeName: storeName.trim() || status.store.name, slug: slug, description, category: chosen[0], palette: lookPalette, look, tweak: vibe.trim() || undefined },
         (text) => setBuildNote(text.slice(-120)),
       );
       setBuildNote(null);
-      forward({ templateId: look.templateId });
+      forward({ templateId: picked.id });
     } catch (cause) {
       setBuildNote(null);
       fail(cause);
@@ -568,7 +613,8 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
           <div className="flex flex-wrap gap-2.5">
             {categories.map((category) => (
               <button key={category} type="button" aria-pressed={chosen.includes(category)} onClick={() => toggleCategory(category)} className={chipClass(chosen.includes(category))}>
-                {chosen.includes(category) && <Icon name="check" size={14} />} {category}
+                {chosen.includes(category) && <Icon name="check" size={14} className="shrink-0" />}
+                <span>{category}</span>
               </button>
             ))}
           </div>
@@ -688,68 +734,95 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
   }
 
   if (question === "look") {
-    const displayName = storeName.trim() || status.store.name;
+    const brand = { name: storeName.trim() || status.store.name, logoUrl };
+    const chips = themeCategoryChips();
+    const inChip = filterThemes(themeChip ?? "all");
+    // The picked theme first, then the rest of the chip.
+    const ordered = [theme, ...inChip.filter((entry) => entry.id !== theme.id)];
+    const shown = ordered.slice(0, themesShown);
+    const locked = lockedPlan(theme);
     body = (
       <>
-        {title(t("look.title"), t("look.hintWeb"))}
-        {/* Wide screens: one chip per look, tried on in the preview beside. */}
-        <div className="hidden flex-wrap gap-2.5 lg:flex">
-          {BRAND_LOOKS.map((item, index) => (
-            <button key={item.key} type="button" aria-pressed={lookIndex === index} onClick={() => setLookIndex(index)} className={chipClass(lookIndex === index)}>
-              <span aria-hidden className="h-3.5 w-3.5 rounded-full" style={{ background: BRAND_PALETTES[index % BRAND_PALETTES.length].swatches[1] }} />
-              {item.label}
+        {title(t("look.title"), t("look.hintLibrary", { count: THEME_LIBRARY.length }))}
+        <div className="-mx-[18px] mb-4 flex gap-2 overflow-x-auto px-[18px] pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
+          {chips.map((chip) => (
+            <button
+              key={chip.id}
+              type="button"
+              aria-pressed={(themeChip ?? "all") === chip.id}
+              onClick={() => {
+                setThemeChip(chip.id);
+                setThemesShown(LOOKS_PAGE);
+              }}
+              className={cx(chipClass((themeChip ?? "all") === chip.id), "min-h-[40px] shrink-0 whitespace-nowrap px-4 text-[14px]")}
+            >
+              {chip.id === "all" ? t("look.all") : tb.dynamic(`chipf.${chip.id}`, chip.label)}
             </button>
           ))}
-          {!askOpen && (
-            <button type="button" onClick={() => setAskOpen(true)} className="inline-flex min-h-[46px] items-center gap-1.5 rounded-full border-2 border-app-forest bg-app-mint px-[18px] text-[15px] font-bold text-app-forest focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-ink focus-visible:ring-offset-2">
-              <Icon name="sparkle" size={16} /> {t("look.ask")}
-            </button>
-          )}
         </div>
-        {/* Narrow screens: the full cards to swipe, since the preview is hidden there. */}
-        <div
-          className="-mx-[18px] flex snap-x snap-mandatory gap-3 overflow-x-auto px-[18px] pb-2 lg:hidden"
-          onScroll={(event) => {
-            const el = event.currentTarget;
-            const index = Math.round(el.scrollLeft / Math.max(1, el.firstElementChild?.clientWidth ?? el.clientWidth));
-            if (index !== lookIndex && index >= 0 && index < BRAND_LOOKS.length) setLookIndex(index);
-          }}
-        >
-          {BRAND_LOOKS.map((item, index) => {
-            const palette = BRAND_PALETTES[index % BRAND_PALETTES.length];
+        <ul className="m-0 grid list-none grid-cols-2 gap-3 p-0 sm:gap-4">
+          {shown.map((entry) => {
+            const selected = entry.id === theme.id;
+            const entryLocked = lockedPlan(entry);
             return (
-              <button
-                key={item.key}
-                type="button"
-                onClick={() => setLookIndex(index)}
-                aria-pressed={lookIndex === index}
-                aria-label={t("look.of", { current: index + 1, total: BRAND_LOOKS.length })}
-                className={cx("flex h-[440px] w-[82%] shrink-0 snap-center flex-col overflow-hidden rounded-[26px] border-2 text-left", lookIndex === index ? "border-app-ink" : "border-app-line")}
-                style={{ background: item.background, color: item.ink }}
-              >
-                <span className="flex items-center gap-2 px-5 pt-5">
-                  {logoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={logoUrl} alt="" className="h-8 w-8 rounded-[8px] object-contain" />
-                  ) : (
-                    <span className="grid h-8 w-8 place-items-center rounded-[8px] text-[12px] font-extrabold text-white" style={{ background: palette.swatches[0] }}>{lettermark(displayName)}</span>
-                  )}
-                  <span className="truncate text-[17px] font-semibold" style={{ fontFamily: item.fontCss }}>{displayName}</span>
-                </span>
-                <span className="mx-5 mt-4 flex flex-1 flex-col justify-end rounded-[18px] p-5" style={{ background: palette.swatches[0], color: palette.swatches[2] }}>
-                  <span className="text-[26px] font-semibold leading-[1.05]" style={{ fontFamily: item.fontCss }}>{displayName}</span>
-                  <span className="mt-3 inline-flex w-fit rounded-full px-4 py-2 text-[13px] font-bold" style={{ background: palette.swatches[1], color: palette.swatches[2] }}>{t("look.shopNow")}</span>
-                </span>
-                <span className="flex gap-2 px-5 py-4">
-                  <span className="h-16 flex-1 rounded-[12px]" style={{ background: palette.swatches[1], opacity: 0.85 }} />
-                  <span className="h-16 flex-1 rounded-[12px]" style={{ background: palette.swatches[2], boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.06)" }} />
-                </span>
-                <span className="px-5 pb-4 text-[14px] font-bold">{item.label}</span>
-              </button>
+              <li key={entry.id} className={cx("relative flex flex-col overflow-hidden rounded-[18px] border-2 bg-white", selected ? "border-app-ink" : "border-app-line")}>
+                {/* The preview is a whole storefront (links, buttons), so the select button sits over it, never around it. */}
+                <ThemeThumbnail themeId={entry.id} brand={brand} className="rounded-t-[16px]" />
+                <button
+                  type="button"
+                  aria-pressed={selected}
+                  aria-label={t("look.pick", { name: entry.name })}
+                  onClick={() => setThemeId(entry.id)}
+                  className="absolute inset-0 z-[1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-app-ink"
+                />
+                {selected && (
+                  <span className="pointer-events-none absolute left-2 top-2 z-[2] inline-flex items-center gap-1 rounded-full bg-app-ink px-2.5 py-1 text-[12px] font-bold text-white">
+                    <Icon name="check" size={12} className="shrink-0" /> {t("look.selected")}
+                  </span>
+                )}
+                {!ALL_THEMES_FREE && entry.tier !== "basic" && (
+                  <span className={cx("pointer-events-none absolute right-2 top-2 z-[2] inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold", TIER_BADGE[entry.tier])}>
+                    {entryLocked ? <Icon name="lock" size={11} className="shrink-0" /> : null}
+                    {tb(`tl.tier.${entry.tier}`)}
+                  </span>
+                )}
+                <div className="relative z-[2] flex flex-1 flex-col gap-1 p-3 pointer-events-none">
+                  <span className="truncate text-[15px] font-extrabold">{entry.name}</span>
+                  <span className="line-clamp-2 text-[12.5px] leading-[1.35] text-app-ink-soft">{tb.dynamic(`theme.${entry.id}.meaning`, entry.meaning)}</span>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewThemeId(entry.id)}
+                    className="pointer-events-auto mt-1 inline-flex min-h-[36px] w-fit items-center gap-1.5 rounded-full border border-app-line bg-white px-3 text-[13px] font-bold hover:border-app-line-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-ink"
+                  >
+                    <Icon name="eye" size={14} className="shrink-0" /> {t("look.preview")}
+                  </button>
+                </div>
+              </li>
             );
           })}
-        </div>
-        <p className="m-0 mt-2 text-center text-[13px] text-app-ink-soft lg:hidden">{t("look.of", { current: lookIndex + 1, total: BRAND_LOOKS.length })}</p>
+        </ul>
+        {ordered.length > shown.length && (
+          <button type="button" onClick={() => setThemesShown((count) => count + LOOKS_PAGE)} className="mx-auto mt-4 inline-flex min-h-[44px] items-center rounded-full border-2 border-app-line bg-white px-5 text-[15px] font-bold hover:border-app-line-strong">
+            {t("look.more", { count: ordered.length - shown.length })}
+          </button>
+        )}
+        {locked && <p className="m-0 mt-3 text-[14px] text-app-ink-soft">{t("look.locked", { plan: locked })}</p>}
+        {previewThemeId && (
+          <ThemePreviewDialog
+            themeId={previewThemeId}
+            brand={brand}
+            onClose={() => setPreviewThemeId(null)}
+            useOwn={false}
+            onUseOwnChange={() => {}}
+            isCurrent={false}
+            busy={busy}
+            lockedPlan={(() => {
+              const entry = themeLibraryEntry(previewThemeId);
+              return entry ? lockedPlan(entry) : null;
+            })()}
+            onUse={() => void buildLook(previewThemeId)}
+          />
+        )}
         {askOpen ? (
           <div className="mt-4 flex items-start gap-3 rounded-[20px] border border-app-line bg-white p-3 focus-within:border-app-ink">
             <Mascot name="rex" className="h-10 w-10 shrink-0" alt="Rex" />
@@ -765,14 +838,14 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
             />
           </div>
         ) : (
-          <button type="button" onClick={() => setAskOpen(true)} className="mt-4 inline-flex items-center gap-2 rounded-full border border-app-line bg-white px-5 py-3 text-[15px] font-bold lg:hidden">
+          <button type="button" onClick={() => setAskOpen(true)} className="mt-4 inline-flex items-center gap-2 rounded-full border border-app-line bg-white px-5 py-3 text-[15px] font-bold">
             <Icon name="sparkle" size={16} /> {t("look.ask")}
           </button>
         )}
       </>
     );
     actionNote = busy && buildNote ? <p className="m-0 mb-3 text-[13px] text-app-ink-soft" aria-live="polite">{buildNote}</p> : null;
-    action = { label: t("look.use"), onClick: () => void buildLook() };
+    action = { label: t("look.use"), onClick: () => void buildLook(), disabled: Boolean(locked) };
   }
 
   if (question === "address") {
@@ -961,6 +1034,18 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
           {nav}
         </main>
         <aside className="hidden min-w-0 flex-1 items-center justify-center bg-app-canvas px-[clamp(16px,4vw,56px)] py-10 lg:flex">
+          {question === "look" ? (
+            // The picked theme itself, with their name and logo on its sample store.
+            <div className="w-full max-w-[560px]">
+              <div className="overflow-hidden rounded-[22px] border border-app-line bg-white shadow-[0_10px_40px_rgba(22,20,31,.10)]">
+                <ThemeThumbnail key={theme.id} themeId={theme.id} brand={{ name: previewName, logoUrl }} />
+              </div>
+              <div className="mt-3 flex items-center justify-between gap-3">
+                <span className="min-w-0 truncate text-[15px] font-extrabold">{theme.name} <span className="font-semibold text-app-ink-soft">· {tb.dynamic(`theme.${theme.id}.meaning`, theme.meaning)}</span></span>
+                <PillButton size="sm" tone="white" onClick={() => setPreviewThemeId(theme.id)}><Icon name="eye" size={14} className="shrink-0" /> {t("look.preview")}</PillButton>
+              </div>
+            </div>
+          ) : (
           <StorePreview
             host={previewHost}
             storeName={previewName}
@@ -974,6 +1059,7 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
             live={question === "live" && live}
             labels={{ heading: t("preview.heading"), live: t("preview.live"), aria: t("preview.aria"), logo: t("preview.logo"), shopNow: t("look.shopNow") }}
           />
+          )}
         </aside>
       </div>
     </div>

@@ -8,7 +8,7 @@ import { BoutiqueStorefront } from "@/components/storefront/boutique/BoutiqueSto
 import { BOUTIQUE_FONT_CLASS } from "@/components/storefront/boutique/fonts";
 import { BOUTIQUE_THEME_TOKENS, isBoutiqueTheme } from "@/lib/store-templates/boutique-themes";
 import { themeLibraryEntry, type ThemeTier } from "@/lib/store-templates/theme-library";
-import { previewData, type PreviewOwnStore } from "./preview-store";
+import { previewData, type PreviewBrand, type PreviewOwnStore } from "./preview-store";
 import { useT } from "@/components/i18n/I18nProvider";
 import { ALL_THEMES_FREE } from "@shared/plans";
 
@@ -56,11 +56,11 @@ function useSeen(ref: React.RefObject<HTMLElement | null>, margin = "400px") {
 }
 
 /** The theme's home page at 1280px wide, scaled to fill a 4:5 card. Decorative: the card's text says what it is. */
-export function ThemeThumbnail({ themeId, own, className }: { themeId: string; own?: PreviewOwnStore | null; className?: string }) {
+export function ThemeThumbnail({ themeId, own, brand, className }: { themeId: string; own?: PreviewOwnStore | null; brand?: PreviewBrand | null; className?: string }) {
   const box = useRef<HTMLDivElement>(null);
   const seen = useSeen(box);
   const width = useWidth(box);
-  const data = useMemo(() => (seen ? previewData(themeId, own) : null), [seen, themeId, own]);
+  const data = useMemo(() => (seen ? previewData(themeId, own, brand) : null), [seen, themeId, own, brand]);
   const scale = width ? width / PREVIEW_DESKTOP_WIDTH : 0;
   const paper = isBoutiqueTheme(themeId) ? BOUTIQUE_THEME_TOKENS[themeId].paperBg : "#F3F3F3";
   return (
@@ -125,6 +125,8 @@ export interface ThemePreviewDialogProps {
   onClose: () => void;
   /** The seller's store when it has enough products with photos for "Show with my products". */
   own?: PreviewOwnStore | null;
+  /** The seller's name and logo on the sample store (sign-up). */
+  brand?: PreviewBrand | null;
   useOwn: boolean;
   onUseOwnChange: (value: boolean) => void;
   isCurrent: boolean;
@@ -149,7 +151,7 @@ export const TIER_BADGE: Record<ThemeTier, string> = {
 };
 
 /** Larger live preview: desktop or phone, home or product page, sample or own products. */
-export function ThemePreviewDialog({ themeId, onClose, own, useOwn, onUseOwnChange, isCurrent, busy, onUse, lockedPlan, buyPrice, buying, onBuy }: ThemePreviewDialogProps) {
+export function ThemePreviewDialog({ themeId, onClose, own, brand, useOwn, onUseOwnChange, isCurrent, busy, onUse, lockedPlan, buyPrice, buying, onBuy }: ThemePreviewDialogProps) {
   const t = useT("builder");
   const theme = themeLibraryEntry(themeId);
   const [device, setDevice] = useState<"desktop" | "mobile">(() => (typeof window !== "undefined" && window.innerWidth < 760 ? "mobile" : "desktop"));
@@ -157,7 +159,7 @@ export function ThemePreviewDialog({ themeId, onClose, own, useOwn, onUseOwnChan
   const dialog = useRef<HTMLDivElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
   const body = useRef<HTMLDivElement>(null);
-  const data = useMemo(() => previewData(themeId, useOwn && own ? own : null), [themeId, useOwn, own]);
+  const data = useMemo(() => previewData(themeId, useOwn && own ? own : null, brand), [themeId, useOwn, own, brand]);
   const titleId = `theme-preview-${themeId}`;
 
   useEffect(() => {
