@@ -647,6 +647,16 @@ export const templates: Record<string, TemplateText> = {
     button: "Wo order mi",
     examples: ["Ada", "Rexi", "SB-MVP80C9V-8D1B09", "1 × Ankara tote, 2 × Silk scarf", "₦7,100", "O lè sanwó pẹ̀lú káàdì, bank transfer tàbí USSD."],
   },
+  shopinbos_pay_at_door: {
+    body: "Bawo {{1}}, order rẹ {{2}} láti ọ̀dọ̀ {{3}} wà lójú ọ̀nà. 🚚\n\nTí ó bá dé, yẹ̀ ẹ́ wò, lẹ́yìn náà san {{4}} nínú app: transfer, card tàbí USSD. Kò sí owó ọwọ́. Tí o bá ti sanwó, o máa gba kóòdù oní-nọ́ńbà mẹ́rin láti fún rider.\n\nTẹ ìsàlẹ̀ láti sanwó.",
+    button: "Sanwó fún order mi",
+    examples: ["Ada", "SB-MVP80C9V-8D1B09", "Rexi", "₦18,500"],
+  },
+  shopinbos_pay_at_door_code: {
+    body: "Bawo {{1}}, a ti gba owó fún order {{2}} láti ọ̀dọ̀ {{3}}. ✅\n\nFún rider ní kóòdù yìí: {{4}}. Fún un nìkan tí order rẹ bá ti wà lọ́wọ́ rẹ.\n\nTẹ ìsàlẹ̀ láti wo order rẹ.",
+    button: "Wo order mi",
+    examples: ["Ada", "SB-MVP80C9V-8D1B09", "Rexi", "4821"],
+  },
   shopinbos_refer_supplier: {
     body: "Báwo ni {{1}}, ṣé o mọ supplier kan tó yẹ kí ó máa ta ọjà fún ṣọ́ọ̀bù púpọ̀ sí i? 🤝\n\nPè wọ́n sí Shopinbos pẹ̀lú link rẹ. Tí wọ́n bá gba verification tí wọ́n sì list ọjà 5, wàá gba {{2}}. Àwọn á gba oṣù kan ọ̀fẹ́ ti Supplier Plus àti featured week kan ní marketplace.\n\nTẹ ìsàlẹ̀ láti gba link rẹ kí o pín in lórí WhatsApp.",
     button: "Pe supplier kan",

@@ -73,7 +73,9 @@ test("payment paths create supplier orders, and a replayed webhook stays safe", 
   assert.match(webhook, /recoverExpiredOrderPayment\(ref/);
   assert.match(read("src/app/actions/payments.ts"), /ensureSupplierOrdersSafely\(orderId\)/);
   assert.match(read("src/lib/orders/update-status.ts"), /ensureSupplierOrdersSafely\(order\.id\)/);
-  assert.match(read("src/app/api/public/store/[slug]/checkout/route.ts"), /paymentMethod === "pay_on_delivery"\) await ensureSupplierOrdersSafely/);
+  // Pay on delivery with free delivery goes live at checkout; with a delivery fee, once the fee is paid.
+  assert.match(read("src/app/api/public/store/[slug]/checkout/route.ts"), /paymentMethod === "pay_on_delivery" && podFeeNow === 0\) await ensureSupplierOrdersSafely/);
+  assert.match(read("src/lib/commerce/pay-at-door.server.ts"), /async function afterPodFeePaid[\s\S]{0,300}ensureSupplierOrdersSafely\(orderId\)/);
   // A sale the seller records (WhatsApp, Instagram) that needs delivering goes to its suppliers too.
   assert.match(read("src/lib/orders/record-sale.ts"), /if \(input\.delivery === "deliver"\) await ensureSupplierOrdersSafely\(order\.id\)/);
   // The supplier's WhatsApp/SMS is awaited, never fire-and-forget.

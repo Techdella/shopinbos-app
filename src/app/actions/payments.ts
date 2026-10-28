@@ -1,7 +1,7 @@
 "use server";
 
-import { PAY_AT_DOOR_PREFIX } from "@shared/pay-at-door";
-import { confirmPayAtDoor } from "@/lib/commerce/pay-at-door.server";
+import { PAY_AT_DOOR_PREFIX, POD_FEE_PREFIX } from "@shared/pay-at-door";
+import { confirmPayAtDoor, confirmPodFee } from "@/lib/commerce/pay-at-door.server";
 
 import { grantPlanCredits } from "@/lib/ai/credits.server";
 import { getPlanCatalog } from "@/lib/plans/catalog.server";
@@ -109,9 +109,10 @@ export async function updateOrderPayment(
   reference: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    // Pay on delivery paid at the door (src/lib/commerce/pay-at-door.server.ts): its own reference, for this order only.
-    if (reference.startsWith(PAY_AT_DOOR_PREFIX)) {
-      const result = await confirmPayAtDoor(reference);
+    // Pay on delivery (src/lib/commerce/pay-at-door.server.ts): the delivery fee at checkout, or the rest at the door.
+    // Each has its own reference, for this order only.
+    if (reference.startsWith(PAY_AT_DOOR_PREFIX) || reference.startsWith(POD_FEE_PREFIX)) {
+      const result = reference.startsWith(POD_FEE_PREFIX) ? await confirmPodFee(reference) : await confirmPayAtDoor(reference);
       if (result.ok && result.orderId !== orderId) return { success: false, error: "Payment does not belong to this order" };
       revalidatePath("/home/orders");
       return result.ok ? { success: true } : { success: false, error: result.error };

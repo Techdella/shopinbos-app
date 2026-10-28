@@ -1,4 +1,5 @@
 import { isPayOnDelivery, payAtDoorPaid } from "@shared/pay-at-door";
+import { doorAmountNaira } from "@/lib/commerce/pay-at-door.server";
 import { buildStorefrontUrl } from "@/lib/domains/storefront";
 import { NextRequest } from "next/server";
 import { z } from "zod";
@@ -64,7 +65,7 @@ export async function GET(req: NextRequest) {
   ]);
 
   const orderIds = active.map((job) => job.orderId).filter((id): id is string => Boolean(id));
-  const orders = orderIds.length ? await db.retailOrder.findMany({ where: { id: { in: orderIds } }, select: { id: true, orderNumber: true, buyerName: true, buyerPhone: true, deliveryAddress: true, total: true, paymentMethod: true, status: true, paystackStatus: true, store: { select: { slug: true, customDomain: true } } } }) : [];
+  const orders = orderIds.length ? await db.retailOrder.findMany({ where: { id: { in: orderIds } }, select: { id: true, orderNumber: true, buyerName: true, buyerPhone: true, deliveryAddress: true, total: true, paymentMethod: true, status: true, paystackStatus: true, depositPaidAt: true, paymentDueAt: true, paymentSplit: true, store: { select: { slug: true, customDomain: true } } } }) : [];
   const orderById = new Map(orders.map((order) => [order.id, order]));
 
   // The rider's map: pickup and drop-off pins for the job in hand (the one being carried, else the next to pick up).
@@ -120,7 +121,7 @@ export async function GET(req: NextRequest) {
       // Pay on delivery (shared/pay-at-door.ts): the customer pays in the app at the door and gets the code; the rider
       // shows `url` as a QR code. No cash.
       payInApp: order && isPayOnDelivery(order) && !(job.codAmount && job.codAmount > 0)
-        ? { amount: Number(order.total), paid: payAtDoorPaid(order), url: buildStorefrontUrl(order.store, `/order/${order.id}#pay`) }
+        ? { amount: doorAmountNaira(order), paid: payAtDoorPaid(order), url: buildStorefrontUrl(order.store, `/order/${order.id}#pay`) }
         : null,
       // What this one drop pays the rider once their pay is set, else its delivery fee (the run's fees add these up).
       fee: riderAmount(rider, job),

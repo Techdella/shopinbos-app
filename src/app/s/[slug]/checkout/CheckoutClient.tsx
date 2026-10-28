@@ -123,6 +123,8 @@ interface CreatedOrder {
   paystackAccessCode?: string | null;
   /** A preorder deposit: the card payment is payNow; the rest is due once the stock is ready. */
   deposit?: { payNow: number; balance: number } | null;
+  /** Pay on delivery: the delivery fee paid now (naira; 0 when delivery is free), the rest in the app at the door. */
+  podFee?: number;
 }
 
 interface Quote {
@@ -240,6 +242,9 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
   const noWayToPay = paymentOptions.length === 0 ? noWayToPayText(commerce.payments, { city: details.city, state: details.state, total: totals.total }) : null;
   const paymentMethod: CheckoutPaymentMethod = paymentOptions.some((option) => option.key === chosenMethod) ? chosenMethod! : paymentOptions[0]?.key ?? "transfer";
   const isPaystack = paymentMethod === "paystack";
+  // Pay on delivery (shared/pay-at-door.ts): the delivery fee is paid now with Paystack, the rest in the app at the door.
+  const podFeeNow = paymentMethod === "pay_on_delivery" ? Math.max(0, (createdOrder?.podFee ?? (liveQuote?.totals ?? estimate).shippingFee - (liveQuote?.totals ?? estimate).deliveryDiscount)) : 0;
+  const paysNow = isPaystack || podFeeNow > 0;
 
   const rules: CheckoutRules = {
     // Delivery partners need a phone for the rider and a state to find who covers the address; a supplier delivering
@@ -494,11 +499,12 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
         return;
       }
 
-      const order = { ...(data.data.order as CreatedOrder), paystackAccessCode: (data.data.paystack?.access_code as string | null | undefined) ?? null, deposit: (data.data.deposit as CreatedOrder["deposit"]) ?? null };
+      const order = { ...(data.data.order as CreatedOrder), paystackAccessCode: (data.data.paystack?.access_code as string | null | undefined) ?? null, deposit: (data.data.deposit as CreatedOrder["deposit"]) ?? null, podFee: Number(data.data.podFee ?? 0) || 0 };
       setCreatedOrder(order);
       rememberCartToken(store.slug, null);
       rememberBagDiscount(store.slug, null);
-      if (paymentMethod === "paystack") return;
+      // Card, and pay on delivery's delivery fee: pay with Paystack now (the button below opens it).
+      if (paymentMethod === "paystack" || (order.podFee ?? 0) > 0) return;
 
       // Korapay: pay in the frame; the order page follows once Korapay confirms.
       const korapayUrl = paymentMethod === "korapay" ? (data.data.korapay?.checkoutUrl as string | undefined) : undefined;
@@ -814,7 +820,9 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
     </div>
   ) : null;
 
-  const finalLabel = placeOrderLabel(layout, { paystack: isPaystack || paymentMethod === "korapay", total: deposit ? deposit.payNow : totals.total, currency: store.currency });
+  const finalLabel = podFeeNow > 0 && !layout.labels.placeOrder
+    ? `Pay ${formatStoreMoney(podFeeNow, store.currency)} delivery now`
+    : placeOrderLabel(layout, { paystack: isPaystack || paymentMethod === "korapay", total: deposit ? deposit.payNow : totals.total, currency: store.currency });
   const nextStep = stepped ? steps[stepIndex + 1] : undefined;
   const actions = (
     <div className="mt-6 flex flex-col-reverse gap-3 @2xl:flex-row @2xl:items-center">
@@ -838,10 +846,10 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
           >
             <Icon name="lock" size={16} /> Checkout is off in preview
           </button>
-        ) : finalStep && createdOrder && isPaystack ? (
+        ) : finalStep && createdOrder && paysNow ? (
           <PaystackCheckoutButton
             accessCode={createdOrder.paystackAccessCode}
-            amount={createdOrder.deposit ? createdOrder.deposit.payNow : createdOrder.total}
+            amount={podFeeNow > 0 ? podFeeNow : createdOrder.deposit ? createdOrder.deposit.payNow : createdOrder.total}
             email={details.email}
             firstName={nameParts[0]}
             lastName={nameParts.slice(1).join(" ")}
@@ -850,7 +858,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
             onSuccess={handlePaymentSuccess}
             onClose={() => setPayClosed(true)}
             disabled={paying}
-            label={paying ? "Confirming payment…" : `Pay ${formatStoreMoney(createdOrder.deposit ? createdOrder.deposit.payNow : createdOrder.total, createdOrder.currency)}${createdOrder.deposit ? " deposit" : ""}`}
+            label={paying ? "Confirming payment…" : podFeeNow > 0 ? `Pay ${formatStoreMoney(podFeeNow, createdOrder.currency)} delivery now` : `Pay ${formatStoreMoney(createdOrder.deposit ? createdOrder.deposit.payNow : createdOrder.total, createdOrder.currency)}${createdOrder.deposit ? " deposit" : ""}`}
             className="inline-flex min-h-12 w-full items-center justify-center rounded-full px-6 text-[16px] font-semibold disabled:opacity-60"
             style={{ background: theme.cta, color: theme.ctaText, border: "none", borderRadius: theme.buttonRadius }}
           />
@@ -890,7 +898,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
           .
         </p>
       ) : null}
-      {createdOrder && isPaystack ? (
+      {createdOrder && paysNow ? (
         <p className="mt-3 text-[13.5px]" style={{ color: theme.muted }} role="status">
           Order {createdOrder.orderNumber} is saved. {payClosed ? "The payment window closed before you paid. " : ""}Tap pay to finish with Paystack.
         </p>

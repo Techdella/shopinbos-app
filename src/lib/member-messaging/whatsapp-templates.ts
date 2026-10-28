@@ -95,6 +95,33 @@ const ENGLISH_TEMPLATES: MemberTemplate[] = [
     button: { text: "View my order", url: `${APP}/o/{{1}}`, example: `${APP}/o/cmvp80c9v0001` },
   },
   {
+    // Pay on delivery (shared/pay-at-door.ts): the payment link when the parcel is on its way, from Shopinbos's number
+    // in the shop's name (src/lib/notifications/customer-messages.ts textPayAtDoorLink). No cash at the door.
+    name: "shopinbos_pay_at_door",
+    group: "orders",
+    purpose: "Pay on delivery: pay in the app when the order arrives",
+    category: "UTILITY",
+    language: "en",
+    image: "setup-help",
+    body: "Hi {{1}}, your order {{2}} from {{3}} is on its way. 🚚\n\nWhen it arrives, check it, then pay {{4}} in the app: transfer, card or USSD. No cash. Once it's paid you get a 4-digit code to give the rider.\n\nTap below to pay.",
+    variables: ["first name", "order number", "store name", "amount"],
+    examples: ["Ada", "SB-MVP80C9V-8D1B09", "Rexi", "₦18,500"],
+    button: { text: "Pay for my order", url: `${APP}/o/{{1}}`, example: `${APP}/o/cmvp80c9v0001` },
+  },
+  {
+    // Pay on delivery: the code for the rider, once the payment is verified (src/lib/commerce/pay-at-door.server.ts).
+    name: "shopinbos_pay_at_door_code",
+    group: "orders",
+    purpose: "Pay on delivery: payment received, the code for the rider",
+    category: "UTILITY",
+    language: "en",
+    image: "setup-help",
+    body: "Hi {{1}}, payment received for order {{2}} from {{3}}. ✅\n\nGive the rider this code: {{4}}. Only give it once your order is in your hands.\n\nTap below to see your order.",
+    variables: ["first name", "order number", "store name", "delivery code"],
+    examples: ["Ada", "SB-MVP80C9V-8D1B09", "Rexi", "4821"],
+    button: { text: "View my order", url: `${APP}/o/{{1}}`, example: `${APP}/o/cmvp80c9v0001` },
+  },
+  {
     name: "shopinbos_refer_supplier",
     group: "referral",
     purpose: "Invite campaign: refer a supplier",

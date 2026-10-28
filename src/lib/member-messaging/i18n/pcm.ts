@@ -649,6 +649,16 @@ export const templates: Record<string, TemplateText> = {
     button: "See my order",
     examples: ["Ada", "Rexi", "SB-MVP80C9V-8D1B09", "1 × Ankara tote, 2 × Silk scarf", "₦7,100", "You fit pay with card, bank transfer or USSD."],
   },
+  shopinbos_pay_at_door: {
+    body: "Hi {{1}}, your order {{2}} from {{3}} dey road. 🚚\n\nWhen e reach, check am well, then pay {{4}} for the app: transfer, card or USSD. No cash. Once you don pay, you go get 4-digit code to give the rider.\n\nTap below to pay.",
+    button: "Pay for my order",
+    examples: ["Ada", "SB-MVP80C9V-8D1B09", "Rexi", "₦18,500"],
+  },
+  shopinbos_pay_at_door_code: {
+    body: "Hi {{1}}, we don receive payment for order {{2}} from {{3}}. ✅\n\nGive the rider this code: {{4}}. Only give am once your order don reach your hand.\n\nTap below to see your order.",
+    button: "See my order",
+    examples: ["Ada", "SB-MVP80C9V-8D1B09", "Rexi", "4821"],
+  },
   shopinbos_refer_supplier: {
     body: "Hi {{1}}, you know supplier wey suppose dey sell to more shops? 🤝\n\nInvite dem come Shopinbos with your link. When dem don get verified and list 5 products, you go get {{2}}. Dem go get one free month of Supplier Plus and one featured week for the marketplace.\n\nTap below to collect your link and share am for WhatsApp.",
     button: "Invite one supplier",

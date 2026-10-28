@@ -237,6 +237,27 @@ export function buildSplitPlan(input: { totalKobo: number; sellerSubaccount: str
 }
 
 /**
+ * The split for a delivery fee paid on its own (pay on delivery: the fee at checkout, shared/pay-at-door.ts): each
+ * delivery partner with an account gets its fee in full, the seller the rest (their own delivery, or a partner without
+ * an account, whom the seller then pays). No Shopinbos fee on delivery, and no minimum kept for the seller.
+ */
+export function deliveryFeePlan(input: { totalKobo: number; sellerSubaccount: string; delivery: DeliveryShareInput[]; gateway?: SplitGateway }): PaymentSplitPlan {
+  const total = Math.max(0, Math.round(input.totalKobo));
+  const delivery: Array<{ shipmentKey: string; partnerId: string; subaccount: string; kobo: number }> = [];
+  let left = total;
+  // A partner is paid here only in full. When the customer paid less than the partners' prices (a free-delivery
+  // discount), it all goes to the seller, who pays the partners as for any other order.
+  const owed = input.delivery.reduce((sum, share) => sum + (share.subaccount ? Math.max(0, Math.round(share.kobo)) : 0), 0);
+  for (const share of owed <= total ? input.delivery : []) {
+    const kobo = Math.round(share.kobo);
+    if (!share.subaccount || kobo <= 0) continue;
+    delivery.push({ shipmentKey: share.shipmentKey, partnerId: share.partnerId, subaccount: share.subaccount, kobo });
+    left -= kobo;
+  }
+  return { version: 1, gateway: input.gateway ?? "paystack", totalKobo: total, sellerSubaccount: input.sellerSubaccount, sellerKobo: left, platformKobo: 0, suppliers: [], sellerSettles: [], ...(delivery.length ? { delivery } : {}) };
+}
+
+/**
  * Every business account paid in the split with its share, one entry per account: a business owed money can also
  * be in the order (a shop paid back from its own supplier's share), and a gateway takes each account once.
  */
@@ -247,7 +268,8 @@ export function splitShares(plan: PaymentSplitPlan): Array<{ account: string; ko
   for (const supplier of plan.suppliers) add(supplier.subaccount, supplier.kobo);
   for (const share of plan.delivery ?? []) add(share.subaccount, share.kobo);
   for (const deduction of plan.deductions ?? []) if (deduction.to) add(deduction.to, deduction.kobo);
-  return [...shares].map(([account, kobo]) => ({ account, kobo }));
+  // An account with nothing to receive (a delivery fee that's all the partner's) isn't sent to the gateway.
+  return [...shares].filter(([, kobo]) => kobo > 0).map(([account, kobo]) => ({ account, kobo }));
 }
 
 /**

@@ -42,7 +42,7 @@ test("the code is the customer's proof of payment: hidden until paid, on the pag
   assert.match(read("src/app/s/[slug]/order/[orderId]/order-props.ts"), /deliveryCode: codeVisible\(order\)/);
   const messages = read("src/lib/notifications/customer-messages.ts");
   assert.match(messages, /deliveryCode: unpaid \? null : job\.deliveryCode/);
-  assert.match(messages, /if \(unpaid && \(to === "out_for_delivery" \|\| to === "at_pickup_point"\)\) return await textPayAtDoorLink\(order\.id\)/);
+  assert.match(messages, /if \(unpaid && \(to === "out_for_delivery" \|\| to === "at_pickup_point"\)\) \{[\s\S]{0,160}sendPayAtDoorLink\(order\.id\)/);
   // The rider's photo-instead-of-code shortcut is gone for pay on delivery on the phone (the server blocks it anyway).
   assert.match(read("apps/mobile/src/app/rider/job.tsx"), /!ok && !drop\.payInApp \?/);
 });
@@ -69,4 +69,68 @@ test("riders never get cash for pay on delivery", () => {
   assert.match(read("src/app/api/mobile/logistics/rider/route.ts"), /payInApp: order && isPayOnDelivery\(order\)/);
   // The seller marking a pay-on-delivery order paid lets the rider hand it over.
   assert.match(read("src/lib/orders/update-status.ts"), /updateData\.paymentMethod === "pay_on_delivery"\) updateData\.paystackStatus = "offline"/);
+});
+
+test("the delivery fee is paid at checkout; the order waits for it, then the door payment is the rest", async () => {
+  const at = new Date("2026-10-28T10:00:00Z");
+  const waiting = pod({ status: "pending", paymentDueAt: at, depositPaidAt: null });
+  assert.equal(door.podFeeDue(waiting), true);
+  assert.equal(door.payAtDoorDue(waiting), false, "nothing to pay at the door before the fee is in");
+  assert.equal(door.podFeeDue(pod({ status: "pending", paymentDueAt: null, depositPaidAt: at })), false);
+  assert.equal(door.podFeePaid(pod({ depositPaidAt: at })), true);
+  assert.equal(door.podFeeDue(pod({ status: "pending", paymentDueAt: null })), false, "free delivery: nothing upfront");
+  assert.equal(door.podFeeKobo(1500), 150000);
+  assert.equal(door.podFeeKobo(-3), 0);
+  assert.equal(door.doorAmountKobo({ total: 20000, depositPaidAt: at }, 150000), 1850000, "the rest: total less the fee");
+  assert.equal(door.doorAmountKobo({ total: 20000, depositPaidAt: null }, 150000), 2000000, "fee not paid upfront: all of it");
+
+  // Nothing is sent to suppliers or booked until the fee is in; an unpaid fee expires like a card order.
+  const pure = await import("../src/lib/supplier-orders/pure.ts");
+  assert.equal(pure.readyForSuppliers({ status: "pending", paymentMethod: "pay_on_delivery", paymentDueAt: at, depositPaidAt: null }), false);
+  assert.equal(pure.readyForSuppliers({ status: "pending", paymentMethod: "pay_on_delivery", paymentDueAt: null, depositPaidAt: at }), true);
+  assert.equal(pure.readyForSuppliers({ status: "pending", paymentMethod: "pay_on_delivery" }), true, "free delivery goes live at once");
+  const holds = await import("../src/lib/commerce/stock-holds.ts");
+  const order = { status: "pending", paymentMethod: "pay_on_delivery", createdAt: new Date(at.getTime() - 3_600_000), stockHold: [{ source: "store", productId: "p", quantity: 1, name: "x" }], paystackStatus: "pending" };
+  assert.equal(holds.isExpirableOrder({ ...order, paymentDueAt: at }, new Date(at.getTime() + 60_000), 30), true);
+  assert.equal(holds.isExpirableOrder({ ...order, paymentDueAt: null }, new Date(at.getTime() + 60_000), 30), false, "once the fee is in it never expires");
+
+  const checkout = read("src/app/api/public/store/[slug]/checkout/route.ts");
+  assert.match(checkout, /podFeeKobo\(shippingFee - \(priced\.totals\.deliveryDiscount \?\? 0\)\)/, "what the customer pays for delivery");
+  assert.match(checkout, /deliveryFeeSplitForOrder\(store\.id, podFeeNow \/ 100, deliveryShares\)[\s\S]{0,120}startPodFee\(order\.id, plan\)/);
+  assert.match(read("src/app/api/webhooks/paystack/route.ts"), /startsWith\(POD_FEE_PREFIX\)[\s\S]{0,200}confirmPodFee/);
+  const server = read("src/lib/commerce/pay-at-door.server.ts");
+  assert.match(server, /data: \{ depositPaidAt: new Date\(\), paymentDueAt: null, paystackRef: reference \}/);
+  assert.match(server, /paymentIssue: `The delivery fee/, "a fee paid after the order expired is flagged for a refund");
+});
+
+test("the delivery fee goes straight to the partner in full, or all to the seller", async () => {
+  const rules = await import("../src/lib/wallet/rules.ts");
+  const share = (kobo, subaccount = "ACCT_partner") => ({ shipmentKey: "own", partnerId: "p1", subaccount, kobo });
+  const full = rules.deliveryFeePlan({ totalKobo: 250000, sellerSubaccount: "ACCT_seller", delivery: [share(250000)] });
+  assert.equal(full.sellerKobo, 0);
+  assert.deepEqual(full.delivery.map((d) => d.kobo), [250000]);
+  assert.deepEqual(rules.splitShares(full), [{ account: "ACCT_partner", kobo: 250000 }], "a seller with nothing isn't sent to Paystack");
+  assert.equal(rules.paystackSplitParams(full).subaccount, "ACCT_partner");
+  const discounted = rules.deliveryFeePlan({ totalKobo: 100000, sellerSubaccount: "ACCT_seller", delivery: [share(250000)] });
+  assert.equal(discounted.sellerKobo, 100000, "less than the partner's price: the seller gets it and pays the partner");
+  assert.equal(discounted.delivery, undefined);
+  const noAccount = rules.deliveryFeePlan({ totalKobo: 250000, sellerSubaccount: "ACCT_seller", delivery: [share(250000, null)] });
+  assert.equal(noAccount.sellerKobo, 250000);
+  assert.equal(rules.deliveryFeePlan({ totalKobo: 150000, sellerSubaccount: "ACCT_seller", delivery: [] }).sellerKobo, 150000, "the seller's own delivery");
+});
+
+test("payment link and code go by SMS and WhatsApp, with what's left to pay", async () => {
+  const messages = read("src/lib/notifications/customer-messages.ts");
+  assert.match(messages, /for \(const channel of \["sms", "whatsapp"\] as const\)/);
+  assert.match(messages, /template: "shopinbos_pay_at_door"/);
+  assert.match(messages, /template: "shopinbos_pay_at_door_code"/);
+  const wa = await import("../src/lib/member-messaging/whatsapp-templates.ts");
+  for (const name of ["shopinbos_pay_at_door", "shopinbos_pay_at_door_code"]) {
+    const template = wa.memberTemplate(name);
+    assert.ok(template, name);
+    assert.equal(template.category, "UTILITY");
+    assert.equal(template.examples.length, 4);
+    assert.match(template.body, /\{\{3\}\}/, "the shop's name is in it");
+  }
+  assert.match(read("src/lib/commerce/pay-at-door.server.ts"), /textPayAtDoorLink\(order\.id, \{ amount, resend: options\.resend \}\)/);
 });

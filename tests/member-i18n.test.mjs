@@ -42,7 +42,7 @@ test("every tip is translated in every language, with the same shape and within 
 
 test("WhatsApp templates: each language keeps Meta's rules and the English variables", () => {
   const english = wa.MEMBER_TEMPLATES.filter((t) => t.locale === "en");
-  assert.equal(english.length, 15);
+  assert.equal(english.length, 17);
   for (const locale of OTHERS) {
     for (const base of english) {
       const text = i18n.templateText(base.name, locale);
