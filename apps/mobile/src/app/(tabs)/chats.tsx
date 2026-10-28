@@ -14,12 +14,14 @@ import { colors } from "@/theme";
 
 // Chats ("Familiar app" prototype `on.chats`): only the conversations. Customers on every channel (WhatsApp,
 // Instagram, Facebook, email, the shop's live chat…) and the seller's supplier and delivery-partner chats
-// (/api/conversations) in one list, newest first, with All / Customers / Partners / Unread and a search. Auto-replies,
+// (/api/conversations) in one list, newest first, with All / Customers / Riders / Suppliers / Unread (board A-Seller-Chats) and a search. Auto-replies,
 // the Peggy chatbot and connecting channels are behind the settings button. ?filter=partners opens on Partners.
 
-const FILTER_LABEL: Record<SellerChatFilter, "filter.all" | "chats.customers" | "chats.partners" | "view.unread"> = {
+const FILTER_LABEL: Record<SellerChatFilter, "filter.all" | "chats.customers" | "chats.riders" | "chats.suppliers" | "chats.partners" | "view.unread"> = {
   all: "filter.all",
   customers: "chats.customers",
+  riders: "chats.riders",
+  suppliers: "chats.suppliers",
   partners: "chats.partners",
   unread: "view.unread",
 };
@@ -102,7 +104,7 @@ export default function Chats() {
     <>
       <ChatListScreen
         title={t("tab.chats")}
-        filters={SELLER_CHAT_FILTERS.map((key) => ({ key, label: t(FILTER_LABEL[key]), count: key === "unread" ? unread : undefined }))}
+        filters={(filter === "partners" ? [...SELLER_CHAT_FILTERS.slice(0, 2), "partners" as const, ...SELLER_CHAT_FILTERS.slice(2)] : SELLER_CHAT_FILTERS).map((key) => ({ key, label: t(FILTER_LABEL[key]), count: key === "unread" ? unread : undefined }))}
         filter={filter}
         onFilter={setFilter}
         chats={rows}

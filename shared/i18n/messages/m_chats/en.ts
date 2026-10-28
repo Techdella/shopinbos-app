@@ -180,6 +180,8 @@ const en = {
   "bot.faqA": "Peggy's answer",
   "bot.faqAdd": "Add a question",
   "bot.faqRemove": "Remove",
+  "chats.riders": "Riders",
+  "chats.suppliers": "Suppliers",
 } satisfies Record<string, string>;
 
 export default en;

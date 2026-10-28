@@ -237,7 +237,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "tab.home": "Home",
   "tab.orders": "Orders",
   "tab.chats": "Chats",
-  "tab.shop": "My shop",
+  "tab.shop": "Menu",
   "tab.create": "Add or sell",
   "tab.supplier.home": "Home",
   "tab.supplier.orders": "Orders",

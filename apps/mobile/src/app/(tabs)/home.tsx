@@ -22,7 +22,7 @@ import { useShopinbosRings } from "@/components/updates/TeamUpdatesRing";
 import { StoryViewer } from "@/components/familiar/StoryViewer";
 import { Tour, type TourStep } from "@/components/familiar/Tour";
 import { stepWords } from "@/lib/setup-words";
-import { doNextItems, type DoNextItem } from "@/lib/home-pure";
+import { doNextItems, peggyLine, type DoNextItem } from "@/lib/home-pure";
 import { useHomeData } from "@/lib/homeData";
 import { latestPicture, useChangedIdentity } from "@/lib/identity";
 import { hasOpenedHome, rememberedStoreName } from "@/lib/launch";
@@ -375,7 +375,13 @@ export default function Home() {
         {data && (
           <>
             <View style={{ gap: 10 }} testID="do-next">
-              <Eyebrow>{t("needs.title")}</Eyebrow>
+              {/* "Needs you" with "All orders" beside it (board A-Seller-Home). */}
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                <Eyebrow>{t("needs.title")}</Eyebrow>
+                <Pressable testID="home-all-orders" accessibilityRole="link" onPress={() => router.push("/orders")} hitSlop={8} style={{ minHeight: 32, justifyContent: "center" }}>
+                  <T weight="bold" style={{ fontSize: 14, color: colors.accentInk }}>{t("needs.allOrders")}</T>
+                </Pressable>
+              </View>
               {needs.length ? (
                 <List>
                   {needs.map((todo) => <Row key={todo.key} lead={todo.lead} title={todo.title} sub={todo.sub} onPress={todo.onPress} />)}
@@ -385,6 +391,17 @@ export default function Home() {
                   <T style={{ fontSize: 16, lineHeight: 24, color: colors.inkSoft }}>{t("todo.caughtUp")}</T>
                 </View>
               )}
+            </View>
+
+            {/* "From Peggy" (board A-Seller-Home): what she kept an eye on today; a tap opens her. */}
+            <View style={{ gap: 10 }}>
+              <Eyebrow>{t("fromPeggy")}</Eyebrow>
+              <Pressable testID="home-from-peggy" accessibilityRole="button" onPress={() => router.push("/peggy")} style={({ pressed }) => ({ flexDirection: "row", alignItems: "flex-start", gap: 10, opacity: pressed ? 0.85 : 1 })}>
+                <Mascot name="peggy" mood={isPeggyNight() ? "sleep" : "idle"} size={36} label="" />
+                <View style={{ flex: 1, minWidth: 0, backgroundColor: colors.surface, borderRadius: 18, borderTopLeftRadius: 6, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 14, paddingVertical: 12 }}>
+                  <T style={{ fontSize: 15, lineHeight: 21 }}>{peggyLine(data.counts, t)}</T>
+                </View>
+              </Pressable>
             </View>
 
             <CampaignsCard />

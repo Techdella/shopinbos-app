@@ -156,7 +156,7 @@ test("Edit my shop changes the draft with the builder's own operations", () => {
   assert.match(lib, /api<EditorData>\("\/api\/store\/editor"\)/);
   assert.match(lib, /\{ method: "PATCH", json: \{ ops \} \}/);
   assert.match(lib, /"\/api\/app\/store", \{ method: "PATCH"/);
-  for (const file of ["app/(tabs)/shop.tsx", "app/templates.tsx", "app/start.tsx", "app/rex.tsx"]) assert.match(app(file), /"\/shop-edit"/, file);
+  for (const file of ["app/(tabs)/shop.tsx", "app/templates.tsx", "app/start.tsx", "app/rex.tsx"]) assert.match(app(file), /"(app:)?\/shop-edit"/, file);
   assert.match(app("app/shop-edit.tsx"), /uploadIdentityImage\("logo"/);
   for (const key of Object.keys(CATALOGS.m_shop.en).filter((entry) => entry.startsWith("editShop."))) for (const lang of LANGS) assert.ok(CATALOGS.m_shop[lang][key], `${lang} ${key}`);
 });

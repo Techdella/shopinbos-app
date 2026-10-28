@@ -55,6 +55,7 @@ const en = {
   "watch.adHint": "Run this video as an ad on Facebook and Instagram.",
   "watch.adOnWeb": "Make the ad on the web",
   "watch.saveFailed": "Couldn't get the video onto your phone. Check your connection and try again.",
+  "watch.boost": "Boost with an ad",
 } satisfies Record<string, string>;
 
 export default en;

@@ -180,6 +180,9 @@ const en = {
   "call.screen.agreements": "Dropship agreements",
   "call.screen.status": "Post a status",
   "call.screen.rewards": "Rewards",
+  "call.screen.insights": "Insights",
+  "call.screen.email": "Email",
+  "call.screen.popups": "Popups",
 } satisfies Record<string, string>;
 
 export default en;

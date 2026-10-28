@@ -176,6 +176,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "bot.faqA": "Ìdáhùn Peggy",
   "bot.faqAdd": "Fi ìbéèrè kan kún un",
   "bot.faqRemove": "Yọ ọ́ kúrò",
+  "chats.riders": "Àwọn agbéjíṣẹ́",
+  "chats.suppliers": "Àwọn olùpèsè",
 };
 
 export default yo;

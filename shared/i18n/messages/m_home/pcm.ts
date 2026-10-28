@@ -113,7 +113,17 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "create.saleSub": "Black Friday, Christmas or your own sale",
   "create.preorders": "Collect pre-orders",
   "create.preordersSub": "Sell before your stock land",
-  "create.web": "You want more space? Edit videos, ad reports and your store design for shopinbos.com.",
+  "create.web": "Everything dey work here for your phone. E still dey for shopinbos.com too.",
+  "create.status": "Post for Status",
+  "create.statusSub": "Photo or words wey your customers go see today",
+  "create.email": "Send email",
+  "create.emailSub": "Rex go write am for your subscribers",
+  "create.automation": "Automation",
+  "create.automationSub": "Messages wey dey send by demself, like cart reminder",
+  "create.popup": "Popup",
+  "create.popupSub": "Offer for your shop wey dey collect emails and WhatsApp numbers",
+  "needs.allOrders": "All orders",
+  "fromPeggy": "From Peggy",
 };
 
 export default pcm;

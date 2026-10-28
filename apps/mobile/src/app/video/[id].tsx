@@ -17,7 +17,8 @@ import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
 // One saved video (web /home/video, a saved card): play it, share it, keep it on the phone, put it on the
-// product's page or mark it posted, change it in the studio, or delete it. Running it as an ad is on the web.
+// product's page or mark it posted, change it in the studio, boost the product with an ad (app/ads/new.tsx), or
+// delete it.
 
 function Player({ url }: { url: string }) {
   const player = useVideoPlayer(url, (created) => {
@@ -158,6 +159,10 @@ export default function VideoDetail() {
           })}
         />
         <PillButton size="md" tone="white" title={t("watch.change")} disabled={Boolean(busy)} onPress={() => router.push({ pathname: "/video/studio", params: { id: row.id } })} />
+        {/* "Post or boost" (board M-RexVideo): an ad for the video's product, in the app's own ads flow. */}
+        {row.productId ? (
+          <PillButton testID="video-boost" size="md" tone="white" icon="megaphone" title={t("watch.boost")} disabled={Boolean(busy)} onPress={() => router.push({ pathname: "/ads/new", params: { product: row.productId! } })} />
+        ) : null}
       </Card>
 
 

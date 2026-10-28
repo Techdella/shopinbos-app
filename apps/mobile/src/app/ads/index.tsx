@@ -12,6 +12,7 @@ import { MetaCard } from "@/components/MetaAdsCard";
 import { fetchAds, setBoostStatus, type BoostRow } from "@/lib/ads";
 import { costPerOrder, groupDigits, type CampaignRow } from "@/lib/ads-pure";
 import { friendlyDay } from "@/lib/friendly";
+import { adsTotals } from "@/lib/grow-pure";
 import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
@@ -125,6 +126,24 @@ export default function Ads() {
       {data.error && !overview ? <ErrorState message={data.error} onRetry={() => void data.reload()} /> : null}
       {overview ? (
         <>
+          {/* Every ad's numbers together (board M-Ads), once there's an ad to count. */}
+          {overview.campaigns.length || overview.boosts.length ? (
+            <Card style={{ flexDirection: "row", gap: 8 }}>
+              {(() => {
+                const totals = adsTotals(overview);
+                return [
+                  { key: "spent", label: t("c.stat.spent"), value: naira(totals.spend) },
+                  { key: "reach", label: t("c.stat.reach"), value: groupDigits(totals.reach) },
+                  { key: "orders", label: t("stat.orders"), value: groupDigits(totals.orders) },
+                ].map((item) => (
+                  <View key={item.key} testID={`ads-total-${item.key}`} style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                    <T style={{ fontSize: 13, color: colors.inkSoft }} numberOfLines={1}>{item.label}</T>
+                    <T weight="extrabold" style={{ fontSize: 17 }} numberOfLines={1}>{item.value}</T>
+                  </View>
+                ));
+              })()}
+            </Card>
+          ) : null}
           <MetaCard meta={overview.meta} onChanged={data.reload} />
 
           {openRequests.length ? (

@@ -53,6 +53,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "watch.adHint": "Run this video as ad for Facebook and Instagram.",
   "watch.adOnWeb": "Make the ad for web",
   "watch.saveFailed": "We no fit put the video for your phone. Check your network and try again.",
+  "watch.boost": "Push am with ad",
 };
 
 export default pcm;

@@ -178,6 +178,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "call.screen.agreements": "Yarjejeniyar dropship",
   "call.screen.status": "Saka Status",
   "call.screen.rewards": "Lada",
+  "call.screen.insights": "Bayanai",
+  "call.screen.email": "Imel",
+  "call.screen.popups": "Popups",
 };
 
 export default ha;

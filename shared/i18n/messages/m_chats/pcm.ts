@@ -176,6 +176,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "bot.faqA": "Peggy answer",
   "bot.faqAdd": "Add question",
   "bot.faqRemove": "Comot am",
+  "chats.riders": "Riders",
+  "chats.suppliers": "Suppliers",
 };
 
 export default pcm;
