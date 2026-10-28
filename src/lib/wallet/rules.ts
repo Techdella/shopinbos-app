@@ -159,7 +159,7 @@ export interface SplitDeduction {
 /** An overdue debt a business in the order owes, oldest first: what of it can be taken from this order. */
 export interface DebtToDeduct {
   debtId: string;
-  /** "seller" or the supplier's id. */
+  /** "seller", the supplier's id, or "partner:<partnerId>" for a delivery partner paid in the split. */
   from: string;
   /** The account of the business owed on this gateway, or null for Shopinbos. */
   to: string | null;
@@ -206,8 +206,23 @@ export function buildSplitPlan(input: { totalKobo: number; sellerSubaccount: str
     .map((share) => ({ shipmentKey: share.shipmentKey, partnerId: share.partnerId, subaccount: share.subaccount, kobo: Math.round(share.kobo) }));
   const deliveryKobo = delivery.reduce((sum, share) => sum + share.kobo, 0);
   if (delivery.length && deliveryKobo + MIN_SELLER_KOBO <= Math.round(input.totalKobo)) {
-    const rest = buildSplitPlan({ ...input, totalKobo: Math.round(input.totalKobo) - deliveryKobo, delivery: [] });
-    return { ...rest, totalKobo: Math.max(0, Math.round(input.totalKobo)), delivery };
+    // Money a delivery partner owes (debts from "partner:<partnerId>") comes out of its fee, the same way as the
+    // seller's and suppliers' (shared/fault-matrix.ts: the at-fault party pays from its next payments).
+    const isPartner = (debt: DebtToDeduct) => debt.from.startsWith("partner:");
+    const rest = buildSplitPlan({ ...input, totalKobo: Math.round(input.totalKobo) - deliveryKobo, delivery: [], debts: (input.debts ?? []).filter((debt) => !isPartner(debt)) });
+    const fees = new Map<string, number>();
+    const first = new Map<string, number>();
+    delivery.forEach((share, index) => {
+      const key = `partner:${share.partnerId}`;
+      if (fees.has(key)) return;
+      fees.set(key, share.kobo);
+      first.set(key, index);
+    });
+    const taken = takeDebts(fees, (input.debts ?? []).filter(isPartner));
+    for (const [key, kobo] of fees) delivery[first.get(key)!]!.kobo = kobo;
+    const toShopinbos = taken.filter((deduction) => deduction.to === null).reduce((sum, deduction) => sum + deduction.kobo, 0);
+    const deductions = [...(rest.deductions ?? []), ...taken];
+    return { ...rest, totalKobo: Math.max(0, Math.round(input.totalKobo)), delivery, ...(toShopinbos ? { platformKobo: (rest.platformKobo ?? 0) + toShopinbos } : {}), ...(deductions.length ? { deductions } : {}) };
   }
   const total = Math.max(0, Math.round(input.totalKobo));
   const owed = input.suppliers.filter((supplier) => supplier.costKobo > 0).map((supplier) => ({ ...supplier, costKobo: Math.round(supplier.costKobo) }));

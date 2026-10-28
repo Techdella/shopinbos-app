@@ -506,25 +506,31 @@ export const fetchBranding = () => api<BrandingView>("/api/supplier/branding");
 
 export const saveBranding = (offer: Partial<BrandingOffer>) => api<BrandingView>("/api/supplier/branding", { method: "PUT", json: offer });
 
-/** Pack it the seller's way on one dropship order (GET/POST /api/supplier/orders/[id]/pack). */
+/**
+ * Pack it the seller's way on one dropship order (GET/POST /api/supplier/orders/[id]/pack), or a bulk order's two
+ * packing photos (?kind=wholesale): the item in the open box (contentsPhotoUrl) and the sealed parcel (photoUrl).
+ */
 export interface PackView {
   orderId: string;
+  kind?: "dropship" | "wholesale";
   branding: { sellerName: string; logoUrl: string | null; choice: BrandingChoice; fee: number; skus: string[] };
-  steps: Array<{ id: "plain" | "slip" | "sticker" | "code" | "photo"; text: string; detail: string; done: boolean }>;
+  steps: Array<{ id: "contents" | "plain" | "slip" | "sticker" | "code" | "photo"; text: string; detail: string; done: boolean }>;
   packSteps: string[];
   photoUrl: string | null;
+  contentsPhotoUrl?: string | null;
   stickersLeft: number | null;
   packed: boolean;
   /** Why it can't be marked packed yet, or null. */
   problem: string | null;
 }
 
-const packPath = (id: string) => `/api/supplier/orders/${encodeURIComponent(id)}/pack`;
+const packPath = (id: string, kind: "dropship" | "wholesale" = "dropship") => `/api/supplier/orders/${encodeURIComponent(id)}/pack${kind === "wholesale" ? "?kind=wholesale" : ""}`;
 
-export const fetchPack = (id: string) => api<PackView>(packPath(id));
+export const fetchPack = (id: string, kind: "dropship" | "wholesale" = "dropship") => api<PackView>(packPath(id, kind));
 
-/** Ticks steps, saves the sealed-parcel photo, and with `packed: true` marks it packed (400 with the step left). */
-export const savePack = (id: string, input: { steps?: string[]; photoUrl?: string | null; packed?: true }) => api<PackView>(packPath(id), { method: "POST", json: input });
+/** Ticks steps, saves the packing photos, and with `packed: true` marks it packed (400 with the step or photo left). */
+export const savePack = (id: string, input: { steps?: string[]; photoUrl?: string | null; contentsPhotoUrl?: string | null; packed?: true }, kind: "dropship" | "wholesale" = "dropship") =>
+  api<PackView>(packPath(id, kind), { method: "POST", json: input });
 
 /** Uploads a photo to the signed-in person's media library (POST /api/app/media) and returns its web address. */
 export async function uploadMediaPhoto(photo: { uri: string; mimeType?: string | null; fileName?: string | null }) {

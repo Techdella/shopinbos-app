@@ -295,6 +295,11 @@ export async function moveSupplierOrder(input: MoveInput): Promise<ServiceResult
     return { ok: false, code: "CONFLICT", message: current?.status === "expired" ? TIME_RAN_OUT : "This order has already moved on. Refresh to see where it is." };
   }
   if (data.acceptedAt) void import("@/lib/rewards/rewards.server").then((rewards) => rewards.rewardSupplierOrderAccepted(order.id)).catch(() => undefined);
+  // Ship by: the products' handling time from now (shared/fault-matrix.ts); past it unsent, the customer may cancel.
+  if (data.acceptedAt) await import("@/lib/faults/strikes.server").then((strikes) => strikes.setShipBy(order.id, now)).catch(() => undefined);
+  // Out of stock after payment (shared/fault-matrix.ts row 1): the customer gets that part back in full, the supplier's
+  // pay goes back to the shop from its next payments, and a strike.
+  if (next === "rejected") await import("@/lib/faults/customer.server").then((faults) => faults.onSupplierRejected(order.id)).catch((error) => console.error(`[supplier orders] out-of-stock outcome for ${order.id}`, error));
   // Sent without "I've packed it" (the supplier delivers it itself): the seller's sticker is used here instead.
   if (next === "shipped" && !order.packedAt) await import("@/lib/supplier-dropship.server").then((pack) => pack.useSellerSticker(order.id)).catch(() => undefined);
   // A delivered order counts towards the supplier's level (New → Trusted → Established).

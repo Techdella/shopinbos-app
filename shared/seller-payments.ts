@@ -145,6 +145,20 @@ export interface MoneyOrder {
   status: string;
   paymentMethod: string | null;
   createdAt: Date;
+  /** When known, "Paid" means the money is in (moneyIsIn); without it the status decides, as before. */
+  paystackStatus?: string | null;
+}
+
+/**
+ * The money is in (C9): a card or bank checkout the gateway confirmed, pay on delivery paid at the door (in the app
+ * or marked paid by the seller), or an offline sale the seller recorded as paid. An order on its way isn't money in.
+ */
+export function moneyIsIn(order: MoneyOrder): boolean {
+  if (!(PAID_STATUSES as readonly string[]).includes(order.status)) return false;
+  if (order.paystackStatus === undefined) return true;
+  if (order.paymentMethod === "pay_on_delivery") return order.paystackStatus === "success" || order.paystackStatus === "offline" || order.status === "paid";
+  if (isOnlinePayment(order.paymentMethod)) return order.paystackStatus === "success";
+  return true;
 }
 
 export interface MoneySummary {
@@ -161,7 +175,7 @@ export interface MoneySummary {
 
 /** Sums the last 30 days of orders the way the Money page shows them. */
 export function summarizeMoney(orders: MoneyOrder[], now: Date, days = 14): MoneySummary {
-  const paid = orders.filter((order) => (PAID_STATUSES as readonly string[]).includes(order.status));
+  const paid = orders.filter(moneyIsIn);
   const online = paid.filter((order) => isOnlinePayment(order.paymentMethod)).reduce((sum, order) => sum + order.total, 0);
   const offline = paid.filter((order) => !isOnlinePayment(order.paymentMethod)).reduce((sum, order) => sum + order.total, 0);
   const refunded = orders.filter((order) => (REFUNDED_STATUSES as readonly string[]).includes(order.status)).reduce((sum, order) => sum + order.total, 0);
@@ -188,4 +202,71 @@ export function summarizeMoney(orders: MoneyOrder[], now: Date, days = 14): Mone
     daily: keys.map((day) => ({ day, total: byDay.get(day) ?? 0 })),
     byMethod: [...methodTotals.entries()].map(([method, total]) => ({ method, total })).sort((a, b) => b.total - a.total),
   };
+}
+
+// ─── What the seller earns on one order (C10) ────────────────────────────────
+
+/** A split as RetailOrder.paymentSplit / balanceSplit keep it (src/lib/wallet/rules.ts), only what's read here. */
+export interface EarningsPlan {
+  sellerKobo: number;
+  suppliers: Array<{ kobo: number; commissionKobo?: number }>;
+  delivery?: Array<{ kobo: number }>;
+  platformKobo?: number;
+  deductions?: Array<{ from: string; to: string | null; kobo: number }>;
+}
+
+export interface OrderEarnings {
+  /** "split": from the checkout split (exact); "estimate": worked out from the order (no split). */
+  basis: "split" | "estimate";
+  customerPaidKobo: number;
+  suppliersKobo: number;
+  deliveryKobo: number;
+  feeKobo: number;
+  /** The seller's earnings on the order (what the split gave them, including any part taken for what they owe). */
+  earnKobo: number;
+  /** Of that, what went straight to money the seller owed. */
+  toDebtsKobo: number;
+  /** What problems on this order changed it by (refunds sent, money owed back to them): + or -. */
+  faultsKobo: number;
+  /** After the problems. */
+  netKobo: number;
+}
+
+/**
+ * The seller's margin on one order: from the split when there is one (the checkout part and, for pay on delivery or a
+ * preorder, the later part), else an estimate (the total less the dropship suppliers' cost and partner fees).
+ */
+export function orderEarnings(input: { totalKobo: number; plans: Array<EarningsPlan | null>; supplierCostKobo?: number; partnerFeesKobo?: number; faultsKobo?: number }): OrderEarnings {
+  const plans = input.plans.filter((plan): plan is EarningsPlan => Boolean(plan));
+  const faults = Math.round(input.faultsKobo ?? 0);
+  if (!plans.length) {
+    const suppliers = Math.max(0, Math.round(input.supplierCostKobo ?? 0));
+    const delivery = Math.max(0, Math.round(input.partnerFeesKobo ?? 0));
+    const earn = Math.max(0, Math.round(input.totalKobo)) - suppliers - delivery;
+    return { basis: "estimate", customerPaidKobo: Math.max(0, Math.round(input.totalKobo)), suppliersKobo: suppliers, deliveryKobo: delivery, feeKobo: 0, earnKobo: earn, toDebtsKobo: 0, faultsKobo: faults, netKobo: earn + faults };
+  }
+  let suppliers = 0;
+  let delivery = 0;
+  let fee = 0;
+  let earn = 0;
+  let toDebts = 0;
+  let paid = 0;
+  for (const plan of plans) {
+    const deductions = plan.deductions ?? [];
+    const commissions = plan.suppliers.reduce((sum, row) => sum + (row.commissionKobo ?? 0), 0);
+    const supplierDebts = deductions.filter((row) => row.from !== "seller" && !row.from.startsWith("partner:")).reduce((sum, row) => sum + row.kobo, 0);
+    const partnerDebts = deductions.filter((row) => row.from.startsWith("partner:")).reduce((sum, row) => sum + row.kobo, 0);
+    const sellerDebts = deductions.filter((row) => row.from === "seller").reduce((sum, row) => sum + row.kobo, 0);
+    const toShopinbos = deductions.filter((row) => row.to === null).reduce((sum, row) => sum + row.kobo, 0);
+    const supplierKobo = plan.suppliers.reduce((sum, row) => sum + row.kobo + (row.commissionKobo ?? 0), 0) + supplierDebts;
+    const deliveryKobo = (plan.delivery ?? []).reduce((sum, row) => sum + row.kobo, 0) + partnerDebts;
+    const feeKobo = Math.max(0, (plan.platformKobo ?? 0) - commissions - toShopinbos);
+    suppliers += supplierKobo;
+    delivery += deliveryKobo;
+    fee += feeKobo;
+    earn += plan.sellerKobo + sellerDebts;
+    toDebts += sellerDebts;
+    paid += plan.sellerKobo + sellerDebts + supplierKobo + deliveryKobo + feeKobo;
+  }
+  return { basis: "split", customerPaidKobo: paid, suppliersKobo: suppliers, deliveryKobo: delivery, feeKobo: fee, earnKobo: earn, toDebtsKobo: toDebts, faultsKobo: faults, netKobo: earn + faults };
 }

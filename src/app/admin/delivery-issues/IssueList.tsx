@@ -37,6 +37,10 @@ export function IssueList({ rows, returnTo, showPartner = true }: { rows: AdminI
             <div>Reported {formatDate(issue.createdAt)}</div>
             {issue.resolvedAt && <div>Resolved {formatDate(issue.resolvedAt)}</div>}
           </div>
+          {/* Wrong item, damaged, not received: the evidence side by side and who pays (shared/fault-matrix.ts). */}
+          {["wrong_item", "damaged", "not_delivered"].includes(issue.kind) && (
+            <Link href={`/admin/delivery-issues/${issue.id}`} className={`${buttonClass(issue.status === "open" ? "ink" : "white", "sm")} shrink-0 no-underline`}>{issue.status === "open" ? "Decide who pays" : "See the outcome"}</Link>
+          )}
           {issue.status === "open" && (
             <form action={resolveDeliveryIssueAdmin} className="shrink-0">
               <input type="hidden" name="issueId" value={issue.id} />

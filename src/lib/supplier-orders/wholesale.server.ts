@@ -157,6 +157,11 @@ export async function moveWholesaleOrder(input: MoveWholesaleInput): Promise<Ser
   if (next === "shipped" && preorderBlocksShipping(order)) return { ok: false, code: "CONFLICT", message: "The shop hasn't paid the rest of this preorder yet. Send it once it's paid." };
   const reason = input.reason?.trim();
   if (input.action === "reject" && (!reason || reason.length < 3)) return { ok: false, code: "BAD_REQUEST", message: "Say why you can't fill this order." };
+  // Never sent without the packing photos (the item in the open box, the sealed parcel): they decide disputes.
+  if (next === "shipped") {
+    const problem = await import("@/lib/supplier-dropship.server").then((photos) => photos.wholesalePackProblem(order.id));
+    if (problem) return { ok: false, code: "BAD_REQUEST", message: problem };
+  }
 
   const now = new Date();
   const trackingCode = input.trackingCode?.trim() || null;

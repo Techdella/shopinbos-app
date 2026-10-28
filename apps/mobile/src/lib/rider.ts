@@ -87,6 +87,9 @@ export interface RiderDrop {
   fee?: number;
   item: string;
   hasProof: boolean;
+  /** A shop's or supplier's parcel: the rider photographs it sealed at pickup (needed before "Got the parcel"). */
+  needsPickupPhoto?: boolean;
+  hasPickupPhoto?: boolean;
   /** "Lekki": the known area the address names, when there is one. */
   areaShort?: string | null;
   /** The shop has a 4-digit pickup code to give the rider (the app never gets the code itself). */
@@ -167,10 +170,12 @@ export type RiderAction =
 export const riderAction = (body: RiderAction) =>
   riderFetch<{ done: true }>("", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 
-export function uploadRiderProof(jobId: string, photo: { uri: string; mimeType?: string | null; fileName?: string | null }) {
+/** A photo of the sealed parcel: "handover" (every drop) or "pickup" (shop and supplier parcels, before "Got the parcel"). */
+export function uploadRiderProof(jobId: string, photo: { uri: string; mimeType?: string | null; fileName?: string | null }, kind: "handover" | "pickup" = "handover") {
   const form = new FormData();
   const type = photo.mimeType ?? "image/jpeg";
   form.append("jobId", jobId);
+  form.append("kind", kind);
   // React Native's FormData takes { uri, name, type } file parts.
   form.append("file", { uri: photo.uri, name: photo.fileName ?? `proof.${type.split("/")[1] ?? "jpg"}`, type } as unknown as Blob);
   return riderFetch<{ proofUrl: string }>("/proof", { method: "POST", body: form });

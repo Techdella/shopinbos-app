@@ -174,7 +174,10 @@ function WalletBody({ data, t, reload }: { data: WalletData; t: TFn; reload: () 
               key={entry.id}
               label={entry.description}
               hint={`${new Date(entry.createdAt).toLocaleDateString("en-NG", { day: "numeric", month: "short" })}${entry.status === "refunded" ? ` · ${t("w.refunded")}` : ""}`}
-              amount={nairaFromKobo(entry.amountKobo)}
+              // Money taken for what this business owes (who pays when things go wrong): the whole line, with why.
+              amount={entry.kind === "deduction" ? `−${nairaFromKobo(Math.abs(entry.amountKobo))}` : nairaFromKobo(entry.amountKobo)}
+              lines={entry.kind === "deduction" ? 3 : 1}
+              color={entry.kind === "deduction" ? colors.danger : undefined}
               onPress={role === "seller" && entry.orderId ? () => router.push({ pathname: "/order/[id]", params: { id: entry.orderId as string } }) : undefined}
             />
           ))
@@ -226,14 +229,14 @@ function SetupSteps({ view, role, t }: { view: WalletData["view"]; role: WalletD
   );
 }
 
-function Row({ label, hint, amount, onPress }: { label: string; hint?: string; amount: string; onPress?: () => void }) {
+function Row({ label, hint, amount, onPress, lines = 1, color }: { label: string; hint?: string; amount: string; onPress?: () => void; lines?: number; color?: string }) {
   const body = (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 11 }}>
       <View style={{ flex: 1, gap: 2 }}>
-        <T weight="bold" style={{ fontSize: 15 }} numberOfLines={1}>{label}</T>
+        <T weight="bold" style={{ fontSize: 15 }} numberOfLines={lines}>{label}</T>
         {hint ? <T style={{ color: colors.inkSoft, fontSize: 14 }} numberOfLines={1}>{hint}</T> : null}
       </View>
-      <T weight="extrabold" style={{ fontSize: 15 }}>{amount}</T>
+      <T weight="extrabold" style={{ fontSize: 15, ...(color ? { color } : {}) }}>{amount}</T>
     </View>
   );
   return onPress ? <Pressable accessibilityRole="button" onPress={onPress}>{body}</Pressable> : body;

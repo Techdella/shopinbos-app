@@ -118,6 +118,10 @@ export async function transitionJob(input: {
   }
   // Supplier pickups: the supplier's order follows the rider (sent when picked up, delivered when dropped off).
   await import("@/lib/supplier-orders/pickup.server").then((pickup) => pickup.onDeliveryJobMoved(job.id, input.to)).catch(() => undefined);
+  // Who pays when things go wrong (shared/fault-matrix.ts): a parcel back from a customer who couldn't be reached, or
+  // pay on delivery not paid at the door; and a return trip that reached the seller or supplier (the refund follows).
+  if (input.to === "returned" && !job.tripKind) await import("@/lib/faults/customer.server").then((faults) => faults.onDeliveryReturned(job.id)).catch(() => undefined);
+  if (input.to === "delivered" && job.tripKind === "return") await import("@/lib/faults/returns.server").then((returns) => returns.onReturnTripDelivered(job.id)).catch(() => undefined);
   return { ok: true };
 }
 

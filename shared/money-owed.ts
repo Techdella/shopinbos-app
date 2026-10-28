@@ -21,6 +21,13 @@ export const DEBT_REASONS = {
   damaged_in_transit: "Damaged after pickup",
   chargeback: "Card chargeback",
   overpaid: "Paid twice",
+  // Who pays when things go wrong (shared/fault-matrix.ts): recorded automatically, taken from the next payments.
+  out_of_stock: "Out of stock after payment",
+  shipped_late: "Not sent in time",
+  delivery_not_made: "Delivery fee for a trip not made",
+  delivery_failed: "Delivery failed, item came back",
+  returned: "Returned by the customer",
+  return_trip: "Delivery trip back",
   other: "Something else",
 } as const;
 
@@ -117,6 +124,26 @@ export function applyPayment(debt: { amountKobo: number; paidKobo: number }, kob
   const credit = Math.min(paying, remainingKobo(debt));
   const paidKobo = debt.paidKobo + credit;
   return { credit, excess: paying - credit, paidKobo, settled: paidKobo >= debt.amountKobo };
+}
+
+/**
+ * Recorded by "who pays when things go wrong" (fault:<case>:<n>) or for a supplier paid at checkout who didn't send
+ * (notsent:<id>): owed at once and taken from the business's next payments automatically, so nobody chases anyone.
+ */
+export function deductsAutomatically(sourceKey: string) {
+  return sourceKey.startsWith("fault:") || sourceKey.startsWith("notsent:");
+}
+
+/**
+ * The line on the debtor's statement when part of a payment went to what they owe: "₦14,250 deducted for order
+ * SB-1001: wrong or damaged item, the packing photo showed it (from order SB-2002)". `details` is the debt's own words
+ * (its first sentence is enough); `label` the payment it came from.
+ */
+export function deductionLine(kobo: number, details: string | null | undefined, reason: string, label: string) {
+  const amount = `₦${(Math.round(kobo) / 100).toLocaleString("en-NG", { maximumFractionDigits: 2 })}`;
+  const first = (details ?? "").split(/(?<=\.)\s/)[0]?.replace(/\.$/, "").trim();
+  const what = first && /^order\s/i.test(first) ? first : `${debtReasonLabel(reason).toLowerCase()}${first ? `: ${first}` : ""}`;
+  return `${amount} deducted for ${what} (from ${label})`.slice(0, 300);
 }
 
 /** Naira typed by a person ("12,500" or "12500.50") as kobo, or null. */

@@ -202,6 +202,10 @@ export async function markPacked(supplierId: string, kind: SupplierOrderKind, or
   if (pack) {
     const problem = await pack.dropshipPackProblem(order.id);
     if (problem) return { ok: false, code: "BAD_REQUEST", message: problem };
+  } else {
+    // Bulk orders too: the item in the open box and the sealed parcel before it leaves (shared/fault-matrix.ts).
+    const problem = await import("@/lib/supplier-dropship.server").then((photos) => photos.wholesalePackProblem(order.id));
+    if (problem) return { ok: false, code: "BAD_REQUEST", message: problem };
   }
   const moved = kind === "dropship"
     ? await db.supplierOrder.updateMany({ where: { id: order.id, supplierId, status: "accepted", packedAt: null }, data: { packedAt: new Date() } })

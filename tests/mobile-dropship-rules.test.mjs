@@ -94,14 +94,16 @@ test("Dropship settings, delivery rate card, level meter and the pack button", (
   assert.equal(pure.goalValue(goals.find((goal) => goal.key === "rating")), "4.7");
   assert.equal(pure.goalShare({ kind: "check", have: 0, need: 1, done: true }), 1);
 
-  // Ready for pickup only with every step ticked and the photo taken (packReadyProblem on the server).
+  // Ready for pickup only with every step ticked and both photos taken: the item in the open box and the sealed
+  // parcel (packReadyProblem on the server; shared/fault-matrix.ts: they decide most disputes).
   const steps = rules.packChecklist({ sellerName: "Ada's Kloset", choice: "stickers", orderCode: "SB-4821", stickersLeft: 14 });
-  const asView = (done, photo) => steps.map((step) => ({ id: step.id, done: step.id === "photo" ? Boolean(photo) : done.includes(step.id) }));
-  assert.deepEqual(pure.packButton(asView(["plain"], null), null), { left: 3, ready: false, label: "3 steps left" });
-  assert.equal(pure.packButton(asView(["plain", "sticker", "code"], null), null).label, "1 step left");
+  const asView = (done, photo) => steps.map((step) => ({ id: step.id, done: step.id === "photo" || step.id === "contents" ? Boolean(photo) : done.includes(step.id) }));
+  assert.deepEqual(pure.packButton(asView(["plain"], null), null), { left: 4, ready: false, label: "4 steps left" });
+  assert.equal(pure.packButton(asView(["plain", "sticker", "code"], null), null).label, "2 steps left", "both photos still to take");
   const done = ["plain", "sticker", "code"];
   assert.equal(pure.packButton(asView(done, "https://x/p.jpg"), "https://x/p.jpg").ready, true);
-  assert.equal(rules.packReadyProblem(steps, done, "https://x/p.jpg"), null, "ready on the phone = ready on the server");
+  assert.equal(rules.packReadyProblem(steps, done, "https://x/p.jpg", "https://x/c.jpg"), null, "ready on the phone = ready on the server");
+  assert.match(rules.packReadyProblem(steps, done, "https://x/p.jpg", null), /open box/, "the contents photo is needed too");
   assert.deepEqual(pure.toggleStep(["plain"], "code"), ["plain", "code"]);
   assert.deepEqual(pure.toggleStep(["plain", "code"], "plain"), ["code"]);
   assert.deepEqual(pure.toggleStep(["plain"], "photo"), ["plain"], "the photo is never a ticked step");
@@ -210,7 +212,7 @@ test("supplier screens: Prices, Dropship settings, Delivery prices, Branding, Yo
     assert.ok(existsSync(join(root, "apps/mobile/src", screen)), screen);
   }
   const client = app("lib/supplier.ts");
-  for (const path of ['"/api/supplier/level"', '"/api/supplier/delivery-rates"', '"/api/supplier/branding"', '"/api/app/media"', "/pack`"]) assert.ok(client.includes(path), path);
+  for (const path of ['"/api/supplier/level"', '"/api/supplier/delivery-rates"', '"/api/supplier/branding"', '"/api/app/media"', "/pack${"]) assert.ok(client.includes(path), path);
 
   const kit = app("components/supplier/DropshipKit.tsx");
   assert.match(kit, /"Same price for all"/);
@@ -253,8 +255,8 @@ test("supplier screens: Prices, Dropship settings, Delivery prices, Branding, Yo
   const pack = app("app/supplier/order/pack.tsx");
   assert.match(pack, /ImagePicker\.launchCameraAsync/);
   assert.match(pack, /uploadMediaPhoto\(/);
-  assert.match(pack, /savePack\(view\.orderId, \{ photoUrl \}\)/);
-  assert.match(pack, /savePack\(view\.orderId, \{ packed: true \}\)/);
+  assert.match(pack, /savePack\(view\.orderId, which === "contents" \? \{ contentsPhotoUrl: url \} : \{ photoUrl: url \}, kind\)/);
+  assert.match(pack, /savePack\(view\.orderId, \{ packed: true \}, kind\)/);
   assert.match(pack, /disabled=\{!button\.ready \|\| Boolean\(busy\)\}/);
   assert.match(pack, /"Pack it \{seller\}'s way"/);
   assert.match(pack, /"Snap"/);

@@ -149,7 +149,7 @@ export function readOrderBranding(value: unknown, fallbackName = "The shop"): Or
 }
 
 const PACK_SELECT = {
-  id: true, supplierId: true, sellerId: true, status: true, packedAt: true, branding: true, packSteps: true, packPhotoUrl: true, storeId: true,
+  id: true, supplierId: true, sellerId: true, status: true, packedAt: true, branding: true, packSteps: true, packPhotoUrl: true, contentsPhotoUrl: true, storeId: true,
 } as const satisfies Prisma.SupplierOrderSelect;
 
 type PackRow = Prisma.SupplierOrderGetPayload<{ select: typeof PACK_SELECT }>;
@@ -168,13 +168,16 @@ async function packViewOf(row: PackRow, shopName?: string) {
   return {
     orderId: row.id,
     branding,
-    steps: steps.map((step) => ({ ...step, done: step.id === "photo" ? Boolean(row.packPhotoUrl) : done.includes(step.id) })),
+    kind: "dropship" as "dropship" | "wholesale",
+    steps: steps.map((step) => ({ ...step, done: step.id === "photo" ? Boolean(row.packPhotoUrl) : step.id === "contents" ? Boolean(row.contentsPhotoUrl) : done.includes(step.id) })),
     packSteps: done,
     photoUrl: row.packPhotoUrl,
+    /** The item in the open box, before sealing (shared/fault-matrix.ts: the packing photos decide most disputes). */
+    contentsPhotoUrl: row.contentsPhotoUrl,
     stickersLeft,
     packed: Boolean(row.packedAt),
     // Orders made before the checklist existed carry no branding snapshot: they keep the old one-tap "packed".
-    problem: legacyOrder(row.branding) ? null : packReadyProblem(steps, done, row.packPhotoUrl),
+    problem: legacyOrder(row.branding) ? null : packReadyProblem(steps, done, row.packPhotoUrl, row.contentsPhotoUrl),
   };
 }
 
@@ -193,8 +196,8 @@ export function cleanPhotoUrl(value: unknown): string | null | undefined {
   return /^https?:\/\/[^\s"'<>]{4,1000}$/.test(url) ? url : undefined;
 }
 
-/** Ticks checklist steps and saves the sealed-parcel photo, until the order is packed. */
-export async function savePackProgress(supplierId: string, orderId: string, input: { steps?: unknown; photoUrl?: unknown }): Promise<{ ok: true; data: PackView } | Fail> {
+/** Ticks checklist steps and saves the packing photos (the item in the open box, the sealed parcel), until it's packed. */
+export async function savePackProgress(supplierId: string, orderId: string, input: { steps?: unknown; photoUrl?: unknown; contentsPhotoUrl?: unknown }): Promise<{ ok: true; data: PackView } | Fail> {
   const row = await db.supplierOrder.findFirst({ where: { id: orderId, supplierId }, select: PACK_SELECT });
   if (!row) return { ok: false, code: "NOT_FOUND", message: "Order not found" };
   if (!["pending", "accepted"].includes(row.status) || row.packedAt) return { ok: false, code: "CONFLICT", message: "This order is already packed or has moved on. Refresh to see where it is." };
@@ -207,8 +210,60 @@ export async function savePackProgress(supplierId: string, orderId: string, inpu
     data.packSteps = [...new Set(input.steps.map(String).filter((id) => known.has(id)))];
   }
   if (photoUrl !== undefined) data.packPhotoUrl = photoUrl;
+  const contentsUrl = cleanPhotoUrl(input.contentsPhotoUrl);
+  if (input.contentsPhotoUrl !== undefined && contentsUrl === undefined) return { ok: false, code: "BAD_REQUEST", message: "Upload the photo again: that link didn't work." };
+  if (contentsUrl !== undefined) data.contentsPhotoUrl = contentsUrl;
   if (Object.keys(data).length) await db.supplierOrder.update({ where: { id: row.id }, data });
   return { ok: true, data: (await dropshipPackView(supplierId, orderId))! };
+}
+
+// ─── Wholesale: the same two packing photos before it leaves ────────────────
+
+const WHOLESALE_PACK_SELECT = { id: true, supplierId: true, status: true, packPhotoUrl: true, contentsPhotoUrl: true, seller: { select: { name: true, store: { select: { name: true, logoUrl: true } } } } } as const satisfies Prisma.WholesaleOrderSelect;
+
+type WholesalePackRow = Prisma.WholesaleOrderGetPayload<{ select: typeof WHOLESALE_PACK_SELECT }>;
+
+/** A wholesale order's packing: only the two photos (no seller branding). Same shape as the dropship PackView. */
+function wholesalePackViewOf(row: WholesalePackRow): PackView {
+  const steps = packChecklist({ sellerName: row.seller.store?.name ?? row.seller.name ?? "The shop", choice: "blind", orderCode: supplierOrderRef(row.id) }).filter((step) => step.id === "contents" || step.id === "photo");
+  return {
+    orderId: row.id,
+    kind: "wholesale",
+    branding: { sellerName: row.seller.store?.name ?? row.seller.name ?? "The shop", logoUrl: row.seller.store?.logoUrl ?? null, choice: "blind", fee: 0, skus: [] },
+    steps: steps.map((step) => ({ ...step, done: step.id === "photo" ? Boolean(row.packPhotoUrl) : Boolean(row.contentsPhotoUrl) })),
+    packSteps: [],
+    photoUrl: row.packPhotoUrl,
+    contentsPhotoUrl: row.contentsPhotoUrl,
+    stickersLeft: null,
+    packed: !["pending", "confirmed"].includes(String(row.status)),
+    problem: packReadyProblem(steps, [], row.packPhotoUrl, row.contentsPhotoUrl),
+  };
+}
+
+export async function wholesalePackView(supplierId: string, orderId: string): Promise<PackView | null> {
+  const row = await db.wholesaleOrder.findFirst({ where: { id: orderId, supplierId }, select: WHOLESALE_PACK_SELECT });
+  return row ? wholesalePackViewOf(row) : null;
+}
+
+/** Saves a wholesale order's packing photos while it's still to be packed. */
+export async function saveWholesalePackPhotos(supplierId: string, orderId: string, input: { photoUrl?: unknown; contentsPhotoUrl?: unknown }): Promise<{ ok: true; data: PackView } | Fail> {
+  const row = await db.wholesaleOrder.findFirst({ where: { id: orderId, supplierId }, select: WHOLESALE_PACK_SELECT });
+  if (!row) return { ok: false, code: "NOT_FOUND", message: "Order not found" };
+  if (!["pending", "confirmed"].includes(String(row.status))) return { ok: false, code: "CONFLICT", message: "This order is already packed or has moved on. Refresh to see where it is." };
+  const photoUrl = cleanPhotoUrl(input.photoUrl);
+  const contentsUrl = cleanPhotoUrl(input.contentsPhotoUrl);
+  if ((input.photoUrl !== undefined && photoUrl === undefined) || (input.contentsPhotoUrl !== undefined && contentsUrl === undefined)) return { ok: false, code: "BAD_REQUEST", message: "Upload the photo again: that link didn't work." };
+  const data: Prisma.WholesaleOrderUpdateInput = {};
+  if (photoUrl !== undefined) data.packPhotoUrl = photoUrl;
+  if (contentsUrl !== undefined) data.contentsPhotoUrl = contentsUrl;
+  if (Object.keys(data).length) await db.wholesaleOrder.update({ where: { id: row.id }, data });
+  return { ok: true, data: (await wholesalePackView(supplierId, orderId))! };
+}
+
+/** Why a wholesale order can't be marked packed yet: a packing photo missing. */
+export async function wholesalePackProblem(orderId: string): Promise<string | null> {
+  const row = await db.wholesaleOrder.findUnique({ where: { id: orderId }, select: WHOLESALE_PACK_SELECT });
+  return row ? wholesalePackViewOf(row).problem : null;
 }
 
 /** Why this dropship order can't be marked packed (or sent) yet: a step left, or no sealed-parcel photo. */

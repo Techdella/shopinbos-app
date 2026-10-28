@@ -8,6 +8,7 @@ import { sellerPartsView } from "@/lib/supplier-orders/parts.server";
 import { storeUrl } from "@/lib/marketing/brand";
 import { withItemCodes } from "@/lib/products/short-code.server";
 import { orderHasPreorder, orderPreorderShipsOn } from "@shared/preorder";
+import { sellerOrderMoney } from "@/lib/faults/seller.server";
 
 // `trackingUrl`: the customer's own order page on the storefront (/order/<order id>, an unguessable cuid, never the
 // order number), which the phone's "Share tracking" sends. `preorder`: { shipsOn } when a line was preordered (lines
@@ -36,7 +37,9 @@ export const GET = withSeller(async (req, { user, params }) => {
   const row = orderRow({ ...order, total: Number(order.total) });
   // Each line with its product's short code (BAG2), as the seller says it on lives and Status.
   const items = await withItemCodes(store.id, Array.isArray(order.items) ? (order.items as Array<{ productId?: unknown }>) : []);
-  return ok({ ...order, items, preorder: preorderOf(order.items), supplierOrders, parts, row: parts?.stage ? { ...row, stage: parts.stage } : row, trackingUrl: storeUrl(store, `/order/${order.id}`) });
+  // What the seller earns on it (C10), problems and what they meant, and the customer's return (src/lib/faults).
+  const money = await sellerOrderMoney({ ...order, storeId: store.id, total: Number(order.total) }).catch(() => null);
+  return ok({ ...order, items, preorder: preorderOf(order.items), supplierOrders, parts, money, row: parts?.stage ? { ...row, stage: parts.stage } : row, trackingUrl: storeUrl(store, `/order/${order.id}`) });
 });
 
 export const PATCH = withSeller(async (req, { user, params }) => {

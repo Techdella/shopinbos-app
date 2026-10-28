@@ -134,6 +134,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "call.screen.create": "Yi rubutu",
   "call.screen.customers": "Abokan ciniki",
   "call.screen.delivery": "Kai kaya",
+  "call.screen.returns": "Mayar da kaya",
   "call.screen.delivery_areas": "Inda kuke kai kaya",
   "call.screen.delivery_partners": "Nemo kamfanin kai kaya",
   "call.screen.domain": "Adireshin yanar gizo",

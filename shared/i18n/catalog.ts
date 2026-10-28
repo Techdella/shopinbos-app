@@ -96,6 +96,8 @@ import orders from "./messages/orders/index.ts";
 import home from "./messages/home/index.ts";
 import onboarding from "./messages/onboarding/index.ts";
 import sellerStart from "./messages/sellerStart/index.ts";
+import faults from "./messages/faults/index.ts";
+import m_faults from "./messages/m_faults/index.ts";
 import media from "./messages/media/index.ts";
 import productTypes from "./messages/productTypes/index.ts";
 import tips from "./messages/tips/index.ts";
@@ -197,6 +199,8 @@ export const CATALOGS = {
   home,
   onboarding,
   sellerStart,
+  faults,
+  m_faults,
   media,
   productTypes,
   tips,
