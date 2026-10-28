@@ -38,9 +38,9 @@ test("suppliers and delivery partners verify their CAC or BN registration, not t
     assert.doesNotMatch(read(path), /VerifyIdCard|WalletIdHint/, path);
   }
   assert.match(read("src/app/supplier/verification/page.tsx"), /CacInstantCheck/);
-  // Delivery partners check their own NIN in the tiered verification (shared/partner-tiers.ts), not the wallet's
-  // ID card; CAC is the optional Tier 2 step.
-  assert.match(read("src/components/logistics/verification/CacReviewSteps.tsx"), /CacInstantCheck/);
+  // Delivery partners verify their own ID in the sign-up flow (shared/partner-tiers.ts), not the wallet's ID card;
+  // CAC is screen 2, looked up through the same instant check ("Is this your company?").
+  assert.match(read("src/components/logistics/verification/QuestionScreens.tsx"), /\/api\/logistics\/verification\/cac/);
   for (const locale of ["en", "pcm", "yo", "ha", "ig"]) {
     for (const status of ["approved", "pending", "rejected", "missing"]) {
       assert.match(read(`shared/i18n/messages/wallet/${locale}.ts`), new RegExp(`"setup\\.business\\.${status}"`), `${locale} web ${status}`);

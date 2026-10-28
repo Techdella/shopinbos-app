@@ -11,9 +11,12 @@ import {
   partnerVerificationState,
   tier1Checklist,
   tier2Checklist,
+  type IdType,
   type ItemState,
   type PartnerState,
   FACE_MATCH_MIN_CONFIDENCE,
+  readFlowAnswers,
+  vehiclesState,
 } from "@shared/partner-tiers";
 import { checkGraduation, partnerTierSnapshot } from "@/lib/logistics/partner-tiers.server";
 import { TierActionButton } from "./TierActionButton";
@@ -42,21 +45,21 @@ export const STATE_TONES: Record<PartnerState, Tone> = {
 
 const ITEM_LABELS: Record<string, string> = {
   terms: "Partner terms",
-  fullName: "Full name",
   phone: "Phone (code)",
-  email: "Email",
-  nin: "NIN",
+  idDocument: "ID photo",
   selfie: "Selfie (face match)",
-  payout: "Bank account",
-  address: "Address",
   coverage: "Coverage areas",
-  methods: "Delivery methods",
+  methods: "Delivers with",
+  base: "Base",
+  payout: "Bank account",
   vehicles: "Vehicles",
   businessName: "Business name",
   cacType: "CAC registration type",
   cacNumber: "CAC number",
   cacCertificate: "CAC certificate",
 };
+
+const ID_TYPE_WORDS: Record<IdType, string> = { nin_slip: "NIN slip", drivers_licence: "Driver's licence", voters_card: "Voter's card", passport: "International passport" };
 
 const ITEM_TONE: Record<ItemState, Tone> = { approved: "success", pending: "warning", rejected: "danger", missing: "muted" };
 const ITEM_WORD: Record<ItemState, string> = { approved: "Approved", pending: "Pending", rejected: "Rejected", missing: "Missing" };
@@ -102,7 +105,7 @@ export async function TierPanel({ partnerId }: { partnerId: string }) {
   const [extra, vehicles] = await Promise.all([
     db.logisticsPartner.findUnique({
       where: { id: partnerId },
-      select: { verificationStatus: true, verificationTier: true, kycSubmittedAt: true, statusReason: true, termsAcceptedAt: true, businessAddress: true, badges: true, limitsLiftedAt: true },
+      select: { verificationStatus: true, verificationTier: true, kycSubmittedAt: true, statusReason: true, termsAcceptedAt: true, businessAddress: true, badges: true, limitsLiftedAt: true, onboardingState: true, basePrice: true, services: true },
     }),
     db.logisticsVehicle.findMany({ where: { logisticsPartnerId: partnerId }, orderBy: { createdAt: "asc" } }),
   ]);
@@ -114,7 +117,10 @@ export async function TierPanel({ partnerId }: { partnerId: string }) {
   const id = snapshot.identity;
   const docs = normalizeVerificationDocs(found.row.verificationDocuments);
   const selfie = latestDoc(docs, "selfie");
+  const idPhoto = latestDoc(docs, "identity");
+  const basePhoto = latestDoc(docs, "base-photo");
   const utility = latestDoc(docs, "utility");
+  const answers = readFlowAnswers(extra.onboardingState);
   const cac = latestDoc(docs, "cac");
   const courier = latestDoc(docs, "courier-licence");
   const state = partnerVerificationState(extra);
@@ -139,28 +145,31 @@ export async function TierPanel({ partnerId }: { partnerId: string }) {
             <CardHead title="Tier 1 · Verified Individual" sub="All approved and sent → the partner can take jobs, with limits." className="px-4 pt-4 sm:px-5" />
             <ul className="m-0 mt-3 list-none divide-y divide-app-line border-t border-app-line p-0">
               <Row item="terms" state={t1.terms}>{snapshot.termsVersion ? `Version ${snapshot.termsVersion}${snapshot.termsVersion !== PARTNER_TERMS_VERSION ? " (old)" : ""}${extra.termsAcceptedAt ? ` · ${formatDate(extra.termsAcceptedAt)}` : ""}` : "Not accepted"}</Row>
-              <Row item="fullName" state={t1.fullName}>{id.fullName ?? "-"}</Row>
               <Row item="phone" state={t1.phone}>{id.phone ? `${id.phone.value}${id.phone.verifiedAt ? ` · code checked ${formatDate(id.phone.verifiedAt)}` : ""}` : "-"}</Row>
-              <Row item="email" state={t1.email}>{id.email ? `${id.email.value}${id.email.verifiedAt ? ` · confirmed ${formatDate(id.email.verifiedAt)}` : ""}` : "-"}</Row>
               <Row
-                item="nin"
-                state={t1.nin}
-                actions={id.nin && (
+                item="idDocument"
+                state={t1.idDocument}
+                actions={(
                   <>
-                    {id.nin.status !== "approved" && <TierActionButton url={`${base}/identity`} body={{ check: "nin", action: "approve" }} label="Approve" confirm="Approve this NIN? Only if you checked it matches their name." />}
-                    {id.nin.status !== "rejected" && <TierActionButton url={`${base}/identity`} body={{ check: "nin", action: "reject" }} label="Reject" tone="danger" reason={reject("NIN")} />}
+                    <DocDecision partnerId={partnerId} doc={idPhoto} />
+                    {id.nin && id.nin.status !== "approved" && <TierActionButton url={`${base}/identity`} body={{ check: "nin", action: "approve" }} label="Approve NIN" confirm="Approve this NIN? Only if you checked it matches their name." />}
+                    {id.nin && id.nin.status !== "rejected" && <TierActionButton url={`${base}/identity`} body={{ check: "nin", action: "reject" }} label="Reject NIN" tone="danger" reason={reject("NIN")} />}
                   </>
                 )}
               >
+                {id.idDocument ? ID_TYPE_WORDS[id.idDocument.type] : idPhoto ? "ID" : "No ID photo"}
+                {idPhoto && docHasFile(idPhoto) ? <> · <FileLink path={idPhoto.filePath}>Open ID photo</FileLink> ({idPhoto.status})</> : null}
+                {id.fullName ? <span className="block">Name: {id.fullName}</span> : null}
                 {id.nin ? (
-                  <>
-                    NIN •••••••{id.nin.last4}
+                  <span className="block">
+                    NIN •••••••{id.nin.last4} ({id.nin.status})
                     {id.nin.nameOnRecord ? ` · on record: ${id.nin.nameOnRecord}` : ""}
-                    {id.nin.provider ? ` · checked by ${id.nin.provider}` : " · no provider (check the NIN slip in Documents)"}
+                    {id.nin.provider ? ` · checked by ${id.nin.provider}` : " · no provider: check the NIN slip photo"}
                     {id.nin.checkedAt ? ` · ${formatDate(id.nin.checkedAt)}` : ""}
                     {id.nin.rejectionReason && <span className="block text-app-danger">Rejected: {id.nin.rejectionReason}</span>}
-                  </>
-                ) : "-"}
+                  </span>
+                ) : idPhoto ? <span className="block">No ID lookup: check the photo is a real, readable ID and the face matches the selfie.</span> : null}
+                {idPhoto?.rejectionReason && <span className="block text-app-danger">Rejected: {idPhoto.rejectionReason}</span>}
               </Row>
               <Row item="selfie" state={t1.selfie} actions={<DocDecision partnerId={partnerId} doc={selfie} />}>
                 {selfie && docHasFile(selfie) ? <FileLink path={selfie.filePath}>Open selfie</FileLink> : "-"}
@@ -174,52 +183,24 @@ export async function TierPanel({ partnerId }: { partnerId: string }) {
                 ) : null}
                 {selfie?.liveness ? <span className="block">Liveness passed in the browser · Korapay reference {selfie.liveness.reference}</span> : selfie ? <span className="block">No liveness check was run for this selfie.</span> : null}
                 {selfie?.rejectionReason && <span className="block text-app-danger">Rejected: {selfie.rejectionReason}</span>}
-                <span className="block">Check it's a live photo of the same face as the NIN record.</span>
+                <span className="block">Check it's a live photo of the same face as the ID photo{id.nin ? " and the NIN record" : ""}.</span>
               </Row>
-              <Row
-                item="payout"
-                state={t1.payout}
-                actions={id.payout && (
-                  <>
-                    {id.payout.status !== "approved" && <TierActionButton url={`${base}/identity`} body={{ check: "payout", action: "approve" }} label="Approve" confirm="Approve this payout check?" />}
-                    {id.payout.status !== "rejected" && <TierActionButton url={`${base}/identity`} body={{ check: "payout", action: "reject" }} label="Reject" tone="danger" reason={reject("BVN or bank check")} />}
-                  </>
-                )}
-              >
-                {id.payout ? (
-                  <>
-                    {id.payout.method === "bvn" ? `BVN •••••••${id.payout.last4}` : `${id.payout.bankName ?? "Bank"} ••••${id.payout.last4}`}
-                    {id.payout.accountName ? ` · ${id.payout.accountName}` : ""}
-                    {` · name ${id.payout.nameMatched ? "matches" : "doesn't match"} the NIN`}
-                    {id.payout.rejectionReason && <span className="block text-app-danger">Rejected: {id.payout.rejectionReason}</span>}
-                  </>
-                ) : "-"}
+              <Row item="coverage" state={t1.coverage}>
+                {snapshot.deliveryAreas.join(", ") || "-"}
+                <span className="block">Other states: {extra.services.includes("interstate") ? "yes" : answers.interstate === false ? "no" : "not answered"}</span>
+                <span className="block">Charges: {answers.charge === "quote" ? "quotes per order in chat" : extra.basePrice > 0 ? `${formatMoney(extra.basePrice)} per delivery` : "not answered"}</span>
               </Row>
-              <Row item="address" state={t1.address} actions={<DocDecision partnerId={partnerId} doc={utility} />}>
-                {id.address ? `${id.address.value}${id.address.state ? `, ${id.address.state}` : ""}` : "-"}
-                {utility && docHasFile(utility) && <span className="block"><FileLink path={utility.filePath}>Utility bill</FileLink> ({utility.status})</span>}
-              </Row>
-              <Row item="coverage" state={t1.coverage}>{snapshot.deliveryAreas.join(", ") || "-"}</Row>
               <Row item="methods" state={t1.methods}>{snapshot.deliveryMethods.join(", ") || "-"}</Row>
-              <Row item="vehicles" state={t1.vehicles}>
-                {vehicles.length ? (
-                  <ul className="m-0 grid list-none gap-2 p-0">
-                    {vehicles.map((vehicle) => (
-                      <li key={vehicle.id} className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-[14px] bg-app-canvas px-3 py-2 text-app-ink">
-                        <span className="font-bold capitalize">{vehicle.type}</span>
-                        <span className="font-mono text-[13px]">{vehicle.plateNumber}</span>
-                        <Pill tone={vehicle.status === "approved" ? "success" : vehicle.status === "rejected" ? "danger" : "warning"}>{vehicle.status}</Pill>
-                        <FileLink path={vehicle.photoPath}>Photo</FileLink>
-                        <FileLink path={vehicle.licencePath}>Licence</FileLink>
-                        {vehicle.rejectionReason && <span className="w-full text-[13px] text-app-danger">Rejected: {vehicle.rejectionReason}</span>}
-                        <span className="ml-auto flex flex-wrap gap-2">
-                          {vehicle.status !== "approved" && <TierActionButton url={`${base}/vehicles`} body={{ vehicleId: vehicle.id, action: "approve" }} label="Approve" />}
-                          {vehicle.status !== "rejected" && <TierActionButton url={`${base}/vehicles`} body={{ vehicleId: vehicle.id, action: "reject" }} label="Reject" tone="danger" reason={reject("vehicle")} />}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : "No vehicles added"}
+              <Row item="base" state={t1.base} actions={<DocDecision partnerId={partnerId} doc={basePhoto} />}>
+                {id.base ? `${id.base.address}${id.base.state ? `, ${id.base.state}` : ""}` : id.address ? `${id.address.value}${id.address.state ? `, ${id.address.state}` : ""} (home address, older sign-up)` : "-"}
+                {id.base?.lat !== undefined && id.base.lng !== undefined ? (
+                  <span className="block">
+                    <a href={`https://www.google.com/maps?q=${id.base.lat},${id.base.lng}`} target="_blank" rel="noreferrer" className="font-bold text-app-accent-ink underline">Open the pin on a map</a>
+                  </span>
+                ) : id.base ? <span className="block">Typed, no location shared.</span> : null}
+                {basePhoto && docHasFile(basePhoto) ? <span className="block"><FileLink path={basePhoto.filePath}>Photo of the base</FileLink> ({basePhoto.status}). Approving it with the address earns Address Verified.</span> : id.base ? <span className="block">No photo of the base (optional).</span> : null}
+                {utility && docHasFile(utility) && <span className="block"><FileLink path={utility.filePath}>Utility bill</FileLink> ({utility.status})</span>}
+                {utility && docHasFile(utility) && <span className="block"><DocDecision partnerId={partnerId} doc={utility} /></span>}
               </Row>
             </ul>
           </Card>
@@ -240,10 +221,49 @@ export async function TierPanel({ partnerId }: { partnerId: string }) {
           </Card>
 
           <Card className="overflow-hidden">
-            <CardHead title="Optional badges" className="px-4 pt-4 sm:px-5" />
+            <CardHead title="Optional" sub="Not needed to take jobs. A bank account checked by name shows Payout ready (asked at the first withdrawal)." className="px-4 pt-4 sm:px-5" />
             <ul className="m-0 mt-3 list-none divide-y divide-app-line border-t border-app-line p-0">
               <Row item="Licensed Courier (NIPOST)" state={snapshot.docs["courier-licence"] ?? "missing"} actions={<DocDecision partnerId={partnerId} doc={courier} />}>
                 {courier && docHasFile(courier) ? <FileLink path={courier.filePath}>Open licence</FileLink> : "Not uploaded (never required)"}
+              </Row>
+              <Row
+                item="payout"
+                state={id.payout?.status ?? (snapshot.payoutAccount?.verified ? "approved" : "missing")}
+                actions={id.payout && (
+                  <>
+                    {id.payout.status !== "approved" && <TierActionButton url={`${base}/identity`} body={{ check: "payout", action: "approve" }} label="Approve" confirm="Approve this payout check?" />}
+                    {id.payout.status !== "rejected" && <TierActionButton url={`${base}/identity`} body={{ check: "payout", action: "reject" }} label="Reject" tone="danger" reason={reject("BVN or bank check")} />}
+                  </>
+                )}
+              >
+                {id.payout ? (
+                  <>
+                    {id.payout.method === "bvn" ? `BVN •••••••${id.payout.last4}` : `${id.payout.bankName ?? "Bank"} ••••${id.payout.last4}`}
+                    {id.payout.accountName ? ` · ${id.payout.accountName}` : ""}
+                    {` · name ${id.payout.nameMatched ? "matches" : "doesn't match"} the NIN`}
+                    {id.payout.rejectionReason && <span className="block text-app-danger">Rejected: {id.payout.rejectionReason}</span>}
+                  </>
+                ) : "-"}
+              </Row>
+              <Row item="vehicles" state={vehiclesState(vehicles)}>
+                {vehicles.length ? (
+                  <ul className="m-0 grid list-none gap-2 p-0">
+                    {vehicles.map((vehicle) => (
+                      <li key={vehicle.id} className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-[14px] bg-app-canvas px-3 py-2 text-app-ink">
+                        <span className="font-bold capitalize">{vehicle.type}</span>
+                        <span className="font-mono text-[13px]">{vehicle.plateNumber}</span>
+                        <Pill tone={vehicle.status === "approved" ? "success" : vehicle.status === "rejected" ? "danger" : "warning"}>{vehicle.status}</Pill>
+                        <FileLink path={vehicle.photoPath}>Photo</FileLink>
+                        <FileLink path={vehicle.licencePath}>Licence</FileLink>
+                        {vehicle.rejectionReason && <span className="w-full text-[13px] text-app-danger">Rejected: {vehicle.rejectionReason}</span>}
+                        <span className="ml-auto flex flex-wrap gap-2">
+                          {vehicle.status !== "approved" && <TierActionButton url={`${base}/vehicles`} body={{ vehicleId: vehicle.id, action: "approve" }} label="Approve" />}
+                          {vehicle.status !== "rejected" && <TierActionButton url={`${base}/vehicles`} body={{ vehicleId: vehicle.id, action: "reject" }} label="Reject" tone="danger" reason={reject("vehicle")} />}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : "No vehicles added"}
               </Row>
               <Row item="Verified Payout" state={extra.badges.includes("verified_payout") ? "approved" : "missing"}>
                 {snapshot.payoutAccount ? `Payout account: ${snapshot.payoutAccount.accountName} (${snapshot.payoutAccount.verified ? "verified" : "not verified"}). Needs Tier 2 and the account in the registered business name.` : "No payout account yet."}

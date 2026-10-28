@@ -2,13 +2,14 @@
 // the server, the partner pages, the admin panel and the seller's partner cards; unit-tested in
 // tests/partner-tiers.test.mjs.
 //
-// Partners don't need CAC to start. Two tiers:
-//   Tier 1  Verified Individual  ID (NIN + selfie), phone, email, bank or BVN, address, coverage, delivery methods,
-//                                at least one approved vehicle. Works with order limits. (No guarantor and no BVN:
-//                                the owner's rules.)
-//   Tier 2  Registered Business  Tier 1 plus CAC (business name, BN/RC type, number, certificate). No limits.
-// Optional badges on top: Licensed Courier (NIPOST licence) and Verified Payout (business bank account in the
-// registered name). Shopinbos never requires a NIPOST licence.
+// Partners don't need CAC to start (the owner's "Shopinbos Onboarding — Simplified"). Two tiers:
+//   Tier 1  Verified Individual  terms, phone (the sign-up code counts), a photo of an ID with a selfie the team or
+//                                Korapay's face match approves, where they deliver, what with, and where they're
+//                                based. Works with order limits. No BVN, no email code, no bank, no vehicle papers.
+//   Tier 2  Registered Business  Tier 1 plus CAC (business name, BN/RC type, number; the registry lookup or a
+//                                certificate). No limits.
+// Badges on top: Payout ready (a bank account checked by name, asked at the first withdrawal), Address Verified
+// (base pin plus a photo the team approved), and the older Licensed Courier and Verified Payout.
 //
 // How it sits on the older fields: LogisticsPartner.verificationStatus "verified" still means "can take jobs" (every
 // job route checks it), so a partner reaches it at Tier 1. verificationTier says how far they got. The spec's
@@ -55,6 +56,14 @@ export function isDeliveryMethod(value: unknown): value is DeliveryMethod {
 
 
 export const CAC_TYPES = ["BN", "RC"] as const;
+
+/** IDs a partner can photograph. A NIN slip also takes the 11-digit NIN, so Korapay can match the selfie to it. */
+export const ID_TYPES = ["nin_slip", "drivers_licence", "voters_card", "passport"] as const;
+export type IdType = (typeof ID_TYPES)[number];
+
+export function isIdType(value: unknown): value is IdType {
+  return typeof value === "string" && (ID_TYPES as readonly string[]).includes(value);
+}
 export type CacType = (typeof CAC_TYPES)[number];
 
 /** The version of the partner terms (src/app/logistics/terms). Raise it when the wording changes; partners accept again. */
@@ -93,8 +102,12 @@ export interface IdentityChecks {
     checkedAt: string;
     rejectionReason?: string;
   };
-  /** Self-declared; a utility bill (the "utility" document) is optional. */
+  /** Self-declared home address (the older flow; the base below replaced it). */
   address?: { value: string; state?: string };
+  /** Where the partner works from: the typed address, and the phone's location when they shared it. Its photo is the "base-photo" document. */
+  base?: { address: string; state?: string; lat?: number; lng?: number; setAt?: string };
+  /** Which ID the "identity" document is a photo of. */
+  idDocument?: { type: IdType; setAt?: string };
 }
 
 export function readIdentityChecks(value: unknown): IdentityChecks {
@@ -134,6 +147,20 @@ export function readIdentityChecks(value: unknown): IdentityChecks {
   }
   const address = record(v.address);
   if (text(address.value)) out.address = { value: text(address.value).slice(0, 300), ...(text(address.state) ? { state: text(address.state) } : {}) };
+  const base = record(v.base);
+  if (text(base.address)) {
+    const lat = typeof base.lat === "number" ? base.lat : NaN;
+    const lng = typeof base.lng === "number" ? base.lng : NaN;
+    const located = Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
+    out.base = {
+      address: text(base.address).slice(0, 300),
+      ...(text(base.state) ? { state: text(base.state) } : {}),
+      ...(located ? { lat, lng } : {}),
+      ...(text(base.setAt) ? { setAt: text(base.setAt) } : {}),
+    };
+  }
+  const idDocument = record(v.idDocument);
+  if (isIdType(idDocument.type)) out.idDocument = { type: idDocument.type, ...(text(idDocument.setAt) ? { setAt: text(idDocument.setAt) } : {}) };
   return out;
 }
 
@@ -212,7 +239,7 @@ export interface TierSnapshot {
   payoutAccount: { verified: boolean; accountName: string } | null;
 }
 
-export const TIER1_ITEMS = ["terms", "fullName", "phone", "email", "nin", "selfie", "payout", "address", "coverage", "methods", "vehicles"] as const;
+export const TIER1_ITEMS = ["terms", "phone", "idDocument", "selfie", "coverage", "methods", "base"] as const;
 export const TIER2_ITEMS = ["businessName", "cacType", "cacNumber", "cacCertificate"] as const;
 export type Tier1Item = (typeof TIER1_ITEMS)[number];
 export type Tier2Item = (typeof TIER2_ITEMS)[number];
@@ -221,47 +248,92 @@ export type ChecklistItem = Tier1Item | Tier2Item;
 /** English names for each item (admin screens and reminder emails; partner screens translate in "partnerKyc"). */
 export const ITEM_LABELS: Record<ChecklistItem, string> = {
   terms: "Partner terms",
-  fullName: "Full name",
   phone: "Phone number",
-  email: "Email",
-  nin: "NIN",
+  idDocument: "Photo of your ID",
   selfie: "Selfie",
-  payout: "Bank account",
-  address: "Address",
-  coverage: "Coverage areas",
-  methods: "Delivery methods",
-  vehicles: "A vehicle",
+  coverage: "Where you deliver",
+  methods: "What you deliver with",
+  base: "Where you're based",
   businessName: "Business name",
   cacType: "CAC registration type",
   cacNumber: "CAC number",
-  cacCertificate: "CAC certificate",
+  cacCertificate: "CAC check or certificate",
 };
 
 /**
- * The one sign-up flow (the owner's "4 steps"): You (NIN + selfie, phone, email, address) → Bank account → Your delivery
- * (company name, where you deliver, how, vehicles) → Review & send. CAC is an optional extra after it.
+ * The sign-up flow, one question per screen (the owner's doc, "Logistics partner: question by question"): business
+ * name → CAC (any answer continues) → state → areas → what they deliver with → other states → how they charge →
+ * where they're based → photo of an ID → selfie → review and send ("You're in review" once sent).
  */
-export const ONBOARDING_STEPS = ["identity", "bank", "delivery", "review", "cac"] as const;
-export type OnboardingStep = (typeof ONBOARDING_STEPS)[number];
+export const PARTNER_FLOW = ["name", "cac", "state", "areas", "vehicles", "interstate", "charge", "base", "id", "selfie", "review"] as const;
+export type FlowScreen = (typeof PARTNER_FLOW)[number];
 
-/** Which step each item is filled in on. */
-export const ITEM_STEP: Record<ChecklistItem, OnboardingStep> = {
+export function isFlowScreen(value: unknown): value is FlowScreen {
+  return typeof value === "string" && (PARTNER_FLOW as readonly string[]).includes(value);
+}
+
+/** The screen each item is answered on ("Fix" links). Phone and terms are on the last screen. */
+export const ITEM_SCREEN: Record<ChecklistItem, FlowScreen> = {
   terms: "review",
-  fullName: "identity",
-  phone: "identity",
-  email: "identity",
-  nin: "identity",
-  selfie: "identity",
-  address: "identity",
-  payout: "bank",
-  vehicles: "delivery",
-  coverage: "delivery",
-  methods: "delivery",
+  phone: "review",
+  idDocument: "id",
+  selfie: "selfie",
+  coverage: "areas",
+  methods: "vehicles",
+  base: "base",
   businessName: "cac",
   cacType: "cac",
   cacNumber: "cac",
   cacCertificate: "cac",
 };
+
+/** Answers that live only in the flow (LogisticsPartner.onboardingState.partnerFlow). */
+export interface FlowAnswers {
+  /** The business name screen was answered (the name itself is companyName). */
+  name?: boolean;
+  cac?: "yes" | "no" | "registering";
+  /** The state picked on screen 3 (its areas come next). */
+  homeState?: string;
+  interstate?: boolean;
+  charge?: "flat" | "quote";
+}
+
+export function readFlowAnswers(onboardingState: unknown): FlowAnswers {
+  const flow = record(record(onboardingState).partnerFlow);
+  const out: FlowAnswers = {};
+  if (flow.name === true) out.name = true;
+  if (flow.cac === "yes" || flow.cac === "no" || flow.cac === "registering") out.cac = flow.cac;
+  if (text(flow.homeState)) out.homeState = text(flow.homeState).slice(0, 40);
+  if (typeof flow.interstate === "boolean") out.interstate = flow.interstate;
+  if (flow.charge === "flat" || flow.charge === "quote") out.charge = flow.charge;
+  return out;
+}
+
+/**
+ * Which screens are answered, and where to open: the first one that isn't. A partner who already sent their
+ * verification (some through the older flows, without these answers) opens on the first Tier 1 screen to fix, else
+ * on the review screen ("You're in review", or their status once decided).
+ */
+export function flowProgress(s: TierSnapshot, answers: FlowAnswers, submitted: boolean): { done: Record<FlowScreen, boolean>; first: FlowScreen } {
+  const t1 = tier1Checklist(s);
+  const t2 = tier2Checklist(s);
+  const given = (state: ItemState) => state === "approved" || state === "pending";
+  const done: Record<FlowScreen, boolean> = {
+    name: answers.name === true,
+    cac: Boolean(answers.cac) || t2.businessName === "approved",
+    state: Boolean(answers.homeState) || s.deliveryAreas.length > 0,
+    areas: given(t1.coverage),
+    vehicles: given(t1.methods),
+    interstate: answers.interstate !== undefined,
+    charge: Boolean(answers.charge),
+    base: given(t1.base),
+    id: given(t1.idDocument),
+    selfie: given(t1.selfie),
+    review: submitted,
+  };
+  const required: FlowScreen[] = submitted ? ["areas", "vehicles", "base", "id", "selfie"] : PARTNER_FLOW.filter((screen) => screen !== "review");
+  return { done, first: required.find((screen) => !done[screen]) ?? "review" };
+}
 
 const filled = (ok: boolean): ItemState => (ok ? "approved" : "missing");
 
@@ -278,19 +350,26 @@ export function vehiclesState(vehicles: Array<{ status: string }>): ItemState {
 }
 
 
+/**
+ * The ID: approved once the NIN was checked (Korapay or the team), else the photo's own status; a NIN from the older
+ * flow without a photo counts as it stands.
+ */
+export function idDocumentState(s: TierSnapshot): ItemState {
+  if (s.identity.nin?.status === "approved") return "approved";
+  if (s.docs.identity) return s.docs.identity;
+  return s.identity.nin?.status ?? "missing";
+}
+
 export function tier1Checklist(s: TierSnapshot): Record<Tier1Item, ItemState> {
   return {
     terms: filled(s.termsVersion === PARTNER_TERMS_VERSION),
-    fullName: filled(Boolean(s.identity.fullName)),
     phone: s.identity.phone?.status ?? "missing",
-    email: s.identity.email?.status ?? "missing",
-    nin: s.identity.nin?.status ?? "missing",
+    idDocument: idDocumentState(s),
     selfie: docState(s.docs.selfie),
-    payout: s.identity.payout?.status ?? "missing",
-    address: filled(Boolean(s.identity.address?.value)),
     coverage: filled(s.deliveryAreas.length > 0),
     methods: filled(s.deliveryMethods.length > 0),
-    vehicles: vehiclesState(s.vehicles),
+    // The older flow's home address counts until they set a base.
+    base: filled(Boolean(s.identity.base?.address || s.identity.address?.value)),
   };
 }
 
@@ -345,7 +424,7 @@ export function nextVerificationStatus(s: TierSnapshot, submitted: boolean): str
 
 // ─── Badges ──────────────────────────────────────────────────────────────────
 
-export const PARTNER_BADGES = ["verified_individual", "registered_business", "licensed_courier", "verified_payout"] as const;
+export const PARTNER_BADGES = ["verified_individual", "registered_business", "payout_ready", "address_verified", "licensed_courier", "verified_payout"] as const;
 export type PartnerBadge = (typeof PARTNER_BADGES)[number];
 
 export function isPartnerBadge(value: unknown): value is PartnerBadge {
@@ -356,13 +435,27 @@ export const BADGE_LABELS: Record<PartnerBadge, string> = {
   verified_individual: "Verified Individual",
   registered_business: "Registered Business",
   licensed_courier: "Licensed Courier",
+  payout_ready: "Payout ready",
+  address_verified: "Address Verified",
   verified_payout: "Verified Payout",
 };
+
+/** A bank account in the partner's name was checked (at the first withdrawal, or in the older sign-up). */
+export function payoutReady(s: TierSnapshot) {
+  return Boolean(s.payoutAccount?.verified) || s.identity.payout?.status === "approved";
+}
+
+/** The base is pinned and the team approved its photo. */
+export function addressVerified(s: TierSnapshot) {
+  return Boolean(s.identity.base?.address) && s.docs["base-photo"] === "approved";
+}
 
 /** Badges sellers see (LogisticsPartner.badges). Only verified partners have any. */
 export function partnerBadges(s: TierSnapshot, tier: PartnerTier = nextTier(s)): PartnerBadge[] {
   if (tier === "none") return [];
   const badges: PartnerBadge[] = [tier === "tier2" ? "registered_business" : "verified_individual"];
+  if (payoutReady(s)) badges.push("payout_ready");
+  if (addressVerified(s)) badges.push("address_verified");
   if (s.docs["courier-licence"] === "approved") badges.push("licensed_courier");
   const businessName = s.registeredName?.trim();
   if (tier === "tier2" && businessName && s.payoutAccount?.verified && businessNamesMatch(businessName, s.payoutAccount.accountName)) badges.push("verified_payout");

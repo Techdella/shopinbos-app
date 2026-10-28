@@ -138,7 +138,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "today.menu": "Menu",
   "today.loading": "Anyị na-ebupụta nke taa…",
   "today.finish": "Mechaa nhazi",
-  "today.finishHint": "Kwado onwe gị n'usoro mkpụmkpụ 4: gị onwe gị, akaụntụ ụlọ akụ gị, delivery gị, wee ziga ya. Ị nwere ike ịnara ọrụ ozugbo anyị lechara ha.",
+  "today.finishHint": "Ajụjụ ole na ole, foto NJ gị na selfie. Enweghị akwụkwọ, enweghị nkọwa ụlọ akụ. Ị nwere ike ịnara ọrụ ozugbo anyị lechara ha.",
   "today.taking": "Ana m anara ọrụ ọhụrụ",
   "today.notTaking": "Anaghị m anara ọrụ ọhụrụ",
   "today.takingHint": "Ụlọ ahịa na {areas} nwere ike ibook gị.",

@@ -138,7 +138,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "today.menu": "Mẹ́nù",
   "today.loading": "A ń gbé ti òní wá…",
   "today.finish": "Parí ìṣètò",
-  "today.finishHint": "Jẹ́rìí ara rẹ ní ìgbésẹ̀ kúkúrú 4: ìwọ, àkáǹtì báńkì rẹ, delivery rẹ, lẹ́yìn náà fi ránṣẹ́. O lè gba iṣẹ́ nígbà tí a bá ti ṣàyẹ̀wò wọn.",
+  "today.finishHint": "Ìbéèrè díẹ̀, fọ́tò ìdánimọ̀ rẹ àti selfie kan. Kò sí ìwé, kò sí àlàyé báńkì. O lè gba iṣẹ́ nígbà tí a bá ti ṣàyẹ̀wò wọn.",
   "today.taking": "Mo ń gba iṣẹ́ tuntun",
   "today.notTaking": "Mi ò gba iṣẹ́ tuntun báyìí",
   "today.takingHint": "Àwọn ṣọ́ọ̀bù ní {areas} lè book ọ.",

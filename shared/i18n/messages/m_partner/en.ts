@@ -146,7 +146,7 @@ const en = {
   "today.menu": "Menu",
   "today.loading": "Loading today…",
   "today.finish": "Finish setting up",
-  "today.finishHint": "Verify yourself in 4 short steps: you, your bank account, your delivery, then send. You can take jobs once we've checked them.",
+  "today.finishHint": "A few quick questions, a photo of your ID and a selfie. No papers, no bank details. You can take jobs once we've checked them.",
   "today.taking": "Taking new jobs",
   "today.notTaking": "Not taking new jobs",
   "today.takingHint": "Shops in {areas} can book you.",
