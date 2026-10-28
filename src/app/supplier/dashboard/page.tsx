@@ -6,6 +6,7 @@ import type { Metadata } from "next";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { ensureSupplierAccess, getSupplierForUser } from "@/lib/role-queries";
+import { SUPPLIER_LEVEL_LABELS, isSupplierLevel } from "@shared/dropship-rules";
 import { AppFrame } from "@/components/shell/AppFrame";
 import { AssistantNote, type Tone, Card, CardHead, ListCard, ListRow, Pill, PillLink, StageDot, StatTile, TextLink, Thumb } from "@/components/app-kit";
 import { Icon } from "@/components/ui/Icon";
@@ -251,6 +252,9 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
             <PillLink href="/supplier/products/new" tone="ink">{t("dashboard.addProduct")}</PillLink>
             <PillLink href="/supplier/quote-requests">{t("dashboard.replyQuotes")}</PillLink>
             <PillLink href={`/suppliers/${supplier.slug}`}>{t("dashboard.publicPage")}</PillLink>
+            {/* New → Trusted → Established (shared/dropship-rules.ts): the goals left and what the next level unlocks. */}
+            <PillLink href="/supplier/level" icon="star">Your level: {SUPPLIER_LEVEL_LABELS[isSupplierLevel(supplier.level) ? supplier.level : "new"]}</PillLink>
+            <PillLink href="/supplier/branding" icon="palette">Branding you offer</PillLink>
           </div>
           <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4">
             <StatTile label={t("dashboard.tileToShip")} value={toShipCount.toLocaleString("en-NG")} />

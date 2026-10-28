@@ -7,6 +7,7 @@ import { supplierFrame } from "@/components/supplier/supplier-kit";
 import { updateSupplierProduct } from "@/app/actions/supplier";
 import { SupplierProductForm } from "@/components/supplier/SupplierProductForm";
 import { getT } from "@/lib/i18n/server";
+import { supplierLevelView } from "@/lib/supplier-levels.server";
 
 export default async function EditSupplierProductPage({
   params,
@@ -21,7 +22,7 @@ export default async function EditSupplierProductPage({
   const { id } = await params;
   const query = searchParams ? await searchParams : {};
 
-  const [product, categories] = await Promise.all([
+  const [product, categories, level] = await Promise.all([
     db.supplierProduct.findFirst({
       where: { id, supplierId: supplier.id },
       select: {
@@ -50,6 +51,13 @@ export default async function EditSupplierProductPage({
         preorderTaken: true,
         preorderNote: true,
         preorderDepositPct: true,
+        priceMode: true,
+        dropshipPrice: true,
+        preorderPrice: true,
+        minRetailPrice: true,
+        dropshipMinQty: true,
+        handlingDays: true,
+        sizeBand: true,
         updatedAt: true,
         category: { select: { name: true, slug: true } },
       },
@@ -58,6 +66,8 @@ export default async function EditSupplierProductPage({
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       select: { id: true, name: true, slug: true },
     }),
+    // Pre-orders open at Established: the form shows the goals left until then.
+    supplierLevelView(supplier.id).catch(() => null),
   ]);
 
   if (!product) notFound();
@@ -84,6 +94,7 @@ export default async function EditSupplierProductPage({
         product={product}
         error={query?.error}
         saved={query?.saved === "1"}
+        level={level}
       />
     </AppPage>
   );

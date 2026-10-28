@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { addressLines } from "@/lib/labels";
 import { pickupWindowText } from "@shared/supplier-pickup";
 import { supplierOrderActions, supplierOrderRef, type SupplierOrderLine } from "./pure";
+import { readOrderBranding } from "@/lib/supplier-dropship.server";
 
 // Reading a supplier's dropship orders (SupplierOrder) in one shape for the web portal, /api/supplier/orders and
 // the mobile app. Always scoped by supplierId: a supplier only ever sees their own.
@@ -11,7 +12,7 @@ import { supplierOrderActions, supplierOrderRef, type SupplierOrderLine } from "
 export const SUPPLIER_ORDER_SELECT = {
   id: true, status: true, items: true, costTotal: true, currency: true, shippingAddress: true, recipientName: true, recipientPhone: true,
   trackingCode: true, carrier: true, rejectReason: true, acceptedAt: true, shippedAt: true, deliveredAt: true, rejectedAt: true,
-  acceptBy: true, expiredAt: true, packedAt: true, selfDelivery: true, deliveryFee: true,
+  acceptBy: true, expiredAt: true, packedAt: true, selfDelivery: true, deliveryFee: true, branding: true, packSteps: true, packPhotoUrl: true,
   createdAt: true, updatedAt: true, storeId: true, sellerId: true, retailOrderId: true,
   retailOrder: { select: { orderNumber: true, status: true, paymentMethod: true, total: true, notes: true, items: true } },
 } as const satisfies Prisma.SupplierOrderSelect;
@@ -70,6 +71,11 @@ export function dropshipView(row: SupplierOrderRow, shopName: string, pickup?: P
     acceptBy: row.acceptBy?.toISOString() ?? null,
     expiredAt: row.expiredAt?.toISOString() ?? null,
     packedAt: row.packedAt?.toISOString() ?? null,
+    // Pack it the seller's way: { sellerName, logoUrl, choice, fee, skus }, the steps ticked and the parcel photo
+    // (the checklist itself: GET /api/supplier/orders/[id]/pack).
+    branding: readOrderBranding(row.branding, shopName),
+    packSteps: row.packSteps,
+    packPhotoUrl: row.packPhotoUrl,
     pickup: pickup ?? null,
     createdAt: row.createdAt.toISOString(),
   };

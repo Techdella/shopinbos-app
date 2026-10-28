@@ -12,6 +12,7 @@ import { SupplierProductForm } from "@/components/supplier/SupplierProductForm";
 import { planOffers } from "@/lib/plans/catalog.server";
 import { PlanPicker } from "@/components/payments/PlanPicker";
 import { getT } from "@/lib/i18n/server";
+import { supplierLevelView } from "@/lib/supplier-levels.server";
 
 export default async function NewSupplierProductPage({
   searchParams,
@@ -24,7 +25,7 @@ export default async function NewSupplierProductPage({
   const params = searchParams ? await searchParams : {};
   const t = await getT("supplier");
 
-  const [categories, productCount, dbUser] = await Promise.all([
+  const [categories, productCount, dbUser, level] = await Promise.all([
     db.category.findMany({
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       select: { id: true, name: true, slug: true },
@@ -32,6 +33,8 @@ export default async function NewSupplierProductPage({
     }),
     db.supplierProduct.count({ where: { supplierId: supplier.id } }),
     db.user.findUnique({ where: { id: user.id }, select: { aiCredits: true } }),
+    // Pre-orders open at Established: the form shows the goals left until then.
+    supplierLevelView(supplier.id).catch(() => null),
   ]);
 
   const aiCredits = dbUser?.aiCredits ?? 5;
@@ -65,6 +68,7 @@ export default async function NewSupplierProductPage({
             action={createSupplierProduct}
             categories={categories}
             error={params?.error}
+            level={level}
           />
         </>
       )}

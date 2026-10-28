@@ -8,6 +8,8 @@ import type { AuthUser } from "@/lib/auth/types";
 import { notifyProductForReview } from "@/lib/notifications/events.server";
 import { editNeedsReview } from "@shared/supplier-product-review";
 import { parsePreorderInput, preorderSaveData } from "@shared/preorder";
+import { channelPriceProblem, cleanDropshipMinQty, cleanHandlingDays } from "@shared/dropship-rules";
+import { preorderLevelProblem } from "@/lib/supplier-levels.server";
 
 async function getOwnedProduct(productId: string, userId: string) {
   const supplier = await db.supplier.findUnique({ where: { userId } });
@@ -32,10 +34,13 @@ export const PATCH = withSupplier(async (
   if (!product) return apiError("NOT_FOUND", "Product not found", 404);
 
   const body = await req.json().catch(() => null);
-  const parsed = SupplierProductUpdateSchema.safeParse(body);
-  if (!parsed.success) {
-    return apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Invalid input");
+  const result = SupplierProductUpdateSchema.safeParse(body);
+  if (!result.success) {
+    return apiError("BAD_REQUEST", result.error.issues[0]?.message ?? "Invalid input");
   }
+  // A PATCH changes only the fields it sends: the schema's defaults (status, prices tiers, MOQ…) don't fill the rest.
+  const sent = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
+  const parsed = { data: Object.fromEntries(Object.entries(result.data).filter(([key]) => key in sent)) as typeof result.data };
 
   if (parsed.data.status && !["draft", "pending_review"].includes(parsed.data.status)) {
     return apiError("FORBIDDEN", "Products must stay in draft or pending review until admin approval.", 403);
@@ -52,6 +57,18 @@ export const PATCH = withSupplier(async (
   const { preorder, ...fields } = parsed.data;
   const preorderParsed = preorder ? parsePreorderInput(preorder, new Date(), product.preorderShipsAt) : null;
   if (preorderParsed && !preorderParsed.ok) return apiError("BAD_REQUEST", preorderParsed.message);
+  // Pre-orders open at Established (shared/dropship-rules.ts). A listing that already takes them stays editable,
+  // and can always be switched off.
+  if (preorderParsed?.ok && preorderParsed.value.preorderEnabled && !product.preorderEnabled) {
+    const locked = await preorderLevelProblem(product.supplierId);
+    if (locked) return apiError("preorder_locked", locked, 403);
+  }
+
+  // Prices per channel, checked on the product as it will be after this change.
+  const priceProblem = channelPriceProblem({ ...product, ...fields, wholesalePrice: fields.wholesalePrice ?? product.wholesalePrice });
+  if (priceProblem) return apiError("invalid_prices", priceProblem, 400);
+  if (fields.dropshipMinQty !== undefined) fields.dropshipMinQty = cleanDropshipMinQty(fields.dropshipMinQty);
+  if (fields.handlingDays !== undefined) fields.handlingDays = cleanHandlingDays(fields.handlingDays);
 
   // Only changes to what shops see (words, photos, category, prices) send a live product back for review.
   const hasPublicFieldChanges = editNeedsReview(product, parsed.data);

@@ -16,6 +16,9 @@ import { wholesaleRef } from "@/lib/supplier-orders/wholesale.server";
 import { preorderDay, shipDateLabel } from "@shared/preorder";
 import { SELLER_CANCEL_PREFIX } from "@/lib/supplier-orders/pure";
 import { getT } from "@/lib/i18n/server";
+import { PackChecklist } from "@/components/supplier/PackChecklist";
+import { dropshipPackView, type PackView } from "@/lib/supplier-dropship.server";
+import { BRANDING_CHOICE_LABELS } from "@shared/dropship-rules";
 
 export const dynamic = "force-dynamic";
 
@@ -62,10 +65,13 @@ export default async function SupplierOrderPage({ params, searchParams }: PagePr
     /** A bulk preorder (shared/preorder.ts): the ship date the supplier gave, or null for "when it arrives". */
     preorder?: { shipsOn: string | null };
   };
+  // Pack it the seller's way (dropship): the seller's name, logo, SKUs, branding and the checklist.
+  let pack: PackView | null = null;
   if (kind === "dropship") {
     const { orders } = await listDropshipOrders(supplier.id, { id, take: 1 });
     const order = orders[0];
     if (!order) notFound();
+    pack = await dropshipPackView(supplier.id, order.id, order.shop);
     view = {
       ref: order.ref, status: order.status, shop: order.shop, sellerUserId: order.sellerUserId, createdAt: order.createdAt, acceptBy: order.acceptBy, youGet: order.costTotal, currency: order.currency,
       title: order.items.map((item) => `${item.name}${item.variant && !item.name.includes(item.variant) ? ` (${item.variant})` : ""}${item.quantity > 1 ? ` ×${item.quantity}` : ""}`).join(", "),
@@ -127,8 +133,37 @@ export default async function SupplierOrderPage({ params, searchParams }: PagePr
           <div className="text-right">
             <div className="text-[13px] text-app-ink-soft">{t("orders.youGet")}</div>
             <div className="text-[24px] font-extrabold text-app-success">{money(view.youGet, view.currency)}</div>
+            {pack && pack.branding.fee > 0 && <div className="text-[13px] font-bold text-app-success">+ {money(pack.branding.fee, view.currency)} {pack.branding.choice === "stickers" ? "sticker fee" : "slip fee"}</div>}
           </div>
         </Card>
+
+        {pack && ["pending", "accepted"].includes(view.status) && (
+          <Card className="grid gap-4 p-5">
+            <div className="flex items-center gap-3">
+              {pack.branding.logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={pack.branding.logoUrl} alt="" className="h-12 w-12 shrink-0 rounded-full border border-app-line object-cover" />
+              ) : (
+                <span aria-hidden className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-app-ink text-[18px] font-extrabold text-white">{pack.branding.sellerName.charAt(0).toUpperCase()}</span>
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="text-[13px] text-app-ink-soft">For</div>
+                <div className="truncate text-[18px] font-extrabold">{pack.branding.sellerName}</div>
+              </div>
+              <Pill tone={pack.branding.choice === "blind" ? "muted" : "info"}>{BRANDING_CHOICE_LABELS[pack.branding.choice]}</Pill>
+            </div>
+            {pack.branding.skus.length > 0 && (
+              <div className="text-[14px]"><span className="font-bold">Their SKU:</span> <span className="font-mono">{pack.branding.skus.join(", ")}</span></div>
+            )}
+            <div>
+              <div className="mb-2 text-[16px] font-extrabold">Pack it {pack.branding.sellerName}&apos;s way</div>
+              <PackChecklist
+                editable={view.status === "accepted" && !pack.packed}
+                initial={{ orderId: pack.orderId, steps: pack.steps, packSteps: pack.packSteps, photoUrl: pack.photoUrl, packed: pack.packed, problem: pack.problem }}
+              />
+            </div>
+          </Card>
+        )}
 
         {view.status === "expired" && (
           <Notice tone="error">{t("order.expired")}</Notice>

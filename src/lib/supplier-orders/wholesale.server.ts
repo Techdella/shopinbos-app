@@ -176,6 +176,8 @@ export async function moveWholesaleOrder(input: MoveWholesaleInput): Promise<Ser
   if (moved.count !== 1) return { ok: false, code: "CONFLICT", message: "This order has already moved on. Refresh to see where it is." };
   // Declined after the shop paid in the app (a preorder deposit, or the whole order): recorded as owed back.
   if (next === "cancelled") await recordWholesaleRefundOwed(order.id);
+  // A delivered order counts towards the supplier's level (New → Trusted → Established).
+  if (next === "delivered") void import("@/lib/supplier-levels.server").then((levels) => levels.refreshSupplierLevel(input.supplierId)).catch(() => undefined);
 
   const supplierName = plainText(order.supplier.displayName) || "Your supplier";
   const what = `${order.quantity.toLocaleString("en-NG")} × ${plainText(order.supplierProduct.name)}`;
