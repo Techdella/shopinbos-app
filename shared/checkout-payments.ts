@@ -135,6 +135,8 @@ export function matchZone<Z extends { regions: string[] }>(zones: Z[], city = ""
 
 /** Whether pay on delivery covers this address and total, with the reason when it does not. */
 export function payOnDeliveryBlock(settings: CheckoutPaymentSettings, context: CheckoutPaymentContext = {}): string | null {
+  // The customer pays in the app at the door (shared/pay-at-door.ts), so the store must take Paystack payments.
+  if (!settings.paystackReady) return "Pay on delivery isn't available at this store yet.";
   if (settings.zones.length > 0 && (context.city || context.state)) {
     const zone = matchZone(settings.zones, context.city, context.state);
     if (!zone) return "Pay on delivery isn't available for this address.";
@@ -166,7 +168,7 @@ const OPTION_COPY: Record<CheckoutPaymentMethod, Omit<CheckoutPaymentOption, "ke
   paystack: { label: "Card, bank transfer or USSD", hint: "Pay securely with Paystack" },
   korapay: { label: "Card or bank", hint: "Card, transfer or your bank app" },
   transfer: { label: "Bank transfer", hint: "We show you the account after you place the order" },
-  pay_on_delivery: { label: "Pay on delivery", hint: "Pay the rider in cash or by transfer" },
+  pay_on_delivery: { label: "Pay when it arrives", hint: "Delivery fee now. Check your order at the door, then pay the rest in the app. No cash" },
 };
 
 /**

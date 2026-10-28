@@ -184,6 +184,17 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "noCode.useCode": "Yi amfani da lambar maimakon",
   "startJob": "Fara wannan aikin",
   "offer.assigned": "{company} ne ya ba ka wannan aikin. Tsallake shi idan ba za ka iya ba.",
+  "pay.title": "Abokin ciniki zai biya {amount} a app. Ba kuɗin hannu",
+  "pay.body": "Bari su duba kayan, sannan su biya da link ɗin da muka tura musu ta SMS ko su scan QR code. Da zarar kuɗin ya shigo, za su sami lamba mai lambobi 4. Rubuta ta don kammala isarwa.",
+  "pay.qrHint": "Abokin ciniki zai scan shi da kyamarar wayarsa.",
+  "pay.showQr": "Nuna QR code",
+  "pay.hideQr": "Ɓoye QR code",
+  "pay.resend": "Sake tura link",
+  "pay.resent": "An tura. Ka ce su duba SMS ɗinsu.",
+  "pay.wait": "Ba su biya ba bayan minti {minutes}, ko sun ƙi? Mayar da kayan. Za a biya ka kuɗin tafiyar.",
+  "pay.paid": "An biya a app",
+  "pay.paidSub": "Ka nemi lambar da suka samu bayan biya, sannan ka ba su kayan.",
+  "pay.codeHint": "Ka nemi lamba mai lambobi 4 da abokin ciniki ya samu bayan ya biya a app",
 };
 
 export default ha;

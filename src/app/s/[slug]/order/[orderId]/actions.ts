@@ -53,3 +53,15 @@ export async function payOrderBalance(orderId: string): Promise<{ ok: true; url:
   const started = await startStoreBalancePayment(orderId);
   return started.ok ? { ok: true, url: started.authorizationUrl } : { ok: false, error: started.error };
 }
+
+/**
+ * Pay on delivery, at the door (src/lib/commerce/pay-at-door.server.ts): starts the Paystack payment of the order and
+ * answers with where to send the customer; Paystack brings them back to the order page, which confirms the reference
+ * with Paystack before anything is recorded (and only then shows the code for the rider).
+ */
+export async function payAtDoor(orderId: string): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  if (typeof orderId !== "string" || !orderId || orderId.length > 64) return { ok: false, error: "Order not found." };
+  const { startPayAtDoor } = await import("@/lib/commerce/pay-at-door.server");
+  const started = await startPayAtDoor(orderId);
+  return started.ok ? { ok: true, url: started.authorizationUrl } : { ok: false, error: started.error };
+}

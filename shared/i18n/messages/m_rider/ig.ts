@@ -184,6 +184,17 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "noCode.useCode": "Jiri koodu kama",
   "startJob": "Malite ọrụ a",
   "offer.assigned": "{company} nyere gị ọrụ a. Wụfee ya ma ọ bụrụ na ị nweghị ike ime ya.",
+  "pay.title": "Onye ahịa ga-akwụ {amount} n'app. Enweghị ego aka",
+  "pay.body": "Ka ha lelee ngwongwo ahụ, wee kwụọ ụgwọ site na link anyị zitere ha na SMS ma ọ bụ scan QR code. Ozugbo ego batara, ha ga-enweta koodu nwere ọnụọgụ 4. Pịnye ya iji mechaa drop ahụ.",
+  "pay.qrHint": "Onye ahịa ga-eji igwefoto ekwentị ya scan ya.",
+  "pay.showQr": "Gosi QR code",
+  "pay.hideQr": "Zoo QR code",
+  "pay.resend": "Zigaghachi link ahụ",
+  "pay.resent": "E zigala ya. Gwa ha ka ha lelee SMS ha.",
+  "pay.wait": "Ha akwụghị ụgwọ mgbe nkeji {minutes} gachara, ma ọ bụ ha jụrụ? Buru ngwongwo ahụ laghachi. A ka ga-akwụ gị ụgwọ njem ahụ.",
+  "pay.paid": "Akwụọla ụgwọ n'app",
+  "pay.paidSub": "Rịọ koodu ha nwetara mgbe ha kwụsịrị ụgwọ, wee nyefee ha ngwongwo ahụ.",
+  "pay.codeHint": "Rịọ koodu nwere ọnụọgụ 4 onye ahịa nwetara mgbe ha kwụrụ ụgwọ n'app",
 };
 
 export default ig;

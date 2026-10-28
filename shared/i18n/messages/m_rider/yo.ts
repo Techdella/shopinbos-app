@@ -184,6 +184,17 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "noCode.useCode": "Lo kóòdù dípò",
   "startJob": "Bẹ̀rẹ̀ iṣẹ́ yìí",
   "offer.assigned": "{company} ló fún ọ ní iṣẹ́ yìí. Fò ó tí o kò bá lè ṣe é.",
+  "pay.title": "Oníbàárà máa san {amount} nínú app. Kò sí owó ọwọ́",
+  "pay.body": "Jẹ́ kí wọ́n yẹ ẹrù wò, lẹ́yìn náà kí wọ́n sanwó pẹ̀lú link tí a fi SMS ránṣẹ́ sí wọn tàbí kí wọ́n scan QR code. Tí owó bá ti wọlé, wọ́n á gba kóòdù oní-nọ́ńbà mẹ́rin. Tẹ̀ ẹ́ láti parí drop náà.",
+  "pay.qrHint": "Oníbàárà máa fi kámẹ́rà fóònù wọn scan rẹ̀.",
+  "pay.showQr": "Fi QR code hàn",
+  "pay.hideQr": "Fi QR code pamọ́",
+  "pay.resend": "Tún fi link ránṣẹ́",
+  "pay.resent": "A ti fi ránṣẹ́. Sọ fún wọn kí wọ́n wo SMS wọn.",
+  "pay.wait": "Wọn kò sanwó lẹ́yìn ìṣẹ́jú {minutes}, tàbí wọ́n kọ̀? Gbé ẹrù padà. Wọ́n ṣì máa sanwó ìrìn rẹ fún ọ.",
+  "pay.paid": "Wọ́n ti sanwó nínú app",
+  "pay.paidSub": "Béèrè kóòdù tí wọ́n gbà lẹ́yìn ìsanwó, lẹ́yìn náà fa ẹrù lé wọn lọ́wọ́.",
+  "pay.codeHint": "Béèrè kóòdù oní-nọ́ńbà mẹ́rin tí oníbàárà gbà lẹ́yìn tí wọ́n sanwó nínú app",
 };
 
 export default yo;

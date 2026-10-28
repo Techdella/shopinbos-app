@@ -358,7 +358,9 @@ export interface ExpiryCandidate extends LegacyOrderShape {
 export function isExpirableOrder(order: ExpiryCandidate, now: Date, windows: number | PaymentWindows) {
   if (!(UNPAID_STATUSES as readonly string[]).includes(order.status)) return false;
   const method = order.paymentMethod ?? "paystack";
-  if (!(EXPIRING_METHODS as readonly string[]).includes(method)) return false;
+  // Pay on delivery waiting for its delivery fee (shared/pay-at-door.ts): paymentDueAt is set until the fee is in.
+  const podFee = method === "pay_on_delivery" && Boolean(order.paymentDueAt);
+  if (!(EXPIRING_METHODS as readonly string[]).includes(method) && !podFee) return false;
   if (order.stockReleasedAt) return false;
   if (orderStockHolds(order).length === 0) return false;
   const deadline = orderPaymentDeadline(order, windows);

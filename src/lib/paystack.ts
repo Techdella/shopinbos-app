@@ -36,6 +36,8 @@ export async function initializePaystackTransaction(input: {
   metadata: Record<string, unknown>;
   /** Who the payment is settled to (src/lib/wallet/rules.ts paystackSplitParams): a subaccount or a dynamic split. */
   split?: Record<string, unknown>;
+  /** Limit how they can pay (e.g. pay on delivery: bank_transfer, card, ussd). Paystack's defaults when left out. */
+  channels?: string[];
 }) {
   const response = await fetch(`${PAYSTACK_BASE}/transaction/initialize`, {
     method: "POST",
@@ -50,6 +52,7 @@ export async function initializePaystackTransaction(input: {
       reference: input.reference,
       callback_url: input.callbackUrl,
       metadata: input.metadata,
+      ...(input.channels?.length ? { channels: input.channels } : {}),
       ...(input.split ?? {}),
     }),
     cache: "no-store",

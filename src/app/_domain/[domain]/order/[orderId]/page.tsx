@@ -8,6 +8,7 @@ import { OrderConfirmation } from "@/app/s/[slug]/order/[orderId]/OrderConfirmat
 import { getStoreByCustomDomain } from "@/lib/domains/lookup";
 import { getStorefrontBasePathForHost } from "@/lib/domains/storefront";
 import { loadOrderNextSteps } from "@/app/s/[slug]/order/[orderId]/order-props";
+import { payAtDoorView } from "@/lib/commerce/pay-at-door.server";
 
 interface Props {
   params: Promise<{ domain: string; orderId: string }>;
@@ -54,6 +55,7 @@ export default async function CustomDomainOrderPage({ params, searchParams }: Pr
       deliveryCode={next.deliveryCode}
       brandedTracking={next.brandedTracking}
       delivery={next.delivery ? JSON.parse(JSON.stringify(next.delivery)) : null}
+      payAtDoor={payAtDoorView(order)}
     />
   );
 }

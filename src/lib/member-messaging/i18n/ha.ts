@@ -650,6 +650,16 @@ export const templates: Record<string, TemplateText> = {
     button: "Duba odata",
     examples: ["Ada", "Rexi", "SB-MVP80C9V-8D1B09", "1 × Ankara tote, 2 × Silk scarf", "₦7,100", "Za ka iya biya da kati, bank transfer ko USSD."],
   },
+  shopinbos_pay_at_door: {
+    body: "Sannu {{1}}, odarka {{2}} daga {{3}} yana kan hanya. 🚚\n\nIdan ya iso, duba shi, sannan ka biya {{4}} a app: transfer, card ko USSD. Ba kuɗin hannu. Da zarar ka biya, za ka sami lamba mai lambobi 4 da za ka ba rider.\n\nTaɓa ƙasa don biya.",
+    button: "Biya odata",
+    examples: ["Ada", "SB-MVP80C9V-8D1B09", "Rexi", "₦18,500"],
+  },
+  shopinbos_pay_at_door_code: {
+    body: "Sannu {{1}}, mun karɓi kuɗin oda {{2}} daga {{3}}. ✅\n\nKa ba rider wannan lambar: {{4}}. Ka ba shi kawai idan odarka ta shiga hannunka.\n\nTaɓa ƙasa don ganin odarka.",
+    button: "Duba odata",
+    examples: ["Ada", "SB-MVP80C9V-8D1B09", "Rexi", "4821"],
+  },
   shopinbos_refer_supplier: {
     body: "Sannu {{1}}, ka san wani supplier da ya kamata ya riƙa sayar wa ƙarin shaguna? 🤝\n\nGayyace shi zuwa Shopinbos da link ɗinka. Idan an yi masa verification kuma ya saka kaya 5, za ka sami {{2}}. Shi kuma zai sami wata ɗaya kyauta na Supplier Plus da featured week a marketplace.\n\nTaɓa ƙasa don karɓar link ɗinka ka raba shi a WhatsApp.",
     button: "Gayyaci supplier",

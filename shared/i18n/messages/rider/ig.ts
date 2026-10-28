@@ -91,6 +91,21 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "me.call": "Kpọọ {name}",
   "me.whatsapp": "WhatsApp {name}",
   "me.linkNote": "Peeji a bụ Riders link nzuzo gị. Ekesala ya.",
+  "run.payInApp": "{count, plural, other {# ga-akwụ ụgwọ n'app}}",
+  "pay.pill": "Onye ahịa ga-akwụ {amount} n'app",
+  "pay.paid": "Akwụọla ụgwọ n'app",
+  "pay.title": "Onye ahịa ga-akwụ {amount} n'app. Enweghị ego aka",
+  "pay.body": "Ka ha lelee ngwongwo ahụ, wee kwụọ ụgwọ site na link anyị zitere ha na SMS ma ọ bụ scan QR code. Ozugbo ego batara, ha ga-enweta koodu nwere ọnụọgụ 4. Pịnye ya iji mechaa drop ahụ.",
+  "pay.qrAlt": "QR code iji kwụọ ụgwọ order a",
+  "pay.qrHint": "Onye ahịa ga-eji igwefoto ekwentị ya scan ya.",
+  "pay.showQr": "Gosi QR code",
+  "pay.hideQr": "Zoo QR code",
+  "pay.resend": "Zigaghachi link ahụ",
+  "pay.resent": "E zigala ya. Gwa ha ka ha lelee SMS ha.",
+  "pay.check": "Lelee ịkwụ ụgwọ",
+  "pay.wait": "Ha akwụghị ụgwọ mgbe nkeji {minutes} gachara, ma ọ bụ ha jụrụ? Buru ngwongwo ahụ laghachi: pịa Couldn't deliver. A ka ga-akwụ gị ụgwọ njem ahụ.",
+  "pay.codeLabel": "Koodu onye ahịa nwetara mgbe ha kwụsịrị ụgwọ",
+  "pay.noJob": "Ọrụ a anọghị gị n'okporo ụzọ ọzọ. Mee refresh ka i lelee.",
 };
 
 export default ig;

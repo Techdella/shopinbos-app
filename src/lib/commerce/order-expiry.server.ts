@@ -104,7 +104,8 @@ export async function expireUnpaidOrders(options: { now?: Date; storeId?: string
       status: { in: [...UNPAID_STATUSES] },
       stockReleasedAt: null,
       AND: [
-        { OR: [{ paymentMethod: null }, { paymentMethod: { in: [...EXPIRING_METHODS] } }] },
+        // Pay on delivery only while it waits for its delivery fee (paymentDueAt is cleared once the fee is in).
+        { OR: [{ paymentMethod: null }, { paymentMethod: { in: [...EXPIRING_METHODS] } }, { paymentMethod: "pay_on_delivery", paymentDueAt: { not: null } }] },
         // Past the deadline checkout saved, or (older orders) past the method's window from when it was placed.
         {
           OR: [

@@ -21,8 +21,10 @@ export const PAID_RETAIL_STATUSES = ["paid", "processing", "packed", "shipped", 
  * with a deposit (shared/preorder.ts) only once the balance is in too (depositKobo and balanceKobo set, no
  * balancePaidAt): the deposit confirms it, suppliers and delivery wait for the rest.
  */
-export function readyForSuppliers(order: { status: string; paymentMethod: string | null; depositKobo?: number | null; balanceKobo?: number | null; balancePaidAt?: Date | string | null }) {
+export function readyForSuppliers(order: { status: string; paymentMethod: string | null; depositKobo?: number | null; balanceKobo?: number | null; balancePaidAt?: Date | string | null; paymentDueAt?: Date | string | null; depositPaidAt?: Date | string | null }) {
   if ((order.depositKobo ?? 0) > 0 && (order.balanceKobo ?? 0) > 0 && !order.balancePaidAt) return false;
+  // Pay on delivery waiting for its delivery fee (paid at checkout; paymentDueAt is cleared once it's in).
+  if (order.paymentMethod === "pay_on_delivery" && order.paymentDueAt && !order.depositPaidAt) return false;
   if ((PAID_RETAIL_STATUSES as readonly string[]).includes(order.status)) return true;
   return order.paymentMethod === "pay_on_delivery" && ["pending", "awaiting_payment"].includes(order.status);
 }

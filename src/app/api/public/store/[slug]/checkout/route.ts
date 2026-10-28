@@ -35,7 +35,9 @@ import { notifyNewOrder, notifyStockAfterSale } from "@/lib/notifications/events
 import { linkCheckout, settlePaymentLinkForOrder } from "@/lib/payment-links/service.server";
 import { confirmWhatsAppOrder } from "@/lib/whatsapp-store/server";
 import { isLinkCode, linkCheckoutDelivery, linkOrderChannel } from "@/lib/payment-links/pure";
-import { splitPlanForOrder, storeTakesCards, storeTakesKorapay } from "@/lib/wallet/wallet.server";
+import { deliveryFeeSplitForOrder, splitPlanForOrder, storeTakesCards, storeTakesKorapay } from "@/lib/wallet/wallet.server";
+import { startPodFee } from "@/lib/commerce/pay-at-door.server";
+import { podFeeKobo } from "@shared/pay-at-door";
 import { startKorapayCheckout } from "@/lib/commerce/korapay-orders.server";
 import { paystackSplitParams, type PaymentSplitPlan } from "@/lib/wallet/rules";
 import { initializePaystackTransaction } from "@/lib/paystack";
@@ -258,6 +260,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     ? await db.adCampaign.findFirst({ where: { storeId: store.id, code: adCampaignCode }, select: { id: true } })
     : null;
 
+  // Pay on delivery: what's charged now (the delivery fee, in kobo; 0 when delivery is free). shared/pay-at-door.ts.
+  // What the customer pays for delivery: the fee less any free-delivery discount.
+  const podFeeNow = paymentMethod === "pay_on_delivery" ? podFeeKobo(shippingFee - (priced.totals.deliveryDiscount ?? 0)) : 0;
+
   let order: Awaited<ReturnType<typeof db.retailOrder.create>>;
   try {
     order = await db.$transaction(async (tx) => {
@@ -313,7 +319,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
           // What was really taken (versions of products that keep selling at 0 may give less than asked).
           stockHold: JSON.parse(JSON.stringify(stockHolds)),
           // When it lets its stock go if still unpaid: card 30 min, bank transfer 24 h or the seller's choice.
-          paymentDueAt: checkoutPaymentDueAt(new Date(), paymentMethod === "paystack" ? null : paymentMethod, store.brandSettings),
+          // Pay on delivery with a delivery fee: the fee is paid now by card or transfer (shared/pay-at-door.ts), so it
+          // waits for it like a card order and expires the same way; it stops expiring once the fee is in.
+          paymentDueAt: checkoutPaymentDueAt(new Date(), paymentMethod === "paystack" || podFeeNow > 0 ? null : paymentMethod, store.brandSettings),
         },
       });
       // Points used are taken off in the same transaction (fails the order if the balance changed meanwhile).
@@ -375,11 +383,27 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     }
   }
 
-  // Pay on delivery: the order is live now, so suppliers of dropship items get their orders straight away
-  // (card and transfer orders reach suppliers once paid: the Paystack webhook / payment return page).
-  if (paymentMethod === "pay_on_delivery") await ensureSupplierOrdersSafely(order.id);
+  // Pay on delivery (shared/pay-at-door.ts): the delivery fee is paid now, straight to the delivery partner (or the
+  // seller for their own delivery), so a customer who won't pay at the door has still paid for the trip; the rest is
+  // paid in the app at the door. The browser opens Paystack with the access code, like a card order. If Paystack
+  // can't start it, the order is cancelled straight away (stock and discount given back).
+  if (paymentMethod === "pay_on_delivery" && podFeeNow > 0) {
+    const plan = await deliveryFeeSplitForOrder(store.id, podFeeNow / 100, deliveryShares);
+    const started = plan ? await startPodFee(order.id, plan) : null;
+    if (!started?.ok) {
+      console.error(`[checkout] the delivery fee of pay-on-delivery order ${order.id} could not start${started && !started.ok ? `: ${started.error}` : ""}`);
+      await cancelUnstartedOrder(order.id, "Paystack could not start the delivery fee payment, so the order was cancelled before payment.");
+      return withCors(req, apiError("PAYMENT_UNAVAILABLE", "Paying the delivery fee isn't available right now. Try again in a moment or choose another way to pay.", 502), CHECKOUT_CORS);
+    }
+    paystackData = { authorization_url: started.authorizationUrl, access_code: started.accessCode, reference: started.reference };
+  }
+
+  // Pay on delivery with free delivery: the order is live now, so suppliers of dropship items get their orders
+  // straight away (card and transfer orders, and pay on delivery with a fee, once paid: the Paystack webhook / payment
+  // return page).
+  if (paymentMethod === "pay_on_delivery" && podFeeNow === 0) await ensureSupplierOrdersSafely(order.id);
   // A payment link placed as pay on delivery counts now (a one-time link closes); card and transfer once paid.
-  if (paymentMethod === "pay_on_delivery" && link) await settlePaymentLinkForOrder(order.id);
+  if (paymentMethod === "pay_on_delivery" && podFeeNow === 0 && link) await settlePaymentLinkForOrder(order.id);
 
   const money = (amount: number) => new Intl.NumberFormat("en-NG", { style: "currency", currency: store.currency, maximumFractionDigits: 0 }).format(amount);
   const depositText = deposit ? ` Pre-order deposit: ${money(deposit.payNowKobo / 100)} now, ${money(deposit.balanceKobo / 100)} when you say the stock is ready.` : "";
@@ -398,9 +422,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       orderUrl: buildStorefrontUrl({ slug: store.slug, customDomain: store.customDomain }, `/order/${order.id}`),
       paymentNote: deposit
         ? `Pre-order: pay ${money(deposit.payNowKobo / 100)} now by card. The rest, ${money(deposit.balanceKobo / 100)}, is due when it's ready to ship. We'll email you a link to pay it.`
-        : buyerPaymentText(paymentMethod),
-      // Pay on delivery is confirmed now; anything paid online is a summary until the money arrives.
-      paid: paymentMethod === "pay_on_delivery",
+        : podFeeNow > 0
+          ? `Pay the delivery fee, ${money(podFeeNow / 100)}, now to confirm your order. You pay the rest, ${money(total - podFeeNow / 100)}, in the app when it arrives, after you check it. No cash.`
+          : buyerPaymentText(paymentMethod),
+      // Pay on delivery with free delivery is confirmed now; anything paid online is a summary until the money arrives.
+      paid: paymentMethod === "pay_on_delivery" && podFeeNow === 0,
     }),
     sendSellerNotification(store.user.email, {
       title: `New order ${order.orderNumber}`,
@@ -439,6 +465,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     },
     paystack: paystackData,
     korapay: korapayData,
+    // Pay on delivery: the delivery fee paid now (naira; 0 when delivery is free), the rest at the door.
+    podFee: podFeeNow / 100,
     // A preorder deposit: the card payment is payNow (naira); the balance is due once the stock is ready.
     deposit: deposit ? { payNow: deposit.payNowKobo / 100, balance: deposit.balanceKobo / 100 } : null,
     // Where to send a bank transfer: the exact total, with the order number as the reference.

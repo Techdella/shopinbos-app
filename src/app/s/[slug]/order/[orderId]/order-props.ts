@@ -1,4 +1,5 @@
 import "server-only";
+import { codeVisible } from "@shared/pay-at-door";
 import { brandedTrackingFor } from "@/lib/plans/gates.server";
 
 import { db } from "@/lib/db/client";
@@ -92,7 +93,7 @@ const UNPAID = ["pending", "awaiting_payment"];
  * on the server.
  */
 export async function loadOrderNextSteps(
-  order: { id: string; orderNumber: string; total: number; status: string; paymentMethod: string | null; createdAt: Date; paymentDueAt?: Date | null; deliveredAt?: Date | null; logisticsDetails?: unknown; deliveryAddress?: unknown },
+  order: { id: string; orderNumber: string; total: number; status: string; paymentMethod: string | null; paystackStatus?: string | null; createdAt: Date; paymentDueAt?: Date | null; deliveredAt?: Date | null; logisticsDetails?: unknown; deliveryAddress?: unknown },
   store: { userId: string; brandSettings: unknown },
 ): Promise<{ transfer: TransferDetails | null; deliveryCode: string | null; delivery: OrderDeliveryView | null; brandedTracking: boolean; brandSettings: { palette?: Record<string, string>; themeTokens?: Record<string, unknown> } }> {
   const account = order.paymentMethod === "transfer" && UNPAID.includes(order.status) ? readTransferAccount(store.brandSettings) : null;
@@ -119,7 +120,8 @@ export async function loadOrderNextSteps(
   return {
     // The real deadline: what checkout saved, or for older orders the window from when it was placed.
     transfer: account ? { ...account, amount: order.total, reference: order.orderNumber, payBy: orderPaymentDeadline(order, paymentWindows())?.toISOString() ?? null } : null,
-    deliveryCode: booking?.deliveryCode ?? selfParcel?.deliveryCode ?? null,
+    // Pay on delivery: the code is what the customer gets for paying, so it only shows once the money is in.
+    deliveryCode: codeVisible(order) ? booking?.deliveryCode ?? selfParcel?.deliveryCode ?? null : null,
     delivery,
     // Starter and up: tracking with only the store's name on it (shared/plans.ts brandedTracking).
     brandedTracking: await brandedTrackingFor(store.userId).catch(() => false),

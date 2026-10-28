@@ -184,6 +184,17 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "noCode.useCode": "Use the code instead",
   "startJob": "Start this job",
   "offer.assigned": "{company} give you this job. Skip am if you no fit do am.",
+  "pay.title": "Customer go pay {amount} for app. No cash",
+  "pay.body": "Make dem check the parcel, then pay with the link wey we text dem or make dem scan the QR code. Once the money land, dem go get 4-digit code. Type am to finish the drop.",
+  "pay.qrHint": "Customer go scan am with dem phone camera.",
+  "pay.showQr": "Show QR code",
+  "pay.hideQr": "Hide QR code",
+  "pay.resend": "Text the link again",
+  "pay.resent": "E don send. Tell dem make dem check dem SMS.",
+  "pay.wait": "Dem never pay after {minutes} minutes, or dem refuse? Carry the parcel go back. Dem go still pay you for the trip.",
+  "pay.paid": "E don pay for app",
+  "pay.paidSub": "Ask for the code wey dem get after dem pay, then give dem the parcel.",
+  "pay.codeHint": "Ask for the 4-digit code wey customer get after dem pay for app",
 };
 
 export default pcm;

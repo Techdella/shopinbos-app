@@ -14,6 +14,7 @@ import { applyDeductions, debtsToDeduct, holdPlannedDeductions, loadMoneyOwed, t
 import {
   accountNameMatches,
   buildSplitPlan,
+  deliveryFeePlan,
   maskAccountNumber,
   platformFeeKobo,
   readSplitPlan,
@@ -368,43 +369,72 @@ export async function splitPlanForOrder(
   return plan;
 }
 
-/** Writes each business's share of a paid order to its statement, once (unique references). Never throws. */
+/**
+ * Writes each business's share of a paid order to its statement, once (unique references). An order can be paid in
+ * two parts, each with its own split: the checkout payment (paymentSplit, paystackRef) and a later one (balanceSplit,
+ * balanceRef once balancePaidAt): the rest of a preorder, or pay on delivery paid at the door after its delivery fee.
+ * Never throws.
+ */
 export async function recordOrderShares(orderId: string) {
   try {
-    const order = await db.retailOrder.findUnique({ where: { id: orderId }, select: { id: true, orderNumber: true, paymentSplit: true, paystackRef: true, balanceSplit: true, balanceRef: true, balancePaidAt: true, store: { select: { userId: true } } } });
-    const plan = readSplitPlan(order?.paymentSplit);
-    if (!order || !plan) return;
-    const seller = await db.wallet.findUnique({ where: { userId: order.store.userId }, select: { id: true } });
-    const rows: Prisma.WalletEntryCreateManyInput[] = [];
-    if (seller) rows.push({ walletId: seller.id, reference: `sale:${order.id}`, kind: "sale", amountKobo: plan.sellerKobo, description: `Order ${order.orderNumber}`, orderId: order.id, paystackReference: order.paystackRef ?? order.id });
-    if (plan.suppliers.length) {
-      const suppliers = await db.supplier.findMany({ where: { id: { in: plan.suppliers.map((share) => share.supplierId) } }, select: { id: true, userId: true } });
-      const wallets = await db.wallet.findMany({ where: { userId: { in: suppliers.map((supplier) => supplier.userId) } }, select: { id: true, userId: true } });
-      for (const share of plan.suppliers) {
-        const userId = suppliers.find((supplier) => supplier.id === share.supplierId)?.userId;
-        const wallet = wallets.find((row) => row.userId === userId);
-        if (wallet) rows.push({ walletId: wallet.id, reference: `supplier:${order.id}:${share.supplierId}`, kind: "supplier_order", amountKobo: share.kobo, description: `Dropship order ${order.orderNumber}`, orderId: order.id, supplierId: share.supplierId, paystackReference: order.paystackRef ?? order.id });
-      }
-    }
-    if (plan.delivery?.length) {
-      const partners = await db.logisticsPartner.findMany({ where: { id: { in: plan.delivery.map((share) => share.partnerId) } }, select: { id: true, userId: true } });
-      const wallets = await db.wallet.findMany({ where: { userId: { in: partners.map((partner) => partner.userId) } }, select: { id: true, userId: true } });
-      for (const share of plan.delivery) {
-        const userId = partners.find((partner) => partner.id === share.partnerId)?.userId;
-        const wallet = wallets.find((row) => row.userId === userId);
-        if (wallet) rows.push({ walletId: wallet.id, reference: `orderdelivery:${order.id}:${share.shipmentKey}`, kind: "delivery_fee", amountKobo: share.kobo, description: `Delivery fee, order ${order.orderNumber}`, orderId: order.id, paystackReference: order.paystackRef ?? order.id });
-      }
-    }
-    // A preorder deposit order: the balance paid by card is the seller's own entry, under its own reference (once).
+    const order = await db.retailOrder.findUnique({ where: { id: orderId }, select: { id: true, orderNumber: true, paymentMethod: true, paymentSplit: true, paystackRef: true, balanceSplit: true, balanceRef: true, balancePaidAt: true, store: { select: { userId: true } } } });
+    if (!order) return;
+    const plan = readSplitPlan(order.paymentSplit);
     const balance = order.balancePaidAt && order.balanceRef ? readSplitPlan(order.balanceSplit) : null;
-    if (seller && balance) rows.push({ walletId: seller.id, reference: `sale-balance:${order.id}`, kind: "sale", amountKobo: balance.sellerKobo, description: `Order ${order.orderNumber} (the rest of a preorder)`, orderId: order.id, paystackReference: order.balanceRef });
+    if (!plan && !balance) return;
+    const seller = await db.wallet.findUnique({ where: { userId: order.store.userId }, select: { id: true } });
+    const door = order.paymentMethod === "pay_on_delivery";
+    const rows: Prisma.WalletEntryCreateManyInput[] = [];
+    // One part's shares. The checkout part keeps the references it always had; the later part adds "-balance".
+    const addShares = async (part: PaymentSplitPlan, tag: "" | "-balance", reference: string, saleText: string) => {
+      if (seller && part.sellerKobo > 0) rows.push({ walletId: seller.id, reference: `sale${tag}:${order.id}`, kind: "sale", amountKobo: part.sellerKobo, description: saleText, orderId: order.id, paystackReference: reference });
+      if (part.suppliers.length) {
+        const suppliers = await db.supplier.findMany({ where: { id: { in: part.suppliers.map((share) => share.supplierId) } }, select: { id: true, userId: true } });
+        const wallets = await db.wallet.findMany({ where: { userId: { in: suppliers.map((supplier) => supplier.userId) } }, select: { id: true, userId: true } });
+        for (const share of part.suppliers) {
+          const userId = suppliers.find((supplier) => supplier.id === share.supplierId)?.userId;
+          const wallet = wallets.find((row) => row.userId === userId);
+          if (wallet) rows.push({ walletId: wallet.id, reference: `supplier${tag}:${order.id}:${share.supplierId}`, kind: "supplier_order", amountKobo: share.kobo, description: `Dropship order ${order.orderNumber}`, orderId: order.id, supplierId: share.supplierId, paystackReference: reference });
+        }
+      }
+      if (part.delivery?.length) {
+        const partners = await db.logisticsPartner.findMany({ where: { id: { in: part.delivery.map((share) => share.partnerId) } }, select: { id: true, userId: true } });
+        const wallets = await db.wallet.findMany({ where: { userId: { in: partners.map((partner) => partner.userId) } }, select: { id: true, userId: true } });
+        for (const share of part.delivery) {
+          const userId = partners.find((partner) => partner.id === share.partnerId)?.userId;
+          const wallet = wallets.find((row) => row.userId === userId);
+          if (wallet) rows.push({ walletId: wallet.id, reference: `orderdelivery${tag}:${order.id}:${share.shipmentKey}`, kind: "delivery_fee", amountKobo: share.kobo, description: `Delivery fee, order ${order.orderNumber}`, orderId: order.id, paystackReference: reference });
+        }
+      }
+    };
+    if (plan) await addShares(plan, "", order.paystackRef ?? order.id, door ? `Order ${order.orderNumber} (delivery fee)` : `Order ${order.orderNumber}`);
+    if (balance && order.balanceRef) await addShares(balance, "-balance", order.balanceRef, door ? `Order ${order.orderNumber} (paid at the door)` : `Order ${order.orderNumber} (the rest of a preorder)`);
     if (rows.length) await db.walletEntry.createMany({ data: rows, skipDuplicates: true });
     // What the split took from the shares for money owed is now paid (once per order and debt).
-    if (plan.deductions?.length) await applyDeductions({ key: order.id, deductions: plan.deductions, label: `order ${order.orderNumber}`, paystackReference: order.paystackRef, retailOrderId: order.id });
+    if (plan?.deductions?.length) await applyDeductions({ key: order.id, deductions: plan.deductions, label: `order ${order.orderNumber}`, paystackReference: order.paystackRef, retailOrderId: order.id });
     if (balance?.deductions?.length) await applyDeductions({ key: `${order.id}:balance`, deductions: balance.deductions, label: `order ${order.orderNumber}`, paystackReference: order.balanceRef, retailOrderId: order.id });
   } catch (error) {
     console.error(`[wallet] could not record the shares of order ${orderId}`, error);
   }
+}
+
+/**
+ * Pay on delivery's delivery fee, paid at checkout on its own (shared/pay-at-door.ts): each partner's fee straight
+ * to its own bank, the rest (the seller's own delivery) to the seller. null when the seller's wallet can't take it.
+ */
+export async function deliveryFeeSplitForOrder(storeId: string, feeNaira: number, delivery: Array<{ shipmentKey: string; partnerId: string; naira: number }> = []): Promise<PaymentSplitPlan | null> {
+  const store = await db.store.findUnique({ where: { id: storeId }, select: { userId: true } });
+  if (!store) return null;
+  const seller = await db.wallet.findFirst({ where: { userId: store.userId, ...activeWhere }, select: { subaccountCode: true } });
+  if (!seller?.subaccountCode) return null;
+  const partners = delivery.length ? await db.logisticsPartner.findMany({ where: { id: { in: [...new Set(delivery.map((share) => share.partnerId))] } }, select: { id: true, userId: true } }) : [];
+  const wallets = partners.length ? await db.wallet.findMany({ where: { userId: { in: partners.map((partner) => partner.userId) }, ...activeWhere }, select: { userId: true, subaccountCode: true } }) : [];
+  const accountOf = (partnerId: string) => wallets.find((wallet) => wallet.userId === partners.find((partner) => partner.id === partnerId)?.userId)?.subaccountCode ?? null;
+  return deliveryFeePlan({
+    totalKobo: Math.round(feeNaira * 100),
+    sellerSubaccount: seller.subaccountCode,
+    delivery: delivery.map((share) => ({ shipmentKey: share.shipmentKey, partnerId: share.partnerId, subaccount: accountOf(share.partnerId), kobo: Math.round(share.naira * 100) })),
+  });
 }
 
 // ─── The wallet page ──────────────────────────────────────────────────────────

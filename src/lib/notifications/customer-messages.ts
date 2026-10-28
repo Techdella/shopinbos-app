@@ -11,6 +11,7 @@ import { normalizePhone } from "@/lib/marketing/segment-rules";
 import { CUSTOMER_EVENTS, customerEventFor, mayText, type CustomerEvent, type CustomerEventSetting, type OptOutLookup, type TextChannel, type VariableValues } from "@/lib/marketing/text-channels";
 import { refreshTemplateStatus, resolvePresetTemplate, resolveTemplate, sendTemplate } from "@/lib/marketing/whatsapp-templates.server";
 import { deliveryEventFor, deliveryMessage } from "./delivery-messages";
+import { payAtDoorDue } from "@shared/pay-at-door";
 
 // Order and cart messages to a store's customers by WhatsApp and/or SMS, as the seller switched on in
 // Marketing › Order messages (StoreMessagingSettings.transactional). Order code calls one function,
@@ -162,9 +163,17 @@ export async function notifyDeliveryStage(bookingId: string, to: string) {
     });
     // Moved on again before we got here (or handed to another partner): that step speaks for itself.
     if (!job?.orderId || job.replacedById || job.status !== to) return [];
-    const order = await db.retailOrder.findUnique({ where: { id: job.orderId }, select: { id: true, storeId: true, orderNumber: true, buyerName: true, buyerPhone: true, status: true } });
+    const order = await db.retailOrder.findUnique({ where: { id: job.orderId }, select: { id: true, storeId: true, orderNumber: true, buyerName: true, buyerPhone: true, status: true, paymentMethod: true, paystackStatus: true } });
     const phone = normalizePhone(order?.buyerPhone);
     if (!order || !phone || order.status === "cancelled") return [];
+    // Pay on delivery not paid yet (shared/pay-at-door.ts): the code is only for a customer who has paid. When the
+    // parcel goes out (or reaches the pickup point) they get the payment link instead, whatever the shop's settings.
+    const unpaid = payAtDoorDue(order);
+    if (unpaid && (to === "out_for_delivery" || to === "at_pickup_point")) {
+      const { sendPayAtDoorLink } = await import("@/lib/commerce/pay-at-door.server");
+      await sendPayAtDoorLink(order.id);
+      return [];
+    }
     const event = deliveryEventFor(to)!;
     const settings = await getMessagingSettings(order.storeId);
     const setting = settings.transactional[event];
@@ -183,7 +192,7 @@ export async function notifyDeliveryStage(bookingId: string, to: string) {
       bookingId: job.id,
       failedAttempts: job.failedAttempts,
       failedReason: job.failedReason,
-      deliveryCode: job.deliveryCode,
+      deliveryCode: unpaid ? null : job.deliveryCode,
       service: job.service,
       connection: connection ? { ...connection, partnerName: job.logisticsPartner.displayName } : null,
       point,
@@ -272,6 +281,89 @@ export async function textSelfDeliveryCode(orderId: string, code: string) {
     return [{ channel: "sms" as const, ok: outcome.ok }];
   } catch (error) {
     console.error(`[customer messages] self-delivery code for order ${orderId} failed`, error);
+    return [];
+  }
+}
+
+/** Pay on delivery (shared/pay-at-door.ts): the payment link, and the code once paid. Sent in the shop's name. */
+export const PAY_AT_DOOR_LINK_SMS = "{{store}}: your order {{order_number}} is on its way. Check it when it arrives, then pay {{amount}} here: {{order_url}} You'll get the code for the rider once it's paid.";
+export const PAY_AT_DOOR_CODE_SMS = "{{store}}: payment received for order {{order_number}}. Give the rider this code: {{delivery_code}}. {{order_url}}";
+
+/**
+ * One message to the customer of an order, by SMS (the shop's sender) and WhatsApp (Shopinbos's number, an approved
+ * template with the shop's name in it, src/lib/member-messaging/whatsapp-templates.ts). Transactional, never after
+ * STOP; `refId` makes it once per thing and channel. WhatsApp is skipped quietly until Meta approves the template.
+ */
+async function messageOrderCustomer(orderId: string, input: { event: string; refId: string; sms: string; values: Record<string, string>; whatsapp: { template: string; params: (order: { buyerName: string; orderNumber: string; storeName: string }) => string[] } }) {
+  const order = await db.retailOrder.findUnique({ where: { id: orderId }, select: { id: true, storeId: true, orderNumber: true, buyerName: true, buyerPhone: true } });
+  const phone = normalizePhone(order?.buyerPhone);
+  if (!order || !phone) return [];
+  const store = await db.store.findUnique({ where: { id: order.storeId }, select: MARKETING_STORE_SELECT });
+  if (!store) return [];
+  const optOuts = await loadOptOuts(store.id);
+  const results: Array<{ channel: TextChannel; ok: boolean; error?: string }> = [];
+  for (const channel of ["sms", "whatsapp"] as const) {
+    const recipient = { event: input.event as CustomerEvent, refId: input.refId, phone, name: order.buyerName, values: {}, smsVars: {} } satisfies Recipient;
+    const id = await claim(store.id, recipient, channel);
+    if (!id) continue;
+    const allowed = mayText({ channel, phone, purpose: "transactional", consent: true, optOuts });
+    if (!allowed.ok) {
+      await finish(id, { ok: false, error: allowed.reason, skipped: true });
+      results.push({ channel, ok: false, error: allowed.reason });
+      continue;
+    }
+    let outcome: SendOutcome;
+    if (channel === "sms") {
+      const settings = await getMessagingSettings(order.storeId);
+      const values = { store: store.name, order_number: order.orderNumber, order_url: storeUrl(store, `/order/${order.id}`), ...input.values };
+      const body = fillVariables(input.sms, values as unknown as FlowVariables, "text").replace(/\s{2,}/g, " ").trim();
+      const send = await textSender(store, { senderId: settings.smsSenderId });
+      outcome = await send.sms(phone, body).catch((error): SendOutcome => ({ ok: false, error: String(error) }));
+    } else {
+      const { sendShopinbosTemplate } = await import("@/lib/member-messaging/send.server");
+      const params = input.whatsapp.params({ buyerName: firstName(order.buyerName) || "there", orderNumber: order.orderNumber, storeName: store.name });
+      const sent = await sendShopinbosTemplate(input.whatsapp.template, phone, params, order.id).catch(() => false);
+      outcome = sent ? { ok: true, externalId: null } : { ok: false, error: `WhatsApp ${input.whatsapp.template} not sent (not approved yet, or no WhatsApp on this number)` };
+    }
+    await finish(id, outcome);
+    results.push({ channel, ok: outcome.ok });
+  }
+  return results;
+}
+
+/**
+ * The pay-on-delivery payment link (src/lib/commerce/pay-at-door.server.ts sendPayAtDoorLink): once when the parcel
+ * goes out (or reaches the pickup point), and again when the rider asks. `amount` is what's left to pay at the door.
+ * Sent whatever the shop's message settings, since without it the parcel can't be handed over. Never throws.
+ */
+export async function textPayAtDoorLink(orderId: string, options: { amount: string; resend?: boolean }) {
+  try {
+    return await messageOrderCustomer(orderId, {
+      event: "order_pay_at_door",
+      refId: options.resend ? `${orderId}:link:${Date.now()}` : `${orderId}:link`,
+      sms: PAY_AT_DOOR_LINK_SMS,
+      values: { amount: options.amount },
+      whatsapp: { template: "shopinbos_pay_at_door", params: (order) => [order.buyerName, order.orderNumber, order.storeName, options.amount] },
+    });
+  } catch (error) {
+    console.error(`[customer messages] pay-at-door link for order ${orderId} failed`, error);
+    return [];
+  }
+}
+
+/** The code for the rider, once the customer has paid at the door (once per set of codes). Never throws. */
+export async function textPayAtDoorCode(orderId: string, codes: string[]) {
+  try {
+    const code = codes.join(" or ");
+    return await messageOrderCustomer(orderId, {
+      event: "order_pay_at_door_code",
+      refId: `${orderId}:code:${codes.join(",")}`,
+      sms: PAY_AT_DOOR_CODE_SMS,
+      values: { delivery_code: code },
+      whatsapp: { template: "shopinbos_pay_at_door_code", params: (order) => [order.buyerName, order.orderNumber, order.storeName, code] },
+    });
+  } catch (error) {
+    console.error(`[customer messages] pay-at-door code for order ${orderId} failed`, error);
     return [];
   }
 }
