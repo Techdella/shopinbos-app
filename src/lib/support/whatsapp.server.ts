@@ -6,6 +6,7 @@ import { verifyMetaSignature } from "@/lib/inbox/pure";
 import { db } from "@/lib/db/client";
 import { TEAM_TEMPLATES, metaTeamTemplatePayload, readCustomTemplate, teamTemplateParams, type TeamTemplate, type TeamTemplateValues } from "./whatsapp-pure";
 import { WHATSAPP_MAX_ATTACHMENT_BYTES } from "./pure";
+import { NOTIFY_TEMPLATES } from "@/lib/notifications/whatsapp-templates";
 
 // Templates the team writes in Admin › Inbox › WhatsApp templates, kept in PlatformSetting.
 const CUSTOM_KEY = "inbox.whatsapp_templates";
@@ -125,7 +126,9 @@ export type InboxWhatsAppStatus = {
 /** For Admin › Leads › WhatsApp: is the inbox receiving, and are the team's templates approved? */
 export async function inboxWhatsAppStatus(): Promise<InboxWhatsAppStatus> {
   const config = inboxWhatsAppConfig();
-  const all = await allTeamTemplates();
+  // The automatic alerts' templates (new job, message, update) are listed and submitted with the team's, but aren't
+  // in the composer's picker.
+  const all = [...(await allTeamTemplates()), ...NOTIFY_TEMPLATES];
   if (!config) return { connected: false, wabaSubscribed: null, templates: all.map((t) => ({ name: t.name, purpose: t.purpose, status: null, reason: null, custom: Boolean(t.custom) })), error: null };
   const [subscribed, listed] = await Promise.all([
     config.wabaId ? graph(`${config.wabaId}/subscribed_apps`, config.token, { timeoutMs: 10_000 }).catch(() => null) : Promise.resolve(null),
@@ -161,7 +164,7 @@ export async function submitTeamTemplates(): Promise<{ submitted: number; failur
   const have = new Set(existing.templates.map((t) => `${t.name}:${t.language}`));
   const failures: string[] = [];
   let submitted = 0;
-  for (const template of (await allTeamTemplates()).filter((t) => !have.has(`${t.name}:${t.language}`))) {
+  for (const template of [...(await allTeamTemplates()), ...NOTIFY_TEMPLATES].filter((t) => !have.has(`${t.name}:${t.language}`))) {
     const result = await submitTeamTemplate(template);
     if (result.ok) submitted += 1;
     else failures.push(`${template.name}: ${result.error}`);

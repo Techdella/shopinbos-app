@@ -188,6 +188,23 @@ export const DEFAULT_PREFERENCES: PreferenceMatrix = {
   announcements: { push: true, email: false, sms: false, whatsapp: false },
 };
 
+/**
+ * Delivery partners live on WhatsApp, so for them it's on by default for the things they act on: being verified
+ * (account), new jobs (orders, deliveries), money and chats. They can still turn it off in Settings › Notifications.
+ */
+const ROLE_DEFAULTS: Partial<Record<string, Partial<Record<NotifyCategory, Partial<ChannelSwitches>>>>> = {
+  logistics_partner: { orders: { whatsapp: true }, deliveries: { whatsapp: true }, money: { whatsapp: true }, messages: { whatsapp: true }, account: { whatsapp: true } },
+};
+
+/** The switches before this person changes anything: DEFAULT_PREFERENCES plus their role's own defaults. */
+export function defaultPreferencesFor(role?: string | null): PreferenceMatrix {
+  const extra = role ? ROLE_DEFAULTS[role] : undefined;
+  if (!extra) return DEFAULT_PREFERENCES;
+  const out = {} as PreferenceMatrix;
+  for (const category of NOTIFY_CATEGORY_KEYS) out[category] = { ...DEFAULT_PREFERENCES[category], ...extra[category] };
+  return out;
+}
+
 /** How a category's switches are stored: a NotificationPreference row with this eventKey. */
 export const preferenceEventKey = (category: NotifyCategory) => `notify.${category}`;
 /** The older message setting (supplier settings, partner chat): still honoured for Messages until changed here. */
@@ -202,10 +219,11 @@ export interface PreferenceRow {
   inApp?: boolean;
 }
 
-export function resolvePreferences(rows: readonly PreferenceRow[]): PreferenceMatrix {
+export function resolvePreferences(rows: readonly PreferenceRow[], role?: string | null): PreferenceMatrix {
   const out = {} as PreferenceMatrix;
+  const defaults = defaultPreferencesFor(role);
   for (const category of NOTIFY_CATEGORY_KEYS) {
-    const base = { ...DEFAULT_PREFERENCES[category] };
+    const base = { ...defaults[category] };
     if (category === "messages") {
       const legacy = rows.find((row) => row.eventKey === LEGACY_MESSAGE_EVENT_KEY);
       if (legacy) {

@@ -5,6 +5,7 @@ import { db } from "@/lib/db/client";
 import { ok, apiError } from "@/lib/api/response";
 import { isEmailConfigured } from "@/lib/notifications/resend";
 import { platformWhatsAppReady } from "@/lib/notifications/service";
+import { textPhoneFor } from "@/lib/notifications/notify.server";
 import { webPushPublicKey } from "@/lib/notifications/push.server";
 import { platformSmsReady } from "@/lib/sms";
 import {
@@ -30,7 +31,7 @@ async function load(user: { id: string; role: string }) {
     db.user.findUnique({ where: { id: user.id }, select: { email: true, phone: true } }),
     db.pushDevice.count({ where: { userId: user.id, disabledAt: null } }).catch(() => 0),
   ]);
-  const prefs = resolvePreferences(rows);
+  const prefs = resolvePreferences(rows, user.role);
   return {
     categories: categoriesFor(user.role).map((category) => ({
       key: category.key,
@@ -42,7 +43,7 @@ async function load(user: { id: string; role: string }) {
     })),
     quietHours: setting ? { enabled: setting.quietHoursEnabled, start: setting.quietStart, end: setting.quietEnd, timezone: setting.timezone } : DEFAULT_QUIET_HOURS,
     available: { webPush: Boolean(webPushPublicKey()), email: isEmailConfigured(), sms: platformSmsReady(), whatsapp: platformWhatsAppReady() },
-    contact: { email: account?.email ?? null, phone: account?.phone ?? null },
+    contact: { email: account?.email ?? null, phone: (await textPhoneFor(user.id, account?.phone ?? null, user.role)) ?? null },
     devices,
   };
 }
@@ -63,7 +64,7 @@ export const PUT = withAuth(async (req: NextRequest, { user }) => {
 
   if (categories) {
     const rows = await db.notificationPreference.findMany({ where: { userId: user.id }, select: { eventKey: true, push: true, email: true, sms: true, whatsapp: true, inApp: true } });
-    const current = resolvePreferences(rows);
+    const current = resolvePreferences(rows, user.role);
     for (const [key, change] of Object.entries(categories) as Array<[NotifyCategory, z.infer<typeof Switches>]>) {
       if (!change) continue;
       const next = { ...current[key], ...change };
