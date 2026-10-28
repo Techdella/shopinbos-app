@@ -42,6 +42,7 @@ import {
 import { usePeggyContinue, usePeggySaved } from "@/lib/peggy-call";
 import { useLoad } from "@/lib/useLoad";
 import { colors } from "@/theme";
+import { livenessStartProblem } from "@shared/liveness-name";
 
 // Supplier onboarding on the phone, one question per screen (the web's /supplier/onboarding does the same;
 // shared/supplier-onboarding.ts has the order): business name · CAC · what they supply · make, import or resell · how
@@ -94,6 +95,8 @@ export function SupplierJoinFlow() {
   const [selfie, setSelfie] = useState<Picked | null>(null);
   const liveness = useKoraLiveness();
   const [passed, setPassed] = useState<LivenessPass | null>(null);
+  /** Korapay refused to start the check: the selfie goes without it, and the team checks it. */
+  const [livenessOff, setLivenessOff] = useState(false);
   const [checking, setChecking] = useState(false);
   const [productPhoto, setProductPhoto] = useState<Picked | null>(null);
   const [productName, setProductName] = useState("");
@@ -396,8 +399,11 @@ export function SupplierJoinFlow() {
         const result = await liveness.start({ firstName: firstName.trim(), lastName: lastName.trim() });
         if (result) setPassed(result);
         else setError(t("selfie.livenessFailed"));
-      } catch {
-        setError(t("selfie.livenessUnavailable"));
+      } catch (error) {
+        if (livenessStartProblem(error) === "service") {
+          setLivenessOff(true);
+          setError(t("selfie.livenessOff"));
+        } else setError(t("selfie.livenessUnavailable"));
       } finally {
         setChecking(false);
       }
@@ -408,15 +414,15 @@ export function SupplierJoinFlow() {
         <View style={{ width: 170, height: 170, borderRadius: 85, borderWidth: 3, borderStyle: "dashed", borderColor: colors.line, overflow: "hidden", alignItems: "center", justifyContent: "center", backgroundColor: colors.surface }}>
           {selfie ? <Image source={{ uri: selfie.uri }} style={{ width: 170, height: 170 }} accessibilityLabel={t("selfie.preview")} /> : <AppIcon name="user" size={64} color={colors.inkSoft} />}
         </View>
-        {LIVENESS_ON ? (
+        {LIVENESS_ON && !livenessOff ? (
           passed ? (
             <T weight="bold" style={{ color: colors.success }}>{t("selfie.livenessPassed")}</T>
           ) : (
             <PillButton title={t("selfie.livenessStart")} tone="ink" size="md" busy={checking} onPress={() => void faceCheck()} />
           )
         ) : null}
-        <PillButton title={selfie ? t("selfie.retake") : t("selfie.take")} icon="camera" tone={LIVENESS_ON && !passed ? "white" : "ink"} size="md" disabled={LIVENESS_ON && !passed} onPress={() => void snap(true, setSelfie)} />
-        {LIVENESS_ON && !passed ? <T style={{ color: colors.inkSoft, fontSize: 14, textAlign: "center" }}>{t("selfie.livenessFirst")}</T> : null}
+        <PillButton title={selfie ? t("selfie.retake") : t("selfie.take")} icon="camera" tone={LIVENESS_ON && !passed && !livenessOff ? "white" : "ink"} size="md" disabled={LIVENESS_ON && !passed && !livenessOff} onPress={() => void snap(true, setSelfie)} />
+        {LIVENESS_ON && !passed && !livenessOff ? <T style={{ color: colors.inkSoft, fontSize: 14, textAlign: "center" }}>{t("selfie.livenessFirst")}</T> : null}
         {current.selfie?.status === "rejected" && current.selfie.reason ? <Notice>{current.selfie.reason}</Notice> : null}
         {needsNin ? <View style={{ alignSelf: "stretch" }}>{ninFields}</View> : null}
       </View>

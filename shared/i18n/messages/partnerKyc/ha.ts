@@ -163,6 +163,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "selfie.livenessPassed": "Face check ya wuce",
   "selfie.livenessFailed": "Face check bai wuce ba. Sake gwadawa a wurin da haske yake da kyau, fuskarka a cikin da'irar.",
   "selfie.livenessUnavailable": "Face check bai iya farawa ba. Duba ka ba da izinin kyamara, sai ka sake gwadawa.",
+  "selfie.livenessOff": "Binciken fuska ba ya aiki yanzu. Ɗauki selfie na yau da kullum maimakon haka; ƙungiyarmu za ta duba shi.",
   "selfie.livenessFirst": "Ka fara yin face check, sannan ka ɗauki selfie ɗinka.",
   "selfie.matched": "Selfie ɗinka ya yi daidai da hoton da ke kan NIN ɗinka.",
   "selfie.waiting": "Ƙungiyarmu tana duba selfie ɗinka.",

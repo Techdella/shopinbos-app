@@ -109,6 +109,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "selfie.livenessFirst": "Do the face check first, then snap your selfie.",
   "selfie.livenessFailed": "The face check no pass. Try again for better light.",
   "selfie.livenessUnavailable": "The face check no gree start. Snap selfie instead.",
+  "selfie.livenessOff": "Face check no dey work now. Take normal selfie instead; our team go check am.",
   "selfie.take": "Snap selfie",
   "selfie.retake": "Snap am again",
   "selfie.preview": "Your selfie",

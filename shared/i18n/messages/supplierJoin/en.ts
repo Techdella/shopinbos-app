@@ -118,6 +118,7 @@ const en = {
   "selfie.livenessFirst": "Do the face check first, then take your selfie.",
   "selfie.livenessFailed": "The face check didn't pass. Try again in good light.",
   "selfie.livenessUnavailable": "The face check couldn't start. Take a selfie instead.",
+  "selfie.livenessOff": "The face check isn't available right now. Take a normal selfie instead; our team will check it.",
   "selfie.take": "Take selfie",
   "selfie.retake": "Take it again",
   "selfie.preview": "Your selfie",

@@ -163,6 +163,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "selfie.livenessPassed": "Face check agafeela",
   "selfie.livenessFailed": "Face check agafeghị. Nwaa ọzọ ebe ìhè dị mma, ihu gị n'ime okirikiri ahụ.",
   "selfie.livenessUnavailable": "Face check enweghị ike ịmalite. Lelee na i kwere ka e jiri kamera, wee nwaa ọzọ.",
+  "selfie.livenessOff": "Nlele ihu adịghị arụ ọrụ ugbu a. Were selfie nkịtị kama; ndị otu anyị ga-elele ya.",
   "selfie.livenessFirst": "Buru ụzọ mee face check, wee see selfie gị.",
   "selfie.matched": "Selfie gị dakọrọ na foto dị na NIN gị.",
   "selfie.waiting": "Ndị otu anyị na-elele selfie gị.",

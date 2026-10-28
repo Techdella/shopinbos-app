@@ -163,6 +163,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "selfie.livenessPassed": "Face check ti yege",
   "selfie.livenessFailed": "Face check kò yege. Tún gbìyànjú níbi tí ìmọ́lẹ̀ ti dára, kí ojú rẹ wà nínú circle.",
   "selfie.livenessUnavailable": "Face check kò lè bẹ̀rẹ̀. Rí i dájú pé o gba kámẹ́rà láàyè, kí o tún gbìyànjú.",
+  "selfie.livenessOff": "Àyẹ̀wò ojú kò ṣiṣẹ́ báyìí. Ya selfie lásán dípò rẹ̀; ẹgbẹ́ wa yóò ṣàyẹ̀wò rẹ̀.",
   "selfie.livenessFirst": "Ṣe face check kọ́kọ́, lẹ́yìn náà ya selfie rẹ.",
   "selfie.matched": "Selfie rẹ bá fọ́tò orí NIN rẹ mu.",
   "selfie.waiting": "Ẹgbẹ́ wa ń ṣàyẹ̀wò selfie rẹ.",
