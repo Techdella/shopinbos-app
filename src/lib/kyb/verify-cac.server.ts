@@ -20,6 +20,7 @@ import {
   parseCacVas,
   cacVasEntityType,
   parseYouverifyCac,
+  korapayCacBody,
   prefixedCacNumber,
   recentAttempts,
   type CacCompanyType,
@@ -93,10 +94,13 @@ async function lookupCacVas(rcNumber: string, companyType: CacCompanyType): Prom
 
 /** Korapay's CAC lookup (POST /identities/ng/cac): the registry profile with address and key personnel. */
 async function lookupKorapayCac(rcNumber: string, companyType: CacCompanyType, registrationName?: string): Promise<LookupResult> {
-  const id = prefixedCacNumber(rcNumber, companyType);
+  // Korapay's docs show { id: "RC00000011", registration_type: "RC", registration_name? }, but the live API refuses a
+  // prefixed id ("One or more fields are invalid", validation_error) and answers for the digits alone with the
+  // prefix as registration_type (Admin › Developers › Test Korapay Identity, 28 Oct 2026). The entered name is
+  // compared with the registry's name afterwards, not sent: a slightly different spelling would make Korapay refuse.
+  void registrationName;
   try {
-    // developers.korapay.com/docs/nigeria-certificate-incorporation: { id, registration_type, registration_name?, verification_consent }
-    const body = { id, registration_type: id.replace(/\d+$/, ""), ...(registrationName ? { registration_name: registrationName.slice(0, 160) } : {}), verification_consent: true };
+    const body = korapayCacBody(rcNumber, companyType);
     const { status, json } = await korapayIdentityPost("/identities/ng/cac", body, LOOKUP_TIMEOUT_MS);
     if (status === 404) return { ok: true, record: null };
     if (status === 429) return { ok: false, reason: "busy" };

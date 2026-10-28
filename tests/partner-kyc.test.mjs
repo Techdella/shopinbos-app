@@ -196,7 +196,9 @@ test("no guarantor anywhere: no routes, no page, not in the Tier 1 checks", () =
 test("Korapay runs every CAC check when it's set up, with the business name, and admins can test it", () => {
   const cac = read("src/lib/kyb/verify-cac.server.ts");
   assert.match(cac, /if \(korapayIdentityReady\(\)\) return \{ lookup: await lookupKorapayCac\(number, companyType, registrationName\), provider: "korapay" \};/);
-  assert.match(cac, /registration_name: registrationName/);
+  // The live API wants the digits alone (a prefixed id is a validation_error) and no name.
+  assert.match(cac, /korapayCacBody\(rcNumber, companyType\)/);
+  assert.doesNotMatch(cac, /registration_name:/);
   assert.match(read("src/app/api/admin/korapay-check/route.ts"), /withAdmin\(async \(\) => ok\(await runKorapayCheck\(\)\)\)/);
   assert.match(read("src/app/admin/developers/page.tsx"), /<KorapayCheckCard \/>/);
 });

@@ -18,8 +18,9 @@ const SANDBOX_NUMBER = "00000011";
  */
 function variants(digits: string) {
   return [
+    // What partner and supplier CAC checks send (src/lib/kyb/cac.ts korapayCacBody), then the alternatives.
+    { label: "Digits only, type RC (what checks send)", body: { id: digits, registration_type: "RC" } },
     { label: "As documented (RC number, type RC)", body: { id: `RC${digits}`, registration_type: "RC" } },
-    { label: "Digits only, type RC", body: { id: digits, registration_type: "RC" } },
     { label: "RC number, no type", body: { id: `RC${digits}` } },
   ];
 }

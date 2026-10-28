@@ -91,3 +91,9 @@ test("NIN with a selfie: Korapay's facial match is read from data.validation.sel
   assert.deepEqual(kp.readKorapayIdentity(200, answer({ match: false, confidence_rating: "12" }), typed).identity.selfie, { match: false, confidence: 12 });
   assert.equal(kp.readKorapayIdentity(200, { status: true, data: { first_name: "ADA", last_name: "OBI" } }, typed).identity.selfie, undefined, "no selfie sent, no result");
 });
+
+test("Korapay CAC lookups send the digits as id and the prefix as registration_type", () => {
+  assert.deepEqual(cac.korapayCacBody("208767", "COMPANY"), { id: "208767", registration_type: "RC", verification_consent: true });
+  assert.deepEqual(cac.korapayCacBody("RC208767", "COMPANY"), { id: "208767", registration_type: "RC", verification_consent: true });
+  assert.deepEqual(cac.korapayCacBody("3456789", "BUSINESS_NAME"), { id: "3456789", registration_type: "BN", verification_consent: true });
+});
