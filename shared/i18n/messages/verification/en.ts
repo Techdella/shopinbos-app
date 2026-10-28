@@ -170,6 +170,10 @@ const en = {
   "step.review": "Shopinbos review",
   "step.approved": "Verification approved",
   "cac.register": "No CAC number yet? Register your business name here",
+  "rail.aria": "Your progress",
+  "rail.done": "done",
+  "rail.current": "you are here",
+  "rail.noBvn": "No BVN needed. Your ID and selfie are only used to confirm it's really you.",
 } satisfies Record<string, string>;
 
 export default en;

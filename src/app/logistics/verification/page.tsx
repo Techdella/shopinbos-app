@@ -5,8 +5,8 @@ import { PartnerPage } from "@/components/logistics/kit";
 import { PartnerVerificationFlow } from "@/components/logistics/verification/PartnerVerificationFlow";
 import { getT } from "@/lib/i18n/server";
 
-// Delivery partner verification in tiers (shared/partner-tiers.ts): Tier 1 Verified Individual without CAC, Tier 2
-// Registered Business with it. The steps are client-side (src/components/logistics/verification).
+// Delivery partner sign-up and verification, one question per screen (shared/partner-tiers.ts PARTNER_FLOW): Tier 1
+// Verified Individual without CAC, Tier 2 Registered Business with it. The screens are client-side (src/components/logistics/verification).
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -18,8 +18,8 @@ export default async function LogisticsVerificationPage() {
   const partner = await getLogisticsPartnerForUser(user);
   const t = await getT("partnerKyc");
   return (
-    <PartnerPage frame={{ user, partner }} title={t("page.title")} sub={t("page.sub")}>
-      <PartnerVerificationFlow accountEmail={user.email ?? null} accountPhone={user.phone ?? null} />
+    <PartnerPage frame={{ user, partner }} title={t("page.title")} sub={t("page.sub")} bare bleed>
+      <PartnerVerificationFlow accountName={user.name ?? ""} />
     </PartnerPage>
   );
 }

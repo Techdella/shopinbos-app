@@ -22,6 +22,9 @@ export async function POST(req: NextRequest) {
   }
   const parsed = clientErrorSchema.safeParse(json);
   if (!parsed.success) return apiError("BAD_REQUEST", "Nothing to report.");
+  // A cross-origin script's error (an extension, an ad blocker, the browser's own scripts): no message, no stack,
+  // nothing to act on. The browser skips these too (report-client.ts), but not every browser says it the same way.
+  if (/^(Uncaught )?Script error\.?$/i.test(parsed.data.message.trim()) && !parsed.data.stack) return ok({ recorded: false });
   try {
     const user = await reportingUser();
     const userAgent = req.headers.get("user-agent");

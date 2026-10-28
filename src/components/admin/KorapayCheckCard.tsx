@@ -16,7 +16,13 @@ function advice(check: KorapayCheck): string {
   if (check.health.state === "unreachable") return "Korapay couldn't be reached from the server. Try again in a minute.";
   const cac = check.cac;
   if (!cac) return "";
-  if (cac.ok) return "Korapay Identity works: CAC, NIN and selfie checks can run.";
+  if (cac.ok) {
+    const first = check.attempts[0];
+    return first && !first.ok
+      ? `Korapay Identity works, but only with "${check.attempts.at(-1)?.label}". Send this to the developer so CAC checks use that shape.`
+      : "Korapay Identity works: CAC, NIN and selfie checks can run.";
+  }
+  if (check.health.state === "ok" && check.health.balance === 0) return "The Korapay NGN balance is ₦0. Each ID, selfie and CAC check is paid from it, and Korapay may refuse checks until it's topped up. Top it up, then test again; if it still fails, send Korapay support the answers above.";
   const message = cac.message.toLowerCase();
   if (cac.httpStatus === 401 || cac.httpStatus === 403 || /not enabled|permission|access|activate/.test(message)) return "Identity isn't switched on for this Korapay account. In the Korapay dashboard, request access to Identity (including facial matching for selfies), then test again.";
   if (cac.httpStatus === 402 || /balance|insufficient|fund/.test(message)) return "The Korapay NGN balance is too low. Each ID, selfie and CAC check is paid from it: top it up, then test again.";
@@ -45,7 +51,7 @@ export function KorapayCheckCard() {
 
   return (
     <Card className="mb-4 p-5">
-      <CardHead title="Test Korapay Identity" sub="Runs one real CAC lookup (paid from the Korapay balance) and shows Korapay's own answer." />
+      <CardHead title="Test Korapay Identity" sub="Runs a real CAC lookup (only a lookup that works is paid from the Korapay balance) and shows Korapay's own answer to each request shape tried." />
       <div className="mt-3 flex flex-wrap items-center gap-3">
         <PillButton size="md" busy={busy} onClick={() => void run()}>Test Korapay Identity</PillButton>
       </div>
@@ -58,13 +64,15 @@ export function KorapayCheckCard() {
             {check.health.state === "ok" && check.health.balance !== null && <Pill tone="muted">Balance ₦{check.health.balance.toLocaleString("en-NG")}</Pill>}
             <Pill tone={check.livenessKey ? "success" : "warning"} dot>{check.livenessKey ? "Liveness public key set" : "Liveness public key not set"}</Pill>
           </div>
-          {check.cac && (
-            <div className="rounded-[14px] border border-app-line px-3.5 py-3">
-              <div className="font-extrabold">CAC lookup of {check.cac.sample}: {check.cac.ok ? "worked" : "failed"} (HTTP {check.cac.httpStatus || "none"})</div>
-              {check.cac.companyName && <div>Found: {check.cac.companyName}</div>}
-              {check.cac.message && <div className="text-app-ink-soft">Korapay said: “{check.cac.message}”</div>}
+          {check.attempts.map((attempt) => (
+            <div key={attempt.label} className="rounded-[14px] border border-app-line px-3.5 py-3">
+              <div className="font-extrabold">{attempt.label}: {attempt.ok ? "worked" : "failed"} (HTTP {attempt.httpStatus || "none"})</div>
+              <div className="font-mono text-[12px] text-app-ink-soft">{JSON.stringify(attempt.body)}</div>
+              {attempt.ok && check.cac?.companyName && <div>Found: {check.cac.companyName}</div>}
+              {attempt.message && <div className="text-app-ink-soft">Korapay said: “{attempt.message}”</div>}
+              {attempt.details && <div className="font-mono text-[12px] text-app-ink-soft">Details: {attempt.details}</div>}
             </div>
-          )}
+          ))}
           <p className="m-0 font-bold">{advice(check)}</p>
         </div>
       )}

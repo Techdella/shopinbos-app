@@ -10,8 +10,10 @@ import { buildStockHolds, isDropshipProduct, stockShortfallDetails, stockShortfa
 import { normalizeVariants, resolveLineVariant } from "@shared/product-variants";
 import { maybeExpireUnpaidOrders } from "@/lib/commerce/order-expiry.server";
 import { spreadAgreedAmount } from "@/lib/payment-links/pure";
-import { marketChoiceForStore } from "@/lib/delivery-market/market.server";
-import { chooseMarketOption, type MarketOption } from "@shared/delivery-market";
+import { marketChoiceForStore, supplierParcelsForZones } from "@/lib/delivery-market/market.server";
+import { chooseMarketOption, timeframeWords, type MarketOption, type OptionPart } from "@shared/delivery-market";
+import { dropshipQuantityProblem } from "@shared/dropship-rules";
+import { parcelLines, partCharge, type ParcelLine } from "@shared/dropship-checkout";
 import {
   chooseDelivery,
   deliveryOptionsFor,
@@ -60,7 +62,18 @@ export interface PricedOrder {
    * The delivery choice. With delivery partners at checkout (src/lib/delivery-market), `market` is set: the options
    * are the partners' (each carrying the parcels it books), and `reason` says why nothing covers the address.
    */
-  delivery: { choice: DeliveryChoice; option: DeliveryOption | null; market: { option: MarketOption | null; reason: string | null; shipmentCount: number } | null };
+  delivery: {
+    choice: DeliveryChoice;
+    option: DeliveryOption | null;
+    market: { option: MarketOption | null; reason: string | null; shipmentCount: number } | null;
+    /**
+     * The supplier parcels in this delivery ("Ships from Port Harcourt · ₦4,500 · Arrives …"): with delivery partners,
+     * the chosen option's; with the store's own zones, the parcels of suppliers that deliver at their own zone rates
+     * (their fees are inside the option's price, on top of the zone fee). `parts` is what the order saves as its
+     * delivery plan (shared/delivery-market.ts); `zonesPlan` says they came from the zones path. Null: none.
+     */
+    parcels: { lines: ParcelLine[]; parts: OptionPart[]; zonesPlan: boolean; ownItems: boolean } | null;
+  };
   discount: AppliedDiscount | null;
   /** Why the typed code did not apply, in words for the shopper. */
   codeError: string | null;
@@ -98,6 +111,11 @@ export interface PricingInput {
    */
   agreedDeliveryFee?: number | null;
 }
+
+/** The one delivery option of a bag whose items all ship as suppliers' own parcels (stores on their own zones). */
+export const PARCELS_OPTION_ID = "supplier_parcels";
+
+const partsOf = (option: MarketOption | null | undefined): OptionPart[] => option?.parts ?? [];
 
 /** The one delivery option of a payment link with an agreed fee. */
 export const LINK_DELIVERY_OPTION_ID = "link_delivery";
@@ -149,7 +167,7 @@ export async function priceOrder(input: PricingInput): Promise<PricedOrder | { o
       // Preorders take no stock, only a place under the cap; their lines are tagged on the order.
       preorderEnabled: true, preorderLimit: true, preorderTaken: true, preorderShipsAt: true, preorderDepositPct: true,
       // Dropship products sell from the supplier's stock (the seller holds none).
-      fulfillmentType: true, supplierProductId: true, supplierProduct: { select: { id: true, stockQuantity: true, status: true, preorderEnabled: true, preorderLimit: true, preorderTaken: true, preorderShipsAt: true } },
+      fulfillmentType: true, supplierProductId: true, supplierProduct: { select: { id: true, stockQuantity: true, status: true, preorderEnabled: true, preorderLimit: true, preorderTaken: true, preorderShipsAt: true, dropshipMinQty: true } },
     },
   });
   if (products.length !== quantities.size) return { ok: false, message: "One or more items in your bag are no longer available. Remove them and try again." };
@@ -217,6 +235,12 @@ export async function priceOrder(input: PricingInput): Promise<PricedOrder | { o
     }
   }
   if (short.length) return { ok: false, message: stockShortfallMessage(short) };
+  // A supplier that ships only N pieces or more per dropship order (shared/dropship-rules.ts).
+  for (const product of products) {
+    if (!isDropshipProduct(product)) continue;
+    const problem = dropshipQuantityProblem(product.supplierProduct?.dropshipMinQty, quantities.get(product.id) ?? 0, product.name);
+    if (problem) return { ok: false, message: problem };
+  }
   const stockHolds = buildStockHolds(products, quantities, variantHolds);
 
   const agreed = typeof input.agreedItemsTotal === "number" && input.agreedItemsTotal > 0 ? input.agreedItemsTotal : null;
@@ -252,6 +276,34 @@ export async function priceOrder(input: PricingInput): Promise<PricedOrder | { o
   } else {
     choice = deliveryOptionsFor(zones, flatRate, input.address, subtotal);
     ({ option, fee } = chooseDelivery(choice, input.deliveryOptionId));
+  }
+
+  // The supplier parcels in this delivery. With the store's own zones, a supplier with its own zone rates delivers
+  // its parcel itself and its fee (what the customer pays of it) is added on top; a bag of only those parcels has no
+  // zone fee at all.
+  let parcels: PricedOrder["delivery"]["parcels"] = null;
+  if (market) {
+    const parts = partsOf(marketPick?.option);
+    if (parts.some((part) => part.shipmentKey.startsWith("supplier:"))) parcels = { lines: parcelLines(parts, market.origins), parts, zonesPlan: false, ownItems: parts.some((part) => part.shipmentKey === "own") };
+  } else if (agreedFee === null && input.store.userId) {
+    const zoneParcels = await supplierParcelsForZones({ id: input.store.id, userId: input.store.userId, city: input.store.city ?? null }, items.map((item) => ({ productId: item.productId, quantity: item.quantity })), input.address);
+    if (zoneParcels.parts.length) {
+      const extra = Math.round(zoneParcels.parts.reduce((sum, part) => sum + partCharge(part), 0) * 100) / 100;
+      const ownItems = items.some((item) => !zoneParcels.productIds.includes(item.productId));
+      if (ownItems) {
+        choice = { ...choice, options: choice.options.map((entry) => ({ ...entry, price: Math.round((entry.price + extra) * 100) / 100 })) };
+        ({ option, fee } = chooseDelivery(choice, input.deliveryOptionId));
+        // No zone option (not covered, or free to this area): the parcels' fees still apply.
+        if (!option) fee = extra;
+      } else {
+        const minDays = Math.max(...zoneParcels.parts.map((part) => part.minDays));
+        const maxDays = Math.max(...zoneParcels.parts.map((part) => part.maxDays));
+        option = { id: PARCELS_OPTION_ID, name: zoneParcels.parts.length > 1 ? `Doorstep delivery (${zoneParcels.parts.length} parcels)` : "Doorstep delivery", price: extra, estimatedDays: timeframeWords(minDays, maxDays), pickup: false };
+        choice = { covered: true, options: [option] };
+        fee = extra;
+      }
+      parcels = { lines: parcelLines(zoneParcels.parts, zoneParcels.origins), parts: zoneParcels.parts, zonesPlan: true, ownItems };
+    }
   }
 
   const lines: DiscountLine[] = items.map((item) => ({ productId: item.productId, price: item.price, quantity: item.quantity }));
@@ -316,7 +368,7 @@ export async function priceOrder(input: PricingInput): Promise<PricedOrder | { o
   return {
     ok: true,
     items,
-    delivery: { choice, option, market: marketPick },
+    delivery: { choice, option, market: marketPick, parcels },
     discount: applied,
     codeError,
     points,

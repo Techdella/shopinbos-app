@@ -12,7 +12,8 @@
 //          affiliates: [{ first_name, surname, affiliation_type: ["DIRECTOR"], status }] } }
 //   400 "company not found" / "invalid rc_number passed" · 401 bad key · 403 no balance or no permission
 // then Korapay Identity when KORAPAY_SECRET_KEY is set (developers.korapay.com, October 2026):
-//   POST https://api.korapay.com/merchant/api/v1/identities/ng/cac { id: "RC1234567", registration_type, verification_consent }
+//   POST https://api.korapay.com/merchant/api/v1/identities/ng/cac { id: "1234567", registration_type: "RC", verification_consent }
+//   (digits only: the live API refuses "RC1234567" with a validation_error, whatever its docs' example shows)
 //   Header: Authorization: Bearer <secret key>. A test key runs the sandbox (RC00000011 is found, RC11111111 is not).
 //   200 → { status: true, data: { name, registration_number, company_status, type_of_entity, address,
 //          registration_date, key_personnel: [{ name, designation, status, is_corporate }] } }
@@ -185,6 +186,12 @@ export function parseDojahCac(body: unknown): CacRecord | null {
 }
 
 /** The number with its registry prefix (RC1234567, BN1234567…), the form Korapay and Youverify look up. */
+/** Korapay's CAC request: the number's digits as `id`, its prefix (RC, BN, IT, LP, LLP) as `registration_type`. */
+export function korapayCacBody(number: string, companyType: CacCompanyType) {
+  const prefixed = prefixedCacNumber(number.replace(/^[A-Za-z]+/, "").replace(/\D/g, ""), companyType);
+  return { id: prefixed.replace(/^[A-Z]+/, ""), registration_type: prefixed.replace(/\d+$/, ""), verification_consent: true as const };
+}
+
 export function prefixedCacNumber(number: string, companyType: CacCompanyType): string {
   const prefix = { BUSINESS_NAME: "BN", COMPANY: "RC", INCORPORATED_TRUSTEES: "IT", LIMITED_PARTNERSHIP: "LP", LIMITED_LIABILITY_PARTNERSHIP: "LLP" }[companyType];
   return `${prefix}${number}`;

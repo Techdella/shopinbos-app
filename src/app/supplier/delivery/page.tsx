@@ -13,6 +13,8 @@ import { FindPartners } from "@/components/delivery-market/FindPartners";
 import { originLabel, readFindFilters, type FindSearch } from "@/components/delivery-market/find-filters";
 import { getT } from "@/lib/i18n/server";
 import { PageTip } from "@/components/learn/PageTip";
+import { DeliveryRateCard } from "@/components/supplier/DeliveryRateCard";
+import { supplierDeliveryRates } from "@/lib/supplier-dropship.server";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -30,11 +32,12 @@ export default async function SupplierDeliveryPage({ searchParams }: { searchPar
   const filters = readFindFilters(params);
   const t = await getT("delivery");
   const tipT = await getT("tips");
-  const [settings, connections, cards, found] = await Promise.all([
+  const [settings, connections, cards, found, rates] = await Promise.all([
     deliverySettingsFor(user.id),
     connectionsForOwner(user.id),
     privateCardsForOwner(user.id),
     findPartners({ id: user.id, role: user.role }, filters),
+    supplierDeliveryRates(user.id),
   ]);
 
   return (
@@ -42,7 +45,12 @@ export default async function SupplierDeliveryPage({ searchParams }: { searchPar
       frame={supplierFrame(user, supplier)}
       title={t("supplier.title")}
       sub={t("supplier.sub")}
-      actions={<PillLink href="/supplier/delivery/analytics" icon="chart">{t("an.title")}</PillLink>}
+      actions={
+        <>
+          <PillLink href="/supplier/branding" icon="palette">Branding you offer</PillLink>
+          <PillLink href="/supplier/delivery/analytics" icon="chart">{t("an.title")}</PillLink>
+        </>
+      }
     >
       <PageTip who="peggy" className="mb-5">{tipT("supplier.delivery")}</PageTip>
       <FlashNotice saved={params.saved} error={params.error} />
@@ -64,6 +72,14 @@ export default async function SupplierDeliveryPage({ searchParams }: { searchPar
             </div>
           </Card>
         </form>
+        {/* Delivery prices (shared/dropship-rules.ts): partner rates, or the supplier's own zone × size card. */}
+        <section aria-labelledby="delivery-prices-title" className="grid gap-3">
+          <div className="px-1">
+            <h2 id="delivery-prices-title" className="m-0 font-app-display text-[22px] font-extrabold tracking-[-0.02em]">Delivery prices</h2>
+            <p className="mb-0 mt-0.5 text-[13.5px] text-app-ink-soft">Checkout shows customers the fee and arrival date, worked out from these prices and their address.</p>
+          </div>
+          <DeliveryRateCard initial={rates} />
+        </section>
         <MyPartners role="supplier" connections={connections} cards={cards} detailBase="/supplier/delivery/partners" back="/supplier/delivery" findHref="/supplier/delivery#find" />
         <FindPartners found={found} filters={filters} path="/supplier/delivery" detailBase="/supplier/delivery/partners" back="/supplier/delivery" originLabel={originLabel(found.origin)} />
       </div>

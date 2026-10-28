@@ -240,6 +240,10 @@ export interface MarketData {
     pickupAreas: string[];
     deliveryAreas: string[];
     offersPayOnDelivery: boolean;
+    /** Track record level: verified | trusted | cash_trusted (newer servers). */
+    level?: string;
+    /** Pay on delivery can be switched on: Cash trusted and not paused for late cash (newer servers). */
+    podOpen?: boolean;
   };
   rateCard: MarketRateCard | null;
   pickupPoints: PickupPoint[];
@@ -249,6 +253,23 @@ export interface MarketData {
 }
 
 export const fetchMarket = () => api<MarketData>("/api/mobile/logistics/market");
+
+/** "Pay on delivery jobs" (A-Rider-POD): the level, the goals to Cash trusted, the cash cap and the rules. */
+export interface PartnerLevelView {
+  level: "verified" | "trusted" | "cash_trusted";
+  next: "verified" | "trusted" | "cash_trusted" | null;
+  goals: Array<{ key: string; label: string; have: number; need: number; done: boolean; kind: "count" | "check" }>;
+  /** Naira the partner may hold at once. */
+  cashCap: number;
+  podOpen: boolean;
+  podOn: boolean;
+  codPaused: boolean;
+  lockedMessage: string;
+  levels: Array<{ key: string; label: string }>;
+  remitHours: number;
+}
+
+export const fetchPartnerLevel = () => api<PartnerLevelView>("/api/mobile/logistics/level");
 
 export interface RateCardBody {
   rows: Array<Omit<MarketRateRow, "id"> & { id?: string }>;

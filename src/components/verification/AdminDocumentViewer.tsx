@@ -122,6 +122,20 @@ export function AdminDocumentViewer({ role, entityId, docs, verificationStatus, 
                     <div className="text-app-ink-soft">Name and date of birth matched the national record · checked {new Date(doc.idCheck.checkedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</div>
                   </div>
                 )}
+                {(doc.faceMatch || doc.liveness) && (
+                  <div className="mt-1.5 rounded-[12px] bg-app-canvas px-3 py-2 text-[12.5px] leading-[1.5]">
+                    {doc.faceMatch && (
+                      <div className="font-bold">
+                        Face match ({doc.faceMatch.provider}):{" "}
+                        {doc.faceMatch.match === null ? "no result" : doc.faceMatch.match ? "matches the NIN photo" : "doesn't match the NIN photo"}
+                        {doc.faceMatch.confidence !== null ? ` · ${doc.faceMatch.confidence}% confidence` : ""}
+                      </div>
+                    )}
+                    <div className="text-app-ink-soft">
+                      {doc.liveness ? `Liveness passed (${doc.liveness.provider} ${doc.liveness.reference})` : "No liveness check with this selfie"}
+                    </div>
+                  </div>
+                )}
                 {doc.registry && (
                   <div className="mt-1.5 rounded-[12px] bg-app-canvas px-3 py-2 text-[12.5px] leading-[1.5]">
                     <div className="font-bold">

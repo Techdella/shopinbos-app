@@ -42,6 +42,7 @@ import { PartnerBrief } from "@/components/assistant/PartnerBrief";
 import { SetupWithPeggySlot } from "@/components/peggy/SetupWithPeggySlot";
 import { partnerBriefFor } from "@/lib/dashboard/partner-brief.server";
 import { PromoBanner } from "@/components/pricing/PromoBanner";
+import { PARTNER_LEVEL_LABELS, isPartnerLevel } from "@shared/dropship-rules";
 
 // Partner "Today", following the 2026 "Shopinbos Partners · web dispatch console" and mobile mockups.
 
@@ -131,7 +132,13 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
       frame={{ user, partner }}
       title={t("today.greeting", { greeting: lagosGreeting(now, t), name: user.name.split(" ")[0] })}
       sub={`${lagosDate(now, { weekday: "long", day: "numeric", month: "long" }, now, t)} · ${areas}`}
-      actions={<Pill tone={taking ? "success" : "muted"} dot>{taking ? t("today.taking") : t("today.notTaking")}</Pill>}
+      actions={
+        <>
+          <Pill tone={taking ? "success" : "muted"} dot>{taking ? t("today.taking") : t("today.notTaking")}</Pill>
+          {/* Verified → Trusted → Cash trusted (pay on delivery opens at Cash trusted): /logistics/level. */}
+          <PillLink href="/logistics/level" size="sm" icon="shield">Level: {PARTNER_LEVEL_LABELS[isPartnerLevel(partner.level) ? partner.level : "verified"]}</PillLink>
+        </>
+      }
     >
       <PromoBanner role="logistics_partner" className="mb-5" />
       <ActionNotice saved={saved} error={error} savedText={t("today.saved")} />

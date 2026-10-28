@@ -11,6 +11,8 @@ import { slugify } from "@/lib/workspace";
 import type { AuthUser } from "@/lib/auth/types";
 import { notifyProductForReview } from "@/lib/notifications/events.server";
 import { parsePreorderInput, preorderSaveData } from "@shared/preorder";
+import { channelPriceProblem, cleanDropshipMinQty, cleanHandlingDays } from "@shared/dropship-rules";
+import { preorderLevelProblem } from "@/lib/supplier-levels.server";
 
 export const GET = withSupplier(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const { page, limit, skip } = parsePagination(req.nextUrl.searchParams);
@@ -36,6 +38,8 @@ export const GET = withSupplier(async (req: NextRequest, { user }: { user: AuthU
         wholesalePrice: true, suggestedRetailPrice: true,
         currency: true, moq: true, stockQuantity: true,
         dropshipAvailable: true, status: true, trendScore: true, pricingTiers: true,
+        // Prices per channel and dropship options (shared/dropship-rules.ts).
+        priceMode: true, dropshipPrice: true, preorderPrice: true, minRetailPrice: true, dropshipMinQty: true, handlingDays: true, sizeBand: true, sampleAvailable: true,
         // Preorders (the supplier's own listing, so the count taken is theirs to see).
         preorderEnabled: true, preorderShipsAt: true, preorderLimit: true, preorderTaken: true, preorderNote: true,
         createdAt: true, updatedAt: true,
@@ -60,8 +64,19 @@ export const POST = withSupplier(async (req: NextRequest, { user }: { user: Auth
   const preorderParsed = preorder ? parsePreorderInput(preorder) : null;
   if (preorderParsed && !preorderParsed.ok) return apiError("BAD_REQUEST", preorderParsed.message);
 
+  // Prices per channel (shared/dropship-rules.ts): checked together, so a seller can always earn on it.
+  const priceProblem = channelPriceProblem(fields);
+  if (priceProblem) return apiError("invalid_prices", priceProblem, 400);
+  if (fields.dropshipMinQty !== undefined) fields.dropshipMinQty = cleanDropshipMinQty(fields.dropshipMinQty);
+  if (fields.handlingDays !== undefined) fields.handlingDays = cleanHandlingDays(fields.handlingDays);
+
   const supplier = await db.supplier.findUnique({ where: { userId: user.id } });
   if (!supplier) return apiError("NOT_FOUND", "Supplier profile not found", 404);
+  // Pre-orders mean shops pay before the goods exist: only Established suppliers can switch them on.
+  if (preorderParsed?.ok && preorderParsed.value.preorderEnabled) {
+    const locked = await preorderLevelProblem(supplier.id);
+    if (locked) return apiError("preorder_locked", locked, 403);
+  }
   if (!isOnboardingComplete(supplier)) {
     return apiError("ONBOARDING_REQUIRED", "Complete supplier onboarding before adding products.", 403);
   }
@@ -88,11 +103,19 @@ export const POST = withSupplier(async (req: NextRequest, { user }: { user: Auth
   const baseSlug = slugify(parsed.data.name);
   const slug = `${baseSlug}-${supplier.id.slice(0, 6)}`;
 
+  // What onboarding asked ("How can sellers buy from you?", "What's your minimum order?") fills what the form left out.
+  const raw = (body ?? {}) as Record<string, unknown>;
+  const defaults = {
+    ...(raw.dropshipAvailable === undefined && supplier.buyModes.length ? { dropshipAvailable: supplier.buyModes.includes("dropship") } : {}),
+    ...(raw.moq === undefined && supplier.minimumOrder && supplier.buyModes.includes("wholesale") ? { moq: supplier.minimumOrder } : {}),
+  };
+
   const product = await db.supplierProduct.create({
     data: {
       ...fields,
       ...(preorderParsed?.ok ? preorderSaveData(preorderParsed.value) : {}),
       ...(preorder?.depositPct !== undefined ? { preorderDepositPct: preorder.depositPct } : {}),
+      ...defaults,
       supplierId: supplier.id,
       slug,
       status: parsed.data.status === "pending_review" && !unverified ? "pending_review" : "draft",

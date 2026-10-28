@@ -13,6 +13,8 @@ import { TipsGate } from "../../_components/TipsGate";
 import { VISIBLE_SUPPLIER, agreementWith, nearness, sellerHasPlace, sellerPlace, supplierContact, supplierTrust } from "@/lib/marketplace/agreements.server";
 import { listingStep } from "@shared/supplier-trust";
 import type { ListingInfo } from "../../_components/BeforeYouList";
+import { dropshipTermsFor } from "@/lib/marketplace/dropship-listing.server";
+import type { DropshipTerms } from "@shared/dropship-checkout";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -64,7 +66,13 @@ export default async function MarketplaceProductPage({ params, searchParams }: {
       added = inStore > 0;
       // Who the supplier is and how close (src/lib/marketplace/agreements.server.ts): verification, risk score,
       // distance, and the call / stock check / agreement steps before dropshipping their products.
-      const [place, trust, agreement] = await Promise.all([sellerPlace(user.id), supplierTrust([row.supplier.id]), agreementWith(user.id, row.supplier.id)]);
+      const [place, trust, agreement, terms] = await Promise.all([
+        sellerPlace(user.id),
+        supplierTrust([row.supplier.id]),
+        agreementWith(user.id, row.supplier.id),
+        // You pay / Your price / You earn, delivery to the seller's state, who pays and branding (dropship only).
+        row.dropshipAvailable ? safeQuery(() => dropshipTermsFor([row], user.id), new Map<string, DropshipTerms>()) : Promise.resolve(new Map<string, DropshipTerms>()),
+      ]);
       const distance = nearness(place, { city: row.supplier.city, address: row.supplier.address });
       const info = trust.get(row.supplier.id);
       const step = !sellerHasPlace(place) ? "noPlace" : !distance.near ? "far" : listingStep(agreement);
@@ -74,6 +82,7 @@ export default async function MarketplaceProductPage({ params, searchParams }: {
         ...product,
         // Wholesale (paid to the supplier directly) only from verified suppliers.
         wholesale: product.wholesale && row.supplier.verificationStatus === "verified",
+        terms: terms.get(row.id) ?? null,
         supplier: { ...product.supplier, km: distance.km, area: distance.area, risk: info?.risk ?? null, verificationStatus: row.supplier.verificationStatus, agreed: agreement?.status === "active" },
       };
     }

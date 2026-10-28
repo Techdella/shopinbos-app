@@ -1,6 +1,6 @@
-// Tiered delivery partner verification (shared/partner-tiers.ts): the Tier 1 and Tier 2 checklists, the overall
-// statuses, never lowering a verified partner's tier, badges, name matching, the admin-editable limits and
-// graduation, and the wiring (limits checked where jobs are offered, the migration).
+// Tiered delivery partner verification (shared/partner-tiers.ts): the Tier 1 and Tier 2 checklists, the one-question
+// sign-up flow and where it reopens, the overall statuses, never lowering a verified partner's tier, badges, name
+// matching, the admin-editable limits and graduation, and the wiring (limits checked where jobs are offered, the migration).
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -8,13 +8,14 @@ import { readFileSync } from "node:fs";
 const t = await import("../shared/partner-tiers.ts");
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 
+// What the sign-up flow collects: the sign-up phone, an ID (a NIN slip checked by Korapay) and where they're based.
+// No email, no bank, no BVN.
 const approvedIdentity = {
   fullName: "Ada Obi",
   phone: { value: "+2348030000000", status: "approved" },
-  email: { value: "ada@example.com", status: "approved" },
   nin: { last4: "1234", hash: "h", status: "approved", checkedAt: "2026-12-01" },
-  payout: { method: "bank", last4: "6789", status: "approved", nameMatched: true, checkedAt: "2026-12-01" },
-  address: { value: "12 Allen Avenue, Ikeja" },
+  idDocument: { type: "nin_slip" },
+  base: { address: "12 Allen Avenue, Ikeja", state: "Lagos", lat: 6.6, lng: 3.35 },
 };
 
 function snapshot(overrides = {}) {
@@ -27,7 +28,7 @@ function snapshot(overrides = {}) {
     deliveryMethods: ["bike"],
     docs: { selfie: "approved" },
     cacRegistryVerified: false,
-    vehicles: [{ status: "approved" }],
+    vehicles: [],
     registeredName: null,
     cacType: null,
     cacNumber: null,
@@ -36,14 +37,26 @@ function snapshot(overrides = {}) {
   };
 }
 
-test("Tier 1 needs every check approved, and no CAC", () => {
+test("Tier 1 needs every check approved, and no CAC, bank, email or vehicle papers", () => {
+  assert.deepEqual([...t.TIER1_ITEMS], ["terms", "phone", "idDocument", "selfie", "coverage", "methods", "base"]);
   assert.equal(t.earnedTier(snapshot()), "tier1");
-  assert.equal(t.earnedTier(snapshot({ vehicles: [{ status: "pending" }] })), "none", "the vehicle must be approved");
-  assert.equal(t.TIER1_ITEMS.includes("guarantor"), false, "no guarantor (the owner's rule)");
-  assert.equal(t.earnedTier(snapshot({ vehicles: [] })), "none");
+  for (const gone of ["guarantor", "email", "payout", "vehicles", "nin", "fullName", "address"]) assert.equal(t.TIER1_ITEMS.includes(gone), false, gone);
   assert.equal(t.earnedTier(snapshot({ docs: { selfie: "pending" } })), "none");
   assert.equal(t.earnedTier(snapshot({ termsVersion: "old" })), "none", "terms must be the current version");
   assert.equal(t.earnedTier(snapshot({ deliveryMethods: [] })), "none");
+  assert.equal(t.earnedTier(snapshot({ identity: { ...approvedIdentity, phone: undefined } })), "none");
+  assert.equal(t.earnedTier(snapshot({ identity: { ...approvedIdentity, base: undefined } })), "none");
+});
+
+test("the ID: a checked NIN, else the team's decision on the photo; the older home address counts as the base", () => {
+  const noNin = { ...approvedIdentity, nin: undefined, idDocument: { type: "drivers_licence" } };
+  assert.equal(t.idDocumentState(snapshot({ identity: noNin })), "missing");
+  assert.equal(t.idDocumentState(snapshot({ identity: noNin, docs: { selfie: "approved", identity: "pending" } })), "pending");
+  assert.equal(t.earnedTier(snapshot({ identity: noNin, docs: { selfie: "approved", identity: "approved" } })), "tier1");
+  assert.equal(t.idDocumentState(snapshot({ identity: { ...approvedIdentity, nin: { ...approvedIdentity.nin, status: "pending" } } })), "pending");
+  assert.equal(t.idDocumentState(snapshot({ docs: { selfie: "approved", identity: "rejected" } })), "approved", "a checked NIN stands");
+  const older = { ...approvedIdentity, base: undefined, address: { value: "12 Allen Avenue" } };
+  assert.equal(t.tier1Checklist(snapshot({ identity: older })).base, "approved");
 });
 
 test("one approved vehicle is enough; all rejected is rejected", () => {
@@ -62,10 +75,28 @@ test("Tier 2 adds business name, BN/RC type, number and certificate (or a CAC re
 });
 
 test("ready to submit: nothing missing or rejected (pending checks are fine)", () => {
-  assert.equal(t.readyToSubmit(t.tier1Checklist(snapshot({ vehicles: [{ status: "pending" }], docs: { selfie: "pending" } }))), true);
-  assert.equal(t.readyToSubmit(t.tier1Checklist(snapshot({ vehicles: [] }))), false);
-  assert.equal(t.readyToSubmit(t.tier1Checklist(snapshot({ vehicles: [{ status: "rejected" }] }))), false);
-  assert.deepEqual(t.itemsWhere(t.tier1Checklist(snapshot({ vehicles: [], deliveryMethods: [] })), ["missing"]), ["methods", "vehicles"]);
+  assert.equal(t.readyToSubmit(t.tier1Checklist(snapshot({ docs: { selfie: "pending" } }))), true);
+  assert.equal(t.readyToSubmit(t.tier1Checklist(snapshot({ docs: { selfie: "rejected" } }))), false);
+  assert.equal(t.readyToSubmit(t.tier1Checklist(snapshot({ deliveryAreas: [] }))), false);
+  assert.deepEqual(t.itemsWhere(t.tier1Checklist(snapshot({ deliveryMethods: [], identity: { ...approvedIdentity, base: undefined } })), ["missing"]), ["methods", "base"]);
+});
+
+test("the one-question flow: answers saved, where it reopens, and sent partners land on their status", () => {
+  assert.deepEqual([...t.PARTNER_FLOW], ["name", "cac", "state", "areas", "vehicles", "interstate", "charge", "base", "id", "selfie", "review"]);
+  const blank = snapshot({ identity: {}, deliveryAreas: [], deliveryMethods: [], docs: {} });
+  assert.equal(t.flowProgress(blank, {}, false).first, "name");
+  assert.equal(t.flowProgress(blank, { name: true }, false).first, "cac");
+  assert.equal(t.flowProgress(blank, { name: true, cac: "no", homeState: "Lagos" }, false).first, "areas");
+  const answered = { name: true, cac: "registering", homeState: "Lagos", interstate: false, charge: "quote" };
+  assert.equal(t.flowProgress(snapshot({ docs: {} }), answered, false).first, "selfie");
+  assert.equal(t.flowProgress(snapshot(), answered, false).first, "review");
+  assert.equal(t.flowProgress(snapshot(), {}, true).first, "review", "sent through an older flow: no new questions");
+  assert.equal(t.flowProgress(snapshot({ docs: { selfie: "rejected" } }), {}, true).first, "selfie");
+  assert.equal(t.ITEM_SCREEN.idDocument, "id");
+  assert.equal(t.ITEM_SCREEN.phone, "review");
+  assert.deepEqual(t.readFlowAnswers({ completed: true, partnerFlow: { name: true, cac: "maybe", interstate: false, charge: "flat", homeState: "Lagos" } }), { name: true, interstate: false, charge: "flat", homeState: "Lagos" });
+  assert.deepEqual(t.readFlowAnswers(null), {});
+  assert.deepEqual([...t.ID_TYPES], ["nin_slip", "drivers_licence", "voters_card", "passport"]);
 });
 
 test("overall statuses", () => {
@@ -80,23 +111,29 @@ test("overall statuses", () => {
 test("a submitted partner with Tier 1 approved becomes verified; suspended and rejected never move", () => {
   assert.equal(t.nextVerificationStatus(snapshot(), true), "verified");
   assert.equal(t.nextVerificationStatus(snapshot(), false), "pending", "not until they submit");
-  assert.equal(t.nextVerificationStatus(snapshot({ vehicles: [{ status: "pending" }] }), true), "pending");
+  assert.equal(t.nextVerificationStatus(snapshot({ docs: { selfie: "pending" } }), true), "pending");
   assert.equal(t.nextVerificationStatus(snapshot({ verificationStatus: "suspended" }), true), "suspended");
   assert.equal(t.nextVerificationStatus(snapshot({ verificationStatus: "rejected" }), true), "rejected");
 });
 
 test("a verified partner's tier is never lowered (partners verified before tiers stay Tier 2)", () => {
   assert.equal(t.nextTier(snapshot({ verificationStatus: "verified", verificationTier: "tier2", identity: {}, vehicles: [] })), "tier2");
-  assert.equal(t.nextTier(snapshot({ verificationStatus: "pending", verificationTier: "tier2", vehicles: [] })), "none");
+  assert.equal(t.nextTier(snapshot({ verificationStatus: "pending", verificationTier: "tier2", docs: {} })), "none");
 });
 
 test("badges", () => {
   assert.deepEqual(t.partnerBadges(snapshot()), ["verified_individual"]);
-  assert.deepEqual(t.partnerBadges(snapshot({ vehicles: [] })), [], "no badges before Tier 1");
+  assert.deepEqual(t.partnerBadges(snapshot({ docs: {} })), [], "no badges before Tier 1");
   assert.deepEqual(t.partnerBadges(snapshot({ docs: { selfie: "approved", "courier-licence": "approved" } })), ["verified_individual", "licensed_courier"]);
+  // Payout ready: a bank account checked by name (at the first withdrawal, or the older sign-up).
+  assert.deepEqual(t.partnerBadges(snapshot({ payoutAccount: { verified: true, accountName: "ADA OBI" } })), ["verified_individual", "payout_ready"]);
+  assert.deepEqual(t.partnerBadges(snapshot({ identity: { ...approvedIdentity, payout: { method: "bank", last4: "1", status: "approved", nameMatched: true, checkedAt: "x" } } })), ["verified_individual", "payout_ready"]);
+  // Address Verified: the base and its photo, approved by the team.
+  assert.deepEqual(t.partnerBadges(snapshot({ docs: { selfie: "approved", "base-photo": "approved" } })), ["verified_individual", "address_verified"]);
+  assert.deepEqual(t.partnerBadges(snapshot({ docs: { selfie: "approved", "base-photo": "pending" } })), ["verified_individual"]);
   const business = { registeredName: "Ada Dispatch Ventures", cacType: "RC", cacNumber: "RC 99", cacRegistryVerified: true };
-  assert.deepEqual(t.partnerBadges(snapshot({ ...business, payoutAccount: { verified: true, accountName: "ADA DISPATCH VENTURES" } })), ["registered_business", "verified_payout"]);
-  assert.deepEqual(t.partnerBadges(snapshot({ ...business, payoutAccount: { verified: true, accountName: "ADA OBI" } })), ["registered_business"], "a personal account isn't a verified payout");
+  assert.deepEqual(t.partnerBadges(snapshot({ ...business, payoutAccount: { verified: true, accountName: "ADA DISPATCH VENTURES" } })), ["registered_business", "payout_ready", "verified_payout"]);
+  assert.deepEqual(t.partnerBadges(snapshot({ ...business, payoutAccount: { verified: true, accountName: "ADA OBI" } })), ["registered_business", "payout_ready"], "a personal account isn't a verified payout");
   assert.deepEqual(t.partnerBadges(snapshot({ ...business, payoutAccount: { verified: false, accountName: "ADA DISPATCH VENTURES" } })), ["registered_business"]);
 });
 
@@ -164,6 +201,10 @@ test("identity checks never keep more than the last 4 digits", () => {
   assert.equal(checks.payout.last4, "2222");
   assert.equal("junk" in checks, false);
   assert.deepEqual(t.readIdentityChecks({ nin: { last4: "1234", status: "weird" } }), {});
+  const flow = t.readIdentityChecks({ base: { address: "Shop 4, Ikeja", lat: 6.6, lng: 300 }, idDocument: { type: "passport" } });
+  assert.deepEqual(flow.base, { address: "Shop 4, Ikeja" }, "a location off the map isn't kept");
+  assert.deepEqual(flow.idDocument, { type: "passport" });
+  assert.equal(t.readIdentityChecks({ idDocument: { type: "bvn" } }).idDocument, undefined);
 });
 
 test("wiring: limits are checked where jobs are offered, and the migration is additive", () => {

@@ -29,6 +29,8 @@ export interface SetupFacts {
   customDomain: boolean;
   subscribers: number;
   campaignsSent: number;
+  /** Live sign-up forms and pop-ups (StoreForm, active, collecting subscribers): adding one is this step's ask. */
+  signupForms?: number;
 }
 
 /** What the seller chose on Start here (Store.brandSettings.setup.start). */
@@ -279,10 +281,15 @@ export function buildSetupChecklist(facts: SetupFacts, choices: SetupChoices): S
           ? `${plural(facts.campaignsSent, "campaign")} sent.`
           : facts.subscribers > 0
             ? `${plural(facts.subscribers, "subscriber")} so far. Send them a hello.`
-            : "Optional. Add a sign-up pop-up and say hello to your first customers.",
+            : (facts.signupForms ?? 0) > 0
+              ? "Your sign-up form is live. New subscribers will show here."
+              : "Optional. Add a sign-up pop-up and say hello to your first customers.",
       optional: true,
-      done: facts.subscribers > 0 || facts.campaignsSent > 0,
-      action: { kind: "link", label: facts.subscribers > 0 ? "Send a campaign" : "Add a sign-up form", href: facts.subscribers > 0 ? "/home/marketing/campaigns" : "/home/marketing/forms" },
+      done: facts.subscribers > 0 || facts.campaignsSent > 0 || (facts.signupForms ?? 0) > 0,
+      action:
+        facts.subscribers > 0
+          ? { kind: "link", label: "Send a campaign", href: "/home/marketing/campaigns" }
+          : { kind: "link", label: (facts.signupForms ?? 0) > 0 ? "See your forms" : "Add a sign-up form", href: "/home/marketing/forms" },
       helper: { who: "peggy", prompt: "Draft a welcome email to my subscribers introducing my shop." },
     },
   ];

@@ -609,6 +609,25 @@ model Supplier {
   /// What this supplier takes back and how (shown to sellers before they list a product). Empty: the minimum in the
   /// Supplier terms applies (wrong, damaged or not-as-described items).
   returnPolicy       String?
+  /// The owner's ID check from onboarding (shared/supplier-onboarding.ts readSupplierIdentity): the kind of ID they
+  /// photographed and, for a NIN slip, the NIN's last 4 digits, keyed hash and Korapay result. Never the whole number.
+  identityChecks     Json               @default("{}")
+  /// How shops can buy (dropship | wholesale | preorder): the defaults for new products.
+  buyModes           String[]           @default([])
+  /// Smallest wholesale order, the default MOQ for new products.
+  minimumOrder       Int?
+  /// Where goods leave from ("Use my current location" in onboarding), next to DeliverySettings.originAddress.
+  pickupLat          Float?
+  pickupLng          Float?
+  /// Track record level (shared/dropship-rules.ts supplierLevel): new | trusted | established. Recomputed by
+  /// src/lib/supplier-levels.server.ts refreshSupplierLevel; pre-orders open at established.
+  level              String             @default("new")
+  levelCheckedAt     DateTime?
+  /// Pre-order ready dates missed by more than 7 days (two drop an Established supplier back to Trusted).
+  missedReadyDates   Int                @default(0)
+  /// Branding the supplier offers sellers who dropship from them (shared/dropship-rules.ts readBrandingOffer):
+  /// { packingSlip, packingSlipFee, stickers, stickerFee, custom }. Blind packing is always on.
+  brandingOffer      Json               @default("{}")
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
@@ -750,6 +769,17 @@ model SupplierProduct {
   /// Share of a preorder the shop pays when it places it (0–100; 0: the whole order is paid as usual). The rest is
   /// paid once the supplier says the stock is ready (WholesaleOrder.depositKobo, shared/preorder.ts depositSplit).
   preorderDepositPct    Int           @default(0)
+  /// Prices per channel (shared/dropship-rules.ts): same (wholesalePrice everywhere) | per_channel (dropshipPrice,
+  /// pricingTiers quantity breaks, preorderPrice). minRetailPrice: the lowest price a seller may list it at.
+  priceMode             String        @default("same")
+  dropshipPrice         Float?
+  preorderPrice         Float?
+  minRetailPrice        Float?
+  /// Dropship options: smallest dropship order (1 = single pieces are fine), days to pack, parcel size class
+  /// (small | medium | bulky) for the supplier's delivery rate card.
+  dropshipMinQty        Int           @default(1)
+  handlingDays          Int           @default(1)
+  sizeBand              String?
   status                ProductStatus @default(draft)
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
@@ -804,6 +834,11 @@ model StoreProduct {
   dimensions        Json?           // { length, width, height, unit }
   // Delivery size band (shared/delivery-market.ts): small | medium | bulky. Null: from the weight, else the store's default.
   sizeBand          String?
+  // Dropship from a supplier (shared/dropship-rules.ts): who pays delivery (customer | seller | flat, never the
+  // supplier), the flat fee the customer pays, and the branding the supplier uses (blind | packing_slip | stickers).
+  deliveryPayer     String          @default("customer")
+  deliveryFlatFee   Float?
+  brandingChoice    String          @default("blind")
   fulfillmentType   FulfillmentType @default(merchant_fulfilled)
   status            String          @default("draft")
   visibility        ProductVisibility @default(hidden)
@@ -1060,6 +1095,11 @@ model SupplierOrder {
   /// the 4-digit code the customer gives it on arrival.
   selfDelivery    Boolean   @default(false)
   deliveryFee     Float     @default(0)
+  /// Pack it the seller's way (shared/dropship-rules.ts packChecklist): { sellerName, logoUrl, choice, fee, skus },
+  /// the steps the supplier ticked, and the photo of the sealed parcel needed before "Ready for pickup".
+  branding        Json      @default("{}")
+  packSteps       String[]  @default([])
+  packPhotoUrl    String?
   deliveryCode    String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
@@ -1204,6 +1244,11 @@ model LogisticsPartner {
   cacType            String?
   registeredName     String?
   businessAddress    String?
+  /// Track record level (shared/dropship-rules.ts partnerLevel): verified | trusted | cash_trusted. Pay on delivery
+  /// is only offered at cash_trusted (src/lib/logistics/partner-levels.server.ts refreshPartnerLevel), up to codCashCap.
+  level              String             @default("verified")
+  levelCheckedAt     DateTime?
+  codCashCap         Float              @default(100000)
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
@@ -1571,6 +1616,11 @@ model DeliverySettings {
   selfDeliveryFee    Float    @default(0)
   /// States it drives to; empty means the state it ships from.
   selfDeliveryStates String[] @default([])
+  /// A supplier's delivery prices (shared/dropship-rules.ts): partners (connected partners' rate cards) | own
+  /// (zoneRates: { same_city | same_state | nearby | rest: { small, medium, bulky } }, delivered by the supplier's
+  /// own courier).
+  rateSource         String   @default("partners")
+  zoneRates          Json     @default("{}")
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
@@ -4445,6 +4495,8 @@ model SupplierAgreement {
   supplierAgreedAt DateTime?
   /// Why the supplier declined.
   supplierNote     String?
+  /// The seller's sticker or bag pack at this supplier: how many are left (null: none sent).
+  stickerPackLeft  Int?
   declinedAt       DateTime?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt

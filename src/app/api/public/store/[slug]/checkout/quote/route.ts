@@ -81,6 +81,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       partners: !!priced.delivery.market,
       reason: priced.delivery.market?.reason ?? null,
       shipmentCount: priced.delivery.market?.shipmentCount ?? 1,
+      // Supplier parcels (shared/dropship-checkout.ts ParcelLine): "Ships from Port Harcourt · ₦4,500 · Arrives …",
+      // each with what the customer pays (fee). With the store's own zones their fees are inside the totals' delivery
+      // and `ownItems: false` means the zone options don't apply (every item ships from a supplier). Pay on delivery
+      // isn't taken when a supplier delivers a parcel itself (bySupplier).
+      parcels: priced.delivery.parcels?.lines ?? [],
+      ownItems: priced.delivery.parcels ? priced.delivery.parcels.ownItems : true,
     },
     items: priced.items.map((item) => ({ productId: item.productId, variant: item.variant ?? null, price: item.price, quantity: item.quantity, ...(item.depositPct ? { depositPct: item.depositPct } : {}) })),
     // Preorder deposits (shared/preorder.ts): paying by card charges payNow (naira) and the rest is due once the

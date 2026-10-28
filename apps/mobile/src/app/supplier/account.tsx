@@ -11,11 +11,12 @@ import { confirmSignOut } from "@/components/partner";
 import { Screen } from "@/components/Screen";
 import { Card, LinkButton } from "@/components/ui";
 import { TipsRow } from "@/components/learn/TipsRow";
+import { levelName, useWords } from "@/components/supplier/DropshipKit";
 import { fetchCredits } from "@/lib/familiar";
 import { useLocale, useT } from "@/lib/i18n";
 import { languageOf } from "@shared/i18n";
 import { verificationStage } from "@/lib/partner-pure";
-import { fetchSupplierOverview, fetchSupplierSetup, fetchTeam } from "@/lib/supplier";
+import { fetchSupplierLevel, fetchSupplierOverview, fetchSupplierSetup, fetchTeam } from "@/lib/supplier";
 import { SUPPLY_CATEGORIES } from "@/lib/supplier-pure";
 import { openSupportWhatsApp } from "@/lib/support";
 import { useLoad } from "@/lib/useLoad";
@@ -26,10 +27,15 @@ import { colors } from "@/theme";
 // signing out. The rows that used to sit under Money ("Your business") live here too: verification, price requests,
 // wholesale price tiers, the business profile and notifications, all in the app. "Familiar app": Rewards, the posts calendar,
 // and the Rex and Peggy credit balance (shown only: never sold or pointed to in the app).
+// Supplier & Dropship Rules: Your level (New → Trusted → Established), Delivery prices (partner rates or your own
+// card by zone) and Seller branding (packing slips, stickers, custom packaging).
 
 export default function SupplierAccount() {
   const t = useT("m_supplier", "m_partner", "common", "settings");
   const tu = useT("m_ui");
+  const words = useWords();
+  // The level row hides on a server without the level route.
+  const level = useLoad(() => fetchSupplierLevel().catch(() => null));
   const locale = useLocale();
   const callPeggy = useCanCallPeggy();
   const [language, setLanguage] = useState(false);
@@ -64,6 +70,9 @@ export default function SupplierAccount() {
         <Row lead={<Tile icon="store" tone="gray" />} title={t("account.business")} sub={setup ? [setup.displayName || setup.businessName, categories.join(", ")].filter(Boolean).join(" · ") : undefined} onPress={() => router.push({ pathname: "/supplier/setup", params: { edit: "biz" } })} />
         <Row lead={<Tile icon="pin" tone="gray" />} title={t("account.sendFrom")} sub={setup ? [setup.address, setup.city].filter(Boolean).join(", ") || t("account.addAddress") : undefined} onPress={() => router.push({ pathname: "/supplier/setup", params: { edit: "pickup" } })} />
         <Row lead={<Tile icon="truck" tone="gray" />} title={t("account.delivery")} sub={t("account.deliverySub")} onPress={() => router.push("/delivery")} />
+        <Row lead={<Tile icon="coin" tone="sky" />} title={words("rates.title", "Delivery prices")} sub={words("rates.row", "You never pay for delivery. Partner rates or your own.")} onPress={() => router.push("/supplier/delivery-prices")} />
+        <Row lead={<Tile icon="tag" tone="lilac" />} title={words("brand.title", "Seller branding")} sub={words("brand.row", "Blind packing, packing slips and stickers")} onPress={() => router.push("/supplier/branding")} />
+        {level.data ? <Row lead={<Tile icon="star" tone="peach" />} title={words("level.title", "Your level")} sub={levelName(level.data.level, words)} onPress={() => router.push("/supplier/level")} /> : null}
         <Row lead={<Tile icon="wallet" tone="gray" />} title={t("account.bank")} sub={bank ? `${bank.bankName} ${bank.account}` : t("account.addBank")} onPress={() => router.push(bank ? "/supplier/wallet" : { pathname: "/supplier/setup", params: { edit: "bank" } })} />
         {team.data ? <Row lead={<Tile icon="users" tone="gray" />} title={t("account.people")} sub={t("team.count", { count: team.data.members.length })} onPress={() => router.push("/supplier/team")} /> : null}
       </List>

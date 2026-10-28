@@ -15,6 +15,7 @@ import { ErrorState, LoadingBlock, Picture } from "@/components/kit";
 import { NotificationBellButton } from "@/components/NotificationBellButton";
 import { PushPromptCard } from "@/components/PushPromptCard";
 import { ChatTile } from "@/components/SupplierKit";
+import { levelName, useWords } from "@/components/supplier/DropshipKit";
 import { TabScreen } from "@/components/TabScreen";
 import { Mascot, T } from "@/components/ui";
 import { fetchDeliveryHub, openPartnerChat } from "@/lib/delivery";
@@ -22,7 +23,7 @@ import { fetchRewards, fetchStatusFeed, levelProgress, type StatusAuthor, type S
 import { useT } from "@/lib/i18n";
 import { verificationStage } from "@/lib/partner-pure";
 import { useSession } from "@/lib/session";
-import { fetchAgreements, fetchSupplierOrders, fetchSupplierOverview, fetchUnreadMessages, type SupplierOrder } from "@/lib/supplier";
+import { fetchAgreements, fetchSupplierLevel, fetchSupplierOrders, fetchSupplierOverview, fetchUnreadMessages, type SupplierOrder } from "@/lib/supplier";
 import { countWord, greetingKey, supplierOrderGroup } from "@/lib/supplier-pure";
 import { useLoad } from "@/lib/useLoad";
 import { colors } from "@/theme";
@@ -34,6 +35,7 @@ import { colors } from "@/theme";
 // actions; "Ask Peggy"; and "Needs you": new orders, messages, price requests, low stock and private delivery rates.
 // A new supplier is sent to the set-up wizard (/supplier/setup) once per launch until it's done. Status, Rewards
 // and the delivery hub load on their own: when one isn't there (an older server answers 404) its part just hides.
+// Your level (New → Trusted → Established, Supplier & Dropship Rules) sits under Ask Peggy, with the next goal.
 
 let setupShown = false;
 
@@ -58,6 +60,8 @@ function writeFlag(key: string) {
 
 export default function SupplierHome() {
   const t = useT("m_supplier", "m_partner", "common");
+  const words = useWords();
+  const level = useLoad(() => fetchSupplierLevel().catch(() => null));
   const { session } = useSession();
   const uid = session?.user.id ?? "anon";
   const loaded = useLoad(async () => {
@@ -243,6 +247,17 @@ export default function SupplierHome() {
             </View>
             <AppIcon name="chevron" size={18} color={colors.accentInk} />
           </Pressable>
+
+          {level.data ? (
+            <List>
+              <Row
+                lead={<Tile icon="star" tone="butter" />}
+                title={words("level.youre", "You're {level}", { level: levelName(level.data.level, words) })}
+                sub={level.data.next === "established" ? words("level.homeEstablished", "Pre-orders open at Established. See your goals.") : level.data.next ? words("level.homeTrusted", "Reach Trusted for branding and faster pay. See your goals.") : words("level.homeTop", "Pre-orders are open to you.")}
+                onPress={() => router.push("/supplier/level")}
+              />
+            </List>
+          ) : null}
 
           <View style={{ gap: 10 }} testID="do-next">
             <Eyebrow>{t("home.needsYou")}</Eyebrow>

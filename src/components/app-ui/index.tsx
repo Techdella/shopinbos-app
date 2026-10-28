@@ -27,7 +27,7 @@ export function Mascot({ name, who, mood, alt, ...props }: AppMascotProps) {
 }
 type AppMascotProps = Omit<MascotProps, "who"> & ({ who: MascotWho; name?: never } | { name: "rex" | "peggy" | "peggy-wave"; who?: never });
 
-type ButtonTone = "ink" | "white" | "accent" | "ghost" | "forest";
+type ButtonTone = "ink" | "white" | "accent" | "ghost" | "forest" | "orange";
 
 const toneClass: Record<ButtonTone, string> = {
   ink: "bg-app-ink text-white hover:bg-black",
@@ -35,6 +35,8 @@ const toneClass: Record<ButtonTone, string> = {
   accent: "bg-app-accent text-white hover:brightness-95",
   ghost: "bg-transparent text-app-ink hover:bg-black/[0.04]",
   forest: "bg-app-forest text-white hover:brightness-110",
+  /** The design system's primary button: orange with ink text (white on orange is only 2.9:1). */
+  orange: "bg-app-accent text-app-ink hover:brightness-95",
 };
 
 export const PillButton = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButtonElement> & { tone?: ButtonTone; size?: "lg" | "md" | "sm"; busy?: boolean }>(
@@ -285,12 +287,12 @@ export function Toggle({ on, onChange, label }: { on: boolean; onChange: (on: bo
   );
 }
 
-export function ProgressBars({ total, current }: { total: number; current: number }) {
+export function ProgressBars({ total, current, tone = "ink" }: { total: number; current: number; tone?: "ink" | "accent" }) {
   const t = useT("ui");
   return (
-    <div className="flex flex-1 gap-1.5" aria-label={t("stepOf", { n: current + 1, total })}>
+    <div className={cx("flex flex-1", tone === "accent" ? "gap-1" : "gap-1.5")} aria-label={t("stepOf", { n: current + 1, total })}>
       {Array.from({ length: total }, (_, index) => (
-        <span key={index} className={cx("h-[5px] flex-1 rounded-full transition", index <= current ? "bg-app-ink" : "bg-app-track")} />
+        <span key={index} className={cx("h-[5px] flex-1 rounded-full transition", index <= current ? (tone === "accent" ? "bg-app-accent" : "bg-app-ink") : tone === "accent" ? "bg-app-line" : "bg-app-track")} />
       ))}
     </div>
   );

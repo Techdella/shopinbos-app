@@ -46,6 +46,8 @@ export function AppPage({
   toolbar,
   children,
   className,
+  bare,
+  bleed,
 }: {
   frame: Omit<ComponentProps<typeof AppFrame>, "children">;
   title: ReactNode;
@@ -55,16 +57,20 @@ export function AppPage({
   toolbar?: ReactNode;
   children: ReactNode;
   className?: string;
+  /** No page head: for one-question-per-screen flows, where the question is the heading. */
+  bare?: boolean;
+  /** Full bleed: no page padding, at least the full height, for layouts with their own edge-to-edge panels. */
+  bleed?: boolean;
 }) {
   return (
     <AppFrame {...frame}>
-      <div className={cx("w-full px-4 py-6 font-app text-app-ink sm:px-6 xl:px-8 2xl:px-10", className)}>
-        <PageHead
+      <div className={cx("w-full font-app text-app-ink", bleed ? "flex min-h-full flex-col" : "px-4 py-6 sm:px-6 xl:px-8 2xl:px-10", className)}>
+        {!bare && <PageHead
           title={typeof title === "string" ? <TitleTerm title={title} /> : title}
           sub={sub}
           learn={!frame.role || frame.role === "admin" ? undefined : <LearnPill role={frame.role} variant="inline" className="mt-3.5" />}
           actions={frame.role && frame.role !== "admin" ? <>{actions}<HelpButton /></> : actions}
-        />
+        />}
         {toolbar && <div className="mb-4 flex flex-wrap items-center justify-between gap-3">{toolbar}</div>}
         {children}
       </div>

@@ -5,10 +5,12 @@ import { PillButton } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { shrinkImage } from "@/lib/media/shrink-image";
 import { useKycT } from "./kit";
+import { livenessStartProblem, livenessUser } from "@shared/liveness-name";
 
-// The selfie for the Identity step. The server matches it against the photo on the partner's NIN (Korapay facial
-// matching, src/app/api/logistics/kyc/nin). When Korapay's liveness check is set up (NEXT_PUBLIC_KORAPAY_PUBLIC_KEY),
-// it runs first (kora-identity-web-sdk, loaded only when used) and its reference goes with the selfie for the team.
+// The "Quick selfie video" screen's capture. With a NIN slip the server matches it against the NIN's photo (Korapay
+// facial matching, src/app/api/logistics/kyc/nin); with another ID the team compares it with the ID photo. When
+// Korapay's liveness check is set up (NEXT_PUBLIC_KORAPAY_PUBLIC_KEY) it runs first (kora-identity-web-sdk, loaded
+// only when used: the short video where they turn their head) and its reference goes with the selfie.
 
 export type SelfieValue = { dataUri: string; liveness: { reference: string; passed: boolean } | null };
 
@@ -32,12 +34,21 @@ function livenessReference(result: unknown): string | null {
   return typeof reference === "string" ? reference.trim().slice(0, 120) : null;
 }
 
-export function SelfieCapture({ value, onChange, firstName, lastName }: { value: SelfieValue | null; onChange: (value: SelfieValue | null) => void; firstName: string; lastName: string }) {
+export function SelfieCapture({ value, onChange, firstName, lastName, onStartFailed }: {
+  value: SelfieValue | null;
+  onChange: (value: SelfieValue | null) => void;
+  firstName: string;
+  lastName: string;
+  /** The face check couldn't start here (no camera, camera blocked, Korapay refused): offer the phone instead. */
+  onStartFailed?: () => void;
+}) {
   const t = useKycT();
   const input = useRef<HTMLInputElement>(null);
   const [liveness, setLiveness] = useState<SelfieValue["liveness"]>(value?.liveness ?? null);
   const [checking, setChecking] = useState(false);
   const [problem, setProblem] = useState("");
+  /** Korapay refused to start the check: the selfie goes without it, and the team checks it. */
+  const [livenessOff, setLivenessOff] = useState(false);
 
   async function runLiveness() {
     setProblem("");
@@ -48,7 +59,7 @@ export function SelfieCapture({ value, onChange, firstName, lastName }: { value:
         publicKey: LIVENESS_KEY,
         type: "passive",
         presentation: "modal",
-        user: { firstName: firstName.trim() || "Partner", lastName: lastName.trim() || undefined },
+        user: livenessUser(firstName, lastName, "Partner"),
         branding: { color: "#0E2A38" },
         onSuccess: (result: unknown) => {
           const reference = livenessReference(result);
@@ -69,7 +80,13 @@ export function SelfieCapture({ value, onChange, firstName, lastName }: { value:
     } catch (error) {
       console.error("[selfie] liveness check couldn't start", error);
       setChecking(false);
-      setProblem(t("selfie.livenessUnavailable"));
+      if (livenessStartProblem(error) === "service") {
+        setLivenessOff(true);
+        setProblem(t("selfie.livenessOff"));
+      } else {
+        setProblem(t("selfie.livenessUnavailable"));
+        onStartFailed?.();
+      }
     }
   }
 
@@ -84,11 +101,10 @@ export function SelfieCapture({ value, onChange, firstName, lastName }: { value:
     onChange({ dataUri: await readAsDataUri(small), liveness });
   }
 
-  const needsLiveness = LIVENESS_ON && !liveness;
+  const needsLiveness = LIVENESS_ON && !liveness && !livenessOff;
   return (
     <div className="grid gap-2">
-      <p className="m-0 text-[13.5px] text-app-ink-soft">{t("selfie.how")}</p>
-      {LIVENESS_ON && (
+      {LIVENESS_ON && !livenessOff && (
         <div className="flex flex-wrap items-center gap-2">
           {liveness ? (
             <span className="inline-flex items-center gap-1.5 text-[14px] font-bold text-app-success"><Icon name="check" size={16} /> {t("selfie.livenessPassed")}</span>

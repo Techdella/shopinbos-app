@@ -245,6 +245,27 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "portal.opening.supplier": "Account olùpèsè ọjà ni èyí. À ń ṣí portal olùpèsè rẹ…",
   "portal.opening.logistics_partner": "Account alábàáṣiṣẹ́ ìfijíṣẹ́ ni èyí. À ń ṣí portal ìfijíṣẹ́ rẹ…",
   "portal.opening.admin": "Account admin ni èyí. À ń ṣí admin panel…",
+  // One question per screen (sign up)
+  "q.back": "Padà",
+  "q.progress": "Ìgbésẹ̀ {step} nínú {total}",
+  "q.name": "Kí ni orúkọ rẹ?",
+  "q.nameSub": "Orúkọ àkọ́kọ́ àti orúkọ ìdílé rẹ. Rex àti Peggy yóò máa lò ó.",
+  "field.firstName": "Orúkọ àkọ́kọ́",
+  "field.lastName": "Orúkọ ìdílé",
+  "error.needFullName": "Tẹ orúkọ àkọ́kọ́ àti orúkọ ìdílé rẹ.",
+  "q.phone": "Kí ni nọ́mbà fóònù rẹ?",
+  "q.phoneSub": "A ó fi kóòdù ránṣẹ́ sí ọ láti fìdí rẹ̀ múlẹ̀. O kò nílò ọ̀rọ̀ aṣínà.",
+  "q.phoneSubNamed": "Ẹ ṣé, {name}. A ó fi kóòdù ránṣẹ́ sí ọ láti fìdí rẹ̀ múlẹ̀. O kò nílò ọ̀rọ̀ aṣínà.",
+  "q.email": "Kí ni ímeèlì rẹ?",
+  "q.loginPhone": "Ẹ kú àbọ̀. Kí ni nọ́mbà fóònù rẹ?",
+  "q.loginEmail": "Ẹ kú àbọ̀. Kí ni ímeèlì rẹ?",
+  "q.loginSub": "Lo èyí tí o fi forúkọ sílẹ̀. A ó fi kóòdù ránṣẹ́ sí ọ.",
+  "q.code": "Tẹ kóòdù tí a fi ránṣẹ́ sí ọ.",
+  "q.role": "Kí ló mú ọ wá sí Shopinbos?",
+  "q.roleSub": "Yan ọ̀kan láti bẹ̀rẹ̀.",
+  "q.role.seller": "Mo fẹ́ tajà",
+  "q.role.logistics_partner": "Mo ń fi ọjà ránṣẹ́",
+  "q.role.supplier": "Mo ń pèsè ọjà",
 };
 
 export default yo;

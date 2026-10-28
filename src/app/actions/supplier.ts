@@ -19,6 +19,8 @@ import { moveWholesaleOrder } from "@/lib/supplier-orders/wholesale.server";
 import { setSupplierPayout } from "@/lib/supplier-orders/money.server";
 import { notifyProductForReview, notifySupplierQuoteAnswered } from "@/lib/notifications/events.server";
 import { editNeedsReview, statusAfterEdit } from "@shared/supplier-product-review";
+import { channelPriceProblem, cleanDropshipMinQty, cleanHandlingDays } from "@shared/dropship-rules";
+import { preorderLevelProblem } from "@/lib/supplier-levels.server";
 
 async function getSupplierActor() {
   const user = await requireRole(["supplier"], "/supplier/login");
@@ -80,6 +82,45 @@ function parsePricingTiers(value: FormDataEntryValue | null) {
     .filter((tier): tier is { minQty: number; maxQty?: number; price: number } => Boolean(tier));
 }
 
+/** Quantity breaks from the form's rows (tierMin / tierMax / tierPrice), or the older "10-49: 8500" text box. */
+function readPricingTiers(formData: FormData) {
+  const mins = formData.getAll("tierMin");
+  if (!mins.length) return parsePricingTiers(formData.get("pricingTiers"));
+  const maxes = formData.getAll("tierMax");
+  const prices = formData.getAll("tierPrice");
+  return mins
+    .map((min, index) => {
+      const minQty = Math.floor(parsePositiveNumber(min));
+      const maxQty = Math.floor(parsePositiveNumber(maxes[index] ?? null));
+      const price = parsePositiveNumber(prices[index] ?? null);
+      if (!(minQty >= 1) || !(price > 0)) return null;
+      return { minQty, ...(maxQty >= minQty ? { maxQty } : {}), price };
+    })
+    .filter((tier): tier is { minQty: number; maxQty?: number; price: number } => Boolean(tier))
+    .sort((a, b) => a.minQty - b.minQty);
+}
+
+/** An optional price box: empty → null. */
+function optionalPrice(formData: FormData, name: string) {
+  const amount = parsePositiveNumber(formData.get(name));
+  return amount > 0 ? amount : null;
+}
+
+/** Prices per channel and dropship options (shared/dropship-rules.ts) from the product form. */
+function readDropshipFields(formData: FormData) {
+  const perChannel = formData.get("priceMode") === "per_channel";
+  const sizeBand = String(formData.get("sizeBand") || "");
+  return {
+    priceMode: perChannel ? ("per_channel" as const) : ("same" as const),
+    dropshipPrice: perChannel ? optionalPrice(formData, "dropshipPrice") : null,
+    preorderPrice: perChannel ? optionalPrice(formData, "preorderPrice") : null,
+    minRetailPrice: optionalPrice(formData, "minRetailPrice"),
+    dropshipMinQty: formData.get("dropshipSingles") === "min" ? cleanDropshipMinQty(formData.get("dropshipMinQty")) : 1,
+    handlingDays: cleanHandlingDays(formData.get("handlingDays")),
+    ...(sizeBand === "small" || sizeBand === "medium" || sizeBand === "bulky" ? { sizeBand } : {}),
+  };
+}
+
 async function getUniqueSupplierProductSlug(name: string, supplierId: string) {
   const base = `${slugify(name)}-${supplierId.slice(0, 6)}`;
   let slug = base;
@@ -107,7 +148,9 @@ function readProductPayload(formData: FormData, status: "draft" | "pending_revie
     currency: String(formData.get("currency") || "NGN").trim().toUpperCase(),
     moq: Math.max(1, Math.floor(parsePositiveNumber(formData.get("moq")) || 1)),
     stockQuantity: Math.max(0, Math.floor(parsePositiveNumber(formData.get("stockQuantity")) || 0)),
-    pricingTiers: parsePricingTiers(formData.get("pricingTiers")),
+    // "Same price for all" keeps one price: quantity breaks belong to "Different per channel".
+    pricingTiers: formData.has("priceMode") && formData.get("priceMode") !== "per_channel" ? [] : readPricingTiers(formData),
+    ...(formData.has("priceMode") ? readDropshipFields(formData) : {}),
     dropshipAvailable: readCheckbox(formData, "dropshipAvailable"),
     bulkOrderAvailable: readCheckbox(formData, "bulkOrderAvailable"),
     sampleAvailable: readCheckbox(formData, "sampleAvailable"),
@@ -151,8 +194,16 @@ export async function createSupplierProduct(formData: FormData) {
     redirect(`/supplier/products/new?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "Check the product details.")}`);
   }
 
+  const priceProblem = channelPriceProblem(parsed.data);
+  if (priceProblem) redirect(`/supplier/products/new?error=${encodeURIComponent(priceProblem)}`);
+
   const preorder = readPreorder(formData);
   if (!preorder.ok) redirect(`/supplier/products/new?error=${encodeURIComponent(preorder.message)}`);
+  // Pre-orders open at Established (shared/dropship-rules.ts canTakePreorders).
+  if (preorder.value.preorderEnabled) {
+    const locked = await preorderLevelProblem(supplier.id);
+    if (locked) redirect(`/supplier/products/new?error=${encodeURIComponent(locked)}`);
+  }
   const deposit = parseDepositPct(String(formData.get("preorderDepositPct") ?? "").trim());
   if (!deposit.ok) redirect(`/supplier/products/new?error=${encodeURIComponent(deposit.message)}`);
 
@@ -200,8 +251,16 @@ export async function updateSupplierProduct(formData: FormData) {
   // or prices go back to the team first (shared/supplier-product-review.ts).
   const nextStatus = statusAfterEdit({ current: product.status, verified, submit: wantsReview, needsReview: editNeedsReview(product, parsed.data) });
 
+  const priceProblem = channelPriceProblem(parsed.data);
+  if (priceProblem) redirect(`/supplier/products/${product.id}/edit?error=${encodeURIComponent(priceProblem)}`);
+
   const preorder = readPreorder(formData, product.preorderShipsAt);
   if (!preorder.ok) redirect(`/supplier/products/${product.id}/edit?error=${encodeURIComponent(preorder.message)}`);
+  // Turning pre-orders on needs Established; a listing that already takes them stays editable and can be turned off.
+  if (preorder.value.preorderEnabled && !product.preorderEnabled) {
+    const locked = await preorderLevelProblem(supplier.id);
+    if (locked) redirect(`/supplier/products/${product.id}/edit?error=${encodeURIComponent(locked)}`);
+  }
   const deposit = parseDepositPct(String(formData.get("preorderDepositPct") ?? "").trim());
   if (!deposit.ok) redirect(`/supplier/products/${product.id}/edit?error=${encodeURIComponent(deposit.message)}`);
 
@@ -595,6 +654,14 @@ export async function importSupplierProductsCsv(csvText: string): Promise<Suppli
       errors.push({ row, message: valid.error.issues[0]?.message ?? "Check this row." });
       continue;
     }
+    // Prices per channel (shared/dropship-rules.ts).
+    const priceProblem = channelPriceProblem(valid.data);
+    if (priceProblem) {
+      errors.push({ row, message: priceProblem });
+      continue;
+    }
+    if (valid.data.dropshipMinQty !== undefined) valid.data.dropshipMinQty = cleanDropshipMinQty(valid.data.dropshipMinQty);
+    if (valid.data.handlingDays !== undefined) valid.data.handlingDays = cleanHandlingDays(valid.data.handlingDays);
     await db.supplierProduct.create({ data: { ...valid.data, supplierId: supplier.id, slug: await getUniqueSupplierProductSlug(valid.data.name, supplier.id) } });
     created += 1;
   }

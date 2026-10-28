@@ -7,7 +7,7 @@ import { HelpButton } from "@/components/Help";
 import { Sub, Title } from "@/components/design";
 import { T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
-import { colors } from "@/theme";
+import { colors, fonts } from "@/theme";
 import { KeyboardShift } from "@/components/KeyboardShift";
 
 const IOS = Platform.OS === "ios";
@@ -106,6 +106,83 @@ export function Screen({
           {children}
         </ScrollView>
         {footer ? <View style={{ paddingHorizontal: 20, paddingBottom: 12, paddingTop: 10, gap: 10, backgroundColor: colors.canvas }}>{footer}</View> : null}
+      </KeyboardShift>
+    </SafeAreaView>
+  );
+}
+
+/** The round white back button of the 2026 rules boards (`.back`: 44px, a chevron). */
+export function RoundBack({ onPress }: { onPress: () => void }) {
+  const t = useT("common");
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={t("back")} onPress={onPress} hitSlop={4} style={({ pressed }) => ({ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.8 : 1 })}>
+      <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={colors.ink} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+        <Path d="M15 5l-7 7 7 7" />
+      </Svg>
+    </Pressable>
+  );
+}
+
+/**
+ * A pushed screen drawn like the Supplier & Dropship Rules boards (P-Pricing, P-Delivery, P-Tier, A-Rider-POD …):
+ * `.top` (a round white back button, the title in Bricolage 22 and a grey line under it, Help as a round button on
+ * the right), a body with 16px sides and 10px between cards that scrolls only when it's longer than the phone, and
+ * the one pinned button at the bottom (`.cta`, with an optional grey note above it).
+ */
+export function BoardScreen({
+  title,
+  sub,
+  footer,
+  note,
+  children,
+  refreshing,
+  onRefresh,
+  help = true,
+  onBack,
+  fallback = "/home",
+  gap = 10,
+  titleSize = 22,
+}: {
+  title: string;
+  sub?: string | null;
+  footer?: ReactNode;
+  /** A short grey line above the pinned button ("Paid on Friday after …"). */
+  note?: string | null;
+  children: ReactNode;
+  refreshing?: boolean;
+  onRefresh?: () => void;
+  help?: boolean;
+  onBack?: () => void;
+  fallback?: string;
+  gap?: number;
+  titleSize?: number;
+}) {
+  const back = onBack ?? (() => goBack(fallback));
+  const onHelp = usePathname().startsWith("/help");
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
+      <KeyboardShift>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingTop: 8 }}>
+          <RoundBack onPress={back} />
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <T accessibilityRole="header" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontFamily: fonts.display, fontSize: titleSize, lineHeight: titleSize + 4, letterSpacing: -0.3 }}>{title}</T>
+            {sub ? <T numberOfLines={2} style={{ fontSize: 12, lineHeight: 16, color: colors.inkSoft }}>{sub}</T> : null}
+          </View>
+          {help && !onHelp ? <HelpButton compact style={{ borderWidth: 0 }} /> : null}
+        </View>
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 16, gap }}
+          refreshControl={onRefresh ? <RefreshControl refreshing={Boolean(refreshing)} onRefresh={onRefresh} /> : undefined}
+        >
+          {children}
+        </ScrollView>
+        {footer || note ? (
+          <View style={{ paddingHorizontal: 16, paddingBottom: 16, paddingTop: 6, gap: 10, backgroundColor: colors.canvas }}>
+            {note ? <T style={{ fontSize: 13, lineHeight: 18, textAlign: "center", color: colors.grayInk }}>{note}</T> : null}
+            {footer}
+          </View>
+        ) : null}
       </KeyboardShift>
     </SafeAreaView>
   );

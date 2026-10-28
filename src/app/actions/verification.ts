@@ -32,9 +32,10 @@ export async function uploadVerificationDoc(
 
     const file = formData.get("file");
     if (!(file instanceof File)) return { success: false, error: "No file provided" };
-    // A delivery partner's selfie is taken in the Identity step, where it's matched against their NIN photo.
-    if (role === "logistics_partner" && docType === "selfie") {
-      return { success: false, error: "Take your selfie in the Identity step. We check it against the photo on your NIN." };
+    // A delivery partner's selfie, ID photo and base photo are taken in the sign-up flow (/logistics/verification),
+    // which records what each is (the ID type, the base pin) and checks the selfie against the ID.
+    if (role === "logistics_partner" && (docType === "selfie" || docType === "identity" || docType === "base-photo")) {
+      return { success: false, error: "Take this photo in Verification, where we check it." };
     }
     if (!uploadableDocTypes(role).includes(docType)) {
       return { success: false, error: "That document type isn't used for this account." };

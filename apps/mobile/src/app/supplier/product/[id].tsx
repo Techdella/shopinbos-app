@@ -3,6 +3,7 @@ import { ScrollView, View } from "react-native";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
 import { naira } from "@shared/onboarding";
+import { dropshipOptionWords } from "@shared/dropship-rules";
 import { Heading, List, Pill, Row, Stepper, Sub, Tile } from "@/components/design";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { Screen } from "@/components/Screen";
@@ -19,7 +20,8 @@ import { colors } from "@/theme";
 // with − / + (saved a moment after the last tap; no new review), and rows for the wholesale price (tap to change the
 // price; a live product goes back for review) and dropship. Below: show it to shops or hide it, and the full editor
 // (supplier/product/edit: photos, details, price tiers, regions, dropship, preorders). A Preorders row shows the ship
-// date and places left when the listing takes preorders.
+// date and places left when the listing takes preorders. Dropship opens its settings (P-Dropship: single pieces or a
+// minimum, packing days, parcel size, samples) on newer servers.
 
 const SAVE_AFTER_MS = 700;
 
@@ -169,8 +171,8 @@ export default function SupplierProductScreen() {
         <Row
           lead={<Tile icon="truck" tone="gray" />}
           title={t("kind.dropship")}
-          sub={data.dropshipAvailable ? t("product.dropshipOn") : t("product.dropshipOff")}
-          onPress={() => router.push({ pathname: "/supplier/product/edit", params: { id: data.id } })}
+          sub={data.dropshipAvailable ? [t("product.dropshipOn"), ...(data.dropshipMinQty !== undefined ? dropshipOptionWords(data) : [])].join(" · ") : t("product.dropshipOff")}
+          onPress={() => router.push({ pathname: "/supplier/product/edit", params: data.dropshipAvailable && data.dropshipMinQty !== undefined ? { id: data.id, focus: "dropship" } : { id: data.id } })}
         />
         {data.preorderEnabled !== undefined ? (
           <Row

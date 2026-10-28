@@ -7,6 +7,8 @@ import { addSupplierProductToStore, messageSupplier, requestSupplierQuote, toggl
 import { cx } from "@/components/app-ui/cx";
 import { Icon } from "@/components/ui/Icon";
 import { clampSellingPrice, naira, priceStep, saleBreakdown, supplierInitials, tierPrice, type FindProduct } from "@/lib/marketplace/find";
+import { listingProblem } from "@shared/dropship-checkout";
+import { DropshipTermsPanel, START_CHOICE, type ListingChoiceState } from "./DropshipTermsPanel";
 import { SampleNotice } from "./SampleNotice";
 import { messagesHref } from "@/lib/conversations/pure";
 import { sellerWholesaleStage } from "@/lib/supplier-orders/pure";
@@ -39,7 +41,12 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
   const money = (amount: number) => (locale === "en" ? naira(amount) : formatMoney(Math.round(amount), locale));
   const num = (value: number) => (locale === "en" ? value.toLocaleString("en-NG") : formatNumber(value, locale));
   const [mode, setMode] = useState<"dropship" | "wholesale">(product.dropship && !(startWholesale && product.wholesale) && !(product.preorder?.on && product.wholesale) ? "dropship" : "wholesale");
-  const [price, setPrice] = useState(() => clampSellingPrice(product.price, product.cost));
+  // Dropship terms (live products): never below the supplier's lowest allowed price (src/lib/marketplace/dropship-listing.server.ts).
+  const terms = product.dropship ? product.terms ?? null : null;
+  const lowest = Math.ceil((terms?.floor ?? product.floor ?? 0) / 100) * 100;
+  const clampPrice = (value: number) => Math.max(lowest, clampSellingPrice(value, product.cost));
+  const [price, setPrice] = useState(() => clampPrice(product.price));
+  const [choice, setChoice] = useState<ListingChoiceState>(() => ({ ...START_CHOICE, branding: terms?.branding[0]?.choice ?? "blind" }));
   const [quantity, setQuantity] = useState(product.moq);
   const [image, setImage] = useState(0);
   const [added, setAdded] = useState(addedAtStart);
@@ -59,7 +66,10 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
   const preorder = product.preorder?.on ? product.preorder : null;
   const sale = saleBreakdown(price, product.cost);
   const step = priceStep(price);
-  const unit = tierPrice(product.tiers, quantity, product.cost);
+  const wholesaleBase = product.wholesaleCost ?? product.cost;
+  const unit = tierPrice(product.tiers, quantity, wholesaleBase);
+  const flatFee = choice.flatFee === "" ? null : Number(choice.flatFee);
+  const priceProblem = terms ? listingProblem(terms, { retailPrice: price, payer: choice.payer, flatFee, brandingChoice: choice.branding }) : null;
   const supplier = product.supplier;
   const meta = [
     supplier.name,
@@ -81,7 +91,18 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
   const add = () =>
     guard(() =>
       start(async () => {
-        const result = await addSupplierProductToStore({ supplierProductId: product.id, retailPrice: price });
+        const result = await addSupplierProductToStore({
+          supplierProductId: product.id,
+          retailPrice: price,
+          ...(terms
+            ? {
+                deliveryPayer: choice.payer,
+                deliveryFlatFee: choice.payer === "flat" && flatFee !== null && Number.isFinite(flatFee) ? flatFee : null,
+                brandingChoice: choice.branding as "blind" | "packing_slip" | "stickers",
+                sku: choice.sku.trim() || undefined,
+              }
+            : {}),
+        });
         if (result.ok) setAdded(true);
         else if (result.sample) setSampleOpen(true);
         else setError(result.error);
@@ -244,14 +265,15 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
 
           {mode === "dropship" ? (
             <>
+              {terms ? null : (
               <section className={cx(CARD, "p-4 text-center")}>
                 <h2 className="m-0 text-[13px] font-bold text-app-ink-soft">{t("pd.sellingPrice")}</h2>
                 <div className="mx-auto mt-2 inline-flex items-center gap-3 rounded-full bg-app-canvas p-1">
-                  <button type="button" aria-label={t("pd.lower", { amount: money(step) })} onClick={() => setPrice((value) => clampSellingPrice(value - priceStep(value - 1), product.cost))} className="grid h-10 w-10 place-items-center rounded-full bg-white text-[18px] font-extrabold">
+                  <button type="button" aria-label={t("pd.lower", { amount: money(step) })} onClick={() => setPrice((value) => clampPrice(value - priceStep(value - 1)))} className="grid h-10 w-10 place-items-center rounded-full bg-white text-[18px] font-extrabold">
                     <Icon name="minus" size={16} />
                   </button>
                   <output aria-live="polite" className="min-w-[120px] text-[24px] font-extrabold tracking-[-0.5px]">{money(price)}</output>
-                  <button type="button" aria-label={t("pd.raise", { amount: money(step) })} onClick={() => setPrice((value) => clampSellingPrice(value + priceStep(value), product.cost))} className="grid h-10 w-10 place-items-center rounded-full bg-app-ink text-white">
+                  <button type="button" aria-label={t("pd.raise", { amount: money(step) })} onClick={() => setPrice((value) => clampPrice(value + priceStep(value)))} className="grid h-10 w-10 place-items-center rounded-full bg-app-ink text-white">
                     <Icon name="plus" size={16} />
                   </button>
                 </div>
@@ -259,7 +281,35 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
                   <p className="mb-0 mt-2 text-[12.5px] text-app-ink-soft">{t("pd.similar", { low: money(product.similar[0]), high: money(product.similar[1]) })}</p>
                 )}
               </section>
+              )}
 
+              {terms ? (
+                <>
+                <DropshipTermsPanel
+                  terms={terms}
+                  price={price}
+                  paymentFee={sale.fee}
+                  supplierName={supplier.name}
+                  choice={choice}
+                  onChange={setChoice}
+                  money={money}
+                  problem={priceProblem}
+                  disabled={added}
+                  priceControl={
+                    <span className="mt-0.5 flex items-center gap-0.5 normal-case tracking-normal">
+                      <button type="button" disabled={added} aria-label={t("pd.lower", { amount: money(step) })} onClick={() => setPrice((value) => clampPrice(value - priceStep(value - 1)))} className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-app-canvas text-app-ink hover:bg-app-line focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent disabled:opacity-40">
+                        <Icon name="minus" size={13} strokeWidth={2.6} />
+                      </button>
+                      <output aria-live="polite" aria-label={t("pd.sellingPrice")} className="min-w-0 flex-1 truncate text-center font-app-display text-[16px] font-extrabold text-app-ink">{money(price)}</output>
+                      <button type="button" disabled={added} aria-label={t("pd.raise", { amount: money(step) })} onClick={() => setPrice((value) => clampPrice(value + priceStep(value)))} className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-app-ink text-white hover:bg-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent disabled:opacity-40">
+                        <Icon name="plus" size={13} strokeWidth={2.6} />
+                      </button>
+                    </span>
+                  }
+                />
+                {product.similar && <p className="m-0 px-1 text-[12px] text-app-ink-soft">{t("pd.similar", { low: money(product.similar[0]), high: money(product.similar[1]) })}</p>}
+                </>
+              ) : (
               <section className={cx(CARD, "p-4")}>
                 <h2 className="m-0 text-[14.5px] font-extrabold">{t("pd.eachSale")}</h2>
                 <dl className="m-0 mt-2 grid gap-2 text-[14px]">
@@ -275,6 +325,7 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
                   <p className="mb-0 mt-1 text-[12.5px] text-app-ink-soft">{t("pd.delivery")}</p>
                 </div>
               </section>
+              )}
 
               {!added && listing && listing.step !== "ready" ? (
                 <BeforeYouList supplier={product.supplier} listing={listing} />
@@ -284,7 +335,7 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
                   <Link href="/products" className="text-app-success underline-offset-2 hover:underline">{t("pd.viewProducts")}</Link>
                 </div>
               ) : (
-                <button type="button" onClick={add} disabled={pending} className="inline-flex min-h-[54px] w-full items-center justify-center rounded-full bg-app-accent px-5 text-[15.5px] font-bold text-white hover:brightness-95 disabled:opacity-60">
+                <button type="button" onClick={add} disabled={pending || !!priceProblem} className="inline-flex min-h-[54px] w-full items-center justify-center rounded-full bg-app-accent px-5 text-[16px] font-extrabold text-app-ink hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-ink focus-visible:ring-offset-2 disabled:opacity-60">
                   {pending ? t("pd.adding") : t("pd.addAt", { price: ` ${money(price)}` }).replace("  ", " ")}
                 </button>
               )}
@@ -312,7 +363,7 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
                   </div>
                 )}
                 <ul className="m-0 mt-3 grid list-none gap-1.5 p-0 text-[14px]">
-                  {(product.tiers.length ? product.tiers : [{ minQty: product.moq, price: product.cost }]).map((tier) => (
+                  {(product.tiers.length ? product.tiers : [{ minQty: product.moq, price: wholesaleBase }]).map((tier) => (
                     <li key={tier.minQty} className={cx("flex justify-between gap-3 rounded-[12px] px-3 py-2", unit === tier.price && quantity >= tier.minQty ? "bg-app-canvas font-bold" : "")}>
                       <span>{t("pd.units", { range: `${num(tier.minQty)}${"maxQty" in tier && tier.maxQty ? `–${num(tier.maxQty)}` : "+"}` })}</span>
                       <span>{t("pd.each", { price: money(tier.price) })}</span>

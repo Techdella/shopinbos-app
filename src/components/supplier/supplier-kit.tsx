@@ -132,6 +132,8 @@ export const hintClass = "mt-1.5 text-[12.5px] text-app-ink-soft";
 export const buttonClass = {
   ink: "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full bg-app-ink px-5 text-[14px] font-extrabold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-55",
   accent: "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full bg-app-accent px-5 text-[14px] font-extrabold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-55",
+  /** The design system's primary: orange with ink text (tokens.json: white on orange is only 2.9:1). */
+  orange: "inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full bg-app-accent px-6 text-[15px] font-extrabold text-app-ink transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-ink focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-55",
   white: "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full border border-app-line bg-white px-5 text-[14px] font-extrabold text-app-ink transition hover:border-app-line-strong disabled:cursor-not-allowed disabled:opacity-55",
   smallInk: "inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-full bg-app-ink px-4 text-[13px] font-extrabold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-55",
   smallWhite: "inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-full border border-app-line bg-white px-4 text-[13px] font-extrabold text-app-ink transition hover:border-app-line-strong disabled:cursor-not-allowed disabled:opacity-55",

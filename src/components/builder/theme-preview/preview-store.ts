@@ -85,8 +85,18 @@ export interface ThemePreviewData {
 
 const DEMO_CACHE = new Map<string, ThemePreviewData>();
 
-export function previewData(themeId: string, own?: PreviewOwnStore | null): ThemePreviewData | null {
+/** The seller's name and logo on a sample store (sign-up, before the shop has products of its own). */
+export interface PreviewBrand {
+  name: string;
+  logoUrl?: string | null;
+}
+
+export function previewData(themeId: string, own?: PreviewOwnStore | null, brand?: PreviewBrand | null): ThemePreviewData | null {
   if (!isBoutiqueTheme(themeId)) return null;
+  if (brand && !own) {
+    const sample = previewData(themeId);
+    return sample ? { ...sample, store: { ...sample.store, name: brand.name || sample.store.name, logoUrl: brand.logoUrl ?? null } } : null;
+  }
   const snapshot = seedSnapshot(themeId);
   if (own) {
     return {

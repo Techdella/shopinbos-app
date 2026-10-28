@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
 import { useT } from "@/components/i18n/I18nProvider";
 
@@ -10,9 +11,14 @@ interface AnnouncementBannerProps {
   displayName?: string;
 }
 
+const VERIFYING_PATHS = ["/logistics/verification", "/supplier/verification", "/supplier/onboarding"];
+
 export function AnnouncementBanner({ role, verificationStatus, displayName }: AnnouncementBannerProps) {
   const t = useT("verification");
+  const pathname = usePathname() ?? "";
   if (verificationStatus === "verified" || verificationStatus === "suspended") return null;
+  // Not on the screens where they are already verifying: the banner only points back to them.
+  if (VERIFYING_PATHS.some((path) => pathname.startsWith(path))) return null;
 
   const isSupplier = role === "supplier";
   const label = isSupplier ? t("banner.supplier") : t("banner.logistics");

@@ -1,12 +1,15 @@
 "use client";
 
-// Sign up and sign in (Prototype 10). One page for phones and computers: a white column with the form, and on wide
-// screens the dark green AuthShowcasePanel beside it.
+// Sign up and sign in. One page for phones and computers: a white column with the form, and on wide screens the dark
+// green AuthShowcasePanel beside it.
 //
-// Screens: welcome (phone-only front door with Peggy's hello clip) → details (role, phone or email) → code
-// ("Check your WhatsApp" / "Check your messages" / "Check your email", from the channel the server really used) →
-// name (brand-new accounts only: "Number confirmed · What should we call you?") → ready (new sellers: "Welcome to
-// Shopinbos, {name}" with Rex's hello clip and a filling bar, then Rex's first run at /onboarding).
+// Sign up asks one question per screen (Shopinbos Onboarding — Simplified): "What's your name?" → "What's your phone
+// number?" → "Enter the code we sent you." → "What brings you to Shopinbos?" (sell · deliver · supply; skipped when
+// the page or link already says, e.g. /supplier/signup or a marketing-site intent) → ready (new sellers: "Welcome to
+// Shopinbos, {name}", then Rex's first run at /onboarding). The role is picked after the code, so the account is made
+// with it at sync-user (requestedSignupRole: the role sent from the sign-up page wins for a new account).
+//
+// Log in stays phone → code; the account's own role decides where it opens.
 //
 // Phone codes go on WhatsApp when the server has it switched on (GET /api/auth/otp → { whatsapp }), with SMS as the
 // fallback; "No WhatsApp on this number? Send it by SMS" forces SMS. The wording only promises WhatsApp when it is
@@ -31,6 +34,7 @@ import { CodeInput, GoogleMark, Mascot, Notice, PillButton, TextInput, Wordmark 
 import { AuthShowcasePanel } from "./AuthShowcasePanel";
 import {
   AuthApiError,
+  currentAccessToken,
   fetchWhatsAppCodes,
   friendlyNetworkError,
   ensureSessionSaved,
@@ -50,21 +54,43 @@ import { supportWhatsApp } from "@/lib/support-contact";
 const { extractIntentParams, getContinuationPath } = intentRouting;
 
 type Mode = "login" | "signup";
-type Screen = "welcome" | "details" | "code" | "name" | "ready";
+type Screen = "name" | "details" | "code" | "role" | "ready";
+
+/** Session-only note that a sign-up is waiting on "What brings you?" (survives a reload of the tab). */
+const ROLE_WAIT_KEY = "sib:signup-role-wait";
+type RoleWait = { fullName?: string; phone?: string };
+function rememberRoleWait(wait: RoleWait) {
+  try {
+    sessionStorage.setItem(ROLE_WAIT_KEY, JSON.stringify(wait));
+  } catch {}
+}
+function readRoleWait(): RoleWait | null {
+  try {
+    const raw = sessionStorage.getItem(ROLE_WAIT_KEY);
+    return raw ? (JSON.parse(raw) as RoleWait) : null;
+  } catch {
+    return null;
+  }
+}
+function forgetRoleWait() {
+  try {
+    sessionStorage.removeItem(ROLE_WAIT_KEY);
+  } catch {}
+}
 type Method = "phone" | "email";
 
-const SIGNUP_ROLES: SignupRole[] = ["seller", "supplier", "logistics_partner"];
+/** "What brings you to Shopinbos?": sell, deliver, supply (in that order). */
+const SIGNUP_ROLES: SignupRole[] = ["seller", "logistics_partner", "supplier"];
 /** The picture on each "What do you do?" card. */
 const ROLE_ICON = { seller: "shop", supplier: "box", logistics_partner: "truck" } as const satisfies Record<SignupRole, "shop" | "box" | "truck">;
 
 /**
- * /signup and /login show "What do you do?" (seller, supplier, delivery partner) first, unless the link already
- * says: the supplier and delivery pages, ?role=, a marketing-site intent (?intent=add_product&productSlug=…, which
- * is a seller), a ?next= page, or a message to show (an expired session, a sign-in link error, a sign-up clash).
+ * Sign up asks "What brings you to Shopinbos?" last, unless the page or link already says: the supplier and delivery
+ * pages, ?role=, or a marketing-site intent (?intent=add_product&productSlug=…, which is a seller).
  */
-function roleAlreadyClear(role: AuthRole, params: URLSearchParams) {
+export function signupRoleKnown(role: AuthRole, params: URLSearchParams) {
   if (role !== "seller") return true;
-  return ["role", "intent", "productSlug", "supplierSlug", "logisticsSlug", "next", "redirect", "error", "conflict", "reason", "signedOut"].some((key) => params.has(key));
+  return ["role", "intent", "productSlug", "supplierSlug", "logisticsSlug"].some((key) => params.has(key));
 }
 
 /** How long "Welcome to Shopinbos, {name}" shows before Rex's first run. */
@@ -209,22 +235,26 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
   useEffect(() => {
     if (movingTo) window.location.replace(movingTo);
   }, [movingTo]);
-  // "What do you do?" first, unless the page or link already says (admins never see it).
-  const [picked, setPicked] = useState(() => isAdmin || roleAlreadyClear(role, params));
+  // Sign up: is the kind of account already known, or is "What brings you to Shopinbos?" the last question?
+  const roleKnown = mode === "login" || isAdmin || signupRoleKnown(role, params);
+  // The generic /login page: the account's own role decides where it opens, with no "wrong page" note.
+  const genericLogin = mode === "login" && role === "seller" && !params.has("role");
 
   /** "This email already has a seller account. Log in, or use a different email for your supplier business." */
-  function conflictMessage(existing: AuthRole, via: "email" | "phone") {
+  function conflictMessage(existing: AuthRole, via: "email" | "phone", wanted: SignupRole = signupRole) {
     return t(via === "phone" ? "conflict.phone" : "conflict.email", {
       account: t(`conflict.account.${existing}`),
-      business: t(`conflict.business.${signupRole}`),
+      business: t(`conflict.business.${wanted}`),
     });
   }
   const conflictParam = asAccountRole(params.get("conflict"));
 
-  const [screen, setScreen] = useState<Screen>(mode === "signup" && !hasIntent ? "welcome" : "details");
+  const [screen, setScreen] = useState<Screen>(mode === "signup" && !isAdmin ? "name" : "details");
   const [method, setMethod] = useState<Method>(isAdmin || params.get("method") === "email" ? "email" : "phone");
   const [emailMode, setEmailMode] = useState<"code" | "password">(isAdmin ? "password" : "code");
-  const [fullName, setFullName] = useState("");
+  const [givenName, setGivenName] = useState("");
+  const [familyName, setFamilyName] = useState("");
+  const fullName = `${givenName.trim()} ${familyName.trim()}`.trim();
   const [country, setCountry] = useState<DialCountry>(DEFAULT_DIAL_COUNTRY);
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -232,9 +262,9 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
   const [code, setCode] = useState("");
   const [target, setTarget] = useState<CodeTarget | null>(null);
   const [channel, setChannel] = useState<CodeChannel>("sms");
-  // After a code is accepted for a brand-new account: the session waits here while they type their name.
+  // After a code is accepted for a brand-new account: the session waits here for the name or the role.
   const [pending, setPending] = useState<{ accessToken: string | null; phone?: string } | null>(null);
-  const [busy, setBusy] = useState<null | "send" | "sms" | "verify" | "password" | "google" | "name">(null);
+  const [busy, setBusy] = useState<null | "send" | "sms" | "verify" | "password" | "google" | "name" | SignupRole>(null);
   const [error, setError] = useState<string | null>(() =>
     callbackError === "confirmation_failed" || callbackError === "missing_confirmation_code"
       ? t("error.linkExpired")
@@ -259,8 +289,8 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
 
   // The shopinbos.com hero form passes the typed WhatsApp number as #phone=+234…, and the "Sign up now" / "Log in"
   // button under "no account" / "already used" passes #phone= or #email= with carry=1 (a fragment, so it never
-  // reaches a server log). Prefill it once, then drop it from the address bar. Carried over, the form opens straight
-  // away with the same role: they already chose it on the other page.
+  // reaches a server log). Prefill it once, then drop it from the address bar. Carried over, the form opens on the
+  // phone or email screen straight away (sign up then asks the name after the code).
   useEffect(() => {
     const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
     // A raw "+" (the hero form's #phone=+234…) reads as a space here.
@@ -277,15 +307,51 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
       setMethod("email");
       setEmailMode("code");
     }
-    if (hash.get("carry") === "1" && (split || emailValue)) {
-      setPicked(true);
-      setScreen("details");
-    }
+    if (hash.get("carry") === "1" && (split || emailValue)) setScreen("details");
     window.history.replaceState(null, "", window.location.pathname + window.location.search);
   }, []);
 
-  // Computers have room for the form straight away; the welcome screen is the phone-sized front door.
-  const activeScreen = desktop && screen === "welcome" ? "details" : screen;
+  // Android Chrome reads the SMS code by itself (WebOTP: the SMS ends with "@app.shopinbos.com #123456").
+  const submitCodeRef = useRef<(value: string) => void>(() => undefined);
+  useEffect(() => {
+    if (screen !== "code" || channel !== "sms" || !("OTPCredential" in window)) return;
+    const abort = new AbortController();
+    navigator.credentials
+      .get({ otp: { transport: ["sms"] }, signal: abort.signal } as CredentialRequestOptions)
+      .then((credential) => {
+        const value = (credential as { code?: string } | null)?.code?.replace(/\D/g, "") ?? "";
+        if (value.length === OTP_LENGTH) {
+          setCode(value);
+          submitCodeRef.current(value);
+        }
+      })
+      .catch(() => null);
+    return () => abort.abort();
+  }, [screen, channel, target]);
+
+  // Reloaded on "What brings you?": the code was already checked but no account was made, so come back to that
+  // question (a plain sign-in later would otherwise make it a seller account).
+  useEffect(() => {
+    if (mode !== "signup" || roleKnown) return;
+    const wait = readRoleWait();
+    if (!wait) return;
+    let live = true;
+    void currentAccessToken().then((accessToken) => {
+      if (!live) return;
+      if (!accessToken) return forgetRoleWait();
+      if (wait.fullName) {
+        const [first, ...rest] = wait.fullName.split(" ");
+        setGivenName(first);
+        setFamilyName(rest.join(" "));
+      }
+      setPending({ accessToken, phone: wait.phone });
+      setScreen("role");
+    });
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function resetMessages() {
     setError(null);
@@ -304,33 +370,38 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
     setMethod(next);
   }
 
-  async function finishWithToken(accessToken: string | null, signedUpPhone?: string, name = fullName) {
+  async function finishWithToken(accessToken: string | null, signedUpPhone?: string, name = fullName, chosen?: SignupRole) {
+    const wanted: AuthRole = chosen ?? role;
     // A browser that blocks cookies drops the session: say so here, rather than bouncing back to log in.
     if (accessToken) await ensureSessionSaved();
     const syncedRole = accessToken
       ? await syncSession(accessToken, {
-          role,
+          role: wanted,
           fullName: name.trim() || undefined,
           phone: signedUpPhone,
           source: mode === "signup" ? "signup" : undefined,
         })
       : null;
-    if (mode === "signup" && syncedRole && syncedRole !== role && !isAdmin) {
+    if (mode === "signup" && syncedRole && syncedRole !== wanted && !isAdmin) {
       // This email or phone already has another kind of account. Nothing about it was changed; say so plainly.
-      setError(conflictMessage(syncedRole, target?.kind === "phone" || (!target && signedUpPhone) ? "phone" : "email"));
+      setError(conflictMessage(syncedRole, target?.kind === "phone" || (!target && signedUpPhone) ? "phone" : "email", chosen ?? signupRole));
       setConflictRole(syncedRole);
       setScreen("details");
       setBusy(null);
       return;
     }
-    let destination = nextUrl || roleDestination(role);
-    if (syncedRole && syncedRole !== role) {
-      // Logged in on another portal's page: open their own portal (never block them), with a note saying why.
-      setInfo(t(`portal.opening.${syncedRole}`));
-      destination = withPortalNote(roleDestination(syncedRole), role);
+    let destination = (chosen && chosen !== role ? buildNextUrl(chosen, mode, params) : nextUrl) || roleDestination(wanted);
+    if (syncedRole && syncedRole !== wanted) {
+      if (genericLogin) {
+        destination = roleDestination(syncedRole);
+      } else {
+        // Logged in on another portal's page: open their own portal (never block them), with a note saying why.
+        setInfo(t(`portal.opening.${syncedRole}`));
+        destination = withPortalNote(roleDestination(syncedRole), role);
+      }
     }
     // A new seller sees "Welcome to Shopinbos, {name}" while Rex gets ready, then Rex's first run.
-    if (mode === "signup" && role === "seller" && destination.startsWith("/onboarding")) {
+    if (mode === "signup" && wanted === "seller" && destination.startsWith("/onboarding")) {
       setScreen("ready");
       await new Promise((resolve) => setTimeout(resolve, READY_MS));
     }
@@ -364,7 +435,8 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
     try {
       const used = await sendCode(nextTarget, {
         create: mode === "signup",
-        profile: mode === "signup" ? { role: signupRole } : undefined,
+        // The name is saved on the login with the code; the role only when it is already known (else at sync-user).
+        profile: mode === "signup" ? { fullName: fullName || undefined, role: roleKnown ? signupRole : undefined } : undefined,
       });
       setTarget(nextTarget);
       setChannel(used);
@@ -391,7 +463,7 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
       return true;
     }
     if (failure.code === "ACCOUNT_EXISTS" && mode === "signup") {
-      if (failure.role && failure.role !== role && !isAdmin) {
+      if (roleKnown && failure.role && failure.role !== role && !isAdmin) {
         setError(conflictMessage(failure.role, via));
         setConflictRole(failure.role);
       } else {
@@ -403,6 +475,18 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
     return false;
   }
 
+  /** After the code (or a late name): ask the role when nobody said yet, else open the account. */
+  async function afterCode(accessToken: string | null, signedUpPhone?: string) {
+    if (mode === "signup" && !roleKnown) {
+      rememberRoleWait({ fullName, phone: signedUpPhone });
+      setPending({ accessToken, phone: signedUpPhone });
+      setBusy(null);
+      goTo("role");
+      return;
+    }
+    await finishWithToken(accessToken, signedUpPhone);
+  }
+
   async function submitCode(value = code) {
     if (!target || value.length !== OTP_LENGTH || busy) return;
     resetMessages();
@@ -410,33 +494,51 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
     try {
       const result = await verifyCode(target, value);
       const signedUpPhone = target.kind === "phone" ? target.phone : undefined;
-      if (result.needsName) {
-        // Brand-new account: ask what to call them before the account row (and shop) is made with their name.
-        if (result.accessToken) await ensureSessionSaved();
+      if (result.accessToken && (result.needsName || (mode === "signup" && !roleKnown))) await ensureSessionSaved();
+      if (result.needsName && !fullName) {
+        // Brand-new account that skipped the name screen (a carried-over link): ask it before the account is made.
         setPending({ accessToken: result.accessToken, phone: signedUpPhone });
         setBusy(null);
         setScreen("name");
         return;
       }
-      await finishWithToken(result.accessToken, signedUpPhone);
+      await afterCode(result.accessToken, signedUpPhone);
     } catch (verifyError) {
       setError(friendlyNetworkError(verifyError));
       setBusy(null);
     }
   }
+  submitCodeRef.current = (value: string) => void submitCode(value);
 
   async function submitName(event: FormEvent) {
     event.preventDefault();
     resetMessages();
-    if (!fullName.trim()) {
-      setError(t("error.needName"));
+    if (!givenName.trim() || !familyName.trim()) {
+      setError(t("error.needFullName"));
+      return;
+    }
+    if (!pending) {
+      goTo("details");
       return;
     }
     setBusy("name");
     try {
-      await finishWithToken(pending?.accessToken ?? null, pending?.phone, fullName);
+      await afterCode(pending.accessToken, pending.phone);
     } catch (nameError) {
       setError(friendlyNetworkError(nameError));
+      setBusy(null);
+    }
+  }
+
+  async function pickRole(chosen: SignupRole) {
+    if (busy) return;
+    resetMessages();
+    setBusy(chosen);
+    try {
+      await finishWithToken(pending?.accessToken ?? null, pending?.phone, fullName, chosen);
+      forgetRoleWait();
+    } catch (roleError) {
+      setError(friendlyNetworkError(roleError));
       setBusy(null);
     }
   }
@@ -486,73 +588,19 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
 
   // ── Pieces ─────────────────────────────────────────────────────────────────
 
-  // "Sign up as a supplier · Not a supplier? Change": the chosen role, always in sight on the form.
-  function changeRole() {
-    resetMessages();
-    setScreen(mode === "signup" && !hasIntent ? "welcome" : "details");
-    setPicked(false);
-  }
-  const changeLabel = t(`change.${signupRole}`);
+  // Sign up: name, phone, code, then the role when nobody said yet ("Step 2 of 4").
+  const totalSteps = roleKnown ? 3 : 4;
+  const stepOf: Partial<Record<Screen, number>> = { name: 1, details: 2, code: 3, role: 4 };
+  const progress = mode === "signup" && !isAdmin && stepOf[screen] ? { step: pending && screen === "name" ? 3 : stepOf[screen]!, total: totalSteps } : null;
+
+  // "Supplier · Not a supplier? Change": the kind of account, in sight when the page already says it.
   const changeClass = "inline-flex min-h-[44px] items-center text-[14px] font-bold text-app-ink underline decoration-app-ink/30 underline-offset-4 hover:decoration-app-ink";
-  const roleBadge = !isAdmin && (
+  const roleBadge = !isAdmin && role !== "seller" && (
     <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
       <span className="inline-flex items-center gap-2 rounded-full bg-app-peach px-3 py-1.5 text-[13.5px] font-bold text-app-ink">
         <Icon name={ROLE_ICON[signupRole]} size={16} /> {t(`card.${signupRole}.title`)}
       </span>
-      {role === "seller" ? (
-        <button type="button" onClick={changeRole} className={changeClass}>{changeLabel}</button>
-      ) : (
-        <Link href={mode === "signup" ? "/signup" : "/login"} className={changeClass}>{changeLabel}</Link>
-      )}
-    </div>
-  );
-
-  // Step one on /signup and /login: three big cards. Seller carries on right here; supplier and delivery partner
-  // go to their own pages (/supplier/signup, /logistics/login…).
-  const roleChooser = (
-    <div>
-      {!desktop && <MascotVideo clip="peggy-hello" size={112} decorative className="-ml-3 mb-1" />}
-      <h1 className="m-0 text-[32px] font-extrabold leading-[1.08] tracking-[-0.9px] lg:text-[40px]">
-        {mode === "signup" ? t("choose.titleSignup") : t("choose.titleLogin")}
-      </h1>
-      <p className="mb-0 mt-3 text-[16px] leading-[1.55] text-app-ink-soft">
-        {mode === "signup" ? t("choose.subSignup") : t("choose.subLogin")}
-      </p>
-      <nav aria-label={t("roles.aria")} className="mt-7 grid gap-3">
-        {SIGNUP_ROLES.map((item) => {
-          const cardClass = "flex min-h-[92px] w-full items-center gap-4 rounded-[22px] border border-app-line bg-white p-4 text-left text-app-ink no-underline transition hover:border-app-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-ink/20 sm:p-5";
-          const inside = (
-            <>
-              <span className="grid h-[56px] w-[56px] shrink-0 place-items-center rounded-[18px] bg-app-peach text-app-accent">
-                <Icon name={ROLE_ICON[item]} size={26} />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-[18px] font-extrabold leading-tight">{t(`card.${item}.title`)}</span>
-                <span className="mt-1 block text-[14.5px] leading-[1.4] text-app-ink-soft">{t(`card.${item}.line`)}</span>
-              </span>
-              <Icon name="arrow" size={18} />
-            </>
-          );
-          if (item === "seller") {
-            return (
-              <button key={item} type="button" className={cardClass} onClick={() => { resetMessages(); setScreen("details"); setPicked(true); }}>
-                {inside}
-              </button>
-            );
-          }
-          return (
-            <Link key={item} href={mode === "signup" ? portalSignupPath(item) : portalLoginPath(item)} className={cardClass}>
-              {inside}
-            </Link>
-          );
-        })}
-      </nav>
-      <p className="mb-0 mt-6 text-center text-[15px] text-app-ink-soft">
-        {mode === "signup" ? t("choose.haveAccount") : t("header.new")}{" "}
-        <Link href={mode === "signup" ? "/login" : "/signup"} className="font-bold text-app-ink underline decoration-app-ink/30 underline-offset-4 hover:decoration-app-ink">
-          {mode === "signup" ? t("logIn") : t("choose.createAccount")}
-        </Link>
-      </p>
+      <Link href={mode === "signup" ? "/signup" : "/login"} className={changeClass}>{t(`change.${signupRole}`)}</Link>
     </div>
   );
 
@@ -585,11 +633,70 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
     </div>
   );
 
+  const errorBox = error && (
+    <div className="mt-5">
+      <Notice>
+        {error}
+        {nextStep && <> <a href={carryOverHref} className="font-bold text-app-danger underline">{nextStep === "signup" ? t("noAccount.signUp") : t("logIn")}</a></>}
+        {conflictRole && <> <Link href={portalLoginPath(conflictRole)} className="font-bold text-app-danger underline">{t("logIn")}</Link></>}
+      </Notice>
+    </div>
+  );
+  const infoBox = info && <div className="mt-5"><Notice tone="info">{info}</Notice></div>;
+  const termsLine = (
+    <p className="mb-0 mt-4 text-center text-[12.5px] leading-[1.55] text-app-ink-faint">
+      {t("terms.before")}{" "}
+      <a href="https://shopinbos.com/terms" className="text-app-ink-soft underline">{t("terms.terms")}</a> {t("terms.and")}{" "}
+      <a href="https://shopinbos.com/privacy" className="text-app-ink-soft underline">{t("terms.privacy")}</a>{t("name.termsAfter")}
+    </p>
+  );
+
+  // ── What's your name? ──────────────────────────────────────────────────────
+
+  const nameForm = (
+    <QuestionScreen
+      onSubmit={submitName}
+      progress={progress}
+      backLabel={t("q.back")}
+      title={t("q.name")}
+      sub={pending ? (target?.kind === "email" ? t("name.confirmedEmail") : t("name.confirmedPhone")) : t("q.nameSub")}
+      top={!pending && <>{!desktop && <MascotVideo clip="peggy-hello" size={96} decorative className="-ml-2 mb-1" />}{intentBanner}{roleBadge}</>}
+      action={
+        <PillButton type="submit" tone="accent" className="w-full" busy={busy === "name"} disabled={Boolean(busy) || !givenName.trim() || !familyName.trim()}>
+          {t("code.continue")} <Icon name="arrow" size={18} />
+        </PillButton>
+      }
+      below={
+        !pending && (
+          <p className="mb-0 mt-4 text-center text-[15px] text-app-ink-soft">
+            {t("header.haveShop")}{" "}
+            <Link href={switchHref} className="font-bold text-app-ink underline decoration-app-ink/30 underline-offset-4 hover:decoration-app-ink">{t("logIn")}</Link>
+          </p>
+        )
+      }
+    >
+      <div className="grid gap-3">
+        <div>
+          <label htmlFor="auth-first-name" className="mb-2 block text-[14px] font-bold">{t("field.firstName")}</label>
+          <TextInput id="auth-first-name" autoComplete="given-name" autoFocus placeholder="Adaeze" value={givenName} onChange={(event) => setGivenName(event.target.value)} maxLength={40} />
+        </div>
+        <div>
+          <label htmlFor="auth-last-name" className="mb-2 block text-[14px] font-bold">{t("field.lastName")}</label>
+          <TextInput id="auth-last-name" autoComplete="family-name" placeholder="Okafor" value={familyName} onChange={(event) => setFamilyName(event.target.value)} maxLength={40} />
+        </div>
+      </div>
+      {errorBox}
+      {infoBox}
+    </QuestionScreen>
+  );
+
+  // ── What's your phone number? (or email) ───────────────────────────────────
+
   const phoneFields = (
     <>
-      <label htmlFor="auth-phone" className="mb-2 block text-[14px] font-bold">{t("field.yourPhone")}</label>
-      <div className="flex h-[56px] items-center rounded-[14px] border border-app-line-strong/70 bg-white focus-within:border-app-ink focus-within:ring-2 focus-within:ring-app-ink/10">
-        <div className="relative flex h-full shrink-0 items-center gap-2 border-r border-app-line pl-4 pr-3 text-[15px] font-bold">
+      <label htmlFor="auth-phone" className="sr-only">{t("field.yourPhone")}</label>
+      <div className="flex h-[60px] items-center rounded-[14px] border border-app-line-strong/70 bg-white focus-within:border-app-ink focus-within:ring-2 focus-within:ring-app-ink/10">
+        <div className="relative flex h-full shrink-0 items-center gap-2 border-r border-app-line pl-4 pr-3 text-[16px] font-bold">
           <select
             aria-label={t("field.country")}
             value={country.code}
@@ -608,11 +715,11 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
           type="tel"
           inputMode="tel"
           autoComplete="tel-national"
-          autoFocus={desktop}
+          autoFocus
           placeholder={country.example}
           value={phone}
           onChange={(event) => setPhone(event.target.value)}
-          className="h-full min-w-0 flex-1 rounded-r-[14px] bg-transparent px-4 text-[17px] outline-none placeholder:text-app-ink-faint"
+          className="h-full min-w-0 flex-1 rounded-r-[14px] bg-transparent px-4 text-[19px] outline-none placeholder:text-app-ink-faint"
         />
       </div>
       <p className="mb-0 mt-2.5 text-[13px] leading-[1.45] text-app-ink-soft">{whatsapp ? t("field.whatsappNote") : t("field.smsNote")}</p>
@@ -621,8 +728,8 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
 
   const emailFields = (
     <>
-      <label htmlFor="auth-email" className="mb-2 block text-[14px] font-bold">{t("field.yourEmail")}</label>
-      <TextInput id="auth-email" type="email" autoComplete="email" autoFocus={desktop} placeholder="you@yourshop.com" value={email} onChange={(event) => setEmail(event.target.value)} />
+      <label htmlFor="auth-email" className="sr-only">{t("field.yourEmail")}</label>
+      <TextInput id="auth-email" type="email" autoComplete="email" autoFocus placeholder="you@yourshop.com" value={email} onChange={(event) => setEmail(event.target.value)} />
       {usingPasswordFor(mode, method, emailMode) && (
         <div className="mt-5">
           <div className="flex items-center justify-between">
@@ -646,90 +753,82 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
       ? whatsapp === null ? t("sendCode") : whatsapp ? t("send.whatsapp") : t("sendSms")
       : t("emailCode");
 
-  const errorBox = error && (
-    <div className="mt-5">
-      <Notice>
-        {error}
-        {nextStep && <> <a href={carryOverHref} className="font-bold text-app-danger underline">{nextStep === "signup" ? t("noAccount.signUp") : t("logIn")}</a></>}
-        {conflictRole && <> <Link href={portalLoginPath(conflictRole)} className="font-bold text-app-danger underline">{t("logIn")}</Link></>}
-      </Notice>
-    </div>
-  );
-  const infoBox = info && <div className="mt-5"><Notice tone="info">{info}</Notice></div>;
+  const detailsTitle = isAdmin
+    ? t("heading.admin")
+    : mode === "signup"
+      ? method === "phone" ? t("q.phone") : t("q.email")
+      : method === "phone" ? t("q.loginPhone") : t("q.loginEmail");
+  const detailsSub = isAdmin ? t("sub.admin") : mode === "signup" ? (givenName.trim() ? t("q.phoneSubNamed", { name: givenName.trim() }) : t("q.phoneSub")) : t("q.loginSub");
 
-  const heading = isAdmin ? t("heading.admin") : t(`as.${mode}.${signupRole}`);
-  const subheading = mode === "signup"
-    ? signupRole === "seller" ? t("start.sub") : t(`role.${signupRole}.sub`)
-    : isAdmin ? t("sub.admin") : t(`sub.login.${signupRole}`);
-
+  // Google and email stay as quieter options. Google on sign up only once the kind of account is known (it can't
+  // ask "What brings you to Shopinbos?" afterwards).
+  const showGoogle = !isAdmin && (mode === "login" || roleKnown);
   const detailsForm = (
-    <form onSubmit={usingPassword ? submitPassword : requestCode} noValidate>
-      {intentBanner}
-      {mode === "login" && !isAdmin && !desktop && (
-        // Returning sellers: Peggy waves hello (on computers she waves from the panel instead).
-        <MascotVideo clip="peggy-hello" size={124} decorative className="-ml-3 mb-2" />
-      )}
-      {roleBadge}
-      <h1 className="m-0 text-[32px] font-extrabold leading-[1.08] tracking-[-0.9px] lg:text-[40px]">{heading}</h1>
-      <p className="mb-0 mt-3 text-[16px] leading-[1.55] text-app-ink-soft">{subheading}</p>
-      <div className="mt-7">{method === "phone" ? phoneFields : emailFields}</div>
-      {errorBox}
-      {infoBox}
-      <PillButton
-        type="submit"
-        tone="accent"
-        className="mt-6 w-full"
-        busy={busy === "send" || busy === "password"}
-        disabled={Boolean(busy) || fieldEmpty}
-      >
-        {method === "phone" && whatsapp ? <Icon name="whatsapp" size={19} /> : null}
-        {primaryLabel}
-      </PillButton>
-
-      {!isAdmin && (
+    <QuestionScreen
+      onSubmit={usingPassword ? submitPassword : requestCode}
+      progress={progress}
+      onBack={mode === "signup" && !isAdmin ? () => goTo("name") : undefined}
+      backLabel={t("q.back")}
+      title={detailsTitle}
+      sub={detailsSub}
+      top={mode === "login" && <>{!isAdmin && !desktop && <MascotVideo clip="peggy-hello" size={96} decorative className="-ml-2 mb-1" />}{intentBanner}{roleBadge}</>}
+      action={
+        <PillButton type="submit" tone="accent" className="w-full" busy={busy === "send" || busy === "password"} disabled={Boolean(busy) || fieldEmpty}>
+          {method === "phone" && whatsapp ? <Icon name="whatsapp" size={19} /> : null}
+          {primaryLabel}
+        </PillButton>
+      }
+      below={
         <>
-          <div className="my-5 flex items-center gap-3 text-[13px] text-app-ink-faint">
-            <span className="h-px flex-1 bg-app-line" /> {t("or")} <span className="h-px flex-1 bg-app-line" />
-          </div>
-          <PillButton tone="white" size="md" className="w-full" onClick={() => chooseMethod(method === "phone" ? "email" : "phone")}>
-            {method === "phone" ? t("useEmail") : t("usePhone")}
-          </PillButton>
-          <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[14px] font-bold text-app-ink-soft">
-            {method === "email" && mode === "login" && (
+          {!isAdmin && (
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[14px] font-bold text-app-ink-soft">
+              <button type="button" className="min-h-[40px] hover:text-app-ink" onClick={() => chooseMethod(method === "phone" ? "email" : "phone")}>
+                {method === "phone" ? t("useEmail") : t("usePhone")}
+              </button>
+              {method === "email" && mode === "login" && (
+                <button type="button" className="min-h-[40px] hover:text-app-ink" onClick={() => { resetMessages(); setEmailMode(emailMode === "code" ? "password" : "code"); }}>
+                  {emailMode === "code" ? t("usePassword") : t("emailCodeInstead")}
+                </button>
+              )}
+              {showGoogle && (
+                <button type="button" className="inline-flex min-h-[40px] items-center gap-2 hover:text-app-ink disabled:opacity-60" onClick={() => void google()} disabled={Boolean(busy)}>
+                  <GoogleMark /> {t("google")}
+                </button>
+              )}
+            </div>
+          )}
+          {isAdmin && method === "email" && (
+            <div className="mt-3 text-center text-[14px] font-bold text-app-ink-soft">
               <button type="button" className="min-h-[40px] hover:text-app-ink" onClick={() => { resetMessages(); setEmailMode(emailMode === "code" ? "password" : "code"); }}>
                 {emailMode === "code" ? t("usePassword") : t("emailCodeInstead")}
               </button>
-            )}
-            <button type="button" className="inline-flex min-h-[40px] items-center gap-2 hover:text-app-ink disabled:opacity-60" onClick={() => void google()} disabled={Boolean(busy)}>
-              <GoogleMark /> {t("google")}
-            </button>
-          </div>
+            </div>
+          )}
+          {mode === "login" && (
+            <p className="mb-0 mt-4 text-center text-[15px] text-app-ink-soft">
+              {isAdmin ? null : t("header.new")}{" "}
+              <Link href={switchHref} className="font-bold text-app-ink underline decoration-app-ink/30 underline-offset-4 hover:decoration-app-ink">
+                {isAdmin ? t("header.backToApp") : t("choose.createAccount")}
+              </Link>
+            </p>
+          )}
+          {mode === "signup" ? termsLine : !usingPassword && (
+            <p className="mb-0 mt-3 text-balance text-center text-[13px] leading-[1.5] text-app-ink-faint">
+              <span className="mr-1.5 inline-block align-[-2px]"><Icon name="lock" size={13} /></span>{t("lockLine")}
+            </p>
+          )}
         </>
-      )}
-      {isAdmin && method === "email" && (
-        <div className="mt-4 text-center text-[14px] font-bold text-app-ink-soft">
-          <button type="button" className="min-h-[40px] hover:text-app-ink" onClick={() => { resetMessages(); setEmailMode(emailMode === "code" ? "password" : "code"); }}>
-            {emailMode === "code" ? t("usePassword") : t("emailCodeInstead")}
-          </button>
-        </div>
-      )}
-
-      <p className="mb-0 mt-6 text-center text-[15px] text-app-ink-soft">
-        {mode === "signup" ? t("header.haveShop") : isAdmin ? null : t("header.new")}{" "}
-        <Link href={switchHref} className="font-bold text-app-ink underline decoration-app-ink/30 underline-offset-4 hover:decoration-app-ink">
-          {mode === "signup" ? t("logIn") : isAdmin ? t("header.backToApp") : t("header.startShop")}
-        </Link>
-      </p>
-      {!usingPassword && (
-        <p className="mb-0 mt-3 text-balance text-center text-[13px] leading-[1.5] text-app-ink-faint">
-          <span className="mr-1.5 inline-block align-[-2px]"><Icon name="lock" size={13} /></span>{t("lockLine")}
-        </p>
-      )}
-    </form>
+      }
+    >
+      {method === "phone" ? phoneFields : emailFields}
+      {errorBox}
+      {infoBox}
+    </QuestionScreen>
   );
 
+  // ── Enter the code we sent you. ────────────────────────────────────────────
+
   const destination = target?.kind === "phone" ? maskedPhone(target.phone) : target?.email ?? "";
-  const codeTitle = channel === "whatsapp" ? t("code.titleWhatsapp") : channel === "email" ? t("code.titleEmail") : t("code.titleSms");
   const codeSent = channel === "whatsapp"
     ? t("code.sentWhatsapp", { length: OTP_LENGTH, destination })
     : channel === "email"
@@ -739,26 +838,26 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
   const askAgainIn = `${minutes}:${String(countdown.seconds % 60).padStart(2, "0")}`;
 
   const codeForm = (
-    <form
+    <QuestionScreen
       onSubmit={(event) => {
         event.preventDefault();
         void submitCode();
       }}
+      progress={progress}
+      onBack={() => goTo("details")}
+      backLabel={t("q.back")}
+      title={t("q.code")}
+      sub={`${codeSent}${mode === "login" ? ` ${t("code.checkSame")}` : ""}`}
+      action={
+        <PillButton type="submit" tone="accent" className="w-full" busy={busy === "verify"} disabled={code.length !== OTP_LENGTH || Boolean(busy)}>
+          {t("code.continue")} <Icon name="arrow" size={18} />
+        </PillButton>
+      }
     >
-      <button type="button" onClick={() => goTo("details")} className="mb-5 inline-flex min-h-[40px] items-center gap-1.5 text-[15px] font-bold text-app-ink-soft hover:text-app-ink">
-        <Icon name="arrowLeft" size={16} /> {t("code.change")}
-      </button>
-      <h1 className="m-0 text-[32px] font-extrabold leading-[1.08] tracking-[-0.9px] lg:text-[40px]">{codeTitle}</h1>
-      <p className="mb-7 mt-3 text-[16px] leading-[1.55] text-app-ink-soft">
-        {codeSent}{mode === "login" ? ` ${t("code.checkSame")}` : ""}
-      </p>
       <div className="max-w-[400px]">
         <CodeInput value={code} onChange={setCode} onComplete={(value) => void submitCode(value)} disabled={busy === "verify"} />
       </div>
       {errorBox}
-      <PillButton type="submit" tone="accent" className="mt-6 w-full" busy={busy === "verify"} disabled={code.length !== OTP_LENGTH || Boolean(busy)}>
-        {t("code.continue")} <Icon name="arrow" size={18} />
-      </PillButton>
       <div className="mt-5 grid gap-2 text-[14.5px] text-app-ink-soft">
         {countdown.seconds > 0 ? (
           <p className="m-0">{t("code.askAgainIn")} <strong className="text-app-ink">{askAgainIn}</strong>.</p>
@@ -783,28 +882,35 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
           </p>
         )}
       </div>
-    </form>
+    </QuestionScreen>
   );
 
-  const nameForm = (
-    <form onSubmit={submitName} noValidate>
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-app-success-tint px-3 py-1.5 text-[13px] font-bold text-app-success">
-        <Icon name="check" size={14} strokeWidth={2.4} /> {target?.kind === "email" ? t("name.confirmedEmail") : t("name.confirmedPhone")}
-      </span>
-      <h1 className="m-0 mt-3 text-[32px] font-extrabold leading-[1.08] tracking-[-0.9px] lg:text-[40px]">{t("name.title")}</h1>
-      <p className="mb-7 mt-3 text-[16px] leading-[1.55] text-app-ink-soft">{t("name.sub")}</p>
-      <label htmlFor="auth-name" className="mb-2 block text-[14px] font-bold">{t("field.name")}</label>
-      <TextInput id="auth-name" autoComplete="given-name" autoFocus placeholder="Adaeze" value={fullName} onChange={(event) => setFullName(event.target.value)} maxLength={80} />
+  // ── What brings you to Shopinbos? ──────────────────────────────────────────
+
+  const roleForm = (
+    <QuestionScreen progress={progress} backLabel={t("q.back")} title={t("q.role")} sub={t("q.roleSub")}>
+      <nav aria-label={t("roles.aria")} className="grid gap-3">
+        {SIGNUP_ROLES.map((item) => (
+          <button
+            key={item}
+            type="button"
+            disabled={Boolean(busy)}
+            onClick={() => void pickRole(item)}
+            className="flex min-h-[96px] w-full items-center gap-4 rounded-[22px] border border-app-line bg-white p-4 text-left text-app-ink transition hover:border-app-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-ink/20 disabled:opacity-60 sm:p-5"
+          >
+            <span className="grid h-[56px] w-[56px] shrink-0 place-items-center rounded-[18px] bg-app-peach text-app-accent">
+              <Icon name={ROLE_ICON[item]} size={26} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[19px] font-extrabold leading-tight">{t(`q.role.${item}`)}</span>
+              <span className="mt-1 block text-[14.5px] leading-[1.4] text-app-ink-soft">{t(`card.${item}.line`)}</span>
+            </span>
+            {busy === item ? <span className="h-5 w-5 animate-spin rounded-full border-2 border-app-ink/20 border-t-app-ink" aria-hidden /> : <Icon name="arrow" size={18} />}
+          </button>
+        ))}
+      </nav>
       {errorBox}
-      <PillButton type="submit" tone="accent" className="mt-6 w-full" busy={busy === "name"} disabled={Boolean(busy) || !fullName.trim()}>
-        {t("name.go")} <Icon name="arrow" size={18} />
-      </PillButton>
-      <p className="mb-0 mt-5 text-[12.5px] leading-[1.55] text-app-ink-faint">
-        {t("terms.before")}{" "}
-        <a href="https://shopinbos.com/terms" className="text-app-ink-soft underline">{t("terms.terms")}</a> {t("terms.and")}{" "}
-        <a href="https://shopinbos.com/privacy" className="text-app-ink-soft underline">{t("terms.privacy")}</a>{t("name.termsAfter")}
-      </p>
-    </form>
+    </QuestionScreen>
   );
 
   const readyName = firstName(fullName);
@@ -824,53 +930,24 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
   // ?role=supplier on /signup: on the way to /supplier/signup.
   if (movingTo) return <div className="min-h-dvh bg-white" />;
 
-  // ── Phone front door ───────────────────────────────────────────────────────
-
-  if (picked && activeScreen === "welcome") {
-    return (
-      <div className="app-wash flex min-h-dvh flex-col px-[22px] pb-[30px] pt-[22px] font-app text-app-ink">
-        <div className="flex items-center justify-between gap-3">
-          <Wordmark />
-          <LanguagePicker variant="globe" />
-        </div>
-        <div className="relative flex flex-1 items-center justify-center py-4">
-          <MascotVideo clip="peggy-hello" size={230} decorative className="max-h-[38dvh] max-w-[38dvh]" />
-          <span className="absolute right-0 top-4 max-w-[200px] rounded-[20px_20px_4px_20px] bg-white px-3.5 py-2.5 text-[14px] font-bold shadow-[0_10px_30px_-12px_rgba(22,20,31,0.3)]">
-            {t("welcome.peggyBubble")}
-          </span>
-        </div>
-        <div className="mt-2">{roleBadge}</div>
-        <h1 className="m-0 text-[36px] font-extrabold leading-[1.04] tracking-[-1px]">{heading}</h1>
-        <p className="mb-[22px] mt-2.5 leading-[1.5] text-app-ink-soft">{subheading}</p>
-        <PillButton tone="accent" onClick={() => { chooseMethod("phone"); goTo("details"); }}>{t("welcome.startPhone")}</PillButton>
-        <PillButton tone="white" size="md" className="mt-2.5" onClick={() => { chooseMethod("email"); goTo("details"); }}>
-          {t("useEmail")}
-        </PillButton>
-        <Link href={switchHref} className="mt-1.5 grid min-h-[44px] place-items-center text-[15px] font-bold text-app-ink no-underline">
-          {t("welcome.haveShop")}
-        </Link>
-      </div>
-    );
-  }
-
   // ── Page ───────────────────────────────────────────────────────────────────
 
-  let body: ReactNode = picked ? detailsForm : roleChooser;
-  if (activeScreen === "code") body = codeForm;
-  if (activeScreen === "name") body = nameForm;
-  if (activeScreen === "ready") body = ready;
+  const bodies: Record<Screen, ReactNode> = { name: nameForm, details: detailsForm, code: codeForm, role: roleForm, ready };
 
   return (
     <div className="min-h-dvh bg-white font-app text-app-ink lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.08fr)] lg:gap-4 lg:p-4">
       <div className="flex min-h-dvh flex-col px-5 pb-6 pt-5 sm:px-10 lg:min-h-[calc(100dvh-32px)] lg:px-12 lg:pt-7 xl:px-16">
         <header className="flex items-center justify-between gap-3">
           <a href="https://shopinbos.com" aria-label={t("homeAria")} className="shrink-0"><Wordmark className="h-[18px] lg:h-[20px]" /></a>
-          <HelpLink />
+          <span className="flex items-center gap-3">
+            <HelpLink />
+            <span className="sm:hidden"><LanguagePicker variant="globe" /></span>
+          </span>
         </header>
-        <main className="flex flex-1 items-start pb-10 pt-8 sm:pt-12 lg:items-center lg:py-10">
-          <div className="w-full max-w-[440px]">{body}</div>
+        <main className="flex flex-1 items-stretch pb-4 pt-5 sm:pt-10 lg:items-center lg:py-10">
+          <div className="flex w-full max-w-[440px] flex-col">{bodies[screen]}</div>
         </main>
-        <footer className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-[13px] text-app-ink-faint">
+        <footer className="hidden flex-wrap items-center justify-between gap-x-6 gap-y-2 text-[13px] text-app-ink-faint sm:flex">
           <span>{t("footer.copyright", { year: String(new Date().getFullYear()) })}</span>
           <span className="flex items-center gap-4">
             <a href="https://shopinbos.com/privacy" className="underline underline-offset-2 hover:text-app-ink">{t("footer.privacy")}</a>
@@ -881,6 +958,69 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
       </div>
       <AuthShowcasePanel who={mode === "login" ? "peggy" : "rex"} />
     </div>
+  );
+}
+
+/**
+ * One question per screen: back arrow top-left, "Step 2 of 4", the question in large text, one input, and Continue
+ * at the bottom (kept in reach on phones).
+ */
+function QuestionScreen({
+  onSubmit,
+  onBack,
+  backLabel,
+  progress,
+  title,
+  sub,
+  top,
+  children,
+  action,
+  below,
+}: {
+  onSubmit?: (event: FormEvent<HTMLFormElement>) => void;
+  onBack?: () => void;
+  backLabel: string;
+  progress: { step: number; total: number } | null;
+  title: ReactNode;
+  sub?: ReactNode;
+  top?: ReactNode;
+  children: ReactNode;
+  action?: ReactNode;
+  below?: ReactNode;
+}) {
+  const t = useT("auth");
+  const inside = (
+    <>
+      <div className="flex min-h-[44px] items-center gap-3">
+        {onBack ? (
+          <button type="button" onClick={onBack} aria-label={backLabel} className="-ml-2 grid h-11 w-11 shrink-0 place-items-center rounded-full text-app-ink hover:bg-app-line/50">
+            <Icon name="arrowLeft" size={22} />
+          </button>
+        ) : null}
+        {progress && (
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-app-line" aria-hidden>
+              <div className="h-full rounded-full bg-app-ink transition-[width]" style={{ width: `${(progress.step / progress.total) * 100}%` }} />
+            </div>
+            <span className="shrink-0 font-mono text-[12px] font-bold uppercase tracking-[0.08em] text-app-ink-soft">{t("q.progress", { step: progress.step, total: progress.total })}</span>
+          </div>
+        )}
+      </div>
+      {top ? <div className="mt-5">{top}</div> : null}
+      <h1 className="m-0 mt-4 text-[32px] font-extrabold leading-[1.08] tracking-[-0.9px] lg:text-[40px]">{title}</h1>
+      {sub ? <p className="mb-0 mt-3 text-[16px] leading-[1.55] text-app-ink-soft">{sub}</p> : null}
+      <div className="mt-7">{children}</div>
+      <div className="mt-auto pt-6 lg:mt-2">
+        {action && <div className="sticky bottom-0 bg-white pb-2 pt-2">{action}</div>}
+        {below}
+      </div>
+    </>
+  );
+  if (!onSubmit) return <div className="flex flex-1 flex-col">{inside}</div>;
+  return (
+    <form onSubmit={onSubmit} noValidate className="flex flex-1 flex-col">
+      {inside}
+    </form>
   );
 }
 

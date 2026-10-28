@@ -422,9 +422,11 @@ test("verification documents: one shared type list, real files only, old onboard
     assert.ok(docs.isDocType(config.type), config.type);
     assert.equal(config.label, docs.DOC_TYPE_LABELS[config.type]);
   }
-  // A supplier is checked on its business registration (CAC or BN), not the owner's NIN.
-  assert.deepEqual(docs.SUPPLIER_DOC_TYPES.filter((c) => c.required).map((c) => c.type), ["cac", "product-images"]);
-  assert.equal([...docs.SUPPLIER_DOC_TYPES, ...docs.LOGISTICS_DOC_TYPES].some((c) => c.type === "identity"), false, "nobody uploads an ID");
+  // A supplier is verified on the ID photo and selfie from onboarding (shared/supplier-onboarding.ts), and the CAC
+  // number lookup replaces the certificate: no document is required, the certificate is only for a failed lookup.
+  assert.deepEqual(docs.SUPPLIER_DOC_TYPES.filter((c) => c.required).map((c) => c.type), []);
+  assert.match(docs.SUPPLIER_DOC_TYPES.find((c) => c.type === "cac").hint, /didn't find your business/);
+  assert.equal([...docs.SUPPLIER_DOC_TYPES, ...docs.LOGISTICS_DOC_TYPES].some((c) => c.type === "identity"), false, "the ID photo is taken in onboarding, not uploaded as a document");
   assert.deepEqual(docs.LOGISTICS_DOC_TYPES.filter((c) => c.required).map((c) => c.type), ["cac", "insurance"]);
   assert.equal(docs.docTypesForRole("logistics_partner"), docs.LOGISTICS_DOC_TYPES);
 
@@ -469,8 +471,9 @@ test("verification documents: one shared type list, real files only, old onboard
   assert.equal(docs.docStatusLabel(nin, "owner"), "Uploaded");
   assert.equal(docs.isDocComplete({ ...nin, status: "rejected" }), false);
 
-  // Only types with a stored file count; product images are still missing too.
-  assert.deepEqual(docs.missingRequiredDocs(docs.SUPPLIER_DOC_TYPES, stored).map((c) => c.type), ["cac", "product-images"]);
+  // Only types with a stored file count (the logistics list still requires its documents).
+  assert.deepEqual(docs.missingRequiredDocs(docs.SUPPLIER_DOC_TYPES, stored).map((c) => c.type), []);
+  assert.deepEqual(docs.missingRequiredDocs(docs.LOGISTICS_DOC_TYPES, stored).map((c) => c.type), ["cac", "insurance"]);
 
   // Submitting sends real uploads for review and leaves file-less rows alone.
   const submitted = docs.submitUploadedDocs(stored, "2026-10-11T00:00:00.000Z");

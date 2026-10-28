@@ -4,14 +4,15 @@ import { VISIBLE_SUPPLIER } from "@/lib/marketplace/agreements.server";
 import { preorderState, type PreorderState } from "@shared/preorder";
 
 // The phone's Find products rows: the same fields the public products API gives (apps/mobile/src/lib/marketplace.ts
-// RawProduct), from suppliers sellers can see (verified or not), plus what the seller needs to judge the supplier.
+// RawProduct), from suppliers sellers can see (verified or not), plus what the seller needs to judge the supplier
+// (their level, New | Trusted | Established, for the "Trusted supplier · ★ 4.7 from 18 shops" line).
 
 export const productSelect = {
   id: true, name: true, slug: true, description: true, images: true, wholesalePrice: true, suggestedRetailPrice: true, moq: true,
   stockQuantity: true, pricingTiers: true, dropshipAvailable: true, bulkOrderAvailable: true, processingTime: true, trendScore: true,
   preorderEnabled: true, preorderShipsAt: true, preorderLimit: true, preorderTaken: true, preorderNote: true, preorderDepositPct: true,
   category: { select: { name: true } },
-  supplier: { select: { id: true, displayName: true, slug: true, city: true, address: true, rating: true, ratingCount: true, description: true, responseTimeLabel: true, verificationStatus: true, returnPolicy: true } },
+  supplier: { select: { id: true, displayName: true, slug: true, city: true, address: true, rating: true, ratingCount: true, description: true, responseTimeLabel: true, verificationStatus: true, returnPolicy: true, level: true } },
 } as const satisfies Prisma.SupplierProductSelect;
 
 export const productWhere = (country: string): Prisma.SupplierProductWhereInput => ({ status: "published", supplier: { ...VISIBLE_SUPPLIER, country: { equals: country, mode: "insensitive" } } });

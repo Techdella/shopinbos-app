@@ -296,7 +296,7 @@ test("onboarding memory is durable and shared with Rex builder", () => {
   const supplierOnboardingRoute = read("src/app/api/supplier/onboarding/route.ts");
   const logisticsOnboardingRoute = read("src/app/api/logistics/onboarding/route.ts");
   const storeRouteApp = read("src/app/api/app/store/route.ts");
-  const supplierOnboardingComponent = withWords("src/components/onboarding/SupplierOnboarding.tsx", "onboarding");
+  const supplierOnboardingComponent = withWords("src/components/onboarding/SupplierOnboarding.tsx", "supplierJoin");
   const supplierOnboarding = read("src/app/supplier/onboarding/page.tsx");
   const logisticsOnboarding = read("src/app/logistics/onboarding/page.tsx");
   const builder = withWords("src/components/builder/ChipBuilder.tsx", "builder");
@@ -319,10 +319,11 @@ test("onboarding memory is durable and shared with Rex builder", () => {
   assert.equal(exists("src/components/onboarding/OnboardingFlow.tsx"), false);
 
   assert.match(supplierOnboardingComponent, /export function SupplierOnboarding/);
-  assert.match(supplierOnboardingComponent, /Submit for admin review/);
-  assert.match(supplierOnboardingComponent, /Verify your business/);
+  // One question per screen (shared/supplier-onboarding.ts): the ID photo and selfie, then "Send for review".
+  assert.match(supplierOnboardingComponent, /Send for review/);
+  assert.match(supplierOnboardingComponent, /Snap a photo of your ID/);
   assert.match(supplierOnboardingComponent, /\/api\/supplier\/onboarding/);
-  assert.match(supplierOnboardingComponent, /manual admin verification/);
+  assert.match(supplierOnboardingComponent, /\/api\/supplier\/kyc\/selfie/);
   assert.match(onboardingCss, /\.onb-step-header/);
   assert.match(onboardingCss, /\.phone-mini/);
   assert.match(onboardingCss, /\.steps \.s\.on/);
@@ -338,7 +339,7 @@ test("onboarding memory is durable and shared with Rex builder", () => {
   assert.match(logisticsOnboardingRoute, /onboardingState/);
   assert.match(storeRouteApp, /"onboardingState"/);
   assert.match(storeRouteApp, /"firstDashboardVisitComplete"/);
-  assert.match(supplierOnboarding, /initialSupplier/);
+  assert.match(supplierOnboarding, /initialView=/);
   // Delivery partners set up in the one verification flow; the old set-up page sends them there.
   assert.match(logisticsOnboarding, /redirect\(`\/logistics\/verification/);
   assert.equal(exists("src/components/onboarding/LogisticsOnboarding.tsx"), false);
@@ -369,17 +370,25 @@ test("auth experience keeps each portal focused and conversational", () => {
   const portalRoutes = read("src/lib/portal-routes.ts");
   const onboardingPage = read("src/app/onboarding/page.tsx");
 
-  // Prototype 10 sign-in: phone code (WhatsApp when the server has it, else SMS), email code, password, Google;
-  // role tabs on sign up; name after the code; "Welcome to Shopinbos" before Rex's first run.
-  assert.match(auth, /Start your shop/);
-  assert.match(auth, /Start with my phone number/);
+  // Sign up asks one question per screen (Shopinbos Onboarding — Simplified): name, phone, code, then "What brings
+  // you to Shopinbos?"; phone code (WhatsApp when the server has it, else SMS), email code, password log in, Google;
+  // "Welcome to Shopinbos" before Rex's first run.
+  assert.match(auth, /What's your name\?/);
+  assert.match(auth, /What's your phone number\?/);
+  assert.match(auth, /Enter the code we sent you\./);
+  assert.match(auth, /What brings you to Shopinbos\?/);
+  assert.match(auth, /I want to sell/);
+  assert.match(auth, /I deliver orders/);
+  assert.match(auth, /I supply products/);
+  assert.match(auth, /Step \{step\} of \{total\}/);
   assert.match(auth, /Send me a code by SMS/);
   // WhatsApp wording only when the server says WhatsApp codes are on, and the code screen follows the channel used.
   assert.match(auth, /whatsapp \? t\("send\.whatsapp"\) : t\("sendSms"\)/);
-  assert.match(auth, /channel === "whatsapp" \? t\("code\.titleWhatsapp"\)/);
+  assert.match(auth, /channel === "whatsapp"\s*\? t\("code\.sentWhatsapp"/);
   assert.match(auth, /No WhatsApp on this number\?/);
-  assert.match(auth, /What should we call you\?/);
   assert.match(auth, /result\.needsName/);
+  // Android Chrome reads the SMS code by itself (WebOTP).
+  assert.match(auth, /otp: \{ transport: \["sms"\] \}/);
   assert.match(auth, /Welcome to Shopinbos, \{name\}/);
   assert.match(auth, /Email me a code instead/);
   assert.match(auth, /current-password/);
@@ -472,7 +481,9 @@ test("supplier and logistics onboarding require manual verification before platf
   assert.match(authSync, /ensureAppUserForSupabaseUser/);
   assert.match(appUser, /verificationStatus: "unverified"/);
   assert.match(appUser, /onboardingState: \{ source: "signup", completed: false \}/);
-  assert.match(supplierRoute, /parsed\.data\.completed \? "pending" : "unverified"/);
+  // Suppliers: verified at once when the ID and selfie are approved, else pending for the team (src/lib/kyc/supplier.server.ts).
+  assert.match(supplierRoute, /if \(input\.completed\) await refreshSupplierVerification/);
+  assert.match(read("shared/supplier-onboarding.ts"), /return tiers\.verifiedIndividual \? "verified" : "pending"/);
   assert.match(logisticsRoute, /parsed\.data\.completed \? "pending" : "unverified"/);
   assert.match(supplierDashboard, /ensureSupplierAccess\(supplier\)/);
   assert.match(logisticsDashboard, /ensureLogisticsAccess\(partner\)/);

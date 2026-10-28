@@ -1,4 +1,5 @@
 import "server-only";
+import { dropshipUnitPrice } from "@shared/dropship-rules";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { getPriceBook } from "@/lib/pricing/price-book.server";
@@ -300,12 +301,13 @@ export async function splitPlanForOrder(
   const products = productIds.length
     ? await db.storeProduct.findMany({
         where: { storeId, id: { in: productIds }, fulfillmentType: "dropship", supplierProductId: { not: null } },
-        select: { id: true, retailPrice: true, supplierProduct: { select: { id: true, supplierId: true, wholesalePrice: true } } },
+        select: { id: true, retailPrice: true, supplierProduct: { select: { id: true, supplierId: true, wholesalePrice: true, priceMode: true, dropshipPrice: true } } },
       })
     : [];
   const links = new Map<string, DropshipLink>();
   for (const product of products) {
-    if (product.supplierProduct) links.set(product.id, { supplierId: product.supplierProduct.supplierId, supplierProductId: product.supplierProduct.id, unitCost: product.supplierProduct.wholesalePrice, image: null });
+    // The supplier's dropship price when it sets one per channel (shared/dropship-rules.ts dropshipUnitPrice).
+    if (product.supplierProduct) links.set(product.id, { supplierId: product.supplierProduct.supplierId, supplierProductId: product.supplierProduct.id, unitCost: dropshipUnitPrice(product.supplierProduct), image: null });
   }
   const { groups } = groupDropshipLines(items, links);
   const suppliers = groups.length

@@ -4,6 +4,8 @@
 
 import { unsplashUrl } from "../store-templates/demo-photos.ts";
 import { preorderState, type PreorderState } from "../../../shared/preorder.ts";
+import { dropshipOptionWords, dropshipUnitPrice, retailFloor } from "../../../shared/dropship-rules.ts";
+import type { DropshipTerms } from "../../../shared/dropship-checkout.ts";
 
 export interface FindPricingTier {
   minQty: number;
@@ -46,8 +48,19 @@ export interface FindProduct {
   category: string;
   images: string[];
   supplier: FindSupplier;
-  /** What the supplier charges per unit (dropship). */
+  /** What the supplier charges per unit to dropship it (its dropship price when it sets one per channel). */
   cost: number;
+  /** The supplier's base price per unit for wholesale (the start of its quantity breaks). Missing: `cost`. */
+  wholesaleCost?: number;
+  /** The lowest price a seller may list it at (the supplier's lowest retail price, never below `cost`). */
+  floor?: number;
+  /** "Ships 1 piece" · "Minimum 3 pieces" · "Packs in 1 day" (shared/dropship-rules.ts dropshipOptionWords). */
+  dropshipOptions?: string[];
+  /**
+   * The full dropship terms for the product page (delivery to the seller's state, who pays, branding), worked out on
+   * the server (src/lib/marketplace/dropship-listing.server.ts). Missing on cards and samples.
+   */
+  terms?: DropshipTerms | null;
   /** Suggested selling price. */
   price: number;
   /** "Ships in 24 hours", "Same day in Lagos", or "" when the supplier hasn't said. */
@@ -184,6 +197,13 @@ export interface SupplierProductRow {
   preorderTaken?: number;
   preorderNote?: string | null;
   preorderDepositPct?: number;
+  /** Prices per channel and dropship options (shared/dropship-rules.ts). */
+  priceMode?: string | null;
+  dropshipPrice?: number | null;
+  minRetailPrice?: number | null;
+  dropshipMinQty?: number | null;
+  handlingDays?: number | null;
+  sampleAvailable?: boolean | null;
   category: { name: string } | null;
   supplier: { id: string; userId: string; slug: string; displayName: string; city: string; rating: number; ratingCount: number; verificationStatus: string; returnPolicy?: string | null; address?: string | null };
 }
@@ -221,8 +241,11 @@ export function toFindProduct(row: SupplierProductRow): FindProduct {
       verificationStatus: row.supplier.verificationStatus,
       returnPolicy: row.supplier.returnPolicy?.trim() || null,
     },
-    cost: row.wholesalePrice,
-    price: row.suggestedRetailPrice,
+    // Dropship: the dropship price, and a suggested price never below the supplier's lowest allowed one.
+    cost: row.dropshipAvailable ? dropshipUnitPrice(row) : row.wholesalePrice,
+    wholesaleCost: row.wholesalePrice,
+    price: row.dropshipAvailable ? Math.max(row.suggestedRetailPrice, retailFloor(row)) : row.suggestedRetailPrice,
+    ...(row.dropshipAvailable ? { floor: retailFloor(row), dropshipOptions: dropshipOptionWords(row) } : {}),
     ships: shipsLabel(row.processingTime),
     stock: row.stockQuantity,
     moq: Math.max(1, row.moq),

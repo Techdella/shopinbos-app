@@ -5,6 +5,7 @@ import type { Prisma } from "@prisma/client";
 import type { AuthUser } from "@/lib/auth/types";
 import { parseVerificationDocs, type VerificationDoc } from "@/lib/verification-utils";
 import { revalidatePath } from "next/cache";
+import { refreshSupplierVerification } from "@/lib/kyc/supplier.server";
 
 export const GET = withAdmin(async (_req: NextRequest, { user, params }: { user: AuthUser; params: { id: string } }) => {
   const supplier = await db.supplier.findUnique({
@@ -65,6 +66,8 @@ export const PATCH = withAdmin(async (req: NextRequest, { user, params }: { user
     where: { id: params.id },
     data: { verificationDocuments: docs as unknown as Prisma.InputJsonValue },
   });
+  // Approving the ID photo and selfie of a supplier who sent onboarding lists them to shops ("Verified Individual").
+  await refreshSupplierVerification(params.id);
 
   revalidatePath(`/admin/suppliers/${params.id}`);
   revalidatePath("/admin/suppliers");

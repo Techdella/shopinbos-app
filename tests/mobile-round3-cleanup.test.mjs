@@ -74,7 +74,12 @@ test("shop looks: the server's lock names the plan, but the phone shows no plan 
   // No plan filter chips or plan-named lock tags in the app: "Not on your plan" only (tests/store-payments.test.mjs).
   assert.doesNotMatch(screen, /themeTierPlanName/);
   assert.match(screen, /<Tag label=\{t\("notOnPlan"\)\} icon="lock" \/>/);
-  assert.match(screen, /<LinearGradient/, "a scrim under the theme name");
+  // The little shop (with its scrim under the theme name) is shared with sign-up's "Pick a look".
+  assert.match(app("components/MiniShop.tsx"), /<LinearGradient/, "a scrim under the theme name");
+  assert.match(screen, /<MiniShop /);
+  const signUp = app("app/onboarding/index.tsx");
+  assert.doesNotMatch(signUp, /themeTierPlanName|lockedPlan\}/, "sign-up's looks name no plan either");
+  assert.match(signUp, /tl\("notOnPlan"\)/);
 });
 
 test("layout: one header gutter, one Back button, no Help on Help, short My shop", () => {

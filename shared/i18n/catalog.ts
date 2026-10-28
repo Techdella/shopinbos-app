@@ -17,9 +17,11 @@ import glossary from "./messages/glossary/index.ts";
 import intros from "./messages/intros/index.ts";
 import introTitles from "./messages/introTitles/index.ts";
 import supplier from "./messages/supplier/index.ts";
+import supplierJoin from "./messages/supplierJoin/index.ts";
 import logistics from "./messages/logistics/index.ts";
 import delivery from "./messages/delivery/index.ts";
 import rider from "./messages/rider/index.ts";
+import handoff from "./messages/handoff/index.ts";
 import m_supplier from "./messages/m_supplier/index.ts";
 import m_partner from "./messages/m_partner/index.ts";
 import m_rider from "./messages/m_rider/index.ts";
@@ -93,6 +95,7 @@ import products from "./messages/products/index.ts";
 import orders from "./messages/orders/index.ts";
 import home from "./messages/home/index.ts";
 import onboarding from "./messages/onboarding/index.ts";
+import sellerStart from "./messages/sellerStart/index.ts";
 import media from "./messages/media/index.ts";
 import productTypes from "./messages/productTypes/index.ts";
 import tips from "./messages/tips/index.ts";
@@ -114,9 +117,11 @@ export const CATALOGS = {
   intros,
   introTitles,
   supplier,
+  supplierJoin,
   logistics,
   delivery,
   rider,
+  handoff,
   m_supplier,
   m_partner,
   m_rider,
@@ -190,6 +195,7 @@ export const CATALOGS = {
   orders,
   home,
   onboarding,
+  sellerStart,
   media,
   productTypes,
   tips,

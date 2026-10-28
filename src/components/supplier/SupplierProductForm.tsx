@@ -7,6 +7,10 @@ import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { MediaListField } from "@/components/media/MediaListField";
 import { getT } from "@/lib/i18n/server";
 import { PREORDER_DEPOSIT_SUGGESTED, PREORDER_NOTE_MAX, preorderDay } from "@shared/preorder";
+import { HANDLING_DAYS, SIZE_CLASS_LABELS, canTakePreorders, dropshipUnitPrice, cleanDropshipMinQty, cleanHandlingDays, readPriceBreaks, type LevelGoal } from "@shared/dropship-rules";
+import { SIZE_BANDS } from "@shared/delivery-market";
+import { ChannelPricesFields } from "./ChannelPricesFields";
+import { BoardCard, BoardQuestion, ChipChoice, ChipRow, Meter, RowText, SwitchRow } from "./dropship-ui";
 
 interface CategoryOption {
   id: string;
@@ -40,6 +44,21 @@ interface SupplierProductFormValue {
   preorderTaken?: number;
   preorderNote?: string | null;
   preorderDepositPct?: number | null;
+  /** Prices per channel and dropship options (shared/dropship-rules.ts). */
+  priceMode?: string | null;
+  dropshipPrice?: number | null;
+  preorderPrice?: number | null;
+  minRetailPrice?: number | null;
+  dropshipMinQty?: number | null;
+  handlingDays?: number | null;
+  sizeBand?: string | null;
+}
+
+/** The supplier's level (src/lib/supplier-levels.server.ts supplierLevelView): pre-orders open at Established. */
+export interface SupplierFormLevel {
+  level: string;
+  next: string | null;
+  goals: LevelGoal[];
 }
 
 interface SupplierProductFormProps {
@@ -49,26 +68,39 @@ interface SupplierProductFormProps {
   product?: SupplierProductFormValue | null;
   error?: string;
   saved?: boolean;
+  level?: SupplierFormLevel | null;
 }
 
-function pricingTierText(product?: SupplierProductFormValue | null) {
-  const tiers = Array.isArray(product?.pricingTiers) ? product.pricingTiers : [];
-  return tiers
-    .filter((tier): tier is { minQty: number; maxQty?: number | null; price: number } => {
-      if (!tier || typeof tier !== "object") return false;
-      const value = tier as { minQty?: unknown; price?: unknown };
-      return typeof value.minQty === "number" && typeof value.price === "number";
-    })
-    .map((tier) => `${tier.minQty}${tier.maxQty ? `-${tier.maxQty}` : ""}: ${tier.price}`)
-    .join("\n");
+/** The pre-order card for suppliers who aren't Established yet (P-Pricing's locked card): a goal, not a wall. */
+function PreorderLocked({ level }: { level: SupplierFormLevel | null | undefined }) {
+  const meters = (level?.goals ?? []).filter((goal) => goal.kind === "count" && (goal.key === "delivered" || goal.key === "reviews"));
+  const delivered = meters.find((goal) => goal.key === "delivered");
+  return (
+    <BoardCard locked className="grid content-start gap-2.5">
+      <div className="flex items-center gap-2">
+        <Icon name="lock" size={16} strokeWidth={2.4} />
+        <span className="text-[15px] font-extrabold">Pre-order</span>
+        <span className="ml-auto text-[12px] font-semibold text-app-ink-soft">Established · Level 3</span>
+      </div>
+      <p className="m-0 text-[13px] leading-[1.45] text-app-gray-ink">Unlocks when you&apos;re Established: 100 delivered orders and 30 reviews. Shops pay before the goods exist, so it waits for a strong record.</p>
+      {delivered && <Meter have={delivered.have} need={delivered.need} label={`${delivered.have} of ${delivered.need} delivered orders`} track="locked" />}
+      <p className="m-0 text-[12px] text-app-gray-ink">
+        {meters.map((goal, index) => (
+          <span key={goal.key}>{index > 0 && " · "}<b className="font-extrabold text-app-ink">{goal.have} of {goal.need}</b> {goal.key === "delivered" ? "orders" : "reviews"}</span>
+        ))}
+        {meters.length > 0 && " · "}
+        <a href="/supplier/level" className="font-extrabold text-app-accent-ink underline underline-offset-4 hover:text-app-ink">See your level</a>
+      </p>
+    </BoardCard>
+  );
 }
 
 function Section({ title, sub, aside, children }: { title: string; sub: string; aside?: ReactNode; children: ReactNode }) {
   return (
-    <Card className="p-5 sm:p-6">
+    <Card className="rounded-[24px] border-0 p-5 sm:p-6">
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="m-0 text-[19px] font-extrabold tracking-[-0.3px]">{title}</h2>
+          <h2 className="m-0 font-app-display text-[19px] font-extrabold tracking-[-0.01em]">{title}</h2>
           <p className="mb-0 mt-1 text-[14px] text-app-ink-soft">{sub}</p>
         </div>
         {aside}
@@ -77,6 +109,24 @@ function Section({ title, sub, aside, children }: { title: string; sub: string; 
     </Card>
   );
 }
+
+/** A section in the boards' look: the title sits on the canvas and its parts are white cards below it. */
+function BoardSection({ title, sub, aside, children }: { title: string; sub: string; aside?: ReactNode; children: ReactNode }) {
+  return (
+    <section className="grid min-w-0 gap-3 pt-1">
+      <div className="flex flex-wrap items-end justify-between gap-3 px-1">
+        <div className="min-w-0">
+          <h2 className="m-0 font-app-display text-[22px] font-extrabold tracking-[-0.02em]">{title}</h2>
+          <p className="mb-0 mt-0.5 text-[13.5px] text-app-ink-soft">{sub}</p>
+        </div>
+        {aside}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+const shortSize = (band: keyof typeof SIZE_CLASS_LABELS) => SIZE_CLASS_LABELS[band].split(" (")[0];
 
 function Field({ id, label, hint, className, children }: { id: string; label: string; hint?: string; className?: string; children: ReactNode }) {
   return (
@@ -88,16 +138,22 @@ function Field({ id, label, hint, className, children }: { id: string; label: st
   );
 }
 
-export async function SupplierProductForm({ mode, action, categories, product, error, saved }: SupplierProductFormProps) {
+export async function SupplierProductForm({ mode, action, categories, product, error, saved, level }: SupplierProductFormProps) {
   const t = await getT("supplier", "common");
   const isEdit = mode === "edit";
   const currency = product?.currency ?? "NGN";
-  const wholesalePrice = product?.wholesalePrice ?? 0;
+  // What a seller pays per piece to dropship it (its own dropship price when priced per channel).
+  const wholesalePrice = product?.wholesalePrice ? dropshipUnitPrice({ priceMode: product.priceMode, wholesalePrice: product.wholesalePrice, dropshipPrice: product.dropshipPrice }) : 0;
   const suggestedRetailPrice = product?.suggestedRetailPrice ?? 0;
   const margin = suggestedRetailPrice > 0 && wholesalePrice > 0
     ? Math.round(((suggestedRetailPrice - wholesalePrice) / suggestedRetailPrice) * 100)
     : 0;
   const status = product?.status ? statusOf(PRODUCT_STATUS, product.status, t) : null;
+  // Pre-orders open at Established; a listing that already takes them stays editable (and can be switched off).
+  const preorderOpen = canTakePreorders(level?.level) || Boolean(product?.preorderEnabled);
+  const tiers = readPriceBreaks(product?.pricingTiers);
+  const minQty = cleanDropshipMinQty(product?.dropshipMinQty);
+  const handlingDays = cleanHandlingDays(product?.handlingDays);
   const checklist = [
     { label: t("productForm.check.name"), done: Boolean(product?.name?.trim()) },
     { label: t("productForm.check.description"), done: (product?.description?.trim().length ?? 0) >= 40 },
@@ -147,14 +203,8 @@ export async function SupplierProductForm({ mode, action, categories, product, e
 
         <Section title={t("productForm.termsTitle")} sub={t("productForm.termsSub")}>
           <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
-            <Field id="product-wholesale" label={t("productForm.wholesalePrice")}>
-              <input id="product-wholesale" className={fieldClass} name="wholesalePrice" type="number" min="1" step="1" defaultValue={product?.wholesalePrice ?? ""} required />
-            </Field>
             <Field id="product-price-to" label={t("productForm.priceUpTo")} hint={t("productForm.priceUpToHint")}>
               <input id="product-price-to" className={fieldClass} name="wholesalePriceTo" type="number" min="0" step="1" defaultValue={product?.wholesalePriceTo ?? ""} />
-            </Field>
-            <Field id="product-retail" label={t("productForm.retailPrice")}>
-              <input id="product-retail" className={fieldClass} name="suggestedRetailPrice" type="number" min="1" step="1" defaultValue={product?.suggestedRetailPrice ?? ""} required />
             </Field>
             <Field id="product-currency" label={t("productForm.currency")}>
               <input id="product-currency" className={fieldClass} name="currency" defaultValue={currency} maxLength={3} required />
@@ -169,19 +219,75 @@ export async function SupplierProductForm({ mode, action, categories, product, e
               <input id="product-processing" className={fieldClass} name="processingTime" defaultValue={product?.processingTime ?? ""} placeholder={t("productForm.processingPlaceholder")} />
             </Field>
           </div>
-          <Field id="product-tiers" label={t("productForm.tiers")} hint={t("productForm.tiersHint")} className="mt-4">
-            <textarea id="product-tiers" className={`${textareaClass} font-mono text-[13.5px]`} name="pricingTiers" rows={3} defaultValue={pricingTierText(product)} placeholder={"10-49: 8500\n50-99: 7800\n100: 7200"} />
-          </Field>
         </Section>
 
+        <BoardSection title="Prices" sub="One price for everyone, or a price per channel. Sellers see your price, theirs and what they keep.">
+          <ChannelPricesFields
+            preorderPriceOpen={preorderOpen}
+            preorderLocked={<PreorderLocked level={level} />}
+            initial={{
+              // Older listings with quantity breaks already price per channel.
+              priceMode: product?.priceMode === "per_channel" || tiers.length > 0 ? "per_channel" : "same",
+              wholesalePrice: product?.wholesalePrice ?? null,
+              dropshipPrice: product?.dropshipPrice ?? null,
+              preorderPrice: product?.preorderPrice ?? null,
+              suggestedRetailPrice: product?.suggestedRetailPrice ?? null,
+              minRetailPrice: product?.minRetailPrice ?? null,
+              tiers,
+            }}
+          />
+        </BoardSection>
+
+        <BoardSection title="Dropship settings" sub="Sellers see these before they add your product, so nobody is surprised after a customer has paid.">
+          <div className="grid gap-3 lg:grid-cols-2">
+            <BoardCard role="group" labelledBy="ds-singles" className="group grid content-start gap-2.5">
+              <BoardQuestion id="ds-singles">Do you ship single pieces?</BoardQuestion>
+              <ChipRow>
+                <ChipChoice name="dropshipSingles" value="yes" defaultChecked={minQty === 1} label="Yes, 1 piece is fine" />
+                <ChipChoice name="dropshipSingles" value="min" defaultChecked={minQty > 1} label="No, set a minimum" />
+              </ChipRow>
+              <div className="hidden flex-wrap items-center gap-2.5 text-[14px] font-bold group-has-[[value=min]:checked]:flex">
+                <label htmlFor="product-dropship-min">Minimum per order</label>
+                <span className="inline-flex h-10 items-center rounded-full border-2 border-app-ink px-1 focus-within:ring-2 focus-within:ring-app-accent focus-within:ring-offset-2">
+                  <input id="product-dropship-min" className="w-[5ch] bg-transparent text-center font-app-display text-[17px] font-extrabold outline-none" name="dropshipMinQty" type="number" min="1" max="1000" step="1" inputMode="numeric" defaultValue={minQty > 1 ? minQty : 2} aria-describedby="product-dropship-min-hint" />
+                </span>
+                <span className="font-semibold text-app-ink-soft">pieces</span>
+              </div>
+              <p id="product-dropship-min-hint" className="m-0 hidden text-[12px] text-app-ink-soft group-has-[[value=min]:checked]:block">Used when you choose a minimum. Customers can&apos;t check out with fewer.</p>
+            </BoardCard>
+            <BoardCard role="radiogroup" labelledBy="ds-handling" className="grid content-start gap-2.5">
+              <BoardQuestion id="ds-handling">How fast do you pack an order?</BoardQuestion>
+              <p className="-mt-1 mb-0 text-[13px] text-app-ink-soft">Customers see this in the delivery date.</p>
+              <ChipRow>
+                {HANDLING_DAYS.map((days) => (
+                  <ChipChoice key={days} name="handlingDays" value={String(days)} defaultChecked={handlingDays === days} label={days === 1 ? "1 day" : `${days} days`} />
+                ))}
+              </ChipRow>
+            </BoardCard>
+            <BoardCard role="radiogroup" labelledBy="ds-size" className="grid content-start gap-2.5">
+              <BoardQuestion id="ds-size">How big is the parcel?</BoardQuestion>
+              <p className="-mt-1 mb-0 text-[13px] text-app-ink-soft">Sets the delivery price from your rate card.</p>
+              <ChipRow>
+                {SIZE_BANDS.map((band) => (
+                  <ChipChoice key={band} name="sizeBand" value={band} defaultChecked={product?.sizeBand === band} label={shortSize(band)} title={SIZE_CLASS_LABELS[band]} />
+                ))}
+              </ChipRow>
+              <p className="m-0 text-[12px] text-app-ink-soft">Small fits in a nylon, medium is a shoe box, large is a Ghana Must Go, carton or bale.</p>
+            </BoardCard>
+            <BoardCard className="grid content-center">
+              <SwitchRow name="sampleAvailable" value="true" defaultChecked={Boolean(product?.sampleAvailable)}>
+                <RowText title="Sellers can order 1 sample" sub="At your dropship price, to check quality" />
+              </SwitchRow>
+            </BoardCard>
+          </div>
+        </BoardSection>
+
+        {preorderOpen && (
         <Section title={t("productForm.preorderTitle")} sub={t("productForm.preorderSub")}>
-          <label className="flex min-h-[56px] cursor-pointer items-start gap-3 rounded-[16px] border border-app-line px-4 py-3 has-[:checked]:border-app-ink">
-            <input type="checkbox" name="preorderEnabled" value="true" defaultChecked={Boolean(product?.preorderEnabled)} className="mt-0.5 h-5 w-5 shrink-0 accent-[#16141F]" />
-            <span className="min-w-0">
-              <span className="block text-[14px] font-bold">{t("productForm.preorderOn")}</span>
-              <span className="block text-[12.5px] text-app-ink-soft">{t("productForm.preorderOnHint")}</span>
-            </span>
-          </label>
+          <>
+          <SwitchRow name="preorderEnabled" value="true" defaultChecked={Boolean(product?.preorderEnabled)} className="rounded-[16px] bg-app-canvas px-4 py-3">
+            <RowText title={t("productForm.preorderOn")} sub={t("productForm.preorderOnHint")} />
+          </SwitchRow>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <Field id="product-preorder-ships" label={t("productForm.preorderShips")} hint={t("productForm.preorderShipsHint")}>
               <input id="product-preorder-ships" className={fieldClass} name="preorderShipsAt" type="date" defaultValue={preorderDay(product?.preorderShipsAt) ?? ""} />
@@ -197,7 +303,9 @@ export async function SupplierProductForm({ mode, action, categories, product, e
             </Field>
           </div>
           <p className="mb-0 mt-4 rounded-[16px] bg-app-canvas px-4 py-3 text-[13px] leading-[1.55] text-app-ink-soft">{t("productForm.preorderMoney")}</p>
+          </>
         </Section>
+        )}
 
         <Section title={t("productForm.photosTitle")} sub={t("productForm.photosSub")}>
           <div className="grid gap-4 lg:grid-cols-2">
@@ -209,20 +317,15 @@ export async function SupplierProductForm({ mode, action, categories, product, e
               <textarea id="product-regions" className={textareaClass} name="deliveryRegions" rows={5} defaultValue={(product?.deliveryRegions ?? ["Lagos", "Abuja"]).join("\n")} placeholder={"Lagos\nAbuja\nPort Harcourt"} required />
             </Field>
           </div>
-          <fieldset className="m-0 mt-4 grid gap-2 border-0 p-0 sm:grid-cols-3">
+          <fieldset className="m-0 mt-4 grid gap-2 border-0 p-0 sm:grid-cols-2">
             <legend className="mb-2 text-[14px] font-bold">{t("productForm.howBuy")}</legend>
             {[
               ["dropshipAvailable", t("productForm.dropship"), t("productForm.dropshipHint"), product?.dropshipAvailable ?? false],
               ["bulkOrderAvailable", t("productForm.wholesale"), t("productForm.wholesaleHint"), product?.bulkOrderAvailable ?? true],
-              ["sampleAvailable", t("productForm.samples"), t("productForm.samplesHint"), product?.sampleAvailable ?? false],
             ].map(([name, label, hint, checked]) => (
-              <label key={String(name)} className="flex min-h-[56px] cursor-pointer items-start gap-3 rounded-[16px] border border-app-line px-4 py-3 has-[:checked]:border-app-ink">
-                <input type="checkbox" name={String(name)} value="true" defaultChecked={Boolean(checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-[#16141F]" />
-                <span className="min-w-0">
-                  <span className="block text-[14px] font-bold">{label}</span>
-                  <span className="block text-[12.5px] text-app-ink-soft">{hint}</span>
-                </span>
-              </label>
+              <SwitchRow key={String(name)} name={String(name)} value="true" defaultChecked={Boolean(checked)} className="rounded-[16px] bg-app-canvas px-4 py-3">
+                <RowText title={String(label)} sub={String(hint)} />
+              </SwitchRow>
             ))}
           </fieldset>
         </Section>
@@ -231,17 +334,17 @@ export async function SupplierProductForm({ mode, action, categories, product, e
           <button type="submit" name="intent" value="draft" className={buttonClass.white}>
             {t("productForm.saveDraft")}
           </button>
-          <button type="submit" name="intent" value="submit" className={buttonClass.accent} disabled={categories.length === 0}>
+          <button type="submit" name="intent" value="submit" className={buttonClass.orange} disabled={categories.length === 0}>
             {isEdit ? t("productForm.saveReview") : t("productForm.createReview")} <Icon name="arrow" size={15} />
           </button>
         </div>
       </form>
 
       <aside className="grid min-w-0 content-start gap-5">
-        <section className="rounded-[22px] bg-app-peach p-5">
+        <section className="rounded-[24px] bg-app-peach p-5">
           <div className="mb-3 flex items-center gap-3">
             <Mascot who="rex" size={40} />
-            <h2 className="m-0 text-[17px] font-extrabold">{t("productForm.margin")}</h2>
+            <h2 className="m-0 font-app-display text-[17px] font-extrabold">{t("productForm.margin")}</h2>
           </div>
           <dl className="m-0 grid gap-2 rounded-[16px] bg-white p-4 text-[14px]">
             <div className="flex justify-between gap-3"><dt className="text-app-ink-soft">{t("productForm.wholesale")}</dt><dd className="m-0 font-bold">{wholesalePrice ? money(wholesalePrice, currency) : "—"}</dd></div>
@@ -250,8 +353,8 @@ export async function SupplierProductForm({ mode, action, categories, product, e
           </dl>
           {!isEdit && <p className="mb-0 mt-3 text-[13px] leading-[1.5]">{t("productForm.marginAfterSave")}</p>}
         </section>
-        <Card className="p-5">
-          <h2 className="m-0 text-[17px] font-extrabold">{t("productForm.readyTitle")}</h2>
+        <Card className="rounded-[24px] border-0 p-5">
+          <h2 className="m-0 font-app-display text-[17px] font-extrabold">{t("productForm.readyTitle")}</h2>
           <ul className="m-0 mt-3 grid list-none gap-2.5 p-0">
             {checklist.map((item) => (
               <li key={item.label} className="flex items-center gap-2.5 text-[14px]">

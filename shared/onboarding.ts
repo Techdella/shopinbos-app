@@ -62,6 +62,27 @@ export interface BrandLook {
   templateId: string;
 }
 
+/** What "Pick a look" needs of a storefront theme (src/lib/store-templates/theme-library.ts, GET /api/mobile/looks). */
+export interface LookTheme {
+  id: string;
+  name: string;
+  preview: { bg: string; ink: string; accent: string; nameFont: "serif" | "sans" | "grotesk"; dark: boolean };
+}
+
+/**
+ * A library theme as the look and colours the store builder seeds from: the theme's own id and type, and its
+ * colours as dark, accent and light (a dark theme's background is its dark colour).
+ */
+export function lookFromTheme(theme: LookTheme): { look: BrandLook; palette: BrandPalette } {
+  const { bg, ink, accent, nameFont, dark } = theme.preview;
+  const serif = nameFont === "serif";
+  return {
+    look: { key: theme.id, label: theme.name, background: bg, ink, fontCss: serif ? "'Fraunces', serif" : "'Plus Jakarta Sans', sans-serif", fontStyle: serif ? "fraunces" : "grotesk", templateId: theme.id },
+    palette: { key: theme.id, label: theme.name, swatches: dark ? [bg, accent, ink] : [ink, accent, bg] },
+  };
+}
+
+/** The first look screens (still used by the older phone set-up screens); new sign-ups pick from the theme library. */
 export const BRAND_LOOKS: BrandLook[] = [
   { key: "adire", label: "Adire", background: "#F3EDE6", ink: "#2A2018", fontCss: "'Fraunces', serif", fontStyle: "fraunces", templateId: "heritage" },
   { key: "stride", label: "Stride", background: "#FFE9DD", ink: "#3A1A08", fontCss: "'Plus Jakarta Sans', sans-serif", fontStyle: "grotesk", templateId: "market" },
@@ -229,4 +250,102 @@ export function zonesForSellChoice(choice: SellChoice, homeState: string | null)
   if (others.length) zones.push({ name: others.length === 1 ? others[0] : "Other states", fee: 3500, regions: others, priority: 1 });
   if (choice.area === "nationwide") zones.push({ name: "Everywhere else", fee: 3500, regions: [], priority: 2 });
   return zones.length ? zones : [{ name: "Lagos", fee: 2000, regions: ["Lagos"], priority: 0 }];
+}
+
+// ─── Sign-up to a live store, one question per screen (2026 "Onboarding — Simplified") ─────────────────────────
+// Nine screens, each asking one thing: store name, logo, what you sell, products ready?, first product, its name and
+// price, a look, the store address, then "Your store is live!". No ID, bank or CAC on this path: the payout bank and
+// delivery are asked later, on Start here. Web (src/components/onboarding/seller/SellerOnboarding.tsx) and phone
+// (apps/mobile/src/app/onboarding/index.tsx) both follow these rules; the screen is saved in the onboarding memory
+// (screen) after every answer, so a seller who leaves comes back to the same question.
+
+export const SELLER_QUESTIONS = ["name", "logo", "sell", "ready", "product", "details", "look", "address", "live"] as const;
+export type SellerQuestion = (typeof SELLER_QUESTIONS)[number];
+
+/** "I have products" or "Find me a supplier" (dropship). */
+export type ProductPath = "own" | "dropship";
+
+export function isSellerQuestion(value: unknown): value is SellerQuestion {
+  return typeof value === "string" && (SELLER_QUESTIONS as readonly string[]).includes(value);
+}
+
+/** "Step 3 of 9": the screen's place in the full list (the dropship path skips "details" but keeps the numbering). */
+export function sellerQuestionNumber(question: SellerQuestion) {
+  return SELLER_QUESTIONS.indexOf(question) + 1;
+}
+
+/** The screen after this one. Dropship sellers pick supplier products, whose name and price come from the supplier. */
+export function nextSellerQuestion(question: SellerQuestion, path: ProductPath | null | undefined): SellerQuestion | null {
+  if (question === "product" && path === "dropship") return "look";
+  const index = SELLER_QUESTIONS.indexOf(question);
+  return SELLER_QUESTIONS[index + 1] ?? null;
+}
+
+/** The screen the back arrow goes to (null on the first one). */
+export function previousSellerQuestion(question: SellerQuestion, path: ProductPath | null | undefined): SellerQuestion | null {
+  if (question === "look" && path === "dropship") return "product";
+  const index = SELLER_QUESTIONS.indexOf(question);
+  return index > 0 ? SELLER_QUESTIONS[index - 1] : null;
+}
+
+/** Where a returning seller picks up: the saved screen, else the first one ("chat"/"brand" from the older flow start over). */
+export function resumeSellerQuestion(saved: unknown): SellerQuestion {
+  return isSellerQuestion(saved) ? saved : "name";
+}
+
+/** The selling price suggested for a supplier product: the wholesale price plus 25%, rounded up to ₦100. */
+export function suggestedRetailPrice(wholesale: number) {
+  if (!Number.isFinite(wholesale) || wholesale <= 0) return 0;
+  return Math.ceil((wholesale * 1.25) / 100) * 100;
+}
+
+/** "Ada" from "Ada Okafor" (the greeting on the first question). */
+export function firstNameOf(name: string | null | undefined) {
+  return String(name ?? "").trim().split(/\s+/)[0] ?? "";
+}
+
+/** Two letters for a logo when Rex can't draw one: "Ada's Kloset" → "AK". */
+export function lettermark(storeName: string) {
+  const words = storeName.replace(/['’]/g, "").replace(/[^\p{L}\p{N}\s]/gu, " ").trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return "S";
+  return (words.length === 1 ? words[0].slice(0, 2) : `${words[0][0]}${words[1][0]}`).toUpperCase();
+}
+
+/** What you sell, when the marketplace categories can't be loaded. */
+export const FALLBACK_SELL_CATEGORIES = [
+  "Fashion",
+  "Beauty",
+  "Hair and wigs",
+  "Shoes and bags",
+  "Jewellery",
+  "Food and drinks",
+  "Home and kitchen",
+  "Phones and gadgets",
+  "Baby and kids",
+  "Health",
+  "Fabrics",
+  "Other",
+] as const;
+
+/**
+ * The chips for "What do you sell?" / "What do you supply?": the everyday categories first (the marketplace's own
+ * list is only as broad as the catalogues imported so far), then the marketplace's categories not already
+ * covered, then "Other".
+ */
+export function businessCategories(marketplace: readonly string[]): string[] {
+  const key = (name: string) => name.toLowerCase().replace(/&/g, "and").replace(/[^a-z]+/g, " ").trim();
+  const starters = FALLBACK_SELL_CATEGORIES.filter((name) => name !== "Other") as string[];
+  const seen = new Set(starters.map(key));
+  const extra = marketplace.filter((name) => {
+    const k = key(name);
+    if (!k || seen.has(k) || k === "other") return false;
+    seen.add(k);
+    return true;
+  });
+  return [...starters, ...extra, "Other"];
+}
+
+/** The free web address before ".shopinbos.com" suggested from the store name. */
+export function addressFromName(name: string) {
+  return shopSlug(name).slice(0, 40).replace(/-+$/g, "");
 }

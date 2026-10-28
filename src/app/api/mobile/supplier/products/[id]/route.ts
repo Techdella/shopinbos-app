@@ -8,6 +8,8 @@ import { supplierForUser } from "../../_shared";
 import { editNeedsReview } from "@shared/supplier-product-review";
 import { parsePreorderInput, preorderSaveData } from "@shared/preorder";
 import { PreorderInputSchema } from "@/lib/schemas";
+import { channelPriceProblem } from "@shared/dropship-rules";
+import { preorderLevelProblem } from "@/lib/supplier-levels.server";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +17,8 @@ export const dynamic = "force-dynamic";
 //  - stock changes save straight away (they don't change what the listing says, so no new review);
 //  - price changes on a live product send it back for review, like PATCH /api/supplier/products/[id];
 //  - preorder { enabled, shipsAt (YYYY-MM-DD | null), limit, note } saves straight away (shared/preorder.ts rules);
+//  - the same rules as the portal's PATCH: prices per channel checked together (400 invalid_prices,
+//    shared/dropship-rules.ts channelPriceProblem) and pre-orders switched on only at Established (403 preorder_locked);
 //  - publish: true sends a draft or unpublished product for review (admins publish it), false takes it off the marketplace.
 // Full edits (name, description, tiers, regions) use PATCH /api/supplier/products/[id].
 
@@ -37,6 +41,18 @@ export const PATCH = withSupplier(async (req: NextRequest, { user, params }) => 
   const input = parsed.data;
   const preorderParsed = input.preorder ? parsePreorderInput(input.preorder, new Date(), product.preorderShipsAt) : null;
   if (preorderParsed && !preorderParsed.ok) return apiError("BAD_REQUEST", preorderParsed.message);
+  // Pre-orders open at Established. A listing that already takes them stays editable, and can always be switched off.
+  if (preorderParsed?.ok && preorderParsed.value.preorderEnabled && !product.preorderEnabled) {
+    const locked = await preorderLevelProblem(product.supplierId);
+    if (locked) return apiError("preorder_locked", locked, 403);
+  }
+  // Prices per channel, checked on the product as it will be after this change.
+  const priceProblem = channelPriceProblem({
+    ...product,
+    wholesalePrice: input.wholesalePrice ?? product.wholesalePrice,
+    suggestedRetailPrice: input.suggestedRetailPrice ?? product.suggestedRetailPrice,
+  });
+  if (priceProblem) return apiError("invalid_prices", priceProblem, 400);
 
   const priceChanged = editNeedsReview(product, { wholesalePrice: input.wholesalePrice, suggestedRetailPrice: input.suggestedRetailPrice });
   let status = product.status;

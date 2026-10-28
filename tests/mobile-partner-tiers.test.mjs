@@ -1,6 +1,6 @@
-// Delivery partner verification on the phone (apps/mobile/src/app/logistics/verification.tsx): the tiered steps
-// (shared/partner-tiers.ts) in place of the old CAC + insurance documents, the selfie sent with the NIN for the
-// Korapay face match, the tier card on Jobs, and the words in every language.
+// Delivery partner sign-up on the phone (apps/mobile/src/app/logistics/verification.tsx): one question per screen
+// (shared/partner-tiers.ts PARTNER_FLOW) in place of the old CAC + insurance documents, the ID photo and the selfie
+// (sent with the NIN for the Korapay face match on a NIN slip), the tier card on Jobs, and the words in every language.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -12,33 +12,24 @@ const app = (path) => read(`apps/mobile/src/${path}`);
 const kyc = await import("../apps/mobile/src/lib/kyc-pure.ts");
 const tiers = await import("../shared/partner-tiers.ts");
 
-const all = (state) => Object.fromEntries(Object.keys(tiers.ITEM_STEP).filter((key) => tiers.TIER1_ITEMS.includes(key)).map((key) => [key, state]));
-const tier2 = (state) => Object.fromEntries(tiers.TIER2_ITEMS.map((key) => [key, state]));
 
-test("step states: rejected beats missing beats pending; CAC is optional until something is in", () => {
-  const state = { tier1: { ...all("approved"), nin: "pending", selfie: "rejected" }, tier2: tier2("missing") };
-  assert.equal(kyc.stepState(state, "identity"), "rejected");
-  assert.equal(kyc.stepState({ ...state, tier1: { ...state.tier1, selfie: "missing" } }, "identity"), "todo");
-  assert.equal(kyc.stepState({ ...state, tier1: { ...state.tier1, selfie: "approved" } }, "identity"), "pending");
-  assert.equal(kyc.stepState(state, "bank"), "done");
-  assert.equal(kyc.stepState(state, "cac"), "optional");
-  assert.equal(kyc.stepState({ ...state, tier2: { ...tier2("missing"), businessName: "approved" } }, "cac"), "todo");
-});
-
-test("the flow opens on the first Tier 1 step that needs something, never on CAC", () => {
-  assert.equal(kyc.firstOpenStep({ tier1: all("missing"), tier2: tier2("missing") }), "identity");
-  assert.equal(kyc.firstOpenStep({ tier1: { ...all("approved"), payout: "missing" }, tier2: tier2("missing") }), "bank");
-  assert.equal(kyc.firstOpenStep({ tier1: { ...all("approved"), vehicles: "rejected" }, tier2: tier2("missing") }), "delivery");
-  assert.equal(kyc.firstOpenStep({ tier1: { ...all("approved"), coverage: "missing" }, tier2: tier2("missing") }), "delivery");
-  assert.equal(kyc.firstOpenStep({ tier1: all("pending"), tier2: tier2("missing") }), "review");
-});
-
-test("the tier a partner reaches: none until Tier 1 is in, Tier 2 only with all of CAC", () => {
-  assert.equal(kyc.tierOnSubmit({ tier1: { ...all("approved"), vehicles: "missing" }, tier2: tier2("approved") }), null);
-  assert.equal(kyc.tierOnSubmit({ tier1: all("pending"), tier2: tier2("missing") }), "tier1");
-  assert.equal(kyc.tierOnSubmit({ tier1: all("approved"), tier2: { ...tier2("pending"), cacCertificate: "approved" } }), "tier2");
-  assert.equal(kyc.tierOnSubmit({ tier1: { ...all("pending"), terms: "missing" }, tier2: tier2("missing") }), "tier1", "terms go with the send");
-  assert.deepEqual(kyc.itemsWhereOpen({ phone: "approved", nin: "missing", vehicles: "rejected" }).map((item) => item.key), ["nin", "vehicles"]);
+test("where the phone flow opens: the screen asked for, older step names, else the first unanswered one", () => {
+  assert.equal(kyc.openScreen("areas"), "areas");
+  assert.equal(kyc.openScreen("areas", "cac"), "cac", "Add CAC on the tier card");
+  assert.equal(kyc.openScreen("areas", "identity"), "id");
+  assert.equal(kyc.openScreen("areas", "delivery"), "areas");
+  assert.equal(kyc.openScreen("base", "bank"), "review", "no bank step any more");
+  assert.equal(kyc.openScreen("name", "nonsense"), "name");
+  assert.equal(kyc.nextScreen("name"), "cac");
+  assert.equal(kyc.nextScreen("review"), "review");
+  assert.equal(kyc.previousScreen("name"), null);
+  assert.equal(kyc.previousScreen("selfie"), "id");
+  assert.deepEqual(kyc.screenNumber("selfie"), { step: 10, total: 11 });
+  assert.equal(kyc.areaToken("Lagos", "Ikeja"), "Lagos: Ikeja");
+  assert.equal(kyc.areaToken("Lagos"), "Lagos");
+  assert.equal(kyc.feeAmount("₦2,500"), 2500);
+  assert.equal(kyc.feeAmount("50"), null);
+  assert.deepEqual(kyc.itemsWhereOpen({ phone: "approved", idDocument: "missing", selfie: "rejected" }).map((item) => item.key), ["idDocument", "selfie"]);
 });
 
 test("selfie and date of birth checks", () => {
@@ -55,44 +46,40 @@ test("selfie and date of birth checks", () => {
   assert.equal(kyc.digitsUpTo("123 456 789 012", 11), "12345678901");
 });
 
-test("the phone uses the tiered API, sends the selfie with the NIN, and no longer asks for CAC + insurance", () => {
+test("the phone asks one question per screen, with the same calls as the web, and never for a BVN, bank or papers", () => {
   const client = app("lib/kyc.ts");
   assert.match(client, /const BASE = "\/api\/logistics\/kyc"/);
   assert.match(client, /checkNin = \(input: \{ nin: string; firstName: string; lastName: string; dateOfBirth: string; selfie: string; liveness\?/);
-  for (const path of ["/identity", "/nin", "/phone", "/email", "/payout", "/coverage", "/vehicles", "/business", "/terms", "/submit"]) assert.ok(client.includes(`\${BASE}${path}`), path);
-  const identity = app("components/kyc/IdentityStep.tsx");
-  assert.match(identity, /cameraType: ImagePicker\.CameraType\.front/);
-  assert.match(identity, /base64: true/);
-  assert.match(identity, /checkNin\(\{ nin, firstName: first\.trim\(\), lastName: last\.trim\(\), dateOfBirth: born, selfie: selfie\.dataUri, \.\.\.\(passed \? \{ liveness: passed \} : \{\}\) \}\)/);
+  for (const path of ["/answers", "/base", "/id-document", "/nin", "/selfie", "/phone", "/business", "/terms", "/submit"]) assert.ok(client.includes(`\${BASE}${path}`), path);
+  for (const gone of ["/payout", "/email", "/vehicles", "/coverage"]) assert.ok(!client.includes(`\${BASE}${gone}`), gone);
+  assert.match(client, /\/api\/logistics\/verification\/cac/, "CAC is looked up: Is this your company?");
   const screen = app("app/logistics/verification.tsx");
   assert.doesNotMatch(screen, /VerificationScreen|LOGISTICS_DOC_TYPES/);
-  for (const step of ["IdentityStep", "BankStep", "DeliveryStep", "CacStep", "ReviewStep"]) assert.match(screen, new RegExp(`<${step} \\{\\.\\.\\.props\\} />`), step);
-  // One flow of 4 numbered steps; CAC is an optional card after them, never numbered.
-  assert.deepEqual(tiers.ONBOARDING_STEPS, ["identity", "bank", "delivery", "review", "cac"]);
-  assert.match(screen, /const NUMBERED = ONBOARDING_STEPS\.filter\(\(item\) => item !== "cac"\)/);
-  assert.match(screen, /NUMBERED\.map\(\(item, position\)/);
-  assert.match(screen, /setStep\("cac"\)/);
-  // No guarantor anywhere on the phone.
-  for (const file of ["lib/kyc.ts", "components/kyc/FleetSteps.tsx", "app/logistics/verification.tsx"]) assert.doesNotMatch(app(file), /guarantor/i, file);
-  // "Your delivery": company name, where and how, then vehicles, saved with one call.
-  const fleet = app("components/kyc/FleetSteps.tsx");
-  assert.match(fleet, /useState\(state\.business\.companyName \?\? ""\)/);
-  assert.match(fleet, /saveKycCoverage\(\{ companyName, deliveryAreas: areas, deliveryMethods: methods \}\)/);
-  assert.match(fleet, /<VehiclesStep \{\.\.\.props\} \/>/);
+  for (const name of ["NameScreen", "CacScreen", "StateScreen", "AreasScreen", "VehiclesScreen", "InterstateScreen", "ChargeScreen", "BaseScreen", "IdScreen", "SelfieScreen", "ReviewScreen"]) assert.match(screen, new RegExp(`<${name} `), name);
+  assert.match(screen, /openScreen\(data\.flow\.first, params\.step\)/, "reopens on the first unanswered screen");
+  assert.match(screen, /t\("step\.of", number\)/);
+  const checks = app("components/kyc/CheckScreens.tsx");
+  assert.match(checks, /cameraType: front \? ImagePicker\.CameraType\.front : ImagePicker\.CameraType\.back/);
+  assert.match(checks, /base64: true/);
+  assert.match(checks, /Location\.getCurrentPositionAsync/, "Use my current location");
+  assert.match(checks, /saveIdDocument\(idType, photo\.dataUri\)/);
+  assert.match(checks, /checkNin\(\{ nin: draft\.nin, firstName: draft\.firstName\.trim\(\), lastName: draft\.lastName\.trim\(\), dateOfBirth: born, selfie: selfie\.dataUri, \.\.\.extra \}\)/);
+  assert.match(checks, /sendSelfie\(\{ selfie: selfie\.dataUri, \.\.\.extra \}\)/);
+  assert.match(checks, /if \(!state\.termsCurrent\) await acceptTerms\(\);/);
+  assert.match(checks, /itemsWhereOpen\(state\.tier1\)\.filter\(\(item\) => item\.key !== "terms"\)/, "unticked terms never lock the send button");
+  assert.match(checks, /openOnWeb\("\/logistics\/terms"\)/);
+  assert.match(checks, /openOnWeb\("\/logistics\/cac-help"\)/);
+  const questions = app("components/kyc/QuestionScreens.tsx");
+  assert.match(questions, /saveAnswer\("name", \{ companyName \}\)/);
+  assert.match(questions, /saveAnswer\("charge", charge === "flat" \? \{ charge, amount: fee \} : \{ charge \}\)/);
+  assert.match(questions, /const VEHICLES = \["bike", "car", "van", "truck", "tricycle"\] as const;/, "truck is a delivery method");
+  for (const file of ["lib/kyc.ts", "components/kyc/QuestionScreens.tsx", "components/kyc/CheckScreens.tsx", "app/logistics/verification.tsx"]) {
+    assert.doesNotMatch(app(file).replace(/^\s*\/\/.*$/gm, ""), /guarantor|bvn|plateNumber|licence/i, file);
+  }
   // New and unfinished partners go straight to verification; the old set-up wizard only redirects there.
   assert.match(app("app/logistics/(tabs)/home.tsx"), /onboarded \? "\/logistics\/jobs" : "\/logistics\/verification"/);
   assert.match(app("app/logistics/setup.tsx"), /<Redirect href="\/logistics\/verification" \/>/);
   assert.match(app("lib/logistics-pure.ts"), /setup: \{ path: "\/logistics\/verification"/);
-  assert.match(screen, /t\("noCac\.title"\)/);
-  assert.match(screen, /openOnWeb\("\/logistics\/cac-help"\)/);
-  const business = app("components/kyc/BusinessSteps.tsx");
-  assert.match(business, /openOnWeb\("\/logistics\/terms"\)/);
-  assert.match(business, /if \(!state\.termsCurrent\) await acceptTerms\(\);/);
-  assert.match(business, /itemsWhereOpen\(state\.tier1\)\.filter\(\(item\) => item\.key !== "terms"\)/, "unticked terms never lock the send button");
-  // Truck is a delivery method and a vehicle type on the phone too.
-  assert.ok(tiers.DELIVERY_METHODS.includes("truck"));
-  assert.match(app("components/kyc/FleetSteps.tsx"), /DELIVERY_METHODS\.map/);
-  // Nothing on the delivery side still reads the old required documents.
   for (const file of ["app/logistics/setup.tsx", "lib/logistics-pure.ts", "app/logistics/verification.tsx"]) assert.doesNotMatch(app(file), /LOGISTICS_DOC_TYPES/, file);
 });
 
@@ -114,9 +101,13 @@ test("every phone verification word is in every language, with the same placehol
     }
   }
   // Every key the screens use exists in English.
-  const used = ["components/kyc/KycKit.tsx", "components/kyc/IdentityStep.tsx", "components/kyc/FleetSteps.tsx", "components/kyc/BusinessSteps.tsx", "components/kyc/TierCard.tsx", "app/logistics/verification.tsx"]
+  const used = ["components/kyc/KycKit.tsx", "components/kyc/QuestionScreens.tsx", "components/kyc/CheckScreens.tsx", "components/kyc/TierCard.tsx", "app/logistics/verification.tsx"]
     .flatMap((file) => [...app(file).matchAll(/\bt\("([a-zA-Z0-9_.-]+)"/g)].map((match) => match[1]));
   for (const key of used) assert.ok(key in catalog.en, key);
+  // Dynamic keys: every ID type, Tier 1 item and vehicle the screens show.
+  for (const type of tiers.ID_TYPES) assert.ok(`idType.${type}` in catalog.en, type);
+  for (const item of tiers.TIER1_ITEMS) assert.ok(`item.name.${item}` in catalog.en, item);
+  for (const method of ["bike", "car", "van", "truck", "tricycle"]) assert.ok(`method.${method}` in catalog.en, method);
   assert.match(read("shared/i18n/catalog.ts"), /import m_kyc from "\.\/messages\/m_kyc\/index\.ts";/);
 });
 
@@ -130,9 +121,9 @@ test("Korapay liveness on the phone: the SDK runs before the selfie and its refe
   assert.match(native, /\/\^pk_\(test\|live\)_\//, "only a real public key switches it on");
   assert.match(native, /allowAudio: false/);
   assert.match(read("apps/mobile/src/components/kyc/KoraLiveness.tsx"), /LIVENESS_ON = false/, "web fallback: no SDK");
-  const step = read("apps/mobile/src/components/kyc/IdentityStep.tsx");
+  const step = read("apps/mobile/src/components/kyc/CheckScreens.tsx");
   assert.match(step, /LIVENESS_ON && !passed/);
-  assert.match(step, /\.\.\.\(passed \? \{ liveness: passed \} : \{\}\)/);
+  assert.match(step, /const extra = passed \? \{ liveness: passed \} : \{\};/);
   assert.match(step, /\{liveness\.screen\}/);
   const plugin = read("apps/mobile/plugins/optional-features.js");
   assert.match(plugin, /"tools:replace": "android:required"/, "the SDK's required camera can't hide the app from camera-less phones");

@@ -36,10 +36,28 @@ function GoogleMark() {
   );
 }
 
-/** Back to the "What do you want to do?" cards on Welcome. */
+/** "Not a supplier? Change": sign up without a role, so "What brings you to Shopinbos?" comes after the code. */
 function changeRole() {
-  if (router.canGoBack()) router.back();
-  else router.replace({ pathname: "/welcome", params: { step: "role" } });
+  router.replace("/signup");
+}
+
+/** "Step 2 of 4" with a thin bar, on each sign-up screen (name, phone, code, role). */
+export function SignupProgress({ step, total }: { step: number; total: number }) {
+  const t = useT("m_auth");
+  const label = t("q.progress", { step, total });
+  return (
+    <View accessible accessibilityLabel={label} style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 10 }}>
+      <View style={{ flex: 1, height: 6, borderRadius: 3, backgroundColor: colors.line, overflow: "hidden" }}>
+        <View style={{ width: `${(step / total) * 100}%`, height: 6, borderRadius: 3, backgroundColor: colors.ink }} />
+      </View>
+      <T weight="bold" style={{ fontSize: 12, color: colors.inkSoft }}>{label}</T>
+    </View>
+  );
+}
+
+/** Sign up: name, phone, code, then the role when nobody picked it yet. */
+export function signupSteps(roleKnown: boolean) {
+  return roleKnown ? 3 : 4;
 }
 
 /** The phone or email typed on the other screen, from its "Sign up now" / "Log in" button. */
@@ -54,14 +72,22 @@ function prefillParams(method: Method, phone: string, country: DialCountry, emai
   return isValidEmail(email) ? { email: email.trim().toLowerCase() } : {};
 }
 
-export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller", prefill }: { mode: Mode; initialMethod?: Method; initialRole?: SignupRole; prefill?: Prefill }) {
+/**
+ * Sign up asks one question per screen (Shopinbos Onboarding — Simplified): "What's your name?", then "What's your
+ * phone number?" here, then the code and, when no role was picked yet, "What brings you to Shopinbos?" (verify.tsx).
+ * Log in stays phone → code.
+ */
+export function AuthForm({ mode, initialMethod = "phone", initialRole = null, prefill }: { mode: Mode; initialMethod?: Method; initialRole?: SignupRole | null; prefill?: Prefill }) {
   const t = useT("m_auth");
   const tLegal = useT("auth");
   const prefilledPhone = prefill?.phone ? splitE164(prefill.phone) : null;
   const prefilledEmail = prefill?.email && isValidEmail(prefill.email) ? prefill.email : "";
   const [method, setMethod] = useState<Method>(prefilledPhone ? "phone" : prefilledEmail ? "email" : initialMethod);
-  // Who is signing up, picked on the Welcome cards (seller, supplier, delivery partner). Sets a new account's role.
+  // Who is signing up, when a link or card already said (seller, supplier, delivery partner); null asks after the code.
   const role = initialRole;
+  const signupRole: SignupRole = role ?? "seller";
+  // Sign up opens on the name, then the phone (or email).
+  const [step, setStep] = useState<"name" | "contact">(mode === "signup" ? "name" : "contact");
   // Phone codes go on WhatsApp when the server has it on (GET /api/auth/otp), else SMS; null while asking.
   const [whatsapp, setWhatsapp] = useState<boolean | null>(null);
   // Sign in with Apple: iPhone only (see appleSignInAvailable).
@@ -76,7 +102,9 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
   }, []);
   const via = whatsapp ? ("whatsapp" as const) : ("sms" as const);
   const [emailMode, setEmailMode] = useState<"code" | "password">("code");
-  const [name, setName] = useState("");
+  const [givenName, setGivenName] = useState("");
+  const [familyName, setFamilyName] = useState("");
+  const name = `${givenName.trim()} ${familyName.trim()}`.trim();
   const [country, setCountry] = useState<DialCountry>(prefilledPhone?.country ?? DEFAULT_DIAL_COUNTRY);
   const [picking, setPicking] = useState(false);
   const [phone, setPhone] = useState(prefilledPhone?.national ?? "");
@@ -90,7 +118,7 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
   /** The words for a failed send or log in, with a Sign up / Log in button under them when that's the way forward. */
   function showFailure(failure: unknown, fallback: string) {
     if (failure instanceof AccountCheckError) {
-      if (failure.code === "ACCOUNT_EXISTS" && failure.role && failure.role !== role) {
+      if (failure.code === "ACCOUNT_EXISTS" && role && failure.role && failure.role !== role) {
         // Another kind of account: "This number already has a supplier account. Log in, or use a different number…"
         setError(t(failure.via === "phone" ? "conflict.phone" : "conflict.email", {
           account: t(`conflict.account.${failure.role}`),
@@ -108,10 +136,10 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
   const usingPassword = mode === "login" && method === "email" && emailMode === "password";
 
   async function finish(signedUp: boolean, phoneNumber?: string, fullName?: string) {
-    const actual = await syncAccount({ fullName: name.trim() || fullName || undefined, phone: phoneNumber, signup: signedUp, role });
+    const actual = await syncAccount({ fullName: name || fullName || undefined, phone: phoneNumber, signup: signedUp, role: signupRole });
     await rememberSignedInRole(actual);
     // Google sign-up with an email that already has another kind of account: nothing changed; say so plainly.
-    if (signedUp && actual && actual !== role && (await explainSignupConflict(actual, role, "email")) === "different") {
+    if (signedUp && actual && actual !== signupRole && (await explainSignupConflict(actual, signupRole, "email")) === "different") {
       await signOutNow();
       return;
     }
@@ -119,10 +147,26 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
     router.replace("/");
   }
 
+  function goToContact() {
+    setError(null);
+    setNextStep(null);
+    if (!givenName.trim() || !familyName.trim()) return setError(t("q.needName"));
+    setStep("contact");
+  }
+
+  function backToName() {
+    setError(null);
+    setNextStep(null);
+    setStep("name");
+  }
+
   async function submit() {
     setError(null);
     setNextStep(null);
-    if (mode === "signup" && !name.trim()) return setError(t("form.needName"));
+    if (mode === "signup" && (!givenName.trim() || !familyName.trim())) {
+      setStep("name");
+      return setError(t("q.needName"));
+    }
     if (usingPassword) {
       if (!isValidEmail(email) || !password) return setError(t("form.needEmailPassword"));
       setBusy("send");
@@ -146,8 +190,8 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
     }
     setBusy("send");
     try {
-      const channel = await sendCode(target, { create: mode === "signup", fullName: name, role });
-      router.push({ pathname: "/verify", params: { target: JSON.stringify(target), mode, name: name.trim(), role, channel } });
+      const channel = await sendCode(target, { create: mode === "signup", fullName: name, role: role ?? undefined });
+      router.push({ pathname: "/verify", params: { target: JSON.stringify(target), mode, name, role: role ?? "", channel } });
     } catch (sendError) {
       showFailure(sendError, t("form.sendFailed"));
     } finally {
@@ -194,7 +238,9 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
   const primary = usingPassword
     ? t("form.logIn")
     : method === "phone" ? t("form.sendCode") : t("form.emailCode");
-  const heading = method === "phone" ? t("phone.title") : t("email.title");
+  const heading = mode === "signup"
+    ? method === "phone" ? t("q.phone") : t("q.email")
+    : method === "phone" ? t("phone.title") : t("email.title");
   const sub = method === "phone"
     ? whatsapp === false ? t("phone.subSms") : t("phone.subWhatsapp")
     : usingPassword ? t("email.subPassword") : t("email.sub");
@@ -203,15 +249,16 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
       <KeyboardShift>
         <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 24, gap: 20 }} keyboardShouldPersistTaps="handled">
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-            <BackButton onPress={() => (router.canGoBack() ? router.back() : router.replace("/welcome"))} />
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <BackButton onPress={() => (mode === "signup" && step === "contact" ? backToName() : router.canGoBack() ? router.back() : router.replace("/welcome"))} />
+            {mode === "signup" ? <SignupProgress step={step === "name" ? 1 : 2} total={signupSteps(Boolean(role))} /> : <View style={{ flex: 1 }} />}
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <LanguageButton />
               <HelpButton />
             </View>
           </View>
-          {mode === "signup" && (
-            // The chosen role, always in sight: "Sign up as a supplier · Not a supplier? Change".
+          {mode === "signup" && role && step === "name" && (
+            // The kind of account the link or card picked, in sight: "Sign up as a supplier · Not a supplier? Change".
             <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: 10, marginBottom: -8 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.peach, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 }}>
                 <AppIcon name={ROLE_ICON[role]} size={15} color={colors.accentInk} />
@@ -220,16 +267,31 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
               <LinkButton title={t(`change.${role}`)} color={colors.inkSoft} onPress={changeRole} style={{ minHeight: 44 }} />
             </View>
           )}
+          {step === "name" ? (
+            <>
+              <View style={{ gap: 12 }}>
+                <Title>{t("q.name")}</Title>
+                <Sub>{t("q.nameSub")}</Sub>
+              </View>
+              <View style={{ gap: 14 }}>
+                <View>
+                  <Label>{t("q.firstName")}</Label>
+                  <Field autoFocus placeholder="Adaeze" autoComplete="name-given" textContentType="givenName" value={givenName} onChangeText={setGivenName} returnKeyType="next" style={{ height: 58, fontSize: 18 }} />
+                </View>
+                <View>
+                  <Label>{t("q.lastName")}</Label>
+                  <Field placeholder="Okafor" autoComplete="name-family" textContentType="familyName" value={familyName} onChangeText={setFamilyName} returnKeyType="done" onSubmitEditing={goToContact} style={{ height: 58, fontSize: 18 }} />
+                </View>
+              </View>
+              {error && <Notice>{error}</Notice>}
+              <LinkButton title={t("welcome.haveAccount")} color={colors.inkSoft} onPress={() => router.replace("/login")} testID="signup-login" />
+            </>
+          ) : (
+          <>
           <View style={{ gap: 12 }}>
             <Title>{heading}</Title>
-            <Sub>{sub}</Sub>
+            <Sub>{mode === "signup" && givenName.trim() ? t("q.phoneSubNamed", { name: givenName.trim() }) : sub}</Sub>
           </View>
-          {mode === "signup" && (
-            <View>
-              <Label>{t("form.name")}</Label>
-              <Field placeholder="Adaeze Okafor" autoComplete="name" textContentType="name" value={name} onChangeText={setName} style={{ height: 58, fontSize: 18 }} />
-            </View>
-          )}
           {method === "phone" ? (
             <View style={{ flexDirection: "row", gap: 10 }}>
               <Pressable
@@ -246,6 +308,7 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
                 textContentType="telephoneNumber"
                 autoComplete="tel"
                 placeholder={country.example}
+                autoFocus
                 value={phone}
                 onChangeText={setPhone}
                 style={{ flex: 1, minWidth: 0, height: 58, borderWidth: 1.5, fontSize: 20, fontFamily: fonts.bold }}
@@ -253,7 +316,7 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
             </View>
           ) : (
             <View style={{ gap: 18 }}>
-              <Field accessibilityLabel={t("form.email")} placeholder="you@yourshop.com" keyboardType="email-address" autoCapitalize="none" autoComplete="email" textContentType="emailAddress" value={email} onChangeText={setEmail} style={{ height: 58, borderWidth: 1.5, fontSize: 18 }} />
+              <Field accessibilityLabel={t("form.email")} autoFocus placeholder="you@yourshop.com" keyboardType="email-address" autoCapitalize="none" autoComplete="email" textContentType="emailAddress" value={email} onChangeText={setEmail} style={{ height: 58, borderWidth: 1.5, fontSize: 18 }} />
               {usingPassword && (
                 <View>
                   <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
@@ -276,7 +339,7 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
               onPress={() => {
                 // Same phone or email filled in on the next screen, so nobody types it twice.
                 const carried = prefillParams(method, phone, country, email);
-                if (nextStep === "signup") router.replace({ pathname: "/welcome", params: { step: "role", ...carried } });
+                if (nextStep === "signup") router.replace({ pathname: "/signup", params: carried });
                 else router.replace({ pathname: "/login", params: carried });
               }}
             />
@@ -285,13 +348,15 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
           {mode === "login" ? (
             // New here: sign up. Riders have no business account: their own sign-in (phone + the company's code).
             <View style={{ gap: 4, alignItems: "flex-start" }}>
-              <LinkButton title={t("form.signupLink")} onPress={() => router.replace({ pathname: "/welcome", params: { step: "role" } })} testID="login-signup" />
+              <LinkButton title={t("form.signupLink")} onPress={() => router.replace("/signup")} testID="login-signup" />
               <LinkButton title={t("form.riderLink")} color={colors.inkSoft} onPress={() => router.push("/rider/sign-in")} testID="login-rider" />
             </View>
           ) : null}
+          </>
+          )}
         </ScrollView>
         <View style={{ paddingHorizontal: 20, paddingBottom: 12, paddingTop: 10, gap: 10 }}>
-          {mode === "signup" && (
+          {mode === "signup" && step === "contact" && (
             <T style={{ fontSize: 12, color: colors.inkSoft, lineHeight: 18 }}>
               {tLegal("terms.before")}{" "}
               <T style={legalLink} onPress={() => void WebBrowser.openBrowserAsync(TERMS_URL)}>{tLegal("terms.terms")}</T>{" "}
@@ -300,7 +365,11 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
               {tLegal("terms.after")}
             </T>
           )}
-          <PillButton tone="accent" busy={busy === "send"} disabled={Boolean(busy)} onPress={() => void submit()} icon={method === "phone" && whatsapp ? "chat" : undefined} title={primary} />
+          {step === "name" ? (
+            <PillButton tone="accent" disabled={!givenName.trim() || !familyName.trim()} onPress={goToContact} title={t("code.continue")} testID="signup-name-continue" />
+          ) : (
+            <PillButton tone="accent" busy={busy === "send"} disabled={Boolean(busy)} onPress={() => void submit()} icon={method === "phone" && whatsapp ? "chat" : undefined} title={primary} />
+          )}
         </View>
       </KeyboardShift>
       <Sheet visible={others} onClose={() => setOthers(false)} title={t("other.link")}>
@@ -309,7 +378,7 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
         ) : (
           <ChoiceRow icon="phone" title={t("form.usePhone")} sub={t("other.phoneSub")} onPress={() => { setOthers(false); setError(null); setMethod("phone"); }} />
         )}
-        {apple && (
+        {(mode === "login" || role) && apple && (
           <AppleAuthentication.AppleAuthenticationButton
             buttonType={mode === "signup" ? AppleAuthentication.AppleAuthenticationButtonType.SIGN_UP : AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
             buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
@@ -318,10 +387,12 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = "seller"
             onPress={() => !busy && fromSheet(() => void signInApple())}
           />
         )}
-        <PillButton tone="white" size="md" busy={busy === "google"} disabled={Boolean(busy)} onPress={() => fromSheet(() => void google())}>
-          <GoogleMark />
-          <OneLine text={t("form.google")} size={BUTTON_TEXT.md} />
-        </PillButton>
+        {(mode === "login" || role) && (
+          <PillButton tone="white" size="md" busy={busy === "google"} disabled={Boolean(busy)} onPress={() => fromSheet(() => void google())}>
+            <GoogleMark />
+            <OneLine text={t("form.google")} size={BUTTON_TEXT.md} />
+          </PillButton>
+        )}
       </Sheet>
       <Modal visible={picking} transparent animationType="slide" onRequestClose={() => setPicking(false)}>
         <Pressable style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "flex-end" }} onPress={() => setPicking(false)}>

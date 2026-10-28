@@ -17,7 +17,9 @@ const hasKey = (ns, key) => LANGS.every((lang) => catalog(ns, lang).includes(`"$
 
 test("supplier set-up has a Documents step with the in-app upload and the real Send for review", () => {
   const setup = app("app/supplier/setup.tsx");
-  assert.match(setup, /type Step = "welcome" \| "biz" \| "pickup" \| "where" \| "bank" \| "docs" \| "ready"/);
+  // New suppliers get onboarding one question per screen; ?edit= opens one thing to change, documents included.
+  assert.match(setup, /type Step = "biz" \| "pickup" \| "where" \| "bank" \| "docs"/);
+  assert.match(setup, /return editing \? <SupplierSetupEditor editing=\{editing\} \/> : <SupplierJoinFlow \/>/);
   assert.match(setup, /useVerificationDocs\("supplier"/);
   assert.match(setup, /<VerificationDocList role="supplier" v=\{docs\} \/>/);
   // Only a send the server took moves on; otherwise the note shows its reason.
@@ -27,7 +29,7 @@ test("supplier set-up has a Documents step with the in-app upload and the real S
   assert.match(screen, /export function useVerificationDocs/);
   assert.match(screen, /export function VerificationDocList/);
   assert.match(screen, /missingRequiredDocs\(docTypesForRole\(role\)/, "the same required documents as the server");
-  for (const key of ["setup.docsTitle", "setup.docsSub", "setup.docsSend", "setup.readySubChecking", "setup.readySubVerified"]) assert.ok(hasKey("m_supplier", key), key);
+  for (const key of ["setup.docsTitle", "setup.docsSub", "setup.docsSend"]) assert.ok(hasKey("m_supplier", key), key);
   assert.ok(hasKey("m_ui", "verify.missing"));
 });
 

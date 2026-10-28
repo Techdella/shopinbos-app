@@ -46,6 +46,7 @@ const PUBLIC_PAGES = [
   /^\/email\/preferences\//, // email preference center: the signed token is the credential
   /^\/email\/preferences\//, // email preference center, the signed token is the credential
   /^\/rider\/\[token\]$/, // rider job link, the token is the credential
+  /^\/verify\/phone\/\[token\]$/, // "Do it on your phone": the signed 20-minute token allows one selfie or ID photo
   /^\/pilot\/\[token\]$/, // pilot testing reply form; the signed token in the invitation is the credential
   /^\/delete-account$/, // account deletion request page Google Play requires; opens a rate-limited support ticket
   /^\/meta-data-deletion$/, // Meta data-deletion status page; the 12-character confirmation code is the credential
@@ -372,7 +373,8 @@ test("sign-in codes paste in any shape, and the typed phone or email carries ove
   assert.match(verify, /Clipboard\.getStringAsync\(\)/);
   assert.match(verify, /codeFromText\(text\)/);
   const form = read("apps/mobile/src/components/AuthForm.tsx");
-  assert.match(form, /params: \{ step: "role", \.\.\.carried \}/);
+  // "Sign up now" opens sign up (name first) with the typed phone or email already in place.
+  assert.match(form, /pathname: "\/signup", params: carried/);
   assert.match(form, /pathname: "\/login", params: carried/);
   const mobileAuth = read("apps/mobile/src/lib/auth.ts");
   assert.doesNotMatch(mobileAuth, /send by SMS straight from Supabase below/);

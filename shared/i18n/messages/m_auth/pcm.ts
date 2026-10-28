@@ -169,6 +169,22 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "code.continue": "Continue",
   "form.signupLink": "You new here? Create account",
   "form.riderLink": "You dey ride for delivery company? Rider sign-in",
+  // One question per screen (sign up)
+  "q.progress": "Step {step} of {total}",
+  "q.name": "Wetin be your name?",
+  "q.nameSub": "Your first name and surname. Rex and Peggy go use am.",
+  "q.firstName": "First name",
+  "q.lastName": "Surname",
+  "q.needName": "Type your first name and surname.",
+  "q.phone": "Wetin be your phone number?",
+  "q.phoneSubNamed": "Thank you, {name}. We go send you code to confirm am. You no need password.",
+  "q.email": "Wetin be your email?",
+  "q.code": "Type the code wey we send you.",
+  "q.role": "Wetin bring you come Shopinbos?",
+  "q.roleSub": "Pick one make we start.",
+  "q.role.seller": "I wan sell",
+  "q.role.logistics_partner": "I dey deliver orders",
+  "q.role.supplier": "I dey supply goods",
 };
 
 export default pcm;

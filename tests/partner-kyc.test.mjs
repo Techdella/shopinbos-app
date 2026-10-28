@@ -11,6 +11,17 @@ const k = await import("../src/lib/logistics/partner-kyc.ts");
 const root = new URL("..", import.meta.url).pathname;
 const read = (path) => readFileSync(join(root, path), "utf8");
 
+/** A route's source, or the shared step it hands to (the phone link runs the same step, src/lib/kyc/handoff.server.ts). */
+function stepSource(path) {
+  const src = read(path);
+  const shared = /import \{ (\w+) \} from "@\/lib\/(logistics\/kyc-steps|kyc\/supplier-steps)\.server"/.exec(src);
+  if (!shared) return src;
+  const lib = read(`src/lib/${shared[2]}.server.ts`);
+  const start = lib.indexOf(`export async function ${shared[1]}(`);
+  const next = lib.indexOf("\nexport async function ", start + 1);
+  return lib.slice(start, next === -1 ? undefined : next);
+}
+
 function files(dir) {
   return readdirSync(join(root, dir)).flatMap((name) => {
     const path = join(dir, name);
@@ -50,12 +61,15 @@ test("ID hashes are keyed: the same NIN under another secret is a different hash
 
 
 test("every kyc route that changes something refreshes the tier", () => {
-  const routes = files("src/app/api/logistics/kyc").filter((path) => path.endsWith("route.ts") && path !== "src/app/api/logistics/kyc/route.ts");
+  // The phone-link route only makes a link (the phone's selfie then runs the shared steps below).
+  const routes = files("src/app/api/logistics/kyc").filter((path) => path.endsWith("route.ts") && path !== "src/app/api/logistics/kyc/route.ts" && !path.endsWith("/handoff/route.ts"));
   assert.ok(routes.length >= 11, routes.join(", "));
   for (const path of routes) {
-    const src = read(path);
-    if (path.endsWith("/payout/route.ts") || path.endsWith("/nin/route.ts") || path.endsWith("/phone/route.ts") || path.endsWith("/email/route.ts") || path.endsWith("/identity/route.ts")) {
+    const src = stepSource(path);
+    if (["payout", "nin", "phone", "email", "identity", "base", "id-document"].some((name) => path.endsWith(`/${name}/route.ts`))) {
       assert.match(src, /updateIdentityChecks/, path);
+    } else if (path.endsWith("/answers/route.ts")) {
+      assert.match(src, /saveFlowAnswers/, path);
     } else if (path.endsWith("/submit/route.ts")) {
       assert.match(src, /submitPartnerKyc/, path);
     } else {
@@ -64,11 +78,12 @@ test("every kyc route that changes something refreshes the tier", () => {
   }
   assert.match(read("src/lib/logistics/partner-kyc.server.ts"), /export async function updateIdentityChecks[\s\S]*?refreshPartnerTier\(partnerId\)/);
   assert.match(read("src/lib/logistics/partner-kyc.server.ts"), /export async function submitPartnerKyc[\s\S]*?refreshPartnerTier\(partner\.id\)/);
+  assert.match(read("src/lib/logistics/partner-kyc.server.ts"), /export async function saveFlowAnswers[\s\S]*?refreshPartnerTier\(partnerId\)/);
 });
 
 test("NIN and BVN are stored as last 4 digits and a keyed hash, never whole", () => {
   for (const path of ["src/app/api/logistics/kyc/nin/route.ts", "src/app/api/logistics/kyc/payout/route.ts"]) {
-    const src = read(path);
+    const src = stepSource(path);
     assert.match(src, /last4: (nin|bvn|accountNumber)\.slice\(-4\)/, path);
     assert.doesNotMatch(src, /nin: nin[,\s}]|bvn: bvn[,\s}]|accountNumber: accountNumber/, path);
   }
@@ -86,19 +101,18 @@ test("the old submit route (phone app) uses the tiered submit and names what's m
 
 
 test("terms at setup, the CAC banner and link, and the spec's pages", () => {
-  // Terms are accepted on the Review step of the one sign-up flow (the old set-up wizard is gone).
-  assert.match(read("src/components/logistics/verification/CacReviewSteps.tsx"), /kycCall\("\/terms", \{ method: "POST" \}\)/);
+  // Terms are accepted on the last screen of the one-question sign-up (the old set-up wizard is gone).
+  assert.match(read("src/components/logistics/verification/CheckScreens.tsx"), /kycCall\("\/terms", \{ method: "POST" \}\)/);
   assert.match(read("src/app/api/logistics/onboarding/route.ts"), /termsVersion: PARTNER_TERMS_VERSION/);
   const en = read("shared/i18n/messages/partnerKyc/en.ts");
-  assert.match(en, /"page.noCacBanner": "You don't need CAC to start\. Add it later to unlock more orders\."/);
+  assert.match(en, /"q.cac.sub": "You can start without it\. Any answer is fine\."/);
   assert.match(en, /"page.cacHelpLink": "Don't have CAC\? Learn how to register"/);
   assert.match(en, /icrp\.cac\.gov\.ng/);
   assert.match(en, /SMEDAN/);
   for (const point of ["independent operator", "licences, permits and legal compliance", "documents you submit are true", "suspend your account"]) assert.ok(en.includes(point), point);
   assert.match(read("src/app/logistics/terms/page.tsx"), /lawyer/);
-  const flow = read("src/components/logistics/verification/PartnerVerificationFlow.tsx");
-  assert.match(flow, /\/logistics\/cac-help/);
-  assert.match(read("shared/partner-tiers.ts"), /ONBOARDING_STEPS = \["identity", "bank", "delivery", "review", "cac"\]/);
+  assert.match(read("src/components/logistics/verification/CheckScreens.tsx"), /\/logistics\/cac-help/);
+  assert.match(read("shared/partner-tiers.ts"), /PARTNER_FLOW = \["name", "cac", "state", "areas", "vehicles", "interstate", "charge", "base", "id", "selfie", "review"\]/);
   assert.match(read("src/app/logistics/dashboard/page.tsx"), /<TierCard partnerId=/);
 });
 
@@ -128,7 +142,7 @@ test("a liveness report keeps only a plain Korapay reference", () => {
 });
 
 test("wiring: the NIN check sends the selfie to Korapay and the generic upload refuses selfies", () => {
-  const route = read("src/app/api/logistics/kyc/nin/route.ts");
+  const route = stepSource("src/app/api/logistics/kyc/nin/route.ts");
   assert.match(route, /verifyKorapayIdentity\(\{ \.\.\.typed, selfie: selfie\.dataUri \}\)/);
   assert.match(route, /selfieDecision\(face\)/);
   assert.match(route, /korapayLivenessReady\(\) && !liveness/, "with liveness on, a selfie without it waits for the team");
@@ -145,14 +159,17 @@ test("wiring: the NIN check sends the selfie to Korapay and the generic upload r
 test("partners are never asked for a BVN: bank account only, on the web, the phone and the server", () => {
   const route = read("src/app/api/logistics/kyc/payout/route.ts");
   assert.doesNotMatch(route, /method === "bvn"|verifyKorapayIdentity|idNumberHash\(secret, "bvn"/);
-  for (const path of ["src/components/logistics/verification/IdentityBankSteps.tsx", "apps/mobile/src/components/kyc/FleetSteps.tsx"]) {
+  const screens = ["src/components/logistics/verification/QuestionScreens.tsx", "src/components/logistics/verification/CheckScreens.tsx", "apps/mobile/src/components/kyc/QuestionScreens.tsx", "apps/mobile/src/components/kyc/CheckScreens.tsx"];
+  for (const path of screens) {
     assert.doesNotMatch(read(path).replace(/^\s*\/\/.*$/gm, ""), /bvn/i, `${path} asks for a BVN`);
   }
   for (const ns of ["partnerKyc", "m_kyc"]) {
     for (const locale of ["en", "pcm", "yo", "ha", "ig"]) assert.doesNotMatch(read(`shared/i18n/messages/${ns}/${locale}.ts`), /BVN/, `${ns}/${locale} mentions BVN`);
   }
   assert.doesNotMatch(read("shared/i18n/messages/m_partner/en.ts"), /"kyc\.need\.bank": "[^"]*BVN/);
-  assert.match(read("shared/partner-tiers.ts"), /payout: "Bank account"/);
+  // The bank account isn't part of sign-up at all: it's asked at the first withdrawal (the Payout ready badge).
+  for (const path of screens) assert.doesNotMatch(read(path), /\/payout"|kyc\/payout/, path);
+  assert.match(read("shared/partner-tiers.ts"), /payout_ready: "Payout ready"/);
 });
 
 test("unverified partners are sent to verify: after set-up, from blocked job pages, and the banner tells the truth", async () => {
@@ -191,13 +208,15 @@ test("no guarantor anywhere: no routes, no page, not in the Tier 1 checks", () =
 test("Korapay runs every CAC check when it's set up, with the business name, and admins can test it", () => {
   const cac = read("src/lib/kyb/verify-cac.server.ts");
   assert.match(cac, /if \(korapayIdentityReady\(\)\) return \{ lookup: await lookupKorapayCac\(number, companyType, registrationName\), provider: "korapay" \};/);
-  assert.match(cac, /registration_name: registrationName/);
+  // The live API wants the digits alone (a prefixed id is a validation_error) and no name.
+  assert.match(cac, /korapayCacBody\(rcNumber, companyType\)/);
+  assert.doesNotMatch(cac, /registration_name:/);
   assert.match(read("src/app/api/admin/korapay-check/route.ts"), /withAdmin\(async \(\) => ok\(await runKorapayCheck\(\)\)\)/);
   assert.match(read("src/app/admin/developers/page.tsx"), /<KorapayCheckCard \/>/);
 });
 
 test("a NIN check Korapay refuses with the selfie is retried without it, and the selfie goes to the team", () => {
-  const route = read("src/app/api/logistics/kyc/nin/route.ts");
+  const route = stepSource("src/app/api/logistics/kyc/nin/route.ts");
   assert.match(route, /const plain = await verifyKorapayIdentity\(typed\);/);
   assert.match(route, /const face = viaKorapay && !faceMatchRefused \? identity\.selfie \?\? null : null;/);
 });
@@ -208,4 +227,11 @@ test("the old set-up wizard sends partners to the one flow, and saving 'Your del
   assert.match(coverage, /companyName, displayName: companyName/);
   assert.match(coverage, /onboardingState: \{ \.\.\.state, completed: true/);
   assert.match(read("src/lib/role-queries.ts"), /db\.logisticsPartner\.upsert/, "no redirect loop when the partner row is missing");
+});
+
+test("partner kyc: failed calls keep the HTTP status for App errors and show friendly words", () => {
+  const kit = read("src/components/logistics/verification/kit.tsx");
+  assert.match(kit, /`HTTP \$\{response\.status\} from/);
+  assert.match(kit, /setError\(friendlyError\(cause, t\("page\.failed"\)\)\)/);
+  assert.match(read("src/app/api/logistics/kyc/nin/route.ts"), /export const maxDuration = 90;/);
 });
