@@ -182,6 +182,14 @@ export const SupplierProductCreateSchema = z.object({
   // Preorders (shared/preorder.ts parsePreorderInput checks the date and cap): shops order stock before it arrives.
   // Not a column: the routes take it out and save preorderSaveData's fields.
   preorder: PreorderInputSchema.optional(),
+  // Prices per channel and dropship options (shared/dropship-rules.ts channelPriceProblem checks them together).
+  priceMode: z.enum(["same", "per_channel"]).optional(),
+  dropshipPrice: z.number().positive().nullable().optional(),
+  preorderPrice: z.number().positive().nullable().optional(),
+  minRetailPrice: z.number().positive().nullable().optional(),
+  dropshipMinQty: z.number().int().min(1).max(1000).optional(),
+  handlingDays: z.number().int().min(1).max(3).optional(),
+  sizeBand: z.enum(["small", "medium", "bulky"]).nullable().optional(),
 });
 
 export const SupplierProductUpdateSchema = SupplierProductCreateSchema.partial();
