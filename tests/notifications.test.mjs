@@ -266,3 +266,38 @@ test("wiring: one notify() path, every role's key events, cron and push plumbing
   assert.match(read("apps/mobile/src/lib/push.ts"), /getExpoPushTokenAsync/);
   assert.doesNotMatch(read("apps/mobile/src/components/PushManager.tsx"), /requestPermissionsAsync/, "never asks at launch");
 });
+
+test("delivery partners get WhatsApp by default for verification, jobs, money and chats; others don't", () => {
+  const partner = n.resolvePreferences([], "logistics_partner");
+  for (const category of ["account", "orders", "deliveries", "money", "messages"]) assert.equal(partner[category].whatsapp, true, category);
+  assert.equal(partner.marketing.whatsapp, false, "never marketing on WhatsApp");
+  assert.equal(n.resolvePreferences([], "seller").account.whatsapp, false);
+  const turnedOff = n.resolvePreferences([{ eventKey: "notify.orders", push: true, email: true, sms: false, whatsapp: false }], "logistics_partner");
+  assert.equal(turnedOff.orders.whatsapp, false, "their own switch wins");
+  assert.equal(n.planDelivery({ category: "account", urgent: false, prefs: partner, quiet: false }).whatsapp, true);
+});
+
+test("WhatsApp alert templates: Meta's rules, and the right one for each alert", async () => {
+  const wt = await import("../src/lib/notifications/whatsapp-templates.ts");
+  const wa = await import("../src/lib/support/whatsapp-pure.ts");
+  for (const template of wt.NOTIFY_TEMPLATES) {
+    assert.match(template.name, /^[a-z0-9_]+$/);
+    assert.equal(template.category, "UTILITY", template.name);
+    assert.ok(!/^\s*\{\{/.test(template.body) && !/\}\}\s*[.!]?\s*$/.test(template.body), `${template.name}: no variable at the start or end`);
+    const count = (template.body.match(/\{\{\d+\}\}/g) ?? []).length;
+    assert.equal(count, template.params.length, template.name);
+    assert.equal(template.sample.length, count, template.name);
+    assert.ok(!wa.TEAM_TEMPLATES.some((t) => t.name === template.name), `${template.name} doesn't clash with a team template`);
+  }
+  const base = { title: "You're verified", description: "You can now trade on Shopinbos.", url: "https://app.shopinbos.com/logistics/verification", name: "Ada Okafor", business: "Ada's Logistics" };
+  const approved = wt.notifyWhatsAppTemplate({ ...base, event: "verification.update", category: "account", status: "verified" });
+  assert.equal(approved.template.name, "shopinbos_account_approved");
+  assert.deepEqual(approved.params, ["Ada", "Ada's Logistics", "You can now trade on Shopinbos. https://app.shopinbos.com/logistics/verification"]);
+  assert.equal(wt.notifyWhatsAppTemplate({ ...base, event: "verification.update", category: "account", status: "rejected" }).template.name, "shopinbos_account_update");
+  assert.equal(wt.notifyWhatsAppTemplate({ ...base, event: "job.new", category: "orders" }).template.name, "shopinbos_new_job");
+  assert.equal(wt.notifyWhatsAppTemplate({ ...base, event: "message.new", category: "messages" }).template.name, "shopinbos_new_message");
+  const update = wt.notifyWhatsAppTemplate({ ...base, title: "Paid.", description: "Line one\n\nline   two", url: null, event: "payout.sent", category: "money" });
+  assert.equal(update.template.name, "shopinbos_update");
+  assert.equal(update.params[2], "Paid. Line one line two", "one line, no runs of spaces");
+  assert.equal(wt.notifyWhatsAppTemplate({ ...base, name: null, business: null, event: "x", category: "orders" }).params[0], "there");
+});

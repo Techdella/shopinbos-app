@@ -4,8 +4,9 @@ import { addressLines } from "@/lib/labels";
 import { lagosStartOfToday, packageSummary } from "@/components/logistics/kit";
 import { cashToPayIn, riderAmount } from "@/lib/logistics/job-rules";
 import { riderFromToken } from "@/lib/logistics/rider-session";
+import { riderWeek } from "@/lib/logistics/rider-app.server";
 import { toE164 } from "@shared/phone";
-import { RiderApp, type RiderRun } from "./RiderApp";
+import { RiderApp, type RiderRun, type RiderWeek } from "./RiderApp";
 import { pickupWindowText } from "@shared/supplier-pickup";
 import { getT } from "@/lib/i18n/server";
 import { payOnDeliveryOf } from "@/components/logistics/market";
@@ -32,6 +33,28 @@ export const viewport: Viewport = {
   viewportFit: "cover",
   themeColor: "#F6F5F9",
 };
+
+const LAGOS_OFFSET_MS = 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+const lagosDayNumber = (at: Date) => Math.floor((at.getTime() + LAGOS_OFFSET_MS) / DAY_MS);
+
+/** Earnings tab: Monday-to-Sunday bars (today's index), and the week's deliveries under Today, Yesterday and Earlier. */
+function weekView(week: Awaited<ReturnType<typeof riderWeek>>, now = new Date()): RiderWeek {
+  const today = lagosDayNumber(now);
+  const todayIndex = (new Date(now.getTime() + LAGOS_OFFSET_MS).getUTCDay() + 6) % 7; // Monday = 0
+  const bars = [0, 0, 0, 0, 0, 0, 0];
+  const groups: RiderWeek["groups"] = [];
+  for (const job of week.deliveries) {
+    const at = new Date(job.deliveredAt);
+    const ago = today - lagosDayNumber(at);
+    if (ago >= 0 && ago <= todayIndex) bars[todayIndex - ago] += 1;
+    const group = ago <= 0 ? "today" : ago === 1 ? "yesterday" : "earlier";
+    let entry = groups.find((item) => item.group === group);
+    if (!entry) groups.push((entry = { group, items: [] }));
+    entry.items.push({ id: job.id, from: job.from, to: job.to, time: new Date(at.getTime() + LAGOS_OFFSET_MS).toISOString().slice(11, 16), amount: job.amount });
+  }
+  return { total: week.total, count: week.count, bars, today: todayIndex, groups };
+}
 
 function Shell({ children }: { children: React.ReactNode }) {
   return <main className="min-h-dvh bg-app-canvas font-app text-app-ink">{children}</main>;
@@ -61,7 +84,7 @@ export default async function RiderPage({ params }: { params: Promise<{ token: s
 
   const rider = session.rider;
   const startOfToday = lagosStartOfToday();
-  const [active, doneToday, cashJobs] = await Promise.all([
+  const [active, doneToday, cashJobs, week] = await Promise.all([
     db.deliveryBooking.findMany({
       where: { riderId: rider.id, logisticsPartnerId: rider.partnerId, status: { in: ["confirmed", "picked_up", "in_transit", "out_for_delivery"] } },
       orderBy: { createdAt: "asc" },
@@ -80,6 +103,7 @@ export default async function RiderPage({ params }: { params: Promise<{ token: s
       where: { riderId: rider.id, logisticsPartnerId: rider.partnerId, codMethod: "cash", remittanceId: null, codCollected: { not: null } },
       select: { codCollected: true, codMethod: true, remittanceId: true },
     }),
+    riderWeek(rider),
   ]);
 
   // Only what the rider needs at the door: name, phone and address of each buyer on an open job.
@@ -123,12 +147,19 @@ export default async function RiderPage({ params }: { params: Promise<{ token: s
     <Shell>
       <RiderApp
         token={token}
-        rider={{ name: rider.name, partnerName: rider.partnerName, online: rider.online }}
+        rider={{
+          name: rider.name,
+          partnerName: rider.partnerName,
+          partnerPhone: rider.partnerPhone ? toE164(rider.partnerPhone) : null,
+          plate: rider.plate,
+          online: rider.online,
+        }}
         earnedToday={doneToday.reduce((sum, job) => sum + riderAmount(rider, job), 0)}
         paySet={Boolean(rider.payType)}
         dropsDone={doneToday.length}
         cashInHand={cashToPayIn(cashJobs)}
         runs={[...runs.values()]}
+        week={weekView(week)}
       />
     </Shell>
   );

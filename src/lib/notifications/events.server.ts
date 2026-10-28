@@ -371,6 +371,8 @@ export function notifyVerificationDecision(input: { userId: string; status: stri
       title: words.title,
       description: words.description,
       link: input.portal === "supplier" ? "/supplier/verification" : input.portal === "logistics" ? "/logistics/verification" : "/home/settings",
+      // Picks the WhatsApp template: verified → shopinbos_account_approved, else shopinbos_account_update.
+      metadata: { status: input.status },
       dedupeKey: `verification.${input.status}:${input.userId}:${new Date().toISOString().slice(0, 13)}`,
       email: true,
     });

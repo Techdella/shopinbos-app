@@ -27,6 +27,9 @@ import {
 } from "@shared/notifications";
 import { PUSH_DEVICE_SELECT, checkExpoReceipts, pushToDevices, type PushPayload } from "./push.server";
 import { sendSms, sendWhatsAppMessage } from "./service";
+import { toE164 } from "@shared/phone";
+import { metaWhatsAppConfig, sendMetaTemplate } from "@/lib/lead-growth/whatsapp-meta.server";
+import { notifyWhatsAppTemplate } from "./whatsapp-templates";
 
 // The one way to tell someone something (build: "notify()"): writes the in-app notification (the bell), then
 // delivers it the way they chose in Settings › Notifications: push to their phone and browsers, email, SMS or
@@ -197,7 +200,7 @@ async function deliver(input: NotifyInput & { priority: NotifyPriority; type: No
   const info = eventInfo(input.event);
   const urgent = input.urgent ?? info?.urgent ?? false;
   const [user, rows, quietHours, devices] = await Promise.all([
-    db.user.findUnique({ where: { id: input.userId }, select: { email: true, phone: true, role: true } }),
+    db.user.findUnique({ where: { id: input.userId }, select: { email: true, phone: true, role: true, name: true } }),
     db.notificationPreference.findMany({ where: { userId: input.userId }, select: { eventKey: true, push: true, email: true, sms: true, whatsapp: true, inApp: true } }).catch(() => []),
     quietHoursFor(input.userId),
     activeDevices({ userId: input.userId }, input.pushPlatforms),
@@ -206,7 +209,7 @@ async function deliver(input: NotifyInput & { priority: NotifyPriority; type: No
 
   // Same rule as before notify(): payouts and critical alerts are transactional (no opt-out), the rest follow the switch.
   const emailKind = input.email ? (input.email === "transactional" || input.type === "payout" || input.priority === "critical" ? "transactional" : "notification") : null;
-  const plan = planDelivery({ category, urgent, prefs: resolvePreferences(rows), quiet: isQuietTime(now, quietHours), email: emailKind, phoneHandled: input.phoneHandled });
+  const plan = planDelivery({ category, urgent, prefs: resolvePreferences(rows, user.role), quiet: isQuietTime(now, quietHours), email: emailKind, phoneHandled: input.phoneHandled });
   const target = input.actionUrl || input.link || null;
 
   const jobs: Array<Promise<unknown>> = [];
@@ -230,17 +233,18 @@ async function deliver(input: NotifyInput & { priority: NotifyPriority; type: No
     );
   }
 
+  const phone = plan.sms || plan.whatsapp ? await textPhoneFor(input.userId, user.phone, user.role) : null;
   const text = `Shopinbos: ${input.title.replace(/\.$/, "")}. ${input.description}`.slice(0, 300) + (target ? ` ${absoluteUrl(target)}` : "");
-  if (plan.sms && user.phone) {
+  if (plan.sms && phone) {
     jobs.push(
-      sendSms({ to: [user.phone], message: text })
+      sendSms({ to: [phone], message: text })
         .then((result) => record({ notificationId, userId: input.userId, channel: "sms", provider: result.provider, status: result.success ? "ok" : "error", category, title: input.title, error: result.success ? null : result.message }))
         .catch(() => null),
     );
   }
-  if (plan.whatsapp && user.phone) {
+  if (plan.whatsapp && phone) {
     jobs.push(
-      sendWhatsAppMessage({ to: [user.phone], message: text })
+      sendAlertWhatsApp({ input, category, to: phone, url: target ? absoluteUrl(target) : null, user, text })
         .then((result) => record({ notificationId, userId: input.userId, channel: "whatsapp", provider: result.provider, status: result.success ? "ok" : "error", category, title: input.title, error: result.success ? null : result.message }))
         .catch(() => null),
     );
@@ -250,6 +254,55 @@ async function deliver(input: NotifyInput & { priority: NotifyPriority; type: No
     jobs.push(deliverPush({ input, notificationId, category, urgent, devices, hold: plan.push === "hold", now, collapse: info?.collapse ?? null }));
   }
   await Promise.all(jobs);
+}
+
+/**
+ * WhatsApp for an alert: the approved template on our own number (Meta Cloud API) when it's connected, since WhatsApp
+ * only lets a business start a chat with a template (lib/notifications/whatsapp-templates.ts). Not connected, or the
+ * template isn't approved yet: the SMS provider's WhatsApp as plain text, as before.
+ */
+async function sendAlertWhatsApp(args: {
+  input: NotifyInput;
+  category: NotifyCategory;
+  to: string;
+  url: string | null;
+  user: { name: string; role: string };
+  text: string;
+}): Promise<{ success: boolean; provider: string; message?: string }> {
+  const config = metaWhatsAppConfig();
+  if (config) {
+    const business = args.user.role === "logistics_partner"
+      ? (await db.logisticsPartner.findUnique({ where: { userId: args.input.userId }, select: { displayName: true } }).catch(() => null))?.displayName
+      : null;
+    const status = typeof args.input.metadata?.status === "string" ? args.input.metadata.status : null;
+    const { template, params } = notifyWhatsAppTemplate({
+      event: args.input.event ?? "",
+      category: args.category,
+      status,
+      title: args.input.title,
+      description: args.input.description,
+      url: args.url,
+      name: args.user.name,
+      business: business ?? args.user.name,
+    });
+    const sent = await sendMetaTemplate(config, { to: args.to, template: template.name, language: template.language, params });
+    if (sent.ok) return { success: true, provider: "meta" };
+    console.warn(`[notify] WhatsApp template ${template.name} not sent, trying plain text:`, sent.error);
+  }
+  const result = await sendWhatsAppMessage({ to: [args.to], message: args.text });
+  return { success: result.success, provider: result.provider, message: result.message };
+}
+
+/**
+ * Where texts and WhatsApp messages go: the account's phone, else for a delivery partner the company's WhatsApp
+ * number (partners sign up with it on the company profile, so the account often has no phone of its own).
+ */
+export async function textPhoneFor(userId: string, phone: string | null, role?: string | null): Promise<string | null> {
+  if (phone?.trim()) return phone;
+  if (role !== "logistics_partner") return null;
+  const partner = await db.logisticsPartner.findUnique({ where: { userId }, select: { whatsappNumber: true } }).catch(() => null);
+  const number = partner?.whatsappNumber?.trim();
+  return number ? toE164(number) ?? number : null;
 }
 
 async function record(data: { notificationId?: string | null; userId?: string | null; riderId?: string | null; channel: string; provider?: string | null; status: string; category?: string | null; collapseKey?: string | null; title?: string | null; body?: string | null; error?: string | null }) {
