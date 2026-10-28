@@ -723,7 +723,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "partner-verification.1.caption": "Verification ce ke ba ka damar karɓar jobs.",
   "partner-verification.1.sub": "Shops suna ganin delivery partners da aka tabbatar kawai, don haka wannan ne matakinka na farko.",
   "partner-verification.2.caption": "Ba ka buƙatar CAC don farawa.",
-  "partner-verification.2.sub": "Duba NIN ɗinka da selfie, ƙara bank account mai sunanka, adireshinka da guarantor ɗaya.",
+  "partner-verification.2.sub": "Duba NIN ɗinka da selfie, sannan ka ƙara bank account mai sunanka da adireshinka.",
   "partner-verification.3.caption": "Ƙara abin hawa da wuraren da kake delivery.",
   "partner-verification.3.sub": "Hoton babur, mota ko van ɗinka tare da lambarsa da lasisinka, sannan wuraren da kake rufewa.",
   "partner-verification.4.caption": "Fara a matsayin Verified Individual.",

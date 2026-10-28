@@ -4,13 +4,13 @@
 // and tier panel are on the partner pages.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const api = (path) => read(`src/app/api/admin/logistics-partners/${path}`);
 
 test("every per-item decision route re-computes the tier", () => {
-  for (const route of ["[id]/documents/route.ts", "[id]/vehicles/route.ts", "[id]/identity/route.ts", "[id]/guarantor/route.ts", "[id]/status/route.ts"]) {
+  for (const route of ["[id]/documents/route.ts", "[id]/vehicles/route.ts", "[id]/identity/route.ts", "[id]/status/route.ts"]) {
     assert.match(api(route), /refreshPartnerTier\(/, route);
     assert.match(api(route), /withAdmin\(/, route);
   }
@@ -43,8 +43,8 @@ test("tier rules save through saveTierRules, validated, with recent changes", ()
   assert.match(read("src/app/admin/logistics-partners/tier-rules/page.tsx"), /TierRulesForm/);
 });
 
-test("guarantor by call, limits lift and restore", () => {
-  assert.match(api("[id]/guarantor/route.ts"), /respondedVia: "call"/);
+test("no guarantor any more; limits lift and restore", () => {
+  assert.equal(existsSync(new URL("../src/app/api/admin/logistics-partners/[id]/guarantor/route.ts", import.meta.url)), false);
   const limits = api("[id]/limits/route.ts");
   assert.match(limits, /limitsLiftedAt: parsed\.data\.action === "lift" \? new Date\(\) : null/);
 });

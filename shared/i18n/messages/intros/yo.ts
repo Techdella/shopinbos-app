@@ -723,7 +723,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "partner-verification.1.caption": "Verification ló ń jẹ́ kí o gba jobs.",
   "partner-verification.1.sub": "Àwọn shop máa ń rí delivery partners tí a ti verify nìkan, nítorí náà èyí ni ìgbésẹ̀ àkọ́kọ́ rẹ.",
   "partner-verification.2.caption": "O kò nílò CAC láti bẹ̀rẹ̀.",
-  "partner-verification.2.sub": "Ṣàyẹ̀wò NIN rẹ pẹ̀lú selfie, fi bank account ní orúkọ rẹ kún un, àdírẹ́sì rẹ àti guarantor kan.",
+  "partner-verification.2.sub": "Ṣàyẹ̀wò NIN rẹ pẹ̀lú selfie, lẹ́yìn náà fi bank account ní orúkọ rẹ àti àdírẹ́sì rẹ kún un.",
   "partner-verification.3.caption": "Fi ọkọ̀ kan kún un àti ibi tí o ti ń ṣe delivery.",
   "partner-verification.3.sub": "Fọ́tò bike, car tàbí van rẹ pẹ̀lú plate rẹ̀ àti licence rẹ, lẹ́yìn náà àwọn agbègbè tí o ń bò.",
   "partner-verification.4.caption": "Bẹ̀rẹ̀ bí Verified Individual.",

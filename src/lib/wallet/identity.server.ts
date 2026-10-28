@@ -139,7 +139,7 @@ export async function verifyWalletBusiness(user: { id: string; name: string | nu
   const wallet = await db.wallet.findUnique({ where: { userId: user.id }, select: { id: true, kycStatus: true, kycFirstName: true, kycLastName: true } });
   if (!wallet) throw new WalletIdentityError("Open your wallet first.", 404);
 
-  const { lookup } = await lookupCacRecord(parsed.number, companyType);
+  const { lookup } = await lookupCacRecord(parsed.number, companyType, enteredName);
   if (!lookup.ok) throw new WalletIdentityError(lookup.reason === "busy" ? "The CAC check is busy. Try again in a minute." : "We couldn't reach the CAC registry. Try again later.", 503);
   const ownerName = wallet.kycStatus === "verified" && wallet.kycFirstName && wallet.kycLastName ? `${wallet.kycFirstName} ${wallet.kycLastName}` : user.name ?? "";
   const evaluation = evaluateCac(lookup.record, { enteredName, ownerName });

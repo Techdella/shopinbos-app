@@ -65,7 +65,18 @@ export const POST = withKycPartner(async (req, { partner }) => {
 
   const viaKorapay = korapayIdentityReady();
   const typed = { type: "nin" as const, id: nin, firstName, lastName, dateOfBirth };
-  const result = viaKorapay ? await verifyKorapayIdentity({ ...typed, selfie: selfie.dataUri }) : await verifyYouverifyIdentity(typed);
+  let result = viaKorapay ? await verifyKorapayIdentity({ ...typed, selfie: selfie.dataUri }) : await verifyYouverifyIdentity(typed);
+  // Korapay refused the lookup with the selfie (facial matching not enabled on the account, a photo it won't take…):
+  // check the NIN on its own so the partner isn't stuck; with no face match result the selfie goes to the team.
+  let faceMatchRefused = false;
+  if (viaKorapay && !result.ok && !result.notFound) {
+    console.error("[partner-kyc nin] Korapay refused the NIN check with a selfie; retrying without it", result.message);
+    const plain = await verifyKorapayIdentity(typed);
+    if (plain.ok || plain.notFound) {
+      result = plain;
+      faceMatchRefused = true;
+    }
+  }
   if (!result.ok) {
     if (result.notFound) return apiError("BAD_REQUEST", "We couldn't find that NIN. Check the number and try again.");
     console.error("[partner-kyc nin] check unavailable", result.message);
@@ -77,7 +88,7 @@ export const POST = withKycPartner(async (req, { partner }) => {
   }
 
   // Facial match: only Korapay compares the selfie; without a result the team looks at it.
-  const face = viaKorapay ? identity.selfie ?? null : null;
+  const face = viaKorapay && !faceMatchRefused ? identity.selfie ?? null : null;
   let decision = selfieDecision(face);
   if (decision.status === "approved" && korapayLivenessReady() && !liveness) decision = { status: "pending" };
   const failed = await keepSelfie({

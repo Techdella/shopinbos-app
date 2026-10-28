@@ -28,7 +28,6 @@ function snapshot(overrides = {}) {
     docs: { selfie: "approved" },
     cacRegistryVerified: false,
     vehicles: [{ status: "approved" }],
-    guarantor: { status: "confirmed" },
     registeredName: null,
     cacType: null,
     cacNumber: null,
@@ -39,7 +38,8 @@ function snapshot(overrides = {}) {
 
 test("Tier 1 needs every check approved, and no CAC", () => {
   assert.equal(t.earnedTier(snapshot()), "tier1");
-  assert.equal(t.earnedTier(snapshot({ guarantor: { status: "pending" } })), "none");
+  assert.equal(t.earnedTier(snapshot({ vehicles: [{ status: "pending" }] })), "none", "the vehicle must be approved");
+  assert.equal(t.TIER1_ITEMS.includes("guarantor"), false, "no guarantor (the owner's rule)");
   assert.equal(t.earnedTier(snapshot({ vehicles: [] })), "none");
   assert.equal(t.earnedTier(snapshot({ docs: { selfie: "pending" } })), "none");
   assert.equal(t.earnedTier(snapshot({ termsVersion: "old" })), "none", "terms must be the current version");
@@ -62,10 +62,10 @@ test("Tier 2 adds business name, BN/RC type, number and certificate (or a CAC re
 });
 
 test("ready to submit: nothing missing or rejected (pending checks are fine)", () => {
-  assert.equal(t.readyToSubmit(t.tier1Checklist(snapshot({ guarantor: { status: "pending" }, docs: { selfie: "pending" } }))), true);
-  assert.equal(t.readyToSubmit(t.tier1Checklist(snapshot({ guarantor: null }))), false);
-  assert.equal(t.readyToSubmit(t.tier1Checklist(snapshot({ guarantor: { status: "declined" } }))), false);
-  assert.deepEqual(t.itemsWhere(t.tier1Checklist(snapshot({ guarantor: null, vehicles: [] })), ["missing"]), ["vehicles", "guarantor"]);
+  assert.equal(t.readyToSubmit(t.tier1Checklist(snapshot({ vehicles: [{ status: "pending" }], docs: { selfie: "pending" } }))), true);
+  assert.equal(t.readyToSubmit(t.tier1Checklist(snapshot({ vehicles: [] }))), false);
+  assert.equal(t.readyToSubmit(t.tier1Checklist(snapshot({ vehicles: [{ status: "rejected" }] }))), false);
+  assert.deepEqual(t.itemsWhere(t.tier1Checklist(snapshot({ vehicles: [], deliveryMethods: [] })), ["missing"]), ["methods", "vehicles"]);
 });
 
 test("overall statuses", () => {
@@ -86,13 +86,13 @@ test("a submitted partner with Tier 1 approved becomes verified; suspended and r
 });
 
 test("a verified partner's tier is never lowered (partners verified before tiers stay Tier 2)", () => {
-  assert.equal(t.nextTier(snapshot({ verificationStatus: "verified", verificationTier: "tier2", identity: {}, vehicles: [], guarantor: null })), "tier2");
-  assert.equal(t.nextTier(snapshot({ verificationStatus: "pending", verificationTier: "tier2", guarantor: null })), "none");
+  assert.equal(t.nextTier(snapshot({ verificationStatus: "verified", verificationTier: "tier2", identity: {}, vehicles: [] })), "tier2");
+  assert.equal(t.nextTier(snapshot({ verificationStatus: "pending", verificationTier: "tier2", vehicles: [] })), "none");
 });
 
 test("badges", () => {
   assert.deepEqual(t.partnerBadges(snapshot()), ["verified_individual"]);
-  assert.deepEqual(t.partnerBadges(snapshot({ guarantor: null })), [], "no badges before Tier 1");
+  assert.deepEqual(t.partnerBadges(snapshot({ vehicles: [] })), [], "no badges before Tier 1");
   assert.deepEqual(t.partnerBadges(snapshot({ docs: { selfie: "approved", "courier-licence": "approved" } })), ["verified_individual", "licensed_courier"]);
   const business = { registeredName: "Ada Dispatch Ventures", cacType: "RC", cacNumber: "RC 99", cacRegistryVerified: true };
   assert.deepEqual(t.partnerBadges(snapshot({ ...business, payoutAccount: { verified: true, accountName: "ADA DISPATCH VENTURES" } })), ["registered_business", "verified_payout"]);

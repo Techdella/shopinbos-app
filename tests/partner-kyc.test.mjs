@@ -1,6 +1,6 @@
 // Delivery partner verification steps (src/lib/logistics/partner-kyc.ts and the /api/logistics/kyc routes): input
-// cleaning, masks, the guarantor's code and link (hashes only, expiry, tries, resend wait), and the wiring: every
-// step refreshes the tier, IDs are never stored whole, the old submit route uses the tiered submit, the guarantor page
+// cleaning, masks, and the wiring: every step refreshes the tier, IDs are never stored whole, the old submit route
+// uses the tiered submit, there is no guarantor any more
 // is public, the terms are asked at setup, and the pages carry the spec's wording.
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -46,41 +46,8 @@ test("ID hashes are keyed: the same NIN under another secret is a different hash
   assert.equal(a.includes("12345678901"), false);
 });
 
-test("guarantor code: right code, wrong code, expired, too many tries, already answered", () => {
-  const secret = "s";
-  const now = Date.parse("2026-12-01T10:00:00Z");
-  const base = { id: "g1", status: "pending", codeHash: k.guarantorCodeHash(secret, "g1", "123456"), codeExpiresAt: new Date(now + 1000), codeAttempts: 0 };
-  assert.deepEqual(k.checkGuarantorCode(base, "123 456", secret, now), { ok: true });
-  assert.deepEqual(k.checkGuarantorCode(base, "654321", secret, now), { ok: false, reason: "wrong_code" });
-  assert.deepEqual(k.checkGuarantorCode({ ...base, codeExpiresAt: new Date(now - 1) }, "123456", secret, now), { ok: false, reason: "expired" });
-  assert.deepEqual(k.checkGuarantorCode({ ...base, codeAttempts: k.GUARANTOR_MAX_ATTEMPTS }, "123456", secret, now), { ok: false, reason: "too_many" });
-  assert.deepEqual(k.checkGuarantorCode({ ...base, status: "confirmed" }, "123456", secret, now), { ok: false, reason: "answered" });
-  assert.deepEqual(k.checkGuarantorCode({ ...base, id: "g2" }, "123456", secret, now), { ok: false, reason: "wrong_code" }, "a code is tied to its guarantor");
-});
 
-test("guarantor link token is random and only its hash is stored", () => {
-  const token = k.newGuarantorToken();
-  assert.match(token, /^[A-Za-z0-9_-]{32}$/);
-  assert.notEqual(token, k.newGuarantorToken());
-  assert.notEqual(k.guarantorTokenHash("s", token), token);
-  const schema = read("prisma/schema.prisma");
-  const model = schema.slice(schema.indexOf("model LogisticsGuarantor"), schema.indexOf("model LogisticsReview"));
-  assert.match(model, /codeHash/);
-  assert.match(model, /tokenHash/);
-  assert.doesNotMatch(model, /\bcode\s+String/);
-});
 
-test("guarantor resend: wait between texts, and a cap", () => {
-  const now = Date.parse("2026-12-01T10:00:00Z");
-  assert.equal(k.guarantorResendWait({ lastSentAt: null, sendCount: 0 }, now), 0);
-  assert.equal(k.guarantorResendWait({ lastSentAt: new Date(now - 20_000), sendCount: 1 }, now), 40);
-  assert.equal(k.guarantorResendWait({ lastSentAt: new Date(now - 120_000), sendCount: 1 }, now), 0);
-  assert.equal(k.guarantorResendWait({ lastSentAt: null, sendCount: k.GUARANTOR_MAX_SENDS }, now), null);
-  const text = k.guarantorMessage("Swift Riders", "123456", "https://app.shopinbos.com/guarantor/abc");
-  assert.match(text, /Swift Riders named you as their guarantor/);
-  assert.match(text, /123456/);
-  assert.match(text, /https:\/\/app\.shopinbos\.com\/guarantor\/abc/);
-});
 
 test("every kyc route that changes something refreshes the tier", () => {
   const routes = files("src/app/api/logistics/kyc").filter((path) => path.endsWith("route.ts") && path !== "src/app/api/logistics/kyc/route.ts");
@@ -117,15 +84,6 @@ test("the old submit route (phone app) uses the tiered submit and names what's m
   assert.match(read("src/lib/logistics/partner-kyc.server.ts"), /readyToSubmit\(items\)/);
 });
 
-test("the guarantor page and its API are public and rate limited", () => {
-  const access = read("src/lib/auth/route-access.ts");
-  assert.doesNotMatch(access, /prefix: "\/guarantor"/);
-  assert.ok(existsSync(join(root, "src/app/guarantor/[token]/page.tsx")));
-  const api = read("src/app/api/public/guarantor/[token]/route.ts");
-  assert.match(api, /checkRateLimitShared/);
-  assert.match(api, /updateMany\(\{\s*where: \{ id: guarantor\.id, status: "pending" \}/);
-  assert.match(api, /refreshPartnerTier/);
-});
 
 test("terms at setup, the CAC banner and link, and the spec's pages", () => {
   const onboarding = read("src/components/onboarding/LogisticsOnboarding.tsx");
@@ -140,7 +98,7 @@ test("terms at setup, the CAC banner and link, and the spec's pages", () => {
   assert.match(read("src/app/logistics/terms/page.tsx"), /lawyer/);
   const flow = read("src/components/logistics/verification/PartnerVerificationFlow.tsx");
   assert.match(flow, /\/logistics\/cac-help/);
-  assert.match(read("shared/partner-tiers.ts"), /ONBOARDING_STEPS = \["identity", "bank", "vehicles", "coverage", "guarantor", "cac", "review"\]/);
+  assert.match(read("shared/partner-tiers.ts"), /ONBOARDING_STEPS = \["identity", "bank", "delivery", "review", "cac"\]/);
   assert.match(read("src/app/logistics/dashboard/page.tsx"), /<TierCard partnerId=/);
 });
 
@@ -198,7 +156,11 @@ test("partners are never asked for a BVN: bank account only, on the web, the pho
 });
 
 test("unverified partners are sent to verify: after set-up, from blocked job pages, and the banner tells the truth", async () => {
-  assert.match(read("src/components/onboarding/LogisticsOnboarding.tsx"), /router\.push\(destination \|\| \(verified \? "\/logistics\/dashboard" : "\/logistics\/verification"\)\)/);
+  // getContinuationPath always returns a page (the dashboard without an intent), so it's only used with an intent.
+  assert.match(read("src/components/onboarding/LogisticsOnboarding.tsx"), /const destination = intent\.intent \? getContinuationPath\(\{ role: "logistics_partner", \.\.\.intent \}\) : verified \? "\/logistics\/dashboard" : "\/logistics\/verification";/);
+  const routing = await import("../src/lib/intent-routing.js");
+  const intentRouting = routing.default ?? routing;
+  assert.equal(intentRouting.getContinuationPath({ role: "logistics_partner" }), "/logistics/dashboard", "why it can't be the fallback");
   assert.doesNotMatch(read("src/components/onboarding/LogisticsOnboarding.tsx"), /Verify your business/, "set-up no longer asks for CAC as the way to verify");
   for (const path of ["src/app/actions/logistics.ts", "src/app/actions/delivery-market-partner.ts"]) {
     assert.doesNotMatch(read(path), /verification=pending/);
@@ -219,4 +181,34 @@ test("the partners' 60-second verification intro says no CAC to start and never 
   assert.match(words, /don’t need CAC to start/);
   assert.doesNotMatch(words, /BVN|Upload your CAC/);
   assert.equal(introForPath("/supplier/verification", "supplier")?.key, "verification");
+});
+
+test("no guarantor anywhere: no routes, no page, not in the Tier 1 checks", () => {
+  for (const path of ["src/app/guarantor", "src/app/api/public/guarantor", "src/app/api/logistics/kyc/guarantor", "src/app/api/admin/logistics-partners/[id]/guarantor"]) {
+    assert.equal(existsSync(join(root, path)), false, `${path} is gone`);
+  }
+  assert.doesNotMatch(read("shared/partner-tiers.ts").replace(/^\s*\/\/.*$/gm, ""), /guarantor/i);
+  assert.doesNotMatch(read("src/lib/logistics/partner-kyc.server.ts"), /guarantor/i);
+});
+
+test("Korapay runs every CAC check when it's set up, with the business name, and admins can test it", () => {
+  const cac = read("src/lib/kyb/verify-cac.server.ts");
+  assert.match(cac, /if \(korapayIdentityReady\(\)\) return \{ lookup: await lookupKorapayCac\(number, companyType, registrationName\), provider: "korapay" \};/);
+  assert.match(cac, /registration_name: registrationName/);
+  assert.match(read("src/app/api/admin/korapay-check/route.ts"), /withAdmin\(async \(\) => ok\(await runKorapayCheck\(\)\)\)/);
+  assert.match(read("src/app/admin/developers/page.tsx"), /<KorapayCheckCard \/>/);
+});
+
+test("a NIN check Korapay refuses with the selfie is retried without it, and the selfie goes to the team", () => {
+  const route = read("src/app/api/logistics/kyc/nin/route.ts");
+  assert.match(route, /const plain = await verifyKorapayIdentity\(typed\);/);
+  assert.match(route, /const face = viaKorapay && !faceMatchRefused \? identity\.selfie \?\? null : null;/);
+});
+
+test("the old set-up wizard sends partners to the one flow, and saving 'Your delivery' completes set-up", () => {
+  assert.match(read("src/app/logistics/onboarding/page.tsx"), /redirect\(`\/logistics\/verification/);
+  const coverage = read("src/app/api/logistics/kyc/coverage/route.ts");
+  assert.match(coverage, /companyName, displayName: companyName/);
+  assert.match(coverage, /onboardingState: \{ \.\.\.state, completed: true/);
+  assert.match(read("src/lib/role-queries.ts"), /db\.logisticsPartner\.upsert/, "no redirect loop when the partner row is missing");
 });
