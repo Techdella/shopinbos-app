@@ -4,6 +4,7 @@ import type { PreorderState } from "./preorder-pure";
 import type { DropshipTerms } from "@shared/dropship-checkout";
 import { dropshipUnitPrice, retailFloor } from "@shared/dropship-rules";
 import { quickAddPrice, type Markup } from "@shared/supplier-markup";
+import type { SampleOffer } from "@shared/samples";
 
 // Find products: supplier products from /api/mobile/marketplace/products (the same rows the web's /marketplace
 // shows: suppliers near the seller, verified or not, with their risk score), plus the seller's own bits from
@@ -33,6 +34,11 @@ interface RawProduct {
   /** The supplier takes preorders (ship date, places left, promise; shared/preorder.ts). Newer servers. `depositPct`:
    * the share paid when the preorder is placed (newer servers; 0 or absent: none). */
   preorder?: (PreorderState & { depositPct?: number }) | null;
+  /** "12 shops selling" (newer servers; 0 hides it). */
+  shopsSelling?: number;
+  /** Product page only (newer servers): the latest shops' ratings of the supplier, and the one sample offer. */
+  ratings?: SupplierRating[];
+  sampleOffer?: SampleOffer | null;
   supplier: {
     id: string;
     displayName: string;
@@ -51,8 +57,17 @@ interface RawProduct {
     level?: string | null;
     /** In the seller's state (newer servers). */
     sameState?: boolean;
+    /** Ships near the seller's customers (newer servers, shared/near-customers.ts). */
+    nearCustomers?: boolean;
   };
   category: { name: string } | null;
+}
+
+/** One shop's rating of the supplier (shared/supplier-ratings.ts). */
+export interface SupplierRating {
+  rating: number;
+  text: string | null;
+  at: string;
 }
 
 export interface SupplierRisk {
@@ -87,7 +102,14 @@ export interface FindProduct {
     ratingCount: number;
     /** In the seller's state ("Delivers to my state"). */
     sameState: boolean;
+    /** Ships near where the seller's customers are ("Near my customers"). */
+    nearCustomers: boolean;
   };
+  /** "12 shops selling" (0: nobody yet, hidden). */
+  shopsSelling: number;
+  /** Product page only: the latest shops' ratings of the supplier, and the one sample at the dropship price. */
+  ratings: SupplierRating[];
+  sampleOffer: SampleOffer | null;
   /** What the supplier charges per unit (dropship). */
   cost: number;
   /** What the seller pays per piece when they add it (the dropship price for dropship), and the lowest price allowed. */
@@ -130,7 +152,11 @@ function toFindProduct(row: RawProduct): FindProduct {
       level: row.supplier.level ?? null,
       ratingCount: row.supplier.ratingCount ?? 0,
       sameState: row.supplier.sameState === true,
+      nearCustomers: row.supplier.nearCustomers === true,
     },
+    shopsSelling: Math.max(0, Number(row.shopsSelling) || 0),
+    ratings: row.ratings ?? [],
+    sampleOffer: row.sampleOffer ?? null,
     cost: Number(row.wholesalePrice) || 0,
     addCost: row.dropshipAvailable ? dropshipUnitPrice({ ...row, wholesalePrice: Number(row.wholesalePrice) || 0 }) : Number(row.wholesalePrice) || 0,
     floor: row.dropshipAvailable ? retailFloor({ ...row, wholesalePrice: Number(row.wholesalePrice) || 0 }) : row.minRetailPrice && row.minRetailPrice > 0 ? row.minRetailPrice : null,
@@ -153,8 +179,8 @@ function toFindProduct(row: RawProduct): FindProduct {
 export async function fetchFindProducts(q?: string) {
   const params = new URLSearchParams();
   if (q?.trim()) params.set("q", q.trim().slice(0, 120));
-  const result = await api<{ hasPlace: boolean; city: string | null; state?: string | null; products: RawProduct[] }>(`/api/mobile/marketplace/products${params.toString() ? `?${params.toString()}` : ""}`);
-  return { hasPlace: result.hasPlace, city: result.city, state: result.state ?? null, products: result.products.map(toFindProduct) };
+  const result = await api<{ hasPlace: boolean; city: string | null; state?: string | null; customers?: CustomerPlacesView | null; products: RawProduct[] }>(`/api/mobile/marketplace/products${params.toString() ? `?${params.toString()}` : ""}`);
+  return { hasPlace: result.hasPlace, city: result.city, state: result.state ?? null, customers: result.customers ?? null, products: result.products.map(toFindProduct) };
 }
 
 /** The price one tap lists it at: the supplier's suggested price, else cost + the seller's markup (the server decides). */
@@ -219,6 +245,28 @@ export const addToStore = (input: AddToStoreInput) =>
  *  (Wholesale screen); Shopinbos holds no preorder money. */
 export const placeWholesaleOrder = (input: { supplierId: string; supplierProductId: string; quantity: number; deliveryAddress: string }) =>
   api<{ id: string; depositKobo?: number }>("/api/app/wholesale/request", { method: "POST", json: input });
+
+/** One sample at the dropship price (shared/samples.ts): a wholesale order of 1, paid on the Wholesale screen once the supplier accepts. */
+export const orderSample = (input: { supplierId: string; supplierProductId: string; deliveryAddress: string }) =>
+  api<{ id: string; status: string }>("/api/app/wholesale/request", { method: "POST", json: { ...input, quantity: 1, sample: true } });
+
+/** Where the seller's customers are, for "Near my customers": the busiest states, from orders or the shop's own state. */
+export interface CustomerPlacesView {
+  states: string[];
+  basis: "orders" | "store" | "none";
+}
+
+/** Rate the supplier of an order that arrived (wholesale or sample) or of a delivered dropship parcel. */
+export const rateSupplier = (input: { kind: "wholesale_order" | "dropship_order"; orderId: string; rating: number; text?: string }) =>
+  api<{ rating: { rating: number; text: string | null } }>("/api/app/supplier-ratings", { method: "POST", json: input });
+
+/** The seller's own ratings ("You rated ★★★★"). */
+export const fetchMyRatings = () =>
+  api<{ ratings: Array<{ kind: string; orderId: string; rating: number; text: string | null }> }>("/api/app/supplier-ratings").then((body) => body.ratings);
+
+/** The supplier parcels of one store order, for "Rate the supplier" once delivered. */
+export const fetchRatableParcels = (retailOrderId: string) =>
+  api<{ orders: Array<{ id: string; status: string; supplierName: string; canRate: boolean; rated: { rating: number; text: string | null } | null }> }>(`/api/app/supplier-ratings?retailOrderId=${encodeURIComponent(retailOrderId)}`).then((body) => body.orders);
 
 export const requestQuote = (input: { supplierId: string; supplierProductId: string; quantity: number; destination: string; notes?: string }) =>
   api<{ id: string }>("/api/app/supplier-quotes", { method: "POST", json: input });

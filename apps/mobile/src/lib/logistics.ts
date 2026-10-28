@@ -13,6 +13,8 @@ export interface Job {
   to: string;
   item: string;
   fragile: boolean;
+  /** A high-value parcel (phones, laptops, gold, or a big order): only Top partners get these. Newer servers. */
+  highValue?: boolean;
   fee: number;
   deliveryFee: number;
   currency: string;
@@ -70,6 +72,8 @@ export interface LogisticsOverview {
   firstName: string;
   deliveredToday: number;
   earnedToday: number;
+  /** "Earned this week · paid on Thursday" (Monday to now, Lagos; weekday 0 = Sunday). Newer servers. */
+  week?: { amount: number; jobs: number; payoutDay: { date: string; weekday: number } };
   counts: { new: number; quotes: number; active: number; issues: number };
   newJobs: Job[];
   riders: { total: number; out: number; offline: number };
@@ -265,11 +269,24 @@ export interface PartnerLevelView {
   podOn: boolean;
   codPaused: boolean;
   lockedMessage: string;
-  levels: Array<{ key: string; label: string }>;
+  /** tier and unlocks: newer servers (reach tiers). */
+  levels: Array<{ key: string; label: string; tier?: number; unlocks?: string[] }>;
   remitHours: number;
+  // Reach tiers (shared/partner-reach.ts), newer servers: Tier 1 Verified → Tier 2 Trusted → Tier 3 Top partner.
+  tier?: 1 | 2 | 3;
+  perks?: { prepaid: boolean; payOnDelivery: boolean; interstate: boolean; rankBoost: number; highValue: boolean; canApplyFeatured: boolean; fasterPayouts: boolean };
+  featuredStatus?: "none" | "applied" | "featured" | "rejected";
+  featuredNow?: boolean;
+  featuredNote?: string | null;
+  /** Offers interstate below Trusted: the switch stays, interstate jobs don't come yet. */
+  interstateGated?: boolean;
+  fasterPayoutsLive?: boolean;
 }
 
 export const fetchPartnerLevel = () => api<PartnerLevelView>("/api/mobile/logistics/level");
+
+/** "Apply to be featured" (Top partners). Errors carry the reason (not a Top partner yet, already applied). */
+export const applyToBeFeatured = () => api<{ status: string }>("/api/mobile/logistics/level/featured", { method: "POST", json: {} });
 
 export interface RateCardBody {
   rows: Array<Omit<MarketRateRow, "id"> & { id?: string }>;

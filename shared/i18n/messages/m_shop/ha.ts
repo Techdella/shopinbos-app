@@ -187,6 +187,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "sec.newsletter": "Rajista",
   "sec.testimonials": "Sharhi",
   "sec.trust-strip": "Alamomin amana",
+  "link.posts.label": "Kalandar posts",
+  "link.posts.hint": "Posts da aka yi da waɗanda aka tsara, kowace rana",
 };
 
 export default ha;

@@ -141,6 +141,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "call.screen.find": "Wá ọjà láti tà",
   "call.screen.starter_packs": "Àwọn àpò ọjà ìbẹ̀rẹ̀",
   "call.screen.supplier_products": "Àwọn ọjà supplier mi",
+  "call.screen.wholesale_orders": "Àwọn ìbéèrè ọjà púpọ̀ mi",
   "call.screen.help": "Ìrànlọ́wọ́",
   "call.screen.home": "Ilé",
   "call.screen.jobs": "Àwọn iṣẹ́",
@@ -157,6 +158,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "call.screen.products": "Àwọn ọjà",
   "call.screen.profile": "Àlàyé ilé-iṣẹ́",
   "call.screen.quotes": "Àwọn ìdíyelé",
+  "call.screen.level": "Ìpele rẹ",
   "call.screen.rates": "Iye owó",
   "call.screen.reviews": "Àwọn àgbéyẹ̀wò",
   "call.screen.riders": "Àwọn awakọ̀",
@@ -176,6 +178,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "call.screen.agreements": "Àdéhùn dropship",
   "call.screen.status": "Fi Status ránṣẹ́",
   "call.screen.rewards": "Ẹ̀bùn",
+  "call.screen.insights": "Àkíyèsí",
+  "call.screen.email": "Ímeèlì",
+  "call.screen.popups": "Pọ́ọ̀pù",
 };
 
 export default yo;

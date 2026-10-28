@@ -675,6 +675,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "preorders.confirmDeposit": "We go tell {count, plural, one {the shop} other {the # shops}} wey dey wait. Shops go pay the remain, then you pack am send.",
   "preorders.qty": "{count} pieces",
   "preorders.noOrders": "No order yet.",
+  "orders.sampleTag": "Sample",
 };
 
 export default pcm;

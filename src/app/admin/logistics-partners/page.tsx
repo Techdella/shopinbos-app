@@ -20,6 +20,8 @@ import { PLAN_SOURCE_SELECT, planSource, runningGrants } from "@/lib/admin/plan-
 import { requireRole } from "@/lib/server-auth";
 import { SERVICE_LABELS, type PartnerService } from "@shared/delivery-market";
 import { BADGE_LABELS, isPartnerBadge, partnerVerificationState } from "@shared/partner-tiers";
+import { partnerTierName } from "@shared/dropship-rules";
+import { isFeaturedNow } from "@shared/partner-reach";
 import { STATE_LABELS, STATE_TONES } from "./[id]/TierPanel";
 import { reviewQueue } from "./review-queue.server";
 
@@ -33,11 +35,15 @@ export default async function AdminLogisticsPartnersPage(props: { searchParams?:
   const searchQuery = searchParams?.q?.trim() || undefined;
   // "Waiting for review": partners who sent their tier verification, or have an item waiting for the team.
   const reviewView = searchParams?.view === "review";
+  // "Featured applications": Top partners (Tier 3) who asked to be featured (shared/partner-reach.ts).
+  const featuredView = searchParams?.view === "featured";
   const queue = await reviewQueue();
   const waiting = new Map(queue.map((entry) => [entry.id, entry.pending]));
+  const featuredApplied = await db.logisticsPartner.count({ where: { featuredStatus: "applied" } }).catch(() => 0);
 
   const where: Record<string, unknown> = {};
   if (reviewView) where.id = { in: queue.map((entry) => entry.id) };
+  if (featuredView) where.featuredStatus = "applied";
   if (statusFilter) {
     where.verificationStatus = statusFilter;
   }
@@ -76,6 +82,8 @@ export default async function AdminLogisticsPartnersPage(props: { searchParams?:
         deliveryAreas: true,
         cacNumber: true,
         offersPayOnDelivery: true,
+        level: true,
+        featuredStatus: true,
         updatedAt: true,
         userId: true,
       },
@@ -100,7 +108,7 @@ export default async function AdminLogisticsPartnersPage(props: { searchParams?:
 
   const countFor = (status: string) => byStatus.find((row) => row.verificationStatus === status)?._count._all ?? 0;
   const selectedIds = partners.map((s) => s.id);
-  const backTo = withParams("/admin/logistics-partners", { status: statusFilter, q: searchQuery, view: reviewView ? "review" : undefined });
+  const backTo = withParams("/admin/logistics-partners", { status: statusFilter, q: searchQuery, view: reviewView ? "review" : featuredView ? "featured" : undefined });
 
   return (
     <AppPage
@@ -111,18 +119,20 @@ export default async function AdminLogisticsPartnersPage(props: { searchParams?:
         <>
           <FilterChips
             items={[
-              { label: "All", count: total, href: withParams("/admin/logistics-partners", { q: searchQuery }), active: !statusFilter && !reviewView },
+              { label: "All", count: total, href: withParams("/admin/logistics-partners", { q: searchQuery }), active: !statusFilter && !reviewView && !featuredView },
               { label: "Waiting for review", count: queue.length, href: withParams("/admin/logistics-partners", { view: "review", q: searchQuery }), active: reviewView && !statusFilter },
+              { label: "Featured applications", count: featuredApplied, href: withParams("/admin/logistics-partners", { view: "featured", q: searchQuery }), active: featuredView && !statusFilter },
               ...(["pending", "verified", "unverified", "rejected", "suspended"] as const).map((status) => ({
                 label: verificationLabel(status),
                 count: countFor(status),
                 href: withParams("/admin/logistics-partners", { status, q: searchQuery }),
-                active: statusFilter === status && !reviewView,
+                active: statusFilter === status && !reviewView && !featuredView,
               })),
             ]}
           />
-          <SearchForm action="/admin/logistics-partners" defaultValue={searchQuery} placeholder="Search by name or slug" keep={{ status: statusFilter, view: reviewView ? "review" : undefined }} />
-          <PillLink href="/admin/logistics-partners/tier-rules" size="sm" icon="settings">Tier rules</PillLink>
+          <SearchForm action="/admin/logistics-partners" defaultValue={searchQuery} placeholder="Search by name or slug" keep={{ status: statusFilter, view: reviewView ? "review" : featuredView ? "featured" : undefined }} />
+          <PillLink href="/admin/logistics-partners/reach-rules" size="sm" icon="settings">Reach rules</PillLink>
+          <PillLink href="/admin/logistics-partners/tier-rules" size="sm" icon="shield">Safety limits</PillLink>
         </>
       }
     >
@@ -153,7 +163,7 @@ export default async function AdminLogisticsPartnersPage(props: { searchParams?:
       )}
 
       {partners.length === 0 ? (
-        <EmptyState icon="truck" title={reviewView && !searchQuery ? "Nothing waiting for review" : statusFilter || searchQuery ? "No partners match" : "No logistics partners yet"} action={statusFilter || searchQuery ? <PillLink href="/admin/logistics-partners">Clear filters</PillLink> : undefined}>
+        <EmptyState icon="truck" title={featuredView && !searchQuery ? "No featured applications" : reviewView && !searchQuery ? "Nothing waiting for review" : statusFilter || searchQuery ? "No partners match" : "No logistics partners yet"} action={statusFilter || searchQuery ? <PillLink href="/admin/logistics-partners">Clear filters</PillLink> : undefined}>
           {statusFilter || searchQuery ? "Try another filter or search word." : "Delivery partners show up here as soon as they sign up."}
         </EmptyState>
       ) : (
@@ -195,6 +205,8 @@ export default async function AdminLogisticsPartnersPage(props: { searchParams?:
                   </div>
                   <div className="flex flex-wrap items-center gap-1.5">
                     <Pill tone={STATE_TONES[partnerVerificationState(row)]}>{STATE_LABELS[partnerVerificationState(row)]}</Pill>
+                    {row.verificationStatus === "verified" && <Pill tone="muted">{partnerTierName(row.level)}</Pill>}
+                    {isFeaturedNow(row) ? <Pill tone="accent">Featured</Pill> : row.featuredStatus === "applied" ? <Pill tone="warning">Applied to be featured</Pill> : null}
                     {row.badges.filter(isPartnerBadge).map((badge) => <Pill key={badge} tone="info">{BADGE_LABELS[badge]}</Pill>)}
                     {row.status !== "active" && <Pill tone={row.status === "paused" ? "warning" : "danger"}>{row.status === "suspended" ? "Account suspended" : row.status === "paused" ? "Paused by partner" : row.status}</Pill>}
                     {issuesFor(row.id) > 0 && <Pill tone="warning">{issuesFor(row.id)} open problem{issuesFor(row.id) === 1 ? "" : "s"}</Pill>}

@@ -113,7 +113,17 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "create.saleSub": "Black Friday, Krismas ma ọ bụ ọrịre nke gị",
   "create.preorders": "Nara ịtụ n'ihu",
   "create.preordersSub": "Ree tupu ngwaahịa gị abịa",
-  "create.web": "Ịchọrọ ohere karịa? Dezie vidiyo, akụkọ mgbasa ozi na nhazi ụlọ ahịa gị na shopinbos.com.",
+  "create.web": "Ihe niile na-arụ ọrụ ebe a na ekwentị gị. Ha niile dịkwa na shopinbos.com.",
+  "create.status": "Tinye na Status",
+  "create.statusSub": "Foto ma ọ bụ okwu ndị ahịa gị ga-ahụ taa",
+  "create.email": "Ziga email",
+  "create.emailSub": "Rex ga-ede ya maka ndị denyere aha",
+  "create.automation": "Ozi na-aga onwe ha",
+  "create.automationSub": "Ozi na-eziga onwe ha, dị ka ncheta nkata",
+  "create.popup": "Popup",
+  "create.popupSub": "Onyinye n'ụlọ ahịa gị na-anakọta email na nọmba WhatsApp",
+  "needs.allOrders": "Ọda niile",
+  "fromPeggy": "Site n'aka Peggy",
 };
 
 export default ig;

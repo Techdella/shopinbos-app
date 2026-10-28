@@ -12,7 +12,8 @@ import { Sheet } from "@/components/Sheet";
 import { ListScreen, Tick } from "@/components/seller/FindKit";
 import { MarkupPicker, markupOfPick, markupPickOf, type MarkupPick } from "@/components/seller/MarkupPicker";
 import { Field, LinkButton, Notice, PillButton, T } from "@/components/ui";
-import { fetchMine, removeMine, repriceMine, type MySupplierProduct } from "@/lib/quick-add";
+import { fetchMine, fixMine, removeMine, repriceMine, type MySupplierProduct } from "@/lib/quick-add";
+import { noticeDay } from "@shared/price-notice";
 import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
 import { colors, fonts } from "@/theme";
@@ -22,11 +23,14 @@ import { colors, fonts } from "@/theme";
 // price" — cost + 20/30/50% or a ₦ amount, rounded to nice prices, or the suppliers' suggested prices; any that would
 // go below a supplier's lowest price or lose money are left as they are and listed — or "Remove" (taken out of the
 // shop like any removed product). The markup picked here becomes the seller's markup for new adds too.
+// A supplier's price rise on notice shows on its row ("You'll pay ₦X from Mon 3 Nov"); a product Shopinbos paused
+// because the new price would lose money says so, with "Raise to ₦X" (one tap: POST { action: "fix", id }).
 
 type Show = "all" | "dropship" | "wholesale" | "attention";
 
 function MineRow({ product, picked, onPick }: { product: MySupplierProduct; picked: boolean; onPick: () => void }) {
   const t = useT("m_find");
+  const tm = useT("marketplace");
   const keep = product.price - product.cost;
   return (
     <Pressable
@@ -47,7 +51,10 @@ function MineRow({ product, picked, onPick }: { product: MySupplierProduct; pick
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
           {product.status === "draft" ? <Badge label={t("mine.draft")} /> : <Badge label={t("mine.live")} bg={colors.successTint} fg={colors.success} />}
           {product.unavailable ? <Badge label={t("mine.unavailable")} bg={colors.dangerTint} fg={colors.danger} /> : null}
+          {product.pausedForPrice ? <Badge label={tm("notice.pausedShort")} bg={colors.dangerTint} fg={colors.danger} /> : null}
         </View>
+        {product.priceChange ? <T weight="bold" style={{ color: colors.warnInk, fontSize: 12 }}>{tm("notice.rowLine", { cost: naira(product.priceChange.cost), date: noticeDay(product.priceChange.at) })}</T> : null}
+
       </View>
       <View style={{ alignItems: "flex-end", gap: 2 }}>
         <T weight="extrabold" style={{ fontSize: 15 }}>{naira(product.price)}</T>
@@ -72,6 +79,21 @@ export default function MySupplierProducts() {
   const [pick, setPick] = useState<MarkupPick | null>(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ tone: "success" | "error" | "info"; text: string } | null>(null);
+  const [fixing, setFixing] = useState<string | null>(null);
+  const tm = useT("marketplace");
+
+  async function fix(product: MySupplierProduct) {
+    setFixing(product.id);
+    try {
+      const result = await fixMine(product.id);
+      setNote({ tone: "success", text: tm("notice.fixed", { name: product.name, price: naira(result.price) }) });
+      await loaded.refresh();
+    } catch (error) {
+      setNote({ tone: "error", text: error instanceof Error ? error.message : t("quick.failed") });
+    } finally {
+      setFixing(null);
+    }
+  }
 
   const all = useMemo(() => loaded.data?.products ?? [], [loaded.data]);
   const saved: Markup | null = loaded.data?.markup ?? null;
@@ -147,6 +169,22 @@ export default function MySupplierProducts() {
             </View>
           ) : null}
           {note ? <Notice tone={note.tone}>{note.text}</Notice> : null}
+          {/* Paused because the supplier's new price would lose money: the one-tap fix, full width (shared/price-notice.ts). */}
+          {all.some((product) => product.pausedForPrice) ? (
+            <View style={{ gap: 10, backgroundColor: colors.dangerTint, borderRadius: 20, padding: 14 }}>
+              <T weight="extrabold" style={{ fontSize: 16, lineHeight: 21, color: colors.danger }}>{tm("notice.pausedTitle", { count: all.filter((product) => product.pausedForPrice).length })}</T>
+              <T style={{ fontSize: 14, lineHeight: 20 }}>{tm("notice.pausedBody")}</T>
+              {all.filter((product) => product.pausedForPrice).map((product) => (
+                <View key={product.id} style={{ gap: 8, backgroundColor: colors.surface, borderRadius: 16, padding: 12 }}>
+                  <T weight="bold" style={{ fontSize: 15 }} numberOfLines={2}>{product.name}</T>
+                  <T style={{ color: colors.inkSoft, fontSize: 13.5 }}>{tm("notice.pausedLine", { price: naira(product.price), cost: naira(product.cost) })}</T>
+                  {product.fixPrice ? (
+                    <PillButton testID={`fix-${product.id}`} size="md" busy={fixing === product.id} disabled={Boolean(fixing)} title={tm("notice.raiseTo", { price: naira(product.fixPrice) })} onPress={() => void fix(product)} />
+                  ) : null}
+                </View>
+              ))}
+            </View>
+          ) : null}
           {loaded.loading && !loaded.data ? <LoadingBlock /> : null}
           {loaded.error && !loaded.data ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} /> : null}
           {loaded.data && !all.length ? (

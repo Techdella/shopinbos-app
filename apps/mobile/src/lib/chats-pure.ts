@@ -99,11 +99,13 @@ export function mergeSellerChats(inbox: InboxLike[] | null, contacts: ContactLik
   return [...out, ...partners.values()].sort(newest);
 }
 
-export type SellerChatFilter = "all" | "customers" | "partners" | "unread";
-export const SELLER_CHAT_FILTERS: readonly SellerChatFilter[] = ["all", "customers", "partners", "unread"];
+/** The chips (canvas board A-Seller-Chats): All, Customers, Riders (delivery partners), Suppliers, Unread. "partners"
+ * (both kinds) is no chip any more but still opens from old links (?filter=partners). */
+export type SellerChatFilter = "all" | "customers" | "riders" | "suppliers" | "partners" | "unread";
+export const SELLER_CHAT_FILTERS: readonly SellerChatFilter[] = ["all", "customers", "riders", "suppliers", "unread"];
 
 export function asSellerChatFilter(value: unknown): SellerChatFilter | null {
-  return typeof value === "string" && (SELLER_CHAT_FILTERS as readonly string[]).includes(value) ? (value as SellerChatFilter) : null;
+  return typeof value === "string" && ([...SELLER_CHAT_FILTERS, "partners"] as readonly string[]).includes(value) ? (value as SellerChatFilter) : null;
 }
 
 /** Done (closed) customer chats stay out of the list but a search still finds them. */
@@ -112,6 +114,8 @@ export function sellerChatMatches(chat: MergedChat, filter: SellerChatFilter, q 
   if (chat.status === "closed" && !query) return false;
   if (filter === "customers" && chat.kind !== "customer") return false;
   if (filter === "partners" && chat.kind !== "partner") return false;
+  if (filter === "riders" && !(chat.kind === "partner" && chat.role === "logistics_partner")) return false;
+  if (filter === "suppliers" && !(chat.kind === "partner" && chat.role !== "logistics_partner")) return false;
   if (filter === "unread" && !(chat.unread > 0 && chat.status !== "closed")) return false;
   if (query && ![chat.name, chat.preview, chat.subject ?? ""].join(" ").toLowerCase().includes(query)) return false;
   return true;

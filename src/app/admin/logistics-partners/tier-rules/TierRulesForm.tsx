@@ -43,7 +43,7 @@ export function TierRulesForm({ initial }: { initial: TierRules }) {
   return (
     <form onSubmit={submit} className="mt-4 grid gap-4">
       <fieldset className="m-0 grid gap-3 border-0 p-0 sm:grid-cols-2">
-        <legend className="mb-2 text-[14px] font-extrabold">Limits while on Tier 1</legend>
+        <legend className="mb-2 text-[14px] font-extrabold">Safety limits for new partners (no CAC)</legend>
         <Field label="Max order value per delivery (₦)" htmlFor="maxOrderValue" hint={`Default ₦${d.maxOrderValue.toLocaleString("en-NG")}`}>
           <input id="maxOrderValue" name="maxOrderValue" inputMode="numeric" required defaultValue={initial.maxOrderValue} className={fieldClass} />
         </Field>
@@ -52,7 +52,7 @@ export function TierRulesForm({ initial }: { initial: TierRules }) {
         </Field>
       </fieldset>
       <fieldset className="m-0 grid gap-3 border-0 p-0 sm:grid-cols-3">
-        <legend className="mb-2 text-[14px] font-extrabold">Limits lift when all three are met</legend>
+        <legend className="mb-2 text-[14px] font-extrabold">Safety limits lift when all three are met</legend>
         <Field label="Completed deliveries at least" htmlFor="minDeliveries" hint={`Default ${d.graduation.minDeliveries}`}>
           <input id="minDeliveries" name="minDeliveries" type="number" min={0} required defaultValue={initial.graduation.minDeliveries} className={fieldClass} />
         </Field>

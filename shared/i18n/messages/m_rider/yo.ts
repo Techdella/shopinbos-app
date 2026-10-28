@@ -195,6 +195,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "pay.paid": "Wọ́n ti sanwó nínú app",
   "pay.paidSub": "Béèrè kóòdù tí wọ́n gbà lẹ́yìn ìsanwó, lẹ́yìn náà fa ẹrù lé wọn lọ́wọ́.",
   "pay.codeHint": "Béèrè kóòdù oní-nọ́ńbà mẹ́rin tí oníbàárà gbà lẹ́yìn tí wọ́n sanwó nínú app",
+  // Reach tiers (shared/partner-reach.ts)
+  "earn.weekLine": "Owó ọ̀sẹ̀ yìí: {amount}",
+  "earn.paidBy": "{company} ló ń sanwó fún ọ",
 };
 
 export default yo;

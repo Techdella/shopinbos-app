@@ -195,6 +195,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "pay.paid": "An biya a app",
   "pay.paidSub": "Ka nemi lambar da suka samu bayan biya, sannan ka ba su kayan.",
   "pay.codeHint": "Ka nemi lamba mai lambobi 4 da abokin ciniki ya samu bayan ya biya a app",
+  // Reach tiers (shared/partner-reach.ts)
+  "earn.weekLine": "Abin da ka samu a makon nan: {amount}",
+  "earn.paidBy": "{company} ne ke biyan ka",
 };
 
 export default ha;

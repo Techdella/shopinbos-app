@@ -10,6 +10,7 @@ import { editNeedsReview } from "@shared/supplier-product-review";
 import { parsePreorderInput, preorderSaveData } from "@shared/preorder";
 import { channelPriceProblem, cleanDropshipMinQty, cleanHandlingDays } from "@shared/dropship-rules";
 import { preorderLevelProblem } from "@/lib/supplier-levels.server";
+import { notifyPriceNotice, pendingPriceView, supplierPriceEdit } from "@/lib/marketplace/price-notice.server";
 
 async function getOwnedProduct(productId: string, userId: string) {
   const supplier = await db.supplier.findUnique({ where: { userId } });
@@ -23,7 +24,8 @@ export const GET = withSupplier(async (
 ) => {
   const product = await getOwnedProduct(params.id, user.id);
   if (!product) return apiError("NOT_FOUND", "Product not found", 404);
-  return ok(product);
+  // `pendingPrice`: a price rise waiting out its 7 days' notice ({ wholesalePrice, dropshipPrice, at }), or null.
+  return ok({ ...product, pendingPrice: pendingPriceView(product) });
 });
 
 export const PATCH = withSupplier(async (
@@ -72,11 +74,20 @@ export const PATCH = withSupplier(async (
 
   // Only changes to what shops see (words, photos, category, prices) send a live product back for review.
   const hasPublicFieldChanges = editNeedsReview(product, parsed.data);
+  // A price rise on a product shops already list waits 7 days (shared/price-notice.ts); cuts go live now. The
+  // response's `pendingPrice` ({ wholesalePrice, dropshipPrice, at }) says when a waiting rise takes effect.
+  const priceEdit = await supplierPriceEdit(product, {
+    ...(fields.priceMode !== undefined ? { priceMode: fields.priceMode } : {}),
+    ...(fields.wholesalePrice !== undefined ? { wholesalePrice: fields.wholesalePrice } : {}),
+    ...(fields.dropshipPrice !== undefined ? { dropshipPrice: fields.dropshipPrice } : {}),
+    ...(fields.pricingTiers !== undefined ? { pricingTiers: fields.pricingTiers } : {}),
+  });
 
   const updated = await db.supplierProduct.update({
     where: { id: params.id },
     data: {
       ...fields,
+      ...priceEdit.data,
       ...(preorderParsed?.ok ? preorderSaveData(preorderParsed.value, { wasEnabled: product.preorderEnabled }) : {}),
       ...(preorder?.depositPct !== undefined ? { preorderDepositPct: preorder.depositPct } : {}),
       ...(product.status === "published" && hasPublicFieldChanges ? { status: "pending_review" } : {}),
@@ -87,6 +98,7 @@ export const PATCH = withSupplier(async (
     },
   });
   if (updated.status === "pending_review" && product.status !== "pending_review") await notifyProductForReview(updated.id, updated.name, updated.supplier.displayName);
+  if (priceEdit.plan.kind === "notice") await notifyPriceNotice(updated.id);
 
   invalidatePublicMarketplaceCache({
     productSlug: updated.slug,
@@ -94,7 +106,7 @@ export const PATCH = withSupplier(async (
     categorySlug: updated.category.slug,
   });
 
-  return ok(updated);
+  return ok({ ...updated, pendingPrice: pendingPriceView(updated) });
 });
 
 export const DELETE = withSupplier(async (

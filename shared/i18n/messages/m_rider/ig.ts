@@ -195,6 +195,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "pay.paid": "Akwụọla ụgwọ n'app",
   "pay.paidSub": "Rịọ koodu ha nwetara mgbe ha kwụsịrị ụgwọ, wee nyefee ha ngwongwo ahụ.",
   "pay.codeHint": "Rịọ koodu nwere ọnụọgụ 4 onye ahịa nwetara mgbe ha kwụrụ ụgwọ n'app",
+  // Reach tiers (shared/partner-reach.ts)
+  "earn.weekLine": "Ihe ị kpatara n'izu a: {amount}",
+  "earn.paidBy": "{company} na-akwụ gị ụgwọ",
 };
 
 export default ig;

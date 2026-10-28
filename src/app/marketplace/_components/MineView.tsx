@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { removeSupplierProductsAction, repriceSupplierProductsAction } from "@/app/actions/quick-add";
+import { fixPausedListingAction, removeSupplierProductsAction, repriceSupplierProductsAction } from "@/app/actions/quick-add";
+import { noticeDay } from "@shared/price-notice";
 import { cx } from "@/components/app-ui/cx";
 import { Icon } from "@/components/ui/Icon";
 import { useT } from "@/components/i18n/I18nProvider";
@@ -16,11 +17,14 @@ import { Dialog, MarkupChoices, MarkupEditor } from "./QuickAddKit";
 // Dropship / Wholesale / Needs a look; tick many (or all shown), then "Change price" — cost + 20/30/50% or a ₦ amount
 // rounded to nice prices, or the suppliers' suggested prices (any that would go below a supplier's lowest price or
 // lose money keep theirs, and are named) — or "Remove". Your markup for new adds is edited at the top.
+// A supplier's price rise on notice shows on its row ("You'll pay ₦X from Mon 3 Nov"); a product Shopinbos paused
+// because the new price would lose money shows at the top with "Raise to ₦X" (one tap, shared/price-notice.ts).
+// "Make a video" opens Rex's video studio with the product (dropship products, /home/video/studio).
 
 type Show = "all" | "dropship" | "wholesale" | "attention";
 type Pick = { kind: "percent"; value: number } | { kind: "amount"; text: string };
 
-export function MineView({ products, markup: initial }: { products: MySupplierProduct[]; markup: Markup }) {
+export function MineView({ products, markup: initial, focus = null }: { products: MySupplierProduct[]; markup: Markup; /** ?fix=<id> from the "paused" notification: that row first. */ focus?: string | null }) {
   const t = useT("marketplace");
   const router = useRouter();
   const [markup, setMarkup] = useState(initial);
@@ -32,6 +36,17 @@ export function MineView({ products, markup: initial }: { products: MySupplierPr
   const [pick, setPick] = useState<Pick>(() => (initial.kind === "amount" ? { kind: "amount", text: String(initial.value) } : { kind: "percent", value: initial.value }));
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
+  const [fixing, setFixing] = useState<string | null>(null);
+  const paused = products.filter((product) => product.pausedForPrice).sort((a, b) => Number(b.id === focus) - Number(a.id === focus));
+
+  async function fix(product: MySupplierProduct) {
+    setFixing(product.id);
+    const result = await fixPausedListingAction(product.id);
+    setFixing(null);
+    if (!result.ok) return setNote({ ok: false, text: result.error });
+    setNote({ ok: true, text: t("notice.fixed", { name: product.name, price: naira(result.price) }) });
+    router.refresh();
+  }
 
   const shown = useMemo(() => {
     const words = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -89,6 +104,28 @@ export function MineView({ products, markup: initial }: { products: MySupplierPr
         <button type="button" onClick={() => setDialog("markup")} className="inline-flex min-h-[40px] items-center rounded-full border border-app-line px-4 text-[14px] font-bold hover:border-app-line-strong">{t("packs.changeMarkup")}</button>
       </section>
 
+      {paused.length ? (
+        <section className="grid gap-2 rounded-[18px] border border-app-danger/30 bg-app-danger-tint px-4 py-3" data-testid="paused-for-price">
+          <h2 className="m-0 text-[15px] font-extrabold text-app-danger">{t("notice.pausedTitle", { count: paused.length })}</h2>
+          <p className="m-0 text-[13.5px] leading-[1.5]">{t("notice.pausedBody")}</p>
+          <ul className="m-0 grid list-none gap-2 p-0">
+            {paused.map((product) => (
+              <li key={product.id} className="flex flex-wrap items-center gap-3 rounded-[14px] bg-white px-3 py-2">
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[14px] font-bold">{product.name}</span>
+                  <span className="block text-[12.5px] text-app-ink-soft">{t("notice.pausedLine", { price: naira(product.price), cost: naira(product.cost) })}</span>
+                </span>
+                {product.fixPrice ? (
+                  <button type="button" data-testid={`fix-${product.id}`} disabled={fixing !== null} onClick={() => void fix(product)} className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full bg-app-ink px-4 text-[13.5px] font-bold text-white disabled:opacity-60">
+                    {fixing === product.id ? t("quick.saving") : t("notice.raiseTo", { price: naira(product.fixPrice) })}
+                  </button>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       {note ? <p role="status" className={cx("m-0 rounded-[16px] px-4 py-3 text-[14px] font-bold", note.ok ? "bg-app-success-tint text-app-success" : "bg-app-danger-tint text-app-danger")}>{note.text}</p> : null}
 
       {products.length ? (
@@ -136,7 +173,14 @@ export function MineView({ products, markup: initial }: { products: MySupplierPr
                       <span className="block truncate text-[12.5px] text-app-ink-soft">
                         {product.supplierName} · {product.dropship ? t("filter.dropship") : t("filter.wholesale")} · {product.status === "draft" ? t("mine.draft") : t("mine.live")}
                         {product.unavailable ? <span className="font-bold text-app-danger"> · {t("mine.unavailable")}</span> : null}
+                        {product.pausedForPrice ? <span className="font-bold text-app-danger"> · {t("notice.pausedTag")}</span> : null}
                       </span>
+                      {product.priceChange ? (
+                        <span className="mt-0.5 block text-[12px] font-bold text-[#8A5A00]">{t("notice.rowLine", { cost: naira(product.priceChange.cost), date: noticeDay(product.priceChange.at) })}</span>
+                      ) : null}
+                      {product.dropship ? (
+                        <Link href={`/home/video/studio?purpose=product&product=${encodeURIComponent(product.id)}`} className="mt-0.5 inline-flex items-center gap-1 text-[12px] font-bold text-app-accent-ink no-underline hover:underline"><Icon name="play" size={12} /> {t("rex.makeVideo")}</Link>
+                      ) : null}
                     </span>
                     <span className="hidden text-right text-[13px] text-app-ink-soft sm:block">{t("packs.youPay", { cost: naira(product.cost) })}</span>
                     <span className="w-[124px] text-right">

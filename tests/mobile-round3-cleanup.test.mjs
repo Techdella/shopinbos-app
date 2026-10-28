@@ -90,7 +90,7 @@ test("layout: one header gutter, one Back button, no Help on Help, short My shop
   assert.match(app("app/add-products.tsx"), /<Screen\b/);
   assert.doesNotMatch(app("app/add-products.tsx"), /BackButton/);
   const shop = app("app/(tabs)/shop.tsx");
-  assert.match(shop, /export const ON_SCREEN = new Set\(\["products", "find", "money", "delivery", "domain", "packaging", "settings", "help"\]\)/);
+  assert.match(shop, /export const ON_SCREEN = new Set\(\["products", "find", "delivery", "customers", "payouts", "settings", "ads", "automations", "video", "help"\]\)/);
   assert.match(shop, /<LanguageRow tile \/>/);
   // Web address records: monospace, selectable, a copy icon.
   assert.match(app("app/domain.tsx"), /fontFamily: fonts\.mono/);

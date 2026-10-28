@@ -143,6 +143,7 @@ const en = {
   "call.screen.find": "Find products to sell",
   "call.screen.starter_packs": "Starter packs",
   "call.screen.supplier_products": "My supplier products",
+  "call.screen.wholesale_orders": "My wholesale orders",
   "call.screen.help": "Help",
   "call.screen.home": "Home",
   "call.screen.jobs": "Jobs",
@@ -159,6 +160,7 @@ const en = {
   "call.screen.products": "Products",
   "call.screen.profile": "Company profile",
   "call.screen.quotes": "Quotes",
+  "call.screen.level": "Your level",
   "call.screen.rates": "Rates",
   "call.screen.reviews": "Reviews",
   "call.screen.riders": "Riders",
@@ -178,6 +180,9 @@ const en = {
   "call.screen.agreements": "Dropship agreements",
   "call.screen.status": "Post a status",
   "call.screen.rewards": "Rewards",
+  "call.screen.insights": "Insights",
+  "call.screen.email": "Email",
+  "call.screen.popups": "Popups",
 } satisfies Record<string, string>;
 
 export default en;

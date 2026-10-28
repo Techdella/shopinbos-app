@@ -195,6 +195,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "pay.paid": "E don pay for app",
   "pay.paidSub": "Ask for the code wey dem get after dem pay, then give dem the parcel.",
   "pay.codeHint": "Ask for the 4-digit code wey customer get after dem pay for app",
+  // Reach tiers (shared/partner-reach.ts)
+  "earn.weekLine": "Wetin you earn this week: {amount}",
+  "earn.paidBy": "{company} dey pay you",
 };
 
 export default pcm;

@@ -1,19 +1,20 @@
 import { useCallback, useState } from "react";
 import { Pressable, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
-import { List, Row, Tile, Title, type TileTone } from "@/components/design";
+import { Eyebrow, List, Row, Tile, Title, type TileTone } from "@/components/design";
 import { HelpButton } from "@/components/Help";
 import { LanguageRow } from "@/components/LanguagePicker";
 import { type AppIconName } from "@/components/icons";
 import { Picture } from "@/components/kit";
-import { Section } from "@/components/seller/bits";
-import { StockRow, useStockSaver } from "@/components/seller/StockRows";
-import { LinkButton, Notice, PillButton, T } from "@/components/ui";
+import { IconButton, Section } from "@/components/seller/bits";
+import { Field, LinkButton, T } from "@/components/ui";
 import { TabScreen } from "@/components/TabScreen";
 import { ApiError } from "@/lib/api";
 import { signOut } from "@/lib/auth";
-import { fetchProducts, type ProductItem } from "@/lib/dashboard";
+import { fetchAds } from "@/lib/ads";
+import { automationsOn, liveAds, matchTools } from "@/lib/grow-pure";
 import { latestPicture, useChangedIdentity } from "@/lib/identity";
+import { fetchAutomations } from "@/lib/marketing";
 import { fetchSetup, type SetupOverview } from "@/lib/setup";
 import { openShop, shareShop } from "@/lib/share";
 import { shopIsLive } from "@/lib/publish";
@@ -23,15 +24,17 @@ import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 import { DeleteAccountButton } from "@/components/DeleteAccountButton";
 
-// My shop ("Familiar app" prototype `on.shop`): the shop's logo, name and link with Edit my shop and Share (and Put my
-// shop live while it isn't); four tiles
-// (Money, Delivery, Posts, Web address); the products with their stock and − / +, Find more to sell and Add a
-// product; one card with Packaging and labels and Settings and help. Under that, every other tool the seller had, in
-// four short groups (Sell; Money and delivery; Look; You), titles only, each tool once: anything already on the
-// screen above (ON_SCREEN) isn't repeated, and Help is the button in the corner. Every path is a screen in the app
-// ("app:"); nothing here opens the web app. Web address is app/domain.tsx and Packaging is app/packaging.tsx.
-// "Sell everywhere" (/channels) isn't in the phone app's shop.
-// Words are translated at render: m_shop "group.<key>", "link.<id>.label" and "link.<id>.hint" (English here is the fallback).
+// Menu (canvas board M-Menu, "Seller app · sell, grow"; this tab was My shop, the route stays /shop): the shop's logo
+// and name with "See your store as customers do" and Share (and Put my shop live while it isn't); the Grow tools
+// (Ads, Rex videos, Email, Automations, Popups, Insights) and the Store tools (Orders, Products, Edit store, Find
+// stock, Delivery, Customers, Payouts, Settings) as two grids of tiles, with live counts on Ads ("1 LIVE") and
+// Automations ("3 ON"); a search over every tool; then every other tool the seller had, in four short groups (Sell;
+// Money and delivery; Look; You), titles only, each tool once: anything already on the grids (ON_SCREEN) isn't
+// repeated, and Help is the button in the corner. Every path is a screen in the app ("app:"); nothing here opens the
+// web app. Web address is app/domain.tsx and Packaging is app/packaging.tsx. "Sell everywhere" (/channels) isn't in
+// the phone app's shop. The board's "Import from China" isn't open yet, so it isn't here.
+// Words are translated at render: m_shop "group.<key>", "link.<id>.label" and "link.<id>.hint", m_grow "tool.<id>"
+// (English here is the fallback).
 type ShopLink = { id: string; label: string; icon: AppIconName; path: string; hint?: string; tone?: TileTone };
 
 export const SHOP_GROUPS: { key: string; title: string; links: ShopLink[] }[] = [
@@ -73,6 +76,7 @@ export const SHOP_GROUPS: { key: string; title: string; links: ShopLink[] }[] = 
       { id: "themes", label: "Shop looks", icon: "image", path: "app:/templates", hint: "Pick a look, or let Rex build one" },
       { id: "linkInBio", label: "Link in bio", icon: "share", path: "app:/link-in-bio", hint: "One page for your Instagram and TikTok bio" },
       { id: "video", label: "Video studio", icon: "play", path: "app:/video", hint: "Reels for ads, products and social media" },
+      { id: "posts", label: "Posts calendar", icon: "image", path: "app:/posts", hint: "Posts already made and planned, day by day" },
     ],
   },
   {
@@ -89,60 +93,140 @@ export const SHOP_GROUPS: { key: string; title: string; links: ShopLink[] }[] = 
   },
 ];
 
+/** The Menu's two grids (board M-Menu). `count` names the live count the tile shows. */
+type GridTool = { id: string; label: string; icon: AppIconName; tone: TileTone; path: string; count?: "live" | "on" };
 
-/** Tools already on the screen above the groups (tiles, products, the Packaging / Settings card, the Help button),
- * so the groups don't list them a second time. */
-export const ON_SCREEN = new Set(["products", "find", "money", "delivery", "domain", "packaging", "settings", "help"]);
+export const GROW_TOOLS: GridTool[] = [
+  { id: "ads", label: "Ads", icon: "megaphone", tone: "mint", path: "app:/ads", count: "live" },
+  { id: "video", label: "Rex videos", icon: "play", tone: "ink", path: "app:/video" },
+  { id: "email", label: "Email", icon: "mail", tone: "butter", path: "app:/marketing/email" },
+  { id: "automations", label: "Automations", icon: "zap", tone: "lilac", path: "app:/marketing/automations", count: "on" },
+  { id: "popups", label: "Popups", icon: "popup", tone: "peach", path: "app:/marketing/popups" },
+  { id: "insights", label: "Insights", icon: "chart", tone: "sky", path: "app:/insights" },
+];
+
+export const STORE_TOOLS: GridTool[] = [
+  { id: "orders", label: "Orders", icon: "bag", tone: "peach", path: "app:/orders" },
+  { id: "products", label: "Products", icon: "grid", tone: "lime", path: "app:/products" },
+  { id: "editStore", label: "Edit store", icon: "sparkle", tone: "lilac", path: "app:/shop-edit" },
+  { id: "find", label: "Find stock", icon: "box", tone: "blue", path: "app:/find" },
+  { id: "delivery", label: "Delivery", icon: "truck", tone: "sky", path: "app:/delivery" },
+  { id: "customers", label: "Customers", icon: "users", tone: "mint", path: "app:/customers" },
+  { id: "payouts", label: "Payouts", icon: "wallet", tone: "ok", path: "app:/payouts" },
+  { id: "settings", label: "Settings", icon: "settings", tone: "gray", path: "app:/settings" },
+];
+
+/** Tools already on the grids (and Help, the button in the corner), so the groups below don't list them again. */
+export const ON_SCREEN = new Set(["products", "find", "delivery", "customers", "payouts", "settings", "ads", "automations", "video", "help"]);
 
 function go(path: string) {
   router.push(path.replace(/^app:/, "") as never);
 }
 
-/** How many products show inline; "See all" opens Products. */
-const INLINE_PRODUCTS = 5;
+/** Three tiles to a row, each row of equal tiles (flex: 1), the last row padded with empty space. */
+function ToolGrid({ tools, counts, label }: { tools: GridTool[]; counts: { live: number; on: number }; label: (tool: GridTool) => string }) {
+  const t = useT("m_grow");
+  const rows: GridTool[][] = [];
+  for (let index = 0; index < tools.length; index += 3) rows.push(tools.slice(index, index + 3));
+  return (
+    <View style={{ gap: 8 }}>
+      {rows.map((row) => (
+        <View key={row[0].id} style={{ flexDirection: "row", gap: 8 }}>
+          {row.map((tool) => {
+            const count = tool.count ? counts[tool.count] : 0;
+            const tag = count ? t(tool.count === "live" ? "menu.live" : "menu.on", { count }) : null;
+            return (
+              <Pressable
+                key={tool.id}
+                testID={`menu-${tool.id}`}
+                accessibilityRole="button"
+                accessibilityLabel={tag ? `${label(tool)}, ${tag}` : label(tool)}
+                onPress={() => go(tool.path)}
+                style={({ pressed }) => ({ flex: 1, minWidth: 0, minHeight: 92, backgroundColor: colors.surface, borderRadius: 18, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 10, paddingVertical: 12, gap: 8, opacity: pressed ? 0.85 : 1 })}
+              >
+                <Tile icon={tool.icon} tone={tool.tone} size={36} />
+                <T weight="bold" numberOfLines={2} style={{ fontSize: 13, lineHeight: 17 }}>{label(tool)}</T>
+                {tag ? (
+                  <View style={{ position: "absolute", top: 10, right: 8, borderRadius: 9, paddingHorizontal: 6, height: 18, justifyContent: "center", backgroundColor: colors.successTint }}>
+                    <T weight="extrabold" style={{ fontSize: 10, color: colors.success }}>{tag}</T>
+                  </View>
+                ) : null}
+              </Pressable>
+            );
+          })}
+          {row.length < 3 ? Array.from({ length: 3 - row.length }, (_, index) => <View key={`gap-${index}`} style={{ flex: 1 }} />) : null}
+        </View>
+      ))}
+    </View>
+  );
+}
 
-/** The four tiles under the shop card (`.grid2` tiles in the prototype). */
-const TILES: { id: string; icon: AppIconName; tone: TileTone; path: string; label: "tile.money" | "tile.delivery" | "tile.posts" | "tile.domain" }[] = [
-  { id: "money", icon: "wallet", tone: "ok", path: "app:/wallet", label: "tile.money" },
-  { id: "delivery", icon: "truck", tone: "sky", path: "app:/delivery", label: "tile.delivery" },
-  { id: "posts", icon: "image", tone: "lime", path: "app:/posts", label: "tile.posts" },
-  { id: "domain", icon: "globe", tone: "lilac", path: "app:/domain", label: "tile.domain" },
-];
-
-export default function MyShop() {
-  const t = useT("m_shop", "m_products", "m_onboarding", "nav", "common");
+export default function Menu() {
+  const t = useT("m_shop", "m_grow", "m_onboarding", "nav", "common");
   const tBulk = useT("bulkAdd");
   const [notSeller, setNotSeller] = useState(false);
   const [setup, setSetup] = useState<SetupOverview | null>(null);
   // Held here, not in the button: once the shop is live the button (and anything inside it) goes away.
   const [justPublished, setJustPublished] = useState<PublishedShop | null>(null);
-  const [products, setProducts] = useState<ProductItem[] | null>(null);
+  const [counts, setCounts] = useState({ live: 0, on: 0 });
   const [shareNote, setShareNote] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [query, setQuery] = useState("");
   const changedPictures = useChangedIdentity();
-  const setStock = useStockSaver(setProducts, setError);
 
   useFocusEffect(
     useCallback(() => {
       fetchSetup()
         .then(setSetup)
         .catch((loadError) => setNotSeller(loadError instanceof ApiError && loadError.status === 403));
-      fetchProducts()
-        .then(setProducts)
+      // The live counts on Ads and Automations: each on its own; a count that doesn't load just doesn't show.
+      fetchAds()
+        .then((ads) => setCounts((now) => ({ ...now, live: liveAds(ads) })))
+        .catch(() => null);
+      fetchAutomations()
+        .then((flows) => setCounts((now) => ({ ...now, on: automationsOn(flows) })))
         .catch(() => null);
     }, []),
   );
 
   const store = setup?.store ?? null;
-  const link = store?.url ? store.url.replace(/^https?:\/\//, "").replace(/\/$/, "") : null;
 
   async function share() {
     setShareNote(null);
     if ((await shareShop().catch(() => "no-link" as const)) === "no-link") setShareNote(t("noLink"));
   }
 
+  const toolLabel = (tool: GridTool) => t.dynamic(`tool.${tool.id}`, tool.label);
+  // Search: every tool on the grids and in the groups, by its name and what it's for.
+  const allTools = [
+    ...[...GROW_TOOLS, ...STORE_TOOLS].map((tool) => ({ key: tool.id, title: toolLabel(tool), icon: tool.icon, tone: tool.tone, path: tool.path, words: [toolLabel(tool), tool.label] })),
+    ...SHOP_GROUPS.flatMap((group) => group.links)
+      .filter((link) => !ON_SCREEN.has(link.id))
+      .map((link) => {
+        const title = t.dynamic(`link.${link.id}.label`, link.label);
+        return { key: link.id, title, icon: link.icon, tone: link.tone ?? ("gray" as TileTone), path: link.path, words: [title, link.label, t.dynamic(`link.${link.id}.hint`, link.hint ?? ""), link.hint ?? ""] };
+      }),
+  ];
+  const found = query.trim() ? matchTools(allTools, query) : null;
+
   return (
-    <TabScreen title={t("tab.shop")} action={<HelpButton />}>
+    <TabScreen
+      header={
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 46 }}>
+          <Title style={{ flex: 1 }}>{t("menu.title")}</Title>
+          <IconButton
+            testID="menu-search"
+            icon={searching ? "x" : "search"}
+            label={t("menu.search")}
+            onPress={() => {
+              setSearching(!searching);
+              setQuery("");
+            }}
+          />
+          <HelpButton compact />
+        </View>
+      }
+    >
       {notSeller && (
         <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20, gap: 6 }}>
           <T weight="extrabold" style={{ fontSize: 17 }}>{t("notSeller.title")}</T>
@@ -150,33 +234,43 @@ export default function MyShop() {
         </View>
       )}
 
-      {/* The shop: logo, Edit look and Share, the name and link. */}
-      {store ? (
-        <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20, gap: 14 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <Picture uri={latestPicture(changedPictures, "logoUrl", store.logoUrl)} name={store.name} size={64} shape="square" />
-            {/* The two buttons wrap under each other on narrow phones instead of running off the screen. */}
-            <View style={{ flex: 1, minWidth: 0, flexDirection: "row", flexWrap: "wrap", justifyContent: "flex-end", gap: 8 }}>
-            <PillButton testID="edit-shop" tone="white" size="sm" accessibilityLabel={t("editShop.open")} onPress={() => router.push("/shop-edit" as never)} icon="sparkle" title={t("editShop.open")} />
-            {store.url ? (
-              <PillButton testID="share-shop" size="sm" accessibilityLabel={t("share")} onPress={() => void share()} icon="share" title={t("share")} />
-            ) : null}
-            </View>
-          </View>
-          <View style={{ gap: 2 }}>
-            <Title size={26}>{store.name}</Title>
-            {link ? (
-              <Pressable accessibilityRole="link" accessibilityLabel={t("card.view")} onPress={() => void openShop(store.url!)} hitSlop={6} style={{ minHeight: 32, justifyContent: "center" }}>
-                <T weight="semibold" style={{ fontSize: 15, color: colors.inkSoft }} numberOfLines={1}>{link}</T>
-              </Pressable>
+      {searching ? (
+        <View style={{ gap: 10 }}>
+          <Field testID="menu-search-field" autoFocus value={query} onChangeText={setQuery} placeholder={t("menu.searchPlaceholder")} accessibilityLabel={t("menu.search")} returnKeyType="search" />
+          {found ? (
+            found.length ? (
+              <List>
+                {found.map((tool) => <Row key={tool.key} lead={<Tile icon={tool.icon} tone={tool.tone} />} title={tool.title} onPress={() => go(tool.path)} />)}
+              </List>
             ) : (
-              <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t("linkLater")}</T>
-            )}
+              <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t("menu.noMatch")}</T>
+            )
+          ) : null}
+        </View>
+      ) : null}
+
+      {/* The shop: logo, name and "See your store as customers do" (opens it), Share; Put my shop live under it. */}
+      {store ? (
+        <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 16, gap: 12 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <Picture uri={latestPicture(changedPictures, "logoUrl", store.logoUrl)} name={store.name} size={52} shape="square" />
+            <Pressable
+              testID="menu-see-store"
+              accessibilityRole="link"
+              accessibilityLabel={`${store.name}. ${t("menu.seeStore")}`}
+              disabled={!store.url}
+              onPress={() => (store.url ? void openShop(store.url) : undefined)}
+              style={{ flex: 1, minWidth: 0, minHeight: 44, justifyContent: "center" }}
+            >
+              <T weight="extrabold" style={{ fontSize: 18 }} numberOfLines={1}>{store.name}</T>
+              <T style={{ fontSize: 14, color: colors.inkSoft }} numberOfLines={1}>{store.url ? t("menu.seeStore") : t("linkLater")}</T>
+            </Pressable>
+            {store.url ? <IconButton testID="share-shop" icon="share" label={t("share")} onPress={() => void share()} /> : null}
           </View>
           {shareNote ? <T style={{ color: colors.danger, fontSize: 15 }}>{shareNote}</T> : null}
           {/* Not live yet: one obvious button puts it live (then "Your shop is live" with View shop and Share). */}
           {shopIsLive(setup) === false ? (
-            <View style={{ gap: 8, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 14 }}>
+            <View style={{ gap: 8, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 12 }}>
               <T weight="extrabold" style={{ fontSize: 16 }}>{t("publish.notLive")}</T>
               <PublishButton testID="shop-publish" sheet={false} onPublished={(shop) => { setJustPublished(shop); void fetchSetup().then(setSetup).catch(() => null); }} />
             </View>
@@ -185,55 +279,22 @@ export default function MyShop() {
       ) : null}
       <ShopLiveSheet shop={justPublished} onClose={() => setJustPublished(null)} />
 
-      {/* Money, Delivery, Posts, Web address: a 2×2 grid as rows of two equal tiles (flex: 1). A percentage width
-          plus the gap tipped over 100% on 360px phones and wrapped into one narrow column. */}
       <View style={{ gap: 10 }}>
-        {[TILES.slice(0, 2), TILES.slice(2, 4)].map((pair) => (
-          <View key={pair[0].id} style={{ flexDirection: "row", gap: 10 }}>
-            {pair.map((tile) => (
-              <Pressable
-                key={tile.id}
-                testID={`shop-tile-${tile.id}`}
-                accessibilityRole="button"
-                accessibilityLabel={t(tile.label)}
-                onPress={() => go(tile.path)}
-                style={({ pressed }) => ({ flex: 1, minWidth: 0, minHeight: 96, backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 14, gap: 10, justifyContent: "space-between", opacity: pressed ? 0.85 : 1 })}
-              >
-                <Tile icon={tile.icon} tone={tile.tone} size={40} />
-                <T weight="extrabold" numberOfLines={2} style={{ fontSize: 16 }}>{t(tile.label)}</T>
-              </Pressable>
-            ))}
-          </View>
-        ))}
+        <Eyebrow>{t("menu.grow")}</Eyebrow>
+        <ToolGrid tools={GROW_TOOLS} counts={counts} label={toolLabel} />
       </View>
 
-      {/* The products, with their stock. */}
       <View style={{ gap: 10 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-          <T weight="extrabold" style={{ flex: 1, fontSize: 13, letterSpacing: 0.8, textTransform: "uppercase", color: colors.inkSoft }}>
-            {products ? t("products.count", { count: products.length }) : t("link.products.label")}
-          </T>
-          <LinkButton title={t("products.findMore")} color={colors.accentInk} onPress={() => router.push("/find")} />
-        </View>
-        {error ? <Notice>{error}</Notice> : null}
-        <List>
-          {(products ?? []).slice(0, INLINE_PRODUCTS).map((product) => <StockRow key={product.id} product={product} onStock={setStock} />)}
-          {products && products.length > INLINE_PRODUCTS ? <Row lead={<Tile icon="tag" tone="peach" />} title={t("products.seeAll", { count: products.length })} onPress={() => router.push("/products")} /> : null}
-          <Row testID="shop-add-product" lead={<Tile icon="camera" tone="peach" />} title={t("products.add")} sub={t("products.addSub")} onPress={() => router.push("/add-products")} />
-          <Row testID="shop-bulk-add" lead={<Tile icon="sparkle" tone="lilac" />} title={tBulk("entry.title")} sub={tBulk("entry.sub")} onPress={() => router.push("/bulk-add")} />
-        </List>
+        <Eyebrow>{t("menu.store")}</Eyebrow>
+        <ToolGrid tools={STORE_TOOLS} counts={counts} label={toolLabel} />
       </View>
-
-      {/* As in the prototype: Packaging and labels, then Settings and help, in one card. */}
-      <List>
-        <Row lead={<Tile icon="box" tone="butter" />} title={t("link.packaging.label")} sub={t("link.packaging.hint")} onPress={() => router.push("/packaging" as never)} />
-        <Row lead={<Tile icon="settings" tone="gray" />} title={t("link.settings.label")} onPress={() => router.push("/settings")} />
-      </List>
 
       {/* Everything else, so nothing is lost: titles only, each tool once. */}
       {SHOP_GROUPS.map((group) => (
         <Section key={group.key} title={t.dynamic(`group.${group.key}`, group.title)}>
           <List>
+            {group.key === "sell" ? <Row testID="shop-add-product" lead={<Tile icon="camera" tone="peach" />} title={t("products.add")} onPress={() => router.push("/add-products")} /> : null}
+            {group.key === "sell" ? <Row testID="shop-bulk-add" lead={<Tile icon="sparkle" tone="lilac" />} title={tBulk("entry.title")} onPress={() => router.push("/bulk-add")} /> : null}
             {group.links
               .filter((link) => !ON_SCREEN.has(link.id))
               .map((link) => (

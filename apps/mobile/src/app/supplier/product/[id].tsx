@@ -4,6 +4,7 @@ import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
 import { naira } from "@shared/onboarding";
 import { dropshipOptionWords } from "@shared/dropship-rules";
+import { noticeDay } from "@shared/price-notice";
 import { Heading, List, Pill, Row, Stepper, Sub, Tile } from "@/components/design";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { Screen } from "@/components/Screen";
@@ -28,6 +29,7 @@ const SAVE_AFTER_MS = 700;
 export default function SupplierProductScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const t = useT("m_supplier", "m_partner", "m_ui");
+  const tm = useT("marketplace");
   const product = useLoad(() => fetchSupplierProduct(String(id)), String(id));
   const data = product.data;
   const [editing, setEditing] = useState(false);
@@ -108,7 +110,12 @@ export default function SupplierProductScreen() {
       setWholesale(null);
       setRetail(null);
       setEditing(false);
-      setNotice({ tone: "success", text: saved.status === "pending_review" && data.status === "published" ? t("product.savedReview") : t("product.saved") });
+      // A rise on a product shops sell waits 7 days (shared/price-notice.ts): say when it takes effect.
+      setNotice(
+        saved.pendingPrice
+          ? { tone: "success", text: tm("notice.supplierSaved", { price: naira(saved.pendingPrice.wholesalePrice), date: noticeDay(saved.pendingPrice.at) }) }
+          : { tone: "success", text: saved.status === "pending_review" && data.status === "published" ? t("product.savedReview") : t("product.saved") },
+      );
     } catch (saveError) {
       setNotice({ tone: "error", text: saveError instanceof Error ? saveError.message : t("product.saveFailed") });
     } finally {
@@ -184,8 +191,12 @@ export default function SupplierProductScreen() {
         ) : null}
       </List>
 
+      {data.pendingPrice ? (
+        <Notice tone="info">{tm("notice.supplierPending", { price: naira(data.pendingPrice.wholesalePrice), date: noticeDay(data.pendingPrice.at), now: naira(data.wholesalePrice) })}</Notice>
+      ) : null}
       {editing ? (
         <View style={{ gap: 12 }}>
+          {!data.pendingPrice ? <T style={{ color: colors.inkSoft, fontSize: 13.5, lineHeight: 19 }}>{tm("notice.supplierRule")}</T> : null}
           <View>
             <Label>{t("product.wholesalePerUnit")}</Label>
             <Field value={wholesale ?? String(data.wholesalePrice)} onChangeText={setWholesale} keyboardType="decimal-pad" accessibilityLabel={t("product.wholesale")} />

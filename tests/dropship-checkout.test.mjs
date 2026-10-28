@@ -154,4 +154,5 @@ test("pay on delivery opens once a partner is verified: the server refuses it be
   const coverage = read("src/app/logistics/coverage/page.tsx");
   assert.match(coverage, /level && !level\.podOpen \? \(\s*<PodLocked view=\{level\} \/>/);
   assert.match(read("src/components/logistics/PartnerLevel.tsx"), /Opens once you&apos;re verified|Opens once you're verified/);
+  assert.doesNotMatch(read("src/components/logistics/PartnerLevel.tsx"), /Unlocks at Top partner/);
 });

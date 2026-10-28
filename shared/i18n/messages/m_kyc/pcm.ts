@@ -149,7 +149,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "terms.read": "Read the partner terms",
   "terms.needed": "Tick the box to accept the partner terms.",
   "tier.limits": "For now you fit take orders reach {value}, and reach {count} jobs at once.",
-  "tier.toLift": "To remove these limits:",
+  "tier.toLift": "To remove these safety limits:",
   "tier.deliveries": "{have} / {need} deliveries",
   "tier.rating": "Rating {have} (you need {need})",
   "tier.disputes": "Wahala {have}% (no pass {max}%)",

@@ -63,7 +63,7 @@ export type DropshipOrderView = ReturnType<typeof appDropshipView>;
 
 export const WHOLESALE_SELECT = {
   id: true, sellerId: true, quantity: true, unitPrice: true, totalPrice: true, currency: true, deliveryAddress: true, notes: true,
-  status: true, trackingCode: true, rejectReason: true, createdAt: true, acceptBy: true, paidAt: true, preorder: true, preorderShipsAt: true,
+  status: true, trackingCode: true, rejectReason: true, createdAt: true, acceptBy: true, paidAt: true, preorder: true, preorderShipsAt: true, sample: true,
   seller: { select: { name: true, phone: true, store: { select: { name: true } } } },
   supplierProduct: { select: { id: true, name: true, images: true } },
 } as const;
@@ -71,7 +71,7 @@ export const WHOLESALE_SELECT = {
 type WholesaleRow = {
   id: string; sellerId: string; quantity: number; unitPrice: number; totalPrice: number; currency: string; deliveryAddress: string; notes: string | null;
   status: string; trackingCode: string | null; rejectReason: string | null; createdAt: Date; acceptBy: Date | null; paidAt: Date | null;
-  preorder: boolean; preorderShipsAt: Date | null;
+  preorder: boolean; preorderShipsAt: Date | null; sample?: boolean;
   seller: { name: string; phone: string | null; store: { name: string } | null };
   supplierProduct: { id: string; name: string; images: string[] };
 };
@@ -89,6 +89,8 @@ export function wholesaleView(order: WholesaleRow) {
     sellerPhone: order.seller.phone,
     product: { id: order.supplierProduct.id, name: order.supplierProduct.name, image: order.supplierProduct.images[0] ?? null },
     quantity: order.quantity,
+    /** One piece at the dropship price for the shop to try (shared/samples.ts): shown as "Sample". */
+    sample: order.sample === true,
     unitPrice: order.unitPrice,
     total: order.totalPrice,
     currency: order.currency,

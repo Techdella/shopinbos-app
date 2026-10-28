@@ -99,6 +99,7 @@ function ProductCard({ product, added, width, selecting, picked, busy, price, on
         <T weight="bold" style={{ fontSize: 13.5, lineHeight: 18 }} numberOfLines={2}>{product.name}</T>
         <T style={{ color: colors.inkSoft, fontSize: 11.5 }} numberOfLines={1}>{[product.supplier.name, product.supplier.city].filter(Boolean).join(" · ")}</T>
         <SupplierTrustBadges supplier={product.supplier} />
+        <CardFacts product={product} />
         <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
           <View>
             <T style={{ color: colors.inkSoft, fontSize: 10.5 }}>{t("card.cost")}</T>
@@ -115,6 +116,23 @@ function ProductCard({ product, added, width, selecting, picked, busy, price, on
         {needsAgreement(product) && !added && !selecting ? <T style={{ color: colors.warnInk, fontSize: 11.5, lineHeight: 15 }} numberOfLines={2}>{t("quick.agreeFirstShort")}</T> : null}
       </View>
     </Pressable>
+  );
+}
+
+/** "★ 4.7 (18) · 12 shops selling": shops' rating of the supplier and how many shops sell it now (each hidden at 0). */
+function CardFacts({ product }: { product: FindProduct }) {
+  const tm = useT("marketplace");
+  const rated = product.supplier.rating !== null && product.supplier.ratingCount > 0;
+  if (!rated && product.shopsSelling <= 0) return null;
+  return (
+    <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 6 }} testID={`find-facts-${product.slug}`}>
+      {rated ? (
+        <T weight="bold" style={{ fontSize: 11.5, color: colors.inkSoft }} accessibilityLabel={tm("rate.cardLabel", { rating: product.supplier.rating!.toFixed(1), count: product.supplier.ratingCount })}>
+          <T weight="bold" style={{ fontSize: 11.5, color: "#F2A93B" }}>★</T>{` ${product.supplier.rating!.toFixed(1)} (${product.supplier.ratingCount})`}
+        </T>
+      ) : null}
+      {product.shopsSelling > 0 ? <Badge label={tm("shops.selling", { count: product.shopsSelling })} bg="#E2F6F1" fg="#0C4A44" /> : null}
+    </View>
   );
 }
 
@@ -188,7 +206,7 @@ function SwipeCard({ product, width, height, saved, added, position, sell, onSav
 export default function FindProducts() {
   const loaded = useLoad(async () => {
     const [context, found] = await Promise.all([fetchFindContext().catch(() => null), fetchFindProducts()]);
-    return { context, products: found.products, hasPlace: found.hasPlace, city: found.city };
+    return { context, products: found.products, hasPlace: found.hasPlace, city: found.city, customers: found.customers };
   });
   const packsLoaded = useLoad(() => fetchPacks().catch(() => null));
   // "Find another supplier" on an order opens this filtered to that product (?q=classic dashiki shirt).
@@ -497,6 +515,14 @@ export default function FindProducts() {
               <Chip label={t("filters.anyPlace")} on={!filters.near} onPress={() => set({ near: "" })} />
               <Chip label={t("filters.nearMe", { km: NEAR_ME_KM })} on={filters.near === "near"} onPress={() => set({ near: filters.near === "near" ? "" : "near" })} />
               <Chip label={t("filters.myState")} on={filters.near === "state"} onPress={() => set({ near: filters.near === "state" ? "" : "state" })} />
+              {/* Near where the seller's customers are (shared/near-customers.ts): their recent orders' states, else the shop's. */}
+              {loaded.data?.customers?.states.length ? (
+                <Chip
+                  label={`${tm("filter.nearCustomers")} · ${loaded.data.customers.states.join(", ")}`}
+                  on={filters.near === "customers"}
+                  onPress={() => set({ near: filters.near === "customers" ? "" : "customers" })}
+                />
+              ) : null}
             </FilterGroup>
             {cities.length > 1 ? (
               <FilterGroup label={t("filters.location")}>

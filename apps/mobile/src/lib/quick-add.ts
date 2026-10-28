@@ -111,7 +111,16 @@ export interface MySupplierProduct {
   lowest: number | null;
   stock: number;
   unavailable: boolean;
+  /** Paused by Shopinbos: the supplier's new price would make a sale lose money (newer servers, shared/price-notice.ts). */
+  pausedForPrice?: boolean;
+  /** "Raise to ₦X": the lowest nice price that sells it again without a loss. */
+  fixPrice?: number | null;
+  /** The supplier's price rise on notice: what you'll pay per piece and from when (ISO). */
+  priceChange?: { cost: number; at: string } | null;
 }
+
+/** One tap on a product paused for a price loss: raised to its fix price and back on the store. */
+export const fixMine = (id: string) => api<{ price: number }>("/api/mobile/marketplace/mine", { method: "POST", json: { action: "fix", id } });
 
 export const fetchMine = () => api<{ products: MySupplierProduct[]; markup: Markup; asked: boolean }>("/api/mobile/marketplace/mine");
 

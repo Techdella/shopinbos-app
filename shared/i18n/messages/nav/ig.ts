@@ -237,7 +237,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "tab.home": "Ụlọ",
   "tab.orders": "Orders",
   "tab.chats": "Nkata",
-  "tab.shop": "Ụlọ ahịa m",
+  "tab.shop": "Menu",
   "tab.create": "Tinye ma ọ bụ ree",
   "tab.supplier.home": "Ụlọ",
   "tab.supplier.orders": "Orders",

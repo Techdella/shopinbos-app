@@ -8,7 +8,8 @@ import { WHOLESALE_PAYMENT_NOTE, placeWholesaleOrder } from "@/lib/supplier-orde
 // A seller places a wholesale order with a supplier: at least the minimum order, priced at the supplier's tier
 // for that quantity. No payment is taken here: the supplier confirms first, then the seller pays in Shopinbos by
 // card (PATCH ../[id] { action: "pay" }) or directly against the invoice (`payment` in the response says so). The
-// supplier sees it in /supplier/orders.
+// supplier sees it in /supplier/orders. `sample: true` orders one piece at the dropship price to try it (one per
+// product, shared/samples.ts): no minimum order, labelled "Sample" for the supplier, paid the same way.
 
 export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const body = await req.json().catch(() => null);
@@ -18,8 +19,8 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
     return apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Invalid input");
   }
 
-  const { supplierId, supplierProductId, quantity, deliveryAddress, notes } = parsed.data;
-  const result = await placeWholesaleOrder({ sellerId: user.id, supplierId, supplierProductId, quantity, deliveryAddress, notes });
+  const { supplierId, supplierProductId, quantity, deliveryAddress, notes, sample } = parsed.data;
+  const result = await placeWholesaleOrder({ sellerId: user.id, supplierId, supplierProductId, quantity: sample ? 1 : quantity, deliveryAddress, notes, sample });
   if (!result.ok) return apiError(result.code, result.message);
 
   return ok({ ...result.data, payment: { method: "invoice", note: WHOLESALE_PAYMENT_NOTE } }, 201);

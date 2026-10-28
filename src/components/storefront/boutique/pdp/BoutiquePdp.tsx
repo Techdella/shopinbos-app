@@ -1,5 +1,6 @@
 "use client";
 
+import { trustLines } from "@shared/storefront-trust";
 import { Fragment, useEffect, useId, useRef, useState } from "react";
 import type React from "react";
 import { Icon, type IconName } from "@/components/ui/Icon";
@@ -345,6 +346,20 @@ export function BoutiquePdp(props: Props) {
               </a>
             ) : null}
           </div>
+        ) : null}
+        {/* Verified supplier · Verified delivery · Paid-at-checkout protection, only when true, never naming the supplier. */}
+        {trustLines(seller?.trust).length ? (
+          <ul className="grid gap-1.5 border-b pb-3" style={{ borderColor: t.border }} data-testid="pdp-trust">
+            {trustLines(seller?.trust).map((line) => (
+              <li key={line.key} className="flex items-start gap-2.5">
+                <Icon name={line.key === "paidAtCheckout" ? "lock" : "checkCircle"} size={18} className="mt-0.5 shrink-0" color={look.dark ? t.accent : "#16794A"} />
+                <span className="min-w-0">
+                  <span className="font-semibold">{line.title}</span>
+                  <span className="block text-[12.5px]" style={{ color: t.muted }}>{line.detail}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
         ) : null}
         <div className="flex items-start gap-2.5">
           <Icon name="truck" size={18} className="mt-0.5 shrink-0" />

@@ -11,6 +11,7 @@ import { sellerCanCancelWholesale, sellerWholesaleStage, SELLER_CANCEL_PREFIX } 
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { formatMoney, formatNumber, type Locale } from "@shared/i18n";
 import { localWholesaleStage } from "./wholesaleStage";
+import { RateSupplier } from "./RateSupplier";
 
 // The seller's wholesale orders (/marketplace/wholesale): every order they placed with a supplier, its stage, and
 // "Cancel order" while the supplier hasn't started packing (PATCH /api/app/wholesale/[id] { action: "cancel" }).
@@ -40,6 +41,11 @@ export interface SellerWholesaleRow {
   payKobo?: number | null;
   /** Stock preordered before it arrives: the supplier's ship date, preformatted (null: when it arrives). */
   preorder?: { ships: string | null } | null;
+  /** One piece at the dropship price to try it (shared/samples.ts). */
+  sample?: boolean;
+  /** It arrived: the seller can rate the supplier (shared/supplier-ratings.ts); `rated` once they did. */
+  canRate?: boolean;
+  rated?: { rating: number; text: string | null } | null;
 }
 
 function money(amount: number, currency: string, locale: Locale) {
@@ -169,6 +175,7 @@ export function WholesaleOrders({ initial }: { initial: SellerWholesaleRow[] }) 
                 </dl>
                 <div className="grid min-w-0 justify-items-start gap-1">
                   <Pill tone={stage.tone} dot>{stage.label}</Pill>
+                  {row.sample && <Pill tone="warning">{t("trySample.tag")}</Pill>}
                   {row.preorder && <Pill tone="warning">{row.preorder.ships ? `${t("pd.preorder")} · ${t("pd.preorderShips", { date: row.preorder.ships })}` : t("pd.preorder")}</Pill>}
                   {row.trackingCode && <span className="max-w-full truncate text-[12.5px] text-app-ink-soft">{t("pd.tracking", { code: row.trackingCode })}</span>}
                   {stage.note && <span className={cx("max-w-full break-words text-[12.5px]", stage.tone === "danger" ? "text-app-danger" : "text-app-ink-soft")}>{stage.note}</span>}
@@ -186,6 +193,12 @@ export function WholesaleOrders({ initial }: { initial: SellerWholesaleRow[] }) 
                     </PillButton>
                   )}
                 </div>
+                {/* Arrived: rate the supplier (shared/supplier-ratings.ts), under the row at its full width. */}
+                {row.canRate || row.rated ? (
+                  <div className="flex max-w-[520px] lg:col-span-full lg:justify-self-end">
+                    <RateSupplier kind="wholesale_order" orderId={row.id} supplierName={row.supplier.name} rated={row.rated ?? null} />
+                  </div>
+                ) : null}
               </li>
             );
           })}

@@ -8,6 +8,8 @@ import type { ServiceResult } from "./service.server";
 import { acceptByFor, messageSupplierPhone } from "./deadline.server";
 import { depositSplit, preorderBlocksShipping, preorderState, shipDateLabel, toKobo } from "@shared/preorder";
 import { recordWholesaleRefundOwed } from "./preorders.server";
+import { dropshipUnitPrice } from "@shared/dropship-rules";
+import { SAMPLE_QUANTITY, SAMPLE_RETRY_STATUSES, sampleKey, sampleProblem } from "@shared/samples";
 
 // Wholesale orders: a seller buys stock from a supplier (at least the minimum order, at the supplier's price tier
 // for the quantity). There's no payment rail for this yet: the supplier sends an invoice and the seller pays them
@@ -22,6 +24,8 @@ export interface PlaceWholesaleInput {
   quantity: number;
   deliveryAddress: string;
   notes?: string | null;
+  /** One piece at the dropship price to try it (shared/samples.ts): quantity 1, no minimum order, one per product. */
+  sample?: boolean;
 }
 
 function money(amount: number, currency: string) {
@@ -36,18 +40,21 @@ export async function placeWholesaleOrder(input: PlaceWholesaleInput): Promise<S
   // Paused for money long overdue (src/lib/money-owed): no new business until it's paid.
   const buyer = await db.user.findUnique({ where: { id: input.sellerId }, select: { debtPausedAt: true } });
   if (buyer?.debtPausedAt) return { ok: false, code: "CONFLICT", message: "Pay what you owe in your Shopinbos Wallet before placing new wholesale orders." };
+  const sample = input.sample === true;
   const product = await db.supplierProduct.findFirst({
     where: {
       id: input.supplierProductId,
       ...(input.supplierId ? { supplierId: input.supplierId } : {}),
       status: "published",
-      bulkOrderAvailable: true,
+      // A sample is offered on its own (SupplierProduct.sampleAvailable), bulk orders or not.
+      ...(sample ? { sampleAvailable: true } : { bulkOrderAvailable: true }),
       supplier: { status: "active", marketplaceVisible: true, verificationStatus: "verified", user: { debtPausedAt: null } },
     },
     include: { supplier: { select: { id: true, userId: true, displayName: true, acceptHoursDropship: true, acceptHoursWholesale: true } } },
   });
-  if (!product) return { ok: false, code: "NOT_FOUND", message: "This product isn't available to buy wholesale." };
+  if (!product) return { ok: false, code: "NOT_FOUND", message: sample ? "This supplier doesn't send samples of this product." : "This product isn't available to buy wholesale." };
   if (product.supplier.userId === input.sellerId) return { ok: false, code: "BAD_REQUEST", message: "You can't order your own product." };
+  if (sample) return placeSampleOrder(input, product);
   const moq = Math.max(1, product.moq);
   if (input.quantity < moq) return { ok: false, code: "BAD_REQUEST", message: `The minimum order is ${moq.toLocaleString("en-NG")}.` };
   const short = (stock: number) => ({ ok: false as const, code: "BAD_REQUEST" as const, message: `${plainText(product.supplier.displayName)} has ${stock.toLocaleString("en-NG")} in stock. Lower the quantity or request a quote.` });
@@ -251,4 +258,71 @@ export async function cancelWholesaleOrder(input: { sellerId: string; orderId: s
     dedupeKey: `supplier_order.cancelled:wholesale:${order.id}`,
   }).catch(() => null);
   return { ok: true, data: { id: order.id, status: "cancelled" } };
+}
+
+// ─── Samples ──────────────────────────────────────────────────────────────────
+
+type SampleProduct = Prisma.SupplierProductGetPayload<{ include: { supplier: { select: { id: true; userId: true; displayName: true; acceptHoursDropship: true; acceptHoursWholesale: true } } } }>;
+
+/**
+ * One sample at the dropship price (shared/samples.ts): a wholesale order of 1, flagged `sample`, paid the usual
+ * way once the supplier accepts. One per seller per product while it's live (WholesaleOrder.sampleKey is unique;
+ * a declined or cancelled one frees the key so the seller can try again).
+ */
+async function placeSampleOrder(input: PlaceWholesaleInput, product: SampleProduct): ReturnType<typeof placeWholesaleOrder> {
+  const key = sampleKey(input.sellerId, product.id);
+  const previous = await db.wholesaleOrder.findMany({ where: { sellerId: input.sellerId, supplierProductId: product.id, sample: true }, select: { id: true, status: true } });
+  const problem = sampleProblem({ sampleAvailable: product.sampleAvailable, stock: product.stockQuantity, previous });
+  if (problem) return { ok: false, code: previous.length ? "CONFLICT" : "BAD_REQUEST", message: problem };
+  const unitPrice = dropshipUnitPrice(product);
+  const deadline = acceptByFor("wholesale", product.supplier);
+  const order = await db
+    .$transaction(async (tx) => {
+      // A declined or cancelled earlier sample gives its key back.
+      await tx.wholesaleOrder.updateMany({ where: { sampleKey: key, status: { in: [...SAMPLE_RETRY_STATUSES] } }, data: { sampleKey: null } });
+      const taken = await tx.supplierProduct.updateMany({ where: { id: product.id, status: "published", stockQuantity: { gte: SAMPLE_QUANTITY } }, data: { stockQuantity: { decrement: SAMPLE_QUANTITY } } });
+      if (taken.count !== 1) return null;
+      return tx.wholesaleOrder.create({
+        data: {
+          stockReserved: SAMPLE_QUANTITY,
+          sellerId: input.sellerId,
+          supplierId: product.supplierId,
+          supplierProductId: product.id,
+          quantity: SAMPLE_QUANTITY,
+          unitPrice,
+          totalPrice: unitPrice,
+          currency: product.currency,
+          deliveryAddress: input.deliveryAddress.trim(),
+          notes: input.notes?.trim() || null,
+          acceptBy: deadline.acceptBy,
+          sample: true,
+          sampleKey: key,
+        },
+        include: { supplierProduct: { select: { id: true, name: true, images: true } } },
+      });
+    })
+    .catch((error: unknown) => {
+      // Two taps at once: the unique key let only one through.
+      if ((error as { code?: string })?.code === "P2002") return "taken" as const;
+      throw error;
+    });
+  if (order === "taken") return { ok: false, code: "CONFLICT", message: "You already ordered a sample of this product. It's in your wholesale orders." };
+  if (!order) return { ok: false, code: "BAD_REQUEST", message: "The supplier is out of stock right now." };
+
+  await createNotification({
+    userId: product.supplier.userId,
+    type: "suppliers",
+    priority: "warning",
+    title: `New sample order ${wholesaleRef(order.id)}: accept within ${deadline.words}`,
+    description: `A shop wants 1 sample of ${plainText(product.name)} at your dropship price (${money(unitPrice, product.currency)}) to try before selling it. Accept it within ${deadline.words}; they pay in Shopinbos once you accept.`,
+    link: `/supplier/orders/${order.id}?kind=wholesale`,
+    actionLabel: "Accept sample",
+    actionUrl: `/supplier/orders/${order.id}?kind=wholesale`,
+    metadata: { wholesaleOrderId: order.id, sample: true },
+    sendEmail: true,
+    event: "supplier_order.new",
+    dedupeKey: `supplier_order.new:wholesale:${order.id}`,
+  }).catch(() => null);
+  await messageSupplierPhone(product.supplierId, `Shopinbos: a shop wants 1 sample of ${plainText(product.name, 60)} (${money(unitPrice, product.currency)}). Accept it within ${deadline.words} in the app.`);
+  return { ok: true, data: order };
 }

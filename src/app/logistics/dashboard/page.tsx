@@ -42,7 +42,10 @@ import { PartnerBrief } from "@/components/assistant/PartnerBrief";
 import { SetupWithPeggySlot } from "@/components/peggy/SetupWithPeggySlot";
 import { partnerBriefFor } from "@/lib/dashboard/partner-brief.server";
 import { PromoBanner } from "@/components/pricing/PromoBanner";
-import { PARTNER_LEVEL_LABELS, isPartnerLevel, partnerTierNumber } from "@shared/dropship-rules";
+import { partnerLevelOf } from "@shared/dropship-rules";
+import { WEEKDAY_WORDS } from "@shared/partner-reach";
+import { tierName } from "@/components/logistics/PartnerLevel";
+import { earnedThisWeek } from "@/lib/logistics/partner-reach.server";
 
 // Partner "Today", following the 2026 "Shopinbos Partners · web dispatch console" and mobile mockups.
 
@@ -100,7 +103,7 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
     }),
   ]);
   // Closest rider first in "Accept and assign": riders' open jobs and the new jobs' pickup coordinates.
-  const [riders, pickupGeo, overdue, brief] = await Promise.all([withOpenJobs(partner.id, ridersBase), ensurePickupCoords(newBookings, partner.country), payInOverdueView(partner.id, now), partnerBriefFor(partner, now)]);
+  const [riders, pickupGeo, overdue, brief, week] = await Promise.all([withOpenJobs(partner.id, ridersBase), ensurePickupCoords(newBookings, partner.country), payInOverdueView(partner.id, now), partnerBriefFor(partner, now), earnedThisWeek(partner.id, now)]);
 
   const pointIds = [...new Set(newBookings.map((job) => job.pickupPointId).filter((id): id is string => Boolean(id)))];
   const pointNames = new Map(
@@ -135,8 +138,8 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
       actions={
         <>
           <Pill tone={taking ? "success" : "muted"} dot>{taking ? t("today.taking") : t("today.notTaking")}</Pill>
-          {/* Tier 1 Verified → 2 Trusted → 3 Top partner: /logistics/level. */}
-          <PillLink href="/logistics/level" size="sm" icon="shield">Tier {partnerTierNumber(partner.level)} · {PARTNER_LEVEL_LABELS[isPartnerLevel(partner.level) ? partner.level : "verified"]}</PillLink>
+          {/* Tier 1 Verified → Tier 2 Trusted → Tier 3 Top partner (shared/partner-reach.ts): /logistics/level. */}
+          <PillLink href="/logistics/level" size="sm" icon="shield">{tierName(partnerLevelOf(partner.level), t)}</PillLink>
         </>
       }
     >
@@ -156,6 +159,8 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
         <StatTile tone="card" label={t("today.activeJobs")} value={activeCount} />
         <StatTile tone="card" label={t("today.deliveredToday")} value={deliveredToday.length} />
         <StatTile tone="card" label={t("today.earnedToday")} value={naira(earnedToday)} />
+        {/* The one number: "Earned this week · paid on Thursday" (src/lib/logistics/partner-reach.server.ts). */}
+        <StatTile tone="card" label={t("reach.weekLabel")} value={naira(week.amount)} hint={t("reach.week", { day: t.dynamic(`reach.day.${week.payoutDay.weekday}`, WEEKDAY_WORDS[week.payoutDay.weekday]) })} />
       </StatGrid>
 
       <div className="grid gap-5 xl:[grid-template-columns:minmax(0,1fr)_minmax(360px,440px)]">

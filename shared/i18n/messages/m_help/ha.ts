@@ -141,6 +141,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "call.screen.find": "Nemo kayan sayarwa",
   "call.screen.starter_packs": "Kunshin kayan farawa",
   "call.screen.supplier_products": "Kayan supplier dina",
+  "call.screen.wholesale_orders": "Odar jumla na",
   "call.screen.help": "Taimako",
   "call.screen.home": "Gida",
   "call.screen.jobs": "Ayyuka",
@@ -157,6 +158,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "call.screen.products": "Kayayyaki",
   "call.screen.profile": "Bayanan kamfani",
   "call.screen.quotes": "Farashin da aka nema",
+  "call.screen.level": "Matakinka",
   "call.screen.rates": "Farashi",
   "call.screen.reviews": "Ra'ayoyi",
   "call.screen.riders": "Mahaya",
@@ -176,6 +178,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "call.screen.agreements": "Yarjejeniyar dropship",
   "call.screen.status": "Saka Status",
   "call.screen.rewards": "Lada",
+  "call.screen.insights": "Bayanai",
+  "call.screen.email": "Imel",
+  "call.screen.popups": "Popups",
 };
 
 export default ha;

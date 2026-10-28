@@ -141,6 +141,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "call.screen.find": "Chọta ngwaahịa ị ga-ere",
   "call.screen.starter_packs": "Ngwugwu ngwaahịa mbido",
   "call.screen.supplier_products": "Ngwaahịa supplier m",
+  "call.screen.wholesale_orders": "Iwu ahịa wholesale m",
   "call.screen.help": "Enyemaka",
   "call.screen.home": "Ụlọ",
   "call.screen.jobs": "Ọrụ",
@@ -157,6 +158,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "call.screen.products": "Ngwaahịa",
   "call.screen.profile": "Nkọwa ụlọ ọrụ",
   "call.screen.quotes": "Ọnụahịa a rịọrọ",
+  "call.screen.level": "Ọkwa gị",
   "call.screen.rates": "Ọnụahịa",
   "call.screen.reviews": "Nyocha",
   "call.screen.riders": "Ndị na-agba ọgba",
@@ -176,6 +178,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "call.screen.agreements": "Nkwekọrịta dropship",
   "call.screen.status": "Tinye Status",
   "call.screen.rewards": "Ihe nrite",
+  "call.screen.insights": "Nghọta",
+  "call.screen.email": "Email",
+  "call.screen.popups": "Popups",
 };
 
 export default ig;

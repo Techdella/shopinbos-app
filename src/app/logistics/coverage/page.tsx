@@ -15,7 +15,7 @@ import { AreaTokenAdder } from "@/components/logistics/AreaTokenAdder";
 import { getT } from "@/lib/i18n/server";
 import { PageTip } from "@/components/learn/PageTip";
 import { partnerLevelView } from "@/lib/logistics/partner-levels.server";
-import { PodLocked } from "@/components/logistics/PartnerLevel";
+import { InterstateNote, PodLocked } from "@/components/logistics/PartnerLevel";
 import { INTERSTATE_LOCKED_MESSAGE } from "@shared/dropship-rules";
 
 export const dynamic = "force-dynamic";
@@ -64,7 +64,7 @@ export default async function LogisticsCoveragePage({ searchParams }: { searchPa
             <legend className={labelClass}>{t("market.cov.services")}</legend>
             <div className="flex flex-wrap gap-2">
               {PARTNER_SERVICES.map((service) => {
-                // Interstate jobs open at Trusted (Tier 2, shared/dropship-rules.ts partnerPerks).
+                // Interstate jobs open at Trusted (Tier 2, shared/partner-reach.ts): below it the box can't be ticked.
                 const locked = service === "interstate" && Boolean(level) && !level!.perks.interstate;
                 return (
                   <label key={service} className={`flex min-h-[44px] items-center gap-2 rounded-full border border-app-line bg-white px-4 text-[15px] font-bold${locked ? " opacity-60" : ""}`} title={locked ? INTERSTATE_LOCKED_MESSAGE : undefined}>
@@ -76,6 +76,8 @@ export default async function LogisticsCoveragePage({ searchParams }: { searchPa
               })}
             </div>
             <p className="mb-0 mt-1.5 text-[15px] text-app-ink-soft">{t("market.cov.servicesHint")}</p>
+            {/* Interstate was taken off below Trusted: the one-time note says what they need to get it back. */}
+            {level?.interstateGated ? <div className="mt-2"><InterstateNote t={t} /></div> : null}
           </fieldset>
           <div className="min-w-0">
             <label htmlFor="pickupAreas" className={labelClass}>{t("market.cov.collectFrom")}</label>

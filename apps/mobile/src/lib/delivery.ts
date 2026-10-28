@@ -106,6 +106,9 @@ export interface FoundPartner {
   stats: PartnerStats;
   pickupPointCount: number;
   connectionId: string | null;
+  /** Reach tiers (newer servers): a featured Top partner (listed first), and the partner's tier 1–3. */
+  featured?: boolean;
+  tier?: number;
 }
 
 export interface FoundPartners {

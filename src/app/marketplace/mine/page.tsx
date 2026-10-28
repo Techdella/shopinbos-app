@@ -18,7 +18,8 @@ export async function generateMetadata() {
 // My supplier products (web; the phone's app/find/mine.tsx): the supplier products in the shop, to change the price or
 // markup of many at once, or remove them. The seller's markup for new adds is edited at the top (#markup).
 
-export default async function MySupplierProductsPage() {
+export default async function MySupplierProductsPage({ searchParams }: { searchParams?: Promise<{ fix?: string }> }) {
+  const focus = (await searchParams)?.fix?.slice(0, 64) ?? null;
   const user = await requireRole(["seller"], "/login");
   const t = await getT("marketplace");
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true } });
@@ -32,7 +33,7 @@ export default async function MySupplierProductsPage() {
       sub={t("mine.sub")}
       actions={<PillLink href="/marketplace" icon="search">{t("mine.find")}</PillLink>}
     >
-      <MineView products={found?.products ?? []} markup={found?.markup ?? DEFAULT_MARKUP} />
+      <MineView products={found?.products ?? []} markup={found?.markup ?? DEFAULT_MARKUP} focus={focus} />
     </SellerPage>
   );
 }

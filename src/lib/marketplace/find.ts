@@ -7,6 +7,7 @@ import { preorderState, type PreorderState } from "../../../shared/preorder.ts";
 import { dropshipOptionWords, dropshipUnitPrice, retailFloor } from "../../../shared/dropship-rules.ts";
 import type { DropshipTerms } from "../../../shared/dropship-checkout.ts";
 import { readMarkup, type Markup } from "../../../shared/supplier-markup.ts";
+import type { SampleOffer } from "../../../shared/samples.ts";
 
 export interface FindPricingTier {
   minQty: number;
@@ -39,6 +40,10 @@ export interface FindSupplier {
   agreed?: boolean;
   /** The supplier is in the seller's state ("Delivers to my state"). */
   sameState?: boolean;
+  /** How many shops rated the supplier (Supplier.ratingCount, shared/supplier-ratings.ts); `rating` is their average. */
+  ratingCount?: number;
+  /** The supplier ships near where the seller's customers are (shared/near-customers.ts, "Near my customers"). */
+  nearCustomers?: boolean;
 }
 
 export interface FindProduct {
@@ -81,6 +86,34 @@ export interface FindProduct {
   /** The supplier takes preorders for stock (shared/preorder.ts); null when not. `depositPct`: the share paid when
    * the preorder is placed (0: the whole order is paid once the supplier accepts it). */
   preorder?: (PreorderState & { depositPct?: number }) | null;
+  /** "18 shops selling": shops with this product live in their store now (0: hidden). */
+  shopsSelling?: number;
+  /** One sample at the dropship price (shared/samples.ts), when the supplier offers it; `ordered`: the seller's own. */
+  sampleOffer?: SampleOffer | null;
+  /** The latest ratings shops gave this supplier (product page only). */
+  ratings?: Array<{ rating: number; text: string | null; at: string }>;
+}
+
+// ─── Shops selling ────────────────────────────────────────────────────────────
+
+/**
+ * "N shops selling" per supplier product from (supplierProductId, storeId) pairs of live listings (a groupBy on
+ * StoreProduct): each shop counts once however many times it listed it. Products nobody sells are left out.
+ */
+export function shopsSellingCounts(rows: ReadonlyArray<{ supplierProductId: string | null; storeId: string }>): Map<string, number> {
+  const shops = new Map<string, Set<string>>();
+  for (const row of rows) {
+    if (!row.supplierProductId) continue;
+    const set = shops.get(row.supplierProductId) ?? new Set<string>();
+    set.add(row.storeId);
+    shops.set(row.supplierProductId, set);
+  }
+  return new Map([...shops.entries()].map(([id, set]) => [id, set.size]));
+}
+
+/** Adds `shopsSelling` to each product (0 when nobody sells it yet: the card hides it). */
+export function withShopsSelling<P extends { id: string }>(products: readonly P[], counts: ReadonlyMap<string, number>): Array<P & { shopsSelling: number }> {
+  return products.map((product) => ({ ...product, shopsSelling: counts.get(product.id) ?? 0 }));
 }
 
 // ─── Money ────────────────────────────────────────────────────────────────────
@@ -239,6 +272,7 @@ export function toFindProduct(row: SupplierProductRow): FindProduct {
       name: row.supplier.displayName,
       city: row.supplier.city,
       rating: row.supplier.ratingCount > 0 ? row.supplier.rating : null,
+      ratingCount: row.supplier.ratingCount,
       onTimePct: null,
       verified: row.supplier.verificationStatus === "verified",
       verificationStatus: row.supplier.verificationStatus,

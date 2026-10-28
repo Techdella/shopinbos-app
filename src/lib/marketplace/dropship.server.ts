@@ -1,6 +1,8 @@
 import "server-only";
 import { db } from "@/lib/db/client";
 import { saleBreakdown, shipsLabel } from "./find";
+import { dropshipTermsFor } from "./dropship-listing.server";
+import { PRICE_LOSS, listingVerdict } from "@shared/price-notice";
 
 // The seller's dropship products (web /home/dropship and the mobile app), and pausing / resuming one.
 
@@ -34,14 +36,35 @@ export async function listDropship(sellerId: string) {
 
 export type DropshipItem = Awaited<ReturnType<typeof listDropship>>[number];
 
-/** Pausing takes the product off the store; resuming publishes it again. Null when it isn't the seller's. */
-export async function setDropshipPausedFor(sellerId: string, relationshipId: string, pause: boolean) {
-  const link = await db.dropshipRelationship.findUnique({ where: { id: relationshipId }, select: { id: true, sellerId: true, storeProductId: true } });
+/** The answer when the seller resumes a product Shopinbos paused because it would lose money at the supplier's new price. */
+export const STILL_LOSES = "It would still lose money at the supplier's new price. Raise your price first (My supplier products: Raise to ₦…).";
+
+/**
+ * Pausing takes the product off the store; resuming publishes it again. Null when it isn't the seller's; "loss" when
+ * it was paused for a price loss (shared/price-notice.ts) and the seller's price still loses money: it stays paused.
+ */
+export async function setDropshipPausedFor(sellerId: string, relationshipId: string, pause: boolean): Promise<"active" | "paused" | "loss" | null> {
+  const link = await db.dropshipRelationship.findUnique({ where: { id: relationshipId }, select: { id: true, sellerId: true, storeProductId: true, storeProduct: { select: { pausedReason: true } } } });
   if (!link || link.sellerId !== sellerId) return null;
+  if (!pause && link.storeProduct.pausedReason === PRICE_LOSS) {
+    const losing = await stillLoses(sellerId, link.storeProductId);
+    if (losing) return "loss";
+  }
   const status = pause ? "paused" : "active";
   await db.$transaction([
     db.dropshipRelationship.update({ where: { id: link.id }, data: { status } }),
-    db.storeProduct.update({ where: { id: link.storeProductId }, data: { status: pause ? "draft" : "published" } }),
+    db.storeProduct.update({ where: { id: link.storeProductId }, data: { status: pause ? "draft" : "published", ...(pause ? {} : { pausedReason: null, pausedAt: null }) } }),
   ]);
   return status as "active" | "paused";
+}
+
+/** True when this listing would lose money at the supplier's live price with the seller's own choices. */
+async function stillLoses(sellerId: string, storeProductId: string): Promise<boolean> {
+  const listing = await db.storeProduct.findUnique({
+    where: { id: storeProductId },
+    select: { retailPrice: true, deliveryPayer: true, deliveryFlatFee: true, brandingChoice: true, supplierProduct: { select: { id: true, supplierId: true, wholesalePrice: true, suggestedRetailPrice: true, priceMode: true, dropshipPrice: true, preorderPrice: true, pricingTiers: true, minRetailPrice: true, dropshipMinQty: true, handlingDays: true, sizeBand: true, sampleAvailable: true, stockQuantity: true } } },
+  });
+  if (!listing?.supplierProduct) return false;
+  const terms = (await dropshipTermsFor([listing.supplierProduct], sellerId)).get(listing.supplierProduct.id);
+  return terms ? listingVerdict(terms, { retailPrice: listing.retailPrice, payer: listing.deliveryPayer, flatFee: listing.deliveryFlatFee, brandingChoice: listing.brandingChoice }).loses : false;
 }

@@ -28,8 +28,8 @@ import { TierActionButton } from "./TierActionButton";
 export const STATE_LABELS: Record<PartnerState, string> = {
   unverified: "Unverified",
   pending_review: "Pending review",
-  tier1_verified: "Tier 1 · Verified Individual",
-  tier2_verified: "Tier 2 · Registered Business",
+  tier1_verified: "Verified Individual (ID checks)",
+  tier2_verified: "Registered Business (CAC)",
   rejected: "Rejected",
   suspended: "Suspended",
 };
@@ -142,7 +142,7 @@ export async function TierPanel({ partnerId }: { partnerId: string }) {
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="grid min-w-0 content-start gap-4">
           <Card className="overflow-hidden">
-            <CardHead title="Tier 1 · Verified Individual" sub="All approved and sent → the partner can take jobs, with limits." className="px-4 pt-4 sm:px-5" />
+            <CardHead title="Verified Individual (ID checks)" sub="All approved and sent → the partner can take jobs, within the safety limits." className="px-4 pt-4 sm:px-5" />
             <ul className="m-0 mt-3 list-none divide-y divide-app-line border-t border-app-line p-0">
               <Row item="terms" state={t1.terms}>{snapshot.termsVersion ? `Version ${snapshot.termsVersion}${snapshot.termsVersion !== PARTNER_TERMS_VERSION ? " (old)" : ""}${extra.termsAcceptedAt ? ` · ${formatDate(extra.termsAcceptedAt)}` : ""}` : "Not accepted"}</Row>
               <Row item="phone" state={t1.phone}>{id.phone ? `${id.phone.value}${id.phone.verifiedAt ? ` · code checked ${formatDate(id.phone.verifiedAt)}` : ""}` : "-"}</Row>
@@ -206,7 +206,7 @@ export async function TierPanel({ partnerId }: { partnerId: string }) {
           </Card>
 
           <Card className="overflow-hidden">
-            <CardHead title="Tier 2 · Registered Business" sub="Tier 1 plus CAC → no limits, Registered Business badge." className="px-4 pt-4 sm:px-5" />
+            <CardHead title="Registered Business (CAC)" sub="ID checks plus CAC → no safety limits, Registered Business badge." className="px-4 pt-4 sm:px-5" />
             <ul className="m-0 mt-3 list-none divide-y divide-app-line border-t border-app-line p-0">
               <Row item="businessName" state={t2.businessName}>{snapshot.registeredName ?? "-"}{extra.businessAddress ? <span className="block">{extra.businessAddress}</span> : null}</Row>
               <Row item="cacType" state={t2.cacType}>{snapshot.cacType === "BN" ? "Business Name (BN)" : snapshot.cacType === "RC" ? "Company (RC)" : "-"}</Row>
@@ -266,14 +266,14 @@ export async function TierPanel({ partnerId }: { partnerId: string }) {
                 ) : "No vehicles added"}
               </Row>
               <Row item="Verified Payout" state={extra.badges.includes("verified_payout") ? "approved" : "missing"}>
-                {snapshot.payoutAccount ? `Payout account: ${snapshot.payoutAccount.accountName} (${snapshot.payoutAccount.verified ? "verified" : "not verified"}). Needs Tier 2 and the account in the registered business name.` : "No payout account yet."}
+                {snapshot.payoutAccount ? `Payout account: ${snapshot.payoutAccount.accountName} (${snapshot.payoutAccount.verified ? "verified" : "not verified"}). Needs a Registered Business and the account in the registered business name.` : "No payout account yet."}
               </Row>
             </ul>
           </Card>
         </div>
 
         <Card className="content-start p-5">
-          <CardHead title="Limits and graduation" sub={extra.verificationTier === "tier1" ? undefined : "Limits only apply to Tier 1."} />
+          <CardHead title="Safety limits" sub={extra.verificationTier === "tier1" ? undefined : "Safety limits only apply to Verified Individuals (no CAC)."} />
           <dl className="m-0 mt-3 grid gap-2 text-[14px]">
             <div className="flex justify-between gap-3"><dt className="text-app-ink-soft">Limits</dt><dd className="m-0 font-bold">{limited ? "On" : extra.limitsLiftedAt ? `Lifted ${formatDate(extra.limitsLiftedAt)}` : "None"}</dd></div>
             <div className="flex justify-between gap-3"><dt className="text-app-ink-soft">Max order value</dt><dd className="m-0 font-bold">{formatMoney(rules.maxOrderValue)}</dd></div>
@@ -285,9 +285,9 @@ export async function TierPanel({ partnerId }: { partnerId: string }) {
           {extra.verificationTier === "tier1" && (
             <div className="mt-4 flex flex-wrap gap-2">
               {limited ? (
-                <TierActionButton url={`${base}/limits`} body={{ action: "lift" }} label="Lift limits now" confirm="Lift this partner's Tier 1 limits for good?" />
+                <TierActionButton url={`${base}/limits`} body={{ action: "lift" }} label="Lift limits now" confirm="Lift this partner's safety limits for good?" />
               ) : (
-                <TierActionButton url={`${base}/limits`} body={{ action: "restore" }} label="Restore limits" tone="white" confirm="Put the Tier 1 limits back? They lift again on their own at the graduation thresholds." />
+                <TierActionButton url={`${base}/limits`} body={{ action: "restore" }} label="Restore limits" tone="white" confirm="Put the safety limits back? They lift again on their own at the thresholds." />
               )}
             </div>
           )}

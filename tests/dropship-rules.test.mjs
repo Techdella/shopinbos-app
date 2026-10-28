@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const r = await import("../shared/dropship-rules.ts");
+const reach = await import("../shared/partner-reach.ts");
 
 const ankara = { priceMode: "per_channel", wholesalePrice: 8200, dropshipPrice: 9500, preorderPrice: 7000, pricingTiers: [{ minQty: 6, price: 8200 }, { minQty: 24, price: 7500 }], suggestedRetailPrice: 14000, minRetailPrice: 12000 };
 
@@ -128,14 +129,17 @@ test("pre-orders only at Established; the locked card shows progress to it", () 
 
 const partner = (over = {}) => ({ verified: true, delivered: 64, failed: 0, rating: 4.6, baseVerified: true, createdAt: "2026-09-17T00:00:00Z", lateRemittances: 0, cacOrGuarantor: false, now, ...over });
 
-test("partner tiers: reach, not cash; pay on delivery for every verified partner, paused only for older cash owed", () => {
+test("partner tiers: reach, not cash; Tier 3 (stored cash_trusted) needs 150 jobs, 60 days and CAC or a guarantor; pay on delivery for every verified partner, paused only for older cash owed", () => {
   assert.equal(r.partnerLevel(partner({ delivered: 10 })), "verified");
   assert.equal(r.partnerLevel(partner()), "trusted");
   const top = partner({ delivered: 150, createdAt: "2026-08-01T00:00:00Z", cacOrGuarantor: true });
   assert.equal(r.partnerLevel(top), "cash_trusted");
   assert.equal(r.PARTNER_LEVEL_LABELS.cash_trusted, "Top partner");
+  // Tiers control reach, not cash: late pay-ins no longer hold back Tier 3 (the owner's rule).
   assert.equal(r.partnerLevel({ ...top, lateRemittances: 1 }), "cash_trusted", "no cash, so late pay-ins no longer count");
   assert.equal(r.partnerLevel({ ...top, cacOrGuarantor: false }), "trusted");
+  assert.equal(r.partnerLevel({ ...top, createdAt: "2026-09-20T00:00:00Z" }), "trusted", "60 days");
+  assert.equal(r.partnerLevelGoals(top).goals.some((g) => g.key === "remittances"), false);
   assert.equal(r.canOfferPayOnDelivery({ level: "verified" }), true);
   assert.equal(r.canOfferPayOnDelivery({ level: "verified", verificationStatus: "pending" }), false);
   assert.equal(r.canOfferPayOnDelivery({ level: "trusted", verificationStatus: "verified" }), true);
@@ -149,9 +153,16 @@ test("partner tiers: reach, not cash; pay on delivery for every verified partner
   assert.equal(r.partnerPerks("cash_trusted").highValue, true);
   assert.equal(r.partnerPerks("cash_trusted").canApplyFeatured, true);
   assert.ok(r.partnerPerks("cash_trusted").rankBoost > r.partnerPerks("trusted").rankBoost && r.partnerPerks("trusted").rankBoost > r.partnerPerks("verified").rankBoost);
-  assert.match(r.tierJobProblem("trusted", r.HIGH_VALUE_ORDER_NAIRA), /Top partners only/);
-  assert.equal(r.tierJobProblem("cash_trusted", 2_000_000), null);
-  assert.equal(r.tierJobProblem("verified", r.HIGH_VALUE_ORDER_NAIRA - 1), null);
+  // One source of truth: the perks and the high-value rule come from shared/partner-reach.ts (₦150,000 by default,
+  // admin-editable; phones, jewellery, laptops), not a second threshold here.
+  for (const level of r.PARTNER_LEVELS) assert.equal(r.partnerPerks(level).rankBoost, reach.levelPerks(level).rankBoost, level);
+  assert.equal("HIGH_VALUE_ORDER_NAIRA" in r, false);
+  assert.equal("tierJobProblem" in r, false);
+  assert.equal(reach.DEFAULT_HIGH_VALUE_RULES.minOrderValue, 150_000);
+  assert.equal(reach.highValueReason({ orderValue: 150_001, lines: [] }), "value");
+  assert.equal(reach.highValueReason({ orderValue: 150_000, lines: [] }), null);
+  assert.equal(reach.highValueReason({ orderValue: 2_000, lines: [{ name: "iPhone 13", productType: "phones" }] }), "category");
+  assert.equal(r.partnerPerks("trusted").highValue, false);
   assert.equal(r.podCashCap({ delivered: 150 }), 100000);
   assert.equal(r.podCashCap({ delivered: 260, deposit: 50000 }), 170000);
   assert.equal(r.podJobFits({ cashHeld: 90000, jobCash: 15000, cap: 100000 }), false);
@@ -163,12 +174,20 @@ test("partner tiers on the server: interstate at Trusted, high-value at Top part
   const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
   const levels = read("src/lib/logistics/partner-levels.server.ts");
   assert.match(levels, /!partnerPerks\(level\)\.interstate && partner\.services\.includes\("interstate"\)/, "dropping below Trusted takes interstate off");
-  assert.match(levels, /export async function applyToBeFeatured/);
-  assert.match(levels, /canApplyFeatured/);
+  // ...and tells them once what they need (our one-time notice).
+  assert.match(levels, /tellInterstateTakenOff\(/);
+  // One featured flow: featuredStatus in src/lib/logistics/partner-reach.server.ts, the team approves or turns it down.
+  assert.doesNotMatch(levels, /export async function applyToBeFeatured/);
+  const reachServer = read("src/lib/logistics/partner-reach.server.ts");
+  assert.match(reachServer, /export async function applyToBeFeatured/);
+  assert.match(reachServer, /featuredStatus: "applied"/);
+  assert.match(read("src/app/logistics/level/actions.ts"), /import \{ applyToBeFeatured \} from "@\/lib\/logistics\/partner-reach\.server"/);
   const manage = read("src/lib/delivery-market/manage.server.ts");
   assert.match(manage, /services\.includes\("interstate"\)\) \{\s*const locked = await interstateProblem\(partnerId\)/);
-  assert.match(manage, /tierBoost: partnerPerks\(partner\.level\)\.rankBoost/);
+  // Ranked by tier and featured (shared/partner-reach.ts reachRankBoost).
+  assert.match(manage, /rankScore\(\{ stats: stat,[^\n]*level: partner\.level, featured \}\)/);
+  // High-value parcels at Top partner, from the one shared rule (no second threshold in the safety limits).
   const tiers = read("src/lib/logistics/partner-tiers.server.ts");
-  assert.match(tiers, /const tier = tierJobProblem\(partner\.level/);
-  assert.match(tiers, /orderValue >= HIGH_VALUE_ORDER_NAIRA[\s\S]{0,200}level: \{ not: "cash_trusted" \}/);
+  assert.doesNotMatch(tiers, /HIGH_VALUE_ORDER_NAIRA|tierJobProblem/);
+  assert.match(read("src/lib/delivery-market/market.server.ts"), /highValueFor\(/);
 });

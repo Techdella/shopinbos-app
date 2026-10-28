@@ -108,6 +108,9 @@ export async function FindPartners({
                     <div className="min-w-0 flex-1">
                       <Link href={`${detailBase}/${partner.slug}`} className="text-[15.5px] font-extrabold text-app-ink no-underline hover:underline">{partner.displayName}</Link>
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-[13px]">
+                        {/* Featured Top partners come first (shared/partner-reach.ts); Tier 2 and 3 show their tier. */}
+                        {row.featured ? <Pill tone="accent">{t("find.featured")}</Pill> : null}
+                        {row.tier > 1 ? <Pill tone="muted">{t(row.tier === 3 ? "find.tier3" : "find.tier2")}</Pill> : null}
                         <PartnerBadges status={partner.verificationStatus} badges={partner.badges} />
                         <Rating rating={partner.rating} count={partner.ratingCount} />
                       </div>

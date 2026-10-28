@@ -182,6 +182,8 @@ export default function RiderToday() {
 
           <List>
             <Row lead={<Tile icon="check" tone="ok" />} title={say("doneToday", { count: data.dropsDone })} sub={say("niceWork")} />
+            {/* The one number: earned this week, and who pays it (the rider's company sets the pay day). No cash cap. */}
+            <Row lead={<Tile icon="coin" tone="ok" />} title={say("earn.weekLine", { amount: naira(data.week?.total ?? 0) })} sub={say("earn.paidBy", { company })} onPress={() => router.navigate("/rider/earnings")} />
           </List>
         </>
       ) : null}

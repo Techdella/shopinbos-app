@@ -11,6 +11,7 @@ import { ApiError } from "@/lib/api";
 import { POD_LOCKED_CODE, podSwitch, wordsOf } from "@/lib/dropship-pure";
 import { useT } from "@/lib/i18n";
 import { fetchMarket, saveCoverage, type MarketData } from "@/lib/logistics";
+import { interstateWaiting } from "@/lib/partner-pure";
 import { useLoad } from "@/lib/useLoad";
 import { colors } from "@/theme";
 
@@ -51,6 +52,11 @@ function ServicesForm({ data }: { data: MarketData }) {
   return (
     <Screen title={t("biz.services")} footer={<PillButton tone="forest" title={t("save")} busy={busy} onPress={() => void save()} />}>
       <ServicesEditor services={services} onServices={setServices} />
+      {/* Reach tiers (shared/partner-reach.ts): interstate opens at Trusted (Tier 2); below it saving interstate is refused, so say what it needs. */}
+      {interstateWaiting({ services, level: partner.level }) ? <Notice tone="info">{t("lvl.interstateGated")}</Notice> : null}
+      <List>
+        <Row lead={<Tile icon="shield" tone="mint" />} title={t("lvl.title")} sub={partner.level ? t.dynamic(`lvl.tier.${partner.level}`) : undefined} onPress={() => router.push("/logistics/level")} />
+      </List>
       <List>
         {lock.locked ? (
           <Row
@@ -67,7 +73,7 @@ function ServicesForm({ data }: { data: MarketData }) {
         ) : (
           <Row title={t("svc.pod")} sub={t("svc.podSub")} right={<View><Toggle on={pod} onChange={setPod} label={t("svc.pod")} /></View>} />
         )}
-        <Row lead={<Tile icon="coin" tone="mint" />} title={words("pod.title", "Pay on delivery jobs")} sub={words("pod.rulesRow", "Your level, the cash cap and the rules")} onPress={() => router.push("/logistics/pay-on-delivery")} />
+        <Row lead={<Tile icon="coin" tone="mint" />} title={words("pod.title", "Pay on delivery jobs")} sub={words("pod.rulesRow", "How pay at the door works")} onPress={() => router.push("/logistics/pay-on-delivery")} />
       </List>
       {error ? <Notice>{error}</Notice> : null}
     </Screen>

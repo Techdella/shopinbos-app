@@ -258,3 +258,28 @@ export const ROLE_ICON = { seller: "store", supplier: "box", logistics_partner: 
 export function pickedSignupRole(value: unknown): SignupRole | null {
   return value === "seller" || value === "supplier" || value === "logistics_partner" ? value : null;
 }
+
+// ─── Reach tiers (shared/partner-reach.ts; kept import-free here, tests/partner-reach.test.mjs checks they match) ──
+
+export const LEVEL_KEYS = ["verified", "trusted", "cash_trusted"] as const;
+export type LevelKey = (typeof LEVEL_KEYS)[number];
+
+/** 0, 1 or 2 (Tier 1–3); anything unknown is Tier 1. */
+export function levelIndex(level: unknown): number {
+  return Math.max(0, LEVEL_KEYS.indexOf(level as LevelKey));
+}
+
+const UNLOCKS: Record<LevelKey, readonly string[]> = {
+  verified: ["prepaid", "payOnDelivery"],
+  trusted: ["interstate", "ranking"],
+  cash_trusted: ["highValue", "featured", "fasterPayouts"],
+};
+
+/** What this tier adds (keys the screens word as lvl.unlock.<key>). */
+export const tierUnlocks = (level: LevelKey): readonly string[] => UNLOCKS[level] ?? [];
+
+/** They offer interstate but are below Trusted: the switch stays, interstate jobs don't come yet. */
+export function interstateWaiting(partner: { services?: readonly string[] | null; level?: string | null }): boolean {
+  // Older servers don't send the level: say nothing rather than guess.
+  return partner.level != null && Boolean(partner.services?.includes("interstate")) && levelIndex(partner.level) < 1;
+}

@@ -310,7 +310,7 @@ export default async function SupplierOrdersPage({ searchParams }: PageProps) {
                     <Thumb src={order.supplierProduct.images[0]} label={order.supplierProduct.name} size={48} />
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-full bg-app-canvas px-2 py-0.5 text-[11.5px] font-extrabold uppercase tracking-[0.06em]">{t("productForm.wholesale")}</span>
+                        <span className={`rounded-full px-2 py-0.5 text-[11.5px] font-extrabold uppercase tracking-[0.06em] ${order.sample ? "bg-[#FDF0D5] text-[#8A5A00]" : "bg-app-canvas"}`}>{order.sample ? t("orders.sampleTag") : t("productForm.wholesale")}</span>
                         <span className="truncate text-[14.5px] font-extrabold">{order.supplierProduct.name} × {order.quantity.toLocaleString("en-NG")}</span>
                       </div>
                       <div className="text-[12.5px] text-app-ink-soft sm:truncate">

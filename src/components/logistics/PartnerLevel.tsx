@@ -1,12 +1,18 @@
 import Link from "next/link";
 import { cx } from "@/components/app-ui/cx";
 import { Icon } from "@/components/ui/Icon";
-import { HIGH_VALUE_ORDER_NAIRA, PARTNER_LEVELS, PARTNER_LEVEL_LABELS, PAY_AT_DOOR_STEPS, type LevelGoal, type PartnerLevel } from "@shared/dropship-rules";
+import { PARTNER_LEVELS, PARTNER_LEVEL_LABELS, PARTNER_LEVEL_TIER, PAY_AT_DOOR_STEPS, type LevelGoal, type PartnerLevel } from "@shared/dropship-rules";
+import { TIER_UNLOCKS, UNLOCK_WORDS, type FeaturedStatus } from "@shared/partner-reach";
+import type { Translate } from "@/components/logistics/kit";
 
-// A delivery partner's tier (shared/dropship-rules.ts partnerLevel): 1 Verified → 2 Trusted → 3 Top partner, the goals
-// left to the next one, and what each tier unlocks. Tiers control reach, not cash: pay on delivery is open from Tier 1,
-// since customers pay in the app at the door and riders never hold cash. Used by the level page (/logistics/level) and
-// the pay-on-delivery switch on Coverage. The view comes from src/lib/logistics/partner-levels.server.ts partnerLevelView.
+// A delivery partner's reach tier (shared/dropship-rules.ts partnerLevel, shared/partner-reach.ts): Tier 1 Verified →
+// Tier 2 Trusted → Tier 3 Top partner. Tiers control reach, not cash: pay on delivery is open from Tier 1 (customers
+// pay in the app at the door and riders never hold cash), interstate jobs at Trusted, high-value parcels and "Apply
+// to be featured" at Top partner. Shows where the partner is (LevelLadder), what's left to the next tier (GoalList),
+// what each tier unlocks (TierUnlocks), the featured application (FeaturedCard) and how pay at the door works
+// (PayAtDoorSteps). Used by the level page (/logistics/level); PodLocked is the pay-on-delivery switch on Coverage.
+// The view comes from src/lib/logistics/partner-levels.server.ts partnerLevelView. Words come from the "logistics"
+// catalog (reach.*) through `t`, English without one.
 
 export interface PartnerLevelViewProps {
   level: PartnerLevel;
@@ -22,17 +28,20 @@ export interface PartnerLevelViewProps {
 const naira = (amount: number) => `₦${Math.round(amount).toLocaleString("en-NG")}`;
 
 const LEVEL_WORDS: Record<PartnerLevel, string> = {
-  verified: "ID and selfie checked. Prepaid and pay on delivery jobs in your areas. Your riders never carry cash.",
-  trusted: "A clean record: interstate jobs and a higher place in shops' partner lists.",
-  cash_trusted: "Our best partners: high-value parcels, a chance to be featured, and the top of shops' lists.",
+  verified: "ID and selfie checked. Prepaid and pay-on-delivery jobs in your areas.",
+  trusted: "A clean record: interstate jobs and a higher place in shops' rider lists.",
+  cash_trusted: "One of our best: high-value parcels, and you can apply to be featured.",
 };
 
-/** What each tier unlocks, for the ladder of perks on the level page. */
-export const TIER_PERKS: Array<{ level: PartnerLevel; perks: string[] }> = [
-  { level: "verified", perks: ["Prepaid jobs in your areas", "Pay on delivery jobs (customers pay in the app, no cash)"] },
-  { level: "trusted", perks: ["Interstate jobs", "A higher place in shops' partner lists"] },
-  { level: "cash_trusted", perks: [`High-value parcels (₦${HIGH_VALUE_ORDER_NAIRA.toLocaleString("en-NG")}+: phones, gold)`, "Apply to be featured to shops", "The top of shops' partner lists"] },
-];
+/** The word for a key, from the catalog when there is one. */
+const say = (t: Translate | undefined, key: string, fallback: string, values?: Record<string, string | number>) => {
+  if (t) return t.dynamic(key, fallback, values);
+  return values ? Object.entries(values).reduce((text, [name, value]) => text.replace(`{${name}}`, String(value)), fallback) : fallback;
+};
+
+/** "Tier 2 · Trusted", translated. */
+export const tierName = (level: PartnerLevel, t?: Translate) =>
+  say(t, "reach.tierName", "Tier {tier} · {name}", { tier: PARTNER_LEVEL_TIER[level], name: say(t, `reach.level.${level}`, PARTNER_LEVEL_LABELS[level]) });
 
 const goalValue = (goal: LevelGoal) => (goal.kind === "count" ? `${goal.have.toLocaleString("en-NG")} / ${goal.need.toLocaleString("en-NG")}` : goal.done ? "Done" : "Not yet");
 
@@ -67,33 +76,13 @@ export function GoalList({ goals, className }: { goals: LevelGoal[]; className?:
 }
 
 /** How pay on delivery works now, numbered (`.r` on A-Rider-POD): no cash, no code, no drop. */
-export function PayAtDoorSteps() {
+export function PayAtDoorSteps({ t }: { t?: Translate }) {
   return (
     <ol className="m-0 grid list-none gap-2 p-0 text-[13.5px]">
       {PAY_AT_DOOR_STEPS.map((step, index) => (
         <li key={index} className="flex items-start gap-2.5">
           <span className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full bg-app-mint text-[12px] font-extrabold text-app-forest" aria-hidden>{index + 1}</span>
-          <span className="leading-[1.45]">{step}</span>
-        </li>
-      ))}
-    </ol>
-  );
-}
-
-/** Each tier and what it unlocks, the partner's own tier marked. */
-export function TierPerks({ level }: { level: PartnerLevel }) {
-  const at = PARTNER_LEVELS.indexOf(level);
-  return (
-    <ol className="m-0 grid list-none gap-2 p-0">
-      {TIER_PERKS.map((tier, index) => (
-        <li key={tier.level} className={cx("rounded-[18px] border px-4 py-3", index <= at ? "border-app-success/30 bg-app-success-tint/50" : "border-app-line bg-white")}>
-          <p className="m-0 flex items-center gap-2 text-[14px] font-extrabold">
-            {index <= at ? <Icon name="checkCircle" size={16} className="text-app-success" /> : <Icon name="lock" size={14} className="text-app-ink-faint" />}
-            Tier {index + 1} · {PARTNER_LEVEL_LABELS[tier.level]}{index === at ? <span className="rounded-full bg-app-forest px-2 py-0.5 text-[11px] text-white">You</span> : null}
-          </p>
-          <ul className="m-0 mt-1.5 grid list-none gap-1 p-0 pl-6 text-[13.5px] text-app-ink-soft">
-            {tier.perks.map((perk) => <li key={perk}>{perk}</li>)}
-          </ul>
+          <span className="leading-[1.45]">{say(t, `reach.payAtDoor.${index + 1}`, step)}</span>
         </li>
       ))}
     </ol>
@@ -126,21 +115,117 @@ export function PodLocked({ view }: { view: PartnerLevelViewProps }) {
   );
 }
 
-/** Tier 1 Verified → 2 Trusted → 3 Top partner on a forest card: a bar per level, where the partner is, and what it means. */
-export function LevelLadder({ level }: { level: PartnerLevel }) {
+/** Tier 1 → Tier 2 → Tier 3 on a forest card: a bar per tier, where the partner is, what it means, and Featured. */
+export function LevelLadder({ level, featured = false, t }: { level: PartnerLevel; featured?: boolean; t?: Translate }) {
   const at = PARTNER_LEVELS.indexOf(level);
+  const name = tierName(level, t);
   return (
     <section aria-labelledby="partner-level-now" className="grid gap-3 rounded-[24px] bg-app-forest p-[18px] text-white sm:p-6">
-      <ol className="m-0 flex list-none gap-1.5 p-0" aria-label={`Partner levels: ${PARTNER_LEVEL_LABELS[level]}, level ${at + 1} of ${PARTNER_LEVELS.length}`}>
+      <ol className="m-0 flex list-none gap-1.5 p-0" aria-label={say(t, "reach.ladderLabel", "Partner tiers: {name}, tier {at} of {count}", { name, at: at + 1, count: PARTNER_LEVELS.length })}>
         {PARTNER_LEVELS.map((key, index) => (
           <li key={key} aria-current={key === level ? "step" : undefined} className={cx("flex flex-1 flex-col gap-1.5 text-[11px] font-extrabold tracking-[0.04em]", index < at ? "text-app-teal-mid" : index === at ? "text-white" : "text-white/55")}>
             <i aria-hidden className={cx("block h-1.5 rounded-full", index < at ? "bg-app-teal-mid" : index === at ? "bg-white" : "bg-white/20")} />
-            <span className="flex items-center gap-1">{index > at ? <Icon name="lock" size={11} strokeWidth={2.6} /> : null}{index + 1} · {PARTNER_LEVEL_LABELS[key].toUpperCase()}</span>
+            <span className="flex items-center gap-1">{index > at ? <Icon name="lock" size={11} strokeWidth={2.6} /> : null}{tierName(key, t).toUpperCase()}</span>
           </li>
         ))}
       </ol>
-      <h2 id="partner-level-now" className="m-0 font-app-display text-[26px] font-extrabold leading-[1.1] tracking-[-0.02em] sm:text-[32px]">You&apos;re Tier {at + 1} · {PARTNER_LEVEL_LABELS[level]}</h2>
-      <p className="m-0 max-w-[620px] text-[14px] leading-[1.45] text-[#D2EDE8] sm:text-[15px]">{LEVEL_WORDS[level]}</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 id="partner-level-now" className="m-0 font-app-display text-[26px] font-extrabold leading-[1.1] tracking-[-0.02em] sm:text-[32px]">{say(t, "reach.youAre", "You're {name}", { name })}</h2>
+        {featured ? <span className="inline-flex items-center gap-1 rounded-full bg-app-mint px-2.5 py-1 text-[12px] font-extrabold text-app-forest"><Icon name="star" size={13} strokeWidth={2.6} />{say(t, "reach.featuredBadge", "Featured")}</span> : null}
+      </div>
+      <p className="m-0 max-w-[620px] text-[14px] leading-[1.45] text-[#D2EDE8] sm:text-[15px]">{say(t, `reach.words.${level}`, LEVEL_WORDS[level])}</p>
     </section>
+  );
+}
+
+const NEEDS: Record<PartnerLevel, string> = {
+  verified: "ID and selfie passed",
+  trusted: "50 delivered · rating 4.3+ · under 2% failed drops · base address verified",
+  cash_trusted: "150 delivered · 60+ days on Shopinbos · CAC or a guarantor",
+};
+
+/** What each tier unlocks: three cards, ticks up to the partner's tier, locks above it. Faster payouts: coming soon. */
+export function TierUnlocks({ level, fasterPayoutsLive, t }: { level: PartnerLevel; fasterPayoutsLive: boolean; t?: Translate }) {
+  const at = PARTNER_LEVELS.indexOf(level);
+  return (
+    <section aria-labelledby="tier-unlocks" className="grid gap-2">
+      <h2 id="tier-unlocks" className="m-0 px-1 font-app-display text-[19px] font-extrabold tracking-[-0.01em]">{say(t, "reach.unlocksTitle", "What each tier unlocks")}</h2>
+      <ol className="m-0 grid list-none gap-3 p-0 md:grid-cols-3">
+        {PARTNER_LEVELS.map((key, index) => {
+          const open = index <= at;
+          return (
+            <li key={key} aria-current={key === level ? "step" : undefined} className={cx("grid content-start gap-2 rounded-[20px] border bg-white px-4 py-3.5", key === level ? "border-app-forest shadow-[0_0_0_1px_var(--color-app-forest)]" : "border-app-line")}>
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-app-display text-[16px] font-extrabold">{tierName(key, t)}</span>
+                <span className={cx("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11.5px] font-extrabold", key === level ? "bg-app-forest text-white" : open ? "bg-app-success-tint text-app-success" : "bg-app-canvas text-app-ink-soft")}>
+                  {!open ? <Icon name="lock" size={11} strokeWidth={2.6} /> : null}
+                  {key === level ? say(t, "reach.current", "You're here") : open ? say(t, "reach.unlocked", "Unlocked") : say(t, "reach.locked", "Locked")}
+                </span>
+              </div>
+              <p className="m-0 text-[12.5px] leading-[1.4] text-app-ink-soft">{say(t, `reach.needs.${key}`, NEEDS[key])}</p>
+              <ul className="m-0 grid list-none gap-1.5 p-0 text-[13.5px]">
+                {TIER_UNLOCKS[key].map((unlock) => (
+                  <li key={unlock} className="flex items-start gap-2">
+                    <span className={cx("mt-[1px] grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full", open ? "bg-app-mint text-app-forest" : "bg-app-canvas text-app-ink-soft")} aria-hidden>
+                      <Icon name={open ? "check" : "lock"} size={11} strokeWidth={3} />
+                    </span>
+                    <span className="leading-[1.4]">
+                      {say(t, `reach.unlock.${unlock}`, UNLOCK_WORDS[unlock] ?? unlock)}
+                      {unlock === "fasterPayouts" && !fasterPayoutsLive ? <span className="ml-1.5 rounded-full bg-app-canvas px-1.5 py-0.5 text-[11px] font-extrabold text-app-ink-soft">{say(t, "reach.comingSoon", "Coming soon")}</span> : null}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+  );
+}
+
+/**
+ * "Apply to be featured" (Top partners): the state of the application, and the form that sends it (`apply`, a server
+ * action). Below Top partner it says when it opens.
+ */
+export function FeaturedCard({ level, status, featuredNow, note, apply, t }: { level: PartnerLevel; status: FeaturedStatus; featuredNow: boolean; note: string | null; apply: () => Promise<void>; t?: Translate }) {
+  const top = level === "cash_trusted";
+  const line = featuredNow
+    ? say(t, "reach.featured.on", "You're featured. Shops see you first, with a Featured badge.")
+    : !top
+      ? say(t, "reach.featured.locked", "Opens at Tier 3 · Top partner.")
+      : status === "applied"
+        ? say(t, "reach.featured.applied", "Applied. The team will look at it soon.")
+        : status === "rejected"
+          ? say(t, "reach.featured.rejected", "Not approved this time. You can apply again.")
+          : say(t, "reach.featured.sub", "Featured partners get a badge and the top place in shops' rider lists.");
+  return (
+    <section aria-labelledby="featured-title" className="grid gap-2 rounded-[20px] border border-app-line bg-white px-4 py-3.5 sm:px-5">
+      <div className="flex items-center gap-3">
+        <span className={cx("grid h-10 w-10 shrink-0 place-items-center rounded-full", featuredNow ? "bg-app-mint text-app-forest" : "bg-app-canvas text-app-ink-soft")} aria-hidden><Icon name={top ? "star" : "lock"} size={18} strokeWidth={2.4} /></span>
+        <div className="min-w-0">
+          <h2 id="featured-title" className="m-0 font-app-display text-[17px] font-extrabold">{say(t, "reach.featured.title", "Featured partner")}</h2>
+          <p className="m-0 text-[13.5px] text-app-ink-soft">{line}</p>
+        </div>
+      </div>
+      {status === "rejected" && note ? <p className="m-0 rounded-[12px] bg-app-canvas px-3 py-2 text-[13px]">“{note}”</p> : null}
+      {top && !featuredNow && status !== "applied" ? (
+        <form action={apply}>
+          <button type="submit" className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-app-forest px-5 text-[14.5px] font-extrabold text-white hover:bg-app-ink">
+            <Icon name="star" size={15} strokeWidth={2.4} />{say(t, "reach.featured.apply", "Apply to be featured")}
+          </button>
+        </form>
+      ) : null}
+    </section>
+  );
+}
+
+/** Below Trusted: interstate can't be switched on (and was taken off); what they need to get it. */
+export function InterstateNote({ t }: { t?: Translate }) {
+  return (
+    <p role="note" className="m-0 flex items-start gap-2 rounded-[16px] bg-app-warn-tint px-4 py-3 text-[13.5px] leading-[1.45] text-app-ink">
+      <Icon name="globe" size={16} strokeWidth={2.2} />
+      <span>{say(t, "reach.interstateGated", "Interstate jobs open at Tier 2 · Trusted: 50 delivered jobs, a rating of 4.3 or more, failed drops under 2% and your base address verified. Until then interstate stays off.")}</span>
+    </p>
   );
 }

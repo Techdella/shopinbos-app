@@ -2,17 +2,20 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { withSeller } from "@/lib/auth/middleware";
 import { apiError, ok } from "@/lib/api/response";
+import { fixPausedListing } from "@/lib/marketplace/price-notice.server";
 import { MINE_MAX, mySupplierProducts, overQuickLimit, removeSupplierProducts, repriceSupplierProducts } from "@/lib/marketplace/quick-add.server";
 
 export const dynamic = "force-dynamic";
 
 // My supplier products: the supplier products in the shop, to change the price of many at once or remove them.
 //   GET → { products: [{ id, supplierProductId, name, image, status, dropship, supplierName, price, cost, lowest,
-//                        stock, unavailable }], markup, asked }
+//                        stock, unavailable, pausedForPrice, fixPrice, priceChange: { cost, at } | null }], markup, asked }
 //   POST { action: "reprice", ids, markup: { kind, value } }   → cost + markup, rounded to nice prices (saved as
 //                                                                 the seller's markup too)
 //   POST { action: "reprice", ids, suggested: true }           → the supplier's suggested prices
 //   POST { action: "remove", ids }                             → archived like any removed product
+//   POST { action: "fix", id }                                 → "Raise to ₦X" on a product paused because the
+//                                                                 supplier's new price would lose money → { price }
 //   Reprice → { updated: [{ id, price }], skipped: [{ id, name, message }] } (below the supplier's lowest price,
 //   or a loss on the seller's own delivery choice); remove → { removed }.
 
@@ -21,6 +24,7 @@ const Markup = z.object({ kind: z.enum(["percent", "amount"]), value: z.number()
 const Schema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("reprice"), ids: Ids, markup: Markup.optional(), suggested: z.literal(true).optional() }),
   z.object({ action: z.literal("remove"), ids: Ids }),
+  z.object({ action: z.literal("fix"), id: z.string().min(1).max(64) }),
 ]);
 
 export const GET = withSeller(async (_req: NextRequest, { user }) => {
@@ -33,6 +37,10 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
   const parsed = Schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return apiError("BAD_REQUEST", "Pick the products first.");
   if (await overQuickLimit(user.id, "mine")) return apiError("RATE_LIMITED", "Wait a few minutes and try again.", 429);
+  if (parsed.data.action === "fix") {
+    const fixed = await fixPausedListing(user.id, parsed.data.id);
+    return fixed.ok ? ok({ price: fixed.price }) : apiError(fixed.code, fixed.message, fixed.code === "NOT_FOUND" ? 404 : 409);
+  }
   if (parsed.data.action === "remove") {
     const removed = await removeSupplierProducts(user.id, parsed.data.ids);
     return removed ? ok(removed) : apiError("NOT_FOUND", "Set up your store first.", 404);

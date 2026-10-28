@@ -53,6 +53,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "watch.adHint": "Lo fídíò yìí fún ìpolówó lórí Facebook àti Instagram.",
   "watch.adOnWeb": "Ṣe ìpolówó náà lórí wẹ́ẹ̀bù",
   "watch.saveFailed": "A kò rí fídíò náà fi sí fóònù rẹ. Ṣàyẹ̀wò ìsopọ̀ rẹ kí o tún gbìyànjú.",
+  "watch.boost": "Polówó rẹ̀",
 };
 
 export default yo;

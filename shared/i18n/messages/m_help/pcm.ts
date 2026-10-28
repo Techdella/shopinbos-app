@@ -141,6 +141,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "call.screen.find": "Find wetin to sell",
   "call.screen.starter_packs": "Starter packs",
   "call.screen.supplier_products": "My supplier products",
+  "call.screen.wholesale_orders": "My wholesale orders",
   "call.screen.help": "Help",
   "call.screen.home": "Home",
   "call.screen.jobs": "Jobs",
@@ -157,6 +158,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "call.screen.products": "Products",
   "call.screen.profile": "Company profile",
   "call.screen.quotes": "Quotes",
+  "call.screen.level": "Your level",
   "call.screen.rates": "Prices",
   "call.screen.reviews": "Reviews",
   "call.screen.riders": "Riders",
@@ -176,6 +178,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "call.screen.agreements": "Dropship agreements",
   "call.screen.status": "Post Status",
   "call.screen.rewards": "Rewards",
+  "call.screen.insights": "Insights",
+  "call.screen.email": "Email",
+  "call.screen.popups": "Popups",
 };
 
 export default pcm;

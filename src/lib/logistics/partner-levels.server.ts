@@ -2,9 +2,10 @@ import "server-only";
 
 import { db } from "@/lib/db/client";
 import { partnerRecord } from "@/lib/logistics/partner-tiers.server";
-import { notifyAdminsToReview } from "@/lib/notifications/events.server";
+import { tellInterstateTakenOff } from "@/lib/logistics/partner-reach.server";
 import {
   INTERSTATE_LOCKED_MESSAGE,
+  PARTNER_LEVEL_TIER,
   POD_LOCKED_MESSAGE,
   canOfferPayOnDelivery,
   partnerLevel,
@@ -14,12 +15,15 @@ import {
   type PartnerLevel,
   type PartnerRecord,
 } from "@shared/dropship-rules";
+import { FASTER_PAYOUTS_LIVE, featuredStatusOf, isFeaturedNow, levelPerks } from "@shared/partner-reach";
 
-// Delivery partner tiers, server side (the rules are shared/dropship-rules.ts): 1 Verified → 2 Trusted → 3 Top partner
-// (stored as cash_trusted). Tiers control reach, not cash: riders never hold cash (shared/pay-at-door.ts), so pay on
-// delivery is open to every verified partner; interstate jobs open at Trusted, high-value parcels and featuring at
-// Top partner. refreshPartnerLevel stores the tier, and when a partner drops below Trusted it takes interstate off
-// their services. Called when a job is delivered, before the partner changes their services, and on the level screen.
+// Delivery partner tiers, server side (the rules are shared/dropship-rules.ts, what each tier unlocks is
+// shared/partner-reach.ts): 1 Verified → 2 Trusted → 3 Top partner (stored as cash_trusted). Tiers control reach, not
+// cash: riders never hold cash (shared/pay-at-door.ts), so pay on delivery is open to every verified partner, paused
+// only while cash from older jobs is owed; interstate jobs open at Trusted, high-value parcels and featuring at Top
+// partner. refreshPartnerLevel stores the tier, and when a partner is below Trusted it takes interstate off their
+// services and tells them once what they need (src/lib/logistics/partner-reach.server.ts). Called when a job is
+// delivered, before the partner changes their services, by the delivery-jobs cron and on the level screen.
 
 export async function partnerLevelRecord(partnerId: string, now = new Date()): Promise<PartnerRecord | null> {
   const partner = await db.logisticsPartner.findUnique({
@@ -49,11 +53,13 @@ export async function refreshPartnerLevel(partnerId: string): Promise<{ level: P
   const partner = await db.logisticsPartner.update({
     where: { id: partnerId },
     data: { level, codCashCap: cap, levelCheckedAt: new Date(), ...(record.verified ? {} : { offersPayOnDelivery: false }) },
-    select: { services: true },
+    select: { userId: true, services: true, verificationStatus: true },
   });
-  // Below Trusted: no interstate jobs (quoteFor in shared/delivery-market.ts reads the services).
+  // Below Trusted: no interstate jobs (quoteFor in shared/delivery-market.ts reads the level too). Interstate is taken
+  // off their services and they're told once what they need (LogisticsPartner.interstateNoticeAt).
   if (!partnerPerks(level).interstate && partner.services.includes("interstate")) {
     await db.logisticsPartner.update({ where: { id: partnerId }, data: { services: partner.services.filter((service) => service !== "interstate") } });
+    if (String(partner.verificationStatus) === "verified") await tellInterstateTakenOff({ id: partnerId, userId: partner.userId }).catch(() => undefined);
   }
   // Not verified (any more): no pay on delivery on any shop connection either.
   if (!record.verified) await db.deliveryConnection.updateMany({ where: { logisticsPartnerId: partnerId, partnerPod: true }, data: { partnerPod: false } });
@@ -65,18 +71,29 @@ export async function partnerLevelView(partnerId: string) {
   const record = await partnerLevelRecord(partnerId);
   if (!record) return null;
   const refreshed = await refreshPartnerLevel(partnerId);
-  const partner = await db.logisticsPartner.findUnique({ where: { id: partnerId }, select: { codPaused: true, offersPayOnDelivery: true, verificationStatus: true } });
+  const partner = await db.logisticsPartner.findUnique({
+    where: { id: partnerId },
+    select: { codPaused: true, offersPayOnDelivery: true, verificationStatus: true, featuredStatus: true, featuredNote: true, interstateNoticeAt: true },
+  });
   const { level, next, goals } = partnerLevelGoals(record);
   return {
     level,
     next,
     goals,
-    perks: partnerPerks(level),
     cashCap: refreshed?.cap ?? podCashCap({ delivered: record.delivered }),
     podOpen: canOfferPayOnDelivery({ level, codPaused: partner?.codPaused, verificationStatus: partner?.verificationStatus ? String(partner.verificationStatus) : undefined }),
     podOn: !!partner?.offersPayOnDelivery,
     codPaused: !!partner?.codPaused,
     lockedMessage: POD_LOCKED_MESSAGE,
+    // Reach tiers (shared/partner-reach.ts): the tier number, what it unlocks, featured and the interstate gate.
+    tier: PARTNER_LEVEL_TIER[level],
+    perks: levelPerks(level),
+    featuredStatus: featuredStatusOf(partner?.featuredStatus),
+    featuredNow: isFeaturedNow({ level, featuredStatus: partner?.featuredStatus }),
+    featuredNote: partner?.featuredNote ?? null,
+    // Below Trusted, once interstate has been taken off and they've been told: the level screen says what they need.
+    interstateGated: !levelPerks(level).interstate && !!partner?.interstateNoticeAt,
+    fasterPayoutsLive: FASTER_PAYOUTS_LIVE,
   };
 }
 
@@ -95,17 +112,5 @@ export async function interstateProblem(partnerId: string): Promise<string | nul
   return refreshed && partnerPerks(refreshed.level).interstate ? null : INTERSTATE_LOCKED_MESSAGE;
 }
 
-/** A Top partner asks to be featured: the team gets it to review (once a week per partner). */
-export async function applyToBeFeatured(partnerId: string): Promise<{ ok: true } | { ok: false; error: string }> {
-  const refreshed = await refreshPartnerLevel(partnerId);
-  if (!refreshed || !partnerPerks(refreshed.level).canApplyFeatured) return { ok: false, error: "Featuring opens at Top partner (Tier 3)." };
-  const partner = await db.logisticsPartner.findUnique({ where: { id: partnerId }, select: { displayName: true } });
-  const week = Math.floor(Date.now() / (7 * 86_400_000));
-  await notifyAdminsToReview({
-    title: `${partner?.displayName ?? "A delivery partner"} applied to be featured`,
-    description: "A Top partner (Tier 3) asked to be featured to shops. Check their record and feature them if they fit.",
-    link: `/admin/logistics-partners/${partnerId}`,
-    dedupeKey: `partner.featured:${partnerId}:${week}`,
-  });
-  return { ok: true };
-}
+// "Apply to be featured" is applyToBeFeatured in src/lib/logistics/partner-reach.server.ts (featuredStatus, the team
+// approves or turns it down in Admin › Logistics partners).

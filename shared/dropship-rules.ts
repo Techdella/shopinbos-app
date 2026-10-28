@@ -14,10 +14,12 @@
 //   Seller branding      blind packing and the seller's name on tracking are always on; packing slips, the seller's
 //                        stickers and custom packaging are extras the supplier offers.
 //   Supplier levels      New → Trusted → Established, from the delivery record. Pre-orders open at Established.
-//   Partner tiers        1 Verified → 2 Trusted → 3 Top partner, from the delivery record. They control reach, not
+//   Partner tiers        1 Verified → 2 Trusted → 3 Top partner, from the delivery record. They control reach
+//                        (interstate, place in shops' lists, high-value parcels, featured: shared/partner-reach.ts), not
 //                        cash: riders never hold cash (shared/pay-at-door.ts), so pay on delivery is open from Tier 1.
 
 import { NG_REGIONS, SIZE_BANDS, type Place, type SizeBand } from "./delivery-market.ts";
+import { levelPerks } from "./partner-reach.ts";
 
 const num = (value: unknown) => {
   const n = typeof value === "number" ? value : typeof value === "string" && value.trim() !== "" ? Number(value) : NaN;
@@ -564,28 +566,39 @@ export function brandingOfferFor(level: string | null | undefined, offer: Brandi
 //   2 · Trusted      50 delivered, rating 4.3+,      interstate jobs, a higher place in shops' partner lists
 //                    under 2% failed drops, base
 //                    address verified
-//   3 · Top partner  150 delivered, 60+ days on     high-value parcels (phones, gold), can apply to be featured,
-//                    Shopinbos, CAC or a guarantor   a higher place still
+//   3 · Top partner  150 delivered, 60+ days on     high-value parcels (over ₦150,000, or phones, jewellery,
+//                    Shopinbos, CAC or a guarantor   laptops), can apply to be featured, a higher place still
 //
 // Pay on delivery is paid in the app at the door and the rider types the code the customer gets once it's paid
 // (shared/pay-at-door.ts), so riders never hold cash and every verified partner can take it. The stored value of
 // Tier 3 is still "cash_trusted" (LogisticsPartner.level), so nothing in the database moves; it reads "Top partner".
+//
+// What each tier unlocks, the high-value rule (₦150,000, phones / jewellery / laptops, admin-editable) and featured
+// live in shared/partner-reach.ts. These are separate from the verification tiers in shared/partner-tiers.ts
+// (Verified Individual / Registered Business), whose order-value and open-jobs limits are the "safety limits".
 
 export const PARTNER_LEVELS = ["verified", "trusted", "cash_trusted"] as const;
 export type PartnerLevel = (typeof PARTNER_LEVELS)[number];
 export const PARTNER_LEVEL_LABELS: Record<PartnerLevel, string> = { verified: "Verified", trusted: "Trusted", cash_trusted: "Top partner" };
+/** The tier number shown with the name: "Tier 1 · Verified". */
+export const PARTNER_LEVEL_TIER: Record<PartnerLevel, 1 | 2 | 3> = { verified: 1, trusted: 2, cash_trusted: 3 };
 export const isPartnerLevel = (value: unknown): value is PartnerLevel => (PARTNER_LEVELS as readonly string[]).includes(String(value));
+/** A stored level, anything unknown or missing read as Tier 1. */
+export const partnerLevelOf = (value: unknown): PartnerLevel => (isPartnerLevel(value) ? value : "verified");
+/** "Tier 2 · Trusted". */
+export function partnerTierName(level: unknown) {
+  const key = partnerLevelOf(level);
+  return `Tier ${PARTNER_LEVEL_TIER[key]} · ${PARTNER_LEVEL_LABELS[key]}`;
+}
 /** Tier 1, 2 or 3. */
-export const partnerTierNumber = (level: string | null | undefined) => Math.max(0, PARTNER_LEVELS.indexOf(isPartnerLevel(level) ? level : "verified")) + 1;
+export const partnerTierNumber = (level: string | null | undefined) => PARTNER_LEVEL_TIER[partnerLevelOf(level)];
 
+/** `cashTrusted` is Tier 3 (Top partner); the key keeps its old name because pay-on-delivery code reads it. */
 export const PARTNER_LEVEL_RULES = {
   trusted: { delivered: 50, rating: 4.3, failedRate: 0.02 },
   /** Tier 3, Top partner (stored as cash_trusted). */
   cashTrusted: { delivered: 150, days: 60 },
 } as const;
-
-/** A high-value parcel (phones, gold): an order worth this much or more goes to Top partners only. */
-export const HIGH_VALUE_ORDER_NAIRA = 300_000;
 
 /** The cash a Cash trusted partner may hold at once to start, rising with their record (older cash jobs only). */
 export const POD_CASH_CAP_START = 100_000;
@@ -602,7 +615,7 @@ export interface PartnerRecord {
   baseVerified: boolean;
   createdAt: Date | string;
   /** Late cash pay-ins on older cash jobs (LogisticsPartner.payInStrikes). No longer part of the tiers. */
-  lateRemittances: number;
+  lateRemittances?: number;
   /** A CAC registration or a confirmed guarantor. */
   cacOrGuarantor: boolean;
   now?: Date;
@@ -653,30 +666,23 @@ export function partnerLevelGoals(record: PartnerRecord): { level: PartnerLevel;
   };
 }
 
-/** What each tier unlocks. */
+/**
+ * What each tier unlocks, read from shared/partner-reach.ts (the one place the reach rules live): pay on delivery for
+ * every verified partner, interstate from Trusted, high-value parcels and "Apply to be featured" at Top partner, and
+ * the boost in shops' partner lists.
+ */
 export function partnerPerks(level: string | null | undefined) {
-  const tier = partnerTierNumber(level);
+  const perks = levelPerks(level);
   return {
-    tier,
-    /** Prepaid and pay on delivery jobs in their areas: every verified partner. */
-    payOnDelivery: true,
-    /** Interstate jobs: Trusted and up. */
-    interstate: tier >= 2,
-    /** Parcels worth HIGH_VALUE_ORDER_NAIRA or more: Top partners. */
-    highValue: tier >= 3,
-    /** May apply to be featured: Top partners. */
-    canApplyFeatured: tier >= 3,
+    tier: partnerTierNumber(level),
+    payOnDelivery: perks.payOnDelivery,
+    interstate: perks.interstate,
+    /** High-value parcels (shared/partner-reach.ts highValueReason: over the admin's threshold, or phones, jewellery, laptops). */
+    highValue: perks.highValue,
+    canApplyFeatured: perks.canApplyFeatured,
     /** Points added to the "Find partners" order (shared/delivery-market.ts rankScore). */
-    rankBoost: tier >= 3 ? 15 : tier >= 2 ? 8 : 0,
+    rankBoost: perks.rankBoost,
   };
-}
-
-/** Why a partner at this tier can't take a job worth `orderValue`, or null. */
-export function tierJobProblem(level: string | null | undefined, orderValue: number): string | null {
-  if (orderValue >= HIGH_VALUE_ORDER_NAIRA && !partnerPerks(level).highValue) {
-    return `Orders worth ₦${HIGH_VALUE_ORDER_NAIRA.toLocaleString("en-NG")} or more (phones, gold) go to Top partners only.`;
-  }
-  return null;
 }
 
 /**

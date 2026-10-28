@@ -9,7 +9,7 @@ import { OneLine, PreorderBox } from "@/components/Preorder";
 import { Screen } from "@/components/Screen";
 import { Card, Field, Label, Notice, PillButton, Segmented, T } from "@/components/ui";
 import { clampSellingPrice, priceStep, saleBreakdown, tierPrice } from "@/lib/find-pure";
-import { addToStore, fetchDropshipTerms, fetchFindContext, fetchFindProduct, placeWholesaleOrder, requestQuote, type FindContext, type FindProduct, type Listing } from "@/lib/marketplace";
+import { addToStore, fetchDropshipTerms, fetchFindContext, fetchFindProduct, orderSample, placeWholesaleOrder, requestQuote, type FindContext, type FindProduct, type Listing } from "@/lib/marketplace";
 import { AddFromSupplier, listingChoiceOf, listingDraftFrom, type ListingDraft } from "@/components/seller/AddFromSupplier";
 import { listingProblem, type DropshipTerms } from "@shared/dropship-checkout";
 import { depositLineText, preorderButton, preorderPillText } from "@/lib/preorder-pure";
@@ -31,6 +31,8 @@ import { colors, radii } from "@/theme";
 // price allowed, delivery to the seller's customers and who pays it (+ a flat fee), the branding choices with fees
 // and "Your SKU or barcode"; those go with the POST, and a price the server refuses (409 PRICE_PROBLEM) shows its
 // words. Older servers without terms keep the price stepper.
+// Also (spec gap C4c/C6): "12 shops selling", the shops' rating of the supplier with their latest words, and "Order 1
+// sample · ₦X" (one per product at the dropship price, shared/samples.ts; paid on Wholesale once the supplier accepts).
 
 function Stepper({ label, value, onMinus, onPlus, minusOff, plusOff }: { label: string; value: string; onMinus: () => void; onPlus: () => void; minusOff?: boolean; plusOff?: boolean }) {
   const t = useT("m_find");
@@ -85,7 +87,9 @@ export default function FindProductDetail() {
 function ProductView({ product, listing, context, terms, refreshing, onRefresh }: { product: FindProduct; listing: Listing; context: FindContext | null; terms: DropshipTerms | null; refreshing: boolean; onRefresh: () => void }) {
   const t = useT("m_find");
   const tp = useT("m_ui");
+  const tm = useT("marketplace");
   const preorder = product.preorder?.on ? product.preorder : null;
+  const [sample, setSample] = useState(product.sampleOffer);
   // A listing that takes preorders opens on Wholesale (stock ordered before it arrives), like the web.
   const [mode, setMode] = useState<"dropship" | "wholesale">(product.dropship && !(preorder && product.wholesale) ? "dropship" : "wholesale");
   const [price, setPrice] = useState(() => clampSellingPrice(product.price || product.cost * 1.5, product.cost));
@@ -131,6 +135,20 @@ function ProductView({ product, listing, context, terms, refreshing, onRefresh }
     } catch (addError) {
       // PRICE_PROBLEM (below the supplier's lowest price, or a loss) and the other refusals come with the server's words.
       setNote({ tone: "error", text: addError instanceof Error ? addError.message : t("product.addFailed") });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function sendSample() {
+    if (!sample) return;
+    setBusy(true);
+    setNote(null);
+    try {
+      const order = await orderSample({ supplierId: product.supplier.id, supplierProductId: product.id, deliveryAddress: destination.trim() || context?.destination || "" });
+      setSample({ ...sample, ordered: { id: order.id, status: order.status } });
+    } catch (sampleError) {
+      setNote({ tone: "error", text: sampleError instanceof Error ? sampleError.message : t("product.quoteFailed") });
     } finally {
       setBusy(false);
     }
@@ -220,6 +238,7 @@ function ProductView({ product, listing, context, terms, refreshing, onRefresh }
         {preorder ? <Badge label={preorderPillText(preorder, new Date(), tp) ?? tp("preorder.pill")} bg={colors.warnTint} fg={colors.warnInk} /> : null}
         {product.stock > 0 ? <Badge label={t("product.inStock", { count: product.stock })} /> : preorder ? null : <Badge label={t("product.outOfStock")} bg={colors.dangerTint} fg={colors.danger} />}
         {already ? <Badge label={t("product.inShop")} bg={colors.successTint} fg={colors.success} /> : null}
+        {product.shopsSelling > 0 ? <Badge label={tm("shops.selling", { count: product.shopsSelling })} bg="#E2F6F1" fg="#0C4A44" /> : null}
       </View>
 
       {/* Who sells it, with Message beside the name; Verified, the risk score and the distance sit under them at full
@@ -230,7 +249,7 @@ function ProductView({ product, listing, context, terms, refreshing, onRefresh }
           <View style={{ flex: 1, minWidth: 0 }}>
             <T weight="extrabold" style={{ fontSize: 15 }} numberOfLines={2}>{product.supplier.name}</T>
             <T style={{ color: colors.inkSoft, fontSize: 14 }} numberOfLines={1}>
-              {[product.supplier.city, product.supplier.rating ? `★ ${product.supplier.rating.toFixed(1)}` : null, product.supplier.responds].filter(Boolean).join(" · ")}
+              {[product.supplier.city, product.supplier.rating ? `★ ${product.supplier.rating.toFixed(1)}${product.supplier.ratingCount ? ` (${product.supplier.ratingCount})` : ""}` : null, product.supplier.responds].filter(Boolean).join(" · ")}
             </T>
           </View>
           <PillButton
@@ -323,6 +342,40 @@ function ProductView({ product, listing, context, terms, refreshing, onRefresh }
           <T style={{ color: colors.inkSoft, fontSize: 14 }}>{t("product.confirms")}</T>
         </Card>
       )}
+
+      {/* One sample at the dropship price, to try it before selling it (shared/samples.ts). */}
+      {mode === "dropship" && sample ? (
+        <Card style={{ gap: 8 }}>
+          <T weight="extrabold" style={{ fontSize: 16 }}>{tm("trySample.title")}</T>
+          <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{tm("trySample.body", { price: naira(sample.price) })}</T>
+          {sample.ordered ? (
+            <View style={{ gap: 8 }}>
+              <Badge label={`✓ ${tm("trySample.ordered")}`} bg={colors.successTint} fg={colors.success} />
+              <PillButton title={tm("trySample.see")} tone="white" size="sm" style={{ alignSelf: "flex-start" }} onPress={() => router.push("/wholesale")} />
+            </View>
+          ) : (
+            <>
+              <PillButton tone="white" size="md" busy={busy} accessibilityLabel={tm("trySample.order", { price: naira(sample.price) })} onPress={() => void sendSample()}>
+                <OneLine text={tm("trySample.order", { price: naira(sample.price) })} size={15} />
+              </PillButton>
+              <T style={{ color: colors.inkSoft, fontSize: 12.5, lineHeight: 17 }}>{tm("trySample.note", { address: destination.trim() || context?.destination || "—" })}</T>
+            </>
+          )}
+        </Card>
+      ) : null}
+
+      {/* What shops say about the supplier (their ratings after orders arrived, shared/supplier-ratings.ts). */}
+      {product.supplier.ratingCount > 0 && product.supplier.rating ? (
+        <Card style={{ gap: 6 }}>
+          <T weight="extrabold" style={{ fontSize: 15 }}>{`${tm("rate.whatShopsSay")} · ★ ${product.supplier.rating.toFixed(1)} · ${tm("rate.count", { count: product.supplier.ratingCount })}`}</T>
+          {product.ratings.filter((entry) => entry.text).map((entry) => (
+            <T key={entry.at} style={{ fontSize: 14, lineHeight: 20 }}>
+              <T style={{ color: "#F2A93B", fontSize: 14 }}>{"★".repeat(entry.rating)}</T>
+              {`  ${entry.text}`}
+            </T>
+          ))}
+        </Card>
+      ) : null}
 
       {product.description ? (
         <Card style={{ gap: 6 }}>

@@ -220,3 +220,19 @@ export async function getReviewableBookings(supplierId: string) {
     take: 50,
   });
 }
+
+/**
+ * A seller rates the supplier of a wholesale order (or sample) that arrived, or of a dropship parcel delivered to
+ * their customer (shared/supplier-ratings.ts). The web's "Rate the supplier" buttons; the phone uses
+ * POST /api/app/supplier-ratings. Same checks either way (src/lib/marketplace/supplier-ratings.server.ts).
+ */
+export async function rateSupplierAction(input: { kind: string; orderId: string; rating: number; text?: string }) {
+  const user = await requireRole(["seller"], "/login");
+  const { rateSupplier } = await import("@/lib/marketplace/supplier-ratings.server");
+  const { isRatingKind } = await import("@shared/supplier-ratings");
+  if (!isRatingKind(input.kind)) return { ok: false as const, error: "We couldn't find that order." };
+  const result = await rateSupplier({ id: user.id }, { kind: input.kind, orderId: String(input.orderId).slice(0, 64), rating: input.rating, text: input.text });
+  if (!result.ok) return { ok: false as const, error: result.message };
+  revalidatePath("/marketplace/wholesale");
+  return { ok: true as const, rating: result.rating.rating, text: result.rating.text };
+}

@@ -110,6 +110,11 @@ export const NOTIFY_EVENTS = {
   // China imports (src/lib/imports): a quote is ready, the order moved a step, or it was cancelled.
   "import.update": { category: "orders" },
   "pickup.update": { category: "deliveries" },
+  // Find (spec gap C5/C6b): a supplier's price rise on notice, a listing paused because it would lose money, and a
+  // shop's rating of a supplier.
+  "price_notice.scheduled": { category: "stock" },
+  "listing.paused_price": { category: "stock", urgent: true },
+  "supplier_review.new": { category: "account" },
   "product.approved": { category: "account" },
   "product.rejected": { category: "account" },
   "verification.update": { category: "account" },
@@ -414,6 +419,7 @@ const SIMPLE_SCREENS: Array<[RegExp, string]> = [
   [/^\/home\/(inventory|products)(\/.*)?$/, "/products"],
   [/^\/products(\/.*)?$/, "/products"],
   [/^\/marketplace\/wholesale$/, "/wholesale"],
+  [/^\/marketplace\/mine$/, "/find/mine"],
   [/^\/supplier\/preorders$/, "/supplier/preorders"],
   [/^\/marketplace(\/.*)?$/, "/find"],
   [/^\/home\/notifications(\/.*)?$/, "/notifications"],

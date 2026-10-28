@@ -188,6 +188,8 @@ const en = {
   "sec.newsletter": "Sign-up",
   "sec.testimonials": "Reviews",
   "sec.trust-strip": "Trust badges",
+  "link.posts.label": "Posts calendar",
+  "link.posts.hint": "Posts already made and planned, day by day",
 } satisfies Record<string, string>;
 
 export default en;

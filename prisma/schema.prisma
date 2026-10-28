@@ -780,6 +780,11 @@ model SupplierProduct {
   dropshipMinQty        Int           @default(1)
   handlingDays          Int           @default(1)
   sizeBand              String?
+  /// Price rise on notice (shared/price-notice.ts): sellers listing it get 7 days' warning. The new channel prices
+  /// ({ priceMode, wholesalePrice, dropshipPrice, pricingTiers }) wait here until pendingPriceAt; the live prices
+  /// (and what orders cost) stay the old ones until the daily price-notices job applies them. Decreases apply at once.
+  pendingPrice          Json?
+  pendingPriceAt        DateTime?
   status                ProductStatus @default(draft)
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
@@ -797,6 +802,7 @@ model SupplierProduct {
   @@index([status])
   @@index([trendScore(sort: Desc)])
   @@index([familyKey])
+  @@index([pendingPriceAt])
 }
 
 // ─── Store Product ────────────────────────────────────────────────────────────
@@ -900,6 +906,10 @@ model StoreProduct {
   // Supplier sync info
   supplierStock     Int?            @default(0)
   supplierLastSync  DateTime?
+  // Taken off the store by Shopinbos, not the seller: "price_loss" (the supplier's new price would make every sale
+  // lose money, shared/price-notice.ts). Cleared when the seller raises the price (one tap) or lists it again.
+  pausedReason      String?
+  pausedAt          DateTime?
 
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
@@ -1043,6 +1053,8 @@ model WholesaleOrder {
   depositKobo       Int         @default(0) // a preorder's deposit, paid when it's placed (0: no deposit; the rest after stock is ready)
   depositPaidAt     DateTime?   // the deposit was paid by card in Shopinbos (paidAt: the whole order is paid)
   depositRef        String?     @unique // that Paystack reference (whpay-…)
+  sample            Boolean     @default(false) // one piece at the dropship price to try it (shared/samples.ts)
+  sampleKey         String?     @unique // "<sellerId>:<supplierProductId>" on a live sample: one per seller per product
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
 
@@ -1249,6 +1261,16 @@ model LogisticsPartner {
   level              String             @default("verified")
   levelCheckedAt     DateTime?
   codCashCap         Float              @default(100000)
+  /// Featured partners (shared/partner-reach.ts): none | applied | featured | rejected. Only Top partners (Tier 3,
+  /// level cash_trusted) can apply; the team approves in Admin › Logistics partners. Featured partners get a badge
+  /// and the top of shops' rider lists and the public directory while they stay Top partners.
+  featuredStatus     String             @default("none")
+  featuredAppliedAt  DateTime?
+  featuredAt         DateTime?
+  /// Why the team turned the application down (shown to the partner).
+  featuredNote       String?
+  /// Told once that interstate jobs now need Trusted (Tier 2) while they still offer interstate below it.
+  interstateNoticeAt DateTime?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
@@ -1274,6 +1296,7 @@ model LogisticsPartner {
   @@index([slug])
   @@index([country, city])
   @@index([verificationStatus, kycSubmittedAt])
+  @@index([featuredStatus])
 }
 
 // A delivery partner's vehicle (Tier 1 needs one approved): photo and the driver's or rider's licence, checked by the
@@ -1516,6 +1539,9 @@ model DeliveryBooking {
   failedAttempts     Int           @default(0)
   /// The job that took over after this one was declined or ran late.
   replacedById       String?
+  /// A high-value parcel (shared/partner-reach.ts isHighValueParcel: order over the admin threshold, or phones,
+  /// laptops, jewellery/gold): only Top partners (Tier 3) are offered it or can accept it.
+  highValue          Boolean       @default(false)
   /// Pay on delivery agreed between the shop and the partner: a record only (Shopinbos never holds the cash).
   codRemittedAt      DateTime?
   codConfirmedAt     DateTime?

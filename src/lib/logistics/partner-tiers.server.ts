@@ -1,4 +1,3 @@
-import { HIGH_VALUE_ORDER_NAIRA, tierJobProblem } from "@shared/dropship-rules";
 import "server-only";
 
 import type { Prisma } from "@prisma/client";
@@ -185,12 +184,8 @@ export async function activeJobCount(partnerId: string) {
  * haven't graduated have limits.
  */
 export async function partnerJobLimitProblem(partnerId: string, orderValue: number): Promise<string | null> {
-  const partner = await db.logisticsPartner.findUnique({ where: { id: partnerId }, select: { id: true, verificationTier: true, limitsLiftedAt: true, level: true } });
-  if (!partner) return null;
-  // High-value parcels (phones, gold) go to Top partners only (shared/dropship-rules.ts partner tiers).
-  const tier = tierJobProblem(partner.level, Math.max(0, orderValue || 0));
-  if (tier) return tier;
-  if (!limitsApply(partner)) return null;
+  const partner = await db.logisticsPartner.findUnique({ where: { id: partnerId }, select: { id: true, verificationTier: true, limitsLiftedAt: true } });
+  if (!partner || !limitsApply(partner)) return null;
   const { limited, rules } = await checkGraduation(partner);
   if (!limited) return null;
   const problem = jobLimitProblem({ orderValue: Math.max(0, orderValue || 0), activeJobs: await activeJobCount(partner.id) }, rules);
@@ -201,11 +196,6 @@ export async function partnerJobLimitProblem(partnerId: string, orderValue: numb
 export async function partnersOverLimit(partnerIds: string[], orderValue: number): Promise<Set<string>> {
   const out = new Set<string>();
   if (!partnerIds.length) return out;
-  // Below Top partner, nothing worth HIGH_VALUE_ORDER_NAIRA or more.
-  if (orderValue >= HIGH_VALUE_ORDER_NAIRA) {
-    const below = await db.logisticsPartner.findMany({ where: { id: { in: partnerIds }, level: { not: "cash_trusted" } }, select: { id: true } });
-    for (const partner of below) out.add(partner.id);
-  }
   const limited = await db.logisticsPartner.findMany({ where: { id: { in: partnerIds }, verificationTier: "tier1", limitsLiftedAt: null }, select: { id: true } });
   for (const partner of limited) {
     if (await partnerJobLimitProblem(partner.id, orderValue)) out.add(partner.id);

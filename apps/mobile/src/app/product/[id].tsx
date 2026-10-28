@@ -181,6 +181,7 @@ function isLive(product: EditProduct): boolean {
 
 export default function EditProductScreen() {
   const t = useT("m_productedit", "m_products", "common", "productTypes", "m_ui");
+  const tm = useT("marketplace");
   const { id } = useLocalSearchParams<{ id: string }>();
   const [product, setProduct] = useState<EditProduct | null>(null);
   const [form, setForm] = useState<ProductEditForm | null>(null);
@@ -550,6 +551,16 @@ export default function EditProductScreen() {
             color={colors.forest}
             style={{ alignItems: "flex-start" }}
             onPress={() => router.push({ pathname: "/partners/[id]", params: { id: dropship.supplier.userId, name: dropship.supplier.name } })}
+          />
+          {/* One tap to Rex's video studio with this product's photos (the supplier's photos came with it). */}
+          <PillButton
+            testID="rex-video"
+            tone="white"
+            size="sm"
+            icon="play"
+            title={tm("rex.makeVideo")}
+            style={{ alignSelf: "flex-start" }}
+            onPress={() => router.push({ pathname: "/video/studio", params: { purpose: "product", product: String(id) } })}
           />
         </Card>
       ) : null}

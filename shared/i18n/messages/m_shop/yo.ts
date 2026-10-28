@@ -187,6 +187,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "sec.newsletter": "Forúkọsílẹ̀",
   "sec.testimonials": "Àwọn àtúnyẹ̀wò",
   "sec.trust-strip": "Àmì ìgbẹ́kẹ̀lé",
+  "link.posts.label": "Kàlẹ́ńdà àwọn àtẹ̀jáde",
+  "link.posts.hint": "Àwọn àtẹ̀jáde tí a ti ṣe àti tí a ṣètò, ọjọ́ dé ọjọ́",
 };
 
 export default yo;

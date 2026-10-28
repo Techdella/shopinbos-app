@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { withSeller } from "@/lib/auth/middleware";
 import { apiError, ok } from "@/lib/api/response";
-import { listDropship, setDropshipPausedFor } from "@/lib/marketplace/dropship.server";
+import { STILL_LOSES, listDropship, setDropshipPausedFor } from "@/lib/marketplace/dropship.server";
 
 export const dynamic = "force-dynamic";
 
@@ -18,5 +18,6 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
   if (!parsed.success) return apiError("BAD_REQUEST", "Say which product to pause.");
   const status = await setDropshipPausedFor(user.id, parsed.data.relationshipId, parsed.data.pause);
   if (!status) return apiError("NOT_FOUND", "That product couldn't be found.", 404);
+  if (status === "loss") return apiError("PRICE_PROBLEM", STILL_LOSES, 409);
   return ok({ status });
 });

@@ -3,6 +3,7 @@ import { Platform, Pressable, StyleSheet, View } from "react-native";
 import type { Tabs } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppIcon, type AppIconName } from "@/components/icons";
+import { Picture } from "@/components/kit";
 import { T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
@@ -13,7 +14,9 @@ import { colors } from "@/theme";
 
 type TabBarProps = Parameters<NonNullable<React.ComponentProps<typeof Tabs>["tabBar"]>>[0];
 
-export type TabItem = { name: string; icon: AppIconName; label: string; badge?: number };
+/** `avatar`: the tab shows this picture (or its initials) instead of the icon, ringed while active (the seller's
+ * Menu tab, canvas board M-Menu). */
+export type TabItem = { name: string; icon: AppIconName; label: string; badge?: number; avatar?: { uri: string | null; name: string } | null };
 
 const ANDROID = Platform.OS === "android";
 
@@ -28,7 +31,13 @@ function TabButton({ item, focused, tint, onPress }: { item: TabItem; focused: b
       style={{ flex: 1, minHeight: 54, alignItems: "center", justifyContent: "flex-start", gap: 4, paddingTop: 4 }}
     >
       <View style={{ width: 60, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center", backgroundColor: ANDROID && focused ? tint : "transparent" }}>
-        <AppIcon name={item.icon} size={22} color={focused ? colors.ink : colors.inkSoft} strokeWidth={focused ? 2.3 : 1.9} />
+        {item.avatar ? (
+          <View style={{ borderRadius: 14, borderWidth: 2, borderColor: focused ? colors.ink : "transparent", padding: 1 }}>
+            <Picture uri={item.avatar.uri} name={item.avatar.name} size={22} />
+          </View>
+        ) : (
+          <AppIcon name={item.icon} size={22} color={focused ? colors.ink : colors.inkSoft} strokeWidth={focused ? 2.3 : 1.9} />
+        )}
         {item.badge ? (
           <View style={{ position: "absolute", top: -2, right: 10, minWidth: 16, height: 16, borderRadius: 8, paddingHorizontal: 4, backgroundColor: colors.accent, alignItems: "center", justifyContent: "center" }}>
             <T weight="extrabold" style={{ fontSize: 10, color: colors.ink }}>{item.badge > 9 ? "9+" : String(item.badge)}</T>

@@ -187,6 +187,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "sec.newsletter": "Sign-up",
   "sec.testimonials": "Reviews",
   "sec.trust-strip": "Trust badges",
+  "link.posts.label": "Posts calendar",
+  "link.posts.hint": "Posts wey you don make and plan, day by day",
 };
 
 export default pcm;
