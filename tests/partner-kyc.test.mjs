@@ -86,8 +86,8 @@ test("the old submit route (phone app) uses the tiered submit and names what's m
 
 
 test("terms at setup, the CAC banner and link, and the spec's pages", () => {
-  const onboarding = read("src/components/onboarding/LogisticsOnboarding.tsx");
-  assert.match(onboarding, /acceptTerms: true/);
+  // Terms are accepted on the Review step of the one sign-up flow (the old set-up wizard is gone).
+  assert.match(read("src/components/logistics/verification/CacReviewSteps.tsx"), /kycCall\("\/terms", \{ method: "POST" \}\)/);
   assert.match(read("src/app/api/logistics/onboarding/route.ts"), /termsVersion: PARTNER_TERMS_VERSION/);
   const en = read("shared/i18n/messages/partnerKyc/en.ts");
   assert.match(en, /"page.noCacBanner": "You don't need CAC to start\. Add it later to unlock more orders\."/);
@@ -156,12 +156,9 @@ test("partners are never asked for a BVN: bank account only, on the web, the pho
 });
 
 test("unverified partners are sent to verify: after set-up, from blocked job pages, and the banner tells the truth", async () => {
-  // getContinuationPath always returns a page (the dashboard without an intent), so it's only used with an intent.
-  assert.match(read("src/components/onboarding/LogisticsOnboarding.tsx"), /const destination = intent\.intent \? getContinuationPath\(\{ role: "logistics_partner", \.\.\.intent \}\) : verified \? "\/logistics\/dashboard" : "\/logistics\/verification";/);
-  const routing = await import("../src/lib/intent-routing.js");
-  const intentRouting = routing.default ?? routing;
-  assert.equal(intentRouting.getContinuationPath({ role: "logistics_partner" }), "/logistics/dashboard", "why it can't be the fallback");
-  assert.doesNotMatch(read("src/components/onboarding/LogisticsOnboarding.tsx"), /Verify your business/, "set-up no longer asks for CAC as the way to verify");
+  // Set-up is the verification flow itself: the old wizard is gone and its page sends people there, query kept.
+  assert.equal(existsSync(join(root, "src/components/onboarding/LogisticsOnboarding.tsx")), false);
+  assert.match(read("src/app/logistics/onboarding/page.tsx"), /redirect\(`\/logistics\/verification\$\{query \? `\?\$\{query\}` : ""\}`\)/);
   for (const path of ["src/app/actions/logistics.ts", "src/app/actions/delivery-market-partner.ts"]) {
     assert.doesNotMatch(read(path), /verification=pending/);
     assert.match(read(path), /redirect\("\/logistics\/verification"\)/);

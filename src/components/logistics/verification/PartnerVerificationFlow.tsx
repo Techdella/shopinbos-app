@@ -17,7 +17,7 @@ import { CacStep, ReviewStep } from "./CacReviewSteps";
 // saves on its own and answers with the new state.
 
 /** The 4 steps everyone goes through; CAC is offered after them. */
-const MAIN_STEPS = ONBOARDING_STEPS.filter((name) => name !== "cac");
+const MAIN_STEPS: readonly OnboardingStep[] = ONBOARDING_STEPS.filter((name) => name !== "cac");
 
 const STATE_TONE: Record<PartnerState, string> = {
   unverified: "bg-[#FDF0D5]",
