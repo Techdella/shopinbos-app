@@ -64,7 +64,7 @@ export function AppPage({
 }) {
   return (
     <AppFrame {...frame}>
-      <div className={cx("w-full font-app text-app-ink", bleed ? "min-h-full" : "px-4 py-6 sm:px-6 xl:px-8 2xl:px-10", className)}>
+      <div className={cx("w-full font-app text-app-ink", bleed ? "flex min-h-full flex-col" : "px-4 py-6 sm:px-6 xl:px-8 2xl:px-10", className)}>
         {!bare && <PageHead
           title={typeof title === "string" ? <TitleTerm title={title} /> : title}
           sub={sub}

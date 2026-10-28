@@ -55,10 +55,10 @@ export function PartnerVerificationFlow({ accountName }: { accountName: string }
   return (
     // Full bleed on wide screens (W-Onboard-Verify): the step rail runs the whole height against the menu, the
     // question sits in the open space beside it.
-    <div className="w-full lg:grid lg:min-h-full lg:grid-cols-[300px_minmax(0,1fr)]">
+    <div className="w-full lg:grid lg:flex-1 lg:grid-cols-[260px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)]">
       <div className="hidden bg-app-forest lg:block">
       <StepRail
-        className="sticky top-0 hidden lg:flex lg:px-7 lg:py-9"
+        className="sticky top-0 hidden lg:flex lg:min-h-[calc(100dvh-4rem)] lg:px-6 lg:py-9 xl:px-7"
         showLogo={false}
         who={state.business.companyName || accountName || t("rail.title")}
         role={t("rail.title")}
@@ -66,7 +66,7 @@ export function PartnerVerificationFlow({ accountName }: { accountName: string }
         current={screen}
       />
       </div>
-      <div className="px-4 py-6 pb-10 sm:px-6 lg:px-14 lg:py-10">
+      <div className="px-4 py-6 pb-10 sm:px-6 lg:px-10 lg:py-10 xl:px-14">
       <div className="mx-auto grid w-full max-w-[600px] gap-6 lg:mx-0 lg:max-w-[680px]">
       <header className="grid gap-3">
         <div className="flex items-center gap-3">
