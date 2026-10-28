@@ -189,9 +189,12 @@ export function LogisticsOnboarding({ initialUser }: { initialUser?: InitialUser
     setSaving(true);
     try {
       await persist(true);
-      const destination = getContinuationPath({ role: "logistics_partner", ...extractIntentParams(searchParams) });
-      // Set-up done: a partner who isn't verified yet goes straight on to the verification steps.
-      router.push(destination || (verified ? "/logistics/dashboard" : "/logistics/verification"));
+      // Set-up done: a sign-up intent (book_delivery, …) goes where it asked; otherwise a partner who isn't verified yet
+      // goes straight on to the verification steps. getContinuationPath always answers (the dashboard when there's no
+      // intent), so it's only asked when there is one.
+      const intent = extractIntentParams(searchParams) as Record<string, string | undefined>;
+      const destination = intent.intent ? getContinuationPath({ role: "logistics_partner", ...intent }) : verified ? "/logistics/dashboard" : "/logistics/verification";
+      router.push(destination);
     } catch (cause) {
       setError(cause instanceof Error ? friendlyError(cause) : String(cause));
       setSaving(false);

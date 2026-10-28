@@ -7,7 +7,7 @@ import { PhotoSourceSheet } from "@/components/PhotoSourceSheet";
 import { TonePill } from "@/components/partner";
 import { PillButton, Segmented, T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
-import { deleteVehicle, fetchPayoutBanks, resendGuarantor, saveGuarantor, saveKycCoverage, savePayout, saveVehicle, type PickedPhoto } from "@/lib/kyc";
+import { deleteVehicle, fetchPayoutBanks, saveKycCoverage, savePayout, saveVehicle, type PickedPhoto } from "@/lib/kyc";
 import { digitsUpTo, ITEM_TONE } from "@/lib/kyc-pure";
 import { deliveryAreasFor, STATE_CHIPS, stateLabel, statesIn } from "@/lib/logistics-pure";
 import { pickPhotos, type PhotoSource } from "@/lib/photos";
@@ -15,8 +15,8 @@ import { colors } from "@/theme";
 import { NATIONWIDE } from "@shared/delivery-market";
 import { ItemStatus, StepCard, useStepAction, type StepProps } from "./KycKit";
 
-// Bank (a bank account in the NIN's name; partners are never asked for a BVN), Vehicles (photo + licence each, checked by the team), Coverage
-// (where and how the partner delivers) and Guarantor (confirms by the code texted to them).
+// Step 2, Bank (a bank account in the NIN's name; partners are never asked for a BVN), and step 3, Your delivery (the
+// company name, where and how the partner delivers, and their vehicles: photo + licence each, checked by the team).
 
 export function BankStep({ state, onState }: StepProps) {
   const t = useT("m_kyc");
@@ -152,105 +152,58 @@ export function VehiclesStep({ state, onState }: StepProps) {
   );
 }
 
-export function CoverageStep({ state, onState }: StepProps) {
+/** Step 3, "Your delivery": the company or trading name, where and how the partner delivers, then their vehicles. */
+export function DeliveryStep(props: StepProps) {
+  const { state, onState } = props;
   const t = useT("m_kyc");
   const action = useStepAction(onState);
   const saved = state.coverage.deliveryAreas;
+  const [company, setCompany] = useState(state.business.companyName ?? "");
   const [nationwide, setNationwide] = useState(saved.includes(NATIONWIDE));
   const [states, setStates] = useState<string[]>(statesIn(saved));
   const [methods, setMethods] = useState<string[]>(state.coverage.deliveryMethods.filter((method) => (DELIVERY_METHODS as readonly string[]).includes(method)));
   const toggle = (list: string[], value: string) => (list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
 
   function save() {
+    const companyName = company.replace(/\s+/g, " ").trim();
+    if (companyName.length < 2) return action.setError(t("delivery.needCompany"));
     const areas = deliveryAreasFor(nationwide ? "all" : "some", [], states, saved);
     if (!areas.length) return action.setError(t("coverage.needArea"));
     if (!methods.length) return action.setError(t("coverage.needMethod"));
-    void action.run("save", () => saveKycCoverage({ deliveryAreas: areas, deliveryMethods: methods }), () => action.setDone(t("saved")));
+    void action.run("save", () => saveKycCoverage({ companyName, deliveryAreas: areas, deliveryMethods: methods }), () => action.setDone(t("saved")));
   }
 
   return (
-    <StepCard title={t("coverage.title")} sub={t("coverage.sub")}>
-      <ItemStatus label={t("item.name.coverage")} state={state.tier1.coverage} />
-      <Segmented
-        options={[
-          { value: "some", label: t("coverage.some") },
-          { value: "all", label: t("coverage.all") },
-        ]}
-        value={nationwide ? "all" : "some"}
-        onChange={(value) => setNationwide(value === "all")}
-      />
-      {!nationwide ? (
-        <ChipWrap label={t("coverage.states")}>
-          {STATE_CHIPS.map((name) => (
-            <Seg key={name} label={stateLabel(name)} on={states.includes(name)} onPress={() => setStates((was) => toggle(was, name))} />
+    <>
+      <StepCard title={t("delivery.title")} sub={t("delivery.sub")}>
+        <LabeledInput label={t("delivery.company")} value={company} onChangeText={setCompany} autoCapitalize="words" maxLength={80} />
+        <T style={{ color: colors.inkSoft, fontSize: 13 }}>{t("delivery.companyHint")}</T>
+        <ItemStatus label={t("item.name.coverage")} state={state.tier1.coverage} />
+        <Segmented
+          options={[
+            { value: "some", label: t("coverage.some") },
+            { value: "all", label: t("coverage.all") },
+          ]}
+          value={nationwide ? "all" : "some"}
+          onChange={(value) => setNationwide(value === "all")}
+        />
+        {!nationwide ? (
+          <ChipWrap label={t("coverage.states")}>
+            {STATE_CHIPS.map((name) => (
+              <Seg key={name} label={stateLabel(name)} on={states.includes(name)} onPress={() => setStates((was) => toggle(was, name))} />
+            ))}
+          </ChipWrap>
+        ) : null}
+        <ItemStatus label={t("item.name.methods")} state={state.tier1.methods} />
+        <ChipWrap label={t("coverage.methods")}>
+          {DELIVERY_METHODS.map((method) => (
+            <Seg key={method} label={t(`method.${method}`)} on={methods.includes(method)} onPress={() => setMethods((was) => toggle(was, method))} />
           ))}
         </ChipWrap>
-      ) : null}
-      <ItemStatus label={t("item.name.methods")} state={state.tier1.methods} />
-      <ChipWrap label={t("coverage.methods")}>
-        {DELIVERY_METHODS.map((method) => (
-          <Seg key={method} label={t(`method.${method}`)} on={methods.includes(method)} onPress={() => setMethods((was) => toggle(was, method))} />
-        ))}
-      </ChipWrap>
-      <PillButton title={t("save")} busy={action.busy === "save"} disabled={Boolean(action.busy)} onPress={save} />
-      {action.notes}
-    </StepCard>
-  );
-}
-
-export function GuarantorStep({ state, onState }: StepProps) {
-  const t = useT("m_kyc");
-  const action = useStepAction(onState);
-  const guarantor = state.guarantor;
-  const [editing, setEditing] = useState(!guarantor || guarantor.status === "declined");
-  const [fullName, setFullName] = useState(guarantor?.fullName ?? "");
-  const [phone, setPhone] = useState(guarantor?.phone ?? "");
-  const [address, setAddress] = useState(guarantor?.address ?? "");
-  const [relationship, setRelationship] = useState(guarantor?.relationship ?? "");
-
-  return (
-    <StepCard title={t("guarantor.title")} sub={t("guarantor.sub")}>
-      <ItemStatus label={t("item.name.guarantor")} state={state.tier1.guarantor} reason={guarantor?.status === "declined" ? t("guarantor.declined") : null} />
-      {guarantor && !editing ? (
-        <View style={{ gap: 6 }}>
-          <T weight="bold">{guarantor.fullName}</T>
-          <T style={{ color: colors.inkSoft, fontSize: 14 }}>{`${guarantor.relationship} · ${guarantor.phone}`}</T>
-          {guarantor.status === "pending" ? <T style={{ color: colors.inkSoft, fontSize: 14 }}>{t("guarantor.waiting")}</T> : null}
-          <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
-            {guarantor.status === "pending" ? (
-              <PillButton
-                title={guarantor.resendIn ? t("guarantor.resendIn", { seconds: guarantor.resendIn }) : t("guarantor.resend")}
-                size="sm"
-                tone="white"
-                busy={action.busy === "resend"}
-                disabled={Boolean(action.busy) || Boolean(guarantor.resendIn)}
-                onPress={() => void action.run("resend", resendGuarantor, () => action.setDone(t("guarantor.sent")))}
-              />
-            ) : null}
-            {guarantor.status !== "confirmed" ? <PillButton title={t("guarantor.change")} size="sm" tone="white" disabled={Boolean(action.busy)} onPress={() => setEditing(true)} /> : null}
-          </View>
-        </View>
-      ) : (
-        <>
-          <LabeledInput label={t("guarantor.name")} value={fullName} onChangeText={setFullName} autoCapitalize="words" />
-          <LabeledInput label={t("guarantor.phone")} value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
-          <LabeledInput label={t("guarantor.address")} value={address} onChangeText={setAddress} autoCapitalize="words" />
-          <LabeledInput label={t("guarantor.relationship")} value={relationship} onChangeText={setRelationship} placeholder={t("guarantor.relationshipHint")} />
-          <T style={{ color: colors.inkSoft, fontSize: 13 }}>{t("guarantor.how")}</T>
-          <PillButton
-            title={t("guarantor.save")}
-            busy={action.busy === "save"}
-            disabled={Boolean(action.busy)}
-            onPress={() =>
-              void action.run("save", () => saveGuarantor({ fullName: fullName.trim(), phone: phone.trim(), address: address.trim(), relationship: relationship.trim() }), () => {
-                setEditing(false);
-                action.setDone(t("guarantor.sent"));
-              })
-            }
-          />
-        </>
-      )}
-      {action.notes}
-    </StepCard>
+        <PillButton title={t("save")} busy={action.busy === "save"} disabled={Boolean(action.busy)} onPress={save} />
+        {action.notes}
+      </StepCard>
+      <VehiclesStep {...props} />
+    </>
   );
 }
