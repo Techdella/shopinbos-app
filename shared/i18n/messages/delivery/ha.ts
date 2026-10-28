@@ -386,6 +386,10 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "method.tricycle": "Adaidaita sahu",
   "method.truck": "Babbar mota",
   "method.other": "Wani",
+  // Reach tiers (shared/partner-reach.ts)
+  "find.featured": "Fitacce",
+  "find.tier2": "Mataki 2 · Amintacce",
+  "find.tier3": "Mataki 3 · Babban abokin aiki",
 };
 
 export default ha;

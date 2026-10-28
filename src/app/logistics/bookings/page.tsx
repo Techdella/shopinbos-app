@@ -6,7 +6,7 @@ import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { ensureLogisticsAccess, getLogisticsPartnerForUser } from "@/lib/role-queries";
 import { updateDeliveryBookingStatus } from "@/app/actions/logistics";
-import { EmptyState, FilterChips, ListCard, PillLink, SearchForm } from "@/components/app-kit";
+import { EmptyState, FilterChips, ListCard, Pill, PillLink, SearchForm } from "@/components/app-kit";
 import { messagesHref } from "@/lib/conversations/pure";
 import { Icon } from "@/components/ui/Icon";
 import { AcceptAssignForm, ReassignForm, riderSelect } from "@/components/logistics/dispatch";
@@ -99,6 +99,8 @@ export default async function LogisticsBookingsPage({ searchParams }: { searchPa
         pickupLat: true, pickupLng: true, pickupGeoSource: true, pickupGeocodedAt: true,
         // Logistics marketplace details (shown when present).
         service: true, sizeBand: true, pickupPointId: true, shipmentKey: true, readyAt: true, acceptBy: true, feePaidAt: true,
+        // High-value parcels (shared/partner-reach.ts): a pill on the job, only Top partners get these.
+        highValue: true,
         declineReason: true, codRemittedAt: true, codConfirmedAt: true,
         seller: { select: { name: true } }, rider: { select: { name: true } },
       },
@@ -153,7 +155,10 @@ export default async function LogisticsBookingsPage({ searchParams }: { searchPa
                       {jobId(job.id)} · {job.seller.name} · {packageSummary(job.packageDetails, t)}
                     </div>
                   </div>
-                  <div className="shrink-0"><StatusPill status={job.status} /></div>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    {job.highValue ? <Pill tone="warning">{t("reach.highValue")}</Pill> : null}
+                    <StatusPill status={job.status} />
+                  </div>
                   <div className={`w-full min-w-0 truncate text-[15px] sm:w-[130px] ${job.rider || !ON_ROAD_STATUSES.includes(job.status as BookingStatusValue) ? "text-app-ink-soft" : "font-bold text-app-accent-ink"}`}>
                     {job.rider?.name ?? (job.status === "pending" ? t("jobs.notAccepted") : t("dispatch.noRider"))}
                   </div>

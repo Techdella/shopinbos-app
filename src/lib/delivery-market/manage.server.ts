@@ -28,6 +28,8 @@ import {
   type RateCardInput,
 } from "@shared/delivery-market";
 import { LIVE_PARTNER_WHERE, deliverySettingsFor, originOf } from "./market.server";
+import { PARTNER_LEVEL_TIER, partnerLevelOf } from "@shared/dropship-rules";
+import { isFeaturedNow } from "@shared/partner-reach";
 import { payOnDeliveryProblem as partnerPodProblem } from "@/lib/logistics/partner-levels.server";
 import { acceptPrivateRatesProblem, connectionLimitProblem, payOnDeliveryProblem, pickupPointLimitProblem, proposePrivateRatesProblem, sellAreaProblem } from "@/lib/plans/market.server";
 
@@ -475,6 +477,8 @@ export async function findPartners(owner: { id: string; role: string }, filters:
     },
     select: {
       id: true, slug: true, displayName: true, logoUrl: true, rating: true, ratingCount: true, verificationStatus: true, services: true, pickupAreas: true, deliveryAreas: true, offersPayOnDelivery: true, badges: true, vehicleTypes: true,
+      // Reach tiers (shared/partner-reach.ts): higher tiers rank higher, featured Top partners first with a badge.
+      level: true, featuredStatus: true,
       rateCards: { where: { ownerUserId: null, status: "active" }, take: 1, orderBy: { createdAt: "desc" }, select: { rows: true } },
       _count: { select: { pickupPoints: { where: { active: true } } } },
     },
@@ -489,21 +493,25 @@ export async function findPartners(owner: { id: string; role: string }, filters:
       const stat = stats.get(partner.id) ?? { completed: 0, onTimeRate: null, failedRate: null };
       const target = state ? [state] : settings.sellArea === "nationwide" ? [] : settings.sellStates;
       const match = Math.max(0, coverScore(partner.pickupAreas, origin)) + (target.length ? Math.max(...target.map((name) => coverScore(partner.deliveryAreas, placeOf({ state: name })))) : 1);
+      const featured = isFeaturedNow(partner);
       return {
         partner,
+        featured,
+        tier: PARTNER_LEVEL_TIER[partnerLevelOf(partner.level)],
         startingPrice: from,
         timeframe: cardTimeframe(rows),
         stats: stat,
         pickupPointCount: partner._count.pickupPoints,
         connectionId: connected.find((entry) => entry.logisticsPartnerId === partner.id)?.id ?? null,
         matchesShop: partnerMatchesShop(partner, { origin: origin.state ? origin : null, sellArea: state ? "selected" : settings.sellArea, sellStates: state ? [state] : settings.sellStates }),
-        score: rankScore({ stats: stat, rating: partner.rating, ratingCount: partner.ratingCount, match, verified: partner.verificationStatus === "verified", registered: partner.badges.includes("registered_business") }),
+        score: rankScore({ stats: stat, rating: partner.rating, ratingCount: partner.ratingCount, match, verified: partner.verificationStatus === "verified", registered: partner.badges.includes("registered_business"), level: partner.level, featured }),
       };
     })
     .filter((row) => row.matchesShop && row.startingPrice !== null)
     .filter((row) => !filters.maxPrice || (row.startingPrice ?? Infinity) <= filters.maxPrice)
     .filter((row) => !filters.pickupPoints || row.pickupPointCount > 0)
-    .sort((a, b) => b.score - a.score);
+    // Featured Top partners take the top places, then everyone by score (which includes the tier's boost).
+    .sort((a, b) => Number(b.featured) - Number(a.featured) || b.score - a.score);
   return { origin, settings, rows };
 }
 

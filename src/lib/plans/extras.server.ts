@@ -144,12 +144,18 @@ export async function boostedProductIds() {
   return rows.map((row) => row.targetId).filter((id): id is string => Boolean(id));
 }
 
-/** Delivery partner user ids featured right now, in `state` when given. */
+/**
+ * Delivery partner user ids featured right now, in `state` when given: bought boosts, plus Top partners (Tier 3) the
+ * team approved as featured (shared/partner-reach.ts; everywhere, not per state).
+ */
 export async function featuredPartnerUserIds(state?: string | null) {
-  const rows = await db.planExtraPurchase
-    .findMany({ where: { kind: "logistics_boost", ...running(), ...(state ? { targetId: { equals: state, mode: "insensitive" as const } } : {}) }, select: { userId: true }, distinct: ["userId"] })
-    .catch(() => []);
-  return rows.map((row) => row.userId);
+  const [rows, earned] = await Promise.all([
+    db.planExtraPurchase
+      .findMany({ where: { kind: "logistics_boost", ...running(), ...(state ? { targetId: { equals: state, mode: "insensitive" as const } } : {}) }, select: { userId: true }, distinct: ["userId"] })
+      .catch(() => []),
+    db.logisticsPartner.findMany({ where: { featuredStatus: "featured", level: "cash_trusted" }, select: { userId: true } }).catch(() => []),
+  ]);
+  return [...new Set([...rows.map((row) => row.userId), ...earned.map((row) => row.userId)])];
 }
 
 /** A user's boosts and seats that haven't ended, newest first (for their billing page). */

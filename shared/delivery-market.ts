@@ -17,6 +17,7 @@
 import { findLga, lgaOfArea } from "./ng-lgas.ts";
 // Only functions are used, inside functions (shared/dropship-rules.ts imports this file too; the cycle is safe).
 import { readZoneRates, zoneQuote, zoneRatesEmpty } from "./dropship-rules.ts";
+import { canTakeInterstate, reachRankBoost } from "./partner-reach.ts";
 
 export const CONNECT_NEEDS_APPROVAL = false;
 export const DROPSHIP_SHIPPER = "supplier" as const;
@@ -420,6 +421,13 @@ export interface MarketPartner {
   /** The card that prices this shop: an accepted private card, else the public one. */
   card: { id: string; rows: readonly RateRow[] } | null;
   pickupPoints: ReadonlyArray<{ id: string; name: string; address: string; state: string; area: string | null; hours: string | null; phone: string | null }>;
+  /**
+   * Reach tier (LogisticsPartner.level, shared/partner-reach.ts): interstate jobs need Trusted or above, and equal
+   * prices go to the higher tier first. Missing counts as Tier 1.
+   */
+  level?: string | null;
+  /** An approved featured Top partner (shared/partner-reach.ts isFeaturedNow). */
+  featured?: boolean;
 }
 
 export interface MarketConnection {
@@ -526,7 +534,9 @@ export function quoteFor(connection: MarketConnection, shipment: Pick<Shipment, 
   if (partner.pickupAreas.length && !covers(partner.pickupAreas, shipment.origin)) return null;
   if (partner.deliveryAreas.length && !covers(partner.deliveryAreas, destination)) return null;
   const interstate = !!shipment.origin.state && !!destination.state && shipment.origin.state !== destination.state;
-  if (interstate && !partner.services.includes("interstate")) return null;
+  // Interstate needs the partner's interstate service and Tier 2 (Trusted) or above: below it the switch stays on but
+  // the jobs don't route to them (shared/partner-reach.ts).
+  if (interstate && (!partner.services.includes("interstate") || !canTakeInterstate(partner.level))) return null;
   const row = bestRate(partner.card.rows, { origin: shipment.origin, destination, service, sizeBand: shipment.sizeBand });
   return row ? { connection, service, row } : null;
 }
@@ -549,7 +559,14 @@ const partFrom = (shipment: Shipment, quote: Quote, pointId: string | null = nul
 const labelFor = (connection: MarketConnection, fallback: string) =>
   connection.showPartnerName ? connection.partner.name : connection.label?.trim() || fallback;
 
-const cheapest = (quotes: Quote[]) => quotes.reduce<Quote | null>((best, quote) => (!best || quote.row.price < best.row.price || (quote.row.price === best.row.price && quote.row.maxDays < best.row.maxDays) ? quote : best), null);
+/** Job matching: the partner's tier (and featured) boost, used to break a tie on price (shared/partner-reach.ts). */
+const reachOf = (quote: Quote) => reachRankBoost(quote.connection.partner);
+
+/** Cheapest first; on the same price the higher tier, then the faster one. */
+const better = (quote: Quote, best: Quote) =>
+  quote.row.price < best.row.price || (quote.row.price === best.row.price && (reachOf(quote) > reachOf(best) || (reachOf(quote) === reachOf(best) && quote.row.maxDays < best.row.maxDays)));
+
+const cheapest = (quotes: Quote[]) => quotes.reduce<Quote | null>((best, quote) => (!best || better(quote, best) ? quote : best), null);
 
 const MAX_POINTS = 8;
 
@@ -600,7 +617,7 @@ export function buildMarketChoice(input: { settings: CheckoutSettingsInput; ship
         ...named.map((quote) => ({ quote, label: quote.connection.partner.name })),
         ...[...generic].map(([label, list]) => ({ quote: cheapest(list)!, label })),
       ];
-      for (const { quote, label } of picks.sort((a, b) => a.quote.row.price - b.quote.row.price)) {
+      for (const { quote, label } of picks.sort((a, b) => a.quote.row.price - b.quote.row.price || reachOf(b.quote) - reachOf(a.quote))) {
         options.push({
           id: `${service === "same_day" ? "s" : "d"}:${quote.connection.id}`,
           name: service === "same_day" ? "Same-day delivery" : "Doorstep delivery",
@@ -902,12 +919,16 @@ export function partnerStats(jobs: readonly StatsJob[]): PartnerStats {
  * and rating, and how closely they cover the shop's selling areas (the ranking boost of spec §7.3).
  */
 /** `registered`: a Registered Business (CAC-checked, shared/partner-tiers.ts) ranks a little above an equal Verified Individual. */
-export function rankScore(input: { stats: PartnerStats; rating: number; ratingCount: number; match: number; verified: boolean; registered?: boolean }) {
+/**
+ * `level` and `featured`: the reach tier's boost (Trusted +15, Top partner +25) and +20 for a featured Top partner
+ * (shared/partner-reach.ts). Both optional: old callers score as before.
+ */
+export function rankScore(input: { stats: PartnerStats; rating: number; ratingCount: number; match: number; verified: boolean; registered?: boolean; level?: string | null; featured?: boolean }) {
   const volume = Math.min(1, Math.log10(1 + input.stats.completed) / 3); // 1,000 jobs = full marks
   const onTime = input.stats.onTimeRate === null ? 0.5 : input.stats.onTimeRate / 100;
   const failed = input.stats.failedRate === null ? 0 : input.stats.failedRate / 100;
   const rating = input.ratingCount > 0 ? input.rating / 5 : 0.5;
-  return (input.verified ? 100 : 0) + (input.registered ? 5 : 0) + input.match * 10 + volume * 25 + onTime * 25 + rating * 15 - failed * 20;
+  return (input.verified ? 100 : 0) + (input.registered ? 5 : 0) + reachRankBoost(input) +input.match * 10 + volume * 25 + onTime * 25 + rating * 15 - failed * 20;
 }
 
 // ─── Chat guardrails (spec §7.3) ─────────────────────────────────────────────

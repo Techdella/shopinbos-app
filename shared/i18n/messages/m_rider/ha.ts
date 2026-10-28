@@ -184,6 +184,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "noCode.useCode": "Yi amfani da lambar maimakon",
   "startJob": "Fara wannan aikin",
   "offer.assigned": "{company} ne ya ba ka wannan aikin. Tsallake shi idan ba za ka iya ba.",
+  // Reach tiers (shared/partner-reach.ts)
+  "earn.weekLine": "Abin da ka samu a makon nan: {amount}",
+  "earn.paidBy": "{company} ne ke biyan ka",
 };
 
 export default ha;

@@ -13,8 +13,10 @@ function summary(rules: TierRules) {
   return `₦${rules.maxOrderValue.toLocaleString("en-NG")} per order, ${rules.maxActiveOrders} open jobs · lifts at ${g.minDeliveries} deliveries, ${g.minRating.toFixed(1)}★, ≤${g.maxDisputeRate}% disputes`;
 }
 
-// Admin › Logistics partners › Tier rules: the limits Verified Individuals (Tier 1) work within and the graduation
-// thresholds that lift them (shared/partner-tiers.ts). Every change is kept with who made it and why.
+// Admin › Logistics partners › Safety limits (the URL stays /tier-rules): the limits new partners verified without CAC
+// (Verified Individuals) work within and the thresholds that lift them (shared/partner-tiers.ts). These are not the
+// reach tiers (Tier 1 Verified / Tier 2 Trusted / Tier 3 Top partner, shared/partner-reach.ts), so the page never
+// calls them tiers. Every change is kept with who made it and why.
 export default async function AdminTierRulesPage() {
   const user = await requireRole(["admin"], "/admin/login");
   const [rules, changes] = await Promise.all([
@@ -24,13 +26,18 @@ export default async function AdminTierRulesPage() {
   return (
     <AppPage
       frame={adminFrame(user, "Search logistics partners")}
-      title="Tier rules"
-      sub="Limits for Verified Individuals (no CAC) and when they lift. Registered Businesses have no limits."
-      actions={<PillLink href="/admin/logistics-partners" icon="arrowLeft" iconOnlyOnPhone>All partners</PillLink>}
+      title="Safety limits"
+      sub="Limits for new partners verified without CAC (Verified Individuals), and when they lift. Registered Businesses have none. Separate from the reach tiers."
+      actions={
+        <>
+          <PillLink href="/admin/logistics-partners/reach-rules" size="sm" icon="settings">Reach rules</PillLink>
+          <PillLink href="/admin/logistics-partners" icon="arrowLeft" iconOnlyOnPhone>All partners</PillLink>
+        </>
+      }
     >
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_400px]">
         <Card className="p-5">
-          <CardHead title="Tier 1 limits and graduation" sub="Changes apply to the next job offered." />
+          <CardHead title="Safety limits and when they lift" sub="Changes apply to the next job offered." />
           <TierRulesForm initial={rules} />
         </Card>
         <Card className="content-start p-5">

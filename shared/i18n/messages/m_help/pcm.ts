@@ -157,6 +157,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "call.screen.products": "Products",
   "call.screen.profile": "Company profile",
   "call.screen.quotes": "Quotes",
+  "call.screen.level": "Your level",
   "call.screen.rates": "Prices",
   "call.screen.reviews": "Reviews",
   "call.screen.riders": "Riders",

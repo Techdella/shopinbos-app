@@ -386,6 +386,10 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "method.tricycle": "Kẹ̀kẹ́ Marwa",
   "method.truck": "Trọ́ọ̀kì",
   "method.other": "Òmíràn",
+  // Reach tiers (shared/partner-reach.ts)
+  "find.featured": "Àfihàn",
+  "find.tier2": "Ìpele 2 · Olùgbẹ́kẹ̀lé",
+  "find.tier3": "Ìpele 3 · Alábàáṣiṣẹ́ àgbà",
 };
 
 export default yo;

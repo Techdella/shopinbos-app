@@ -22,6 +22,8 @@ export interface DeliveryJobInput {
   notes?: string | null;
   pickupWindowStart?: Date | null;
   pickupWindowEnd?: Date | null;
+  /** A high-value parcel (shared/partner-reach.ts): only a Top partner (Tier 3) can accept it. */
+  highValue?: boolean;
   /** Logistics marketplace jobs (src/lib/delivery-market/jobs.server.ts). */
   marketplace?: {
     service: string;
@@ -60,6 +62,7 @@ export function saveDeliveryJob(input: DeliveryJobInput, client: Prisma.Transact
       notes: input.notes ?? null,
       pickupWindowStart: input.pickupWindowStart ?? null,
       pickupWindowEnd: input.pickupWindowEnd ?? null,
+      highValue: Boolean(input.highValue),
       ...(market
         ? {
             service: market.service,

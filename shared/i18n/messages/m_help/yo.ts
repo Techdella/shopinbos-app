@@ -157,6 +157,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "call.screen.products": "Àwọn ọjà",
   "call.screen.profile": "Àlàyé ilé-iṣẹ́",
   "call.screen.quotes": "Àwọn ìdíyelé",
+  "call.screen.level": "Ìpele rẹ",
   "call.screen.rates": "Iye owó",
   "call.screen.reviews": "Àwọn àgbéyẹ̀wò",
   "call.screen.riders": "Àwọn awakọ̀",

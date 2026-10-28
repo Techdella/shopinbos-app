@@ -3,6 +3,7 @@ import "server-only";
 import { db } from "@/lib/db/client";
 import { partnerRecord } from "@/lib/logistics/partner-tiers.server";
 import {
+  PARTNER_LEVEL_TIER,
   POD_LOCKED_MESSAGE,
   canOfferPayOnDelivery,
   partnerLevel,
@@ -11,9 +12,11 @@ import {
   type PartnerLevel,
   type PartnerRecord,
 } from "@shared/dropship-rules";
+import { FASTER_PAYOUTS_LIVE, featuredStatusOf, interstateGated, isFeaturedNow, levelPerks } from "@shared/partner-reach";
 
-// Delivery partner track-record levels, server side (the rules are shared/dropship-rules.ts): Verified → Trusted →
-// Cash trusted. Pay on delivery is only for Cash trusted partners, since the rider holds the customer's cash.
+// Delivery partner reach tiers, server side (the rules are shared/dropship-rules.ts, what each tier unlocks is
+// shared/partner-reach.ts): Tier 1 Verified → Tier 2 Trusted → Tier 3 Top partner (stored as cash_trusted). The
+// pay-on-delivery side effects below belong to the pay-on-delivery rules and are left as they are.
 // refreshPartnerLevel stores the level and cash cap and, when a partner drops below Cash trusted, switches pay on
 // delivery off on the partner and on every shop connection. Called when a job is delivered, before the partner
 // turns pay on delivery on, and when they open their level screen.
@@ -56,7 +59,7 @@ export async function partnerLevelView(partnerId: string) {
   const record = await partnerLevelRecord(partnerId);
   if (!record) return null;
   const refreshed = await refreshPartnerLevel(partnerId);
-  const partner = await db.logisticsPartner.findUnique({ where: { id: partnerId }, select: { codPaused: true, offersPayOnDelivery: true } });
+  const partner = await db.logisticsPartner.findUnique({ where: { id: partnerId }, select: { codPaused: true, offersPayOnDelivery: true, featuredStatus: true, featuredNote: true, services: true } });
   const { level, next, goals } = partnerLevelGoals(record);
   return {
     level,
@@ -67,6 +70,14 @@ export async function partnerLevelView(partnerId: string) {
     podOn: !!partner?.offersPayOnDelivery,
     codPaused: !!partner?.codPaused,
     lockedMessage: POD_LOCKED_MESSAGE,
+    // Reach tiers (shared/partner-reach.ts): the tier number, what it unlocks, featured and the interstate gate.
+    tier: PARTNER_LEVEL_TIER[level],
+    perks: levelPerks(level),
+    featuredStatus: featuredStatusOf(partner?.featuredStatus),
+    featuredNow: isFeaturedNow({ level, featuredStatus: partner?.featuredStatus }),
+    featuredNote: partner?.featuredNote ?? null,
+    interstateGated: interstateGated({ services: partner?.services ?? [], level }),
+    fasterPayoutsLive: FASTER_PAYOUTS_LIVE,
   };
 }
 

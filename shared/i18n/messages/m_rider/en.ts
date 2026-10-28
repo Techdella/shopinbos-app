@@ -186,6 +186,9 @@ const en = {
   "noCode.useCode": "Use the code instead",
   "startJob": "Start this job",
   "offer.assigned": "{company} gave you this job. Skip it if you can't do it.",
+  // Reach tiers (shared/partner-reach.ts)
+  "earn.weekLine": "Earned this week: {amount}",
+  "earn.paidBy": "{company} pays you",
 } satisfies Record<string, string>;
 
 export default en;

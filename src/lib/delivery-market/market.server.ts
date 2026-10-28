@@ -19,6 +19,8 @@ import {
 } from "@shared/delivery-market";
 import { canOfferPayOnDelivery, cleanHandlingDays, customerDeliveryCharge, readZoneRates, zoneRatesEmpty } from "@shared/dropship-rules";
 import { applyDeliveryPayers, parcelPayer, type PayerRule } from "@shared/dropship-checkout";
+import { canTakeHighValue, isFeaturedNow } from "@shared/partner-reach";
+import { highValueFor } from "@/lib/logistics/partner-reach.server";
 
 // Reading the logistics marketplace for checkout and the portals: a business's delivery settings, its connected
 // partners with the rate card that prices it (an accepted private card, else the public one) and their pickup
@@ -66,15 +68,18 @@ const PARTNER_SELECT = {
   // Pay on delivery only from Cash trusted partners not paused for late cash (shared/dropship-rules.ts).
   level: true,
   codPaused: true,
+  // Reach tiers (shared/partner-reach.ts): interstate needs Trusted, high-value parcels Top partner; featured ranks first.
+  featuredStatus: true,
   rateCards: { where: { ownerUserId: null, status: "active" }, orderBy: { createdAt: "desc" as const }, take: 1, select: { id: true, rows: true } },
   pickupPoints: { where: { active: true }, select: { id: true, name: true, address: true, state: true, area: true, hours: true, phone: true } },
 } as const;
 
 /**
  * The active connections of these businesses, ready for buildMarketChoice. Suspended or paused partners drop out at
- * once. With `orderValue` (checkout), Tier 1 partners it would take over their limits drop out too.
+ * once. With `orderValue` (checkout), new partners it would take over their safety limits drop out too. With
+ * `highValue` (a high-value parcel, shared/partner-reach.ts), only Top partners (Tier 3) stay.
  */
-export async function marketConnectionsFor(ownerUserIds: string[], options: { orderValue?: number } = {}): Promise<Map<string, MarketConnection[]>> {
+export async function marketConnectionsFor(ownerUserIds: string[], options: { orderValue?: number; highValue?: boolean } = {}): Promise<Map<string, MarketConnection[]>> {
   const out = new Map<string, MarketConnection[]>(ownerUserIds.map((id) => [id, []]));
   if (!ownerUserIds.length) return out;
   const connections = await db.deliveryConnection.findMany({
@@ -96,6 +101,7 @@ export async function marketConnectionsFor(ownerUserIds: string[], options: { or
   for (const connection of connections) {
     if (overLimit.has(connection.logisticsPartnerId)) continue;
     const partner = connection.logisticsPartner;
+    if (options.highValue && !canTakeHighValue(partner.level)) continue;
     const own = privateCards.find((card) => card.ownerUserId === connection.ownerUserId && card.logisticsPartnerId === connection.logisticsPartnerId);
     const card = own ?? partner.rateCards[0] ?? null;
     out.get(connection.ownerUserId)?.push({
@@ -114,6 +120,8 @@ export async function marketConnectionsFor(ownerUserIds: string[], options: { or
         offersPayOnDelivery: partner.offersPayOnDelivery && canOfferPayOnDelivery(partner),
         card: card ? { id: card.id, rows: readRateRows(card.rows) } : null,
         pickupPoints: partner.pickupPoints,
+        level: partner.level,
+        featured: isFeaturedNow(partner),
       },
     });
   }
@@ -225,8 +233,10 @@ export async function marketChoiceForStore(
   if (!groups.size) groups.set("own", { items: [], supplier: null, payers: [], handlingDays: 1, productIds: [] });
 
   const supplierUserIds = [...groups.values()].flatMap((group) => (group.supplier ? [group.supplier.userId] : []));
+  // A high-value bag (over the admin's threshold, or phones, laptops, jewellery): only Top partners carry it.
+  const highValue = (await highValueFor({ orderValue: orderValue ?? 0, productIds: [...groups.values()].flatMap((group) => group.productIds) })) !== null;
   const [connections, supplierSettings] = await Promise.all([
-    marketConnectionsFor([store.userId, ...supplierUserIds], { orderValue: orderValue ?? 0 }),
+    marketConnectionsFor([store.userId, ...supplierUserIds], { orderValue: orderValue ?? 0, highValue }),
     supplierUserIds.length ? db.deliverySettings.findMany({ where: { userId: { in: supplierUserIds } } }) : Promise.resolve([]),
   ]);
   const shopConnections = connections.get(store.userId) ?? [];

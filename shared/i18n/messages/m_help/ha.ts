@@ -157,6 +157,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "call.screen.products": "Kayayyaki",
   "call.screen.profile": "Bayanan kamfani",
   "call.screen.quotes": "Farashin da aka nema",
+  "call.screen.level": "Matakinka",
   "call.screen.rates": "Farashi",
   "call.screen.reviews": "Ra'ayoyi",
   "call.screen.riders": "Mahaya",

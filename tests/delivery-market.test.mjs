@@ -119,6 +119,8 @@ test("rate cards: the closest route wins, then the exact band, then the cheaper 
 const partner = (id, over = {}) => ({
   id,
   name: `Partner ${id}`,
+  // Tier 2 (Trusted): interstate jobs route to them (shared/partner-reach.ts; tests/partner-reach.test.mjs covers Tier 1).
+  level: "trusted",
   services: ["doorstep", "pickup_point", "same_day", "interstate"],
   pickupAreas: ["Lagos"],
   deliveryAreas: ["Nationwide"],

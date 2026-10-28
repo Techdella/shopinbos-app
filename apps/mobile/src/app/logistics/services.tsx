@@ -11,6 +11,7 @@ import { ApiError } from "@/lib/api";
 import { POD_LOCKED_CODE, podSwitch, wordsOf } from "@/lib/dropship-pure";
 import { useT } from "@/lib/i18n";
 import { fetchMarket, saveCoverage, type MarketData } from "@/lib/logistics";
+import { interstateWaiting } from "@/lib/partner-pure";
 import { useLoad } from "@/lib/useLoad";
 import { colors } from "@/theme";
 
@@ -51,6 +52,11 @@ function ServicesForm({ data }: { data: MarketData }) {
   return (
     <Screen title={t("biz.services")} footer={<PillButton tone="forest" title={t("save")} busy={busy} onPress={() => void save()} />}>
       <ServicesEditor services={services} onServices={setServices} />
+      {/* Reach tiers (shared/partner-reach.ts): interstate jobs come from Trusted (Tier 2); below it the switch stays. */}
+      {interstateWaiting({ services, level: partner.level }) ? <Notice tone="info">{t("lvl.interstateGated")}</Notice> : null}
+      <List>
+        <Row lead={<Tile icon="shield" tone="mint" />} title={t("lvl.title")} sub={partner.level ? t.dynamic(`lvl.tier.${partner.level}`) : undefined} onPress={() => router.push("/logistics/level")} />
+      </List>
       <List>
         {lock.locked ? (
           <Row

@@ -389,6 +389,10 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "method.tricycle": "Keke",
   "method.truck": "Truck",
   "method.other": "Other one",
+  // Reach tiers (shared/partner-reach.ts)
+  "find.featured": "Featured",
+  "find.tier2": "Tier 2 · Trusted",
+  "find.tier3": "Tier 3 · Top partner",
 };
 
 export default pcm;

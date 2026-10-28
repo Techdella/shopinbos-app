@@ -163,7 +163,7 @@ const en = {
 
   // Tier card (Jobs)
   "tier.limits": "For now you take orders up to {value}, and up to {count} jobs at once.",
-  "tier.toLift": "To lift these limits:",
+  "tier.toLift": "To lift these safety limits:",
   "tier.deliveries": "{have} / {need} deliveries",
   "tier.rating": "Rating {have} (need {need})",
   "tier.disputes": "Problems {have}% (at most {max}%)",

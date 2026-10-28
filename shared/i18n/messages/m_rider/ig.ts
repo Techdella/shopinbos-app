@@ -184,6 +184,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "noCode.useCode": "Jiri koodu kama",
   "startJob": "Malite ọrụ a",
   "offer.assigned": "{company} nyere gị ọrụ a. Wụfee ya ma ọ bụrụ na ị nweghị ike ime ya.",
+  // Reach tiers (shared/partner-reach.ts)
+  "earn.weekLine": "Ihe ị kpatara n'izu a: {amount}",
+  "earn.paidBy": "{company} na-akwụ gị ụgwọ",
 };
 
 export default ig;

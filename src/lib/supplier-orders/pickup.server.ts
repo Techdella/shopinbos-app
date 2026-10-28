@@ -8,6 +8,7 @@ import { createNotification } from "@/lib/notifications/create";
 import { cancelUnassignedDeliveryJob, createDeliveryJob, moveDeliveryJobWindow } from "@/lib/logistics/booking.server";
 import { ensurePickupCode } from "@/lib/logistics/jobs";
 import { payWhenItArrivesWhere } from "@/lib/logistics/payin-deadline";
+import { highValueFor, highValueOrder } from "@/lib/logistics/partner-reach.server";
 import {
   buildPickupJob,
   choosePickupPartner,
@@ -234,6 +235,13 @@ async function tellAdmins(order: PickupOrder, window: { start: Date; end: Date }
   );
 }
 
+/** The store order behind this pickup (its total and lines), else the pickup's own item names. */
+async function pickupHighValue(order: PickupOrder) {
+  const retail = order.retailOrderId ? await db.retailOrder.findUnique({ where: { id: order.retailOrderId }, select: { total: true, items: true } }).catch(() => null) : null;
+  if (retail) return highValueOrder(retail);
+  return (await highValueFor({ orderValue: 0, names: order.items.map((item) => item.name) })) !== null;
+}
+
 async function pickPartner(order: PickupOrder) {
   // Logistics marketplace: the partner the customer's delivery option booked for this supplier's parcel (spec §5.8).
   const planned = order.retailOrderId ? await import("@/lib/delivery-market/jobs.server").then((jobs) => jobs.plannedSupplierShipment(order.retailOrderId!, order.supplier.id)).catch(() => null) : null;
@@ -244,11 +252,13 @@ async function pickPartner(order: PickupOrder) {
     });
     if (partner) return { ...partner, planned };
   }
+  // A high-value parcel (shared/partner-reach.ts) only goes to a Top partner (Tier 3).
+  const highValue = await pickupHighValue(order);
   const [store, partners, connections] = await Promise.all([
     order.storeId ? db.store.findUnique({ where: { id: order.storeId }, select: { brandSettings: true } }) : null,
     db.logisticsPartner.findMany({
       // Pay-when-it-arrives parcels skip partners paused for a late cash pay-in (lib/logistics/payin-deadline.ts).
-      where: { status: "active", verificationStatus: "verified", ...payWhenItArrivesWhere(order.collect > 0) },
+      where: { status: "active", verificationStatus: "verified", ...payWhenItArrivesWhere(order.collect > 0), ...(highValue ? { level: "cash_trusted" } : {}) },
       select: { id: true, city: true, coverageZones: true, status: true, verificationStatus: true, reliabilityScore: true, rating: true, basePrice: true },
       take: 500,
     }),
@@ -352,7 +362,7 @@ export async function bookPickup(input: BookPickupInput, now = new Date()): Prom
   });
   try {
     const planned = "planned" in partner ? partner.planned : null;
-    const booking = await createDeliveryJob({ sellerId: order.sellerId, logisticsPartnerId: partner.id, currency: order.currency, ...payload });
+    const booking = await createDeliveryJob({ sellerId: order.sellerId, logisticsPartnerId: partner.id, currency: order.currency, ...payload, highValue: await pickupHighValue(order) });
     if (planned && order.retailOrderId) {
       // Priced and (when the partner's wallet was ready) paid at checkout.
       await db.deliveryBooking.update({ where: { id: booking.id }, data: { service: planned.service === "pickup_point" ? "pickup_point" : "doorstep", sizeBand: planned.sizeBand, rateCardId: planned.rateCardId, feePaidAt: planned.feePaid ? new Date() : null } }).catch(() => null);
@@ -501,7 +511,7 @@ export async function assignPickupPartner(pickupId: string, partnerId: string): 
     retailOrderId: order.retailOrderId,
   });
   try {
-    const booking = await createDeliveryJob({ sellerId: order.sellerId, logisticsPartnerId: partner.id, currency: order.currency, ...payload });
+    const booking = await createDeliveryJob({ sellerId: order.sellerId, logisticsPartnerId: partner.id, currency: order.currency, ...payload, highValue: await pickupHighValue(order) });
     await db.supplierPickup.update({ where: { id: pickup.id }, data: { deliveryBookingId: booking.id, adminNote: `Booked with ${partner.displayName} by the team.` } });
   } catch (error) {
     await db.supplierPickup.update({ where: { id: pickup.id }, data: { status: "finding_rider", needsAdmin: true, logisticsPartnerId: null } }).catch(() => null);

@@ -184,6 +184,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "noCode.useCode": "Use the code instead",
   "startJob": "Start this job",
   "offer.assigned": "{company} give you this job. Skip am if you no fit do am.",
+  // Reach tiers (shared/partner-reach.ts)
+  "earn.weekLine": "Wetin you earn this week: {amount}",
+  "earn.paidBy": "{company} dey pay you",
 };
 
 export default pcm;

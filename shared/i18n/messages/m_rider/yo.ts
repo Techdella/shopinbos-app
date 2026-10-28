@@ -184,6 +184,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "noCode.useCode": "Lo kóòdù dípò",
   "startJob": "Bẹ̀rẹ̀ iṣẹ́ yìí",
   "offer.assigned": "{company} ló fún ọ ní iṣẹ́ yìí. Fò ó tí o kò bá lè ṣe é.",
+  // Reach tiers (shared/partner-reach.ts)
+  "earn.weekLine": "Owó ọ̀sẹ̀ yìí: {amount}",
+  "earn.paidBy": "{company} ló ń sanwó fún ọ",
 };
 
 export default yo;

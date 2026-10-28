@@ -159,6 +159,7 @@ const en = {
   "call.screen.products": "Products",
   "call.screen.profile": "Company profile",
   "call.screen.quotes": "Quotes",
+  "call.screen.level": "Your level",
   "call.screen.rates": "Rates",
   "call.screen.reviews": "Reviews",
   "call.screen.riders": "Riders",

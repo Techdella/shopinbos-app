@@ -410,6 +410,10 @@ const en = {
   "method.tricycle": "Tricycle (keke)",
   "method.truck": "Truck",
   "method.other": "Other",
+  // Reach tiers (shared/partner-reach.ts)
+  "find.featured": "Featured",
+  "find.tier2": "Tier 2 · Trusted",
+  "find.tier3": "Tier 3 · Top partner",
 } satisfies Record<string, string>;
 
 export default en;

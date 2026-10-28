@@ -15,7 +15,7 @@ import { AreaTokenAdder } from "@/components/logistics/AreaTokenAdder";
 import { getT } from "@/lib/i18n/server";
 import { PageTip } from "@/components/learn/PageTip";
 import { partnerLevelView } from "@/lib/logistics/partner-levels.server";
-import { PodLocked } from "@/components/logistics/PartnerLevel";
+import { InterstateNote, PodLocked } from "@/components/logistics/PartnerLevel";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -70,6 +70,8 @@ export default async function LogisticsCoveragePage({ searchParams }: { searchPa
               ))}
             </div>
             <p className="mb-0 mt-1.5 text-[15px] text-app-ink-soft">{t("market.cov.servicesHint")}</p>
+            {/* Interstate jobs come from Trusted (Tier 2, shared/partner-reach.ts); below it the switch stays on. */}
+            {level?.interstateGated ? <div className="mt-2"><InterstateNote t={t} /></div> : null}
           </fieldset>
           <div className="min-w-0">
             <label htmlFor="pickupAreas" className={labelClass}>{t("market.cov.collectFrom")}</label>
