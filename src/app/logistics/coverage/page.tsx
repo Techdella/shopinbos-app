@@ -14,6 +14,8 @@ import { coverageDepot, coverageZoneRows } from "@/components/logistics/coverage
 import { AreaTokenAdder } from "@/components/logistics/AreaTokenAdder";
 import { getT } from "@/lib/i18n/server";
 import { PageTip } from "@/components/learn/PageTip";
+import { partnerLevelView } from "@/lib/logistics/partner-levels.server";
+import { PodLocked } from "@/components/logistics/PartnerLevel";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -31,6 +33,8 @@ export default async function LogisticsCoveragePage({ searchParams }: { searchPa
 
   const zones = coverageZoneRows(partner);
   const depot = coverageDepot(partner) ?? partner.city ?? "";
+  // Pay on delivery opens at Cash trusted (shared/dropship-rules.ts): below it the switch shows locked with the goals.
+  const level = await partnerLevelView(partner.id);
 
   return (
     <PartnerPage
@@ -83,11 +87,17 @@ export default async function LogisticsCoveragePage({ searchParams }: { searchPa
             targets={[{ id: "pickupAreas", label: t("market.cov.addCollect") }, { id: "deliveryAreas", label: t("market.cov.addDeliver") }]}
           />
           <div className="grid gap-1.5 lg:col-span-2">
-            <label className="flex min-h-[44px] items-center gap-2 text-[15px] font-bold">
-              <input type="checkbox" name="offersPayOnDelivery" defaultChecked={partner.offersPayOnDelivery} className="h-5 w-5 accent-[#16141F]" />
-              {t("market.cov.podLabel")}
-            </label>
-            <p className="m-0 text-[14px] text-app-ink-soft">{podDisclaimerPartner(t)} {t("market.cov.podChoose")}</p>
+            {level && !level.podOpen ? (
+              <PodLocked view={level} />
+            ) : (
+              <>
+                <label className="flex min-h-[44px] items-center gap-2 text-[15px] font-bold">
+                  <input type="checkbox" name="offersPayOnDelivery" defaultChecked={partner.offersPayOnDelivery} className="h-5 w-5 accent-[#16141F]" />
+                  {t("market.cov.podLabel")}
+                </label>
+                <p className="m-0 text-[14px] text-app-ink-soft">{podDisclaimerPartner(t)} {t("market.cov.podChoose")}</p>
+              </>
+            )}
           </div>
           <div className="lg:col-span-2">
             <SubmitButton>{t("market.cov.save")}</SubmitButton>

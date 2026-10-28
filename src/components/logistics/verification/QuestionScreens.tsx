@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { cx } from "@/components/app-ui";
+import { Icon } from "@/components/ui/Icon";
 import { field } from "@/components/seller-core";
 import { NG_STATES, parseArea } from "@shared/delivery-market";
 import { lgasOf } from "@shared/ng-lgas";
@@ -279,6 +280,10 @@ export function ChargeScreen({ state, onState, onDone }: ScreenProps) {
         )}
         <Choice label={t("q.charge.quote")} selected={charge === "quote"} onPick={() => setCharge("quote")} />
       </div>
+      {/* Pay on delivery waits for the Cash trusted level (shared/dropship-rules.ts POD_LOCKED_MESSAGE). */}
+      <p className="m-0 flex gap-2 rounded-[16px] bg-app-canvas p-4 text-[14px] leading-[1.5] text-app-ink-soft">
+        <Icon name="lock" size={16} className="mt-0.5 shrink-0" /> {t("q.charge.podLater")}
+      </p>
     </QuestionFrame>
   );
 }

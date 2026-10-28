@@ -1,7 +1,8 @@
 // Logistics marketplace rules (docs: the "Shopinbos Logistics Marketplace" spec): where partners go, structured rate
 // cards, size bands, the delivery options a customer sees at checkout, the one status list every partner uses, the
 // seller's exceptions, partner stats and ranking, and the gentle chat warnings about taking jobs off the app.
-// Shared by the web app, the server and the mobile app. Pure (its only import is the LGA list in ./ng-lgas.ts),
+// Shared by the web app, the server and the mobile app. Pure (it imports the LGA list in ./ng-lgas.ts and the zone
+// rate card from ./dropship-rules.ts),
 // unit-tested in tests/delivery-market.test.mjs.
 //
 // Decisions taken for v1 (spec §11), each in one place here so they're easy to change:
@@ -14,6 +15,8 @@
 //   7. Coverage: states, regions and nationwide, with optional "State: Area" tokens for LGAs/cities.
 
 import { findLga, lgaOfArea } from "./ng-lgas.ts";
+// Only functions are used, inside functions (shared/dropship-rules.ts imports this file too; the cycle is safe).
+import { readZoneRates, zoneQuote, zoneRatesEmpty } from "./dropship-rules.ts";
 
 export const CONNECT_NEEDS_APPROVAL = false;
 export const DROPSHIP_SHIPPER = "supplier" as const;
@@ -435,8 +438,12 @@ export interface Shipment {
   origin: Place;
   sizeBand: SizeBand;
   connections: readonly MarketConnection[];
-  /** A supplier that delivers its own parcels: its fee and the states it drives to (empty: its own state only). */
-  selfDelivery?: { fee: number; states: readonly string[] } | null;
+  /**
+   * A supplier that delivers its own parcels: its flat fee and the states it drives to (empty: its own state only),
+   * or, with its own rate card (DeliverySettings.rateSource "own"), the price per zone and size class
+   * (shared/dropship-rules.ts zoneQuote) and the days it takes to pack (the longest of the parcel's products).
+   */
+  selfDelivery?: { fee: number; states: readonly string[]; zoneRates?: unknown; handlingDays?: number | null } | null;
 }
 
 export type MarketOptionKind = "self_pickup" | "doorstep" | "same_day" | "pickup_point" | "fallback" | "multi";
@@ -453,6 +460,12 @@ export interface OptionPart {
   sizeBand: SizeBand;
   minDays: number;
   maxDays: number;
+  /**
+   * What the customer pays for this parcel when the seller covers some or all of it (StoreProduct.deliveryPayer,
+   * shared/dropship-checkout.ts applyDeliveryPayers). Missing: the customer pays `price`. The carrier is always paid
+   * `price` in full; the difference comes out of the seller's share.
+   */
+  charge?: number;
 }
 
 /** A delivery option the customer can choose (the same base shape as cart-checkout's DeliveryOption). */
@@ -682,10 +695,21 @@ export function buildMarketChoice(input: { settings: CheckoutSettingsInput; ship
   return { covered: true, options, reason: null, shipmentCount };
 }
 
-/** The supplier drives this parcel to the customer itself (a supplier's "I deliver myself"), when it covers the address. */
+/**
+ * The supplier drives this parcel to the customer itself (a supplier's "I deliver myself"), when it covers the
+ * address. With its own rate card the price and arrival come from the zone and size class (plus its packing days),
+ * and an empty cell means it doesn't deliver there; without one, its flat fee to the states it listed.
+ */
 export function selfDeliveryPart(shipment: Shipment, destination: Place): OptionPart | null {
   const own = shipment.selfDelivery;
-  if (!own || !shipment.key.startsWith("supplier:") || !(own.fee > 0) || !destination.state) return null;
+  if (!own || !shipment.key.startsWith("supplier:") || !destination.state) return null;
+  const rates = readZoneRates(own.zoneRates);
+  if (!zoneRatesEmpty(rates)) {
+    const quote = zoneQuote(rates, shipment.origin, destination, shipment.sizeBand, own.handlingDays ?? 1);
+    if (!quote) return null;
+    return { shipmentKey: shipment.key, connectionId: null, partnerId: null, service: "supplier_self", price: quote.price, rateCardId: null, pointId: null, sizeBand: shipment.sizeBand, minDays: quote.minDays, maxDays: quote.maxDays };
+  }
+  if (!(own.fee > 0)) return null;
   const states = own.states.length ? own.states.map(canonicalState) : [shipment.origin.state];
   if (!states.includes(destination.state)) return null;
   const local = shipment.origin.state === destination.state;

@@ -10,14 +10,16 @@ import { ChoiceSheet } from "@/components/partner";
 import { Screen } from "@/components/Screen";
 import { PreorderEditor } from "@/components/Preorder";
 import { DoneView, FieldLabel } from "@/components/SupplierKit";
+import { ChannelPrices, DropshipSettings, useWords } from "@/components/supplier/DropshipKit";
 import { Chip, Field, LinkButton, Notice, PillButton, T, Toggle } from "@/components/ui";
 import { VoiceInput } from "@/components/VoiceInput";
 import { ApiError } from "@/lib/api";
 import { useT } from "@/lib/i18n";
-import { parseAmount, parseCount } from "@/lib/partner-pure";
+import { parseCount } from "@/lib/partner-pure";
+import { dropshipBody, dropshipFormFrom, pricesFormFrom, readPricesForm, type DropshipForm, type PricesForm } from "@/lib/dropship-pure";
 import { PREORDER_PROBLEM_KEY, preorderFormFrom, preorderPatch, type PreorderForm } from "@/lib/preorder-pure";
 import { savedAs } from "@/lib/supplier-pure";
-import { createSupplierProduct, fetchCategories, uploadSupplierPhoto } from "@/lib/supplier";
+import { createSupplierProduct, fetchCategories, fetchSupplierLevel, uploadSupplierPhoto } from "@/lib/supplier";
 import { useLoad } from "@/lib/useLoad";
 import { colors, radii } from "@/theme";
 
@@ -27,26 +29,32 @@ import { colors, radii } from "@/theme";
 // with MOQ, shipping time, regions and dropship / wholesale folded away. Saved through the portal's own POST
 // /api/supplier/products: "Save" sends it for review (admins publish it), "Save for later" keeps a draft.
 // Under "More": take preorders (stock not here yet: ships from a date, a cap and the promise to shops; shared/preorder.ts).
+// Supplier & Dropship Rules (shared/dropship-rules.ts): the prices are P-Pricing (same price for all, or a dropship
+// price, wholesale price and quantity breaks, a pre-order price locked below Established, then what sellers charge)
+// and the dropship settings P-Dropship (single pieces or a minimum, packing days, parcel size, samples). Pre-orders
+// can be switched on only at Established; the server refuses below it (403 preorder_locked) and checks the prices
+// together (400 invalid_prices); its words show above the form.
 
 type Photo = { uri: string; mimeType?: string | null; fileName?: string | null };
 
 // Saved as written (English); shown in the app language (m_supplier "new.ship.<index>").
 const SHIPS = ["Same day", "24 hours", "48 hours", "3 days"];
 const MAX_PHOTOS = 6;
-/** The prototype's "Wholesale price, 20 or more" is a price tier from this many pieces. */
-const BULK_FROM = 20;
 
 export default function NewSupplierProduct() {
   const t = useT("m_supplier", "common", "m_ui");
+  const words = useWords();
   const categories = useLoad(fetchCategories);
+  // Pre-orders and the pre-order price open at Established; the locked card shows how far there is to go.
+  const level = useLoad(() => fetchSupplierLevel().catch(() => null));
+  const preorderOpen = level.data?.perks.preorders === true;
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
-  const [single, setSingle] = useState("");
-  const [bulkPrice, setBulkPrice] = useState("");
-  const [retail, setRetail] = useState("");
+  const [prices, setPrices] = useState<PricesForm>(() => pricesFormFrom(null));
+  const [shipping, setShipping] = useState<DropshipForm>(() => dropshipFormFrom(null));
   const [moq, setMoq] = useState("1");
   const [stock, setStock] = useState("");
   const [dropship, setDropship] = useState(true);
@@ -80,10 +88,9 @@ export default function NewSupplierProduct() {
   function problem() {
     if (!photos.length) return t("new.needPhoto");
     if (name.trim().length < 2) return t("new.needName");
-    if (!parseAmount(single)) return t("new.needWholesale");
-    if (bulkPrice.trim() && !parseAmount(bulkPrice)) return t("new.needBulk");
+    const priced = readPricesForm(prices, preorderOpen, words);
+    if (!priced.ok) return priced.message;
     if (parseCount(stock) === null) return t("new.needStock");
-    if (!parseAmount(retail)) return t("new.needRetail");
     if (description.trim().length < 10) return t("new.needDescription");
     if (!categoryId) return t("new.needCategory");
     if (!parseCount(moq) || parseCount(moq)! < 1) return t("new.needMoq");
@@ -105,23 +112,23 @@ export default function NewSupplierProduct() {
         images.push((await uploadSupplierPhoto(photo)).url);
       }
       setProgress(t("saving"));
-      const bulkValue = parseAmount(bulkPrice);
+      const priced = readPricesForm(prices, preorderOpen, words);
+      if (!priced.ok) throw new Error(priced.message);
       const preorderResult = preorderPatch(preorder, null);
       const created = await createSupplierProduct({
         name: name.trim(),
         description: description.trim(),
         categoryId: categoryId!,
         images,
-        wholesalePrice: parseAmount(single)!,
-        suggestedRetailPrice: parseAmount(retail)!,
+        ...priced.body,
+        ...(dropship ? dropshipBody(shipping) : {}),
         moq: parseCount(moq)!,
         stockQuantity: parseCount(stock)!,
         dropshipAvailable: dropship,
         bulkOrderAvailable: bulk,
         deliveryRegions: regions.split(",").map((item) => item.trim()).filter(Boolean),
         processingTime: ships,
-        ...(bulkValue ? { pricingTiers: [{ minQty: BULK_FROM, price: bulkValue }] } : {}),
-        ...(preorderResult.ok && preorderResult.patch?.enabled ? { preorder: preorderResult.patch } : {}),
+        ...(preorderOpen && preorderResult.ok && preorderResult.patch?.enabled ? { preorder: preorderResult.patch } : {}),
         status,
       });
       setSaved(savedAs(status, created?.status));
@@ -221,22 +228,20 @@ export default function NewSupplierProduct() {
         <Field value={name} onChangeText={setName} placeholder={t("new.namePlaceholder")} maxLength={200} accessibilityLabel={t("new.name")} />
       </View>
       <View>
-        <FieldLabel>{t("new.priceOne")}</FieldLabel>
-        <Field value={single} onChangeText={setSingle} keyboardType="decimal-pad" placeholder="12,000" accessibilityLabel={t("new.priceOne")} />
-      </View>
-      <View>
-        <FieldLabel>{t("new.priceBulk", { count: BULK_FROM })}</FieldLabel>
-        <Field value={bulkPrice} onChangeText={setBulkPrice} keyboardType="decimal-pad" placeholder="10,500" accessibilityLabel={t("new.priceBulk", { count: BULK_FROM })} />
+        <FieldLabel>{words("prices.title", "Prices")}</FieldLabel>
+        <ChannelPrices value={prices} onChange={setPrices} level={level.data ?? null} />
       </View>
       <View>
         <FieldLabel>{t("new.howMany")}</FieldLabel>
         <Field value={stock} onChangeText={setStock} keyboardType="number-pad" placeholder="80" accessibilityLabel={t("unitsInStock")} />
       </View>
-      <View>
-        <FieldLabel>{t("new.retail")}</FieldLabel>
-        <Field value={retail} onChangeText={setRetail} keyboardType="decimal-pad" placeholder="15,000" accessibilityLabel={t("suggestedRetail")} />
-        <T style={{ color: colors.inkSoft, fontSize: 14, marginTop: 6, lineHeight: 20 }}>{t("new.margin")}</T>
-      </View>
+      {dropship ? (
+        <View>
+          <FieldLabel>{words("ds.title", "Dropship settings")}</FieldLabel>
+          <T style={{ color: colors.inkSoft, fontSize: 14, marginBottom: 8, lineHeight: 20 }}>{words("ds.sub", "Sellers see these before they add your product")}</T>
+          <DropshipSettings value={shipping} onChange={setShipping} />
+        </View>
+      ) : null}
       <View>
         <FieldLabel>{t("new.describe")}</FieldLabel>
         <Field value={description} onChangeText={setDescription} placeholder={t("new.describePlaceholder")} multiline maxLength={5000} accessibilityLabel={t("new.describe")} style={{ height: 110, paddingTop: 14, textAlignVertical: "top" }} />
@@ -278,7 +283,7 @@ export default function NewSupplierProduct() {
             </View>
             <Toggle on={bulk} onChange={setBulk} label={t("kind.wholesale")} />
           </View>
-          <PreorderEditor value={preorder} onChange={setPreorder} audience="shops" />
+          {preorderOpen ? <PreorderEditor value={preorder} onChange={setPreorder} audience="shops" /> : null}
         </View>
       ) : (
         <LinkButton title={t("new.more")} color={colors.inkSoft} onPress={() => setMore(true)} />

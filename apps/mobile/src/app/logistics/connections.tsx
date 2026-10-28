@@ -6,6 +6,8 @@ import { ErrorState, LoadingBlock } from "@/components/kit";
 import { Initial, NoteCard } from "@/components/PartnerKit";
 import { Screen } from "@/components/Screen";
 import { LinkButton, Notice, Toggle } from "@/components/ui";
+import { ApiError } from "@/lib/api";
+import { POD_LOCKED_CODE } from "@/lib/dropship-pure";
 import { useT } from "@/lib/i18n";
 import { endMarketConnection, fetchMarket, setConnectionPod, type MarketConnectionRow } from "@/lib/logistics";
 import { useLoad } from "@/lib/useLoad";
@@ -32,6 +34,8 @@ export default function Connections() {
     } catch (podError) {
       setError(podError instanceof Error ? podError.message : t("error.retry"));
       void market.reload();
+      // Below Cash trusted (403 pod_locked): show what's left to unlock pay on delivery.
+      if (podError instanceof ApiError && podError.code === POD_LOCKED_CODE) router.push("/logistics/pay-on-delivery");
     } finally {
       setBusy(null);
     }

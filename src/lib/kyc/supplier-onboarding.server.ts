@@ -5,7 +5,7 @@ import { cacCheckEnabled } from "@/lib/kyb/verify-cac.server";
 import { deliverySettingsFor } from "@/lib/delivery-market/market.server";
 import { normalizeVerificationDocs } from "@shared/verification-docs";
 import { businessCategories } from "@shared/onboarding";
-import { CAC_ANSWERS, isSupplierStep, readSupplierIdentity, sourceForBusinessType, supplierTiers, type CacAnswer } from "@shared/supplier-onboarding";
+import { CAC_ANSWERS, isSupplierStep, preorderLocked, readSupplierIdentity, sourceForBusinessType, supplierTiers, type CacAnswer } from "@shared/supplier-onboarding";
 import { supplierIdChecksReady } from "./supplier.server";
 
 // What the supplier onboarding screens start from (GET /api/supplier/onboarding, the web page and the phone app):
@@ -34,6 +34,7 @@ export async function supplierOnboardingView(userId: string) {
       address: true,
       categories: true,
       buyModes: true,
+      level: true,
       minimumOrder: true,
       pickupLat: true,
       pickupLng: true,
@@ -67,6 +68,9 @@ export async function supplierOnboardingView(userId: string) {
     businessType: supplier.businessType,
     source: state.sourceAnswered === true ? sourceForBusinessType(supplier.businessType) : null,
     buyModes: supplier.buyModes,
+    /** Track record level; Pre-order stays locked below Established (shared/supplier-onboarding.ts preorderLocked). */
+    level: supplier.level,
+    preorderLocked: preorderLocked(supplier.level),
     minimumOrder: supplier.minimumOrder,
     country: supplier.country,
     city: supplier.city,

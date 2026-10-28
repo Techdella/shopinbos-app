@@ -8,12 +8,15 @@ import { PARTNER_FLOW, isFlowScreen, type FlowScreen } from "@shared/partner-tie
 import { kycCall, useKycT, type KycState } from "./kit";
 import { AreasScreen, CacScreen, ChargeScreen, InterstateScreen, NameScreen, StateScreen, VehiclesScreen } from "./QuestionScreens";
 import { BaseScreen, IdScreen, ReviewScreen, SelfieScreen, type NinDraft } from "./CheckScreens";
+import { StepRail } from "@/components/onboarding/StepRail";
 
 // Delivery partner sign-up, one question per screen (the owner's "Shopinbos Onboarding — Simplified"): business name
 // → CAC → state → areas → what they deliver with → other states → how they charge → where they're based → photo of
 // their ID → selfie → review and send ("You're in review"). Each screen saves on Continue, so leaving and coming back
 // opens on the first unanswered one (state.flow.first, shared/partner-tiers.ts flowProgress); ?step=<screen> opens
 // one directly (the dashboard's "Fix" and "Add CAC" links). Tier rules: shared/partner-tiers.ts.
+// Wide screens (2026 "Web onboarding, verify identity"): the steps listed on the left with done / current / upcoming
+// and "No BVN needed" (src/components/onboarding/StepRail.tsx); narrow screens keep the bar at the top.
 
 const EMPTY_DRAFT: NinDraft = { nin: "", firstName: "", lastName: "", dateOfBirth: "" };
 
@@ -48,8 +51,18 @@ export function PartnerVerificationFlow({ accountName }: { accountName: string }
   const onDone = () => goTo(state.submittedAt ? "review" : PARTNER_FLOW[Math.min(index + 1, PARTNER_FLOW.length - 1)]);
   const props = { state, onState: setState, onDone };
 
+  const railSteps = PARTNER_FLOW.map((key) => ({ key, label: t(`rail.${key}`), done: key === "review" ? Boolean(state.submittedAt) : state.flow.done[key] }));
   return (
-    <div className="mx-auto grid w-full max-w-[600px] gap-6 pb-10">
+    <div className="mx-auto w-full max-w-[600px] pb-10 lg:grid lg:max-w-[1040px] lg:grid-cols-[240px_minmax(0,1fr)] lg:items-start lg:gap-10">
+      <StepRail
+        className="sticky top-4 hidden rounded-[24px] lg:flex"
+        showLogo={false}
+        who={state.business.companyName || accountName || t("rail.title")}
+        role={t("rail.title")}
+        steps={railSteps}
+        current={screen}
+      />
+      <div className="grid w-full max-w-[640px] gap-6">
       <header className="grid gap-3">
         <div className="flex items-center gap-3">
           {index > 0 ? (
@@ -62,7 +75,7 @@ export function PartnerVerificationFlow({ accountName }: { accountName: string }
             <Icon name="whatsapp" size={16} /> {t("flow.help")}
           </a>
         </div>
-        <div className="h-1.5 overflow-hidden rounded-full bg-app-line" aria-hidden>
+        <div className="h-1.5 overflow-hidden rounded-full bg-app-line lg:hidden" aria-hidden>
           <div className="h-full rounded-full bg-app-ink transition-all" style={{ width: `${((index + 1) / PARTNER_FLOW.length) * 100}%` }} />
         </div>
       </header>
@@ -82,6 +95,7 @@ export function PartnerVerificationFlow({ accountName }: { accountName: string }
       {screen !== "review" && state.flow.done[screen] && (
         <button type="button" onClick={onDone} className="justify-self-center text-[15px] font-bold text-app-ink-soft underline underline-offset-4">{t("flow.skipDone")}</button>
       )}
+      </div>
     </div>
   );
 }

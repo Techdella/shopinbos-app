@@ -10,6 +10,10 @@
 // Verification, as tiers that each unlock something: "Verified Individual" (ID + selfie face match, or the team's
 // approval) lists the supplier to shops; "Registered Business" comes from the CAC number lookup; "Payout ready" from
 // a checked bank account, asked at the first payout, never during sign-up.
+//
+// The supplier & dropship rules (shared/dropship-rules.ts) show up here too: Pre-order is locked until Established.
+
+import { canTakePreorders } from "./dropship-rules.ts";
 
 export const SUPPLIER_ONBOARDING_STEPS = ["name", "cac", "categories", "source", "buyModes", "moq", "location", "id", "selfie", "product", "review"] as const;
 export type SupplierOnboardingStep = (typeof SUPPLIER_ONBOARDING_STEPS)[number];
@@ -37,9 +41,19 @@ export function sourceForBusinessType(type: string | null | undefined): SupplySo
 export const BUY_MODES = ["dropship", "wholesale", "preorder"] as const;
 export type BuyMode = (typeof BUY_MODES)[number];
 
-export function cleanBuyModes(value: unknown): BuyMode[] {
+/**
+ * The buy modes to save, in order. Pre-order means shops pay before the goods exist, so it opens only at the
+ * Established level (shared/dropship-rules.ts canTakePreorders: 100 delivered orders and 30 reviews); a supplier
+ * below it (every new supplier) can't save it, and the screen shows it locked.
+ */
+export function cleanBuyModes(value: unknown, level: string | null | undefined = "new"): BuyMode[] {
   const list = Array.isArray(value) ? value : [];
-  return BUY_MODES.filter((mode) => list.includes(mode));
+  return BUY_MODES.filter((mode) => list.includes(mode) && (mode !== "preorder" || canTakePreorders(level)));
+}
+
+/** Pre-order is shown locked on "How can shops buy?" until the supplier reaches Established. */
+export function preorderLocked(level: string | null | undefined) {
+  return !canTakePreorders(level);
 }
 
 export const MIN_ORDER_MAX = 100_000;

@@ -70,7 +70,7 @@ test("every preorder word is in all five languages, with the same placeholders",
 test("supplier JSON APIs take `preorder` and save it with shared/preorder.ts", () => {
   const schemas = read("src/lib/schemas/index.ts");
   assert.ok(schemas.indexOf("export const PreorderInputSchema") < schemas.indexOf("export const SupplierProductCreateSchema"), "defined before it's used");
-  assert.match(schemas, /status: ProductStatusSchema\.default\("draft"\),[\s\S]{0,300}preorder: PreorderInputSchema\.optional\(\),\s*\}\);\s*export const SupplierProductUpdateSchema/);
+  assert.match(schemas, /status: ProductStatusSchema\.default\("draft"\),[\s\S]{0,300}preorder: PreorderInputSchema\.optional\(\),[^}]{0,1200}\}\);\s*export const SupplierProductUpdateSchema/, "the channel prices and dropship options follow it");
 
   const create = read("src/app/api/supplier/products/route.ts");
   assert.match(create, /const \{ preorder, \.\.\.fields \} = parsed\.data;/, "taken out before Prisma");

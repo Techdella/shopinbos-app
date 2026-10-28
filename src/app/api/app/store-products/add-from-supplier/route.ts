@@ -8,10 +8,15 @@ import { AddFromSupplierSchema } from "@/lib/schemas";
 import type { AuthUser } from "@/lib/auth/types";
 import { markCatalogDirty } from "@/lib/whatsapp-catalog/dirty";
 import { listingCheck } from "@/lib/marketplace/agreements.server";
+import { ListingChoiceSchema, checkDropshipListing, skuFields } from "@/lib/marketplace/dropship-listing.server";
+
+// POST { supplierProductId, retailPrice, fulfillmentType, deliveryPayer?, deliveryFlatFee?, brandingChoice?, sku?,
+// barcode? }. Dropship: the cost is the supplier's dropship price, the price can't go below its lowest allowed price
+// or lose money on delivery the seller covers (409 PRICE_PROBLEM), and the choices are saved on the store product.
 
 export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const body = await req.json().catch(() => null);
-  const parsed = AddFromSupplierSchema.safeParse(body);
+  const parsed = AddFromSupplierSchema.and(ListingChoiceSchema).safeParse(body);
   if (!parsed.success) {
     return apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Invalid input");
   }
@@ -40,7 +45,9 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
 
   const planLimit = await productLimitProblem(user.id, store.id, 1, fulfillmentType === "dropship");
   if (planLimit) return apiError("PLAN_LIMIT", planLimit, 402);
-  const costPrice = supplierProduct.wholesalePrice;
+  const check = fulfillmentType === "dropship" ? await checkDropshipListing(supplierProduct, user.id, parsed.data) : null;
+  if (check && !check.ok) return apiError(check.code, check.message, 409);
+  const costPrice = check?.ok ? check.costPrice : supplierProduct.wholesalePrice;
   const margin = Math.round(((retailPrice - costPrice) / retailPrice) * 100);
 
   const storeProduct = await withShortCode(store.id, { name: supplierProduct.name, categoryId: supplierProduct.categoryId }, (shortCode) => db.storeProduct.create({
@@ -57,6 +64,8 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
       currency: supplierProduct.currency,
       margin,
       fulfillmentType,
+      ...(check?.ok ? { deliveryPayer: check.deliveryPayer, deliveryFlatFee: check.deliveryFlatFee, brandingChoice: check.brandingChoice } : {}),
+      ...skuFields(parsed.data),
       status: "published",
     },
   }));

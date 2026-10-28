@@ -7,6 +7,7 @@ import { db } from "@/lib/db/client";
 import { withShortCode } from "@/lib/products/short-code.server";
 import { mergeBrandSettings } from "@/lib/workspace";
 import { VISIBLE_SUPPLIER, listingCheck } from "@/lib/marketplace/agreements.server";
+import { ListingChoiceSchema, checkDropshipListing, dropshipTermsFor, skuFields } from "@/lib/marketplace/dropship-listing.server";
 
 export const dynamic = "force-dynamic";
 
@@ -14,9 +15,20 @@ export const dynamic = "force-dynamic";
 // signed-in seller has:
 //   GET  → { country, destination, addedIds }: the store's country (which suppliers to show), where wholesale
 //          quotes ship to, and the supplier products already in the store.
-//   POST { supplierProductId, retailPrice? } → { storeProductId, already }: "Add to store", the same as the web's
-//          addSupplierProductToStore action: a draft product linked to the supplier (dropship when offered),
-//          never a duplicate.
+//   GET ?productId=<supplier product id> → the same, plus `dropship`: the dropship terms for that product (null when
+//          it isn't offered for dropship), the "You pay / Your price / You earn" screen (shared/dropship-checkout.ts
+//          DropshipTerms):
+//            { cost, suggestedPrice, floor, minRetailPrice, options: string[], minQty, handlingDays,
+//              sizeBand: "small"|"medium"|"bulky", shipsFrom, rateSource: "partners"|"own",
+//              deliveryToYou: { zone, zoneLabel, price, minDays, maxDays } | null, dearestDelivery, dearestIsEstimate,
+//              branding: [{ choice: "blind"|"packing_slip"|"stickers", label, fee }], stock, stockState }
+//          "You earn" per order: shared/dropship-checkout.ts listingEarn(terms, { retailPrice, payer, flatFee,
+//          brandingChoice }); listingProblem(...) is the message the POST refuses with.
+//   POST { supplierProductId, retailPrice?, deliveryPayer?: "customer"|"seller"|"flat", deliveryFlatFee?,
+//          brandingChoice?: "blind"|"packing_slip"|"stickers", sku?, barcode? } → { storeProductId, already }:
+//          "Add to store", the same as the web's addSupplierProductToStore action: a draft product linked to the
+//          supplier (dropship when offered), never a duplicate. A dropship price below the supplier's lowest
+//          allowed price, or one that would lose money, is refused: 409 { error: { code: "PRICE_PROBLEM", message } }.
 
 /** Same floor and ceiling as the web's price stepper (src/lib/marketplace/find.ts clampSellingPrice). */
 function clampSellingPrice(price: number, cost: number) {
@@ -26,18 +38,22 @@ function clampSellingPrice(price: number, cost: number) {
   return Math.min(ceiling, Math.max(floor, Math.round(price)));
 }
 
-export const GET = withSeller(async (_req, { user }) => {
+export const GET = withSeller(async (req: NextRequest, { user }) => {
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, city: true, country: true } });
   if (!store) return apiError("NOT_FOUND", "Store not found", 404);
   const added = await db.storeProduct.findMany({ where: { storeId: store.id, supplierProductId: { not: null } }, select: { supplierProductId: true } });
+  const productId = req.nextUrl.searchParams.get("productId")?.slice(0, 64) || null;
+  const product = productId ? await db.supplierProduct.findFirst({ where: { id: productId, status: "published", supplier: VISIBLE_SUPPLIER } }) : null;
+  const dropship = product?.dropshipAvailable ? (await dropshipTermsFor([product], user.id)).get(product.id) ?? null : null;
   return ok({
     country: store.country || "Nigeria",
     destination: [store.city, store.country].filter(Boolean).join(", ") || "Nigeria",
     addedIds: added.map((row) => row.supplierProductId).filter((id): id is string => Boolean(id)),
+    ...(productId ? { dropship } : {}),
   });
 });
 
-const AddSchema = z.object({ supplierProductId: z.string().min(1).max(64), retailPrice: z.number().positive().max(100_000_000).optional() });
+const AddSchema = ListingChoiceSchema.extend({ supplierProductId: z.string().min(1).max(64), retailPrice: z.number().positive().max(100_000_000).optional() });
 
 export const POST = withSeller(async (req: NextRequest, { user }) => {
   const parsed = AddSchema.safeParse(await req.json().catch(() => null));
@@ -62,8 +78,11 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
   }
 
 
-  const retailPrice = clampSellingPrice(parsed.data.retailPrice ?? product.suggestedRetailPrice, product.wholesalePrice);
   const dropship = product.dropshipAvailable;
+  const check = dropship ? await checkDropshipListing(product, user.id, parsed.data, clampSellingPrice) : null;
+  if (check && !check.ok) return apiError(check.code, check.message, 409);
+  const retailPrice = check?.ok ? check.retailPrice : clampSellingPrice(parsed.data.retailPrice ?? product.suggestedRetailPrice, product.wholesalePrice);
+  const costPrice = check?.ok ? check.costPrice : product.wholesalePrice;
   const planLimit = await productLimitProblem(user.id, store.id, 1, dropship);
   if (planLimit) return apiError("PLAN_LIMIT", planLimit, 402);
   const storeProduct = await withShortCode(store.id, { name: product.name, categoryId: product.categoryId }, (shortCode) => db.storeProduct.create({
@@ -76,9 +95,11 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
       description: product.description,
       images: product.images,
       retailPrice,
-      costPrice: product.wholesalePrice,
+      costPrice,
       currency: product.currency,
-      margin: retailPrice - product.wholesalePrice,
+      margin: retailPrice - costPrice,
+      ...(check?.ok ? { deliveryPayer: check.deliveryPayer, deliveryFlatFee: check.deliveryFlatFee, brandingChoice: check.brandingChoice } : {}),
+      ...skuFields(parsed.data),
       categoryId: product.categoryId,
       fulfillmentType: dropship ? "dropship" : "merchant_fulfilled",
       inventoryType: dropship ? "dropshipping" : "seller",

@@ -5,6 +5,7 @@ import { createNotification } from "@/lib/notifications/create";
 import { acceptByFor, messageSupplierPhone } from "./deadline.server";
 import { makeDeliveryCode } from "@/lib/logistics/job-rules";
 import { readDeliveryPlan, supplierSelfShipments } from "@shared/delivery-market";
+import { brandingOfferFor, dropshipUnitPrice, effectiveBranding, readBrandingOffer, type BrandingChoice } from "@shared/dropship-rules";
 import {
   groupDropshipLines,
   plainText,
@@ -60,7 +61,10 @@ export async function ensureSupplierOrders(retailOrderId: string): Promise<{ cre
   if (!productIds.length) return { created: 0 };
   const products = await db.storeProduct.findMany({
     where: { storeId: order.storeId, id: { in: productIds }, fulfillmentType: "dropship", supplierProductId: { not: null } },
-    select: { id: true, supplierProduct: { select: { id: true, supplierId: true, wholesalePrice: true, images: true } } },
+    select: {
+      id: true, sku: true, barcode: true, brandingChoice: true,
+      supplierProduct: { select: { id: true, supplierId: true, wholesalePrice: true, priceMode: true, dropshipPrice: true, images: true } },
+    },
   });
   const links = new Map<string, DropshipLink>();
   for (const product of products) {
@@ -68,7 +72,8 @@ export async function ensureSupplierOrders(retailOrderId: string): Promise<{ cre
     links.set(product.id, {
       supplierId: product.supplierProduct.supplierId,
       supplierProductId: product.supplierProduct.id,
-      unitCost: product.supplierProduct.wholesalePrice,
+      // What the seller pays per piece sent to their customer (the dropship price when it has its own).
+      unitCost: dropshipUnitPrice(product.supplierProduct),
       image: product.supplierProduct.images[0] ?? null,
     });
   }
@@ -85,10 +90,28 @@ export async function ensureSupplierOrders(retailOrderId: string): Promise<{ cre
   // Each supplier has a deadline to accept (4 hours unless set otherwise): see acceptance.server.ts.
   const supplierRows = await db.supplier.findMany({
     where: { id: { in: groups.map((group) => group.supplierId) } },
-    select: { id: true, userId: true, acceptHoursDropship: true, acceptHoursWholesale: true },
+    select: { id: true, userId: true, acceptHoursDropship: true, acceptHoursWholesale: true, level: true, brandingOffer: true },
   });
   const now = new Date();
   const deadlines = new Map(supplierRows.map((row) => [row.id, acceptByFor("dropship", row, now)]));
+  // Pack it the seller's way (shared/dropship-rules.ts): the shop's name and logo, the branding the seller chose for
+  // these products (falling back to blind when the supplier doesn't offer it) and the seller's own SKUs.
+  const storeBrand = await db.store.findUnique({ where: { id: order.storeId }, select: { logoUrl: true } }).catch(() => null);
+  const brandingFor = (supplierId: string, lines: SupplierOrderLine[]) => {
+    const supplier = supplierRows.find((row) => row.id === supplierId);
+    const offer = brandingOfferFor(supplier?.level, readBrandingOffer(supplier?.brandingOffer));
+    const chosen = lines.map((line) => products.find((product) => product.id === line.storeProductId)).filter((product) => product !== undefined);
+    const rank: Record<string, number> = { stickers: 2, packing_slip: 1 };
+    const wanted = chosen.map((product) => product.brandingChoice as BrandingChoice).sort((a, b) => (rank[b] ?? 0) - (rank[a] ?? 0))[0];
+    const { choice, fee } = effectiveBranding(wanted, offer);
+    return {
+      sellerName: plainText(order.store.name, 80) || "The shop",
+      logoUrl: storeBrand?.logoUrl ?? null,
+      choice,
+      fee,
+      skus: [...new Set(chosen.map((product) => (product.sku || product.barcode || "").trim()).filter(Boolean))].slice(0, 20),
+    };
+  };
 
   const created: Array<{ id: string; supplierId: string; items: SupplierOrderLine[]; costTotal: number }> = [];
   for (const group of groups) {
@@ -108,6 +131,7 @@ export async function ensureSupplierOrders(retailOrderId: string): Promise<{ cre
           recipientName: order.buyerName,
           recipientPhone: order.buyerPhone,
           acceptBy: (deadlines.get(group.supplierId) ?? acceptByFor("dropship", null, now)).acceptBy,
+          branding: brandingFor(group.supplierId, group.items) as unknown as Prisma.InputJsonValue,
           ...(selfFee.has(group.supplierId) ? { selfDelivery: true, deliveryFee: selfFee.get(group.supplierId)!, deliveryCode: makeDeliveryCode() } : {}),
         },
         select: { id: true },
@@ -224,7 +248,7 @@ export interface MoveInput {
 export async function moveSupplierOrder(input: MoveInput): Promise<ServiceResult<{ id: string; status: string }>> {
   const order = await db.supplierOrder.findFirst({
     where: { id: input.orderId, supplierId: input.supplierId },
-    select: { id: true, status: true, retailOrderId: true, storeId: true, sellerId: true, trackingCode: true, selfDelivery: true, deliveryCode: true, supplier: { select: { displayName: true } }, retailOrder: { select: { orderNumber: true } } },
+    select: { id: true, status: true, retailOrderId: true, storeId: true, sellerId: true, trackingCode: true, selfDelivery: true, deliveryCode: true, packedAt: true, supplier: { select: { displayName: true } }, retailOrder: { select: { orderNumber: true } } },
   });
   if (!order) return { ok: false, code: "NOT_FOUND", message: "Order not found" };
   // The supplier delivers this one itself: it's delivered only with the code we texted the customer.
@@ -236,6 +260,14 @@ export async function moveSupplierOrder(input: MoveInput): Promise<ServiceResult
   if (!next) return { ok: false, code: "CONFLICT", message: "This order has already moved on. Refresh to see where it is." };
   const reason = input.reason?.trim();
   if (input.action === "reject" && (!reason || reason.length < 3)) return { ok: false, code: "BAD_REQUEST", message: "Say why you can't fill this order so the shop can tell the buyer." };
+
+  // Pack it the seller's way: a parcel that wasn't marked packed can't be sent before the checklist is done and the
+  // sealed parcel photographed (src/lib/supplier-dropship.server.ts).
+  if (next === "shipped" && !order.packedAt) {
+    const { dropshipPackProblem } = await import("@/lib/supplier-dropship.server");
+    const problem = await dropshipPackProblem(order.id);
+    if (problem) return { ok: false, code: "BAD_REQUEST", message: problem };
+  }
 
   const now = new Date();
   const trackingCode = input.trackingCode?.trim() || null;
@@ -261,6 +293,10 @@ export async function moveSupplierOrder(input: MoveInput): Promise<ServiceResult
     return { ok: false, code: "CONFLICT", message: current?.status === "expired" ? TIME_RAN_OUT : "This order has already moved on. Refresh to see where it is." };
   }
   if (data.acceptedAt) void import("@/lib/rewards/rewards.server").then((rewards) => rewards.rewardSupplierOrderAccepted(order.id)).catch(() => undefined);
+  // Sent without "I've packed it" (the supplier delivers it itself): the seller's sticker is used here instead.
+  if (next === "shipped" && !order.packedAt) await import("@/lib/supplier-dropship.server").then((pack) => pack.useSellerSticker(order.id)).catch(() => undefined);
+  // A delivered order counts towards the supplier's level (New → Trusted → Established).
+  if (next === "delivered") void import("@/lib/supplier-levels.server").then((levels) => levels.refreshSupplierLevel(input.supplierId)).catch(() => undefined);
 
   await syncRetailOrder(order.retailOrderId, next === "shipped" ? trackingCode ?? order.trackingCode : null).catch((error) => {
     console.error(`[supplier orders] could not move store order ${order.retailOrderId}`, error);

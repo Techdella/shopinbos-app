@@ -10,7 +10,8 @@ import { saveDeliverySettings } from "@/lib/delivery-market/manage.server";
 import { refreshSupplierVerification } from "@/lib/kyc/supplier.server";
 import { supplierOnboardingView } from "@/lib/kyc/supplier-onboarding.server";
 import { normalizeVerificationDocs } from "@shared/verification-docs";
-import { SOURCE_BUSINESS_TYPE, cleanCoords, identitySent } from "@shared/supplier-onboarding";
+import { PREORDER_LOCKED_MESSAGE } from "@shared/dropship-rules";
+import { SOURCE_BUSINESS_TYPE, cleanBuyModes, cleanCoords, identitySent } from "@shared/supplier-onboarding";
 
 // Supplier onboarding, one question per screen (shared/supplier-onboarding.ts). GET: every answer so far and the screen
 // to resume on. PATCH: saves whatever the screen answered (each Continue autosaves, with `step` to resume on), and
@@ -19,6 +20,7 @@ import { SOURCE_BUSINESS_TYPE, cleanCoords, identitySent } from "@shared/supplie
 //     ID and selfie are approved, else pending for the team (src/lib/kyc/supplier.server.ts).
 //   * docsLater ("Skip for now" on the ID screens): opens the portal unverified; nothing is public until verified.
 // Where goods leave from also goes to the delivery settings (DeliverySettings.origin*), as "Where I ship from".
+// "How can shops buy?" drops Pre-order below the Established level (cleanBuyModes): new suppliers can't save it.
 
 export const GET = withSupplier(async (_req: NextRequest, { user }: { user: AuthUser }) => {
   const view = await supplierOnboardingView(user.id);
@@ -36,6 +38,8 @@ export const PATCH = withSupplier(async (req: NextRequest, { user }: { user: Aut
     return apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Invalid onboarding details");
   }
   const input = parsed.data;
+  const buyModes = input.buyModes ? cleanBuyModes(input.buyModes, supplier.level) : undefined;
+  if (input.buyModes?.length && !buyModes?.length) return apiError("BAD_REQUEST", PREORDER_LOCKED_MESSAGE);
   const businessName = input.businessName?.trim() || supplier.businessName;
   const docs = normalizeVerificationDocs(supplier.verificationDocuments);
   if (input.completed && !identitySent(docs)) {
@@ -85,9 +89,9 @@ export const PATCH = withSupplier(async (req: NextRequest, { user }: { user: Aut
       description: input.description ?? supplier.description,
       categories: input.categories?.length ? input.categories : supplier.categories,
       ...(input.source ? { businessType: SOURCE_BUSINESS_TYPE[input.source] } : {}),
-      ...(input.buyModes ? { buyModes: input.buyModes } : {}),
+      ...(buyModes ? { buyModes } : {}),
       ...(input.minimumOrder !== undefined ? { minimumOrder: input.minimumOrder } : {}),
-      ...(input.buyModes && !input.buyModes.includes("wholesale") ? { minimumOrder: null } : {}),
+      ...(buyModes && !buyModes.includes("wholesale") ? { minimumOrder: null } : {}),
       ...(input.pickup ? { pickupLat: coords?.lat ?? null, pickupLng: coords?.lng ?? null } : {}),
       onboardingState: onboardingState as Prisma.InputJsonValue,
     },

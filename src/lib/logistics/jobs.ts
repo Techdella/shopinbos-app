@@ -81,6 +81,8 @@ export async function transitionJob(input: {
   if (input.trackingCode) data.trackingCode = input.trackingCode;
   await db.deliveryBooking.update({ where: { id: job.id }, data });
   void import("@/lib/rewards/rewards.server").then((rewards) => rewards.rewardJobMoved(job.id, input.to)).catch(() => undefined);
+  // A delivered job counts towards the partner's level (Verified → Trusted → Cash trusted, where pay on delivery opens).
+  if (input.to === "delivered") void import("./partner-levels.server").then((levels) => levels.refreshPartnerLevel(input.partnerId)).catch(() => undefined);
 
   // Keep the seller's order in step (shipped when picked up, delivered — and paid, for pay on delivery — when dropped off).
   // A supplier's pickup is one parcel of the order: its supplier order moves (onDeliveryJobMoved below) and the

@@ -28,13 +28,17 @@ import {
   type RateCardInput,
 } from "@shared/delivery-market";
 import { LIVE_PARTNER_WHERE, deliverySettingsFor, originOf } from "./market.server";
+import { payOnDeliveryProblem as partnerPodProblem } from "@/lib/logistics/partner-levels.server";
 import { acceptPrivateRatesProblem, connectionLimitProblem, payOnDeliveryProblem, pickupPointLimitProblem, proposePrivateRatesProblem, sellAreaProblem } from "@/lib/plans/market.server";
 
 // Managing the logistics marketplace: a business's delivery settings ("Where I sell"), its delivery partners
 // (connect, choose what customers see, pay on delivery, end), partners' rate cards (public and private), pickup
 // points, coverage and business details, finding partners with their stats, and customers' delivery problems.
 
-export type Result<T = undefined> = { ok: true; data?: T } | { ok: false; error: string };
+export type Result<T = undefined> = { ok: true; data?: T } | { ok: false; error: string; code?: string };
+
+/** The refusal when a partner below Cash trusted switches pay on delivery on (API: 403 pod_locked). */
+export const POD_LOCKED_CODE = "pod_locked";
 
 const text = (value: unknown, max: number) => String(value ?? "").trim().replace(/\s+/g, " ").slice(0, max) || null;
 
@@ -202,6 +206,11 @@ export async function endConnection(actor: { userId: string; side: "owner" | "pa
 
 /** The partner's side of pay on delivery for one connection. */
 export async function partnerSetPod(partnerId: string, connectionId: string, on: boolean): Promise<Result> {
+  // Pay on delivery opens at Cash trusted (shared/dropship-rules.ts): the rider holds the customer's cash.
+  if (on) {
+    const locked = await partnerPodProblem(partnerId);
+    if (locked) return { ok: false, error: locked, code: POD_LOCKED_CODE };
+  }
   const partner = await db.logisticsPartner.findUnique({ where: { id: partnerId }, select: { offersPayOnDelivery: true } });
   if (on && !partner?.offersPayOnDelivery) return { ok: false, error: "Switch on pay on delivery in your services first." };
   const moved = await db.deliveryConnection.updateMany({ where: { id: connectionId, logisticsPartnerId: partnerId, status: "active" }, data: { partnerPod: on } });
@@ -333,13 +342,19 @@ export async function savePartnerCoverage(partnerId: string, input: CoverageInpu
   const delivery = cleanAreas(input.deliveryAreas);
   if (!pickup.areas.length) return { ok: false, error: "Add at least one place you pick up from (a state, region or Nationwide)." };
   if (!delivery.areas.length) return { ok: false, error: "Add at least one place you deliver to (a state, region or Nationwide)." };
+  const pod = input.offersPayOnDelivery === true || input.offersPayOnDelivery === "on" || input.offersPayOnDelivery === "true";
+  // Pay on delivery opens at Cash trusted, and not while paused for late cash (src/lib/logistics/partner-levels.server.ts).
+  if (pod) {
+    const locked = await partnerPodProblem(partnerId);
+    if (locked) return { ok: false, error: locked, code: POD_LOCKED_CODE };
+  }
   const partner = await db.logisticsPartner.update({
     where: { id: partnerId },
     data: {
       services,
       pickupAreas: pickup.areas,
       deliveryAreas: delivery.areas,
-      offersPayOnDelivery: input.offersPayOnDelivery === true || input.offersPayOnDelivery === "on" || input.offersPayOnDelivery === "true",
+      offersPayOnDelivery: pod,
     },
     select: { slug: true, offersPayOnDelivery: true },
   });

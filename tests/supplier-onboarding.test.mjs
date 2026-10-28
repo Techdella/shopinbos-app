@@ -26,7 +26,12 @@ test("answers are cleaned: make/import/resell map to the business type, buy mode
   assert.equal(rules.SOURCE_BUSINESS_TYPE.import, "importer");
   assert.equal(rules.SOURCE_BUSINESS_TYPE.resell, "wholesaler");
   assert.equal(rules.sourceForBusinessType("dropshipper"), null);
-  assert.deepEqual(rules.cleanBuyModes(["preorder", "x", "dropship"]), ["dropship", "preorder"]);
+  // Pre-order opens at Established (shared/dropship-rules.ts): a new supplier can't save it.
+  assert.deepEqual(rules.cleanBuyModes(["preorder", "x", "dropship"]), ["dropship"]);
+  assert.deepEqual(rules.cleanBuyModes(["preorder", "dropship"], "trusted"), ["dropship"]);
+  assert.deepEqual(rules.cleanBuyModes(["preorder", "x", "dropship"], "established"), ["dropship", "preorder"]);
+  assert.equal(rules.preorderLocked("new"), true);
+  assert.equal(rules.preorderLocked("established"), false);
   assert.equal(rules.cleanMinimumOrder("12"), 12);
   assert.equal(rules.cleanMinimumOrder(0), null);
   assert.deepEqual(rules.cleanCoords("6.45", 3.39), { lat: 6.45, lng: 3.39 });
@@ -72,6 +77,9 @@ test("the API: one answer per save, ID and selfie routes, completion needs the I
   assert.match(route, /saveDeliverySettings\(user\.id, \{ originState: input\.pickup\.state/);
   assert.match(route, /businessType: SOURCE_BUSINESS_TYPE\[input\.source\]/);
   assert.doesNotMatch(route, /missingRequiredDocs/);
+  assert.match(route, /cleanBuyModes\(input\.buyModes, supplier\.level\)/, "Pre-order is dropped below Established");
+  assert.match(route, /\.\.\.\(buyModes \? \{ buyModes \} : \{\}\)/);
+  assert.doesNotMatch(route, /buyModes: input\.buyModes/, "the raw answer is never saved");
   const selfie = read("src/app/api/supplier/kyc/selfie/route.ts");
   assert.match(selfie, /verifyKorapayIdentity\(\{ \.\.\.typed, selfie: selfie\.dataUri \}\)/);
   assert.match(selfie, /retrying without it/, "a refused face match still checks the NIN");
@@ -97,6 +105,12 @@ test("the screens: web and phone, one question each, camera and location, no ban
     assert.doesNotMatch(source, /bankName|accountNumber|linkWalletBank|payout-bank/, `${name}: the bank account waits for the first payout`);
   }
   assert.match(web, /navigator\.geolocation\.getCurrentPosition/);
+  // Web layout: the step list with "No BVN needed", Pre-order locked, the selfie on the phone or this camera.
+  assert.match(web, /<StepRail/);
+  assert.match(web, /preorderLocked/);
+  assert.match(web, /t\("buy\.preorderLocked"\)/);
+  assert.match(web, /<SelfieWays/);
+  assert.match(read("src/components/onboarding/StepRail.tsx"), /t\("rail\.noBvn"\)/);
   assert.match(web, /capture="environment"/);
   assert.match(phone, /Location\.getCurrentPositionAsync/);
   assert.match(phone, /useKoraLiveness\(\)/);
