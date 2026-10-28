@@ -557,11 +557,11 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "notice.supplierSaved": "Echekwala. Ọnụahịa ọhụrụ gị {price} ga-amalite na {date}: ụlọ ahịa na-ere ya ga-enweta ọkwa ụbọchị 7.",
   "rex.makeVideo": "Mee vidiyo na Rex",
   "shops.selling": "{count, plural, other {Ụlọ ahịa # na-ere ya}}",
-  "sample.ordered": "Enyela iwu ihe nlele",
-  "sample.see": "Hụ ya n'iwu ahịa wholesale",
-  "sample.order": "Nye iwu otu ihe nlele · {price}",
-  "sample.note": "A ga-eziga ya na {address}. Onye na-enye ngwaahịa ga-ebu ụzọ nabata ya, mgbe ahụ ị kwụọ n'iwu ahịa wholesale.",
-  "sample.tag": "Ihe nlele",
+  "trySample.ordered": "Enyela iwu ihe nlele",
+  "trySample.see": "Hụ ya n'iwu ahịa wholesale",
+  "trySample.order": "Nye iwu otu ihe nlele · {price}",
+  "trySample.note": "A ga-eziga ya na {address}. Onye na-enye ngwaahịa ga-ebu ụzọ nabata ya, mgbe ahụ ị kwụọ n'iwu ahịa wholesale.",
+  "trySample.tag": "Ihe nlele",
   "rate.whatShopsSay": "Ihe ụlọ ahịa na-ekwu",
   "rate.count": "{count, plural, other {Ọkwa #}}",
   "rate.stars": "{count, plural, other {Kpakpando #}}",
@@ -579,6 +579,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "filter.nearCustomers": "Nso ndị ahịa m",
   "filter.nearCustomersFrom": "Ndị na-enye ngwaahịa nọ nso ebe ndị ahịa gị nọ: {places} (site n'iwu gị n'ime ụbọchị 90 gara aga).",
   "filter.nearCustomersStore": "Enweghị iwu ka, ya mere anyị na-eji steeti ụlọ ahịa gị: {places}.",
+  "trySample.title": "Nwalee ya mbụ",
+  "trySample.body": "Nye iwu otu ihe nlele na ọnụahịa dropship ({price}) iji lelee ịdị mma ya tupu ị ree ya. Otu maka ngwaahịa ọ bụla.",
+  "notice.pausedShort": "Akwụsịrị",
 };
 
 export default ig;

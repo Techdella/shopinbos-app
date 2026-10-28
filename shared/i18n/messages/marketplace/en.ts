@@ -555,11 +555,11 @@ const en = {
   "notice.supplierSaved": "Saved. Your new price {price} takes effect on {date}: shops selling it get 7 days' notice.",
   "rex.makeVideo": "Make a video with Rex",
   "shops.selling": "{count, plural, one {# shop selling} other {# shops selling}}",
-  "sample.ordered": "Sample ordered",
-  "sample.see": "See it in Wholesale orders",
-  "sample.order": "Order 1 sample · {price}",
-  "sample.note": "Delivered to {address}. The supplier accepts first, then you pay in Wholesale orders.",
-  "sample.tag": "Sample",
+  "trySample.ordered": "Sample ordered",
+  "trySample.see": "See it in Wholesale orders",
+  "trySample.order": "Order 1 sample · {price}",
+  "trySample.note": "Delivered to {address}. The supplier accepts first, then you pay in Wholesale orders.",
+  "trySample.tag": "Sample",
   "rate.whatShopsSay": "What shops say",
   "rate.count": "{count, plural, one {# rating} other {# ratings}}",
   "rate.stars": "{count, plural, one {# star} other {# stars}}",
@@ -577,6 +577,9 @@ const en = {
   "filter.nearCustomers": "Near my customers",
   "filter.nearCustomersFrom": "Suppliers near where your customers are: {places} (from your orders in the last 90 days).",
   "filter.nearCustomersStore": "No orders yet, so this uses your shop's state: {places}.",
+  "trySample.title": "Try it first",
+  "trySample.body": "Order 1 sample at the dropship price ({price}) to check the quality before you sell it. One per product.",
+  "notice.pausedShort": "Paused",
 } satisfies Record<string, string>;
 
 export default en;

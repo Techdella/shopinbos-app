@@ -557,11 +557,11 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "notice.supplierSaved": "E don save. Your new price {price} go start for {date}: shops wey dey sell am go get 7 days notice.",
   "rex.makeVideo": "Make video with Rex",
   "shops.selling": "{count, plural, one {# shop dey sell am} other {# shops dey sell am}}",
-  "sample.ordered": "Sample don order",
-  "sample.see": "See am for Wholesale orders",
-  "sample.order": "Order 1 sample · {price}",
-  "sample.note": "E go reach {address}. Supplier go accept first, then you go pay for Wholesale orders.",
-  "sample.tag": "Sample",
+  "trySample.ordered": "Sample don order",
+  "trySample.see": "See am for Wholesale orders",
+  "trySample.order": "Order 1 sample · {price}",
+  "trySample.note": "E go reach {address}. Supplier go accept first, then you go pay for Wholesale orders.",
+  "trySample.tag": "Sample",
   "rate.whatShopsSay": "Wetin shops talk",
   "rate.count": "{count, plural, one {# rating} other {# ratings}}",
   "rate.stars": "{count, plural, one {# star} other {# stars}}",
@@ -579,6 +579,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "filter.nearCustomers": "Near my customers",
   "filter.nearCustomersFrom": "Suppliers wey near where your customers dey: {places} (from your orders for last 90 days).",
   "filter.nearCustomersStore": "No orders yet, so we dey use your shop state: {places}.",
+  "trySample.title": "Try am first",
+  "trySample.body": "Order 1 sample for dropship price ({price}) make you check quality before you sell am. Na one per product.",
+  "notice.pausedShort": "Paused",
 };
 
 export default pcm;

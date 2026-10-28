@@ -557,11 +557,11 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "notice.supplierSaved": "A ti fipamọ́. Owó tuntun rẹ {price} yóò bẹ̀rẹ̀ ní {date}: àwọn ṣọ́ọ̀bù tí ń tà á yóò gba ìkìlọ̀ ọjọ́ 7.",
   "rex.makeVideo": "Ṣe fídíò pẹ̀lú Rex",
   "shops.selling": "{count, plural, other {Ṣọ́ọ̀bù # ń tà á}}",
-  "sample.ordered": "A ti paṣẹ àpẹẹrẹ",
-  "sample.see": "Wò ó nínú àwọn ìbéèrè ọjà púpọ̀",
-  "sample.order": "Paṣẹ àpẹẹrẹ 1 · {price}",
-  "sample.note": "A ó fi ránṣẹ́ sí {address}. Olùpèsè yóò gbà á kọ́kọ́, lẹ́yìn náà o san nínú àwọn ìbéèrè ọjà púpọ̀.",
-  "sample.tag": "Àpẹẹrẹ",
+  "trySample.ordered": "A ti paṣẹ àpẹẹrẹ",
+  "trySample.see": "Wò ó nínú àwọn ìbéèrè ọjà púpọ̀",
+  "trySample.order": "Paṣẹ àpẹẹrẹ 1 · {price}",
+  "trySample.note": "A ó fi ránṣẹ́ sí {address}. Olùpèsè yóò gbà á kọ́kọ́, lẹ́yìn náà o san nínú àwọn ìbéèrè ọjà púpọ̀.",
+  "trySample.tag": "Àpẹẹrẹ",
   "rate.whatShopsSay": "Ohun tí àwọn ṣọ́ọ̀bù sọ",
   "rate.count": "{count, plural, other {Ìdíwọ̀n #}}",
   "rate.stars": "{count, plural, other {Ìràwọ̀ #}}",
@@ -579,6 +579,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "filter.nearCustomers": "Nítòsí àwọn oníbàárà mi",
   "filter.nearCustomersFrom": "Àwọn olùpèsè nítòsí ibi tí àwọn oníbàárà rẹ wà: {places} (láti àwọn ìbéèrè rẹ ní ọjọ́ 90 sẹ́yìn).",
   "filter.nearCustomersStore": "Kò sí ìbéèrè síbẹ̀, nítorí náà a ń lo ìpínlẹ̀ ṣọ́ọ̀bù rẹ: {places}.",
+  "trySample.title": "Dán an wò kọ́kọ́",
+  "trySample.body": "Paṣẹ àpẹẹrẹ 1 ní owó dropship ({price}) láti ṣàyẹ̀wò dídára rẹ̀ kí o tó tà á. Ọ̀kan fún ọjà kọ̀ọ̀kan.",
+  "notice.pausedShort": "Ó dúró",
 };
 
 export default yo;

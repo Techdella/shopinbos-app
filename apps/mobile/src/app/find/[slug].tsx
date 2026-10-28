@@ -346,19 +346,19 @@ function ProductView({ product, listing, context, terms, refreshing, onRefresh }
       {/* One sample at the dropship price, to try it before selling it (shared/samples.ts). */}
       {mode === "dropship" && sample ? (
         <Card style={{ gap: 8 }}>
-          <T weight="extrabold" style={{ fontSize: 16 }}>{tm("sample.title")}</T>
-          <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{tm("sample.body", { price: naira(sample.price) })}</T>
+          <T weight="extrabold" style={{ fontSize: 16 }}>{tm("trySample.title")}</T>
+          <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{tm("trySample.body", { price: naira(sample.price) })}</T>
           {sample.ordered ? (
             <View style={{ gap: 8 }}>
-              <Badge label={`✓ ${tm("sample.ordered")}`} bg={colors.successTint} fg={colors.success} />
-              <PillButton title={tm("sample.see")} tone="white" size="sm" style={{ alignSelf: "flex-start" }} onPress={() => router.push("/wholesale")} />
+              <Badge label={`✓ ${tm("trySample.ordered")}`} bg={colors.successTint} fg={colors.success} />
+              <PillButton title={tm("trySample.see")} tone="white" size="sm" style={{ alignSelf: "flex-start" }} onPress={() => router.push("/wholesale")} />
             </View>
           ) : (
             <>
-              <PillButton tone="white" size="md" busy={busy} accessibilityLabel={tm("sample.order", { price: naira(sample.price) })} onPress={() => void sendSample()}>
-                <OneLine text={tm("sample.order", { price: naira(sample.price) })} size={15} />
+              <PillButton tone="white" size="md" busy={busy} accessibilityLabel={tm("trySample.order", { price: naira(sample.price) })} onPress={() => void sendSample()}>
+                <OneLine text={tm("trySample.order", { price: naira(sample.price) })} size={15} />
               </PillButton>
-              <T style={{ color: colors.inkSoft, fontSize: 12.5, lineHeight: 17 }}>{tm("sample.note", { address: destination.trim() || context?.destination || "—" })}</T>
+              <T style={{ color: colors.inkSoft, fontSize: 12.5, lineHeight: 17 }}>{tm("trySample.note", { address: destination.trim() || context?.destination || "—" })}</T>
             </>
           )}
         </Card>

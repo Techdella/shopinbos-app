@@ -356,21 +356,21 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
                   <div className="flex items-start gap-3">
                     <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#FDF0D5] text-[#8A5A00]"><Icon name="package" size={18} /></span>
                     <div className="min-w-0 flex-1">
-                      <h2 className="m-0 text-[14.5px] font-extrabold">{t("sample.title")}</h2>
-                      <p className="m-0 mt-0.5 text-[13px] leading-[1.45] text-app-ink-soft">{t("sample.body", { price: money(sample.price) })}</p>
+                      <h2 className="m-0 text-[14.5px] font-extrabold">{t("trySample.title")}</h2>
+                      <p className="m-0 mt-0.5 text-[13px] leading-[1.45] text-app-ink-soft">{t("trySample.body", { price: money(sample.price) })}</p>
                     </div>
                   </div>
                   {sample.ordered ? (
                     <p role="status" className="m-0 flex flex-wrap items-center justify-between gap-2 rounded-[14px] bg-app-success-tint px-3 py-2 text-[13.5px] font-extrabold text-app-success">
-                      <span className="inline-flex items-center gap-1.5"><Icon name="check" size={15} /> {t("sample.ordered")}</span>
-                      <Link href="/marketplace/wholesale" className="text-app-success underline-offset-2 hover:underline">{t("sample.see")}</Link>
+                      <span className="inline-flex items-center gap-1.5"><Icon name="check" size={15} /> {t("trySample.ordered")}</span>
+                      <Link href="/marketplace/wholesale" className="text-app-success underline-offset-2 hover:underline">{t("trySample.see")}</Link>
                     </p>
                   ) : (
                     <button type="button" data-testid="sample-order" onClick={orderSample} disabled={pending} className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full border border-app-ink bg-white px-5 text-[14px] font-bold text-app-ink hover:bg-app-canvas disabled:opacity-60">
-                      {pending ? t("pd.sending") : t("sample.order", { price: money(sample.price) })}
+                      {pending ? t("pd.sending") : t("trySample.order", { price: money(sample.price) })}
                     </button>
                   )}
-                  {!sample.ordered ? <p className="m-0 text-[12px] leading-[1.45] text-app-ink-soft">{t("sample.note", { address: address.trim() || "—" })}</p> : null}
+                  {!sample.ordered ? <p className="m-0 text-[12px] leading-[1.45] text-app-ink-soft">{t("trySample.note", { address: address.trim() || "—" })}</p> : null}
                 </section>
               ) : null}
 

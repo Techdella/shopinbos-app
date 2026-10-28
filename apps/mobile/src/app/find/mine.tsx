@@ -28,7 +28,7 @@ import { colors, fonts } from "@/theme";
 
 type Show = "all" | "dropship" | "wholesale" | "attention";
 
-function MineRow({ product, picked, onPick, onFix, fixing }: { product: MySupplierProduct; picked: boolean; onPick: () => void; onFix: () => void; fixing: boolean }) {
+function MineRow({ product, picked, onPick }: { product: MySupplierProduct; picked: boolean; onPick: () => void }) {
   const t = useT("m_find");
   const tm = useT("marketplace");
   const keep = product.price - product.cost;
@@ -51,12 +51,10 @@ function MineRow({ product, picked, onPick, onFix, fixing }: { product: MySuppli
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
           {product.status === "draft" ? <Badge label={t("mine.draft")} /> : <Badge label={t("mine.live")} bg={colors.successTint} fg={colors.success} />}
           {product.unavailable ? <Badge label={t("mine.unavailable")} bg={colors.dangerTint} fg={colors.danger} /> : null}
-          {product.pausedForPrice ? <Badge label={tm("notice.pausedTag")} bg={colors.dangerTint} fg={colors.danger} /> : null}
+          {product.pausedForPrice ? <Badge label={tm("notice.pausedShort")} bg={colors.dangerTint} fg={colors.danger} /> : null}
         </View>
         {product.priceChange ? <T weight="bold" style={{ color: colors.warnInk, fontSize: 12 }}>{tm("notice.rowLine", { cost: naira(product.priceChange.cost), date: noticeDay(product.priceChange.at) })}</T> : null}
-        {product.pausedForPrice && product.fixPrice ? (
-          <PillButton testID={`fix-${product.id}`} size="sm" busy={fixing} title={tm("notice.raiseTo", { price: naira(product.fixPrice) })} style={{ alignSelf: "flex-start", marginTop: 2 }} onPress={onFix} />
-        ) : null}
+
       </View>
       <View style={{ alignItems: "flex-end", gap: 2 }}>
         <T weight="extrabold" style={{ fontSize: 15 }}>{naira(product.price)}</T>
@@ -171,8 +169,21 @@ export default function MySupplierProducts() {
             </View>
           ) : null}
           {note ? <Notice tone={note.tone}>{note.text}</Notice> : null}
+          {/* Paused because the supplier's new price would lose money: the one-tap fix, full width (shared/price-notice.ts). */}
           {all.some((product) => product.pausedForPrice) ? (
-            <Notice tone="error">{`${tm("notice.pausedTitle", { count: all.filter((product) => product.pausedForPrice).length })} ${tm("notice.pausedBody")}`}</Notice>
+            <View style={{ gap: 10, backgroundColor: colors.dangerTint, borderRadius: 20, padding: 14 }}>
+              <T weight="extrabold" style={{ fontSize: 16, lineHeight: 21, color: colors.danger }}>{tm("notice.pausedTitle", { count: all.filter((product) => product.pausedForPrice).length })}</T>
+              <T style={{ fontSize: 14, lineHeight: 20 }}>{tm("notice.pausedBody")}</T>
+              {all.filter((product) => product.pausedForPrice).map((product) => (
+                <View key={product.id} style={{ gap: 8, backgroundColor: colors.surface, borderRadius: 16, padding: 12 }}>
+                  <T weight="bold" style={{ fontSize: 15 }} numberOfLines={2}>{product.name}</T>
+                  <T style={{ color: colors.inkSoft, fontSize: 13.5 }}>{tm("notice.pausedLine", { price: naira(product.price), cost: naira(product.cost) })}</T>
+                  {product.fixPrice ? (
+                    <PillButton testID={`fix-${product.id}`} size="md" busy={fixing === product.id} disabled={Boolean(fixing)} title={tm("notice.raiseTo", { price: naira(product.fixPrice) })} onPress={() => void fix(product)} />
+                  ) : null}
+                </View>
+              ))}
+            </View>
           ) : null}
           {loaded.loading && !loaded.data ? <LoadingBlock /> : null}
           {loaded.error && !loaded.data ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} /> : null}
@@ -196,7 +207,7 @@ export default function MySupplierProducts() {
           ) : null}
         </View>
       }
-      renderItem={({ item }) => <MineRow product={item} picked={picked.includes(item.id)} onPick={() => toggle(item.id)} onFix={() => void fix(item)} fixing={fixing === item.id} />}
+      renderItem={({ item }) => <MineRow product={item} picked={picked.includes(item.id)} onPick={() => toggle(item.id)} />}
       ListFooterComponent={
         <>
           <Sheet visible={sheet === "price"} onClose={() => setSheet(null)} title={t("mine.priceTitle", { count: picked.length })} testID="mine-price-sheet">

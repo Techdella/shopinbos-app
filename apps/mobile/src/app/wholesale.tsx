@@ -166,7 +166,7 @@ export default function WholesaleOrders() {
                     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
                       <Pill tone={stage.tone} label={t.dynamic(`ws.stage.${stage.key}`, stage.key)} />
                       {paid ? <Pill tone="ok" icon="check" label={t("ws.paidInApp")} /> : null}
-                      {order.sample ? <Pill tone="warn" label={t("sample.tag")} /> : null}
+                      {order.sample ? <Pill tone="warn" label={t("trySample.tag")} /> : null}
                       <PreorderPill preorder={order.preorder} />
                     </View>
                     {order.status === "delivered" && ratings.data ? (

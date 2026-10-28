@@ -175,7 +175,7 @@ export function WholesaleOrders({ initial }: { initial: SellerWholesaleRow[] }) 
                 </dl>
                 <div className="grid min-w-0 justify-items-start gap-1">
                   <Pill tone={stage.tone} dot>{stage.label}</Pill>
-                  {row.sample && <Pill tone="warning">{t("sample.tag")}</Pill>}
+                  {row.sample && <Pill tone="warning">{t("trySample.tag")}</Pill>}
                   {row.preorder && <Pill tone="warning">{row.preorder.ships ? `${t("pd.preorder")} · ${t("pd.preorderShips", { date: row.preorder.ships })}` : t("pd.preorder")}</Pill>}
                   {row.trackingCode && <span className="max-w-full truncate text-[12.5px] text-app-ink-soft">{t("pd.tracking", { code: row.trackingCode })}</span>}
                   {stage.note && <span className={cx("max-w-full break-words text-[12.5px]", stage.tone === "danger" ? "text-app-danger" : "text-app-ink-soft")}>{stage.note}</span>}
@@ -192,8 +192,13 @@ export function WholesaleOrders({ initial }: { initial: SellerWholesaleRow[] }) 
                       {t("ws.cancelOrder")}
                     </PillButton>
                   )}
-                  {row.canRate || row.rated ? <RateSupplier kind="wholesale_order" orderId={row.id} supplierName={row.supplier.name} rated={row.rated ?? null} /> : null}
                 </div>
+                {/* Arrived: rate the supplier (shared/supplier-ratings.ts), under the row at its full width. */}
+                {row.canRate || row.rated ? (
+                  <div className="flex max-w-[520px] lg:col-span-full lg:justify-self-end">
+                    <RateSupplier kind="wholesale_order" orderId={row.id} supplierName={row.supplier.name} rated={row.rated ?? null} />
+                  </div>
+                ) : null}
               </li>
             );
           })}

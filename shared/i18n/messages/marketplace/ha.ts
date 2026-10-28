@@ -557,11 +557,11 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "notice.supplierSaved": "An ajiye. Sabon farashinka {price} zai fara a {date}: shagunan da ke sayar da shi za su sami sanarwar kwanaki 7.",
   "rex.makeVideo": "Yi bidiyo da Rex",
   "shops.selling": "{count, plural, other {Shaguna # na sayarwa}}",
-  "sample.ordered": "An yi odar samfuri",
-  "sample.see": "Duba shi a odar jumla",
-  "sample.order": "Yi odar samfuri 1 · {price}",
-  "sample.note": "Za a kai zuwa {address}. Mai kaya zai karɓa tukuna, sannan ka biya a odar jumla.",
-  "sample.tag": "Samfuri",
+  "trySample.ordered": "An yi odar samfuri",
+  "trySample.see": "Duba shi a odar jumla",
+  "trySample.order": "Yi odar samfuri 1 · {price}",
+  "trySample.note": "Za a kai zuwa {address}. Mai kaya zai karɓa tukuna, sannan ka biya a odar jumla.",
+  "trySample.tag": "Samfuri",
   "rate.whatShopsSay": "Abin da shaguna ke cewa",
   "rate.count": "{count, plural, other {Ƙima #}}",
   "rate.stars": "{count, plural, other {Tauraro #}}",
@@ -579,6 +579,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "filter.nearCustomers": "Kusa da kwastomomina",
   "filter.nearCustomersFrom": "Masu kaya kusa da inda kwastomominka suke: {places} (daga odarka na kwanaki 90 da suka wuce).",
   "filter.nearCustomersStore": "Babu odar tukuna, don haka muna amfani da jihar shagonka: {places}.",
+  "trySample.title": "Gwada shi tukuna",
+  "trySample.body": "Yi odar samfuri 1 a farashin dropship ({price}) don duba inganci kafin ka sayar. Ɗaya kowane kaya.",
+  "notice.pausedShort": "An dakatar",
 };
 
 export default ha;
