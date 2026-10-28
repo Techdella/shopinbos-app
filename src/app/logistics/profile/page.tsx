@@ -98,12 +98,10 @@ export default async function LogisticsProfilePage({ searchParams }: PageProps) 
         <div className="grid min-w-0 content-start gap-5">
           <Card className="overflow-hidden">
             <CoverImageUpload currentBanner={partner.bannerUrl ?? null} displayName={partner.displayName} city={partner.city ?? ""} />
-            <div className="-mt-9 flex flex-wrap items-end gap-4 px-5 pb-5">
+            {/* The name is on the cover; this row only overlaps it with the logo. */}
+            <div className="relative -mt-9 flex flex-wrap items-end gap-4 px-5 pb-5">
               <LogoUploadForm currentLogo={partner.logoUrl ?? null} displayName={partner.displayName} />
-              <div className="min-w-0 pb-1">
-                <div className="truncate text-[17px] font-extrabold">{partner.displayName}</div>
-                <div className="text-[15px] text-app-ink-soft">{t("company.logoCoverHint")}</div>
-              </div>
+              <div className="min-w-0 pb-1 text-[15px] text-app-ink-soft">{t("company.logoCoverHint")}</div>
             </div>
           </Card>
 

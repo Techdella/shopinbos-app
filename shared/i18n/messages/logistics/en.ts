@@ -454,7 +454,7 @@ const en = {
   "company.details": "Details",
   "company.finish": "Finish",
   "company.verifiedBody": "Your company is verified. Sellers see the verified badge on your page.",
-  "company.unverifiedBody": "Upload your business papers so Shopinbos can verify you. You can take jobs once you're verified.",
+  "company.unverifiedBody": "Finish verification so sellers can find you. You need your NIN and a selfie, no papers to upload.",
   "company.whereDeliver": "Where you deliver",
   "company.emails": "Emails from Shopinbos",
   "company.emailsSub": "Product news and tips, setup nudges and weekly summaries. Security, billing and booking emails always arrive.",

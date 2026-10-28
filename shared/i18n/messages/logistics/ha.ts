@@ -437,7 +437,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "company.details": "Bayani",
   "company.finish": "Gama",
   "company.verifiedBody": "An tabbatar da kamfaninka. Masu sayarwa suna ganin alamar an tabbatar a shafinka.",
-  "company.unverifiedBody": "Ɗora takardun kasuwancinka don Shopinbos ya tabbatar da kai. Za ka iya karɓar ayyuka da zarar an tabbatar da kai.",
+  "company.unverifiedBody": "Gama verification don masu sayarwa su same ka. Kana buƙatar NIN ɗinka da selfie, babu takardun da za a ɗora.",
   "company.whereDeliver": "Inda kake isar da kaya",
   "company.emails": "Emails daga Shopinbos",
   "company.emailsSub": "Labaran kayayyaki da shawarwari, tunatarwar shiryawa da taƙaitawar mako. Emails na tsaro, biya da booking koyaushe suna zuwa.",
