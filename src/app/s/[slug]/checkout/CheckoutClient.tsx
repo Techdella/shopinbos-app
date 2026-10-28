@@ -90,6 +90,7 @@ import {
 import type { CheckoutDesign } from "@/components/storefront/checkout/checkout-theme";
 import { PartnerDeliveryChoices, hasPartnerParcels, isPartnerOption, partnerDeliveryProblem, partnerPaymentOptions, readQuotedDelivery, type QuotedDelivery } from "@/components/storefront/checkout/PartnerDelivery";
 import { PhoneCheck, usePhoneCheck } from "@/components/storefront/checkout/PhoneCheck";
+import { ParcelList, hasSupplierDelivery, readQuotedParcels } from "@/components/storefront/checkout/Parcels";
 import { TransferInstructions, type TransferDetails } from "../order/[orderId]/TransferInstructions";
 import { readGameConfig } from "@/lib/gamification/logic";
 import { RewardProgress } from "@/components/storefront/gamification/RewardProgress";
@@ -221,13 +222,18 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
   const quoteKey = JSON.stringify([cart.items.map((line) => [line.productId, line.variant ?? "", line.quantity]), details.city, details.state, partners ? deliveryOptionId : delivery.option?.id ?? null, code?.code ?? "", isEmail(details.email) ? details.email.trim().toLowerCase() : "", usePoints, usePoints ? details.phone.trim() : ""]);
   const liveQuote = quote && quote.key === quoteKey ? quote.value : null;
   const totals = liveQuote?.totals ?? estimate;
+  // Dropship items from suppliers ship as their own parcels, each with its fee (already inside the quote's totals).
+  const parcels = useMemo(() => readQuotedParcels(liveQuote?.delivery), [liveQuote]);
+  const supplierDelivers = hasSupplierDelivery(parcels);
 
   // With delivery partners, pay on delivery goes with the chosen option (partnerPaymentOptions, as the checkout API).
   const paymentOptions = useMemo(
-    () => partners
+    () => (partners
       ? partnerPaymentOptions(commerce.payments, { city: details.city, state: details.state, total: totals.total }, marketOption)
-      : checkoutPaymentOptions(commerce.payments, { city: details.city, state: details.state, total: totals.total }),
-    [partners, marketOption, commerce.payments, details.city, details.state, totals.total],
+      : checkoutPaymentOptions(commerce.payments, { city: details.city, state: details.state, total: totals.total }))
+      // A supplier delivering its own parcel takes no cash (the checkout API refuses pay on delivery then).
+      .filter((option) => !(supplierDelivers && option.key === "pay_on_delivery")),
+    [partners, marketOption, commerce.payments, details.city, details.state, totals.total, supplierDelivers],
   );
   // Keep the shopper's pick while it is still on offer (an address or total change can rule pay on delivery out).
   // No way to pay that works for this order: nothing is placed, and the shopper is told to message the store.
@@ -236,8 +242,9 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
   const isPaystack = paymentMethod === "paystack";
 
   const rules: CheckoutRules = {
-    // Delivery partners need a phone for the rider and a state to find who covers the address.
-    requirePhone: settings.requirePhone || partners,
+    // Delivery partners need a phone for the rider and a state to find who covers the address; a supplier delivering
+    // its own parcel texts the customer a delivery code.
+    requirePhone: settings.requirePhone || partners || supplierDelivers,
     requireState: partners || regions.length > 0,
     deliveryOptionIds: deliveryChoice.options.map((option) => option.id),
     paymentMethods: paymentOptions.map((option) => option.key),
@@ -712,7 +719,11 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
 
   // ─── Form parts ─────────────────────────────────────────────────────────────
   const contactFields = <ContactFields theme={theme} details={details} errors={errors} set={set} requirePhone={rules.requirePhone} />;
+  const parcelList = <ParcelList theme={theme} parcels={parcels} currency={store.currency} />;
+  // Every item ships from a supplier with its own rates: its parcels replace the store's zone options.
+  const onlyParcels = !partners && parcels.lines.length > 0 && !parcels.ownItems;
   const deliveryFields = (
+    <>
     <DeliveryFields
       theme={theme}
       details={details}
@@ -748,8 +759,10 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
           payOnDelivery={commerce.payments.methods?.cod === true}
         />
         <PhoneCheck theme={theme} check={phoneCheck} />
-      </>) : null}
+      </>) : onlyParcels ? parcelList : null}
     />
+    {onlyParcels ? null : parcelList}
+    </>
   );
   // "Finish on WhatsApp" (Money page): a chat with the store, the bag already written out.
   const whatsappOrderHref = commerce.payments.methods?.wa && info.whatsappNumber && cart.items.length && !createdOrder

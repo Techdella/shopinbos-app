@@ -11,6 +11,7 @@ import { createNotification } from "@/lib/notifications/create";
 import { ConversationError, sendPartnerMessage } from "@/lib/conversations/service.server";
 import { VISIBLE_SUPPLIER, listingCheck, requestAgreement } from "@/lib/marketplace/agreements.server";
 import { clampSellingPrice, isSampleId, parseSourcing, type SourcingSettings } from "@/lib/marketplace/find";
+import { ListingChoiceSchema, checkDropshipListing, skuFields, type ListingChoiceInput } from "@/lib/marketplace/dropship-listing.server";
 
 // Find products (/marketplace) and My imports (/home/imports): add a supplier's product to the store, ask for a
 // wholesale quote, save, message the supplier and get told when suppliers join. China imports: ./imports.ts.
@@ -45,10 +46,14 @@ async function liveSupplierProduct(id: string) {
   });
 }
 
-const AddSchema = z.object({ supplierProductId: z.string().min(1).max(64), retailPrice: z.number().positive().max(100_000_000).optional() });
+const AddSchema = ListingChoiceSchema.extend({ supplierProductId: z.string().min(1).max(64), retailPrice: z.number().positive().max(100_000_000).optional() });
 
-/** "Add to store" / "Add to my store at ₦X": a draft product in the seller's store, linked to the supplier. */
-export async function addSupplierProductToStore(input: { supplierProductId: string; retailPrice?: number }): Promise<Result<{ storeProductId: string; already: boolean }>> {
+/**
+ * "Add to store" / "Add to my store at ₦X": a draft product in the seller's store, linked to the supplier. Dropship:
+ * at the supplier's dropship price, never below its lowest allowed price, with who pays delivery, the branding and
+ * the seller's SKU, and refused when the price would lose money (src/lib/marketplace/dropship-listing.server.ts).
+ */
+export async function addSupplierProductToStore(input: { supplierProductId: string; retailPrice?: number } & ListingChoiceInput): Promise<Result<{ storeProductId: string; already: boolean }>> {
   const parsed = AddSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "That product couldn't be added." };
   if (isSampleId(parsed.data.supplierProductId)) return { ok: false, sample: true, error: SAMPLE_ERROR };
@@ -72,7 +77,10 @@ export async function addSupplierProductToStore(input: { supplierProductId: stri
   }
   const planLimit = await productLimitProblem(user.id, store.id, 1, dropship);
   if (planLimit) return { ok: false, error: planLimit, code: "PLAN_LIMIT" };
-  const retailPrice = clampSellingPrice(parsed.data.retailPrice ?? product.suggestedRetailPrice, product.wholesalePrice);
+  const check = dropship ? await checkDropshipListing(product, user.id, parsed.data, clampSellingPrice) : null;
+  if (check && !check.ok) return { ok: false, error: check.message, code: check.code };
+  const retailPrice = check?.ok ? check.retailPrice : clampSellingPrice(parsed.data.retailPrice ?? product.suggestedRetailPrice, product.wholesalePrice);
+  const costPrice = check?.ok ? check.costPrice : product.wholesalePrice;
   const storeProduct = await withShortCode(store.id, { name: product.name, categoryId: product.categoryId }, (shortCode) => db.storeProduct.create({
     data: {
       storeId: store.id,
@@ -83,9 +91,11 @@ export async function addSupplierProductToStore(input: { supplierProductId: stri
       description: product.description,
       images: product.images,
       retailPrice,
-      costPrice: product.wholesalePrice,
+      costPrice,
       currency: product.currency,
-      margin: retailPrice - product.wholesalePrice,
+      margin: retailPrice - costPrice,
+      ...(check?.ok ? { deliveryPayer: check.deliveryPayer, deliveryFlatFee: check.deliveryFlatFee, brandingChoice: check.brandingChoice } : {}),
+      ...skuFields(parsed.data),
       categoryId: product.categoryId,
       fulfillmentType: dropship ? "dropship" : "merchant_fulfilled",
       inventoryType: dropship ? "dropshipping" : "seller",

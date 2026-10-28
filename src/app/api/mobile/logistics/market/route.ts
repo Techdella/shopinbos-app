@@ -2,15 +2,19 @@ import { NextRequest } from "next/server";
 import { withLogistics } from "@/lib/auth/middleware";
 import { apiError, ok } from "@/lib/api/response";
 import { db } from "@/lib/db/client";
-import { connectionsForPartner, rateCardsForPartner, savePartnerBusiness, savePartnerCoverage, savePublicRateCard, statsForPartners } from "@/lib/delivery-market/manage.server";
+import { POD_LOCKED_CODE, connectionsForPartner, rateCardsForPartner, savePartnerBusiness, savePartnerCoverage, savePublicRateCard, statsForPartners } from "@/lib/delivery-market/manage.server";
+import { canOfferPayOnDelivery } from "@shared/dropship-rules";
 import { partnerFor, rateInput } from "./_guard";
 
 export const dynamic = "force-dynamic";
 
 // The delivery partner's side of the logistics marketplace in the phone app (Business tab and set-up).
 // GET → company details, coverage and services, the public rate card, pickup points, connected businesses (with
-// private rates sent to them), and in-app stats.
-// PUT { section: "coverage", services, pickupAreas, deliveryAreas, offersPayOnDelivery }
+// private rates sent to them), and in-app stats. `partner.level` (verified | trusted | cash_trusted) and
+// `partner.podOpen` say whether pay on delivery can be switched on (Cash trusted, not paused for late cash); the
+// goals to get there are GET /api/mobile/logistics/level.
+// PUT { section: "coverage", services, pickupAreas, deliveryAreas, offersPayOnDelivery }   offersPayOnDelivery: true
+//     below Cash trusted is refused: 403 { error: { code: "pod_locked", message } }
 //     { section: "business", companyName?, cacNumber, contactName, contactPhone, contactEmail, address }
 //     { section: "rates", rows, failedAttemptFee, returnFee, notes }   publishes a new public rate card
 export const GET = withLogistics(async (_req: NextRequest, { user }) => {
@@ -41,6 +45,8 @@ export const GET = withLogistics(async (_req: NextRequest, { user }) => {
       pickupAreas: partner.pickupAreas,
       deliveryAreas: partner.deliveryAreas,
       offersPayOnDelivery: partner.offersPayOnDelivery,
+      level: partner.level,
+      podOpen: canOfferPayOnDelivery(partner),
     },
     rateCard: cards.publicCard ? { id: cards.publicCard.id, rows: cards.publicCard.rows, failedAttemptFee: cards.publicCard.failedAttemptFee, returnFee: cards.publicCard.returnFee, notes: cards.publicCard.notes, createdAt: cards.publicCard.createdAt } : null,
     pickupPoints: points.map((point) => ({ id: point.id, name: point.name, address: point.address, state: point.state, area: point.area, hours: point.hours, phone: point.phone, lat: point.lat, lng: point.lng })),
@@ -73,7 +79,7 @@ export const PUT = withLogistics(async (req: NextRequest, { user }) => {
       deliveryAreas: body.deliveryAreas,
       offersPayOnDelivery: body.offersPayOnDelivery === true,
     });
-    if (!result.ok) return apiError("BAD_REQUEST", result.error);
+    if (!result.ok) return result.code === POD_LOCKED_CODE ? apiError(POD_LOCKED_CODE, result.error, 403) : apiError("BAD_REQUEST", result.error);
     return ok({ saved: true, unknown: result.data?.unknown ?? [] });
   }
   if (section === "business") {

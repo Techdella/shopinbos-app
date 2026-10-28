@@ -41,6 +41,7 @@ import { paystackSplitParams, type PaymentSplitPlan } from "@/lib/wallet/rules";
 import { initializePaystackTransaction } from "@/lib/paystack";
 import { cancelUnstartedOrder } from "@/lib/commerce/order-expiry.server";
 import { partnerShipments, planFromOption, supplierSelfShipments } from "@shared/delivery-market";
+import { zoneParcelsPlan } from "@shared/dropship-checkout";
 import { checkCheckoutPhoneToken } from "@/lib/commerce/phone-verify.server";
 
 const CHECKOUT_CORS = { methods: ["POST", "OPTIONS"], headers: ["Content-Type"] };
@@ -189,7 +190,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   if (market && !market.option) {
     return withCors(req, apiError("BAD_REQUEST", market.reason ?? "No delivery is available to this address yet."), CHECKOUT_CORS);
   }
-  const deliveryPlan = market?.option ? planFromOption(market.option) : null;
+  // A store on its own zones: suppliers delivering at their own zone rates still get their parcels (and fees) saved
+  // on the order, so their supplier orders say "you deliver it" (shared/dropship-checkout.ts zoneParcelsPlan).
+  const zoneParcels = !market && priced.delivery.parcels?.zonesPlan ? priced.delivery.parcels : null;
+  const deliveryPlan = market?.option ? planFromOption(market.option) : zoneParcels ? zoneParcelsPlan(deliveryOption?.id, zoneParcels.parts, zoneParcels.ownItems) : null;
   const partnerParcels = deliveryPlan ? partnerShipments(deliveryPlan) : [];
   // A supplier delivering its own parcel texts the customer a code to give on arrival, and is paid its fee in the split.
   const selfParcels = deliveryPlan ? supplierSelfShipments(deliveryPlan) : [];
@@ -302,7 +306,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
           notes: orderNotes(settings, notes, giftMessage),
           // Null keeps meaning "Paystack checkout" for older readers; transfer and pay on delivery wait as pending.
           paymentMethod: paymentMethod === "paystack" ? null : paymentMethod,
-          ...(deliveryPlan ? { logisticsDetails: { type: partnerParcels.length ? "network" : "pickup", delivery: JSON.parse(JSON.stringify(deliveryPlan)) } } : {}),
+          // "pickup" only when the customer collects it (a supplier's own delivery isn't a pickup).
+          ...(deliveryPlan ? { logisticsDetails: { ...(partnerParcels.length ? { type: "network" } : deliveryPlan.kind === "self_pickup" || deliveryPlan.kind === "pickup_point" ? { type: "pickup" } : {}), delivery: JSON.parse(JSON.stringify(deliveryPlan)) } } : {}),
           status: "pending",
           ...(deposit ? { depositKobo: deposit.payNowKobo, balanceKobo: deposit.balanceKobo } : {}),
           // What was really taken (versions of products that keep selling at 0 may give less than asked).
