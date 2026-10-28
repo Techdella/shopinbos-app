@@ -1,4 +1,6 @@
 import "server-only";
+import { fixPricesFor, pendingPriceView } from "./price-notice.server";
+import { PRICE_LOSS } from "@shared/price-notice";
 
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
@@ -245,6 +247,12 @@ export interface MySupplierProduct {
   stock: number;
   /** The supplier stopped selling it, or it's out of stock. */
   unavailable: boolean;
+  /** Shopinbos paused it because the supplier's new price makes a sale lose money (shared/price-notice.ts). */
+  pausedForPrice: boolean;
+  /** "Raise to ₦X": the lowest nice price that sells it again without a loss (paused ones only). */
+  fixPrice: number | null;
+  /** The supplier's price rise on notice: what you'll pay per piece and from when (ISO), or null. */
+  priceChange: { cost: number; at: string } | null;
 }
 
 export async function mySupplierProducts(userId: string): Promise<{ products: MySupplierProduct[]; markup: Markup; asked: boolean } | null> {
@@ -254,12 +262,15 @@ export async function mySupplierProducts(userId: string): Promise<{ products: My
     where: { storeId: store.id, supplierProductId: { not: null }, status: { not: "archived" } },
     select: {
       id: true, name: true, images: true, status: true, retailPrice: true, costPrice: true, fulfillmentType: true, supplierProductId: true,
-      supplierProduct: { select: { status: true, stockQuantity: true, wholesalePrice: true, priceMode: true, dropshipPrice: true, minRetailPrice: true, dropshipAvailable: true, supplier: { select: { displayName: true } } } },
+      pausedReason: true, deliveryPayer: true, deliveryFlatFee: true, brandingChoice: true,
+      supplierProduct: { select: { ...productSelect, status: true, pendingPrice: true, pendingPriceAt: true, supplier: { select: { displayName: true } } } },
     },
     orderBy: { createdAt: "desc" },
     take: MINE_MAX,
   });
   const saved = parseSourcing(settingsOf(store.brandSettings).sourcing).markup ?? null;
+  // Paused for a price loss: the one-tap fix price (src/lib/marketplace/price-notice.server.ts).
+  const fixes = await fixPricesFor(userId, rows).catch(() => new Map<string, number>());
   return {
     markup: saved ?? DEFAULT_MARKUP,
     asked: Boolean(saved),
@@ -280,6 +291,12 @@ export async function mySupplierProducts(userId: string): Promise<{ products: My
         lowest: source && dropship ? retailFloor(source) : null,
         stock: source?.stockQuantity ?? 0,
         unavailable: !source || source.status !== "published" || source.stockQuantity <= 0,
+        pausedForPrice: row.pausedReason === PRICE_LOSS,
+        fixPrice: fixes.get(row.id) ?? null,
+        priceChange: (() => {
+          const view = source ? pendingPriceView(source) : null;
+          return view ? { cost: dropship ? view.dropshipPrice : view.wholesalePrice, at: view.at } : null;
+        })(),
       };
     }),
   };

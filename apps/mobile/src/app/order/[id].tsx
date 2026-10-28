@@ -13,6 +13,7 @@ import { ChoiceRow, Sheet } from "@/components/Sheet";
 import { Thumb } from "@/components/seller/bits";
 import { CodeBadge } from "@/components/seller/ProductCode";
 import { PreorderPill } from "@/components/Preorder";
+import { RateParcels } from "@/components/RateSupplier";
 import { TONE_COLORS, type Tone } from "@/lib/dashboard";
 import { fetchOrderDelivery, fetchReassignOptions, jobAction, openPartnerChat, type OrderDelivery, type Parcel, type ReassignOption } from "@/lib/delivery";
 import { daysWords, ownTimeline, timelineStates, timelineWordKey, whatsappNumber } from "@/lib/delivery-pure";
@@ -474,6 +475,9 @@ export default function OrderScreen() {
           <ChoiceRow icon="phone" title={t("order.call")} sub={phone} onPress={() => { setContact(false); void Linking.openURL(`tel:${phone.replace(/[^\d+]/g, "")}`); }} />
         </Sheet>
       ) : null}
+
+      {/* Supplier parcels delivered: rate the supplier (shared/supplier-ratings.ts). */}
+      {parts ? <RateParcels retailOrderId={order.id} /> : null}
 
       <ReassignSheet
         parcel={reassign}

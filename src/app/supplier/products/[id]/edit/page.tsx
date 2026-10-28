@@ -8,6 +8,9 @@ import { updateSupplierProduct } from "@/app/actions/supplier";
 import { SupplierProductForm } from "@/components/supplier/SupplierProductForm";
 import { getT } from "@/lib/i18n/server";
 import { supplierLevelView } from "@/lib/supplier-levels.server";
+import { pendingPriceView } from "@/lib/marketplace/price-notice.server";
+import { noticeDay } from "@shared/price-notice";
+import { naira } from "@/lib/marketplace/find";
 
 export default async function EditSupplierProductPage({
   params,
@@ -58,6 +61,8 @@ export default async function EditSupplierProductPage({
         dropshipMinQty: true,
         handlingDays: true,
         sizeBand: true,
+        pendingPrice: true,
+        pendingPriceAt: true,
         updatedAt: true,
         category: { select: { name: true, slug: true } },
       },
@@ -72,6 +77,12 @@ export default async function EditSupplierProductPage({
 
   if (!product) notFound();
   const t = await getT("supplier");
+  const tm = await getT("marketplace");
+  // A price rise waiting out its 7 days' notice to the shops selling it (shared/price-notice.ts).
+  const pending = pendingPriceView(product);
+  const { pendingPrice: _pending, pendingPriceAt: _pendingAt, ...formProduct } = product;
+  void _pending;
+  void _pendingAt;
 
   return (
     <AppPage
@@ -87,11 +98,18 @@ export default async function EditSupplierProductPage({
         </>
       }
     >
+      {pending ? (
+        <p role="status" data-testid="price-notice" className="mb-4 rounded-[16px] bg-[#FDF0D5] px-4 py-3 text-[14px] font-bold leading-[1.5] text-[#5C3D00]">
+          {tm("notice.supplierPending", { price: naira(pending.wholesalePrice), date: noticeDay(pending.at), now: naira(product.wholesalePrice) })}
+        </p>
+      ) : (
+        <p className="mb-4 text-[13.5px] leading-[1.5] text-app-ink-soft">{tm("notice.supplierRule")}</p>
+      )}
       <SupplierProductForm
         mode="edit"
         action={updateSupplierProduct}
         categories={categories}
-        product={product}
+        product={formProduct}
         error={query?.error}
         saved={query?.saved === "1"}
         level={level}

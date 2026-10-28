@@ -8,6 +8,7 @@ import { db } from "@/lib/db/client";
 import { orderRow } from "@/lib/dashboard/compute";
 import { addressLines } from "@/lib/labels";
 import { FulfillmentPanel } from "./FulfillmentPanel";
+import { RateSuppliersOnOrder } from "@/app/marketplace/_components/RateSupplier";
 import { CHANNEL_LABEL, type OrderChannel } from "@shared/channels";
 import { PAYMENT_METHOD_LABEL } from "@shared/sales";
 import { formatDate as formatLocaleDate, formatMoney, formatNumber, type Locale } from "@shared/i18n";
@@ -393,6 +394,8 @@ export default async function OrderDetailPage({ params, searchParams }: { params
               />
             </div>
           </Card>
+          {/* Dropship parcels delivered: rate the supplier (shared/supplier-ratings.ts). */}
+          {supplierOrders.length ? <div className="max-xl:order-3"><RateSuppliersOnOrder retailOrderId={order.id} /></div> : null}
         </div>
       </div>
     </AppPage>

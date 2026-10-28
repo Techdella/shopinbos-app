@@ -209,6 +209,11 @@ export interface StoreSellerCard {
   whatsappNumber: string | null;
   /** Checkout offers the delivery partners' doorstep and pickup point options. */
   partnerDelivery: boolean;
+  /**
+   * The product page's trust lines (shared/storefront-trust.ts): verified supplier, verified delivery and
+   * paid-at-checkout protection, each only when true. Never names the supplier (blind dropship).
+   */
+  trust?: import("../../../shared/storefront-trust.ts").StorefrontTrust | null;
 }
 
 /**

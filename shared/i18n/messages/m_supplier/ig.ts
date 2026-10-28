@@ -569,6 +569,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "account.agreementsSub": "Ụlọ ahịa chọrọ ire ngwaahịa gị",
   "home.agreements": "{count, plural, other {Ụlọ ahịa # chọrọ ire ngwaahịa gị}}",
   "home.agreementsSub": "Gụọ nkwekọrịta ahụ ma bịanye aka",
+  "kind.sample": "Ihe nlele",
 };
 
 export default ig;

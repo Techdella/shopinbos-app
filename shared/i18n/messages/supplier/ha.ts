@@ -675,6 +675,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "preorders.confirmDeposit": "Za mu sanar da {count, plural, one {shagon} other {shaguna #}} da ke jira. Za su biya sauran, sannan ka ɗaura ka aika.",
   "preorders.qty": "Guda {count}",
   "preorders.noOrders": "Babu odar tukuna.",
+  "orders.sampleTag": "Samfuri",
 };
 
 export default ha;

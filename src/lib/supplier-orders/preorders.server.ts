@@ -214,6 +214,8 @@ export async function endSupplierPreorders(supplierId: string, productId: string
 export const SELLER_WHOLESALE_SELECT = {
   id: true, status: true, quantity: true, unitPrice: true, totalPrice: true, currency: true, rejectReason: true, trackingCode: true, createdAt: true, acceptBy: true,
   paidAt: true, paidOutAt: true, expiredAt: true, preorder: true, preorderShipsAt: true, preorderReadyAt: true, depositKobo: true, depositPaidAt: true,
+  // A sample: one piece at the dropship price (shared/samples.ts), shown as "Sample".
+  sample: true,
   supplier: { select: { id: true, displayName: true, userId: true } },
   supplierProduct: { select: { id: true, name: true, images: true, slug: true } },
 } satisfies Prisma.WholesaleOrderSelect;

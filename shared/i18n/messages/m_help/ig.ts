@@ -141,6 +141,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "call.screen.find": "Chọta ngwaahịa ị ga-ere",
   "call.screen.starter_packs": "Ngwugwu ngwaahịa mbido",
   "call.screen.supplier_products": "Ngwaahịa supplier m",
+  "call.screen.wholesale_orders": "Iwu ahịa wholesale m",
   "call.screen.help": "Enyemaka",
   "call.screen.home": "Ụlọ",
   "call.screen.jobs": "Ọrụ",

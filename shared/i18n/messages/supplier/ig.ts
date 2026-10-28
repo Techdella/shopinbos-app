@@ -675,6 +675,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "preorders.confirmDeposit": "Anyị ga-agwa {count, plural, other {ụlọ ahịa #}} na-eche. Ha ga-akwụ ndị fọdụrụ, mgbe ahụ ị kechie ma ziga ya.",
   "preorders.qty": "Otu {count}",
   "preorders.noOrders": "Enwebeghị ịtụ.",
+  "orders.sampleTag": "Ihe nlele",
 };
 
 export default ig;

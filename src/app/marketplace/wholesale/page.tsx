@@ -14,6 +14,7 @@ import { PRODUCT_PLAN_FIRST } from "@/lib/plans/placement";
 import { naira, parsePricingTiers } from "@/lib/marketplace/find";
 import { WHOLESALE_PAY_PREFIX, confirmWholesalePayment, payableWholesaleOrders } from "@/lib/supplier-orders/wholesale-payments.server";
 import { WholesaleOrders, type SellerWholesaleRow } from "../_components/WholesaleOrders";
+import { myRatings } from "@/lib/marketplace/supplier-ratings.server";
 import { formatDate } from "@shared/i18n";
 import { wholesalePayStep } from "@shared/preorder";
 import { getLocale, getT } from "@/lib/i18n/server";
@@ -46,7 +47,7 @@ export default async function SellerWholesaleOrdersPage({ searchParams }: { sear
     take: 100,
     select: {
       id: true, status: true, rejectReason: true, trackingCode: true, quantity: true, unitPrice: true, totalPrice: true, currency: true, createdAt: true, paidAt: true, paidOutAt: true,
-      preorder: true, preorderShipsAt: true, preorderReadyAt: true, depositKobo: true, depositPaidAt: true,
+      preorder: true, preorderShipsAt: true, preorderReadyAt: true, depositKobo: true, depositPaidAt: true, sample: true,
       supplier: { select: { displayName: true, slug: true, userId: true } },
       supplierProduct: { select: { id: true, name: true, images: true } },
     },
@@ -73,6 +74,8 @@ export default async function SellerWholesaleOrdersPage({ searchParams }: { sear
   const price = (amount: number, currency: string) => (currency === "NGN" ? naira(amount) : `${currency} ${Math.round(amount).toLocaleString("en-NG")}`);
 
   const payable = await payableWholesaleOrders(orders).catch(() => new Set<string>());
+  // "Rate the supplier" once it arrived, "You rated ★★★★" after (shared/supplier-ratings.ts).
+  const rated = new Map((await safeQuery(() => myRatings(user.id, orders.map((order) => order.id)), [])).map((rating) => [rating.orderId, rating]));
   const rows: SellerWholesaleRow[] = orders.map((order) => ({
     id: order.id,
     ref: wholesaleRef(order.id),
@@ -89,6 +92,9 @@ export default async function SellerWholesaleOrdersPage({ searchParams }: { sear
     paid: !!order.paidAt,
     canPay: payable.has(order.id),
     payKobo: payable.has(order.id) ? wholesalePayStep(order)?.kobo ?? null : null,
+    sample: order.sample,
+    canRate: order.status === "delivered",
+    rated: rated.get(order.id) ? { rating: rated.get(order.id)!.rating, text: rated.get(order.id)!.text } : null,
     preorder: order.preorder ? { ships: order.preorderShipsAt ? formatDate(order.preorderShipsAt, locale, { day: "numeric", month: "short", timeZone: "UTC" }) : null } : null,
   }));
 

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getCurrentAppUser } from "@/lib/server-auth";
-import { setDropshipPausedFor } from "@/lib/marketplace/dropship.server";
+import { STILL_LOSES, setDropshipPausedFor } from "@/lib/marketplace/dropship.server";
 
 // Dropship page: pause a supplier-linked product (hidden from the store) or start selling it again.
 
@@ -18,6 +18,7 @@ export async function setDropshipPaused(input: { relationshipId: string; pause: 
   if (!user || user.role !== "seller") return { ok: false, error: "Sign in again to change this." };
   const status = await setDropshipPausedFor(user.id, parsed.data.relationshipId, parsed.data.pause);
   if (!status) return { ok: false, error: "That product couldn't be found." };
+  if (status === "loss") return { ok: false, error: STILL_LOSES };
   revalidatePath("/home/dropship");
   revalidatePath("/products");
   return { ok: true, status };

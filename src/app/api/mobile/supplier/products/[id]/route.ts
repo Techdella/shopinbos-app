@@ -10,12 +10,15 @@ import { parsePreorderInput, preorderSaveData } from "@shared/preorder";
 import { PreorderInputSchema } from "@/lib/schemas";
 import { channelPriceProblem } from "@shared/dropship-rules";
 import { preorderLevelProblem } from "@/lib/supplier-levels.server";
+import { notifyPriceNotice, pendingPriceView, supplierPriceEdit } from "@/lib/marketplace/price-notice.server";
 
 export const dynamic = "force-dynamic";
 
 // Quick edits from the supplier app's Products tab. PATCH { stockQuantity?, wholesalePrice?, suggestedRetailPrice?, publish?, preorder? }
 //  - stock changes save straight away (they don't change what the listing says, so no new review);
-//  - price changes on a live product send it back for review, like PATCH /api/supplier/products/[id];
+//  - price changes on a live product send it back for review, like PATCH /api/supplier/products/[id]; a rise on a
+//    product shops already list waits 7 days (shared/price-notice.ts): the response's `pendingPrice`
+//    ({ wholesalePrice, dropshipPrice, at }) says when it takes effect, and the shops are told;
 //  - preorder { enabled, shipsAt (YYYY-MM-DD | null), limit, note } saves straight away (shared/preorder.ts rules);
 //  - the same rules as the portal's PATCH: prices per channel checked together (400 invalid_prices,
 //    shared/dropship-rules.ts channelPriceProblem) and pre-orders switched on only at Established (403 preorder_locked);
@@ -54,6 +57,8 @@ export const PATCH = withSupplier(async (req: NextRequest, { user, params }) => 
   });
   if (priceProblem) return apiError("invalid_prices", priceProblem, 400);
 
+  // A rise on a product shops list waits 7 days (src/lib/marketplace/price-notice.server.ts); a cut goes live now.
+  const priceEdit = await supplierPriceEdit(product, { wholesalePrice: input.wholesalePrice });
   const priceChanged = editNeedsReview(product, { wholesalePrice: input.wholesalePrice, suggestedRetailPrice: input.suggestedRetailPrice });
   let status = product.status;
   if (input.publish === true && ["draft", "unpublished", "rejected"].includes(product.status)) {
@@ -67,7 +72,7 @@ export const PATCH = withSupplier(async (req: NextRequest, { user, params }) => 
     where: { id: product.id },
     data: {
       ...(input.stockQuantity !== undefined ? { stockQuantity: input.stockQuantity } : {}),
-      ...(input.wholesalePrice !== undefined ? { wholesalePrice: input.wholesalePrice } : {}),
+      ...priceEdit.data,
       ...(input.suggestedRetailPrice !== undefined ? { suggestedRetailPrice: input.suggestedRetailPrice } : {}),
       ...(preorderParsed?.ok ? preorderSaveData(preorderParsed.value, { wasEnabled: product.preorderEnabled }) : {}),
       ...(input.preorder?.depositPct !== undefined ? { preorderDepositPct: input.preorder.depositPct } : {}),
@@ -76,8 +81,13 @@ export const PATCH = withSupplier(async (req: NextRequest, { user, params }) => 
     select: {
       id: true, name: true, status: true, stockQuantity: true, wholesalePrice: true, suggestedRetailPrice: true,
       preorderEnabled: true, preorderShipsAt: true, preorderLimit: true, preorderTaken: true, preorderNote: true, preorderDepositPct: true,
+      pendingPrice: true, pendingPriceAt: true,
     },
   });
+  if (priceEdit.plan.kind === "notice") await notifyPriceNotice(product.id);
   invalidatePublicMarketplaceCache({ productSlug: product.slug, supplierSlug: supplier.slug, categorySlug: product.category.slug });
-  return ok(updated);
+  const { pendingPrice: _pending, pendingPriceAt: _pendingAt, ...rest } = updated;
+  void _pending;
+  void _pendingAt;
+  return ok({ ...rest, pendingPrice: pendingPriceView(updated) });
 });

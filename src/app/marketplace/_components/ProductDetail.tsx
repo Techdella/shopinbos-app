@@ -71,10 +71,12 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
   const flatFee = choice.flatFee === "" ? null : Number(choice.flatFee);
   const priceProblem = terms ? listingProblem(terms, { retailPrice: price, payer: choice.payer, flatFee, brandingChoice: choice.branding }) : null;
   const supplier = product.supplier;
+  const [sample, setSample] = useState(product.sampleOffer ?? null);
   const meta = [
     supplier.name,
     supplier.city,
-    supplier.rating ? `★ ${supplier.rating.toFixed(1)}` : "",
+    supplier.rating ? `★ ${supplier.rating.toFixed(1)}${supplier.ratingCount ? ` (${num(supplier.ratingCount)})` : ""}` : "",
+    (product.shopsSelling ?? 0) > 0 ? t("shops.selling", { count: product.shopsSelling ?? 0 }) : "",
     product.ships,
     supplier.onTimePct ? t("pd.onTime", { pct: supplier.onTimePct }) : "",
   ].filter(Boolean);
@@ -124,6 +126,28 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
         const result = await requestSupplierQuote({ supplierProductId: product.id, quantity });
         if (result.ok) setQuoted(true);
         else setError(result.error);
+      }),
+    );
+
+  // One sample at the dropship price (shared/samples.ts): a wholesale order of 1, paid once the supplier accepts.
+  const orderSample = () =>
+    guard(() =>
+      start(async () => {
+        if (address.trim().length < 5) {
+          setError(t("pd.addressError"));
+          return;
+        }
+        const response = await fetch("/api/app/wholesale/request", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ supplierProductId: product.id, quantity: 1, sample: true, deliveryAddress: address.trim() }),
+        }).catch(() => null);
+        const body = (await response?.json().catch(() => null)) as { data?: { id: string; status: string }; error?: { message?: string } } | null;
+        if (!response?.ok || !body?.data) {
+          setError(body?.error?.message ?? t("pd.placeError"));
+          return;
+        }
+        setSample((now) => (now ? { ...now, ordered: { id: body.data!.id, status: body.data!.status } } : now));
       }),
     );
 
@@ -327,6 +351,29 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
               </section>
               )}
 
+              {sample ? (
+                <section className={cx(CARD, "grid gap-2 p-4")} data-testid="sample-offer">
+                  <div className="flex items-start gap-3">
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#FDF0D5] text-[#8A5A00]"><Icon name="package" size={18} /></span>
+                    <div className="min-w-0 flex-1">
+                      <h2 className="m-0 text-[14.5px] font-extrabold">{t("sample.title")}</h2>
+                      <p className="m-0 mt-0.5 text-[13px] leading-[1.45] text-app-ink-soft">{t("sample.body", { price: money(sample.price) })}</p>
+                    </div>
+                  </div>
+                  {sample.ordered ? (
+                    <p role="status" className="m-0 flex flex-wrap items-center justify-between gap-2 rounded-[14px] bg-app-success-tint px-3 py-2 text-[13.5px] font-extrabold text-app-success">
+                      <span className="inline-flex items-center gap-1.5"><Icon name="check" size={15} /> {t("sample.ordered")}</span>
+                      <Link href="/marketplace/wholesale" className="text-app-success underline-offset-2 hover:underline">{t("sample.see")}</Link>
+                    </p>
+                  ) : (
+                    <button type="button" data-testid="sample-order" onClick={orderSample} disabled={pending} className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full border border-app-ink bg-white px-5 text-[14px] font-bold text-app-ink hover:bg-app-canvas disabled:opacity-60">
+                      {pending ? t("pd.sending") : t("sample.order", { price: money(sample.price) })}
+                    </button>
+                  )}
+                  {!sample.ordered ? <p className="m-0 text-[12px] leading-[1.45] text-app-ink-soft">{t("sample.note", { address: address.trim() || "—" })}</p> : null}
+                </section>
+              ) : null}
+
               {!added && listing && listing.step !== "ready" ? (
                 <BeforeYouList supplier={product.supplier} listing={listing} />
               ) : added ? (
@@ -481,6 +528,20 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
               </div>
             </div>
           </section>
+          {!product.sample && (supplier.ratingCount ?? 0) > 0 ? (
+            <section className={cx(CARD, "grid gap-2 p-4")} data-testid="supplier-ratings">
+              <h2 className="m-0 flex flex-wrap items-baseline justify-between gap-2 text-[14.5px] font-extrabold">
+                {t("rate.whatShopsSay")}
+                <span className="text-[13px] font-bold text-app-ink-soft"><span className="text-[#F2A93B]">★</span> {supplier.rating?.toFixed(1)} · {t("rate.count", { count: supplier.ratingCount ?? 0 })}</span>
+              </h2>
+              {(product.ratings ?? []).filter((entry) => entry.text).map((entry) => (
+                <p key={entry.at} className="m-0 text-[13.5px] leading-[1.5]">
+                  <span className="mr-1.5 font-extrabold text-[#F2A93B]" aria-label={t("rate.stars", { count: entry.rating })}>{"★".repeat(entry.rating)}</span>
+                  {entry.text}
+                </p>
+              ))}
+            </section>
+          ) : null}
           <section className={cx(CARD, "grid gap-1.5 p-4")}>
             <h2 className="m-0 text-[14.5px] font-extrabold">{t("pd.returns", { name: supplier.name })}</h2>
             <p className="m-0 whitespace-pre-line text-[13.5px] leading-[1.5]">{supplier.returnPolicy || t("pd.returnsDefault", { name: supplier.name })}</p>

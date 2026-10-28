@@ -15,6 +15,8 @@ import { listingStep } from "@shared/supplier-trust";
 import type { ListingInfo } from "../../_components/BeforeYouList";
 import { dropshipTermsFor } from "@/lib/marketplace/dropship-listing.server";
 import type { DropshipTerms } from "@shared/dropship-checkout";
+import { sampleOfferForSeller, shopsSellingFor } from "@/lib/marketplace/find-extras.server";
+import { latestSupplierRatings } from "@/lib/marketplace/supplier-ratings.server";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -66,12 +68,16 @@ export default async function MarketplaceProductPage({ params, searchParams }: {
       added = inStore > 0;
       // Who the supplier is and how close (src/lib/marketplace/agreements.server.ts): verification, risk score,
       // distance, and the call / stock check / agreement steps before dropshipping their products.
-      const [place, trust, agreement, terms] = await Promise.all([
+      const [place, trust, agreement, terms, selling, ratings, sampleOffer] = await Promise.all([
         sellerPlace(user.id),
         supplierTrust([row.supplier.id]),
         agreementWith(user.id, row.supplier.id),
         // You pay / Your price / You earn, delivery to the seller's state, who pays and branding (dropship only).
         row.dropshipAvailable ? safeQuery(() => dropshipTermsFor([row], user.id), new Map<string, DropshipTerms>()) : Promise.resolve(new Map<string, DropshipTerms>()),
+        // "N shops selling", what shops say about the supplier, and the one sample at the dropship price.
+        shopsSellingFor([row.id]),
+        safeQuery(() => latestSupplierRatings(row.supplier.id), []),
+        safeQuery(() => sampleOfferForSeller(user.id, row), null),
       ]);
       const distance = nearness(place, { city: row.supplier.city, address: row.supplier.address });
       const info = trust.get(row.supplier.id);
@@ -83,6 +89,9 @@ export default async function MarketplaceProductPage({ params, searchParams }: {
         // Wholesale (paid to the supplier directly) only from verified suppliers.
         wholesale: product.wholesale && row.supplier.verificationStatus === "verified",
         terms: terms.get(row.id) ?? null,
+        shopsSelling: selling.get(row.id) ?? 0,
+        ratings,
+        sampleOffer,
         supplier: { ...product.supplier, km: distance.km, area: distance.area, risk: info?.risk ?? null, verificationStatus: row.supplier.verificationStatus, agreed: agreement?.status === "active" },
       };
     }

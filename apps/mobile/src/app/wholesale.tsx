@@ -10,6 +10,8 @@ import { money } from "@/lib/customers-pure";
 import { useT } from "@/lib/i18n";
 import { useLoad } from "@/lib/useLoad";
 import { payWholesaleOrder } from "@/lib/wallet";
+import { RateSupplier } from "@/components/RateSupplier";
+import { fetchMyRatings } from "@/lib/marketplace";
 import { colors } from "@/theme";
 
 // The seller's wholesale orders (stock bought from suppliers). Once the supplier accepts, the seller can pay here
@@ -35,6 +37,8 @@ type WholesaleOrder = {
   preorder?: { shipsOn: string | null } | null;
   /** What Pay pays now (a preorder deposit, or the rest once the stock is ready), in kobo (newer servers). */
   pay?: { step: "deposit" | "balance" | "full"; kobo: number } | null;
+  /** One piece at the dropship price to try it (shared/samples.ts; newer servers). */
+  sample?: boolean;
 };
 
 const STAGE: Record<string, { key: string; tone: PillTone }> = {
@@ -70,6 +74,8 @@ export default function WholesaleOrders() {
   const tp = useT("m_money");
   // Price requests: an extra; hidden when the server can't answer.
   const quotes = useLoad(() => api<PriceRequest[]>("/api/app/supplier-quotes?limit=20").catch(() => null));
+  // "Rate the supplier" once an order arrived; "You rated ★★★★" after (an extra: hidden when the server can't answer).
+  const ratings = useLoad(() => fetchMyRatings().catch(() => null));
   const [paying, setPaying] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ tone: "error" | "success" | "info"; text: string } | null>(null);
 
@@ -160,8 +166,12 @@ export default function WholesaleOrders() {
                     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
                       <Pill tone={stage.tone} label={t.dynamic(`ws.stage.${stage.key}`, stage.key)} />
                       {paid ? <Pill tone="ok" icon="check" label={t("ws.paidInApp")} /> : null}
+                      {order.sample ? <Pill tone="warn" label={t("sample.tag")} /> : null}
                       <PreorderPill preorder={order.preorder} />
                     </View>
+                    {order.status === "delivered" && ratings.data ? (
+                      <RateSupplier kind="wholesale_order" orderId={order.id} supplierName={order.supplier.name} rated={ratings.data.find((rating) => rating.orderId === order.id) ?? null} />
+                    ) : null}
                     {order.status === "cancelled" && order.rejectReason && !order.expiredAt ? (
                       <T style={{ fontSize: 13, color: colors.inkSoft }}>{t("ws.note.declined", { reason: order.rejectReason })}</T>
                     ) : null}

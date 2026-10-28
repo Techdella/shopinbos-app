@@ -693,6 +693,7 @@ const en = {
   "preorders.confirmDeposit": "We'll tell {count, plural, one {the shop} other {the # shops}} waiting. Shops pay the rest, then you pack and send it.",
   "preorders.qty": "{count} units",
   "preorders.noOrders": "No orders yet.",
+  "orders.sampleTag": "Sample",
 } satisfies Record<string, string>;
 
 export default en;

@@ -14,7 +14,9 @@ export const productSelect = {
   // For the one-tap price (shared/supplier-markup.ts quickAddPrice): the dropship price and the lowest allowed price.
   priceMode: true, dropshipPrice: true, minRetailPrice: true,
   category: { select: { name: true } },
-  supplier: { select: { id: true, displayName: true, slug: true, city: true, address: true, rating: true, ratingCount: true, description: true, responseTimeLabel: true, verificationStatus: true, returnPolicy: true, level: true } },
+  // sampleAvailable: the one sample at the dropship price (shared/samples.ts).
+  sampleAvailable: true,
+  supplier: { select: { id: true, userId: true, displayName: true, slug: true, city: true, address: true, rating: true, ratingCount: true, description: true, responseTimeLabel: true, verificationStatus: true, returnPolicy: true, level: true } },
 } as const satisfies Prisma.SupplierProductSelect;
 
 export const productWhere = (country: string): Prisma.SupplierProductWhereInput => ({ status: "published", supplier: { ...VISIBLE_SUPPLIER, country: { equals: country, mode: "insensitive" } } });

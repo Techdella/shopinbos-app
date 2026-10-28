@@ -580,6 +580,7 @@ const en = {
   "account.agreementsSub": "Shops that want to sell your products",
   "home.agreements": "{count, plural, one {# shop wants to sell your products} other {# shops want to sell your products}}",
   "home.agreementsSub": "Read the agreement and sign",
+  "kind.sample": "Sample",
 } satisfies Record<string, string>;
 
 export default en;

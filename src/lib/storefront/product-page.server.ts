@@ -16,6 +16,8 @@ import { sellerCardLine, sellerReach, type StoreSellerCard, type StorefrontShopp
 import { PREVIEW_PRODUCT_STATUSES, storeUnavailableReason } from "./store-visibility";
 import { relatedProducts } from "@/components/storefront/shopper/catalog";
 import { forShoppers } from "@shared/product-stock";
+import { storefrontTrust } from "@shared/storefront-trust";
+import { paystackSecretReady } from "@shared/checkout-payments";
 import { withCampaignLook } from "@/lib/store-campaigns/storefront.server";
 
 // Everything the public product page needs, shared by /s/[slug]/product/[id] and custom-domain product pages.
@@ -181,7 +183,7 @@ export const loadProductPage = cache(async (slug: string, productId: string, pre
   const ratingCounts = [0, 0, 0, 0, 0];
   for (const review of reviews) ratingCounts[review.rating - 1]++;
 
-  const [catalog, shopper, deliverySettings] = await Promise.all([
+  const [catalog, shopper, deliverySettings, trustFacts] = await Promise.all([
     db.storeProduct
       .findMany({ where: { storeId: store.id, status: { in: [...statuses] } }, select: catalogSelect, orderBy: { createdAt: "desc" }, take: 200 })
       .catch(() => []),
@@ -190,6 +192,8 @@ export const loadProductPage = cache(async (slug: string, productId: string, pre
     db.deliverySettings
       .findFirst({ where: { user: { store: { id: store.id } } }, select: { checkoutMode: true, sellArea: true, sellStates: true, originState: true, originArea: true } })
       .catch(() => null),
+    // The trust lines (shared/storefront-trust.ts): the supplier's verification stays on the server, only booleans leave.
+    productTrustFacts(store.id, product.id).catch(() => ({ supplierVerificationStatus: null, onlinePayments: false })),
   ]);
   const info = shopper as StorefrontShopperInfo;
   const place = [deliverySettings?.originArea, deliverySettings?.originState].map((part) => part?.trim()).filter(Boolean).join(", ") || store.city?.trim() || null;
@@ -198,6 +202,12 @@ export const loadProductPage = cache(async (slug: string, productId: string, pre
     line: sellerCardLine({ place, reach: sellerReach(deliverySettings) }),
     whatsappNumber: info.whatsappNumber,
     partnerDelivery: deliverySettings?.checkoutMode === "partners",
+    trust: storefrontTrust({
+      dropship: product.fulfillmentType === "dropship",
+      supplierVerificationStatus: trustFacts.supplierVerificationStatus,
+      partnerDelivery: deliverySettings?.checkoutMode === "partners",
+      onlinePayments: trustFacts.onlinePayments,
+    }),
   };
 
   const templateId = resolveStoreTemplateId(store.brandSettings);
@@ -262,3 +272,14 @@ export const loadStoreChrome = cache(async (slug: string) => {
 });
 
 export type StoreChromeData = NonNullable<Awaited<ReturnType<typeof loadStoreChrome>>>;
+
+/** What the trust lines need: the dropship supplier's verification and whether checkout takes card or bank payments. */
+async function productTrustFacts(storeId: string, productId: string): Promise<{ supplierVerificationStatus: string | null; onlinePayments: boolean }> {
+  const { storeTakesCards, storeTakesKorapay } = await import("@/lib/wallet/wallet.server");
+  const [row, cards, korapay] = await Promise.all([
+    db.storeProduct.findUnique({ where: { id: productId }, select: { supplierProduct: { select: { supplier: { select: { verificationStatus: true } } } } } }),
+    paystackSecretReady(process.env.PAYSTACK_SECRET_KEY) ? storeTakesCards(storeId).catch(() => false) : Promise.resolve(false),
+    storeTakesKorapay(storeId).catch(() => false),
+  ]);
+  return { supplierVerificationStatus: row?.supplierProduct?.supplier.verificationStatus ?? null, onlinePayments: Boolean(cards || korapay) };
+}

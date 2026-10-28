@@ -33,7 +33,9 @@ export const orderAmount = (order: AnyOrder) => (order.kind === "dropship" ? ord
 /** `below` sits under the row at its full width (the accept countdown on a new order, so it stays on one line). */
 export function OrderRow({ order, below }: { order: AnyOrder; below?: ReactNode }) {
   const t = useT("m_supplier", "m_partner");
-  const line = `${orderKindLabel(order.kind, t)} · ${orderItems(order)} · ${orderRowStatus(order, t)}`;
+  // A shop's sample (one piece at the dropship price, shared/samples.ts) says so instead of "Wholesale".
+  const kind = order.kind === "wholesale" && order.sample ? t("kind.sample") : orderKindLabel(order.kind, t);
+  const line = `${kind} · ${orderItems(order)} · ${orderRowStatus(order, t)}`;
   const amount = naira(orderAmount(order));
   const city = orderCity(order);
   const preorder = order.preorder ?? null;

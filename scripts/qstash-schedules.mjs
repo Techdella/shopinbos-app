@@ -47,6 +47,8 @@ export const JOBS = [
   { id: "status-purge", path: "/api/cron/status-purge", cron: "41 * * * *" },
   { id: "business-registrations", path: "/api/cron/business-registrations", cron: "*/10 * * * *" },
   { id: "money-owed", path: "/api/cron/money-owed", cron: "7 * * * *" },
+  // Supplier price rises on 7 days' notice: applies the due ones and pauses listings that would lose money (daily).
+  { id: "price-notices", path: "/api/cron/price-notices", cron: "13 5 * * *" },
   { id: "social-posts", path: "/api/cron/social-posts", cron: "*/5 * * * *" },
   // "Time to post" reminders for the phone app's posts calendar (once per post).
   { id: "post-reminders", path: "/api/cron/post-reminders", cron: "*/5 * * * *" },

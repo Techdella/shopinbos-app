@@ -55,7 +55,8 @@ export interface FindProductsViewProps {
   error?: string;
   focusPhoto?: boolean;
   /** For now only suppliers near the seller show; without a city set, none do. */
-  nearby?: { hasPlace: boolean; city: string | null };
+  /** customerStates: where the seller's customers are ("Near my customers", shared/near-customers.ts), and from what. */
+  nearby?: { hasPlace: boolean; city: string | null; customerStates?: string[]; customerBasis?: "orders" | "store" | "none" };
   /** China imports are taking requests (CHINA_IMPORTS_OPEN, src/lib/imports/service.server.ts). */
   importsOpen?: boolean;
   /** The seller's markup on supplier prices, and whether they picked it (else the first add asks). */
@@ -174,6 +175,7 @@ export async function FindProductsView({ tab, country, q, cat, categories, produ
             chips={[{ label: t("find.all"), href: hrefFor("nigeria", { q }), active: !cat }, ...categories.map((name) => ({ label: name, href: hrefFor("nigeria", { q, cat: name.toLowerCase() }), active: cat === name }))]}
             notified={notified}
             markup={markup}
+            customers={nearby?.customerStates?.length ? { states: nearby.customerStates, basis: nearby.customerBasis ?? "orders" } : null}
             emptyText={q ? (cat ? t("find.noMatchIn", { q, cat }) : t("find.noMatch", { q })) : t("find.nothingYet")}
           />
         </>
