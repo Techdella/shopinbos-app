@@ -25,7 +25,7 @@ import {
 //   - the admin's high-value rules (PlatformSetting "logistics.high_value") and whether an order or bag is high-value,
 //     so only Top partners (Tier 3) are offered, booked or can accept those parcels;
 //   - "Apply to be featured" for Top partners, and the team's decision;
-//   - telling partners once that interstate jobs now need Trusted (Tier 2) while they still offer interstate below it.
+//   - below Trusted (Tier 2) interstate is taken off; partners are told once what they need to get it back.
 
 // ─── High-value rules (Admin › Logistics partners › Reach rules) ────────────
 
@@ -170,33 +170,47 @@ const INTERSTATE_GATED_WHERE = {
   level: { notIn: ["trusted", "cash_trusted"] },
 } satisfies Prisma.LogisticsPartnerWhereInput;
 
-/** Partners who offer interstate below Trusted: their switch stays, but interstate jobs don't route to them. */
+/** Partners who still offer interstate below Trusted (it's taken off on their next tier refresh, or by the cron). */
 export function interstateGatedCount() {
   return db.logisticsPartner.count({ where: INTERSTATE_GATED_WHERE });
 }
 
 /**
- * Tells each partner who still offers interstate below Trusted, once, what they need for interstate jobs. Safe to
- * run often (cron /api/cron/delivery-jobs): each partner is told once (interstateNoticeAt).
+ * Interstate was just taken off a partner below Trusted (src/lib/logistics/partner-levels.server.ts
+ * refreshPartnerLevel): tell them once what they need to get it back (LogisticsPartner.interstateNoticeAt).
+ */
+export async function tellInterstateTakenOff(partner: { id: string; userId: string }): Promise<boolean> {
+  const claimed = await db.logisticsPartner.updateMany({ where: { id: partner.id, interstateNoticeAt: null }, data: { interstateNoticeAt: new Date() } });
+  if (claimed.count !== 1) return false;
+  const t = PARTNER_LEVEL_RULES.trusted;
+  await createNotification({
+    userId: partner.userId,
+    type: "logistics",
+    priority: "info",
+    title: "Interstate jobs open at Trusted (Tier 2)",
+    description: `We've switched interstate off for now. It opens once you reach Trusted: ${t.delivered} delivered jobs, a rating of ${t.rating} or more, under ${t.failedRate * 100}% failed drops and your base address verified.`,
+    link: "/logistics/level",
+    event: "account.update",
+    dedupeKey: `logistics.interstate_gated:${partner.id}`,
+  }).catch(() => null);
+  return true;
+}
+
+/**
+ * Partners who still offer interstate below Trusted: refresh their tier, which takes interstate off and tells them
+ * once (tellInterstateTakenOff). Safe to run often (cron /api/cron/delivery-jobs).
  */
 export async function notifyInterstateGated(limit = 200) {
-  const partners = await db.logisticsPartner.findMany({ where: { ...INTERSTATE_GATED_WHERE, interstateNoticeAt: null }, select: { id: true, userId: true }, take: limit });
-  const t = PARTNER_LEVEL_RULES.trusted;
+  const partners = await db.logisticsPartner.findMany({ where: INTERSTATE_GATED_WHERE, select: { id: true, userId: true, interstateNoticeAt: true }, take: limit });
+  if (!partners.length) return { told: 0 };
+  const { refreshPartnerLevel } = await import("./partner-levels.server");
   let told = 0;
   for (const partner of partners) {
-    const claimed = await db.logisticsPartner.updateMany({ where: { id: partner.id, interstateNoticeAt: null }, data: { interstateNoticeAt: new Date() } });
-    if (claimed.count !== 1) continue;
-    await createNotification({
-      userId: partner.userId,
-      type: "logistics",
-      priority: "info",
-      title: "Interstate jobs now open at Trusted (Tier 2)",
-      description: `Keep your interstate switch on. Interstate jobs come to you once you reach Trusted: ${t.delivered} delivered jobs, a rating of ${t.rating} or more, under ${t.failedRate * 100}% failed drops and your base address verified.`,
-      link: "/logistics/level",
-      event: "account.update",
-      dedupeKey: `logistics.interstate_gated:${partner.id}`,
-    }).catch(() => null);
-    told += 1;
+    await refreshPartnerLevel(partner.id).catch(() => null);
+    if (!partner.interstateNoticeAt) {
+      const after = await db.logisticsPartner.findUnique({ where: { id: partner.id }, select: { interstateNoticeAt: true } });
+      if (after?.interstateNoticeAt) told += 1;
+    }
   }
   return { told };
 }

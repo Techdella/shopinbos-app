@@ -94,7 +94,7 @@ export async function transitionJob(input: {
   if (input.trackingCode) data.trackingCode = input.trackingCode;
   await db.deliveryBooking.update({ where: { id: job.id }, data });
   void import("@/lib/rewards/rewards.server").then((rewards) => rewards.rewardJobMoved(job.id, input.to)).catch(() => undefined);
-  // A delivered job counts towards the partner's tier (Tier 1 Verified → Tier 2 Trusted → Tier 3 Top partner).
+  // A delivered job counts towards the partner's tier (1 Verified → 2 Trusted → 3 Top partner, shared/dropship-rules.ts).
   if (input.to === "delivered") void import("./partner-levels.server").then((levels) => levels.refreshPartnerLevel(input.partnerId)).catch(() => undefined);
 
   // Keep the seller's order in step (shipped when picked up, delivered — and paid, for pay on delivery — when dropped off).

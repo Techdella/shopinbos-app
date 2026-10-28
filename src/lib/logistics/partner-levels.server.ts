@@ -2,24 +2,28 @@ import "server-only";
 
 import { db } from "@/lib/db/client";
 import { partnerRecord } from "@/lib/logistics/partner-tiers.server";
+import { tellInterstateTakenOff } from "@/lib/logistics/partner-reach.server";
 import {
+  INTERSTATE_LOCKED_MESSAGE,
   PARTNER_LEVEL_TIER,
   POD_LOCKED_MESSAGE,
   canOfferPayOnDelivery,
   partnerLevel,
   partnerLevelGoals,
+  partnerPerks,
   podCashCap,
   type PartnerLevel,
   type PartnerRecord,
 } from "@shared/dropship-rules";
-import { FASTER_PAYOUTS_LIVE, featuredStatusOf, interstateGated, isFeaturedNow, levelPerks } from "@shared/partner-reach";
+import { FASTER_PAYOUTS_LIVE, featuredStatusOf, isFeaturedNow, levelPerks } from "@shared/partner-reach";
 
-// Delivery partner reach tiers, server side (the rules are shared/dropship-rules.ts, what each tier unlocks is
-// shared/partner-reach.ts): Tier 1 Verified → Tier 2 Trusted → Tier 3 Top partner (stored as cash_trusted). The
-// pay-on-delivery side effects below belong to the pay-on-delivery rules and are left as they are.
-// refreshPartnerLevel stores the level and cash cap and, when a partner drops below Cash trusted, switches pay on
-// delivery off on the partner and on every shop connection. Called when a job is delivered, before the partner
-// turns pay on delivery on, and when they open their level screen.
+// Delivery partner tiers, server side (the rules are shared/dropship-rules.ts, what each tier unlocks is
+// shared/partner-reach.ts): 1 Verified → 2 Trusted → 3 Top partner (stored as cash_trusted). Tiers control reach, not
+// cash: riders never hold cash (shared/pay-at-door.ts), so pay on delivery is open to every verified partner, paused
+// only while cash from older jobs is owed; interstate jobs open at Trusted, high-value parcels and featuring at Top
+// partner. refreshPartnerLevel stores the tier, and when a partner is below Trusted it takes interstate off their
+// services and tells them once what they need (src/lib/logistics/partner-reach.server.ts). Called when a job is
+// delivered, before the partner changes their services, by the delivery-jobs cron and on the level screen.
 
 export async function partnerLevelRecord(partnerId: string, now = new Date()): Promise<PartnerRecord | null> {
   const partner = await db.logisticsPartner.findUnique({
@@ -46,27 +50,38 @@ export async function refreshPartnerLevel(partnerId: string): Promise<{ level: P
   if (!record) return null;
   const level = partnerLevel(record);
   const cap = podCashCap({ delivered: record.delivered });
-  await db.logisticsPartner.update({
+  const partner = await db.logisticsPartner.update({
     where: { id: partnerId },
-    data: { level, codCashCap: cap, levelCheckedAt: new Date(), ...(level === "cash_trusted" ? {} : { offersPayOnDelivery: false }) },
+    data: { level, codCashCap: cap, levelCheckedAt: new Date(), ...(record.verified ? {} : { offersPayOnDelivery: false }) },
+    select: { userId: true, services: true, verificationStatus: true },
   });
-  if (level !== "cash_trusted") await db.deliveryConnection.updateMany({ where: { logisticsPartnerId: partnerId, partnerPod: true }, data: { partnerPod: false } });
+  // Below Trusted: no interstate jobs (quoteFor in shared/delivery-market.ts reads the level too). Interstate is taken
+  // off their services and they're told once what they need (LogisticsPartner.interstateNoticeAt).
+  if (!partnerPerks(level).interstate && partner.services.includes("interstate")) {
+    await db.logisticsPartner.update({ where: { id: partnerId }, data: { services: partner.services.filter((service) => service !== "interstate") } });
+    if (String(partner.verificationStatus) === "verified") await tellInterstateTakenOff({ id: partnerId, userId: partner.userId }).catch(() => undefined);
+  }
+  // Not verified (any more): no pay on delivery on any shop connection either.
+  if (!record.verified) await db.deliveryConnection.updateMany({ where: { logisticsPartnerId: partnerId, partnerPod: true }, data: { partnerPod: false } });
   return { level, cap };
 }
 
-/** The partner's level screen: where they are, what's left, and whether pay on delivery is open. */
+/** The partner's level screen: their tier, what's left to the next one, what each tier unlocks, and pay on delivery. */
 export async function partnerLevelView(partnerId: string) {
   const record = await partnerLevelRecord(partnerId);
   if (!record) return null;
   const refreshed = await refreshPartnerLevel(partnerId);
-  const partner = await db.logisticsPartner.findUnique({ where: { id: partnerId }, select: { codPaused: true, offersPayOnDelivery: true, featuredStatus: true, featuredNote: true, services: true } });
+  const partner = await db.logisticsPartner.findUnique({
+    where: { id: partnerId },
+    select: { codPaused: true, offersPayOnDelivery: true, verificationStatus: true, featuredStatus: true, featuredNote: true, interstateNoticeAt: true },
+  });
   const { level, next, goals } = partnerLevelGoals(record);
   return {
     level,
     next,
     goals,
     cashCap: refreshed?.cap ?? podCashCap({ delivered: record.delivered }),
-    podOpen: canOfferPayOnDelivery({ level, codPaused: partner?.codPaused }),
+    podOpen: canOfferPayOnDelivery({ level, codPaused: partner?.codPaused, verificationStatus: partner?.verificationStatus ? String(partner.verificationStatus) : undefined }),
     podOn: !!partner?.offersPayOnDelivery,
     codPaused: !!partner?.codPaused,
     lockedMessage: POD_LOCKED_MESSAGE,
@@ -76,19 +91,26 @@ export async function partnerLevelView(partnerId: string) {
     featuredStatus: featuredStatusOf(partner?.featuredStatus),
     featuredNow: isFeaturedNow({ level, featuredStatus: partner?.featuredStatus }),
     featuredNote: partner?.featuredNote ?? null,
-    interstateGated: interstateGated({ services: partner?.services ?? [], level }),
+    // Below Trusted, once interstate has been taken off and they've been told: the level screen says what they need.
+    interstateGated: !levelPerks(level).interstate && !!partner?.interstateNoticeAt,
     fasterPayoutsLive: FASTER_PAYOUTS_LIVE,
   };
 }
 
-/**
- * Why this partner can't switch pay on delivery on, or null. Refreshes the level first, so a partner who just
- * earned it isn't held back by a stale value.
- */
+/** Why this partner can't switch pay on delivery on, or null: they must be verified, and not owe cash from older jobs. */
 export async function payOnDeliveryProblem(partnerId: string): Promise<string | null> {
-  const refreshed = await refreshPartnerLevel(partnerId);
-  const partner = await db.logisticsPartner.findUnique({ where: { id: partnerId }, select: { codPaused: true } });
-  if (!refreshed || refreshed.level !== "cash_trusted") return POD_LOCKED_MESSAGE;
-  if (partner?.codPaused) return "Pay on delivery is paused until your late cash is paid in.";
+  await refreshPartnerLevel(partnerId);
+  const partner = await db.logisticsPartner.findUnique({ where: { id: partnerId }, select: { codPaused: true, verificationStatus: true } });
+  if (!partner || partner.verificationStatus !== "verified") return POD_LOCKED_MESSAGE;
+  if (partner.codPaused) return "Pay on delivery is paused until the cash you collected on older jobs is paid in.";
   return null;
 }
+
+/** Why this partner can't offer interstate delivery, or null: it opens at Trusted. Refreshes the tier first. */
+export async function interstateProblem(partnerId: string): Promise<string | null> {
+  const refreshed = await refreshPartnerLevel(partnerId);
+  return refreshed && partnerPerks(refreshed.level).interstate ? null : INTERSTATE_LOCKED_MESSAGE;
+}
+
+// "Apply to be featured" is applyToBeFeatured in src/lib/logistics/partner-reach.server.ts (featuredStatus, the team
+// approves or turns it down in Admin › Logistics partners).

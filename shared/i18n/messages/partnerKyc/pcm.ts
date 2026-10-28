@@ -53,7 +53,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "q.charge.flat": "One fixed fee for each delivery",
   "q.charge.amount": "Fee for each delivery (₦)",
   "q.charge.quote": "I go give price for each order for chat",
-  "q.charge.podLater": "You go start with prepaid jobs only. Pay on delivery go open when you reach Cash trusted: 150 delivered jobs, 60 days for Shopinbos, no late cash pay-in, and CAC or guarantor.",
+  "q.charge.podLater": "Pay on delivery go open for you once dem don verify you. Customers go pay for app for door and give your rider code, so your riders no go carry cash.",
   "rail.title": "Delivery partner sign-up",
   "rail.name": "Business name",
   "rail.cac": "CAC",

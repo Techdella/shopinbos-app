@@ -295,8 +295,9 @@ test("sign-up shows Pre-order locked; sellers add with the new choices; partners
   assert.match(app("app/logistics/connections.tsx"), /podError\.code === POD_LOCKED_CODE\) router\.push\("\/logistics\/pay-on-delivery"\)/);
   const pod = app("app/logistics/pay-on-delivery.tsx");
   assert.match(pod, /fetchPartnerLevel/);
-  assert.match(pod, /"Unlocks at Cash trusted"/);
+  assert.match(pod, /"Opens once you're verified"/);
   assert.match(pod, /"Keep taking prepaid jobs"/);
-  for (const rule of ["pod.rule1", "pod.rule2", "pod.rule3"]) assert.ok(pod.includes(`"${rule}"`), rule);
+  // No cash rules any more: how paying at the door works (shared/dropship-rules.ts PAY_AT_DOOR_STEPS).
+  assert.match(pod, /PAY_AT_DOOR_STEPS\.map/);
   assert.match(app("lib/logistics.ts"), /"\/api\/mobile\/logistics\/level"/);
 });

@@ -54,7 +54,11 @@ export function ReachPanelView({ partnerId, partner, now, next, goals }: { partn
           )}
           {interstateGated({ services: partner.services, level: stored, verificationStatus: String(partner.verificationStatus) }) ? (
             <p className="m-0 rounded-[12px] bg-app-canvas px-3 py-2 text-[13px]">
-              Offers interstate below Trusted: the switch stays on, interstate jobs don&apos;t go to them.{partner.interstateNoticeAt ? ` Told on ${formatDate(partner.interstateNoticeAt)}.` : " They'll be told once."}
+              Still offers interstate below Trusted: interstate jobs don&apos;t go to them, and it&apos;s taken off on their next tier refresh (they&apos;re told once).
+            </p>
+          ) : partner.interstateNoticeAt && stored === "verified" ? (
+            <p className="m-0 rounded-[12px] bg-app-canvas px-3 py-2 text-[13px]">
+              Interstate taken off below Trusted. Told on {formatDate(partner.interstateNoticeAt)}.
             </p>
           ) : null}
         </div>

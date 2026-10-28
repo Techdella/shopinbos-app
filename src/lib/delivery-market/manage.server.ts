@@ -30,7 +30,7 @@ import {
 import { LIVE_PARTNER_WHERE, deliverySettingsFor, originOf } from "./market.server";
 import { PARTNER_LEVEL_TIER, partnerLevelOf } from "@shared/dropship-rules";
 import { isFeaturedNow } from "@shared/partner-reach";
-import { payOnDeliveryProblem as partnerPodProblem } from "@/lib/logistics/partner-levels.server";
+import { interstateProblem, payOnDeliveryProblem as partnerPodProblem } from "@/lib/logistics/partner-levels.server";
 import { acceptPrivateRatesProblem, connectionLimitProblem, payOnDeliveryProblem, pickupPointLimitProblem, proposePrivateRatesProblem, sellAreaProblem } from "@/lib/plans/market.server";
 
 // Managing the logistics marketplace: a business's delivery settings ("Where I sell"), its delivery partners
@@ -39,7 +39,7 @@ import { acceptPrivateRatesProblem, connectionLimitProblem, payOnDeliveryProblem
 
 export type Result<T = undefined> = { ok: true; data?: T } | { ok: false; error: string; code?: string };
 
-/** The refusal when a partner below Cash trusted switches pay on delivery on (API: 403 pod_locked). */
+/** The refusal when a partner who isn't verified (or owes cash from older jobs) switches pay on delivery on (API: 403 pod_locked). */
 export const POD_LOCKED_CODE = "pod_locked";
 
 const text = (value: unknown, max: number) => String(value ?? "").trim().replace(/\s+/g, " ").slice(0, max) || null;
@@ -208,7 +208,7 @@ export async function endConnection(actor: { userId: string; side: "owner" | "pa
 
 /** The partner's side of pay on delivery for one connection. */
 export async function partnerSetPod(partnerId: string, connectionId: string, on: boolean): Promise<Result> {
-  // Pay on delivery opens at Cash trusted (shared/dropship-rules.ts): the rider holds the customer's cash.
+  // Pay on delivery is open to verified partners (shared/dropship-rules.ts): the customer pays in the app at the door.
   if (on) {
     const locked = await partnerPodProblem(partnerId);
     if (locked) return { ok: false, error: locked, code: POD_LOCKED_CODE };
@@ -345,10 +345,15 @@ export async function savePartnerCoverage(partnerId: string, input: CoverageInpu
   if (!pickup.areas.length) return { ok: false, error: "Add at least one place you pick up from (a state, region or Nationwide)." };
   if (!delivery.areas.length) return { ok: false, error: "Add at least one place you deliver to (a state, region or Nationwide)." };
   const pod = input.offersPayOnDelivery === true || input.offersPayOnDelivery === "on" || input.offersPayOnDelivery === "true";
-  // Pay on delivery opens at Cash trusted, and not while paused for late cash (src/lib/logistics/partner-levels.server.ts).
+  // Pay on delivery is open to verified partners, not while cash from older jobs is owed; interstate jobs open at
+  // Trusted (src/lib/logistics/partner-levels.server.ts).
   if (pod) {
     const locked = await partnerPodProblem(partnerId);
     if (locked) return { ok: false, error: locked, code: POD_LOCKED_CODE };
+  }
+  if (services.includes("interstate")) {
+    const locked = await interstateProblem(partnerId);
+    if (locked) return { ok: false, error: locked };
   }
   const partner = await db.logisticsPartner.update({
     where: { id: partnerId },

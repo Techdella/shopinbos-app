@@ -686,7 +686,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "lvl.featuredOn": "You don be featured. Shops dey see you first, with Featured badge.",
   "lvl.featuredRejected": "Dem no approve am this time. You fit apply again.",
   "lvl.featuredLocked": "E go open for Tier 3 · Top partner.",
-  "lvl.interstateGated": "You dey offer interstate. Interstate jobs go start to come when you reach Tier 2 · Trusted; your switch go still dey on.",
+  "lvl.interstateGated": "Interstate jobs go open for Tier 2 · Trusted: 50 jobs wey you don deliver, rating 4.3 or more, failed drops under 2% and your base address verified. Until then, interstate go dey off.",
   "lvl.safetyNote": "New partners wey no get CAC still get safety limits (order value and open jobs) until their first deliveries go well. Dem separate from your tier.",
   "lvl.highValue": "High-value",
   "lvl.weekPaid": "Earned this week · dem go pay on {day}",

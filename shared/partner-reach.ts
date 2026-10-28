@@ -2,7 +2,9 @@
 // by checkout and job matching (shared/delivery-market.ts quoteFor, rankScore), the server (src/lib/logistics/
 // partner-reach.server.ts), the web and phone level screens and the admin. Unit-tested in tests/partner-reach.test.mjs.
 //
-//   Tier 1  Verified      ID + selfie passed       prepaid and pay-on-delivery jobs in their areas
+//   Tier 1  Verified      ID + selfie passed       prepaid and pay-on-delivery jobs in their areas (pay on delivery
+//                                                  is paid in the app at the door, paused only while cash from
+//                                                  older jobs is owed: shared/dropship-rules.ts canOfferPayOnDelivery)
 //   Tier 2  Trusted       50 delivered, 4.3+, <2% failed, base verified
 //                                                  interstate jobs, a higher place in shops' rider lists
 //   Tier 3  Top partner   150 delivered, 60+ days, CAC or a guarantor
@@ -83,8 +85,9 @@ export function reachRankBoost(partner: { level?: string | null; featured?: bool
 // ─── Interstate ──────────────────────────────────────────────────────────────
 
 /**
- * A partner who offers interstate below Trusted keeps the switch, but interstate jobs don't route to them. True when
- * they should be told so (once: LogisticsPartner.interstateNoticeAt).
+ * A verified partner who still offers interstate below Trusted. Interstate can't be switched on below Trusted, and the
+ * next tier refresh takes it off and tells them once what they need (LogisticsPartner.interstateNoticeAt). Interstate
+ * jobs never route to them either way (shared/delivery-market.ts quoteFor).
  */
 export function interstateGated(partner: { services: readonly string[]; level?: string | null; verificationStatus?: string | null }) {
   return partner.services.includes("interstate") && !canTakeInterstate(partner.level) && (partner.verificationStatus ?? "verified") === "verified";

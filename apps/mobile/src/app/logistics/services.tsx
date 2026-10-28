@@ -17,7 +17,7 @@ import { colors } from "@/theme";
 
 // Services ("Delivery partner app" prototype `services`): doorstep, pickup points, same-day and interstate, plus
 // whether you offer pay on delivery at all (each business you work with also has its own switch). Saved with the
-// coverage (PUT market { section: "coverage" }). Pay on delivery opens at Cash trusted (Supplier & Dropship Rules):
+// coverage (PUT market { section: "coverage" }). Pay on delivery is open to verified partners (riders never hold cash; Supplier & Dropship Rules):
 // below it the switch is locked and opens "Pay on delivery jobs" (logistics/pay-on-delivery: the goals and the cash
 // rules); a 403 pod_locked from the server opens it too.
 
@@ -52,7 +52,7 @@ function ServicesForm({ data }: { data: MarketData }) {
   return (
     <Screen title={t("biz.services")} footer={<PillButton tone="forest" title={t("save")} busy={busy} onPress={() => void save()} />}>
       <ServicesEditor services={services} onServices={setServices} />
-      {/* Reach tiers (shared/partner-reach.ts): interstate jobs come from Trusted (Tier 2); below it the switch stays. */}
+      {/* Reach tiers (shared/partner-reach.ts): interstate opens at Trusted (Tier 2); below it saving interstate is refused, so say what it needs. */}
       {interstateWaiting({ services, level: partner.level }) ? <Notice tone="info">{t("lvl.interstateGated")}</Notice> : null}
       <List>
         <Row lead={<Tile icon="shield" tone="mint" />} title={t("lvl.title")} sub={partner.level ? t.dynamic(`lvl.tier.${partner.level}`) : undefined} onPress={() => router.push("/logistics/level")} />
@@ -61,7 +61,7 @@ function ServicesForm({ data }: { data: MarketData }) {
         {lock.locked ? (
           <Row
             title={t("svc.pod")}
-            sub={words("pod.lockedRow", "Unlocks at Cash trusted. See what's left.")}
+            sub={words("pod.lockedRowVerify", "Opens once you're verified. See how it works.")}
             right={
               <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.grayTint, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 }}>
                 <AppIcon name="lock" size={13} color={colors.grayInk} />
@@ -73,7 +73,7 @@ function ServicesForm({ data }: { data: MarketData }) {
         ) : (
           <Row title={t("svc.pod")} sub={t("svc.podSub")} right={<View><Toggle on={pod} onChange={setPod} label={t("svc.pod")} /></View>} />
         )}
-        <Row lead={<Tile icon="coin" tone="mint" />} title={words("pod.title", "Pay on delivery jobs")} sub={words("pod.rulesRow", "Your level, the cash cap and the rules")} onPress={() => router.push("/logistics/pay-on-delivery")} />
+        <Row lead={<Tile icon="coin" tone="mint" />} title={words("pod.title", "Pay on delivery jobs")} sub={words("pod.rulesRow", "How pay at the door works")} onPress={() => router.push("/logistics/pay-on-delivery")} />
       </List>
       {error ? <Notice>{error}</Notice> : null}
     </Screen>

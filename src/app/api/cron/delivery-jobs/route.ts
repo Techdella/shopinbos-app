@@ -9,8 +9,8 @@ export const maxDuration = 60;
 // Logistics marketplace jobs a partner didn't accept in time (shared/delivery-market.ts ACCEPT_WITHIN_HOURS): the
 // shop is told once, so it can send the job to another partner from its delivery exceptions. Nothing moves on its
 // own. Called every 15 minutes (scripts/qstash-schedules.mjs) with `Authorization: Bearer $CRON_SECRET`.
-// Also tells partners who still offer interstate below Trusted (Tier 2), once each, what they need for interstate jobs
-// (src/lib/logistics/partner-reach.server.ts).
+// Also takes interstate off partners who still offer it below Trusted (Tier 2) and tells each, once, what they need
+// for interstate jobs (src/lib/logistics/partner-reach.server.ts).
 export async function GET(req: NextRequest) {
   const denied = await cronDenied(req);
   if (denied) return denied;

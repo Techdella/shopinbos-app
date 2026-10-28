@@ -35,9 +35,10 @@ test("tiers: Tier 1 Verified, Tier 2 Trusted at 50 / 4.3 / <2% / base, Tier 3 To
   assert.equal(rules.partnerTierName("cash_trusted"), "Tier 3 · Top partner");
   assert.equal(rules.partnerTierName("nonsense"), "Tier 1 · Verified");
   assert.equal(rules.partnerLevelOf(null), "verified");
-  // Pay on delivery stays with its own rules (another package rebuilds it): signature and behaviour unchanged.
+  // Pay on delivery (main's rebuild): open from Tier 1 since riders never hold cash, paused only for older cash owed.
   assert.equal(rules.canOfferPayOnDelivery({ level: "cash_trusted", codPaused: false }), true);
-  assert.equal(rules.canOfferPayOnDelivery({ level: "trusted" }), false);
+  assert.equal(rules.canOfferPayOnDelivery({ level: "trusted" }), true);
+  assert.equal(rules.canOfferPayOnDelivery({ level: "verified", codPaused: true }), false);
 });
 
 test("perks: what each tier unlocks; faster payouts is a flag only (coming soon)", () => {
@@ -87,7 +88,12 @@ test("interstate: only Tier 2+ partners are quoted across a state line; local jo
   assert.ok(market.quoteFor(connection("a", "verified"), shipment, { state: "Lagos", area: "Ikeja" }, "doorstep"), "same state: Tier 1 is fine");
   const choice = market.buildMarketChoice({ settings, shipments: [{ ...shipment, connections: [connection("a", "verified"), connection("b", "trusted")] }], destination: abuja });
   assert.deepEqual(choice.options.map((option) => option.id), ["d:c-b"]);
-  // Who still offers interstate below Trusted (keeps the switch, told once).
+  // Who still offers interstate below Trusted: it can't be switched on, the tier refresh takes it off, told once.
+  const levels = read("src/lib/logistics/partner-levels.server.ts");
+  assert.match(levels, /services\.filter\(\(service\) => service !== "interstate"\)[\s\S]{0,200}tellInterstateTakenOff\(/);
+  const reachServer = read("src/lib/logistics/partner-reach.server.ts");
+  assert.match(reachServer, /where: \{ id: partner\.id, interstateNoticeAt: null \}/, "told once");
+  assert.match(reachServer, /export async function notifyInterstateGated[\s\S]{0,600}refreshPartnerLevel\(partner\.id\)/, "the cron takes it off too");
   assert.equal(reach.interstateGated({ services: ["interstate"], level: "verified", verificationStatus: "verified" }), true);
   assert.equal(reach.interstateGated({ services: ["interstate"], level: "trusted" }), false);
   assert.equal(reach.interstateGated({ services: ["doorstep"], level: "verified" }), false);

@@ -686,7 +686,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "lvl.featuredOn": "A na-egosipụta gị. Ụlọ ahịa na-ahụ gị na mbụ, ya na baajị.",
   "lvl.featuredRejected": "Akwadoghị ya oge a. Ị nwere ike itinye ọzọ.",
   "lvl.featuredLocked": "Ọ na-emeghe n'Ọkwa 3 · Onye mmekọ kacha elu.",
-  "lvl.interstateGated": "Ị na-enye nnyefe n'etiti steeti. Ọrụ n'etiti steeti ga-abịakwute gị ozugbo ị ruru Ọkwa 2 · A tụkwasịrị obi; mgba ọkụ gị ga-anọgide na-agbanye.",
+  "lvl.interstateGated": "Ọrụ n'etiti steeti na-emeghe na Ọkwa 2 · A tụkwasịrị obi: ọrụ 50 ebugara, ọkwa 4.3 ma ọ bụ karịa, nnyefe dara ada n'okpuru 2% na adreesị isi gị enyochara. Ruo mgbe ahụ, n'etiti steeti ga-anọ na-agbanyụ.",
   "lvl.safetyNote": "Ndị mmekọ ọhụrụ na-enweghị CAC nwekwara oke nchekwa (ọnụ ahịa oda na ọrụ mepere emepe) ruo mgbe nnyefe mbụ ha gara nke ọma. Ha dị iche na ọkwa gị.",
   "lvl.highValue": "Dị oke ọnụ",
   "lvl.weekPaid": "Ihe ị kpatara n'izu a · a ga-akwụ na {day}",

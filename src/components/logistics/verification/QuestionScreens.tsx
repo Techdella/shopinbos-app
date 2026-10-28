@@ -280,7 +280,7 @@ export function ChargeScreen({ state, onState, onDone }: ScreenProps) {
         )}
         <Choice label={t("q.charge.quote")} selected={charge === "quote"} onPick={() => setCharge("quote")} />
       </div>
-      {/* Pay on delivery waits for the Cash trusted level (shared/dropship-rules.ts POD_LOCKED_MESSAGE). */}
+      {/* Pay on delivery opens once they're verified (shared/dropship-rules.ts POD_LOCKED_MESSAGE). */}
       <p className="m-0 flex gap-2 rounded-[16px] bg-app-canvas p-4 text-[14px] leading-[1.5] text-app-ink-soft">
         <Icon name="lock" size={16} className="mt-0.5 shrink-0" /> {t("q.charge.podLater")}
       </p>

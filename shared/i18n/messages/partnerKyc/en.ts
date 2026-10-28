@@ -55,7 +55,7 @@ const en = {
   "q.charge.flat": "A flat fee per delivery",
   "q.charge.amount": "Fee per delivery (₦)",
   "q.charge.quote": "I'll quote per order in chat",
-  "q.charge.podLater": "You start with prepaid jobs only. Pay on delivery opens at Cash trusted: 150 delivered jobs, 60 days on Shopinbos, no late cash pay-ins, and a CAC or a guarantor.",
+  "q.charge.podLater": "Pay on delivery is open to you once you're verified. Customers pay in the app at the door and give your rider a code, so your riders never carry cash.",
   "rail.title": "Delivery partner sign-up",
   "rail.name": "Business name",
   "rail.cac": "CAC",

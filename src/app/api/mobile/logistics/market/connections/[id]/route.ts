@@ -7,7 +7,7 @@ import { partnerFor } from "../../_guard";
 export const dynamic = "force-dynamic";
 
 // PATCH /api/mobile/logistics/market/connections/[id] { pod: boolean }: the partner's side of pay on delivery for one
-// business (it shows at checkout only when both sides switch it on; below Cash trusted: 403 pod_locked). DELETE ends
+// business (it shows at checkout only when both sides switch it on; not verified: 403 pod_locked). DELETE ends
 // the connection.
 export const PATCH = withLogistics(async (req: NextRequest, { user, params }) => {
   const found = await partnerFor(user.id, "verified");

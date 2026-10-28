@@ -686,7 +686,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "lvl.featuredOn": "An fito da kai. Shaguna suna ganin ka da farko, da alamar Fitacce.",
   "lvl.featuredRejected": "Ba a amince ba a wannan karon. Za ka iya sake nema.",
   "lvl.featuredLocked": "Yana buɗewa a Mataki 3 · Babban abokin aiki.",
-  "lvl.interstateGated": "Kana bayar da isarwa tsakanin jihohi. Ayyukan tsakanin jihohi za su zo maka idan ka kai Mataki 2 · Amintacce; maɓallinka zai ci gaba da kunne.",
+  "lvl.interstateGated": "Ayyukan tsakanin jihohi suna buɗewa a Mataki 2 · Amintacce: ayyuka 50 da aka isar, ƙima 4.3 ko fiye, gazawar isarwa ƙasa da 2% da tabbatar da adireshin tushenka. Kafin nan, tsakanin jihohi zai kasance a kashe.",
   "lvl.safetyNote": "Sababbin abokan aiki ba tare da CAC ba suna da iyakokin tsaro (ƙimar oda da ayyukan buɗe) har sai isarwarsu ta farko ta yi kyau. Sun bambanta da matakinka.",
   "lvl.highValue": "Mai tsada",
   "lvl.weekPaid": "Abin da ka samu a makon nan · za a biya ranar {day}",

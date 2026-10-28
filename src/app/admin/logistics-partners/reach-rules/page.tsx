@@ -51,7 +51,7 @@ export default async function AdminReachRulesPage() {
             </ul>
             {gated !== null ? (
               <p className="m-0 mt-3 text-[13.5px] text-app-ink-soft">
-                {gated} verified partner{gated === 1 ? "" : "s"} offer interstate below Trusted: their switch stays on, interstate jobs don&apos;t go to them, and each is told once what they need.
+                {gated} verified partner{gated === 1 ? "" : "s"} offer interstate below Trusted: interstate jobs don&apos;t go to them, it&apos;s taken off on their next tier refresh (the delivery-jobs cron runs it), and each is told once what they need.
               </p>
             ) : null}
           </Card>

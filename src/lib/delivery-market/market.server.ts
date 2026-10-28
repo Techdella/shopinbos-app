@@ -65,7 +65,7 @@ const PARTNER_SELECT = {
   pickupAreas: true,
   deliveryAreas: true,
   offersPayOnDelivery: true,
-  // Pay on delivery only from Cash trusted partners not paused for late cash (shared/dropship-rules.ts).
+  // Pay on delivery from verified partners not paused for cash owed on older jobs (shared/dropship-rules.ts).
   level: true,
   codPaused: true,
   // Reach tiers (shared/partner-reach.ts): interstate needs Trusted, high-value parcels Top partner; featured ranks first.

@@ -686,7 +686,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "lvl.featuredOn": "O ti di àfihàn. Àwọn ṣọ́ọ̀bù ń rí ọ ní àkọ́kọ́, pẹ̀lú àmì Àfihàn.",
   "lvl.featuredRejected": "A kò fọwọ́ sí i lọ́tẹ̀ yìí. O lè béèrè lẹ́ẹ̀kan sí i.",
   "lvl.featuredLocked": "Ó ń ṣí ní Ìpele 3 · Alábàáṣiṣẹ́ àgbà.",
-  "lvl.interstateGated": "O ń pèsè iṣẹ́ láàárín ìpínlẹ̀. Iṣẹ́ láàárín ìpínlẹ̀ yóò máa wá nígbà tí o bá dé Ìpele 2 · Olùgbẹ́kẹ̀lé; ìyípadà rẹ yóò wà ní títàn.",
+  "lvl.interstateGated": "Iṣẹ́ láàárín ìpínlẹ̀ ń ṣí ní Ìpele 2 · Olùgbẹ́kẹ̀lé: iṣẹ́ 50 tí o ti fi jíṣẹ́, ìdíyelé 4.3 tàbí jù bẹ́ẹ̀ lọ, ìfijíṣẹ́ tí ó kùnà kò ju 2% lọ àti àdírẹ́sì ibùdó rẹ tí a ti ṣàyẹ̀wò. Títí di ìgbà náà, láàárín ìpínlẹ̀ yóò wà ní pípa.",
   "lvl.safetyNote": "Àwọn alábàáṣiṣẹ́ tuntun láìsí CAC ní ààlà ààbò (iye ọjà àti iṣẹ́ tó ṣí) títí ìfijíṣẹ́ àkọ́kọ́ wọn yóò fi lọ dáadáa. Wọ́n yàtọ̀ sí ìpele rẹ.",
   "lvl.highValue": "Oníye-lórí",
   "lvl.weekPaid": "Owó ọ̀sẹ̀ yìí · a ó sanwó ní {day}",

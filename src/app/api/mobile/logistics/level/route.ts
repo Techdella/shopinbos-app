@@ -9,14 +9,17 @@ import { partnerForUser } from "../_shared";
 export const dynamic = "force-dynamic";
 
 // GET /api/mobile/logistics/level: the delivery partner's reach tier (Tier 1 Verified → Tier 2 Trusted → Tier 3 Top
-// partner, the same screen as the web's /logistics/level), refreshed from their record on every read:
+// partner, stored as cash_trusted; the same screen as the web's /logistics/level), refreshed from their record on
+// every read:
 //   { level: "verified"|"trusted"|"cash_trusted", next: same | null, tier: 1|2|3,
 //     goals: [{ key, label, have, need, done, kind: "count"|"check" }],
 //     perks: { prepaid, payOnDelivery, interstate, rankBoost, highValue, canApplyFeatured, fasterPayouts },
 //     featuredStatus: "none"|"applied"|"featured"|"rejected", featuredNow, featuredNote, interstateGated,
 //     fasterPayoutsLive, levels: [{ key, label, tier, unlocks: string[] }],
-//     cashCap (naira), podOpen, podOn, codPaused, lockedMessage, remitHours }  (pay on delivery: unchanged)
-// Pay on delivery can be switched on only when podOpen (PUT /api/mobile/logistics/market answers 403 pod_locked).
+//     cashCap (naira), podOpen, podOn, codPaused, lockedMessage, remitHours }
+// Pay on delivery is open to every verified partner (paid in the app at the door), paused only while cash from older
+// jobs is owed; it can be switched on only when podOpen (PUT /api/mobile/logistics/market answers 403 pod_locked).
+// interstateGated: below Trusted, interstate was taken off and they were told what they need.
 // POST ./featured applies to be featured (Top partners only).
 export const GET = withLogistics(async (_req: NextRequest, { user }) => {
   const partner = await partnerForUser(user.id);

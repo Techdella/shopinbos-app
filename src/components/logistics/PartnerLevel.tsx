@@ -1,17 +1,18 @@
 import Link from "next/link";
 import { cx } from "@/components/app-ui/cx";
 import { Icon } from "@/components/ui/Icon";
-import { PARTNER_LEVELS, PARTNER_LEVEL_LABELS, PARTNER_LEVEL_TIER, POD_REMIT_HOURS, type LevelGoal, type PartnerLevel } from "@shared/dropship-rules";
+import { PARTNER_LEVELS, PARTNER_LEVEL_LABELS, PARTNER_LEVEL_TIER, PAY_AT_DOOR_STEPS, type LevelGoal, type PartnerLevel } from "@shared/dropship-rules";
 import { TIER_UNLOCKS, UNLOCK_WORDS, type FeaturedStatus } from "@shared/partner-reach";
 import type { Translate } from "@/components/logistics/kit";
 
 // A delivery partner's reach tier (shared/dropship-rules.ts partnerLevel, shared/partner-reach.ts): Tier 1 Verified →
-// Tier 2 Trusted → Tier 3 Top partner. Tiers control reach, not cash: interstate jobs at Trusted, high-value parcels
-// and "Apply to be featured" at Top partner. Shows where the partner is (LevelLadder), what's left to the next tier
-// (GoalList), what each tier unlocks (TierUnlocks) and the featured application (FeaturedCard). Used by the level page
-// (/logistics/level); PodLocked and CashRules are the pay-on-delivery switch on Coverage (left to the pay-on-delivery
-// rules). The view comes from src/lib/logistics/partner-levels.server.ts partnerLevelView. Words come from the
-// "logistics" catalog (reach.*) through `t`, English without one.
+// Tier 2 Trusted → Tier 3 Top partner. Tiers control reach, not cash: pay on delivery is open from Tier 1 (customers
+// pay in the app at the door and riders never hold cash), interstate jobs at Trusted, high-value parcels and "Apply
+// to be featured" at Top partner. Shows where the partner is (LevelLadder), what's left to the next tier (GoalList),
+// what each tier unlocks (TierUnlocks), the featured application (FeaturedCard) and how pay at the door works
+// (PayAtDoorSteps). Used by the level page (/logistics/level); PodLocked is the pay-on-delivery switch on Coverage.
+// The view comes from src/lib/logistics/partner-levels.server.ts partnerLevelView. Words come from the "logistics"
+// catalog (reach.*) through `t`, English without one.
 
 export interface PartnerLevelViewProps {
   level: PartnerLevel;
@@ -74,19 +75,14 @@ export function GoalList({ goals, className }: { goals: LevelGoal[]; className?:
   return <ul className={cx("m-0 list-none rounded-[22px] bg-white px-4 py-1 sm:px-5", className)}>{goals.map((goal) => <GoalRow key={goal.key} goal={goal} />)}</ul>;
 }
 
-/** The three cash rules that come with pay on delivery, numbered (`.r` on A-Rider-POD). */
-export function CashRules({ cashCap }: { cashCap: number }) {
-  const rules = [
-    <>Hold up to <b className="font-extrabold">{naira(cashCap)}</b> of customers&apos; cash at a time. Pay on delivery jobs stop showing once you reach it.</>,
-    <>Pay collected cash into your Shopinbos account within {POD_REMIT_HOURS} hours.</>,
-    <>A late pay-in pauses pay on delivery straight away. A second one drops you to Trusted.</>,
-  ];
+/** How pay on delivery works now, numbered (`.r` on A-Rider-POD): no cash, no code, no drop. */
+export function PayAtDoorSteps({ t }: { t?: Translate }) {
   return (
     <ol className="m-0 grid list-none gap-2 p-0 text-[13.5px]">
-      {rules.map((rule, index) => (
+      {PAY_AT_DOOR_STEPS.map((step, index) => (
         <li key={index} className="flex items-start gap-2.5">
           <span className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full bg-app-mint text-[12px] font-extrabold text-app-forest" aria-hidden>{index + 1}</span>
-          <span className="leading-[1.45]">{rule}</span>
+          <span className="leading-[1.45]">{say(t, `reach.payAtDoor.${index + 1}`, step)}</span>
         </li>
       ))}
     </ol>
@@ -95,7 +91,7 @@ export function CashRules({ cashCap }: { cashCap: number }) {
 
 /** The pay on delivery switch while it's locked (A-Rider-POD): a forest lock card, the goals and the cash rules. */
 export function PodLocked({ view }: { view: PartnerLevelViewProps }) {
-  const pausedOnly = view.level === "cash_trusted" && view.codPaused;
+  const pausedOnly = view.codPaused;
   return (
     <div className="grid gap-3" role="group" aria-labelledby="pod-locked-title" aria-describedby="pod-locked-why">
       <div className="grid gap-2 rounded-[24px] bg-app-forest p-[18px] text-white sm:p-5">
@@ -103,16 +99,15 @@ export function PodLocked({ view }: { view: PartnerLevelViewProps }) {
           <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-white/[0.14]" aria-hidden><Icon name="lock" size={20} strokeWidth={2.2} /></span>
           <span className="rounded-full bg-white/[0.14] px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.05em]">Pay on delivery · {pausedOnly ? "Paused" : "Locked"}</span>
         </span>
-        <span id="pod-locked-title" className="font-app-display text-[24px] font-extrabold leading-[1.1] tracking-[-0.01em]">{pausedOnly ? "Paused until your cash is in" : "Unlocks at Top partner"}</span>
+        <span id="pod-locked-title" className="font-app-display text-[24px] font-extrabold leading-[1.1] tracking-[-0.01em]">{pausedOnly ? "Paused until your cash is in" : "Opens once you're verified"}</span>
         <p id="pod-locked-why" className="m-0 text-[14px] leading-[1.45] text-[#D2EDE8]">
-          {pausedOnly ? "Pay on delivery is paused until your late cash is paid in." : view.lockedMessage}
+          {pausedOnly ? "Pay on delivery is paused until the cash you collected on older jobs is paid in." : view.lockedMessage}
         </p>
       </div>
       <div className="grid gap-3 lg:grid-cols-2">
-        {!pausedOnly && view.goals.length ? <GoalList goals={view.goals} className="self-start border border-app-line" /> : null}
-        <div className="grid content-start gap-2 rounded-[20px] border border-app-line bg-white px-4 py-3 sm:px-5">
-          <p className="m-0 font-app-display text-[15px] font-extrabold">Once unlocked</p>
-          <CashRules cashCap={view.cashCap} />
+        <div className="grid content-start gap-2 rounded-[20px] border border-app-line bg-white px-4 py-3 sm:px-5 lg:col-span-2">
+          <p className="m-0 font-app-display text-[15px] font-extrabold">How it works</p>
+          <PayAtDoorSteps />
           <Link href="/logistics/level" className="mt-1 text-[14px] font-extrabold text-app-forest underline underline-offset-4 hover:text-app-ink">See your level</Link>
         </div>
       </div>
@@ -225,12 +220,12 @@ export function FeaturedCard({ level, status, featuredNow, note, apply, t }: { l
   );
 }
 
-/** Below Trusted with interstate on: the switch stays, but interstate jobs come once they reach Trusted. */
+/** Below Trusted: interstate can't be switched on (and was taken off); what they need to get it. */
 export function InterstateNote({ t }: { t?: Translate }) {
   return (
     <p role="note" className="m-0 flex items-start gap-2 rounded-[16px] bg-app-warn-tint px-4 py-3 text-[13.5px] leading-[1.45] text-app-ink">
       <Icon name="globe" size={16} strokeWidth={2.2} />
-      <span>{say(t, "reach.interstateGated", "You offer interstate. Interstate jobs come to you once you reach Tier 2 · Trusted; your switch stays on.")}</span>
+      <span>{say(t, "reach.interstateGated", "Interstate jobs open at Tier 2 · Trusted: 50 delivered jobs, a rating of 4.3 or more, failed drops under 2% and your base address verified. Until then interstate stays off.")}</span>
     </p>
   );
 }

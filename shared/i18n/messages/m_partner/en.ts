@@ -699,7 +699,7 @@ const en = {
   "lvl.featuredOn": "You're featured. Shops see you first, with a Featured badge.",
   "lvl.featuredRejected": "Not approved this time. You can apply again.",
   "lvl.featuredLocked": "Opens at Tier 3 · Top partner.",
-  "lvl.interstateGated": "You offer interstate. Interstate jobs come to you once you reach Tier 2 · Trusted; your switch stays on.",
+  "lvl.interstateGated": "Interstate jobs open at Tier 2 · Trusted: 50 delivered jobs, a rating of 4.3 or more, failed drops under 2% and your base address verified. Until then interstate stays off.",
   "lvl.safetyNote": "New partners without CAC also have safety limits (order value and open jobs) until their first deliveries go well. Those are separate from your tier.",
   "lvl.highValue": "High-value",
   "lvl.weekPaid": "Earned this week · paid on {day}",

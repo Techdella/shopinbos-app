@@ -14,10 +14,12 @@
 //   Seller branding      blind packing and the seller's name on tracking are always on; packing slips, the seller's
 //                        stickers and custom packaging are extras the supplier offers.
 //   Supplier levels      New → Trusted → Established, from the delivery record. Pre-orders open at Established.
-//   Partner levels       Tier 1 Verified → Tier 2 Trusted → Tier 3 Top partner. Tiers control reach (interstate,
-//                        place in shops' lists, high-value parcels, featured: shared/partner-reach.ts), not cash.
+//   Partner tiers        1 Verified → 2 Trusted → 3 Top partner, from the delivery record. They control reach
+//                        (interstate, place in shops' lists, high-value parcels, featured: shared/partner-reach.ts), not
+//                        cash: riders never hold cash (shared/pay-at-door.ts), so pay on delivery is open from Tier 1.
 
 import { NG_REGIONS, SIZE_BANDS, type Place, type SizeBand } from "./delivery-market.ts";
+import { levelPerks } from "./partner-reach.ts";
 
 const num = (value: unknown) => {
   const n = typeof value === "number" ? value : typeof value === "string" && value.trim() !== "" ? Number(value) : NaN;
@@ -558,15 +560,22 @@ export function brandingOfferFor(level: string | null | undefined, offer: Brandi
   return supplierPerks(level).branding ? offer : { ...NO_BRANDING_OFFER, custom: offer.custom };
 }
 
-// ─── Delivery partner levels (reach tiers) ───────────────────────────────────
+// ─── Delivery partner tiers: reach, not cash ─────────────────────────────────
 //
-// Tier 1 Verified (ID + selfie passed): prepaid and pay-on-delivery jobs in their areas. Tier 2 Trusted (50 delivered,
-// rating 4.3+, under 2% failed drops, base address verified): interstate jobs and a higher place in shops' rider
-// lists. Tier 3 Top partner (150 delivered, 60+ days, CAC or a guarantor): high-value parcels and "Apply to be
-// featured". What each tier unlocks lives in shared/partner-reach.ts. The stored values stay verified | trusted |
-// cash_trusted (cash_trusted is Tier 3, "Top partner"), so nothing is migrated. These are separate from the
-// verification tiers in shared/partner-tiers.ts (Verified Individual / Registered Business), whose order-value and
-// open-jobs limits are the "safety limits" for new partners.
+//   1 · Verified     ID and selfie passed            prepaid and pay on delivery jobs in their areas
+//   2 · Trusted      50 delivered, rating 4.3+,      interstate jobs, a higher place in shops' partner lists
+//                    under 2% failed drops, base
+//                    address verified
+//   3 · Top partner  150 delivered, 60+ days on     high-value parcels (over ₦150,000, or phones, jewellery,
+//                    Shopinbos, CAC or a guarantor   laptops), can apply to be featured, a higher place still
+//
+// Pay on delivery is paid in the app at the door and the rider types the code the customer gets once it's paid
+// (shared/pay-at-door.ts), so riders never hold cash and every verified partner can take it. The stored value of
+// Tier 3 is still "cash_trusted" (LogisticsPartner.level), so nothing in the database moves; it reads "Top partner".
+//
+// What each tier unlocks, the high-value rule (₦150,000, phones / jewellery / laptops, admin-editable) and featured
+// live in shared/partner-reach.ts. These are separate from the verification tiers in shared/partner-tiers.ts
+// (Verified Individual / Registered Business), whose order-value and open-jobs limits are the "safety limits".
 
 export const PARTNER_LEVELS = ["verified", "trusted", "cash_trusted"] as const;
 export type PartnerLevel = (typeof PARTNER_LEVELS)[number];
@@ -581,17 +590,20 @@ export function partnerTierName(level: unknown) {
   const key = partnerLevelOf(level);
   return `Tier ${PARTNER_LEVEL_TIER[key]} · ${PARTNER_LEVEL_LABELS[key]}`;
 }
+/** Tier 1, 2 or 3. */
+export const partnerTierNumber = (level: string | null | undefined) => PARTNER_LEVEL_TIER[partnerLevelOf(level)];
 
 /** `cashTrusted` is Tier 3 (Top partner); the key keeps its old name because pay-on-delivery code reads it. */
 export const PARTNER_LEVEL_RULES = {
   trusted: { delivered: 50, rating: 4.3, failedRate: 0.02 },
+  /** Tier 3, Top partner (stored as cash_trusted). */
   cashTrusted: { delivered: 150, days: 60 },
 } as const;
 
-/** The cash a Cash trusted partner may hold at once to start, rising with their record. */
+/** The cash a Cash trusted partner may hold at once to start, rising with their record (older cash jobs only). */
 export const POD_CASH_CAP_START = 100_000;
 export const POD_CASH_CAP_MAX = 1_000_000;
-/** Hours to pay collected cash into their Shopinbos account. */
+/** Hours to pay collected cash into their Shopinbos account (older cash jobs only). */
 export const POD_REMIT_HOURS = 24;
 
 export interface PartnerRecord {
@@ -602,8 +614,7 @@ export interface PartnerRecord {
   /** Their base pinned and checked. */
   baseVerified: boolean;
   createdAt: Date | string;
-  /** Late cash pay-ins counted against them (LogisticsPartner.payInStrikes). Kept for pay on delivery; no longer part
-   * of the Tier 3 rule (the owner's tiers control reach, and riders don't hold cash). */
+  /** Late cash pay-ins on older cash jobs (LogisticsPartner.payInStrikes). No longer part of the tiers. */
   lateRemittances?: number;
   /** A CAC registration or a confirmed guarantor. */
   cacOrGuarantor: boolean;
@@ -655,13 +666,47 @@ export function partnerLevelGoals(record: PartnerRecord): { level: PartnerLevel;
   };
 }
 
-/** Pay on delivery is open to this partner now: Cash trusted and not paused for late cash. */
-export function canOfferPayOnDelivery(partner: { level?: string | null; codPaused?: boolean | null }): boolean {
-  return partner.level === "cash_trusted" && !partner.codPaused;
+/**
+ * What each tier unlocks, read from shared/partner-reach.ts (the one place the reach rules live): pay on delivery for
+ * every verified partner, interstate from Trusted, high-value parcels and "Apply to be featured" at Top partner, and
+ * the boost in shops' partner lists.
+ */
+export function partnerPerks(level: string | null | undefined) {
+  const perks = levelPerks(level);
+  return {
+    tier: partnerTierNumber(level),
+    payOnDelivery: perks.payOnDelivery,
+    interstate: perks.interstate,
+    /** High-value parcels (shared/partner-reach.ts highValueReason: over the admin's threshold, or phones, jewellery, laptops). */
+    highValue: perks.highValue,
+    canApplyFeatured: perks.canApplyFeatured,
+    /** Points added to the "Find partners" order (shared/delivery-market.ts rankScore). */
+    rankBoost: perks.rankBoost,
+  };
+}
+
+/**
+ * Pay on delivery is open to this partner now: verified (riders never hold cash), and not paused for cash still owed
+ * from older cash jobs. `verificationStatus` is checked when given.
+ */
+export function canOfferPayOnDelivery(partner: { level?: string | null; codPaused?: boolean | null; verificationStatus?: string | null }): boolean {
+  if (partner.verificationStatus !== undefined && partner.verificationStatus !== "verified") return false;
+  return !partner.codPaused;
 }
 
 export const POD_LOCKED_MESSAGE =
-  "Pay on delivery opens at Top partner: 150 delivered jobs, 60 days on Shopinbos and a CAC or a guarantor. Keep taking prepaid jobs to get there.";
+  "Pay on delivery opens once your company is verified (ID and selfie). Customers pay in the app at the door and give your rider a code, so riders never carry cash.";
+
+/** Pay on delivery at the door, as partners and riders are told it (shared/pay-at-door.ts has the rules). */
+export const PAY_AT_DOOR_STEPS = [
+  "The customer pays the delivery fee when they order, so your trip is always paid.",
+  "At the door they check the parcel, then pay the rest in the app: transfer, card or USSD. Your rider never takes cash.",
+  "Once the money is in, the customer gets a 4-digit code. Your rider types it to finish the drop. No code, no drop.",
+  "No payment after 10 minutes, or they refuse? Bring the parcel back. You're still paid for the trip.",
+] as const;
+
+export const INTERSTATE_LOCKED_MESSAGE =
+  "Interstate jobs open at Trusted: 50 delivered jobs, a rating of 4.3 or more, failed drops under 2% and your base address verified.";
 
 /** The cash cap for a Cash trusted partner: ₦100,000 to start, +₦10,000 for every 50 deliveries past 150, plus any deposit. */
 export function podCashCap(record: { delivered: number; deposit?: number | null }): number {

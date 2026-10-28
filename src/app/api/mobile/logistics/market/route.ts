@@ -11,10 +11,10 @@ export const dynamic = "force-dynamic";
 // The delivery partner's side of the logistics marketplace in the phone app (Business tab and set-up).
 // GET → company details, coverage and services, the public rate card, pickup points, connected businesses (with
 // private rates sent to them), and in-app stats. `partner.level` (verified | trusted | cash_trusted) and
-// `partner.podOpen` say whether pay on delivery can be switched on (Cash trusted, not paused for late cash); the
+// `partner.podOpen` say whether pay on delivery can be switched on (verified, not paused for cash owed on older jobs); the
 // goals to get there are GET /api/mobile/logistics/level.
 // PUT { section: "coverage", services, pickupAreas, deliveryAreas, offersPayOnDelivery }   offersPayOnDelivery: true
-//     below Cash trusted is refused: 403 { error: { code: "pod_locked", message } }
+//     before verification is refused: 403 { error: { code: "pod_locked", message } }
 //     { section: "business", companyName?, cacNumber, contactName, contactPhone, contactEmail, address }
 //     { section: "rates", rows, failedAttemptFee, returnFee, notes }   publishes a new public rate card
 export const GET = withLogistics(async (_req: NextRequest, { user }) => {

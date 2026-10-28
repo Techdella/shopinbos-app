@@ -53,7 +53,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "q.charge.flat": "Owó kan náà fún ìfijíṣẹ́ kọ̀ọ̀kan",
   "q.charge.amount": "Owó fún ìfijíṣẹ́ kọ̀ọ̀kan (₦)",
   "q.charge.quote": "Màá sọ iye owó fún àṣẹ kọ̀ọ̀kan nínú chat",
-  "q.charge.podLater": "Prepaid jobs nìkan ni o máa fi bẹ̀rẹ̀. Pay on delivery yóò ṣí ní Cash trusted: job 150 tí a ti fi jíṣẹ́, ọjọ́ 60 lórí Shopinbos, kò sí cash pay-in tó pẹ́, àti CAC tàbí guarantor.",
+  "q.charge.podLater": "Pay on delivery máa ṣí sílẹ̀ fún ọ tí wọ́n bá ti fìdí rẹ múlẹ̀. Àwọn oníbàárà máa sanwó nínú app ní ẹnu ọ̀nà, wọ́n á sì fún rider rẹ ní kóòdù, nítorí náà rider rẹ kò ní gbé owó.",
   "rail.title": "Sign-up delivery partner",
   "rail.name": "Orúkọ business",
   "rail.cac": "CAC",

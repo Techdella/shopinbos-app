@@ -918,9 +918,9 @@ export function partnerStats(jobs: readonly StatsJob[]): PartnerStats {
  * Order for "Find partners": verified partners first, then a score that rewards in-app volume, on-time delivery
  * and rating, and how closely they cover the shop's selling areas (the ranking boost of spec §7.3).
  */
-/** `registered`: a Registered Business (CAC-checked, shared/partner-tiers.ts) ranks a little above an equal Verified Individual. */
 /**
- * `level` and `featured`: the reach tier's boost (Trusted +15, Top partner +25) and +20 for a featured Top partner
+ * `registered`: a Registered Business (CAC-checked, shared/partner-tiers.ts) ranks a little above an equal Verified
+ * Individual. `level` and `featured`: the reach tier's boost (Trusted +15, Top partner +25) and +20 for a featured Top partner
  * (shared/partner-reach.ts). Both optional: old callers score as before.
  */
 export function rankScore(input: { stats: PartnerStats; rating: number; ratingCount: number; match: number; verified: boolean; registered?: boolean; level?: string | null; featured?: boolean }) {
@@ -928,7 +928,7 @@ export function rankScore(input: { stats: PartnerStats; rating: number; ratingCo
   const onTime = input.stats.onTimeRate === null ? 0.5 : input.stats.onTimeRate / 100;
   const failed = input.stats.failedRate === null ? 0 : input.stats.failedRate / 100;
   const rating = input.ratingCount > 0 ? input.rating / 5 : 0.5;
-  return (input.verified ? 100 : 0) + (input.registered ? 5 : 0) + reachRankBoost(input) +input.match * 10 + volume * 25 + onTime * 25 + rating * 15 - failed * 20;
+  return (input.verified ? 100 : 0) + (input.registered ? 5 : 0) + reachRankBoost(input) + input.match * 10 + volume * 25 + onTime * 25 + rating * 15 - failed * 20;
 }
 
 // ─── Chat guardrails (spec §7.3) ─────────────────────────────────────────────

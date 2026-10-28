@@ -6,7 +6,10 @@ import { requireRole } from "@/lib/server-auth";
 import { ensureLogisticsAccess, getLogisticsPartnerForUser } from "@/lib/role-queries";
 import { applyToBeFeatured } from "@/lib/logistics/partner-reach.server";
 
-/** "Apply to be featured" on /logistics/level (Top partners only; the team decides in the admin). */
+/**
+ * "Apply to be featured" on /logistics/level: Top partners (Tier 3) only. It sets featuredStatus "applied" and the
+ * team approves or turns it down in Admin › Logistics partners (src/lib/logistics/partner-reach.server.ts).
+ */
 export async function applyFeaturedAction() {
   const user = await requireRole(["logistics_partner"], "/logistics/login");
   const partner = await getLogisticsPartnerForUser(user);
