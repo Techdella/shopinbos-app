@@ -45,6 +45,8 @@ const APP_SCREENS: Record<string, string> = {
   "/home/orders": "/orders",
   "/home/orders/new": "/record-sale",
   "/products/new": "/add-products",
+  "/products/bulk": "/bulk-add",
+  "/supplier/products/bulk": "/bulk-add",
   "/products": "/products",
   "/home/products": "/products",
   "/home/inventory": "/products",

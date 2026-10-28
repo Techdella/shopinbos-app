@@ -124,6 +124,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "call.opened": "Peggy meghere {screen}",
   "call.screen.account": "Akaụntụ",
   "call.screen.add_product": "Tinye ngwaahịa",
+  "call.screen.bulk_add": "Tinye ọtụtụ na Peggy",
   "call.screen.add_rider": "Tinye onye na-agba ọgba",
   "call.screen.bank": "Ụlọ akụ maka ịkwụ ụgwọ",
   "call.screen.cash": "Ego ndị na-ere ahịa",

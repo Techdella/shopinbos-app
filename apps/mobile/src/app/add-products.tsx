@@ -19,6 +19,7 @@ const RECENT = 3;
 
 export default function AddProducts() {
   const t = useT("m_products", "common");
+  const tBulk = useT("bulkAdd");
   const drafts = useProductDrafts();
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(0);
@@ -73,6 +74,11 @@ export default function AddProducts() {
       {/* Just added: share the newest one on WhatsApp straight away. */}
       {saved > 0 && recent[0]?.status === "published" && recent[0].url ? <ShareProductButton product={recent[0]} /> : null}
       <ProductDraftsCard state={drafts} />
+      {count === 0 ? (
+        <List>
+          <Row testID="add-bulk" lead={<Tile icon="sparkle" tone="lilac" />} title={tBulk("entry.title")} sub={tBulk("entry.sub")} onPress={() => router.push("/bulk-add")} chevron />
+        </List>
+      ) : null}
 
       {count === 0 ? (
         <List>

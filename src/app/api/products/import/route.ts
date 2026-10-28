@@ -11,7 +11,7 @@ import type { AuthUser } from "@/lib/auth/types";
 import { markCatalogDirty } from "@/lib/whatsapp-catalog/dirty";
 import { urlShapeProblem } from "@/lib/security/ssrf";
 import { findOrCreateCategory } from "@/lib/products/categories.server";
-import { parseImageMap } from "@/lib/products/import.server";
+import { parseImageMap, withBulkPhotos } from "@/lib/products/import.server";
 import { IMPORT_MAX_ROWS, importHeadersProblem, isColumnTarget, mapImportRow, resolveImportImages, type ColumnMap } from "@shared/product-import";
 import { ImportEnhancementsSchema, mergeEnhancement, type ImportEnhancement } from "@shared/product-content";
 
@@ -52,7 +52,7 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
   const formData = await req.formData();
   const file = formData.get("csv") as File | null;
   if (!file) return apiError("BAD_REQUEST", "No CSV file provided");
-  const imageMap = parseImageMap(formData.get("imageMap"));
+  const imageMap = await withBulkPhotos(user.id, parseImageMap(formData.get("imageMap")));
   const columnMap = parseColumnMap(formData.get("columnMap"));
   const enhancements = parseEnhancements(formData.get("enhancements"));
   if ("error" in enhancements && typeof enhancements.error === "string") return apiError("BAD_REQUEST", enhancements.error);

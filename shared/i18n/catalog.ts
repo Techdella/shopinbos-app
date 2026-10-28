@@ -100,6 +100,7 @@ import media from "./messages/media/index.ts";
 import productTypes from "./messages/productTypes/index.ts";
 import tips from "./messages/tips/index.ts";
 import mail from "./messages/mail/index.ts";
+import bulkAdd from "./messages/bulkAdd/index.ts";
 
 export const CATALOGS = {
   common,
@@ -200,6 +201,7 @@ export const CATALOGS = {
   productTypes,
   tips,
   mail,
+  bulkAdd,
 } satisfies Record<string, Catalog>;
 
 export type Namespace = keyof typeof CATALOGS;

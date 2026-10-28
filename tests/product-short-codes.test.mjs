@@ -118,6 +118,7 @@ test("every product create path assigns a code", () => {
     "src/app/api/products/import/route.ts",
     "src/app/api/store/products/route.ts",
     "src/lib/ai/rex/build-store.ts",
+    "src/lib/products/bulk/publish.server.ts",
   ];
   assert.deepEqual(creators.sort(), expected);
   for (const path of creators) {

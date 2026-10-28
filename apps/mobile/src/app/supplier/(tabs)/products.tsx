@@ -8,7 +8,7 @@ import { HelpButton } from "@/components/Help";
 import { AppIcon } from "@/components/icons";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { TabScreen } from "@/components/TabScreen";
-import { Field, T } from "@/components/ui";
+import { Field, PillButton, T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
 import { productStage } from "@/lib/partner-pure";
 import { fetchSupplierProducts, type SupplierProduct } from "@/lib/supplier";
@@ -31,6 +31,7 @@ function pairs<T>(items: T[]): T[][] {
 
 export default function SupplierProducts() {
   const t = useT("m_supplier", "m_partner", "common");
+  const tBulk = useT("bulkAdd");
   const products = useLoad(fetchSupplierProducts);
   const [searching, setSearching] = useState(false);
   const [q, setQ] = useState("");
@@ -68,6 +69,8 @@ export default function SupplierProducts() {
       {products.error && !products.data ? <ErrorState message={products.error} onRetry={() => void products.reload()} /> : null}
 
       {products.data && query && !list.length ? <Sub>{t("products.noneHere")}</Sub> : null}
+
+      {products.data ? <PillButton testID="supplier-bulk-add" tone="white" size="md" icon="sparkle" title={tBulk("entry.title")} onPress={() => router.push("/bulk-add")} /> : null}
 
       {products.data ? (
         <View style={{ gap: 12 }}>

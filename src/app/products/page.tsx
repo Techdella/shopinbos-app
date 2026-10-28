@@ -74,6 +74,7 @@ export default async function ProductsPage({
   const { status, filter: rawFilter, visibility, q, page: rawPage } = await searchParams;
   const user = await requireRole(["seller"], "/login");
   const t = await getT("products", "common");
+  const tBulk = await getT("bulkAdd");
   const locale = await getLocale();
   const naira = (amount: number) => formatMoney(Math.round(amount), locale);
   const workspace = await getSellerWorkspace(user.id);
@@ -164,6 +165,8 @@ export default async function ProductsPage({
             <Icon name="download" size={16} />
             <span className="max-sm:sr-only">{t("list.export")}</span>
           </a>
+          {/* Many photos at once: Peggy names them, the seller prices them by chatting. */}
+          <PillLink href="/products/bulk" icon="sparkle">{tBulk("entry.title")}</PillLink>
           <PillLink href="/products/new" tone="accent" icon="plus" className="max-sm:px-3.5">{t("addProduct")}</PillLink>
         </>
       }

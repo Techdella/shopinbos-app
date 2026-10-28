@@ -124,6 +124,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "call.opened": "Peggy ta buɗe {screen}",
   "call.screen.account": "Asusu",
   "call.screen.add_product": "Ƙara kaya",
+  "call.screen.bulk_add": "Ƙara da yawa tare da Peggy",
   "call.screen.add_rider": "Ƙara mahayi",
   "call.screen.bank": "Bankin karɓar kuɗi",
   "call.screen.cash": "Kuɗin masu sayarwa",
