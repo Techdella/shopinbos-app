@@ -264,7 +264,7 @@ export const ROUTE_NAMESPACES: ReadonlyArray<readonly [string, readonly string[]
   ["/meta-data-deletion", ["common","nav","ui"]],
   ["/onboarding", ["common","nav","ui"]],
   ["/onboarding/path-picker", ["common","nav","ui"]],
-  ["/onboarding/rex", ["common","nav","onboarding","settings","ui"]],
+  ["/onboarding/rex", ["common","nav","sellerStart","settings","ui"]],
   ["/peggy", ["common","nav","shell","ui"]],
   ["/pilot/[token]", ["common","nav","ui"]],
   ["/preview/store/[slug]/[pageId]", ["campaigns","common","nav","ui"]],

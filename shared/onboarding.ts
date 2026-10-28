@@ -230,3 +230,83 @@ export function zonesForSellChoice(choice: SellChoice, homeState: string | null)
   if (choice.area === "nationwide") zones.push({ name: "Everywhere else", fee: 3500, regions: [], priority: 2 });
   return zones.length ? zones : [{ name: "Lagos", fee: 2000, regions: ["Lagos"], priority: 0 }];
 }
+
+// ─── Sign-up to a live store, one question per screen (2026 "Onboarding — Simplified") ─────────────────────────
+// Nine screens, each asking one thing: store name, logo, what you sell, products ready?, first product, its name and
+// price, a look, the store address, then "Your store is live!". No ID, bank or CAC on this path: the payout bank and
+// delivery are asked later, on Start here. Web (src/components/onboarding/seller/SellerOnboarding.tsx) and phone
+// (apps/mobile/src/app/onboarding/index.tsx) both follow these rules; the screen is saved in the onboarding memory
+// (screen) after every answer, so a seller who leaves comes back to the same question.
+
+export const SELLER_QUESTIONS = ["name", "logo", "sell", "ready", "product", "details", "look", "address", "live"] as const;
+export type SellerQuestion = (typeof SELLER_QUESTIONS)[number];
+
+/** "I have products" or "Find me a supplier" (dropship). */
+export type ProductPath = "own" | "dropship";
+
+export function isSellerQuestion(value: unknown): value is SellerQuestion {
+  return typeof value === "string" && (SELLER_QUESTIONS as readonly string[]).includes(value);
+}
+
+/** "Step 3 of 9": the screen's place in the full list (the dropship path skips "details" but keeps the numbering). */
+export function sellerQuestionNumber(question: SellerQuestion) {
+  return SELLER_QUESTIONS.indexOf(question) + 1;
+}
+
+/** The screen after this one. Dropship sellers pick supplier products, whose name and price come from the supplier. */
+export function nextSellerQuestion(question: SellerQuestion, path: ProductPath | null | undefined): SellerQuestion | null {
+  if (question === "product" && path === "dropship") return "look";
+  const index = SELLER_QUESTIONS.indexOf(question);
+  return SELLER_QUESTIONS[index + 1] ?? null;
+}
+
+/** The screen the back arrow goes to (null on the first one). */
+export function previousSellerQuestion(question: SellerQuestion, path: ProductPath | null | undefined): SellerQuestion | null {
+  if (question === "look" && path === "dropship") return "product";
+  const index = SELLER_QUESTIONS.indexOf(question);
+  return index > 0 ? SELLER_QUESTIONS[index - 1] : null;
+}
+
+/** Where a returning seller picks up: the saved screen, else the first one ("chat"/"brand" from the older flow start over). */
+export function resumeSellerQuestion(saved: unknown): SellerQuestion {
+  return isSellerQuestion(saved) ? saved : "name";
+}
+
+/** The selling price suggested for a supplier product: the wholesale price plus 25%, rounded up to ₦100. */
+export function suggestedRetailPrice(wholesale: number) {
+  if (!Number.isFinite(wholesale) || wholesale <= 0) return 0;
+  return Math.ceil((wholesale * 1.25) / 100) * 100;
+}
+
+/** "Ada" from "Ada Okafor" (the greeting on the first question). */
+export function firstNameOf(name: string | null | undefined) {
+  return String(name ?? "").trim().split(/\s+/)[0] ?? "";
+}
+
+/** Two letters for a logo when Rex can't draw one: "Ada's Kloset" → "AK". */
+export function lettermark(storeName: string) {
+  const words = storeName.replace(/['’]/g, "").replace(/[^\p{L}\p{N}\s]/gu, " ").trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return "S";
+  return (words.length === 1 ? words[0].slice(0, 2) : `${words[0][0]}${words[1][0]}`).toUpperCase();
+}
+
+/** What you sell, when the marketplace categories can't be loaded. */
+export const FALLBACK_SELL_CATEGORIES = [
+  "Fashion",
+  "Beauty",
+  "Hair and wigs",
+  "Shoes and bags",
+  "Jewellery",
+  "Food and drinks",
+  "Home and kitchen",
+  "Phones and gadgets",
+  "Baby and kids",
+  "Health",
+  "Fabrics",
+  "Other",
+] as const;
+
+/** The free web address before ".shopinbos.com" suggested from the store name. */
+export function addressFromName(name: string) {
+  return shopSlug(name).slice(0, 40).replace(/-+$/g, "");
+}
