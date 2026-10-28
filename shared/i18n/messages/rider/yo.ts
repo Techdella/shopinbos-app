@@ -91,6 +91,21 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "me.call": "Pe {name}",
   "me.whatsapp": "WhatsApp {name}",
   "me.linkNote": "Ojú-ìwé yìí ni Riders link àdáni rẹ. Má ṣe pín in.",
+  "run.payInApp": "{count, plural, other {# máa sanwó nínú app}}",
+  "pay.pill": "Oníbàárà máa san {amount} nínú app",
+  "pay.paid": "Wọ́n ti sanwó nínú app",
+  "pay.title": "Oníbàárà máa san {amount} nínú app. Kò sí owó ọwọ́",
+  "pay.body": "Jẹ́ kí wọ́n yẹ ẹrù wò, lẹ́yìn náà kí wọ́n sanwó pẹ̀lú link tí a fi SMS ránṣẹ́ sí wọn tàbí kí wọ́n scan QR code. Tí owó bá ti wọlé, wọ́n á gba kóòdù oní-nọ́ńbà mẹ́rin. Tẹ̀ ẹ́ láti parí drop náà.",
+  "pay.qrAlt": "QR code láti sanwó fún order yìí",
+  "pay.qrHint": "Oníbàárà máa fi kámẹ́rà fóònù wọn scan rẹ̀.",
+  "pay.showQr": "Fi QR code hàn",
+  "pay.hideQr": "Fi QR code pamọ́",
+  "pay.resend": "Tún fi link ránṣẹ́",
+  "pay.resent": "A ti fi ránṣẹ́. Sọ fún wọn kí wọ́n wo SMS wọn.",
+  "pay.check": "Ṣàyẹ̀wò ìsanwó",
+  "pay.wait": "Wọn kò sanwó lẹ́yìn ìṣẹ́jú {minutes}, tàbí wọ́n kọ̀? Gbé ẹrù padà: tẹ Couldn't deliver. Wọ́n ṣì máa sanwó ìrìn rẹ fún ọ.",
+  "pay.codeLabel": "Kóòdù tí oníbàárà gbà lẹ́yìn ìsanwó",
+  "pay.noJob": "Iṣẹ́ yìí kò sí lọ́wọ́ rẹ lójú ọ̀nà mọ́. Tún wò ó láti ṣàyẹ̀wò.",
 };
 
 export default yo;

@@ -68,11 +68,12 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
   const order = parsed.data.orderId
     ? await db.retailOrder.findFirst({
         where: { id: parsed.data.orderId, store: { userId: user.id } },
-        select: { total: true, status: true, items: true, supplierOrders: { select: { items: true } } },
+        select: { total: true, status: true, items: true, paymentMethod: true, supplierOrders: { select: { items: true } } },
       })
     : null;
   const ownShare = order ? ownPartCollect(order.items, order.total, order.supplierOrders.map((part) => part.items)) : 0;
-  const codAmount = order && (order.status === "pending" || order.status === "awaiting_payment") && ownShare > 0 ? ownShare : undefined;
+  // Pay on delivery is paid in the app at the door (shared/pay-at-door.ts): the rider never collects it.
+  const codAmount = order && order.paymentMethod !== "pay_on_delivery" && (order.status === "pending" || order.status === "awaiting_payment") && ownShare > 0 ? ownShare : undefined;
   // A partner who is late paying in customers' cash gets no new pay-when-it-arrives jobs (prepaid ones still go).
   if (!canOfferJob({ ...partner, verificationStatus: String(partner.verificationStatus) }, { cod: Boolean(codAmount) })) {
     return apiError("CONFLICT", "This delivery company can't take jobs where the customer pays when it arrives right now. Pick another delivery company.", 409);

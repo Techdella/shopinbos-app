@@ -10,7 +10,7 @@ import { useStorePurchase } from "@/lib/analytics/storefront-events";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { formatStoreMoney } from "@/lib/storefront/shopper-info";
 import { ItemThumb, Panel, PrimaryButton, ShopperShell } from "@/components/storefront/shopper/ShopperShell";
-import { payOrderBalance } from "./actions";
+import { payAtDoor as startPayAtDoor, payOrderBalance } from "./actions";
 import { resolveShopperTheme, type ShopperTheme } from "@/components/storefront/shopper/theme";
 import { TransferInstructions, payByText, type TransferDetails } from "./TransferInstructions";
 import { OrderRewardsPanel, type OrderRewards } from "@/components/storefront/gamification/Rewards";
@@ -72,6 +72,21 @@ interface Props {
   delivery?: OrderDeliveryView | null;
   /** A preorder paid with a deposit (src/lib/commerce/store-balance.server.ts shopperBalanceView): naira. */
   balance?: BalanceView | null;
+  /** Pay on delivery, paid in the app at the door (src/lib/commerce/pay-at-door.server.ts payAtDoorView): naira. */
+  payAtDoor?: PayAtDoorView | null;
+}
+
+export interface PayAtDoorView {
+  /** Still to pay at the door (the total, less the delivery fee when it was paid at checkout). */
+  amount: number;
+  /** The delivery fee charged at checkout (0 when delivery was free). */
+  fee: number;
+  feePaid: boolean;
+  /** The delivery fee isn't in yet: the order isn't confirmed until it is. */
+  feeDue: boolean;
+  paid: boolean;
+  due: boolean;
+  canPay: boolean;
 }
 
 export interface BalanceView {
@@ -88,13 +103,14 @@ export interface BalanceView {
 
 const PAID = ["paid", "processing", "packed", "shipped", "delivered"];
 
-export function OrderConfirmation({ order, store, storeBasePath, transfer = null, deliveryCode = null, rewards = null, delivery = null, brandedTracking = true, balance = null }: Props) {
+export function OrderConfirmation({ order, store, storeBasePath, transfer = null, deliveryCode = null, rewards = null, delivery = null, brandedTracking = true, balance = null, payAtDoor = null }: Props) {
   const cart = useCart(store.slug);
   const theme = useMemo(() => resolveShopperTheme(store.brandSettings), [store.brandSettings]);
   const clearCart = cart.clear;
 
   const method = order.paymentMethod === "transfer" || order.paymentMethod === "pay_on_delivery" ? order.paymentMethod : "paystack";
-  const isPaid = PAID.includes(order.status);
+  // Pay on delivery is paid only once the money is in (on the way isn't paid); everything else by its status.
+  const isPaid = payAtDoor ? payAtDoor.paid : PAID.includes(order.status);
   const isOpen = !["cancelled", "returned", "refunded", "partially_refunded", "delivered"].includes(order.status);
   const money = (amount: number) => formatStoreMoney(Number(amount), order.currency);
   const amount = money(order.total);
@@ -118,7 +134,8 @@ export function OrderConfirmation({ order, store, storeBasePath, transfer = null
   const wayLine = !onTheWay || !how ? null : delivery?.kind === "pickup_point" && delivery.point ? `${how} · ${delivery.point.name}` : area ? `${how} to ${area}` : how;
   // A preorder paid with a deposit that still owes the rest ("Pay the rest" below).
   const owing = balance && balance.due > 0 && order.status === "paid" ? balance : null;
-  const headline = order.status === "cancelled" ? "Order cancelled" : owing?.ready ? "Your pre-order is ready" : onTheWay ? "On the way" : isPaid ? `Thank you, ${firstName}` : method === "paystack" ? "Waiting for payment" : `Thank you, ${firstName}`;
+  const feeDue = Boolean(payAtDoor?.feeDue);
+  const headline = order.status === "cancelled" ? "Order cancelled" : feeDue ? "Pay the delivery fee" : owing?.ready ? "Your pre-order is ready" : onTheWay ? "On the way" : isPaid ? `Thank you, ${firstName}` : method === "paystack" ? "Waiting for payment" : `Thank you, ${firstName}`;
   const subline = order.status === "cancelled"
     ? "This order was cancelled. Contact the store if you think this is a mistake."
     : owing
@@ -134,7 +151,9 @@ export function OrderConfirmation({ order, store, storeBasePath, transfer = null
           ? `Your order is placed. Send your bank transfer below by ${payByText(transfer.payBy)} (Lagos time), or the order is cancelled and its items go back on sale. The store confirms it once the money arrives.`
           : "Your order is placed. Send your bank transfer below. The store confirms it once the money arrives."
         : method === "pay_on_delivery"
-          ? `Your order is placed. You pay ${amount} when it arrives.`
+          ? feeDue
+            ? `Your order is saved. Pay the delivery fee, ${money(payAtDoor!.fee)}, to confirm it. You pay the rest, ${money(payAtDoor!.amount)}, in the app when it arrives.`
+            : `Your order is confirmed. When it arrives, check it, then pay ${money(payAtDoor?.amount ?? order.total)} here in the app. You'll get a code to give the rider.`
           : "We haven't received your payment yet. If you paid, this page updates once Paystack confirms it.";
 
   const pointsOff = rewards?.loyalty?.usedValue ?? 0;
@@ -165,6 +184,7 @@ export function OrderConfirmation({ order, store, storeBasePath, transfer = null
             orderId={order.id}
             currency={order.currency}
             transfer={transfer}
+            payAtDoor={payAtDoor}
             deliveryCode={deliveryCode}
             codeAt={delivery?.kind === "pickup_point" ? "point" : "rider"}
           />
@@ -332,7 +352,7 @@ function Timeline({ theme, status, createdAt, shippedAt, deliveredAt, isPaid, me
   );
 }
 
-function NextSteps({ theme, method, isPaid, isOpen, amount, orderId, currency, transfer, deliveryCode, codeAt = "rider" }: {
+function NextSteps({ theme, method, isPaid, isOpen, amount, orderId, currency, transfer, payAtDoor = null, deliveryCode, codeAt = "rider" }: {
   theme: ShopperTheme;
   method: "paystack" | "transfer" | "pay_on_delivery";
   isPaid: boolean;
@@ -341,6 +361,7 @@ function NextSteps({ theme, method, isPaid, isOpen, amount, orderId, currency, t
   orderId: string;
   currency: string;
   transfer: TransferDetails | null;
+  payAtDoor?: PayAtDoorView | null;
   deliveryCode: string | null;
   /** Where the buyer hands the code over: to the rider, or at the pickup point. */
   codeAt?: "rider" | "point";
@@ -357,12 +378,7 @@ function NextSteps({ theme, method, isPaid, isOpen, amount, orderId, currency, t
         </Panel>
       ));
   } else if (method === "pay_on_delivery" && !isPaid && isOpen) {
-    blocks.push(
-      <Panel key="pod" theme={theme} className="p-5">
-        <h2 className="text-[18px] font-semibold">Have {amount} ready</h2>
-        <p className="mt-1 text-[14.5px] leading-6" style={{ color: theme.muted }}>Pay the rider in cash or by transfer when your order arrives. Check your items before you pay.</p>
-      </Panel>,
-    );
+    blocks.push(<PayAtDoorPanel key="pod" theme={theme} orderId={orderId} amount={payAtDoor ? formatStoreMoney(payAtDoor.amount, currency) : amount} view={payAtDoor} codeAt={codeAt} currency={currency} />);
   }
 
   if (deliveryCode && isOpen) {
@@ -379,6 +395,68 @@ function NextSteps({ theme, method, isPaid, isOpen, amount, orderId, currency, t
 
   if (blocks.length === 0) return null;
   return <div className="grid gap-4">{blocks}</div>;
+}
+
+/**
+ * Pay on delivery at the door: the customer checks the parcel, pays here (Paystack: transfer to a one-time account,
+ * card or USSD) and comes back to this page, which then shows the code for the rider. The rider can't hand over the
+ * parcel without it. No cash, so a fake transfer alert never gets a parcel.
+ */
+function PayAtDoorPanel({ theme, orderId, amount, view, codeAt, currency }: { theme: ShopperTheme; orderId: string; amount: string; view: PayAtDoorView | null; codeAt: "rider" | "point"; currency: string }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  async function pay() {
+    setBusy(true);
+    setError(null);
+    const result = await startPayAtDoor(orderId).catch(() => ({ ok: false as const, error: "Something went wrong. Try again." }));
+    if (result.ok) {
+      window.location.assign(result.url);
+      return;
+    }
+    setError(result.error);
+    setBusy(false);
+  }
+  const fee = view ? formatStoreMoney(view.fee, currency) : "";
+  if (view?.feeDue) {
+    // The delivery fee wasn't paid at checkout (Paystack closed): the order isn't confirmed until it is.
+    return (
+      <div id="pay" className="scroll-mt-4">
+        <Panel theme={theme} className="grid gap-3 p-5" aria-labelledby="pay-heading">
+          <h2 id="pay-heading" className="text-[18px] font-semibold" style={{ fontFamily: theme.heading }}>Pay the delivery fee to confirm your order</h2>
+          <p className="m-0 text-[14.5px] leading-6" style={{ color: theme.muted }}>
+            The delivery fee, {fee}, is paid now and goes to the delivery company. You pay the rest, {amount}, in the app when your order arrives, after you check it. No cash.
+          </p>
+          {view.canPay ? (
+            <PrimaryButton theme={theme} type="button" onClick={() => void pay()} disabled={busy} className="w-full sm:w-auto" data-pay-fee>
+              {busy ? "Opening payment…" : `Pay ${fee} delivery`}
+            </PrimaryButton>
+          ) : null}
+          {error ? <p role="alert" className="m-0 text-[13.5px]" style={{ color: "#B42318" }}>{error}</p> : null}
+        </Panel>
+      </div>
+    );
+  }
+  return (
+    <div id="pay" className="scroll-mt-4">
+    <Panel theme={theme} className="grid gap-3 p-5" aria-labelledby="pay-heading">
+      <h2 id="pay-heading" className="text-[18px] font-semibold" style={{ fontFamily: theme.heading }}>Pay {amount} when it arrives</h2>
+      {view?.feePaid && view.fee > 0 ? <p className="m-0 inline-flex items-center gap-1.5 text-[13.5px] font-semibold" style={{ color: "#14532D" }}><Icon name="checkCircle" size={14} /> Delivery fee paid ({fee})</p> : null}
+      <ol className="m-0 grid list-decimal gap-1 pl-5 text-[14.5px] leading-6" style={{ color: theme.muted }}>
+        <li>{codeAt === "point" ? "Check your order at the pickup point." : "Check your order in front of the rider."}</li>
+        <li>Pay here: bank transfer, card or USSD. No cash.</li>
+        <li>You get a 4-digit code on this page and by SMS. {codeAt === "point" ? "Give it at the pickup point" : "Give it to the rider"} to take your order.</li>
+      </ol>
+      {view?.canPay ? (
+        <PrimaryButton theme={theme} type="button" onClick={() => void pay()} disabled={busy} className="w-full sm:w-auto" data-pay-at-door>
+          {busy ? "Opening payment…" : `Pay ${amount} now`}
+        </PrimaryButton>
+      ) : (
+        <p className="m-0 text-[13.5px]">Payment opens here when your order is on its way. Contact the store if you need help.</p>
+      )}
+      {error ? <p role="alert" className="m-0 text-[13.5px]" style={{ color: "#B42318" }}>{error}</p> : null}
+    </Panel>
+    </div>
+  );
 }
 
 function Stars({ rating, onChange }: { rating: number; onChange: (r: number) => void }) {

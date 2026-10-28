@@ -199,7 +199,9 @@ test("each 'order became paid' effect waits or runs as decided for a deposit", (
   const status = read("src/lib/orders/update-status.ts");
   assert.match(status, /storeBalanceDue\(order\) && \["processing", "packed", "shipped", "delivered"\]\.includes\(input\.status\)/);
   const wallet = read("src/lib/wallet/wallet.server.ts");
-  assert.match(wallet, /reference: `sale-balance:\$\{order\.id\}`/, "the balance's wallet entry has its own reference");
+  // The later part's entries add "-balance" to the references the checkout part uses (sale-balance:<order id>…).
+  assert.match(wallet, /reference: `sale\$\{tag\}:\$\{order\.id\}`/, "the balance's wallet entry has its own reference");
+  assert.match(wallet, /addShares\(balance, "-balance", order\.balanceRef/);
   assert.match(wallet, /key: `\$\{order\.id\}:balance`/);
   const fees = read("src/lib/wallet/platform-fees.server.ts");
   assert.match(fees, /\(plan\.platformKobo \?\? 0\) \+ \(balance\?\.platformKobo \?\? 0\)/, "the fee report counts the balance's part once it's paid");

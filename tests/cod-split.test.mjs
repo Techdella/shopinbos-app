@@ -60,8 +60,12 @@ test("odd kobo never goes missing, and missing prices share by quantity", () => 
 });
 
 test("supplier pickups and the seller's own booking use the split, not the whole total", () => {
-  assert.match(readFileSync("src/lib/supplier-orders/pickup.server.ts", "utf8"), /supplierPartCollect\(/);
+  // Supplier pickups never collect cash: pay on delivery is paid in the app at the door (shared/pay-at-door.ts).
+  const pickup = readFileSync("src/lib/supplier-orders/pickup.server.ts", "utf8");
+  assert.doesNotMatch(pickup, /supplierPartCollect\(/);
+  assert.match(pickup, /collect: 0,\n\s+payOnDelivery: unpaidPod/);
   const route = readFileSync("src/app/api/app/logistics/bookings/route.ts", "utf8");
   assert.match(route, /ownPartCollect\(/);
   assert.doesNotMatch(route, /\? order\.total : undefined/);
+  assert.match(route, /order\.paymentMethod !== "pay_on_delivery" &&/, "a pay-on-delivery booking carries no cash");
 });

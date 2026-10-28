@@ -1,3 +1,5 @@
+import { PAY_AT_DOOR_PREFIX, POD_FEE_PREFIX } from "@shared/pay-at-door";
+import { confirmPayAtDoor, confirmPodFee } from "@/lib/commerce/pay-at-door.server";
 import { completeExtraPurchase } from "@/lib/plans/extras.server";
 import { confirmCardTopUp, handleWalletAccountAssign, handleWalletAccountCharge, handleWalletTransfer } from "@/lib/wallet/balance.server";
 import { WALLET_REFERENCE } from "@/lib/wallet/balance-rules";
@@ -196,6 +198,26 @@ export async function POST(req: NextRequest) {
     const result = await confirmStoreBalancePayment(event.data.reference).catch((error) => ({ ok: false as const, error: String(error), retry: true }));
     if (!result.ok && "retry" in result && result.retry) return new NextResponse("Retry later", { status: 500 });
     if (!result.ok) console.warn(`[paystack webhook] store balance ${event.data.reference} not applied: ${result.error}`);
+    return new NextResponse("OK", { status: 200 });
+  }
+
+  // ── Pay on delivery: the delivery fee paid at checkout (split to the delivery partner's own bank) ──
+  // Idempotent: depositPaidAt is set once, conditional on the order still waiting, so a replay or the checkout page
+  // confirming it first records nothing twice; a 500 (Paystack or the database unreachable) is safe to retry.
+  if (eventType === "charge.success" && typeof event.data?.reference === "string" && event.data.reference.startsWith(POD_FEE_PREFIX)) {
+    const result = await confirmPodFee(event.data.reference).catch((error) => ({ ok: false as const, error: String(error), retry: true }));
+    if (!result.ok && "retry" in result && result.retry) return new NextResponse("Retry later", { status: 500 });
+    if (!result.ok) console.warn(`[paystack webhook] delivery fee ${event.data.reference} not applied: ${result.error}`);
+    return new NextResponse("OK", { status: 200 });
+  }
+
+  // ── Pay on delivery paid at the door (its own reference; split like a card checkout) ──
+  // Idempotent: the order moves once (paystackRef set, conditional on it still being due), so a replay or the return
+  // page confirming it first records nothing twice; a 500 (Paystack or the database unreachable) is safe to retry.
+  if (eventType === "charge.success" && typeof event.data?.reference === "string" && event.data.reference.startsWith(PAY_AT_DOOR_PREFIX)) {
+    const result = await confirmPayAtDoor(event.data.reference).catch((error) => ({ ok: false as const, error: String(error), retry: true }));
+    if (!result.ok && "retry" in result && result.retry) return new NextResponse("Retry later", { status: 500 });
+    if (!result.ok) console.warn(`[paystack webhook] pay at door ${event.data.reference} not applied: ${result.error}`);
     return new NextResponse("OK", { status: 200 });
   }
 

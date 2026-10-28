@@ -17,6 +17,8 @@ import { useOwnPosition } from "@/lib/rider-location";
 import { firstName, isCarrying, pickupJobIds, routeLine } from "@/lib/rider-pure";
 import { RIDER_HELP_EN, RIDER_HELP_KEYS, RIDER_REASONS_EN, useRiderStrings } from "@/lib/rider-strings";
 import { useLoad } from "@/lib/useLoad";
+import QRCode from "react-native-qrcode-svg";
+import { PAY_AT_DOOR_WAIT_MINUTES } from "@shared/pay-at-door";
 import { colors } from "@/theme";
 
 // Riders app, one job's steps (E2E-Rider pickup → pcode → dropoff → dcode → cash → rdone, and "problem"):
@@ -27,6 +29,9 @@ import { colors } from "@/theme";
 //   proof-of-delivery photo and who received it, which the server accepts instead of the code (riderProofInstead in
 //   src/lib/logistics/job-rules.ts). "Something wrong?" (on every step, the code step too) tells the company without
 //   failing the job; "I can't deliver it at all" is still there for the real failures.
+//   Pay on delivery (shared/pay-at-door.ts) has no cash step: at the drop-off the customer pays in the app (the link we
+//   texted them, or the QR code here) and gets the code; no code, no drop, and no photo instead. Only older jobs that
+//   still carry a cash amount use the cash step.
 
 type Step = "pickup" | "pcode" | "dropoff" | "dcode" | "cash" | "done" | "help";
 type CodeState = "idle" | "checking" | "ok" | "bad";
@@ -53,6 +58,8 @@ export default function RiderJob() {
   const [noCode, setNoCode] = useState(false);
   const [recipient, setRecipient] = useState("");
   const [failing, setFailing] = useState(false);
+  const [showQr, setShowQr] = useState(false);
+  const [linkNote, setLinkNote] = useState<string | null>(null);
   const [last, setLast] = useState<{ earned: number; cash: number } | null>(null);
   // The job as last seen: once delivered it leaves the list, but "Delivered" still needs its amounts.
   const [held, setHeld] = useState<{ run: RiderRun; drop: RiderDrop } | null>(null);
@@ -160,6 +167,22 @@ export default function RiderJob() {
     setError(null);
     setDstate("idle");
     if (next.length === 4) void checkDrop(next);
+  }
+
+  /** Pay on delivery: text the customer the payment link again (3 an hour per order). */
+  async function resendLink() {
+    if (!drop) return;
+    setBusy("pay_link");
+    setError(null);
+    setLinkNote(null);
+    try {
+      await riderAction({ action: "pay_link", jobId: drop.id });
+      setLinkNote(say("pay.resent"));
+    } catch (linkError) {
+      setError(linkError instanceof Error ? linkError.message : t.tryAgain);
+    } finally {
+      setBusy(null);
+    }
   }
 
   async function deliver() {
@@ -365,6 +388,27 @@ export default function RiderJob() {
             <Sub style={{ color: colors.warnInk }}>{say("drop.payNote")}</Sub>
           </View>
         ) : null}
+        {drop.payInApp ? (
+          // Pay on delivery (shared/pay-at-door.ts): the customer pays in the app and gets the code. No cash.
+          drop.payInApp.paid ? (
+            <Banner title={say("pay.paid")} tone="mint" icon="check">{say("pay.paidSub")}</Banner>
+          ) : (
+            <View style={{ backgroundColor: colors.mintTint, borderRadius: 24, padding: 20, gap: 10 }}>
+              <T weight="extrabold" style={{ fontSize: 16, color: colors.forest }}>{say("pay.title", { amount: naira(drop.payInApp.amount) })}</T>
+              <Sub>{say("pay.body")}</Sub>
+              {showQr ? (
+                <View style={{ alignItems: "center", gap: 8, backgroundColor: "#FFFFFF", borderRadius: 18, padding: 16 }}>
+                  <QRCode value={drop.payInApp.url} size={220} color={colors.ink} backgroundColor="#FFFFFF" />
+                  <Small>{say("pay.qrHint")}</Small>
+                </View>
+              ) : null}
+              <PillButton tone="white" size="md" title={showQr ? say("pay.hideQr") : say("pay.showQr")} onPress={() => setShowQr((open) => !open)} />
+              <PillButton tone="white" size="md" busy={busy === "pay_link"} title={say("pay.resend")} onPress={() => void resendLink()} />
+              {linkNote ? <Small style={{ color: colors.success }}>{linkNote}</Small> : null}
+              <Small>{say("pay.wait", { minutes: PAY_AT_DOOR_WAIT_MINUTES })}</Small>
+            </View>
+          )
+        ) : null}
         {errorNotice}
         {helpLink}
       </Screen>
@@ -418,13 +462,14 @@ export default function RiderJob() {
       >
         <View style={{ gap: 8 }}>
           <Heading style={{ textAlign: "center" }}>{say("enterCode")}</Heading>
-          <Sub style={{ textAlign: "center" }}>{say("dcode.hint")}</Sub>
+          <Sub style={{ textAlign: "center" }}>{drop.payInApp ? say("pay.codeHint") : say("dcode.hint")}</Sub>
         </View>
         <Keypad value={dcode} length={4} onChange={typeDrop} />
         <CodeLine state={dstate} bad={say("codeBad")} ok={say("codeOk")} />
         {errorNotice}
         {ok ? <TextLink title={photoDone ? t.photoDone : t.photo} color={colors.inkSoft} onPress={() => { if (!photoDone && busy !== "photo") void addPhoto(); }} /> : null}
-        {!ok ? <TextLink title={say("noCode.link")} onPress={() => { setNoCode(true); setError(null); }} /> : null}
+        {/* Pay on delivery: the code is the customer's proof of payment, so there's no photo instead. */}
+        {!ok && !drop.payInApp ? <TextLink title={say("noCode.link")} onPress={() => { setNoCode(true); setError(null); }} /> : null}
         {helpLink}
       </Screen>
     );

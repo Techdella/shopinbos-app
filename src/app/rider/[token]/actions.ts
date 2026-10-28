@@ -121,3 +121,20 @@ export async function markStage(token: string, input: { jobId: string; to: "out_
     riderId: session.rider.id,
   }));
 }
+
+/**
+ * Pay on delivery at the door: text the customer the payment link again (shared/pay-at-door.ts). Only for a job
+ * assigned to this rider that's on the road; sendPayAtDoorLink caps it at 3 an hour per order.
+ */
+export async function resendPayLink(token: string, jobId: string): Promise<RiderActionResult> {
+  const session = await rider(token);
+  if (!session.ok) return session;
+  const job = await db.deliveryBooking.findFirst({
+    where: { id: String(jobId ?? ""), riderId: session.rider.id, logisticsPartnerId: session.rider.partnerId, status: { in: ["picked_up", "in_transit", "out_for_delivery", "at_pickup_point"] } },
+    select: { orderId: true },
+  });
+  if (!job?.orderId) return { ok: false, error: (await getT("rider"))("pay.noJob") };
+  const { sendPayAtDoorLink } = await import("@/lib/commerce/pay-at-door.server");
+  const sent = await sendPayAtDoorLink(job.orderId, { resend: true });
+  return sent.ok ? { ok: true } : { ok: false, error: sent.error };
+}

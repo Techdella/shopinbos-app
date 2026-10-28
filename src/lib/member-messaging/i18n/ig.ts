@@ -650,6 +650,16 @@ export const templates: Record<string, TemplateText> = {
     button: "Hụ order m",
     examples: ["Ada", "Rexi", "SB-MVP80C9V-8D1B09", "1 × Ankara tote, 2 × Silk scarf", "₦7,100", "Ị nwere ike iji kaadị, bank transfer ma ọ bụ USSD kwụọ ụgwọ."],
   },
+  shopinbos_pay_at_door: {
+    body: "Ndewo {{1}}, order gị {{2}} si {{3}} nọ n'ụzọ. 🚚\n\nMgbe ọ bịarutere, lelee ya, wee kwụọ {{4}} n'app: transfer, card ma ọ bụ USSD. Enweghị ego aka. Ozugbo ị kwụsịrị, ị ga-enweta koodu nwere ọnụọgụ 4 ị ga-enye rider.\n\nPịa n'okpuru ka ị kwụọ ụgwọ.",
+    button: "Kwụọ ụgwọ order m",
+    examples: ["Ada", "SB-MVP80C9V-8D1B09", "Rexi", "₦18,500"],
+  },
+  shopinbos_pay_at_door_code: {
+    body: "Ndewo {{1}}, anyị natara ụgwọ maka order {{2}} si {{3}}. ✅\n\nNye rider koodu a: {{4}}. Nye ya naanị mgbe order gị dị gị n'aka.\n\nPịa n'okpuru ka ị hụ order gị.",
+    button: "Lee order m",
+    examples: ["Ada", "SB-MVP80C9V-8D1B09", "Rexi", "4821"],
+  },
   shopinbos_refer_supplier: {
     body: "Ndewo {{1}}, ị maara supplier kwesịrị ịna-erere ọtụtụ ụlọ ahịa? 🤝\n\nKpọọ ha bata Shopinbos site na link gị. Mgbe ha nwetara verification ma tinye ngwaahịa 5, ị ga-enweta {{2}}. Ha ga-enweta otu ọnwa Supplier Plus n'efu na featured week na marketplace.\n\nPịa n'okpuru ka i nweta link gị ma kesaa ya na WhatsApp.",
     button: "Kpọọ supplier",

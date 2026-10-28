@@ -186,6 +186,18 @@ const en = {
   "noCode.useCode": "Use the code instead",
   "startJob": "Start this job",
   "offer.assigned": "{company} gave you this job. Skip it if you can't do it.",
+  // Pay on delivery, paid in the app at the door (shared/pay-at-door.ts): no cash, no code, no drop.
+  "pay.title": "Customer pays {amount} in the app. No cash",
+  "pay.body": "Let them check the parcel, then pay with the link we texted them or by scanning the QR code. Once the money is in, they get a 4-digit code. Type it to finish the drop.",
+  "pay.qrHint": "The customer scans this with their phone camera.",
+  "pay.showQr": "Show QR code",
+  "pay.hideQr": "Hide QR code",
+  "pay.resend": "Text the link again",
+  "pay.resent": "Sent. Ask them to check their SMS.",
+  "pay.wait": "No payment after {minutes} minutes, or they refuse? Take the parcel back. You're still paid for the trip.",
+  "pay.paid": "Paid in the app",
+  "pay.paidSub": "Ask for the code they got after paying, then hand over the parcel.",
+  "pay.codeHint": "Ask for the 4-digit code the customer got after paying in the app",
 } satisfies Record<string, string>;
 
 export default en;

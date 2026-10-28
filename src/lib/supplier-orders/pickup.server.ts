@@ -1,4 +1,3 @@
-import { supplierPartCollect } from "@shared/cod-split";
 import { supplierPartnerIds } from "@/lib/suppliers/partners.server";
 import "server-only";
 import { preorderBlocksShipping } from "@shared/preorder";
@@ -51,6 +50,8 @@ interface PickupOrder {
   dropoff: { name: string; phone: string | null; lines: string[] };
   items: Array<{ name: string; quantity: number }>;
   collect: number;
+  /** The customer pays when it arrives, in the app at the door (shared/pay-at-door.ts). */
+  payOnDelivery?: boolean;
   shippingFee: number;
   currency: string;
 }
@@ -89,8 +90,10 @@ async function loadOrder(supplierId: string, kind: SupplierOrderKind, orderId: s
       retailOrderId: row.retailOrderId,
       dropoff: { name: row.recipientName, phone: row.recipientPhone, lines: addressLines(row.shippingAddress) },
       items: items.map((item) => ({ name: labelText(item.name, 80) || "Item", quantity: Math.max(1, Number(item.quantity) || 1) })),
-      // Only this supplier's share of the order total: the customer pays once across all the parcels.
-      collect: unpaidPod ? supplierPartCollect(row.retailOrder.items, Number(row.retailOrder.total) || 0, row.items) : 0,
+      // Nothing in cash: pay on delivery is paid in the app at the door (shared/pay-at-door.ts), so riders never hold
+      // money. unpaidPod still tells the supplier the customer pays when it arrives.
+      collect: 0,
+      payOnDelivery: unpaidPod,
       shippingFee: Number(row.retailOrder.shippingFee) || 0,
       currency: row.currency,
     };
