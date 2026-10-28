@@ -473,7 +473,9 @@ async function notifyRecipient(viewer: Viewer, access: { id: string; otherId: st
     metadata: { conversationId: access.id, kind: "partner_message", senderId: viewer.id },
     event: "message.new",
     dedupeKey: false,
-    phoneHandled: true,
+    // The older chat SMS above already texted them; otherwise their Messages switches decide (WhatsApp is on by
+    // default for delivery partners).
+    phoneHandled: Boolean(preference?.sms),
   });
 }
 

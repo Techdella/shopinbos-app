@@ -266,3 +266,13 @@ test("wiring: one notify() path, every role's key events, cron and push plumbing
   assert.match(read("apps/mobile/src/lib/push.ts"), /getExpoPushTokenAsync/);
   assert.doesNotMatch(read("apps/mobile/src/components/PushManager.tsx"), /requestPermissionsAsync/, "never asks at launch");
 });
+
+test("delivery partners get WhatsApp by default for verification, jobs, money and chats; others don't", () => {
+  const partner = n.resolvePreferences([], "logistics_partner");
+  for (const category of ["account", "orders", "deliveries", "money", "messages"]) assert.equal(partner[category].whatsapp, true, category);
+  assert.equal(partner.marketing.whatsapp, false, "never marketing on WhatsApp");
+  assert.equal(n.resolvePreferences([], "seller").account.whatsapp, false);
+  const turnedOff = n.resolvePreferences([{ eventKey: "notify.orders", push: true, email: true, sms: false, whatsapp: false }], "logistics_partner");
+  assert.equal(turnedOff.orders.whatsapp, false, "their own switch wins");
+  assert.equal(n.planDelivery({ category: "account", urgent: false, prefs: partner, quiet: false }).whatsapp, true);
+});

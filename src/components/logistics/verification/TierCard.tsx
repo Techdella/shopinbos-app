@@ -14,6 +14,9 @@ export async function TierCard({ partnerId }: { partnerId: string }) {
   if (!state) return null;
   const t = await getT("partnerKyc");
   const verified = state.state === "tier1_verified" || state.state === "tier2_verified";
+  // The pill follows the verification state, so a partner the team verified before tiers existed (status verified,
+  // no stored tier) reads "Verified Individual" here too, not "Not verified" under a "Verified Individual" title.
+  const shownTier = state.state === "tier2_verified" ? "tier2" : state.state === "tier1_verified" ? "tier1" : "none";
   const { limits } = state;
   const progress = limits.progress;
   const naira = (amount: number) => formatMoney(amount, t.locale);
@@ -33,7 +36,7 @@ export async function TierCard({ partnerId }: { partnerId: string }) {
         action={<PillLink href="/logistics/verification" size="sm">{t("card.open")}</PillLink>}
       />
       <div className="mt-3 flex flex-wrap items-center gap-1.5">
-        <Pill tone={state.tier === "none" ? "muted" : "success"} dot>{t(`tier.${state.tier === "tier1" || state.tier === "tier2" ? state.tier : "none"}`)}</Pill>
+        <Pill tone={shownTier === "none" ? "muted" : "success"} dot>{t(`tier.${shownTier}`)}</Pill>
         {state.badges.map((badge) => <Pill key={badge} tone="info">{t.dynamic(`badge.${badge}`, badge)}</Pill>)}
       </div>
       {state.statusReason && (state.state === "rejected" || state.state === "suspended") && (

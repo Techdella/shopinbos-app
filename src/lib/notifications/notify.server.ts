@@ -27,6 +27,7 @@ import {
 } from "@shared/notifications";
 import { PUSH_DEVICE_SELECT, checkExpoReceipts, pushToDevices, type PushPayload } from "./push.server";
 import { sendSms, sendWhatsAppMessage } from "./service";
+import { toE164 } from "@shared/phone";
 
 // The one way to tell someone something (build: "notify()"): writes the in-app notification (the bell), then
 // delivers it the way they chose in Settings › Notifications: push to their phone and browsers, email, SMS or
@@ -206,7 +207,7 @@ async function deliver(input: NotifyInput & { priority: NotifyPriority; type: No
 
   // Same rule as before notify(): payouts and critical alerts are transactional (no opt-out), the rest follow the switch.
   const emailKind = input.email ? (input.email === "transactional" || input.type === "payout" || input.priority === "critical" ? "transactional" : "notification") : null;
-  const plan = planDelivery({ category, urgent, prefs: resolvePreferences(rows), quiet: isQuietTime(now, quietHours), email: emailKind, phoneHandled: input.phoneHandled });
+  const plan = planDelivery({ category, urgent, prefs: resolvePreferences(rows, user.role), quiet: isQuietTime(now, quietHours), email: emailKind, phoneHandled: input.phoneHandled });
   const target = input.actionUrl || input.link || null;
 
   const jobs: Array<Promise<unknown>> = [];
@@ -230,17 +231,18 @@ async function deliver(input: NotifyInput & { priority: NotifyPriority; type: No
     );
   }
 
+  const phone = plan.sms || plan.whatsapp ? await textPhoneFor(input.userId, user.phone, user.role) : null;
   const text = `Shopinbos: ${input.title.replace(/\.$/, "")}. ${input.description}`.slice(0, 300) + (target ? ` ${absoluteUrl(target)}` : "");
-  if (plan.sms && user.phone) {
+  if (plan.sms && phone) {
     jobs.push(
-      sendSms({ to: [user.phone], message: text })
+      sendSms({ to: [phone], message: text })
         .then((result) => record({ notificationId, userId: input.userId, channel: "sms", provider: result.provider, status: result.success ? "ok" : "error", category, title: input.title, error: result.success ? null : result.message }))
         .catch(() => null),
     );
   }
-  if (plan.whatsapp && user.phone) {
+  if (plan.whatsapp && phone) {
     jobs.push(
-      sendWhatsAppMessage({ to: [user.phone], message: text })
+      sendWhatsAppMessage({ to: [phone], message: text })
         .then((result) => record({ notificationId, userId: input.userId, channel: "whatsapp", provider: result.provider, status: result.success ? "ok" : "error", category, title: input.title, error: result.success ? null : result.message }))
         .catch(() => null),
     );
@@ -250,6 +252,18 @@ async function deliver(input: NotifyInput & { priority: NotifyPriority; type: No
     jobs.push(deliverPush({ input, notificationId, category, urgent, devices, hold: plan.push === "hold", now, collapse: info?.collapse ?? null }));
   }
   await Promise.all(jobs);
+}
+
+/**
+ * Where texts and WhatsApp messages go: the account's phone, else for a delivery partner the company's WhatsApp
+ * number (partners sign up with it on the company profile, so the account often has no phone of its own).
+ */
+export async function textPhoneFor(userId: string, phone: string | null, role?: string | null): Promise<string | null> {
+  if (phone?.trim()) return phone;
+  if (role !== "logistics_partner") return null;
+  const partner = await db.logisticsPartner.findUnique({ where: { userId }, select: { whatsappNumber: true } }).catch(() => null);
+  const number = partner?.whatsappNumber?.trim();
+  return number ? toE164(number) ?? number : null;
 }
 
 async function record(data: { notificationId?: string | null; userId?: string | null; riderId?: string | null; channel: string; provider?: string | null; status: string; category?: string | null; collapseKey?: string | null; title?: string | null; body?: string | null; error?: string | null }) {
