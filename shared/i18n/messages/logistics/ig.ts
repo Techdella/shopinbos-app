@@ -437,7 +437,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "company.details": "Nkọwa",
   "company.finish": "Mechaa",
   "company.verifiedBody": "E nyochaala ụlọ ọrụ gị. Ndị na-ere ahịa na-ahụ akara nnyocha na peeji gị.",
-  "company.unverifiedBody": "Bugo akwụkwọ azụmahịa gị ka Shopinbos nyochaa gị. Ị nwere ike ịnara ọrụ ozugbo e nyochara gị.",
+  "company.unverifiedBody": "Mechaa verification ka ndị na-ere ahịa hụ gị. Ị chọrọ NIN gị na selfie, enweghị akwụkwọ ị ga-ebugo.",
   "company.whereDeliver": "Ebe ị na-ebuga",
   "company.emails": "Email si Shopinbos",
   "company.emailsSub": "Akụkọ ngwaahịa na ndụmọdụ, ncheta nhazi na nchịkọta kwa izu. Email nchekwa, ịkwụ ụgwọ na booking na-abịa mgbe niile.",

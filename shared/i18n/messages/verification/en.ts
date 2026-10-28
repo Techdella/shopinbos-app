@@ -6,9 +6,9 @@ const en = {
   "banner.supplier": "Supplier",
   "banner.logistics": "Logistics",
   "banner.profile": "{name} Profile",
-  "banner.notPublic": "Your profile will not appear publicly until ShopinBos verification is completed.",
-  "banner.unverified": "Upload your documents to start the verification process.",
-  "banner.pending": "Your documents are under review by the ShopinBos team.",
+  "banner.notPublic": "Sellers can't see your profile until Shopinbos verifies you.",
+  "banner.unverified": "Finish verification to get listed. It only takes a few minutes.",
+  "banner.pending": "We're checking your details and will message you when it's done.",
   "banner.rejected": "Your verification was not approved. Please update and resubmit.",
   "banner.view": "View verification status",
   // TrustScoreBreakdown

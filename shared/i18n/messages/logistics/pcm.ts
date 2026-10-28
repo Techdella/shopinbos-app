@@ -437,7 +437,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "company.details": "Details",
   "company.finish": "Finish",
   "company.verifiedBody": "We don verify your company. Sellers dey see the verified badge for your page.",
-  "company.unverifiedBody": "Upload your business papers so Shopinbos fit verify you. You fit take jobs once we verify you.",
+  "company.unverifiedBody": "Finish verification make sellers fit find you. You need your NIN and selfie, no papers to upload.",
   "company.whereDeliver": "Where you dey deliver",
   "company.emails": "Emails from Shopinbos",
   "company.emailsSub": "Product news and tips, setup reminders and weekly summaries. Security, billing and booking emails go always come.",

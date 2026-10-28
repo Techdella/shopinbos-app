@@ -6,6 +6,7 @@ import {
   getAnthropicClient,
   getOpenAIClient,
   OPENAI_IMAGE_MODEL,
+  withImageModel,
   PEGGY_CLAUDE_MODEL,
   PEGGY_OPENAI_MODEL,
   providerOrder,
@@ -126,9 +127,13 @@ export async function runAiCheck({ images = false }: { images?: boolean } = {}):
     else
       jobs.push(
         timed(row, async () => {
-          const result = await openai.images.generate({ model: OPENAI_IMAGE_MODEL, prompt: "A plain mint-green circle on a white background.", size: "1024x1024", quality: "low", n: 1 }, { timeout: 90_000, maxRetries: 0 });
+          let used = OPENAI_IMAGE_MODEL;
+          const result = await withImageModel((model) => {
+            used = model;
+            return openai.images.generate({ model, prompt: "A plain mint-green circle on a white background.", size: "1024x1024", n: 1 }, { timeout: 90_000, maxRetries: 0 });
+          });
           if (!result.data?.[0]?.b64_json && !result.data?.[0]?.url) throw new Error("No picture came back.");
-          return "Works.";
+          return used === OPENAI_IMAGE_MODEL ? "Works." : `Works on ${used}. ${OPENAI_IMAGE_MODEL} isn't available: change OPENAI_IMAGE_MODEL in Vercel.`;
         }),
       );
   }
