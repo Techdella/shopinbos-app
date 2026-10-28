@@ -254,3 +254,32 @@ export function supplierQuickReplies(role: string | null | undefined): string[] 
   if (role === "seller") return ["chat.quick.haveIt", "chat.quick.notNow", "chat.quick.check"];
   return [];
 }
+
+export type ReviewItemState = "done" | "checking" | "progress" | "optional" | "needed";
+export interface ReviewItem {
+  key: "id" | "catalogue" | "cac";
+  state: ReviewItemState;
+}
+
+/**
+ * "You're in review" (S11-Review): what's done, what's being checked and what can wait, from the sign-up answers
+ * (GET /api/supplier/onboarding). ID and selfie make a Verified Individual; a WhatsApp catalogue shows while the
+ * team lists it; CAC stays optional until it gives the Registered Business badge.
+ */
+export function supplierReviewItems(view: {
+  verificationStatus: string;
+  idDocument: { status: string } | null;
+  selfie: { status: string } | null;
+  catalogueRequested: boolean;
+  cac: { status: string } | null;
+  tiers: { verifiedIndividual: boolean; registeredBusiness: boolean };
+}): ReviewItem[] {
+  const rejected = view.idDocument?.status === "rejected" || view.selfie?.status === "rejected";
+  const id: ReviewItemState =
+    view.tiers.verifiedIndividual || view.verificationStatus === "verified" ? "done" : rejected || !view.idDocument || !view.selfie ? "needed" : "checking";
+  const items: ReviewItem[] = [{ key: "id", state: id }];
+  if (view.catalogueRequested) items.push({ key: "catalogue", state: "progress" });
+  const cac: ReviewItemState = view.tiers.registeredBusiness ? "done" : view.cac && view.cac.status !== "rejected" ? "checking" : "optional";
+  items.push({ key: "cac", state: cac });
+  return items;
+}

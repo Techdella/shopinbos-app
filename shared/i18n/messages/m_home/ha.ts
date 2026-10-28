@@ -104,6 +104,16 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "create.post": "Yi post ko gajeren bidiyo",
   "create.postSub": "Rex zai tsara shi don Status, TikTok, Instagram ɗinka",
   "greeting.addName": "Saka sunanka",
+  "create.video": "Yi bidiyo tare da Rex",
+  "create.videoSub": "Zaɓi kaya ɗaya. Rex zai yi bidiyo na daƙiƙa 15 don TikTok da Status.",
+  "create.more": "Ƙarin hanyoyin sayarwa",
+  "create.ad": "Ƙara isa da talla",
+  "create.adSub": "Kai ga mutane da yawa a Instagram da Facebook",
+  "create.sale": "Yi rangwame tare da ƙidayar lokaci",
+  "create.saleSub": "Black Friday, Kirsimeti ko rangwamenka",
+  "create.preorders": "Karɓi odar gaba",
+  "create.preordersSub": "Sayar kafin kayanka su iso",
+  "create.web": "Kana son ƙarin fili? Gyara bidiyo, rahotannin talla da zanen shagonka a shopinbos.com.",
 };
 
 export default ha;

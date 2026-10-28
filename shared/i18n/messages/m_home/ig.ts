@@ -104,6 +104,16 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "create.post": "Mee post ma ọ bụ reel",
   "create.postSub": "Rex na-emepụta ya maka Status, TikTok, Instagram gị",
   "greeting.addName": "Tinye aha gị",
+  "create.video": "Mee vidiyo ya na Rex",
+  "create.videoSub": "Họrọ otu ngwaahịa. Rex ga-eme vidiyo sekọnd 15 maka TikTok na Status.",
+  "create.more": "Ụzọ ndị ọzọ isi ree",
+  "create.ad": "Kwalite ya na mgbasa ozi",
+  "create.adSub": "Rute mmadụ karịa na Instagram na Facebook",
+  "create.sale": "Mee ọrịre nwere ọgụgụ oge",
+  "create.saleSub": "Black Friday, Krismas ma ọ bụ ọrịre nke gị",
+  "create.preorders": "Nara ịtụ n'ihu",
+  "create.preordersSub": "Ree tupu ngwaahịa gị abịa",
+  "create.web": "Ịchọrọ ohere karịa? Dezie vidiyo, akụkọ mgbasa ozi na nhazi ụlọ ahịa gị na shopinbos.com.",
 };
 
 export default ig;

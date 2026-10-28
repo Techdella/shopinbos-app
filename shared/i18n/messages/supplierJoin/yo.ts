@@ -150,6 +150,23 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "badge.verified_individual": "Verified Individual",
   "badge.registered_business": "Registered Business",
   "badge.payout_ready": "Payout ready",
+  "name.pitch": "Ọgọ́rọ̀ọ̀rún ṣọ́ọ̀bù lè ta ọjà rẹ. Ìwọ ló ń dá iye owó, àwọn ló ń mú oníbàárà wá.",
+  "review.item.id": "Káàdì ìdánimọ̀ àti selfie",
+  "review.item.id.sub": "Ó sọ ọ́ di Verified Individual",
+  "review.item.id.done": "O ti di Verified Individual",
+  "review.item.catalogue": "Kátálọ́ọ̀gì rẹ",
+  "review.item.catalogue.sub": "À ń kọ ọ́ sílẹ̀ láti WhatsApp",
+  "review.item.catalogue.done": "A ti kọ ọ́ sílẹ̀",
+  "review.item.cac": "Nọ́ńbà CAC",
+  "review.item.cac.sub": "Fi kún un lẹ́yìn náà fún Registered Business",
+  "review.item.cac.done": "Àmì Registered Business",
+  "review.state.done": "Ó ti parí",
+  "review.state.checking": "À ń ṣàyẹ̀wò",
+  "review.state.progress": "Ó ń lọ lọ́wọ́",
+  "review.state.optional": "Kò pọndandan",
+  "review.state.needed": "A nílò rẹ̀",
+  "review.once": "Nígbà tí a bá ti fìdí rẹ múlẹ̀, àwọn olùtajà lè rí ọjà rẹ, ṣe dropship wọn tàbí rà wọ́n ní ọ̀pọ̀.",
+  "review.lookAround": "Wo àyíká nígbà tí o bá ń dúró",
 };
 
 export default yo;

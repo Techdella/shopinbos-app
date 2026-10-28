@@ -150,6 +150,23 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "badge.verified_individual": "Verified Individual",
   "badge.registered_business": "Registered Business",
   "badge.payout_ready": "Payout ready",
+  "name.pitch": "Plenty shops fit sell your products. You set the price, dem bring the customers.",
+  "review.item.id": "ID and selfie",
+  "review.item.id.sub": "E go make you Verified Individual",
+  "review.item.id.done": "You don be Verified Individual",
+  "review.item.catalogue": "Your catalogue",
+  "review.item.catalogue.sub": "We dey list am from WhatsApp",
+  "review.item.catalogue.done": "E don list",
+  "review.item.cac": "CAC number",
+  "review.item.cac.sub": "Add am later for Registered Business",
+  "review.item.cac.done": "Registered Business badge",
+  "review.state.done": "Done",
+  "review.state.checking": "We dey check",
+  "review.state.progress": "E dey go on",
+  "review.state.optional": "No be must",
+  "review.state.needed": "We need am",
+  "review.once": "Once we verify you, sellers fit find your products, dropship dem or buy wholesale.",
+  "review.lookAround": "Look around while you dey wait",
 };
 
 export default pcm;

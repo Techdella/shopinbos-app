@@ -18,7 +18,7 @@ import {
   type SupplierIdType,
   type SupplierOnboardingStep,
 } from "@shared/supplier-onboarding";
-import { Choice, Seg } from "@/components/design";
+import { Choice, Pill, Seg, type PillTone } from "@/components/design";
 import { AppIcon } from "@/components/icons";
 import { CallPeggyButton } from "@/components/CallPeggyButton";
 import { ErrorState, LoadingBlock } from "@/components/kit";
@@ -41,6 +41,7 @@ import {
 } from "@/lib/supplier";
 import { usePeggyContinue, usePeggySaved } from "@/lib/peggy-call";
 import { useLoad } from "@/lib/useLoad";
+import { supplierReviewItems, type ReviewItemState } from "@/lib/supplier-pure";
 import { colors } from "@/theme";
 import { livenessStartProblem } from "@shared/liveness-name";
 
@@ -54,6 +55,9 @@ import { livenessStartProblem } from "@shared/liveness-name";
 const STATE_OPTIONS = NG_STATES.map((state) => ({ label: state === "FCT" ? "Abuja (FCT)" : state, value: state }));
 
 type Picked = { uri: string; dataUri: string };
+
+/** S11-Review's pills: DONE green, CHECKING amber, IN PROGRESS teal, OPTIONAL grey, NEEDED orange. */
+const REVIEW_TONE: Record<ReviewItemState, PillTone> = { done: "ok", checking: "warn", progress: "teal", optional: "gray", needed: "org" };
 
 async function takePhoto(front: boolean): Promise<Picked | "denied" | "big" | null> {
   const permission = await ImagePicker.requestCameraPermissionsAsync();
@@ -237,7 +241,13 @@ export function SupplierJoinFlow() {
   if (step === "name") {
     title = t("name.title");
     sub = t("name.hint");
-    body = <Field value={name} onChangeText={setName} autoFocus maxLength={120} placeholder={t("name.placeholder")} accessibilityLabel={t("name.title")} />;
+    // S01-Name: the field, then what's in it for them.
+    body = (
+      <View style={{ gap: 16 }}>
+        <Field value={name} onChangeText={setName} autoFocus maxLength={120} placeholder={t("name.placeholder")} accessibilityLabel={t("name.title")} />
+        <NoteCard tone="mint">{t("name.pitch")}</NoteCard>
+      </View>
+    );
     action = { label: t("continue"), onPress: () => (name.trim().length < 2 ? setError(t("name.need")) : save({ businessName: name.trim() }, "cac")) };
   } else if (step === "cac" && cacPhase === "ask") {
     title = t("cac.title");
@@ -503,8 +513,25 @@ export function SupplierJoinFlow() {
     const badges = supplierTierBadges(current.tiers);
     title = current.completed ? (verified ? t("review.verifiedTitle") : t("review.title")) : idSent ? t("review.readyTitle") : t("review.missingTitle");
     sub = current.completed ? (verified ? t("review.verifiedSub") : t("review.sub")) : idSent ? t("review.readySub") : t("review.missingSub");
+    // S11-Review: one row per piece, with where it stands.
+    const items = supplierReviewItems(current);
     body = (
       <View style={{ gap: 14 }}>
+        <View testID="supplier-review-items" style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 16 }}>
+          {items.map((item, position) => (
+            <View key={item.key} style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 14, borderTopWidth: position ? 1 : 0, borderTopColor: colors.line }}>
+              <View style={{ width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: item.state === "done" ? colors.successTint : colors.grayTint }}>
+                <AppIcon name={item.state === "done" ? "check" : item.key === "id" ? "user" : item.key === "catalogue" ? "chat" : "shield"} size={18} color={item.state === "done" ? colors.success : colors.inkSoft} />
+              </View>
+              <View style={{ flex: 1, gap: 2 }}>
+                <T weight="bold" style={{ fontSize: 15 }}>{t(`review.item.${item.key}`)}</T>
+                <T style={{ fontSize: 13, lineHeight: 18, color: colors.inkSoft }}>{t(`review.item.${item.key}.${item.state === "done" ? "done" : "sub"}`)}</T>
+              </View>
+              <Pill label={t(`review.state.${item.state}`)} tone={REVIEW_TONE[item.state]} />
+            </View>
+          ))}
+        </View>
+        {current.completed && !verified ? <T style={{ color: colors.inkSoft, fontSize: 14 }}>{t("review.once")}</T> : null}
         {badges.length ? (
           <View style={{ gap: 8 }}>
             <T weight="bold">{t("review.badges")}</T>
@@ -523,7 +550,7 @@ export function SupplierJoinFlow() {
       </View>
     );
     action = current.completed
-      ? { label: t("review.open"), onPress: () => router.replace("/supplier/home") }
+      ? { label: verified ? t("review.open") : t("review.lookAround"), onPress: () => router.replace("/supplier/home") }
       : idSent
         ? { label: t("review.send"), onPress: () => void run(async () => setView(await saveSupplierJoin({ completed: true, step: "review" }))) }
         : {
