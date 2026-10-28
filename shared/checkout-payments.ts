@@ -133,8 +133,22 @@ export function matchZone<Z extends { regions: string[] }>(zones: Z[], city = ""
   );
 }
 
-/** Whether pay on delivery covers this address and total, with the reason when it does not. */
+/**
+ * Pay on delivery is switched off everywhere for now (owner's call, October 2026): Shopinbos never holds money, and
+ * until "who pays when things go wrong" is settled, every order is paid upfront. Checkout, payment links, the seller's
+ * and the partner's switches all go through this. Orders already placed that way still finish (shared/pay-at-door.ts).
+ * Flip to true to bring it back.
+ */
+export const PAY_ON_DELIVERY_ON = false;
+export const PAY_ON_DELIVERY_OFF_MESSAGE = "Pay on delivery isn't available right now. Pay by card, bank transfer or USSD.";
+
+/** Whether pay on delivery covers this address and total, with the reason when it does not. Off while switched off. */
 export function payOnDeliveryBlock(settings: CheckoutPaymentSettings, context: CheckoutPaymentContext = {}): string | null {
+  return PAY_ON_DELIVERY_ON ? payOnDeliveryRules(settings, context) : PAY_ON_DELIVERY_OFF_MESSAGE;
+}
+
+/** The pay on delivery rules themselves (the store, its zones and cap), as they apply once it's switched back on. */
+export function payOnDeliveryRules(settings: CheckoutPaymentSettings, context: CheckoutPaymentContext = {}): string | null {
   // The customer pays in the app at the door (shared/pay-at-door.ts), so the store must take Paystack payments.
   if (!settings.paystackReady) return "Pay on delivery isn't available at this store yet.";
   if (settings.zones.length > 0 && (context.city || context.state)) {
@@ -155,8 +169,13 @@ export function payOnDeliveryBlock(settings: CheckoutPaymentSettings, context: C
  * aren't checked here. Shared by the checkout page (partnerPaymentOptions) and the checkout API.
  */
 export function partnerPayOnDeliveryBlock(settings: CheckoutPaymentSettings, context: CheckoutPaymentContext, optionPod: boolean): string | null {
+  return PAY_ON_DELIVERY_ON ? partnerPayOnDeliveryRules(settings, context, optionPod) : PAY_ON_DELIVERY_OFF_MESSAGE;
+}
+
+/** partnerPayOnDeliveryBlock's rules, as they apply once pay on delivery is switched back on. */
+export function partnerPayOnDeliveryRules(settings: CheckoutPaymentSettings, context: CheckoutPaymentContext, optionPod: boolean): string | null {
   if (!settings.methods?.cod || !optionPod) return "Pay on delivery isn't available with this delivery option. Choose another way to pay.";
-  return payOnDeliveryBlock({ ...settings, zones: [] }, { total: context.total });
+  return payOnDeliveryRules({ ...settings, zones: [] }, { total: context.total });
 }
 
 /** The pay on delivery option as checkout lists it. */
@@ -195,7 +214,8 @@ export function checkoutPaymentOptions(settings: CheckoutPaymentSettings, contex
 
 /** What checkout says when no way to pay works for this order (why pay on delivery is out, when it is). */
 export function noWayToPayText(settings: CheckoutPaymentSettings, context: CheckoutPaymentContext = {}): string {
-  const cod = settings.methods?.cod ? payOnDeliveryBlock(settings, context) : null;
+  // While pay on delivery is switched off it isn't mentioned at all (it's not a way to pay here).
+  const cod = settings.methods?.cod && PAY_ON_DELIVERY_ON ? payOnDeliveryBlock(settings, context) : null;
   return cod
     ? `${cod} The store can't take other payments here yet, so message the store to order.`
     : "This store can't take payments here yet. Message the store to order.";

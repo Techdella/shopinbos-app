@@ -1,4 +1,5 @@
 import "server-only";
+import { PAY_ON_DELIVERY_ON } from "@shared/checkout-payments";
 import { db } from "@/lib/db/client";
 import {
   PLAN_NAMES,
@@ -133,6 +134,8 @@ export async function deliveryPartnerProblem(userId: string, partnerId: string, 
 }
 
 export async function payOnDeliveryAllowed(userId: string) {
+  // Switched off everywhere for now (shared/checkout-payments.ts PAY_ON_DELIVERY_ON).
+  if (!PAY_ON_DELIVERY_ON) return false;
   return (await sellerPlan(userId)).limits.payOnDelivery;
 }
 

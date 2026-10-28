@@ -19,6 +19,7 @@
 //                        cash: riders never hold cash (shared/pay-at-door.ts), so pay on delivery is open from Tier 1.
 
 import { NG_REGIONS, SIZE_BANDS, type Place, type SizeBand } from "./delivery-market.ts";
+import { PAY_ON_DELIVERY_ON } from "./checkout-payments.ts";
 import { levelPerks } from "./partner-reach.ts";
 
 const num = (value: unknown) => {
@@ -690,6 +691,12 @@ export function partnerPerks(level: string | null | undefined) {
  * from older cash jobs. `verificationStatus` is checked when given.
  */
 export function canOfferPayOnDelivery(partner: { level?: string | null; codPaused?: boolean | null; verificationStatus?: string | null }): boolean {
+  // Switched off everywhere for now (shared/checkout-payments.ts PAY_ON_DELIVERY_ON).
+  return PAY_ON_DELIVERY_ON && canOfferPayOnDeliveryRules(partner);
+}
+
+/** canOfferPayOnDelivery's rules, as they apply once pay on delivery is switched back on. */
+export function canOfferPayOnDeliveryRules(partner: { level?: string | null; codPaused?: boolean | null; verificationStatus?: string | null }): boolean {
   if (partner.verificationStatus !== undefined && partner.verificationStatus !== "verified") return false;
   return !partner.codPaused;
 }
