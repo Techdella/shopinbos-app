@@ -104,9 +104,9 @@ export async function refundLatePayment(orderId: string): Promise<RefundOutcome>
     if (refundRoute(order) === "manual") {
       const claimed = await db.retailOrder.updateMany({ where: { id: order.id, refundStatus: null }, data: { refundStatus: "manual" } });
       if (claimed.count !== 1) return "skipped";
-      await notifySeller(order, `Refund needed: order ${order.orderNumber}`, order.paymentSplit
-        ? "This order expired unpaid and its stock sold to someone else, then the payment came in. It went straight to your bank through your Shopinbos Wallet, so refund the buyer or offer a replacement."
-        : "This order expired unpaid and its stock sold to someone else, then the payment came in outside Paystack. Refund the buyer or offer a replacement.", "critical");
+      // The payment went to the seller's own bank: they send it back from there, guided (shared/order-refunds.ts).
+      const { openRefund } = await import("@/lib/commerce/order-refunds.server");
+      await openRefund({ sourceKey: `late-payment:${order.id}`, orderId: order.id, reason: "late_payment", fault: "none", amountKobo: Math.round(Number(order.total) * 100), note: "The payment came in after the order expired and its stock sold." });
       await emailBuyerOf(order, "by_store");
       return "manual";
     }
@@ -195,7 +195,10 @@ export async function refundCancelledOrder(orderId: string, why: string, options
     if (refundRoute(order) === "manual") {
       const claimed = await db.retailOrder.updateMany({ where: { id: order.id, refundStatus: null }, data: { refundStatus: "manual", paymentIssue: `${why} Refund the customer ${amount} by hand.`.slice(0, 500) } });
       if (claimed.count !== 1) return "skipped";
-      await notifySeller(order, `Refund your customer: order ${order.orderNumber}`, `You cancelled this order. The customer paid you directly, so send ${amount} back to them by transfer.`, "critical");
+      // The money went to the businesses' own banks: the seller sends it back from theirs, guided step by step
+      // (the customer's account on their order page, "Refund sent", the customer confirms). shared/order-refunds.ts.
+      const { onPaidOrderCancelled } = await import("@/lib/commerce/order-refunds.server");
+      await onPaidOrderCancelled(order.id, why, Math.round(paidNaira * 100));
       await emailBuyer(order, "by_store");
       return "manual";
     }

@@ -295,6 +295,10 @@ export async function moveSupplierOrder(input: MoveInput): Promise<ServiceResult
     return { ok: false, code: "CONFLICT", message: current?.status === "expired" ? TIME_RAN_OUT : "This order has already moved on. Refresh to see where it is." };
   }
   if (data.acceptedAt) void import("@/lib/rewards/rewards.server").then((rewards) => rewards.rewardSupplierOrderAccepted(order.id)).catch(() => undefined);
+  // Who pays when things go wrong (shared/order-refunds.ts): accepted → a ship-by deadline from the handling days;
+  // declined (out of stock) → the customer is refunded that part, a strike, and the supplier owes the shop back.
+  if (next === "accepted") await import("@/lib/commerce/order-refunds.server").then((refunds) => refunds.setShipBy(order.id, now)).catch(() => undefined);
+  if (next === "rejected") await import("@/lib/commerce/order-refunds.server").then((refunds) => refunds.onSupplierPartFailed(order.id, "out_of_stock")).catch(() => undefined);
   // Sent without "I've packed it" (the supplier delivers it itself): the seller's sticker is used here instead.
   if (next === "shipped" && !order.packedAt) await import("@/lib/supplier-dropship.server").then((pack) => pack.useSellerSticker(order.id)).catch(() => undefined);
   // A delivered order counts towards the supplier's level (New → Trusted → Established).
@@ -314,7 +318,7 @@ export async function moveSupplierOrder(input: MoveInput): Promise<ServiceResult
     accepted: { title: `${supplierName} accepted order ${ref}`, description: `${supplierName} is preparing the dropship items on order ${ref}.`, priority: "info" as const },
     shipped: { title: `${supplierName} shipped order ${ref}`, description: `The dropship items on order ${ref} are on their way.${trackingCode ? ` Tracking: ${plainText(trackingCode, 80)}.` : ""}`, priority: "success" as const },
     delivered: { title: `Order ${ref} was delivered`, description: `${supplierName} marked the dropship items on order ${ref} as delivered.`, priority: "success" as const },
-    rejected: { title: `${supplierName} can't fill order ${ref}`, description: `${supplierName} declined the dropship items on order ${ref}: "${plainText(reason, 300)}". Contact the buyer, then refund or replace the items.`, priority: "critical" as const },
+    rejected: { title: `${supplierName} can't fill order ${ref}`, description: `${supplierName} declined the dropship items on order ${ref}: "${plainText(reason, 300)}". We've asked your customer for their bank account so you can refund them; ${supplierName} pays you back.`, priority: "critical" as const },
     pending: null,
     cancelled: null,
     expired: null,

@@ -322,5 +322,15 @@ export async function runSupplierAcceptance(now = new Date(), limit = 200): Prom
   } catch (error) {
     console.error("[supplier acceptance] catch-up sweep failed", error);
   }
+  // Who pays when things go wrong (shared/order-refunds.ts): accepted orders past their handling time, and refunds the
+  // seller still hasn't sent two days after the customer gave their account.
+  try {
+    const { autoConfirmSentRefunds, markLateSuppliers, remindRefundsToSend } = await import("@/lib/commerce/order-refunds.server");
+    await markLateSuppliers(now, limit);
+    await remindRefundsToSend(now);
+    await autoConfirmSentRefunds(now);
+  } catch (error) {
+    console.error("[supplier acceptance] late handling / refund reminders failed", error);
+  }
   return { reminded, expired, switched };
 }

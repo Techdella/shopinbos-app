@@ -9,6 +9,7 @@ import { getStoreByCustomDomain } from "@/lib/domains/lookup";
 import { getStorefrontBasePathForHost } from "@/lib/domains/storefront";
 import { loadOrderNextSteps } from "@/app/s/[slug]/order/[orderId]/order-props";
 import { payAtDoorView } from "@/lib/commerce/pay-at-door.server";
+import { customerRefundPanel } from "@/lib/commerce/order-refunds.server";
 
 interface Props {
   params: Promise<{ domain: string; orderId: string }>;
@@ -43,7 +44,10 @@ export default async function CustomDomainOrderPage({ params, searchParams }: Pr
   const requestHeaders = await headers();
   const storeBasePath = getStorefrontBasePathForHost(requestHeaders.get("host"), storeRef.slug);
 
-  const next = await loadOrderNextSteps(order, store);
+  const [next, refundPanel] = await Promise.all([
+    loadOrderNextSteps(order, store),
+    customerRefundPanel(order.id).catch(() => ({ refunds: [], lateParts: [], refundBanks: [] as string[] })),
+  ]);
   const publicStore = { name: store.name, slug: store.slug, logoUrl: store.logoUrl, currency: store.currency, brandSettings: next.brandSettings };
 
   return (
@@ -56,6 +60,7 @@ export default async function CustomDomainOrderPage({ params, searchParams }: Pr
       brandedTracking={next.brandedTracking}
       delivery={next.delivery ? JSON.parse(JSON.stringify(next.delivery)) : null}
       payAtDoor={payAtDoorView(order)}
+      {...refundPanel}
     />
   );
 }

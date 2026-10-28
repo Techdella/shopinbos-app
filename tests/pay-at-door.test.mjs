@@ -121,7 +121,7 @@ test("the delivery fee goes straight to the partner in full, or all to the selle
 
 test("payment link and code go by SMS and WhatsApp, with what's left to pay", async () => {
   const messages = read("src/lib/notifications/customer-messages.ts");
-  assert.match(messages, /for \(const channel of \["sms", "whatsapp"\] as const\)/);
+  assert.match(messages, /for \(const channel of input\.whatsapp \? \(\["sms", "whatsapp"\] as const\)/);
   assert.match(messages, /template: "shopinbos_pay_at_door"/);
   assert.match(messages, /template: "shopinbos_pay_at_door_code"/);
   const wa = await import("../src/lib/member-messaging/whatsapp-templates.ts");

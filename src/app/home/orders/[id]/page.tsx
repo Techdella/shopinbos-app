@@ -20,6 +20,8 @@ import { cancelAndRefundExpiredOrder, undoSupplierSwitchAction } from "./supplie
 import { sellerPartsView } from "@/lib/supplier-orders/parts.server";
 import { readDeliveryPlan } from "@shared/delivery-market";
 import { DeliveryPlanCard } from "./DeliveryPlanCard";
+import { RefundsCard } from "./RefundsCard";
+import { refundsForOrder } from "@/lib/commerce/order-refunds.server";
 import { shortCodesById } from "@/lib/products/short-code.server";
 import { ProductCodeBadge } from "@/components/products/ProductCodeBadge";
 import { orderHasPreorder, orderPreorderShipsOn } from "@shared/preorder";
@@ -48,7 +50,7 @@ function Line({ label, children, strong = false }: { label: string; children: Re
   );
 }
 
-export default async function OrderDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams?: Promise<{ saved?: string; error?: string }> }) {
+export default async function OrderDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams?: Promise<{ saved?: string; error?: string; refundSaved?: string; refundError?: string }> }) {
   const { id } = await params;
   const flash = (await searchParams) ?? {};
   const user = await requireRole(["seller"], "/login");
@@ -67,7 +69,7 @@ export default async function OrderDetailPage({ params, searchParams }: { params
   const booking = await db.deliveryBooking.findFirst({
     where: { orderId: order.id, sellerId: user.id, status: { not: "cancelled" } },
     orderBy: { createdAt: "desc" },
-    select: { id: true, status: true, deliveryCode: true, rider: { select: { name: true } }, logisticsPartner: { select: { id: true, displayName: true } } },
+    select: { id: true, status: true, deliveryCode: true, proofUrl: true, rider: { select: { name: true } }, logisticsPartner: { select: { id: true, displayName: true } } },
   });
 
   const items = (Array.isArray(order.items) ? order.items : []) as OrderItem[];
@@ -90,9 +92,17 @@ export default async function OrderDetailPage({ params, searchParams }: { params
     .findMany({
       where: { retailOrderId: order.id, storeId: store.id },
       orderBy: { createdAt: "asc" },
-      select: { id: true, status: true, items: true, trackingCode: true, carrier: true, rejectReason: true, shippedAt: true, deliveredAt: true, supplier: { select: { id: true, displayName: true } } },
+      select: { id: true, status: true, items: true, trackingCode: true, carrier: true, rejectReason: true, shippedAt: true, deliveredAt: true, packPhotoUrl: true, supplier: { select: { id: true, displayName: true } } },
     })
     .catch(() => []);
+  // Who pays when things go wrong (shared/order-refunds.ts): refunds the seller sends from their own bank, and wrong or
+  // damaged items the customer reported, for the seller to say who caused it.
+  const [refunds, issues] = await Promise.all([
+    refundsForOrder(order.id, "seller"),
+    db.deliveryIssue
+      .findMany({ where: { retailOrderId: order.id, storeId: store.id, status: "open", kind: { in: ["damaged", "wrong_item"] } }, orderBy: { createdAt: "asc" }, select: { id: true, kind: true, message: true, createdAt: true } })
+      .catch(() => []),
+  ]);
   // Parcels: "2 of 3 parcels sent", each part's state, and anything to decide (a supplier didn't accept in time).
   const parts = supplierOrders.length ? await sellerPartsView(order.id, store.id).catch(() => null) : null;
   const address = addressLines(order.deliveryAddress);
@@ -180,6 +190,17 @@ export default async function OrderDetailPage({ params, searchParams }: { params
               </ul>
             )}
           </Card>
+
+          <RefundsCard
+            orderId={order.id}
+            refunds={refunds}
+            issues={issues}
+            supplierParts={supplierOrders.filter((row) => ["shipped", "delivered"].includes(row.status)).map((row) => ({ id: row.id, name: row.supplier.displayName, packPhotoUrl: row.packPhotoUrl }))}
+            proofUrl={booking?.proofUrl ?? null}
+            hasBooking={!!booking}
+            money={money}
+            flash={{ saved: flash.refundSaved, error: flash.refundError }}
+          />
 
           {parts && (
             <div id="supplier-orders" className="min-w-0 scroll-mt-24 max-xl:order-4"><Card className="p-5">

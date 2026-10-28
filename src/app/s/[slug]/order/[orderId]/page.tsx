@@ -11,6 +11,7 @@ import { loadOrderNextSteps } from "./order-props";
 import { orderRewards } from "@/lib/gamification/play.server";
 import { shopperBalanceView } from "@/lib/commerce/store-balance.server";
 import { payAtDoorView } from "@/lib/commerce/pay-at-door.server";
+import { customerRefundPanel } from "@/lib/commerce/order-refunds.server";
 
 // A shopper's own order: never listed by search engines.
 export const metadata: Metadata = { title: "Your order", robots: { index: false, follow: false } };
@@ -47,10 +48,12 @@ export default async function OrderPage({ params, searchParams }: Props) {
   const requestHeaders = await headers();
   const storeBasePath = getStorefrontBasePathForHost(requestHeaders.get("host"), slug);
 
-  const [next, rewards] = await Promise.all([
+  const [next, rewards, refundPanel] = await Promise.all([
     loadOrderNextSteps(order, store),
     // Loyalty points and the post-purchase spin (Marketing > Rewards); never blocks the page.
     orderRewards(store, order).catch(() => null),
+    // Refunds and late supplier parts (who pays when things go wrong, shared/order-refunds.ts).
+    customerRefundPanel(order.id).catch(() => ({ refunds: [], lateParts: [], refundBanks: [] })),
   ]);
   const publicStore = { name: store.name, slug: store.slug, logoUrl: store.logoUrl, currency: store.currency, brandSettings: next.brandSettings };
 
@@ -66,6 +69,7 @@ export default async function OrderPage({ params, searchParams }: Props) {
       rewards={rewards ? JSON.parse(JSON.stringify(rewards)) : null}
       balance={shopperBalanceView(order)}
       payAtDoor={payAtDoorView(order)}
+      {...refundPanel}
     />
   );
 }

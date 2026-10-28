@@ -106,6 +106,10 @@ export async function updateOrderStatus(
     }
     // Cancelled before it was paid: the discount code's use goes back too (once; expiry does the same).
     await releaseOrderDiscount(order, order.status).catch((error) => console.error("[orders] could not give back the discount use", error));
+    // Cancelled after it was paid: the customer gets their money back (who pays: shared/order-refunds.ts). Once.
+    if (["paid", "processing", "packed", "shipped", "delivered"].includes(order.status) || order.paystackStatus === "success") {
+      await import("@/lib/commerce/refunds.server").then((refunds) => refunds.refundCancelledOrder(order.id, "The order was cancelled.")).catch((error) => console.error("[orders] could not start the refund", error));
+    }
   }
 
   const event = STATUS_EVENTS[input.status];

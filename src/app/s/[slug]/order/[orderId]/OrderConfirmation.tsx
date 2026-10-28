@@ -11,6 +11,7 @@ import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { formatStoreMoney } from "@/lib/storefront/shopper-info";
 import { ItemThumb, Panel, PrimaryButton, ShopperShell } from "@/components/storefront/shopper/ShopperShell";
 import { payAtDoor as startPayAtDoor, payOrderBalance } from "./actions";
+import { RefundsPanel, type CustomerRefund, type LatePart } from "./RefundsPanel";
 import { resolveShopperTheme, type ShopperTheme } from "@/components/storefront/shopper/theme";
 import { TransferInstructions, payByText, type TransferDetails } from "./TransferInstructions";
 import { OrderRewardsPanel, type OrderRewards } from "@/components/storefront/gamification/Rewards";
@@ -74,6 +75,10 @@ interface Props {
   balance?: BalanceView | null;
   /** Pay on delivery, paid in the app at the door (src/lib/commerce/pay-at-door.server.ts payAtDoorView): naira. */
   payAtDoor?: PayAtDoorView | null;
+  /** Refunds and late supplier parts (who pays when things go wrong, shared/order-refunds.ts). */
+  refunds?: CustomerRefund[];
+  lateParts?: LatePart[];
+  refundBanks?: string[];
 }
 
 export interface PayAtDoorView {
@@ -103,7 +108,7 @@ export interface BalanceView {
 
 const PAID = ["paid", "processing", "packed", "shipped", "delivered"];
 
-export function OrderConfirmation({ order, store, storeBasePath, transfer = null, deliveryCode = null, rewards = null, delivery = null, brandedTracking = true, balance = null, payAtDoor = null }: Props) {
+export function OrderConfirmation({ order, store, storeBasePath, transfer = null, deliveryCode = null, rewards = null, delivery = null, brandedTracking = true, balance = null, payAtDoor = null, refunds = [], lateParts = [], refundBanks = [] }: Props) {
   const cart = useCart(store.slug);
   const theme = useMemo(() => resolveShopperTheme(store.brandSettings), [store.brandSettings]);
   const clearCart = cart.clear;
@@ -174,6 +179,8 @@ export function OrderConfirmation({ order, store, storeBasePath, transfer = null
           </div>
 
           {owing ? <PayTheRest theme={theme} orderId={order.id} balance={owing} money={money} /> : null}
+
+          <RefundsPanel theme={theme} orderId={order.id} refunds={refunds} lateParts={lateParts} banks={refundBanks} money={money} />
 
           <NextSteps
             theme={theme}
