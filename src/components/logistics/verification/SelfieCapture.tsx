@@ -5,6 +5,7 @@ import { PillButton } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { shrinkImage } from "@/lib/media/shrink-image";
 import { useKycT } from "./kit";
+import { livenessUser } from "@shared/liveness-name";
 
 // The "Quick selfie video" screen's capture. With a NIN slip the server matches it against the NIN's photo (Korapay
 // facial matching, src/app/api/logistics/kyc/nin); with another ID the team compares it with the ID photo. When
@@ -56,7 +57,7 @@ export function SelfieCapture({ value, onChange, firstName, lastName, onStartFai
         publicKey: LIVENESS_KEY,
         type: "passive",
         presentation: "modal",
-        user: { firstName: firstName.trim() || "Partner", lastName: lastName.trim() || undefined },
+        user: livenessUser(firstName, lastName, "Partner"),
         branding: { color: "#0E2A38" },
         onSuccess: (result: unknown) => {
           const reference = livenessReference(result);

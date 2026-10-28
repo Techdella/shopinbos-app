@@ -5,6 +5,7 @@ import { PillButton } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { useT } from "@/components/i18n/I18nProvider";
 import { shrinkImage } from "@/lib/media/shrink-image";
+import { livenessUser } from "@shared/liveness-name";
 
 // "Quick selfie video" for supplier onboarding. When Korapay's liveness check is set up
 // (NEXT_PUBLIC_KORAPAY_PUBLIC_KEY), it runs first (kora-identity-web-sdk, loaded only when used: the face outline and
@@ -57,7 +58,7 @@ export function SelfieCapture({ value, onChange, firstName, lastName, onStartFai
         publicKey: LIVENESS_KEY,
         type: "passive",
         presentation: "modal",
-        user: { firstName: firstName.trim() || "Supplier", lastName: lastName.trim() || undefined },
+        user: livenessUser(firstName, lastName, "Supplier"),
         branding: { color: "#0E2A38" },
         onSuccess: (result: unknown) => {
           const reference = livenessReference(result);

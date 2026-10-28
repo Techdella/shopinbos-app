@@ -3,6 +3,7 @@ import { Modal } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { koraLivenessService } from "kora-identity-react-native-sdk";
 import { colors } from "@/theme";
+import { livenessUser } from "@shared/liveness-name";
 
 // Korapay's liveness check (kora-identity-react-native-sdk, a WebView with the phone's front camera) before the
 // delivery partner's selfie. Switched on by EXPO_PUBLIC_KORAPAY_PUBLIC_KEY (pk_live_… / pk_test_…, the same key as
@@ -45,7 +46,7 @@ export function useKoraLiveness(): LivenessStarter {
         koraLivenessService
           .checkLiveness({
             publicKey: KEY,
-            user: { firstName: user.firstName.trim() || "Partner", lastName: user.lastName.trim() || undefined },
+            user: livenessUser(user.firstName, user.lastName, "Partner"),
             branding: { color: colors.ink },
             allowAudio: false,
             onSuccess: (result) => {
