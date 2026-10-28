@@ -14,6 +14,7 @@ import { packButton, sellerInitials, toggleStep } from "@/lib/dropship-pure";
 import { fetchPack, fetchSupplierOrder, savePack, uploadMediaPhoto, type DropshipOrder, type PackView } from "@/lib/supplier";
 import { useLoad } from "@/lib/useLoad";
 import { colors, fonts, radii } from "@/theme";
+import { useT } from "@/lib/i18n";
 
 // Pack it the seller's way (P-Order; the web's PackChecklist on /supplier/orders/[id]), for one dropship order: for
 // which shop (their logo or initials, the items, their SKU), where it goes, who picks it up, delivery and what the
@@ -21,7 +22,9 @@ import { colors, fonts, radii } from "@/theme";
 // sticker, the order code on the parcel, and "Snap the sealed parcel": the camera, uploaded to the media library,
 // POST /api/app/media). "Ready for pickup" stays off ("2 steps left") until every step is ticked and the photo is
 // there; then POST /api/supplier/orders/[id]/pack { packed: true } (the server refuses with the step left otherwise).
-// The photo decides most disputes. Opened from the order screen ("Pack it {shop}'s way").
+// The photos decide most disputes (shared/fault-matrix.ts): first "Snap the item in the open box" (what was sent),
+// last the sealed parcel. Opened from the order screen ("Pack it {shop}'s way"); a bulk order (kind=wholesale) gets
+// only the two photos before "Ready for pickup".
 
 function Info({ label, value }: { label: string; value: string }) {
   return (
@@ -33,14 +36,16 @@ function Info({ label, value }: { label: string; value: string }) {
 }
 
 export default function PackScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, kind: kindParam } = useLocalSearchParams<{ id: string; kind?: string }>();
+  const kind = kindParam === "wholesale" ? "wholesale" : "dropship";
   const words = useWords();
+  const f = useT("m_faults");
   const loaded = useLoad(async () => {
-    const [order, pack] = await Promise.all([fetchSupplierOrder("dropship", String(id)), fetchPack(String(id))]);
+    const [order, pack] = await Promise.all([fetchSupplierOrder(kind, String(id)), fetchPack(String(id), kind)]);
     return { order: order as DropshipOrder, pack };
-  }, String(id));
+  }, `${kind}:${String(id)}`);
   const [pack, setPack] = useState<PackView | null>(null);
-  const [busy, setBusy] = useState<"step" | "photo" | "packed" | null>(null);
+  const [busy, setBusy] = useState<"step" | "photo" | "contents" | "packed" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const view = pack ?? loaded.data?.pack ?? null;
   const order = loaded.data?.order ?? null;
@@ -52,7 +57,7 @@ export default function PackScreen() {
     setBusy("step");
     setError(null);
     try {
-      setPack(await savePack(view.orderId, { steps }));
+      setPack(await savePack(view.orderId, { steps }, kind));
     } catch (tickError) {
       setPack(view);
       setError(tickError instanceof Error ? tickError.message : words("pack.failed", "Couldn't save that. Try again."));
@@ -61,7 +66,7 @@ export default function PackScreen() {
     }
   }
 
-  async function snap() {
+  async function snap(which: "photo" | "contents" = "photo") {
     if (!view || busy) return;
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) {
@@ -71,11 +76,11 @@ export default function PackScreen() {
     const result = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 0.6 });
     if (result.canceled || !result.assets[0]) return;
     const asset = result.assets[0];
-    setBusy("photo");
+    setBusy(which);
     setError(null);
     try {
-      const photoUrl = await uploadMediaPhoto({ uri: asset.uri, mimeType: asset.mimeType, fileName: asset.fileName });
-      setPack(await savePack(view.orderId, { photoUrl }));
+      const url = await uploadMediaPhoto({ uri: asset.uri, mimeType: asset.mimeType, fileName: asset.fileName });
+      setPack(await savePack(view.orderId, which === "contents" ? { contentsPhotoUrl: url } : { photoUrl: url }, kind));
     } catch (photoError) {
       setError(photoError instanceof Error ? photoError.message : words("pack.photoFailed", "The photo didn't upload. Try again."));
     } finally {
@@ -88,7 +93,7 @@ export default function PackScreen() {
     setBusy("packed");
     setError(null);
     try {
-      const next = await savePack(view.orderId, { packed: true });
+      const next = await savePack(view.orderId, { packed: true }, kind);
       setPack(next);
       router.back();
     } catch (packError) {
@@ -109,8 +114,9 @@ export default function PackScreen() {
 
   const seller = view.branding.sellerName;
   const button = packButton(view.steps, view.photoUrl, words);
-  const goesTo = [order.label.address[order.label.address.length - 1], order.label.to].filter(Boolean)[0] ?? "";
-  const pieces = order.items.reduce((sum, item) => sum + item.quantity, 0);
+  const wholesale = kind === "wholesale";
+  const goesTo = wholesale ? "" : [order.label.address[order.label.address.length - 1], order.label.to].filter(Boolean)[0] ?? "";
+  const pieces = wholesale ? 0 : order.items.reduce((sum, item) => sum + item.quantity, 0);
   const feeWord = view.branding.choice === "stickers" ? words("pack.stickerFee", "sticker fee") : words("pack.slipFee", "slip fee");
   const youGet = view.branding.fee > 0 ? `${naira(order.yourTotal)} + ${naira(view.branding.fee)} ${feeWord}` : naira(order.yourTotal);
   const delivery = order.selfDelivery ? (order.deliveryFee ? words("pack.youDeliver", "You deliver it, +{fee}", { fee: naira(order.deliveryFee) }) : words("pack.youDeliverFree", "You deliver it")) : words("pack.paidByShop", "Paid at checkout, not by you");
@@ -118,9 +124,10 @@ export default function PackScreen() {
   return (
     <BoardScreen
       title={words("pack.order", "Order {ref}", { ref: order.ref })}
-      sub={order.pickup?.text ? words("pack.sub", "Dropship · {pickup}", { pickup: order.pickup.text.charAt(0).toLowerCase() + order.pickup.text.slice(1) }) : words("pack.subPlain", "Dropship")}
+      sub={wholesale ? f("pack.wholesaleSub") : order.pickup?.text ? words("pack.sub", "Dropship · {pickup}", { pickup: order.pickup.text.charAt(0).toLowerCase() + order.pickup.text.slice(1) }) : words("pack.subPlain", "Dropship")}
       gap={8}
-      note={view.packed ? null : words("pack.paidFriday", "Paid on Friday after the customer confirms delivery.")}
+      // Instant split (Shopinbos never holds the money): paid to the supplier's bank the next working day.
+      note={view.packed ? null : f("pack.paidNextDay")}
       refreshing={loaded.refreshing}
       onRefresh={() => {
         setPack(null);
@@ -136,6 +143,7 @@ export default function PackScreen() {
     >
       {error ? <Notice>{error}</Notice> : null}
 
+      {wholesale ? null : (<>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.surface, borderRadius: radii.card, padding: 12 }}>
         {view.branding.logoUrl ? (
           <Image source={{ uri: view.branding.logoUrl }} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.grayTint }} contentFit="cover" accessibilityIgnoresInvertColors />
@@ -161,20 +169,23 @@ export default function PackScreen() {
         <Info label={words("pack.delivery", "DELIVERY")} value={delivery} />
         <Info label={words("pack.youGet", "YOU GET")} value={youGet} />
       </View>
+      </>)}
 
       <View style={{ gap: 8 }}>
-        <T style={{ fontFamily: fonts.display, fontSize: 17, marginTop: 6 }}>{words("pack.way", "Pack it {seller}'s way", { seller })}</T>
+        <T style={{ fontFamily: fonts.display, fontSize: 17, marginTop: 6 }}>{wholesale ? f("pack.photosTitle") : words("pack.way", "Pack it {seller}'s way", { seller })}</T>
         {view.steps.map((step) => {
-          const photo = step.id === "photo";
-          const done = photo ? Boolean(view.photoUrl) : step.done;
+          const contents = step.id === "contents";
+          const photo = step.id === "photo" || contents;
+          const shot = contents ? view.contentsPhotoUrl ?? null : view.photoUrl;
+          const done = photo ? Boolean(shot) : step.done;
           return (
             <Pressable
               key={step.id}
               accessibilityRole={photo ? "button" : "checkbox"}
-              accessibilityState={photo ? { busy: busy === "photo" } : { checked: done, disabled: view.packed }}
+              accessibilityState={photo ? { busy: busy === step.id } : { checked: done, disabled: view.packed }}
               accessibilityLabel={`${step.text}. ${step.detail}`}
-              disabled={view.packed || busy === "photo"}
-              onPress={() => (photo ? void snap() : void tick(step.id))}
+              disabled={view.packed || busy === "photo" || busy === "contents"}
+              onPress={() => (photo ? void snap(contents ? "contents" : "photo") : void tick(step.id))}
               style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 58, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 16, backgroundColor: colors.surface, opacity: pressed ? 0.85 : 1 })}
             >
               <View style={{ width: 26, height: 26, borderRadius: 8, borderWidth: 2, borderColor: done ? colors.success : "#D9D6E2", backgroundColor: done ? colors.success : colors.surface, alignItems: "center", justifyContent: "center" }}>
@@ -185,19 +196,20 @@ export default function PackScreen() {
                 <T style={{ fontSize: 12, color: colors.inkSoft }}>{step.detail}</T>
               </View>
               {photo ? (
-                view.photoUrl ? (
-                  <Image source={{ uri: view.photoUrl }} style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: colors.grayTint }} contentFit="cover" accessibilityLabel={words("pack.photo", "Photo of the sealed parcel")} />
+                shot ? (
+                  <Image source={{ uri: shot }} style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: colors.grayTint }} contentFit="cover" accessibilityLabel={contents ? f("pack.contentsPhoto") : words("pack.photo", "Photo of the sealed parcel")} />
                 ) : (
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.ink, borderRadius: 999, paddingHorizontal: 12, height: 34 }}>
                     <AppIcon name="camera" size={15} color="#FFFFFF" />
-                    <T weight="extrabold" style={{ fontSize: 12, color: "#FFFFFF" }}>{busy === "photo" ? words("pack.uploading", "Uploading…") : words("pack.snap", "Snap")}</T>
+                    <T weight="extrabold" style={{ fontSize: 12, color: "#FFFFFF" }}>{busy === step.id ? words("pack.uploading", "Uploading…") : words("pack.snap", "Snap")}</T>
                   </View>
                 )
               ) : null}
             </Pressable>
           );
         })}
-        {view.photoUrl && !view.packed ? <T accessibilityRole="button" weight="bold" onPress={() => void snap()} style={{ fontSize: 14, color: colors.accentInk, alignSelf: "flex-start", paddingVertical: 4 }}>{words("pack.retake", "Take the photo again")}</T> : null}
+        {view.photoUrl && !view.packed ? <T accessibilityRole="button" weight="bold" onPress={() => void snap("photo")} style={{ fontSize: 14, color: colors.accentInk, alignSelf: "flex-start", paddingVertical: 4 }}>{words("pack.retake", "Take the photo again")}</T> : null}
+        <T style={{ fontSize: 12.5, color: colors.inkSoft, lineHeight: 18 }}>{f("pack.why")}</T>
       </View>
     </BoardScreen>
   );

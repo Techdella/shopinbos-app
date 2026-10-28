@@ -91,14 +91,14 @@ test("dropship orders are packed the seller's way before a rider has them", () =
   assert.match(pickup, /useSellerSticker\(order\.id\)/);
 
   const server = read("src/lib/supplier-dropship.server.ts");
-  assert.match(server, /packReadyProblem\(steps, done, row\.packPhotoUrl\)/);
+  assert.match(server, /packReadyProblem\(steps, done, row\.packPhotoUrl, row\.contentsPhotoUrl\)/);
   assert.match(server, /stickersAfterUse\(left\)/);
   assert.match(server, /createNotification\(/, "the seller hears when the sticker pack is low");
 
   const route = read("src/app/api/supplier/orders/[id]/pack/route.ts");
   assert.match(route, /export const POST = withSupplier/);
   assert.match(route, /savePackProgress\(supplierId, id/);
-  assert.match(route, /markPacked\(supplierId, "dropship", id\)/);
+  assert.match(route, /markPacked\(supplierId, kind, id\)/, "dropship, or a bulk order's two packing photos (?kind=wholesale)");
 
   const page = read("src/app/supplier/orders/[id]/page.tsx");
   assert.match(page, /<PackChecklist/);
@@ -116,6 +116,6 @@ test("pure rules the pages rely on", async () => {
   assert.equal(rules.channelPriceProblem({ priceMode: "per_channel", wholesalePrice: 8000, dropshipPrice: 9500, suggestedRetailPrice: 14000, minRetailPrice: 12000 }), null);
   const steps = rules.packChecklist({ sellerName: "Ada's Kloset", choice: "stickers", orderCode: "SB-4821", stickersLeft: 12 });
   assert.match(rules.packReadyProblem(steps, ["plain", "sticker", "code"], null), /photo/);
-  assert.equal(rules.packReadyProblem(steps, ["plain", "sticker", "code"], "https://x.test/p.jpg"), null);
+  assert.equal(rules.packReadyProblem(steps, ["plain", "sticker", "code"], "https://x.test/p.jpg", "https://x.test/c.jpg"), null);
   assert.equal(rules.cleanZoneRates({ same_city: { small: 2000 }, rest: { small: 1000 } }).ok, false, "farther can't cost less");
 });

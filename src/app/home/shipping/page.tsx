@@ -6,6 +6,7 @@ import { AssistantNote, CardHead, EmptyState, ListCard, ListRow, Pill, PillLink,
 import { DeliveryTip } from "@/components/delivery-market/DeliveryTip";
 import { Icon } from "@/components/ui/Icon";
 import { getT } from "@/lib/i18n/server";
+import { ReturnsSettingCard } from "@/components/seller/ReturnsSettingCard";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,8 @@ export default async function ShippingPage() {
   const workspace = await getSellerWorkspace(user.id);
   const store = workspace?.store;
   const currency = store?.currency ?? "NGN";
+  // The returns switch (shared/fault-matrix.ts): who pays when a customer changes their mind.
+  const returnsSetting = store ? await db.store.findUnique({ where: { id: store.id }, select: { returnsAllowed: true, returnWindowDays: true, returnShippingPayer: true } }) : null;
 
   const [shippingZones, logisticsPartners] = await Promise.all([
     store
@@ -114,6 +117,8 @@ export default async function ShippingPage() {
             </ListCard>
           )}
         </section>
+
+        {returnsSetting ? <ReturnsSettingCard initial={returnsSetting} /> : null}
 
         {logisticsPartners.length > 0 && (
           <section className="grid gap-3">

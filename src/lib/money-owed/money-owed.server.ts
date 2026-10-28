@@ -24,6 +24,8 @@ import {
   debtIsPending,
   debtReasonLabel,
   deductibleKobo,
+  deductionLine,
+  deductsAutomatically,
   dueDate,
   isDebtReason,
   remainingKobo,
@@ -283,6 +285,14 @@ export async function applyDeductions(input: { key: string; deductions: SplitDed
             .createMany({ data: [{ walletId: wallet.id, reference: `repaid:${key}:${deduction.debtId}`, kind: "repayment", amountKobo: deduction.kobo, description: `Paid back from ${label}`, orderId: retailOrderId, paystackReference: paystackReference ?? key }], skipDuplicates: true })
             .catch(() => null);
         }
+      }
+      // The debtor's statement says what came off and why ("₦14,250 deducted for order SB-1001: wrong or damaged
+      // item, the packing photo showed it"), so the lower payment is never a mystery. Not counted as money in.
+      const debtorWallet = await db.wallet.findUnique({ where: { userId: applied.debt.debtorUserId }, select: { id: true } });
+      if (debtorWallet) {
+        await db.walletEntry
+          .createMany({ data: [{ walletId: debtorWallet.id, reference: `deducted:${key}:${deduction.debtId}`, kind: "deduction", status: "deducted", amountKobo: -deduction.kobo, description: deductionLine(deduction.kobo, applied.debt.details, applied.debt.reason, label), orderId: applied.debt.retailOrderId ?? retailOrderId, paystackReference: paystackReference ?? key }], skipDuplicates: true })
+          .catch(() => null);
       }
       await refreshDebtPause(applied.debt.debtorUserId);
       const names = await businessNames([applied.debt.debtorUserId, applied.debt.creditorUserId]);
@@ -600,13 +610,15 @@ export async function runMoneyOwedSweep(now = new Date()) {
   const due = await db.businessDebt.findMany({
     where: { status: "open", dueAt: { lte: new Date(now.getTime() + 24 * 60 * 60 * 1000) }, OR: [{ remindedAt: null }, { remindedAt: { lt: dayAgo } }] },
     take: 200,
-    select: { id: true, debtorUserId: true, creditorUserId: true, amountKobo: true, paidKobo: true, dueAt: true, reason: true },
+    select: { id: true, sourceKey: true, debtorUserId: true, creditorUserId: true, amountKobo: true, paidKobo: true, dueAt: true, reason: true },
   });
   const names = await businessNames(due.map((debt) => debt.creditorUserId));
   let reminded = 0;
   for (const debt of due) {
     const left = remainingKobo(debt);
     if (left <= 0) continue;
+    // Who-pays outcomes come out of the next payments by themselves: told once when recorded, not every day.
+    if (debt.sourceKey.startsWith("fault:")) continue;
     const overdue = debt.dueAt!.getTime() <= now.getTime();
     const who = debt.creditorUserId ? names.get(debt.creditorUserId)?.name ?? "a business" : "Shopinbos";
     await notify(
@@ -651,6 +663,8 @@ export interface DebtView {
   orderId: string | null;
   /** The creditor can be paid by card in the app. */
   payable: boolean;
+  /** Taken from the next payments by itself (who pays when things go wrong, or not sent after checkout). */
+  automatic: boolean;
 }
 
 export interface ClaimableOrder {
@@ -706,6 +720,7 @@ export async function loadMoneyOwed(user: { id: string; role: string }, now = ne
       createdAt: debt.createdAt.toISOString(),
       orderId: debt.retailOrderId,
       payable: mine && (debt.creditorUserId === null || creditorWallets.has(debt.creditorUserId)),
+      automatic: deductsAutomatically(debt.sourceKey),
     };
   };
   return {

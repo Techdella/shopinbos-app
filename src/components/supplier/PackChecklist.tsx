@@ -6,9 +6,10 @@ import { friendlyError } from "@/lib/errors/report-client";
 import { Icon } from "@/components/ui/Icon";
 
 // "Pack it the seller's way" on a dropship order (Supplier & Dropship Rules, shared/dropship-rules.ts packChecklist):
-// the steps to tick (pack plain, the seller's slip or sticker, the order code) and the photo of the sealed parcel,
-// which protects the supplier in a dispute. "I've packed it" (PickupBooking) is refused until all of it is done.
-// Talks to /api/supplier/orders/[id]/pack; the photo goes up through the media library first.
+// a photo of the item in the open box, the steps to tick (pack plain, the seller's slip or sticker, the order code) and
+// the photo of the sealed parcel: the two photos protect the supplier in a dispute (shared/fault-matrix.ts). "I've
+// packed it" (PickupBooking) is refused until all of it is done. Talks to /api/supplier/orders/[id]/pack (?kind=wholesale
+// for a bulk order: only the two photos); the photos go up through the media library first.
 
 export interface PackStepView {
   id: string;
@@ -19,23 +20,28 @@ export interface PackStepView {
 
 export interface PackViewData {
   orderId: string;
+  kind?: "dropship" | "wholesale";
   steps: PackStepView[];
   packSteps: string[];
   photoUrl: string | null;
+  /** The item in the open box, before sealing. */
+  contentsPhotoUrl?: string | null;
   packed: boolean;
   problem: string | null;
 }
+
+const PHOTO_STEPS = new Set(["photo", "contents"]);
 
 export function PackChecklist({ initial, editable }: { initial: PackViewData; editable: boolean }) {
   const [view, setView] = useState<PackViewData>(initial);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function send(body: { steps?: string[]; photoUrl?: string | null }, label: string) {
+  async function send(body: { steps?: string[]; photoUrl?: string | null; contentsPhotoUrl?: string | null }, label: string) {
     setBusy(label);
     setError(null);
     try {
-      const response = await fetch(`/api/supplier/orders/${encodeURIComponent(view.orderId)}/pack`, {
+      const response = await fetch(`/api/supplier/orders/${encodeURIComponent(view.orderId)}/pack${view.kind === "wholesale" ? "?kind=wholesale" : ""}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
@@ -56,14 +62,14 @@ export function PackChecklist({ initial, editable }: { initial: PackViewData; ed
     void send({ steps: next }, id);
   };
 
-  async function snap() {
+  async function snap(which: "photo" | "contents") {
     const file = await chooseFile("image/*");
     if (!file) return;
-    setBusy("photo");
+    setBusy(which);
     setError(null);
     try {
       const asset = await uploadToMyMedia(file, "image");
-      await send({ photoUrl: asset.url }, "photo");
+      await send(which === "contents" ? { contentsPhotoUrl: asset.url } : { photoUrl: asset.url }, which);
     } catch (uploadError) {
       setError(uploadError instanceof Error ? friendlyError(uploadError) : "The photo didn't upload. Try again.");
       setBusy(null);
@@ -81,7 +87,7 @@ export function PackChecklist({ initial, editable }: { initial: PackViewData; ed
     <div className="grid gap-2">
       <ul className="m-0 grid list-none gap-2 p-0">
         {view.steps.map((step) => {
-          const photo = step.id === "photo";
+          const photo = PHOTO_STEPS.has(step.id);
           const text = (
             <span className="min-w-0 flex-1">
               <span className="block text-[14.5px] font-bold">{step.text}</span>
@@ -96,8 +102,8 @@ export function PackChecklist({ initial, editable }: { initial: PackViewData; ed
                   {text}
                   <span className="sr-only">{step.done ? "(done)" : "(not yet)"}</span>
                   {editable && (
-                    <button type="button" onClick={() => void snap()} disabled={Boolean(busy)} className="inline-flex h-[34px] shrink-0 items-center gap-1.5 rounded-full bg-app-ink px-3 text-[12.5px] font-extrabold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent focus-visible:ring-offset-2 disabled:opacity-60">
-                      <Icon name="image" size={13} /> {busy === "photo" ? "Uploading…" : step.done ? "Retake" : "Snap"}
+                    <button type="button" onClick={() => void snap(step.id === "contents" ? "contents" : "photo")} disabled={Boolean(busy)} aria-label={`${step.done ? "Retake" : "Snap"}: ${step.text}`} className="inline-flex h-[34px] shrink-0 items-center gap-1.5 rounded-full bg-app-ink px-3 text-[12.5px] font-extrabold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent focus-visible:ring-offset-2 disabled:opacity-60">
+                      <Icon name="image" size={13} /> {busy === step.id ? "Uploading…" : step.done ? "Retake" : "Snap"}
                     </button>
                   )}
                 </div>
@@ -118,10 +124,24 @@ export function PackChecklist({ initial, editable }: { initial: PackViewData; ed
           );
         })}
       </ul>
-      {view.photoUrl && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={view.photoUrl} alt="The sealed parcel" className="max-h-[220px] w-auto rounded-[16px] border border-app-line object-contain" />
-      )}
+      {view.contentsPhotoUrl || view.photoUrl ? (
+        <div className="flex flex-wrap gap-2">
+          {view.contentsPhotoUrl ? (
+            <figure className="m-0 grid gap-1">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={view.contentsPhotoUrl} alt="The item in the open box" className="h-[160px] w-auto rounded-[16px] border border-app-line object-contain" />
+              <figcaption className="text-[12px] text-app-ink-soft">In the open box</figcaption>
+            </figure>
+          ) : null}
+          {view.photoUrl ? (
+            <figure className="m-0 grid gap-1">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={view.photoUrl} alt="The sealed parcel" className="h-[160px] w-auto rounded-[16px] border border-app-line object-contain" />
+              <figcaption className="text-[12px] text-app-ink-soft">Sealed</figcaption>
+            </figure>
+          ) : null}
+        </div>
+      ) : null}
       {error && <p role="alert" className="m-0 rounded-[14px] bg-app-danger-tint px-4 py-3 text-[14.5px] font-bold text-app-danger">{error}</p>}
       {editable && view.problem && (
         <div role="status" className="mt-1 grid gap-1.5">

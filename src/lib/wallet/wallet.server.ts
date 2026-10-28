@@ -342,6 +342,8 @@ export async function splitPlanForOrder(
     const userId = deliveryPartners.find((partner) => partner.id === partnerId)?.userId;
     return accountOf(deliveryWallets.find((wallet) => wallet.userId === userId));
   };
+  // A delivery partner paid in this split pays what it owes from its fee too (shared/fault-matrix.ts).
+  for (const partner of deliveryPartners) if (deliveryAccount(partner.id) && !debtors.has(partner.userId)) debtors.set(partner.userId, `partner:${partner.id}`);
   const balanceKobo = Math.max(0, Math.min(Math.round(options.balanceKobo ?? 0), totalKobo));
   const goodsKobo = Math.max(0, totalKobo - Math.round(Math.max(0, shippingNaira) * 100) - dropshipKobo);
   const fees = splitFeeForBalance(platformFeeKobo(goodsKobo, fee), goodsKobo, balanceKobo);

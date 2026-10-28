@@ -104,7 +104,8 @@ export async function WalletPanel({ view, role, ownerName, orderHref }: { view: 
                   <span className="block text-[12.5px] text-app-ink-soft">{day(entry.createdAt)}</span>
                 </span>
                 {entry.status === "refunded" ? <Pill tone="muted">{t("payments.refunded")}</Pill> : null}
-                <span className="text-[14px] font-extrabold">{naira(entry.amountKobo)}</span>
+                {/* Money taken for what this business owes (shared/money-owed.ts deductionLine): its own line, in red. */}
+                <span className={`text-[14px] font-extrabold ${entry.kind === "deduction" ? "text-app-danger" : ""}`}>{entry.kind === "deduction" ? `−${naira(Math.abs(entry.amountKobo))}` : naira(entry.amountKobo)}</span>
               </ListRow>
             ))}
           </ListCard>

@@ -91,11 +91,12 @@ test("branding: blind always, extras only when offered, and the pack checklist e
   assert.deepEqual(r.effectiveBranding("packing_slip", offer), { choice: "blind", fee: 0 }, "not offered: blind");
   assert.deepEqual(r.effectiveBranding("stickers", offer), { choice: "stickers", fee: 200 });
   const steps = r.packChecklist({ sellerName: "Ada's Kloset", choice: "stickers", orderCode: "SB-4821", stickersLeft: 14 });
-  assert.deepEqual(steps.map((s) => s.id), ["plain", "sticker", "code", "photo"]);
-  assert.match(steps[1].detail, /14 left/);
-  assert.match(r.packReadyProblem(steps, ["plain", "sticker", "code"], null), /Snap a photo/);
-  assert.match(r.packReadyProblem(steps, ["plain"], "photo.jpg"), /2 steps left/);
-  assert.equal(r.packReadyProblem(steps, ["plain", "sticker", "code"], "photo.jpg"), null);
+  assert.deepEqual(steps.map((s) => s.id), ["contents", "plain", "sticker", "code", "photo"], "the item in the open box first, the sealed parcel last");
+  assert.match(steps[2].detail, /14 left/);
+  assert.match(r.packReadyProblem(steps, ["plain", "sticker", "code"], "photo.jpg", null), /open box/);
+  assert.match(r.packReadyProblem(steps, ["plain", "sticker", "code"], null, "contents.jpg"), /Snap a photo/);
+  assert.match(r.packReadyProblem(steps, ["plain"], "photo.jpg", "contents.jpg"), /2 steps left/);
+  assert.equal(r.packReadyProblem(steps, ["plain", "sticker", "code"], "photo.jpg", "contents.jpg"), null);
   assert.deepEqual(r.stickersAfterUse(11), { left: 10, low: true });
   assert.deepEqual(r.brandingOfferFor("new", offer).stickers, false, "New suppliers offer blind packing only");
 });

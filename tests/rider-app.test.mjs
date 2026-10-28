@@ -138,7 +138,7 @@ test("rider routes: pickup codes are made on accept, checked at pickup, and show
   assert.match(actions, /pickupCodeCheck\(job, codes\[job\.id\]\) === "wrong"/);
   const route = read("src/app/api/mobile/logistics/rider/route.ts");
   for (const action of ["skip", "help", "check_code", "language"]) assert.match(route, new RegExp(`z\\.literal\\("${action}"\\)`), action);
-  assert.match(route, /startRun\(token, input\.jobIds, input\.codes \?\? null\)/);
+  assert.match(route, /startRun\(token, input\.jobIds, input\.codes \?\? null, \{ requirePhotos: true \}\)/, "the phone app needs the sealed-parcel photo at pickup");
   assert.match(route, /hasPickupCode: Boolean\(job\.pickupCode\)/);
   assert.doesNotMatch(route, /pickupCode: job\.pickupCode/, "the rider never receives the pickup code itself");
   assert.match(route, /riderWeek\(rider\)/);

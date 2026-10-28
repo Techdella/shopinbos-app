@@ -7,7 +7,7 @@ import { db } from "@/lib/db/client";
 import { apiError, ok } from "@/lib/api/response";
 import { addressLines } from "@/lib/labels";
 import { ensurePickupCoords, geocodeAddress, PICKUP_GEO_SELECT } from "@/lib/logistics/geocode";
-import { cashToPayIn, riderAmount, WRONG_PICKUP_CODE } from "@/lib/logistics/job-rules";
+import { cashToPayIn, HANDOVER_PHOTO_NEEDED, PICKUP_PHOTO_NEEDED, riderAmount, WRONG_PICKUP_CODE } from "@/lib/logistics/job-rules";
 import { askForHelp, checkDeliveryCode, RIDER_LANGUAGES, riderWeek, saveRiderLanguage, skipJob } from "@/lib/logistics/rider-app.server";
 import { riderFromToken } from "@/lib/logistics/rider-session";
 import { lagosStartOfToday, packageSummary } from "@/components/logistics/kit";
@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
       take: 60,
       select: {
         id: true, status: true, sellerId: true, orderId: true, pickupLocation: true, destination: true, packageDetails: true,
-        deliveryFee: true, platformFee: true, netAmount: true, codAmount: true, proofUrl: true, pickupWindowStart: true, pickupWindowEnd: true,
+        deliveryFee: true, platformFee: true, netAmount: true, codAmount: true, proofUrl: true, pickupPhotoUrl: true, pickupWindowStart: true, pickupWindowEnd: true,
         pickupCode: true, ...PICKUP_GEO_SELECT,
         seller: { select: { name: true, phone: true, store: { select: { name: true } } } },
       },
@@ -127,6 +127,9 @@ export async function GET(req: NextRequest) {
       fee: riderAmount(rider, job),
       item: packageSummary(job.packageDetails),
       hasProof: Boolean(job.proofUrl),
+      // The sealed-parcel photo at pickup: needed for a shop's or supplier's parcel (a job that carries an order).
+      needsPickupPhoto: Boolean(job.orderId),
+      hasPickupPhoto: Boolean(job.pickupPhotoUrl),
       // The shop has a pickup code to give the rider (never the code itself).
       hasPickupCode: Boolean(job.pickupCode),
       // "Ask for order SB-2041" at pickup.
@@ -205,13 +208,15 @@ export async function POST(req: NextRequest) {
   // The web Riders app's actions re-check the token and only touch jobs assigned to this rider.
   const result =
     input.action === "online" ? await setRiderOnline(token, input.online)
-    : input.action === "start_run" ? await startRun(token, input.jobIds, input.codes ?? null)
+    // The phone app photographs the sealed parcel at pickup and at handover (shared/fault-matrix.ts): required here.
+    : input.action === "start_run" ? await startRun(token, input.jobIds, input.codes ?? null, { requirePhotos: true })
     : input.action === "failed" ? await markFailed(token, { jobId: input.jobId, reason: input.reason })
     : input.action === "stage" ? await markStage(token, { jobId: input.jobId, to: input.to })
     : input.action === "pay_link" ? await resendPayLink(token, input.jobId)
-    : await markDelivered(token, { jobId: input.jobId, code: input.code, recipientName: input.recipientName ?? null, codCollected: input.codCollected ?? null, codMethod: input.codMethod ?? null });
+    : await markDelivered(token, { jobId: input.jobId, code: input.code, recipientName: input.recipientName ?? null, codCollected: input.codCollected ?? null, codMethod: input.codMethod ?? null }, { requirePhoto: true });
   if (!result.ok) {
     if (result.error === WRONG_PICKUP_CODE) return apiError("WRONG_PICKUP_CODE", result.error, 409);
+    if (result.error === PICKUP_PHOTO_NEEDED || result.error === HANDOVER_PHOTO_NEEDED) return apiError("PHOTO_NEEDED", result.error, 409);
     return apiError(result.error === LINK_ERROR ? "UNAUTHORIZED" : "CONFLICT", result.error, result.error === LINK_ERROR ? 401 : 409);
   }
 

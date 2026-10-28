@@ -270,6 +270,11 @@ model Store {
   switchCostRule             String   @default("cost")
   switchMaxIncreasePct       Int      @default(10)
   switchMinMarginPct         Int      @default(20)
+  /// Returns for a change of mind (shared/fault-matrix.ts): on or off, the days after delivery, and who pays the
+  /// trip back (customer | seller). Wrong or damaged items are always "Report a problem".
+  returnsAllowed             Boolean  @default(false)
+  returnWindowDays           Int      @default(7)
+  returnShippingPayer        String   @default("customer")
   createdAt                  DateTime @default(now())
   updatedAt                  DateTime @updatedAt
 
@@ -628,6 +633,9 @@ model Supplier {
   /// Branding the supplier offers sellers who dropship from them (shared/dropship-rules.ts readBrandingOffer):
   /// { packingSlip, packingSlipFee, stickers, stickerFee, custom }. Blind packing is always on.
   brandingOffer      Json               @default("{}")
+  /// Three strikes in 90 days (SupplierStrike): flagged for the team to review. Never an automatic suspension.
+  reviewFlaggedAt    DateTime?
+  reviewNote         String?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
@@ -641,6 +649,7 @@ model Supplier {
   payoutAccount    SupplierPayoutAccount?
   teamMembers      SupplierTeamMember[]
   reviews          SupplierReview[]
+  strikes          SupplierStrike[]
 
   @@index([slug])
   @@index([country, city])
@@ -1042,6 +1051,9 @@ model WholesaleOrder {
   stockReserved     Int         @default(0) // supplier stock taken when placed (0: none tracked, e.g. older orders)
   stockReleasedAt   DateTime?   // given back once (declined or cancelled)
   paidOutAt         DateTime?   // the supplier confirmed they were paid
+  /// Packing photos (the item in the open box, the sealed parcel), needed before it's packed (shared/fault-matrix.ts).
+  contentsPhotoUrl  String?
+  packPhotoUrl      String?
   paidAt            DateTime?   // the seller paid in Shopinbos by card (split straight to the supplier's wallet)
   paymentRef        String?     @unique // that Paystack reference (whpay-…)
   acceptBy          DateTime?   // the supplier must accept by then, or it is cancelled (expiredAt set)
@@ -1112,7 +1124,14 @@ model SupplierOrder {
   branding        Json      @default("{}")
   packSteps       String[]  @default([])
   packPhotoUrl    String?
+  /// The item in the open box before sealing (shared/fault-matrix.ts: the packing photos decide most disputes).
+  contentsPhotoUrl String?
   deliveryCode    String?
+  /// Ship by then (accepted + the products' handling days, shared/fault-matrix.ts shipByDate); late once it passes
+  /// unsent (a strike), and the customer can then cancel this part for a full refund.
+  shipBy          DateTime?
+  lateAt          DateTime?
+  cancelledByCustomerAt DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -1124,6 +1143,7 @@ model SupplierOrder {
   @@index([storeId])
   @@index([status, acceptBy])
   @@index([replacesId])
+  @@index([status, shipBy])
 }
 
 /// What happened when a supplier didn't accept a shop's order in time: switched to another supplier, nobody
@@ -1500,6 +1520,12 @@ model DeliveryBooking {
   /// accepted (or the first time the shop's screen asks for it); the Riders app checks it before "picked up".
   pickupCode         String?
   proofUrl           String?
+  /// The rider's photo of the sealed parcel at pickup (the Riders app needs it for shop and supplier parcels).
+  pickupPhotoUrl     String?
+  pickupPhotoAt      DateTime?
+  /// return | replacement: a trip booked by a fault outcome (src/lib/faults), from the delivery it comes from.
+  tripKind           String?
+  returnOfId         String?
   /// Pay on delivery: amount to collect, what was collected and how, and the remittance that settled it.
   codAmount          Float?
   codCollected       Float?
@@ -1562,6 +1588,7 @@ model DeliveryBooking {
   @@index([riderId])
   @@index([orderId])
   @@index([status, acceptBy])
+  @@index([returnOfId])
 }
 
 // ─── Logistics marketplace ───────────────────────────────────────────────────
@@ -1696,6 +1723,9 @@ model DeliveryIssue {
   kind               String
   message            String?
   reporterName       String?
+  /// The customer's photos (wrong item, damage), and the outcome the team chose (FaultCase).
+  photos             String[]  @default([])
+  faultCaseId        String?
   /// open | resolved
   status             String    @default("open")
   resolvedAt         DateTime?
@@ -1705,6 +1735,77 @@ model DeliveryIssue {
 
   @@index([storeId, status])
   @@index([logisticsPartnerId, createdAt])
+  @@index([retailOrderId])
+}
+
+/// A strike against a supplier (shared/fault-matrix.ts): late (past ship-by) or out of stock after payment. Counts
+/// for STRIKE_DAYS; STRIKES_FOR_REVIEW still counting flag the supplier for the team (Supplier.reviewFlaggedAt).
+model SupplierStrike {
+  id              String   @id @default(cuid())
+  supplierId      String
+  /// late | out_of_stock
+  kind            String
+  supplierOrderId String?
+  retailOrderId   String?
+  note            String?
+  expiresAt       DateTime
+  createdAt       DateTime @default(now())
+
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@unique([kind, supplierOrderId])
+  @@index([supplierId, expiresAt])
+}
+
+/// One outcome of "who pays when things go wrong" applied to an order, once (key): the event and remedy, the parts,
+/// and the resolver's outcome (refund, money owed, strikes, trips). Money moves only through the refund and the
+/// BusinessDebt rows it created (sourceKey fault:<key>:<n>).
+model FaultCase {
+  id              String   @id @default(cuid())
+  /// oos:<supplierOrderId> · late:<supplierOrderId> · failed:<bookingId> · pod:<bookingId> · issue:<issueId> · return:<returnId>
+  key             String   @unique
+  retailOrderId   String
+  storeId         String
+  event           String
+  remedy          String   @default("refund")
+  partKeys        String[] @default([])
+  /// out_of_stock | late_cancel | failed_delivery | pod_refused | report | return
+  source          String
+  outcome         Json     @default("{}")
+  refundKobo      Int      @default(0)
+  refundStatus    String?
+  note            String?
+  decidedByUserId String?
+  createdAt       DateTime @default(now())
+
+  @@index([retailOrderId])
+  @@index([storeId, createdAt])
+}
+
+/// A customer's return for a change of mind (the store's returns switch): requested from the order page with a
+/// reason and photos, approved by the seller, a return trip booked, refunded per the matrix once it's back.
+model ReturnRequest {
+  id              String    @id @default(cuid())
+  retailOrderId   String
+  storeId         String
+  /// changed_mind | doesnt_fit | not_as_expected
+  reason          String
+  message         String?
+  photos          String[]  @default([])
+  /// requested | approved | declined | received | refunded | cancelled
+  status          String    @default("requested")
+  /// Who pays the trip back (the store's setting when it was asked).
+  returnPayer     String    @default("customer")
+  refundKobo      Int       @default(0)
+  declineReason   String?
+  returnBookingId String?
+  faultCaseId     String?
+  decidedAt       DateTime?
+  receivedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([storeId, status])
   @@index([retailOrderId])
 }
 

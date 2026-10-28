@@ -51,6 +51,8 @@ export interface AcceptanceResult {
   expired: { dropship: number; wholesale: number };
   /** Expired orders sent to another supplier automatically (this run, including the catch-up). */
   switched: number;
+  /** Accepted orders that passed their ship-by date unsent this run (src/lib/faults/strikes.server.ts). */
+  late?: number;
 }
 
 /** Expires one dropship order if it is still new and past its deadline. True when this call expired it. */
@@ -322,5 +324,12 @@ export async function runSupplierAcceptance(now = new Date(), limit = 200): Prom
   } catch (error) {
     console.error("[supplier acceptance] catch-up sweep failed", error);
   }
-  return { reminded, expired, switched };
+  // Accepted but past the ship-by date and not sent: late (a strike; the customer may cancel that part).
+  let late = 0;
+  try {
+    late = (await import("@/lib/faults/strikes.server").then((strikes) => strikes.markLateOrders(now))).late;
+  } catch (error) {
+    console.error("[supplier acceptance] late sweep failed", error);
+  }
+  return { reminded, expired, switched, late };
 }

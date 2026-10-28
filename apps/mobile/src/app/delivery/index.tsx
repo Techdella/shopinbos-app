@@ -23,6 +23,7 @@ import { colors } from "@/theme";
 
 export default function DeliveryHubScreen() {
   const t = useT("m_delivery", "delivery", "common");
+  const f = useT("m_faults");
   const hub = useLoad(fetchDeliveryHub);
   const [note, setNote] = useState<string | null>(null);
   const [sheet, setSheet] = useState<"pickup" | "fee" | "self" | null>(null);
@@ -181,6 +182,8 @@ export default function DeliveryHubScreen() {
                 </View>
               ) : null}
               {seller ? <Row lead={<Tile icon="coin" tone="gray" />} title={t("hub.zones")} sub={t("hub.zonesSub")} onPress={() => router.push("/delivery/zones")} /> : null}
+              {/* Returns for a change of mind (shared/fault-matrix.ts): on or off, the window, who pays the trip back. */}
+              {seller ? <Row lead={<Tile icon="route" tone="gray" />} title={f("settings.title")} sub={f("settings.rowSub")} onPress={() => router.push("/delivery/returns")} /> : null}
             </List>
           </Section>
 

@@ -15,6 +15,7 @@ import {
   readPayoutBankSummary,
   readShopPaymentMethods,
   summarizeMoney,
+  moneyIsIn,
   WAITING_STATUSES,
   type PaymentsSettingsError,
 } from "@shared/seller-payments";
@@ -130,22 +131,23 @@ export async function sellerMoneyOverview(store: { id: string; brandSettings: un
     ? await Promise.all([
         db.retailOrder.findMany({
           where: { storeId: store.id, createdAt: { gte: since } },
-          select: { total: true, status: true, paymentMethod: true, createdAt: true },
+          select: { total: true, status: true, paymentMethod: true, createdAt: true, paystackStatus: true },
           take: 5000,
         }),
         db.retailOrder.aggregate({ where: { storeId: store.id, status: { in: [...WAITING_STATUSES] } }, _sum: { total: true }, _count: true }),
         db.retailOrder.findMany({
           where: { storeId: store.id, status: { in: [...PAID_STATUSES] } },
           orderBy: { createdAt: "desc" },
-          take: 8,
-          select: { id: true, orderNumber: true, buyerName: true, total: true, paymentMethod: true, createdAt: true },
+          take: 24,
+          select: { id: true, orderNumber: true, buyerName: true, total: true, paymentMethod: true, createdAt: true, status: true, paystackStatus: true },
         }),
       ])
     : [[], null, []];
   return {
     summary: summarizeMoney(recent, now),
     waiting: { total: waiting?._sum.total ?? 0, count: waiting?._count ?? 0 },
-    latestPaid,
+    // "Paid" only when the money is in (an order on its way, or pay on delivery not paid yet, isn't).
+    latestPaid: latestPaid.filter((order) => moneyIsIn(order)).slice(0, 8),
     methods: readShopPaymentMethods(store?.brandSettings),
     transferWindow: { hours: readTransferWindowHours(store?.brandSettings), defaultHours: defaultTransferWindowHours() },
     bank: readPayoutBankSummary(store?.brandSettings),

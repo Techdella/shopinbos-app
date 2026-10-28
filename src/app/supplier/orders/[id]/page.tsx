@@ -17,7 +17,7 @@ import { preorderDay, shipDateLabel } from "@shared/preorder";
 import { SELLER_CANCEL_PREFIX } from "@/lib/supplier-orders/pure";
 import { getT } from "@/lib/i18n/server";
 import { PackChecklist } from "@/components/supplier/PackChecklist";
-import { dropshipPackView, type PackView } from "@/lib/supplier-dropship.server";
+import { dropshipPackView, wholesalePackView, type PackView } from "@/lib/supplier-dropship.server";
 import { BRANDING_CHOICE_LABELS } from "@shared/dropship-rules";
 
 export const dynamic = "force-dynamic";
@@ -88,6 +88,8 @@ export default async function SupplierOrderPage({ params, searchParams }: PagePr
       include: { seller: { select: { name: true, store: { select: { name: true } } } }, supplierProduct: { select: { name: true, images: true } } },
     });
     if (!order) notFound();
+    // Bulk orders too: the item in the open box and the sealed parcel before it leaves (shared/fault-matrix.ts).
+    pack = await wholesalePackView(supplier.id, order.id);
     view = {
       ref: wholesaleRef(order.id), status: order.expiredAt ? "expired" : order.status, shop: order.seller.store?.name ?? order.seller.name, sellerUserId: order.sellerId, createdAt: order.createdAt.toISOString(),
       acceptBy: order.acceptBy?.toISOString() ?? null, youGet: order.totalPrice, currency: order.currency,
@@ -137,7 +139,7 @@ export default async function SupplierOrderPage({ params, searchParams }: PagePr
           </div>
         </Card>
 
-        {pack && ["pending", "accepted"].includes(view.status) && (
+        {pack && ["pending", "accepted", "confirmed"].includes(view.status) && (
           <section aria-labelledby="pack-title" className="grid gap-2">
             <div className="flex items-center gap-3 rounded-[20px] bg-white p-3">
               {pack.branding.logoUrl ? (
@@ -156,8 +158,8 @@ export default async function SupplierOrderPage({ params, searchParams }: PagePr
             </div>
             <h2 id="pack-title" className="m-0 mt-3 font-app-display text-[19px] font-extrabold tracking-[-0.01em]">Pack it {pack.branding.sellerName}&apos;s way</h2>
             <PackChecklist
-              editable={view.status === "accepted" && !pack.packed}
-              initial={{ orderId: pack.orderId, steps: pack.steps, packSteps: pack.packSteps, photoUrl: pack.photoUrl, packed: pack.packed, problem: pack.problem }}
+              editable={(view.status === "accepted" || view.status === "confirmed") && !pack.packed}
+              initial={{ orderId: pack.orderId, kind: pack.kind, steps: pack.steps, packSteps: pack.packSteps, photoUrl: pack.photoUrl, contentsPhotoUrl: pack.contentsPhotoUrl, packed: pack.packed, problem: pack.problem }}
             />
           </section>
         )}
