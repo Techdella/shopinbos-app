@@ -51,7 +51,12 @@ test("the builder prompt has one output format and asks for a short reply", () =
 });
 
 test("pictures are made with OpenAI, and the labels say so", () => {
-  assert.match(read("src/lib/ai/images.ts"), /OPENAI_IMAGE_MODEL/);
+  assert.match(read("src/lib/ai/images.ts"), /withImageModel/);
+  // gpt-image-1 was shut down on 23 Oct 2026: the default is a current model, and a retired one falls through.
+  const client = read("src/lib/ai/client.ts");
+  assert.doesNotMatch(client, /\?\? "gpt-image-1"/);
+  assert.match(client, /OPENAI_IMAGE_MODELS = /);
+  assert.match(client, /isUnknownModelError/);
   assert.doesNotMatch(read("shared/i18n/messages/shell/en.ts"), /DALL/);
   assert.match(read("shared/i18n/messages/shell/en.ts"), /made with OpenAI/);
 });

@@ -1,6 +1,6 @@
 import "server-only";
 import { toFile } from "openai";
-import { getOpenAIClient, OPENAI_IMAGE_MODEL } from "@/lib/ai/client";
+import { getOpenAIClient, withImageModel } from "@/lib/ai/client";
 import { uploadFileServer } from "@/lib/supabase/storage.server";
 import { recordMedia } from "@/lib/media/library.server";
 import { aiImageOwner } from "@shared/media";
@@ -50,9 +50,9 @@ export async function generateImage({
   const openai = getOpenAIClient();
   if (!openai) throw new ImageUnavailableError("Image generation needs an OpenAI key (OPENAI_API_KEY).");
   const sources = references.slice(0, MAX_REFERENCES).map((ref) => ref.file);
-  const response = sources.length
-    ? await openai.images.edit({
-        model: OPENAI_IMAGE_MODEL,
+  const response = await withImageModel((model) => sources.length
+    ? openai.images.edit({
+        model,
         image: sources,
         prompt,
         n: 1,
@@ -61,14 +61,14 @@ export async function generateImage({
         output_format: "webp",
         ...(transparent ? { background: "transparent" as const } : {}),
       })
-    : await openai.images.generate({
-        model: OPENAI_IMAGE_MODEL,
+    : openai.images.generate({
+        model,
         prompt,
         n: 1,
         size,
         output_format: "webp",
         ...(transparent ? { background: "transparent" as const } : {}),
-      });
+      }));
   const b64 = response.data?.[0]?.b64_json;
   if (!b64) throw new Error("No image came back");
   return store(b64, `${path}.webp`);
@@ -135,14 +135,15 @@ export async function editImage({
 }): Promise<string> {
   const openai = getOpenAIClient();
   if (!openai) throw new ImageUnavailableError("Image editing needs an OpenAI key (OPENAI_API_KEY).");
-  const response = await openai.images.edit({
-    model: OPENAI_IMAGE_MODEL,
-    image: await loadSourceImage(sourceUrl, "source"),
+  const image = await loadSourceImage(sourceUrl, "source");
+  const response = await withImageModel((model) => openai.images.edit({
+    model,
+    image,
     prompt,
     size,
     output_format: "webp",
     ...(transparent ? { background: "transparent" as const } : {}),
-  });
+  }));
   const b64 = response.data?.[0]?.b64_json;
   if (!b64) throw new Error("No image came back");
   return store(b64, `${path}.webp`);

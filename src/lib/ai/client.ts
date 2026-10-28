@@ -32,7 +32,33 @@ export const CHIP_MODEL = process.env.ANTHROPIC_REX_MODEL ?? CLAUDE_MODEL;
 export const REX_OPENAI_MODEL = process.env.OPENAI_REX_MODEL ?? process.env.OPENAI_MODEL ?? "gpt-4o-mini";
 export const PEGGY_OPENAI_MODEL = process.env.OPENAI_PEGGY_MODEL ?? process.env.OPENAI_MODEL ?? REX_OPENAI_MODEL;
 export const PEGGY_CLAUDE_MODEL = process.env.ANTHROPIC_PEGGY_MODEL ?? CLAUDE_MODEL;
-export const OPENAI_IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-1";
+// OpenAI shut gpt-image-1 down on 23 Oct 2026; Flare is the fast successor, Sunburst the detailed one.
+export const OPENAI_IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-2.5-flare";
+/** Image models to try in order: the configured one, then the current ones (an env still naming a retired model keeps working). */
+export const OPENAI_IMAGE_MODELS = Array.from(new Set([OPENAI_IMAGE_MODEL, "gpt-image-2.5-flare", "gpt-image-2.5-sunburst"]));
+
+/** OpenAI's answer when a model id is unknown or retired ("The model 'x' does not exist", model_not_found). */
+export function isUnknownModelError(error: unknown) {
+  const e = error as { status?: number; code?: string; message?: string } | null;
+  if (!e) return false;
+  if (e.code === "model_not_found") return true;
+  return (e.status === 400 || e.status === 404) && /model\b.*\b(does not exist|not found|has been (shut down|deprecated))/i.test(String(e.message ?? ""));
+}
+
+/** Runs an image request with each model in OPENAI_IMAGE_MODELS until one exists. */
+export async function withImageModel<T>(run: (model: string) => Promise<T>): Promise<T> {
+  let last: unknown;
+  for (const model of OPENAI_IMAGE_MODELS) {
+    try {
+      return await run(model);
+    } catch (error) {
+      if (!isUnknownModelError(error)) throw error;
+      console.error(`[ai/images] ${model} isn't available; trying the next image model`);
+      last = error;
+    }
+  }
+  throw last;
+}
 
 /**
  * Which provider to try first when both keys are set ("anthropic" or "openai"); the other is the fallback.

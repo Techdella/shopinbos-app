@@ -437,7 +437,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "company.details": "Àlàyé",
   "company.finish": "Parí",
   "company.verifiedBody": "A ti jẹ́rìísí ilé-iṣẹ́ rẹ. Àwọn olùtajà ń rí báàjì verified lórí ojú-ìwé rẹ.",
-  "company.unverifiedBody": "Gbé àwọn ìwé òwò rẹ sókè kí Shopinbos lè jẹ́rìísí rẹ. O lè gba iṣẹ́ nígbà tí a bá ti jẹ́rìísí rẹ.",
+  "company.unverifiedBody": "Parí verification kí àwọn olùtajà lè rí ọ. O nílò NIN rẹ àti selfie, kò sí ìwé láti gbé sókè.",
   "company.whereDeliver": "Ibi tí o ń ṣe delivery sí",
   "company.emails": "Email láti Shopinbos",
   "company.emailsSub": "Ìròyìn ọjà àti ìmọ̀ràn, ìránnilétí ìṣètò àti àkópọ̀ ọ̀sẹ̀. Email ààbò, billing àti booking máa ń dé nígbà gbogbo.",
