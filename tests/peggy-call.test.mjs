@@ -151,15 +151,13 @@ test("phone: minimize, live lines, ticks, and the summary that goes to the next 
   assert.equal(pure.nextStepPath("logistics_partner", "rates"), "/logistics/rates");
   assert.equal(pure.nextStepPath("seller", "delivery"), "/start");
   assert.equal(pure.nextStepPath("supplier", null), null);
-  // The partner's short set-up has two steps; prices, documents and the bank are on "Finish setting up", never in it.
-  const steps = (missing) => ["profile", "coverage", "pickup", "rates", "documents", "bank"].map((id) => ({ id, done: !missing.includes(id) }));
-  assert.equal(pure.partnerWizardStep(steps(["profile", "coverage"])), "biz");
-  assert.equal(pure.partnerWizardStep(steps(["coverage", "documents"])), "deliver");
-  assert.equal(pure.partnerWizardStep(steps(["rates", "documents", "bank"])), "deliver");
+  // Delivery partners sign up in one 4-step flow: after a call it reloads and opens the first step still open.
+  assert.equal(pure.partnerWizardStep, undefined);
+  assert.match(read("apps/mobile/src/app/logistics/verification.tsx"), /usePeggyContinue\(\(\) => \{[\s\S]*setStep\(firstOpenStep\(fresh\)\)/);
   assert.equal(pure.supplierWizardStep([{ id: "pickup", done: false }, { id: "documents", done: false }]), "pickup");
   assert.equal(pure.callClock(75), "1:15");
   // Setup screens refresh as she saves and take Continue to their own next step.
-  for (const file of ["apps/mobile/src/app/logistics/setup.tsx", "apps/mobile/src/app/supplier/setup.tsx", "apps/mobile/src/app/start.tsx"]) {
+  for (const file of ["apps/mobile/src/app/logistics/verification.tsx", "apps/mobile/src/app/supplier/setup.tsx", "apps/mobile/src/app/start.tsx"]) {
     const source = read(file);
     assert.match(source, /usePeggySaved\(/, file);
     assert.match(source, /usePeggyContinue\(/, file);
@@ -167,8 +165,7 @@ test("phone: minimize, live lines, ticks, and the summary that goes to the next 
 });
 
 test("phone: Call Peggy is everywhere: setup from the first step, Help, Home or More, Ask Peggy", () => {
-  assert.match(read("apps/mobile/src/app/logistics/setup.tsx"), /<CallPeggyButton variant="compact" \/>/);
-  assert.match(read("apps/mobile/src/app/logistics/setup.tsx"), /<CallPeggyButton style=\{\{ marginTop: 6 \}\} \/>/);
+  assert.match(read("apps/mobile/src/app/logistics/verification.tsx"), /<CallPeggyButton variant="compact" \/>/);
   assert.match(read("apps/mobile/src/app/supplier/setup.tsx"), /aside=\{peggy\}/);
   for (const file of ["apps/mobile/src/app/help/index.tsx", "apps/mobile/src/app/start.tsx", "apps/mobile/src/app/(tabs)/home.tsx", "apps/mobile/src/app/supplier/account.tsx", "apps/mobile/src/app/logistics/(tabs)/more.tsx", "apps/mobile/src/app/ask-peggy.tsx"]) {
     assert.match(read(file), /<CallPeggyButton/, file);

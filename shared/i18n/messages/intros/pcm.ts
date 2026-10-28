@@ -723,7 +723,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "partner-verification.1.caption": "Verification na wetin go make you take jobs.",
   "partner-verification.1.sub": "Shops dey see only verified delivery partners, so na your first step be this.",
   "partner-verification.2.caption": "You no need CAC to start.",
-  "partner-verification.2.sub": "Check your NIN with selfie, add bank account for your name, your address and one guarantor.",
+  "partner-verification.2.sub": "Check your NIN with selfie, then add bank account for your name and your address.",
   "partner-verification.3.caption": "Add vehicle and where you dey deliver.",
   "partner-verification.3.sub": "Photo of your bike, car or van with the plate and your licence, then the areas wey you cover.",
   "partner-verification.4.caption": "Start as Verified Individual.",

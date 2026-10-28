@@ -163,7 +163,6 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "call.screen.shop": "Ụlọ ahịa m",
   "call.screen.start": "Malite ebe a",
   "call.screen.verification": "Nkwenye",
-  "call.screen.finish_setup": "Mechaa nhazi",
   "call.screen.wallet": "Obere akpa ego",
   "call.screen.where": "Ebe ị na-ere ahịa",
   "call.peggyEnded": "Peggy kwụsịrị oku ahụ",

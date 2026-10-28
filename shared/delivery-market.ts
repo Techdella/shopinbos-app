@@ -385,55 +385,6 @@ export function cardTimeframe(rows: readonly RateRow[]) {
   return timeframeWords(min, max);
 }
 
-// ─── A new partner's starting prices ─────────────────────────────────────────
-
-/**
- * Typical small-parcel prices in naira, so a new delivery partner can start without filling in a rate card (the
- * same levels as a seller's default delivery zones in shared/onboarding.ts: ₦2,000 in town, ₦3,500 further). They
- * change them any time on Rates; sellers see them as "from ₦…" until then.
- */
-export const SUGGESTED_PRICES = { doorstep: 2000, pickup_point: 1500, same_day: 3000, otherStates: 3500 } as const;
-
-/** Where a new partner delivers, in the set-up's words: only their state, their state and some others, or everywhere. */
-export type DeliverReach = "home" | "states" | "nationwide";
-export const DELIVER_REACHES: readonly DeliverReach[] = ["home", "states", "nationwide"];
-
-/** The delivery areas a set-up answer means (always including the home state). */
-export function reachAreas(home: string, reach: DeliverReach, states: readonly string[] = []): string[] {
-  if (reach === "nationwide") return [NATIONWIDE];
-  return cleanAreas(reach === "states" ? [home, ...states] : [home]).areas;
-}
-
-/** The set-up answer saved delivery areas mean (the reverse of reachAreas). */
-export function reachOf(home: string, deliveryAreas: readonly string[]): { reach: DeliverReach; states: string[] } {
-  if (deliveryAreas.includes(NATIONWIDE)) return { reach: "nationwide", states: [] };
-  const others = deliveryAreas.filter((area) => area !== home);
-  return others.length ? { reach: "states", states: others } : { reach: "home", states: [] };
-}
-
-/**
- * A starter rate card from the set-up answers: each offered service inside the home state at the typical price, and
- * doorstep to everywhere else they deliver (one row per state, or one Nationwide row) at the further price.
- */
-export function suggestedRateRows(input: { home: string; reach: DeliverReach; states?: readonly string[]; services?: readonly string[] }): RateRow[] {
-  const home = canonicalState(input.home) ?? input.home;
-  const services = (input.services?.length ? input.services : ["doorstep"]).filter((service): service is RateService => (RATE_SERVICES as readonly string[]).includes(service));
-  if (!services.includes("doorstep") && !services.includes("pickup_point")) services.unshift("doorstep");
-  const rows: RateRow[] = services.map((service, index) => ({
-    id: `s${index + 1}`,
-    from: home,
-    to: home,
-    service,
-    sizeBand: "small",
-    price: SUGGESTED_PRICES[service],
-    minDays: service === "same_day" ? 0 : 1,
-    maxDays: service === "same_day" ? 0 : 2,
-  }));
-  const far = input.reach === "nationwide" ? [NATIONWIDE] : input.reach === "states" ? reachAreas(home, "states", input.states ?? []).filter((area) => area !== home).slice(0, 36) : [];
-  for (const to of far) rows.push({ id: `s${rows.length + 1}`, from: home, to, service: "doorstep", sizeBand: "small", price: SUGGESTED_PRICES.otherStates, minDays: 2, maxDays: 4 });
-  return rows;
-}
-
 // ─── "Where I sell" ──────────────────────────────────────────────────────────
 
 export const SELL_AREAS = ["one_state", "selected", "nationwide"] as const;

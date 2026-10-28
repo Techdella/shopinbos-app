@@ -144,7 +144,7 @@ export function IdentityStep({ state, onState }: StepProps) {
               style={{ alignSelf: "flex-start" }}
               busy={codes.busy === "phoneSend"}
               disabled={Boolean(codes.busy) || !phone.trim()}
-              onPress={() => void codes.run("phoneSend", () => sendPhoneCode(phone), (result) => setPhoneChallenge("challenge" in result ? result.challenge : null))}
+              onPress={() => void codes.run("phoneSend", () => sendPhoneCode(phone), (result) => setPhoneChallenge(result.challenge))}
             />
           </>
         ) : (

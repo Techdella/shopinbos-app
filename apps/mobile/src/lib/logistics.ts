@@ -293,36 +293,13 @@ export interface LogisticsOnboarding {
   deliveryTypes: string[];
   basePrice: number;
   verificationStatus: string;
-  /** { source: "logistics-onboarding" } once a set-up step was saved ("signup" before that). */
-  onboardingState?: { source?: string; completed?: boolean } | null;
-  pickupAreas?: string[];
-  deliveryAreas?: string[];
 }
 
 export const fetchOnboarding = () => api<LogisticsOnboarding>("/api/logistics/onboarding");
 
-/**
- * Saves one set-up step (the same call as the web set-up). Step 1 sends the business name and home state; step 2
- * finishes (`completed`) with how and where they deliver, and the server puts them on the marketplace with a starter
- * rate card at typical prices (shared/delivery-market.ts suggestedRateRows) in the same call.
- */
-export type SetupSave =
-  | { displayName: string; city: string; country: "Nigeria"; coverageZones: string[]; completed: false }
-  | {
-      displayName: string;
-      city: string;
-      country: "Nigeria";
-      coverageZones: string[];
-      vehicleTypes: string[];
-      deliveryTypes: string[];
-      pickupAreas: string[];
-      deliveryAreas: string[];
-      services: string[];
-      starterRates: true;
-      completed: true;
-    };
-
-export const saveSetup = (input: SetupSave) => api<unknown>("/api/logistics/onboarding", { method: "PATCH", json: input });
+/** Marks set-up done (the same call as the web set-up), so coverage, rates and pickup points can be saved. */
+export const finishOnboarding = (input: { displayName?: string; coverageZones: string[]; vehicleTypes: string[]; deliveryTypes: string[]; basePrice: number }) =>
+  api<unknown>("/api/logistics/onboarding", { method: "PATCH", json: { ...input, pricingModel: "fixed", completed: true } });
 
 /** Upload one verification document (a photo) for the company, with the existing document types. */
 export async function uploadVerificationDoc(docType: string, file: { uri: string; mimeType?: string | null; fileName?: string | null }) {

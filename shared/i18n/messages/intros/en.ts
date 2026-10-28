@@ -803,7 +803,7 @@ const en = {
   "partner-verification.1.caption": "Verification lets you take jobs.",
   "partner-verification.1.sub": "Shops only see verified delivery partners, so this is your first step.",
   "partner-verification.2.caption": "You don’t need CAC to start.",
-  "partner-verification.2.sub": "Check your NIN with a selfie, add a bank account in your name, your address and a guarantor.",
+  "partner-verification.2.sub": "Check your NIN with a selfie, then add a bank account in your name and your address.",
   "partner-verification.3.caption": "Add a vehicle and where you deliver.",
   "partner-verification.3.sub": "A photo of your bike, car or van with its plate and your licence, then the areas you cover.",
   "partner-verification.4.caption": "Start as a Verified Individual.",

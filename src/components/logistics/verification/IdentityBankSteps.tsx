@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 import { PillButton, cx } from "@/components/app-ui";
 import { field } from "@/components/seller-core";
 import { NG_STATES } from "@shared/delivery-market";
-import { CodeConfirm, DocUpload, Field, Row, StepCard, StepError, docItemState, jsonInit, kycCall, useAction, useKycT, type KycState } from "./kit";
+import { CodeConfirm, Field, Row, StepCard, StepError, jsonInit, kycCall, useAction, useKycT, type KycState } from "./kit";
 import { SelfieCapture, type SelfieValue } from "./SelfieCapture";
 
-// Identity (name, NIN, phone, email, selfie, address) and Bank (a bank account in the NIN's name; never a BVN).
+// Step 1, You (NIN with a selfie, phone, email, address), and step 2, Bank (an account in the NIN's name; never a BVN).
 
 type StepProps = { state: KycState; onState: (state: KycState) => void; reload: () => void };
 
@@ -18,7 +18,7 @@ function splitName(full: string | null) {
   return { first: parts.slice(0, -1).join(" "), last: parts[parts.length - 1] };
 }
 
-export function IdentityStep({ state, onState, reload, accountEmail, accountPhone }: StepProps & { accountEmail: string | null; accountPhone: string | null }) {
+export function IdentityStep({ state, onState, accountEmail, accountPhone }: StepProps & { accountEmail: string | null; accountPhone: string | null }) {
   const t = useKycT();
   const { busy, error, run } = useAction(onState);
   const name = splitName(state.identity.fullName);
@@ -39,7 +39,9 @@ export function IdentityStep({ state, onState, reload, accountEmail, accountPhon
   // selfie asks for the NIN again.
   const selfieNeeded = state.tier1.selfie === "missing" || state.tier1.selfie === "rejected";
   const ninFormOpen = state.identity.nin?.status !== "approved" || selfieNeeded;
-  const utility = state.docs.find((doc) => doc.type === "utility");
+  // A confirmed email (the sign-up email, usually) needs nothing more unless they want to change it.
+  const [changingEmail, setChangingEmail] = useState(false);
+  const emailDone = state.identity.email?.status === "approved" && !changingEmail;
 
   return (
     <StepCard title={t("id.title")} sub={t("id.sub")}>
@@ -83,7 +85,7 @@ export function IdentityStep({ state, onState, reload, accountEmail, accountPhon
         ) : null}
         <div className="flex flex-wrap items-end gap-2">
           <Field label={t("id.phone")}><input value={phone} onChange={(event) => { setPhone(event.target.value); setPhoneChallenge(null); }} inputMode="tel" autoComplete="tel" className={cx(field.input, "sm:min-w-[260px]")} /></Field>
-          <PillButton tone="white" size="md" busy={busy === "phone-send"} disabled={!phone.trim()} onClick={() => void run("phone-send", () => kycCall<KycState | { challenge: string }>("/phone", jsonInit("POST", { action: "send", phone })), (result) => setPhoneChallenge("challenge" in result ? result.challenge : null))}>
+          <PillButton tone="white" size="md" busy={busy === "phone-send"} disabled={!phone.trim()} onClick={() => void run("phone-send", () => kycCall<{ challenge: string }>("/phone", jsonInit("POST", { action: "send", phone })), (result) => setPhoneChallenge(result.challenge))}>
             {t("id.sendCode")}
           </PillButton>
         </div>
@@ -96,25 +98,31 @@ export function IdentityStep({ state, onState, reload, accountEmail, accountPhon
       </Row>
 
       <Row label={t("item.email")} state={state.tier1.email}>
-        {state.identity.email?.status === "approved" && email.trim().toLowerCase() === state.identity.email.value ? (
-          <p className="m-0 text-[14.5px]">{t("id.emailDone", { email: state.identity.email.value })}</p>
-        ) : null}
-        <div className="flex flex-wrap items-end gap-2">
-          <Field label={t("id.email")}><input type="email" value={email} onChange={(event) => { setEmail(event.target.value); setEmailChallenge(null); }} autoComplete="email" className={cx(field.input, "sm:min-w-[260px]")} /></Field>
-          <PillButton
-            tone="white"
-            size="md"
-            busy={busy === "email-send"}
-            disabled={!email.trim()}
-            onClick={() => void run("email-send", () => kycCall<KycState | { challenge: string }>("/email", jsonInit("POST", { action: "send", email })), (result) => setEmailChallenge("challenge" in result ? result.challenge : null))}
-          >
-            {t("id.sendCode")}
-          </PillButton>
-        </div>
-        {emailChallenge && (
+        {emailDone ? (
+          <p className="m-0 text-[14.5px]">
+            {t("id.emailDone", { email: state.identity.email?.value ?? "" })} ·{" "}
+            <button type="button" onClick={() => setChangingEmail(true)} className="font-bold underline underline-offset-4">{t("id.change")}</button>
+          </p>
+        ) : (
           <>
-            <p className="m-0 text-[13.5px] text-app-ink-soft">{t("id.codeSent", { to: email })}</p>
-            <CodeConfirm busy={busy === "email-verify"} onConfirm={(code) => void run("email-verify", () => kycCall("/email", jsonInit("POST", { action: "verify", email, challenge: emailChallenge, code })), () => setEmailChallenge(null))} />
+            <div className="flex flex-wrap items-end gap-2">
+              <Field label={t("id.email")}><input type="email" value={email} onChange={(event) => { setEmail(event.target.value); setEmailChallenge(null); }} autoComplete="email" className={cx(field.input, "sm:min-w-[260px]")} /></Field>
+              <PillButton
+                tone="white"
+                size="md"
+                busy={busy === "email-send"}
+                disabled={!email.trim()}
+                onClick={() => void run("email-send", () => kycCall<KycState | { challenge: string }>("/email", jsonInit("POST", { action: "send", email })), (result) => { setEmailChallenge("challenge" in result ? result.challenge : null); if (!("challenge" in result)) setChangingEmail(false); })}
+              >
+                {t("id.sendCode")}
+              </PillButton>
+            </div>
+            {emailChallenge && (
+              <>
+                <p className="m-0 text-[13.5px] text-app-ink-soft">{t("id.codeSent", { to: email })}</p>
+                <CodeConfirm busy={busy === "email-verify"} onConfirm={(code) => void run("email-verify", () => kycCall("/email", jsonInit("POST", { action: "verify", email, challenge: emailChallenge, code })), () => { setEmailChallenge(null); setChangingEmail(false); })} />
+              </>
+            )}
           </>
         )}
       </Row>
@@ -142,9 +150,6 @@ export function IdentityStep({ state, onState, reload, accountEmail, accountPhon
         </div>
       </Row>
 
-      <Row label={t("id.utility")} state={docItemState(utility)} optional reason={utility?.rejectionReason}>
-        <DocUpload type="utility" doc={utility} hint={t("id.utilityHint")} onDone={reload} />
-      </Row>
     </StepCard>
   );
 }

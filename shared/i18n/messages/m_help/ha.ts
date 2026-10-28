@@ -163,7 +163,6 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "call.screen.shop": "Shagona",
   "call.screen.start": "Fara a nan",
   "call.screen.verification": "Tantancewa",
-  "call.screen.finish_setup": "Gama saiti",
   "call.screen.wallet": "Walat",
   "call.screen.where": "Inda kuke sayarwa",
   "call.peggyEnded": "Peggy ta kashe kiran",

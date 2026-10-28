@@ -570,30 +570,20 @@ export const LogisticsOnboardingSchema = z.object({
   country: z.string().min(2).max(60).optional(),
   city: z.string().min(2).max(60).optional(),
   description: z.string().max(2000).optional(),
-  // Optional while set-up is saved step by step (the business first, then how and where they deliver); finishing
-  // ("completed") needs all three (refined below).
-  coverageZones: z.array(z.string().min(1).max(80)).min(1).max(30).optional(),
-  vehicleTypes: z.array(z.string().min(1).max(40)).min(1).max(12).optional(),
-  deliveryTypes: z.array(z.string().min(1).max(40)).min(1).max(12).optional(),
-  pricingModel: z.enum(["fixed", "weight_based", "distance_based"]).optional(),
-  basePrice: z.number().min(0).optional(),
+  coverageZones: z.array(z.string().min(1).max(80)).min(1).max(30),
+  vehicleTypes: z.array(z.string().min(1).max(40)).min(1).max(12),
+  deliveryTypes: z.array(z.string().min(1).max(40)).min(1).max(12),
+  pricingModel: z.enum(["fixed", "weight_based", "distance_based"]).default("fixed"),
+  basePrice: z.number().min(0).default(0),
   estimatedSpeed: z.string().max(80).optional(),
   coverageMap: z.object({
     zones: z.array(LogisticsCoverageZoneSchema).max(30).default([]),
     depot: z.string().max(120).optional(),
     updatedBy: z.literal("onboarding").default("onboarding"),
-  }).optional(),
-  // The short set-up (phone and web): the marketplace coverage in the same call, saved once set-up is complete.
-  pickupAreas: z.array(z.string().min(1).max(80)).max(200).optional(),
-  deliveryAreas: z.array(z.string().min(1).max(80)).max(200).optional(),
-  services: z.array(z.string().min(1).max(40)).max(8).optional(),
-  /** Publish a starter rate card at typical prices (shared/delivery-market.ts suggestedRateRows) when there's none. */
-  starterRates: z.boolean().optional(),
+  }).default({ zones: [], updatedBy: "onboarding" }),
   completed: z.boolean().default(false),
   /** The partner ticked "I agree to the partner terms" (shared/partner-tiers.ts PARTNER_TERMS_VERSION). */
   acceptTerms: z.boolean().optional(),
-}).refine((value) => !value.completed || Boolean(value.coverageZones?.length && value.vehicleTypes?.length && value.deliveryTypes?.length), {
-  message: "Pick where you deliver and how you deliver to finish set-up.",
 });
 
 export const LogisticsCoverageUpdateSchema = z.object({

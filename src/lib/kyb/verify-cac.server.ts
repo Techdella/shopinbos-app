@@ -41,6 +41,8 @@ function dojahReady() {
 
 /** The CAC lookups set up here, in the order they're tried (for Admin → Wallets). */
 export function cacProviders(): Array<"cac" | "korapay" | "youverify" | "dojah"> {
+  // Korapay, when set up, is the only one used (lookupCacRecord).
+  if (korapayIdentityReady()) return ["korapay"];
   return [
     ...(korapayIdentityReady() ? (["korapay"] as const) : []),
     ...(cacVasKey() ? (["cac"] as const) : []),
@@ -90,10 +92,12 @@ async function lookupCacVas(rcNumber: string, companyType: CacCompanyType): Prom
 }
 
 /** Korapay's CAC lookup (POST /identities/ng/cac): the registry profile with address and key personnel. */
-async function lookupKorapayCac(rcNumber: string, companyType: CacCompanyType): Promise<LookupResult> {
+async function lookupKorapayCac(rcNumber: string, companyType: CacCompanyType, registrationName?: string): Promise<LookupResult> {
   const id = prefixedCacNumber(rcNumber, companyType);
   try {
-    const { status, json } = await korapayIdentityPost("/identities/ng/cac", { id, registration_type: id.replace(/\d+$/, ""), verification_consent: true }, LOOKUP_TIMEOUT_MS);
+    // developers.korapay.com/docs/nigeria-certificate-incorporation: { id, registration_type, registration_name?, verification_consent }
+    const body = { id, registration_type: id.replace(/\d+$/, ""), ...(registrationName ? { registration_name: registrationName.slice(0, 160) } : {}), verification_consent: true };
+    const { status, json } = await korapayIdentityPost("/identities/ng/cac", body, LOOKUP_TIMEOUT_MS);
     if (status === 404) return { ok: true, record: null };
     if (status === 429) return { ok: false, reason: "busy" };
     const reply = json as { status?: unknown; message?: unknown } | null;
@@ -102,7 +106,10 @@ async function lookupKorapayCac(rcNumber: string, companyType: CacCompanyType): 
       const message = typeof reply?.message === "string" ? reply.message : "";
       return /not found|no record|invalid (rc|bn|cac|registration|id)|does not exist/i.test(message) ? { ok: true, record: null } : { ok: false, reason: "unavailable" };
     }
-    if (status < 200 || status >= 300 || reply?.status !== true) return { ok: false, reason: "unavailable" };
+    if (status < 200 || status >= 300 || reply?.status !== true) {
+      console.error("[kyb/cac] Korapay refused the lookup", status, typeof reply?.message === "string" ? reply.message : "");
+      return { ok: false, reason: "unavailable" };
+    }
     return { ok: true, record: parseKorapayCac(json) };
   } catch (error) {
     console.error("[kyb/cac] Korapay lookup error", error instanceof Error ? error.message : error);
@@ -163,7 +170,11 @@ async function lookupCac(rcNumber: string, companyType: CacCompanyType): Promise
  * a check from the VAS wallet, October 2026 pricing); a provider that's unavailable (not set up, refusing, down)
  * hands over to the next one.
  */
-export async function lookupCacRecord(number: string, companyType: CacCompanyType): Promise<{ lookup: LookupResult; provider: string }> {
+export async function lookupCacRecord(number: string, companyType: CacCompanyType, registrationName?: string): Promise<{ lookup: LookupResult; provider: string }> {
+  // Korapay Identity runs every CAC check when it's set up (the owner's choice): no hand-over to CAC's paid VAS API or
+  // the other providers, so a Korapay problem shows as one (Admin › Developers › Test Korapay Identity) instead of
+  // being hidden behind a fallback. The others are only for when Korapay isn't set up.
+  if (korapayIdentityReady()) return { lookup: await lookupKorapayCac(number, companyType, registrationName), provider: "korapay" };
   let lookup: LookupResult = { ok: false, reason: "unavailable" };
   let provider: string = cacProvider();
   for (const [name, ready, run] of [
@@ -224,7 +235,7 @@ export async function runCacCheck(
   await model.update({ where: { id: entity.id }, data: { onboardingState: { ...state, cacChecks: [...attempts, now] } } });
   const attemptsLeft = CAC_DAILY_ATTEMPTS - attempts.length - 1;
 
-  const { lookup, provider } = await lookupCacRecord(parsed.number, companyType);
+  const { lookup, provider } = await lookupCacRecord(parsed.number, companyType, enteredName);
   if (!lookup.ok) {
     return {
       ok: false,

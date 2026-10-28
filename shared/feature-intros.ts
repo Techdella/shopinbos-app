@@ -1136,7 +1136,7 @@ export const FEATURE_INTROS: FeatureIntro[] = [
     paths: ["/logistics/verification"],
     scenes: [
       { art: "badge-verify", caption: "Verification lets you take jobs.", sub: "Shops only see verified delivery partners, so this is your first step.", durationMs: S, label: "Verified", chips: ["NIN", "Selfie", "Bank"] },
-      { art: "flow-nodes", caption: "You don’t need CAC to start.", sub: "Check your NIN with a selfie, add a bank account in your name, your address and a guarantor.", durationMs: S, chips: ["Identity", "Bank", "Guarantor"] },
+      { art: "flow-nodes", caption: "You don’t need CAC to start.", sub: "Check your NIN with a selfie, then add a bank account in your name and your address.", durationMs: S, chips: ["Identity", "Bank", "Address"] },
       { art: "bike-route", caption: "Add a vehicle and where you deliver.", sub: "A photo of your bike, car or van with its plate and your licence, then the areas you cover.", durationMs: S, chips: ["Bike", "Car", "Van"] },
       { art: "badge-verify", caption: "Start as a Verified Individual.", sub: "You take jobs with small limits at first. Good deliveries and good ratings lift them.", durationMs: S, label: "Verified Individual" },
       { art: "invoice-paper", caption: "Add CAC later for no limits.", sub: "Register your business name with CAC and you become a Registered Business, with no order limits.", durationMs: S, label: "CAC CERTIFICATE", chips: ["Registered Business"] },

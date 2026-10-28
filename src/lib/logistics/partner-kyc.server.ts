@@ -22,12 +22,6 @@ import {
 } from "@shared/partner-tiers";
 import { checkGraduation, partnerTierSnapshot, refreshPartnerTier } from "./partner-tiers.server";
 import {
-  GUARANTOR_CODE_TTL_MS,
-  guarantorCodeHash,
-  guarantorMessage,
-  guarantorResendWait,
-  guarantorTokenHash,
-  newGuarantorToken,
 } from "./partner-kyc";
 
 // The partner's own verification steps (/logistics/verification, /api/logistics/kyc/*). The tier rules are
@@ -46,7 +40,7 @@ export function idChecksReady() {
 export async function kycPartnerFor(userId: string) {
   return db.logisticsPartner.findUnique({
     where: { userId },
-    select: { id: true, slug: true, userId: true, displayName: true, companyName: true, verificationStatus: true, identityChecks: true, kycSubmittedAt: true },
+    select: { id: true, slug: true, userId: true, displayName: true, companyName: true, verificationStatus: true, identityChecks: true, kycSubmittedAt: true, onboardingState: true },
   });
 }
 
@@ -69,39 +63,11 @@ export async function confirmedAuthEmail(supabaseId: string): Promise<string | n
   return row?.email && row.confirmed ? row.email.trim().toLowerCase() : null;
 }
 
-/** The account's own phone (E.164), when Supabase confirmed it with a sign-up or log-in code. Null when it can't be read. */
-export async function confirmedAuthPhone(supabaseId: string): Promise<string | null> {
-  const rows = await db.$queryRaw<Array<{ phone: string | null; confirmed: Date | null }>>`
-    SELECT u."phone" AS "phone", u."phone_confirmed_at" AS "confirmed" FROM auth.users u WHERE u."id"::text = ${supabaseId} LIMIT 1`.catch(() => null);
-  const row = rows?.[0];
-  const digits = row?.phone?.replace(/\D/g, "") ?? "";
-  return digits.length >= 8 && row?.confirmed ? `+${digits}` : null;
-}
-
-/**
- * The phone and email the partner already confirmed with a code when signing up count for verification at once, so
- * they're never asked to confirm them a second time (the same rule as the email step's "your own confirmed email").
- * Only fills checks that are missing; never touches one that was approved, rejected or is waiting.
- */
-export async function approveSignupContacts(partnerId: string, supabaseId: string) {
-  const [phone, email] = await Promise.all([confirmedAuthPhone(supabaseId), confirmedAuthEmail(supabaseId)]);
-  if (!phone && !email) return;
-  const row = await db.logisticsPartner.findUnique({ where: { id: partnerId }, select: { identityChecks: true } });
-  const current = readIdentityChecks(row?.identityChecks);
-  if ((!phone || current.phone) && (!email || current.email)) return;
-  const at = new Date().toISOString();
-  await updateIdentityChecks(partnerId, (checks) => ({
-    ...checks,
-    ...(phone && !checks.phone ? { phone: { value: phone, status: "approved" as const, verifiedAt: at } } : {}),
-    ...(email && !checks.email ? { email: { value: email, status: "approved" as const, verifiedAt: at } } : {}),
-  }));
-}
-
 const TIER_DOC_TYPES = new Set(LOGISTICS_TIER_DOC_TYPES.map((config) => config.type));
 
 /** Everything the verification page and the dashboard card show. Never a whole ID number, nor any hash. */
 export async function kycState(partnerId: string) {
-  const [found, partner, vehicles, guarantor] = await Promise.all([
+  const [found, partner, vehicles] = await Promise.all([
     partnerTierSnapshot(partnerId),
     db.logisticsPartner.findUnique({
       where: { id: partnerId },
@@ -112,7 +78,6 @@ export async function kycState(partnerId: string) {
       },
     }),
     db.logisticsVehicle.findMany({ where: { logisticsPartnerId: partnerId }, orderBy: { createdAt: "asc" } }),
-    db.logisticsGuarantor.findUnique({ where: { logisticsPartnerId: partnerId } }),
   ]);
   if (!found || !partner) return null;
   const { snapshot } = found;
@@ -157,17 +122,6 @@ export async function kycState(partnerId: string) {
       status: vehicle.status,
       rejectionReason: vehicle.rejectionReason,
     })),
-    guarantor: guarantor
-      ? {
-          fullName: guarantor.fullName,
-          phone: guarantor.phone,
-          address: guarantor.address,
-          relationship: guarantor.relationship,
-          status: guarantor.status,
-          respondedVia: guarantor.respondedVia,
-          resendIn: guarantor.status === "pending" ? guarantorResendWait(guarantor) : null,
-        }
-      : null,
     coverage: { deliveryAreas: partner.deliveryAreas, deliveryMethods: partner.vehicleTypes },
     business: { registeredName: partner.registeredName, cacType: partner.cacType, cacNumber: partner.cacNumber, businessAddress: partner.businessAddress, companyName: partner.companyName },
     tier1,
@@ -194,7 +148,6 @@ const ITEM_WORDS: Record<string, string> = {
   coverage: "where you deliver",
   methods: "how you deliver",
   vehicles: "a vehicle",
-  guarantor: "a guarantor",
 };
 
 /**
@@ -232,62 +185,12 @@ export async function submitPartnerKyc(userId: string): Promise<SubmitResult> {
   });
   await notifyAdminsToReview({
     title: `${String(partner.displayName || partner.companyName || "A delivery partner").slice(0, 60)} sent their verification`,
-    description: "A delivery partner is waiting for verification. Check their ID, vehicles and guarantor.",
+    description: "A delivery partner is waiting for verification. Check their ID and vehicles.",
     link: `/admin/logistics-partners/${partner.id}`,
     dedupeKey: `admin.verify:${partner.id}:${new Date().toISOString().slice(0, 10)}`,
   });
   await refreshPartnerTier(partner.id);
   return { ok: true };
-}
-
-// ─── Guarantor ───────────────────────────────────────────────────────────────
-
-export type GuarantorSend = { ok: true } | { ok: false; error: string; status: number };
-
-/** Texts the guarantor a new code and link (each send replaces the last code and link). */
-export async function sendGuarantorCode(partnerId: string): Promise<GuarantorSend> {
-  const secret = kycSecret();
-  if (!secret) return { ok: false, status: 503, error: "We can't send codes right now. Try again later." };
-  const [guarantor, partner] = await Promise.all([
-    db.logisticsGuarantor.findUnique({ where: { logisticsPartnerId: partnerId } }),
-    db.logisticsPartner.findUnique({ where: { id: partnerId }, select: { displayName: true } }),
-  ]);
-  if (!guarantor || !partner) return { ok: false, status: 404, error: "Add your guarantor first." };
-  if (guarantor.status !== "pending") return { ok: false, status: 409, error: "Your guarantor has already answered." };
-  const wait = guarantorResendWait(guarantor);
-  if (wait === null) return { ok: false, status: 429, error: "We've texted your guarantor as many times as we can. Ask them to check their messages, or talk to the Shopinbos team." };
-  if (wait > 0) return { ok: false, status: 429, error: `Wait ${wait} seconds before texting your guarantor again.` };
-
-  const code = generatePhoneCode();
-  const token = newGuarantorToken();
-  const link = `${getPublicEnv().appUrl.replace(/\/$/, "")}/guarantor/${token}`;
-  const sent = await deliverCode({ phone: guarantor.phone, otp: code, message: guarantorMessage(partner.displayName, code, link), via: "sms" });
-  if (!sent.ok) {
-    console.error("[partner-kyc] guarantor code not sent", sent.error);
-    return { ok: false, status: 503, error: "We couldn't text your guarantor just now. Check the number and try again." };
-  }
-  await db.logisticsGuarantor.update({
-    where: { id: guarantor.id },
-    data: {
-      codeHash: guarantorCodeHash(secret, guarantor.id, code),
-      codeExpiresAt: new Date(Date.now() + GUARANTOR_CODE_TTL_MS),
-      codeAttempts: 0,
-      tokenHash: guarantorTokenHash(secret, token),
-      lastSentAt: new Date(),
-      sendCount: { increment: 1 },
-    },
-  });
-  return { ok: true };
-}
-
-/** The guarantor behind a link token, with only what their page may show. */
-export async function guarantorForToken(token: string) {
-  const secret = kycSecret();
-  if (!secret || !/^[A-Za-z0-9_-]{20,64}$/.test(token)) return null;
-  return db.logisticsGuarantor.findUnique({
-    where: { tokenHash: guarantorTokenHash(secret, token) },
-    select: { id: true, fullName: true, status: true, codeHash: true, codeExpiresAt: true, codeAttempts: true, logisticsPartnerId: true, logisticsPartner: { select: { displayName: true } } },
-  });
 }
 
 // ─── Selfie ──────────────────────────────────────────────────────────────────

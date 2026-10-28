@@ -18,7 +18,7 @@ export function takingBlockOf(partner: { takingBlock?: TakingBlock | null; verif
 
 /** What the line under the switch offers for each reason: a screen to open, Help, or nothing (we're checking). */
 export const TAKING_BLOCK_ACTION: Record<TakingBlock, { path: string | null; key: string }> = {
-  setup: { path: "/logistics/setup", key: "taking.go.setup" },
+  setup: { path: "/logistics/verification", key: "taking.go.setup" },
   documents: { path: "/logistics/verification", key: "taking.go.documents" },
   checking: { path: null, key: "" },
   rejected: { path: "/logistics/verification", key: "taking.go.rejected" },

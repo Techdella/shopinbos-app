@@ -24,7 +24,6 @@ export interface KycState {
   };
   docs: VerificationDoc[];
   vehicles: Array<{ id: string; type: string; plateNumber: string; status: string; rejectionReason: string | null }>;
-  guarantor: { fullName: string; phone: string; address: string; relationship: string; status: string; respondedVia: string | null; resendIn: number | null } | null;
   coverage: { deliveryAreas: string[]; deliveryMethods: string[] };
   business: { registeredName: string | null; cacType: string | null; cacNumber: string | null; businessAddress: string | null; companyName: string };
   tier1: Record<string, ItemState>;
@@ -50,8 +49,7 @@ export const saveIdentity = (input: { firstName?: string; lastName?: string; add
 export const checkNin = (input: { nin: string; firstName: string; lastName: string; dateOfBirth: string; selfie: string; liveness?: { reference: string; passed: boolean } }) =>
   api<KycState>(`${BASE}/nin`, { method: "POST", json: input });
 
-/** Sends a phone code, or approves at once when it is the number the account signed up with (then there is no challenge). */
-export const sendPhoneCode = (phone: string) => api<{ challenge: string } | KycState>(`${BASE}/phone`, { method: "POST", json: { action: "send", phone } });
+export const sendPhoneCode = (phone: string) => api<{ challenge: string }>(`${BASE}/phone`, { method: "POST", json: { action: "send", phone } });
 export const verifyPhoneCode = (phone: string, challenge: string, code: string) =>
   api<KycState>(`${BASE}/phone`, { method: "POST", json: { action: "verify", phone, challenge, code } });
 
@@ -65,7 +63,9 @@ export const fetchPayoutBanks = () => api<{ banks: string[] }>(`${BASE}/payout`)
 export const savePayout = (input: { method: "bank"; bankName: string; accountNumber: string }) =>
   api<KycState>(`${BASE}/payout`, { method: "POST", json: input });
 
-export const saveKycCoverage = (input: { deliveryAreas: string[]; deliveryMethods: string[] }) => api<KycState>(`${BASE}/coverage`, { method: "PATCH", json: input });
+/** "Your delivery": the company name sellers see, where and how the partner delivers. Saving it finishes set-up. */
+export const saveKycCoverage = (input: { companyName?: string; deliveryAreas: string[]; deliveryMethods: string[] }) =>
+  api<KycState>(`${BASE}/coverage`, { method: "PATCH", json: input });
 
 function photoPart(photo: PickedPhoto, name: string) {
   const type = photo.mimeType ?? "image/jpeg";
@@ -84,9 +84,6 @@ export function saveVehicle(input: { id?: string; type: string; plateNumber: str
 }
 
 export const deleteVehicle = (id: string) => api<KycState>(`${BASE}/vehicles/${encodeURIComponent(id)}`, { method: "DELETE" });
-
-export const saveGuarantor = (input: { fullName: string; phone: string; address: string; relationship: string }) => api<KycState>(`${BASE}/guarantor`, { method: "PUT", json: input });
-export const resendGuarantor = () => api<KycState>(`${BASE}/guarantor`, { method: "POST", json: { action: "resend" } });
 
 export const saveKycBusiness = (input: { registeredName: string; cacType: string; cacNumber: string; businessAddress?: string }) =>
   api<KycState>(`${BASE}/business`, { method: "PATCH", json: input });

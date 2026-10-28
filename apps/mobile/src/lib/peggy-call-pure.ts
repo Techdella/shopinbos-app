@@ -74,15 +74,6 @@ export function nextStepPath(role: CallRole, next: string | null | undefined): s
   return NEXT[role][next] ?? null;
 }
 
-/**
- * The delivery partner set-up's step to show after a call (the short set-up: the business, then how and where they
- * deliver). Prices, the bank and documents are on the "Finish later" list, not in set-up, so a call never jumps there.
- */
-export function partnerWizardStep(steps: readonly SetupStepView[]): "biz" | "deliver" {
-  const missing = (id: string) => steps.some((step) => step.id === id && !step.done);
-  return missing("profile") ? "biz" : "deliver";
-}
-
 /** The supplier setup wizard's step after a call: business, pickup address, bank, else where they sell. */
 export function supplierWizardStep(steps: readonly SetupStepView[]): "biz" | "pickup" | "where" | "bank" {
   const missing = (id: string) => steps.some((step) => step.id === id && !step.done);
