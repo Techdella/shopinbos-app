@@ -22,7 +22,7 @@ const KIND: Record<ErrorKind, { label: string; tone: Tone }> = {
   permission: { label: "Permission blocked", tone: "warning" },
   code: { label: "Bug", tone: "danger" },
 };
-const SOURCE: Record<string, string> = { shown: "Shown to them", unhandled: "Not caught (in the background)", boundary: "Error page" };
+const SOURCE: Record<string, string> = { shown: "Shown to them", unhandled: "Not caught (in the background)", boundary: "Error page", server: "On the server" };
 const ROLE: Record<string, string> = { seller: "Seller", supplier: "Supplier", logistics_partner: "Delivery partner", admin: "Admin", buyer: "Shopper" };
 
 const ago = (date: Date) => {
@@ -93,6 +93,11 @@ export default async function AdminErrorsPage(props: { searchParams?: Promise<{ 
                       </span>
                     </div>
                     <p className="m-0 mt-2 break-words font-mono text-[13.5px] font-semibold text-app-ink">{group.first.message}</p>
+                    {group.first.server && (
+                      <p className="m-0 mt-1 break-words font-mono text-[13px] text-app-ink">
+                        <span className="font-bold">On the server: </span>{group.first.server.message}
+                      </p>
+                    )}
                     <p className="m-0 mt-1 text-[13px] text-app-ink-soft">
                       On <span className="font-mono">{group.first.pagePattern}</span> · {SOURCE[group.first.source] ?? group.first.source}
                     </p>
@@ -146,7 +151,7 @@ export default async function AdminErrorsPage(props: { searchParams?: Promise<{ 
                   <details className="mt-3">
                     <summary className="cursor-pointer text-[13px] font-bold text-app-ink-soft">Technical details</summary>
                     <pre className="mt-2 max-h-[260px] overflow-auto whitespace-pre-wrap break-words rounded-[12px] bg-app-canvas p-3 font-mono text-[12px] text-app-ink">
-                      {[group.first.digest ? `Server digest: ${group.first.digest}` : null, group.first.userAgent, group.first.stack].filter(Boolean).join("\n\n")}
+                      {[group.first.digest ? `Server digest: ${group.first.digest}` : null, group.first.userAgent, group.first.stack, group.first.server?.stack ? `On the server:\n${group.first.server.stack}` : null].filter(Boolean).join("\n\n")}
                     </pre>
                   </details>
                 )}

@@ -19,6 +19,10 @@ test("friendly errors: technical messages become plain words", () => {
   assert.equal(f.errorKind(new SyntaxError("Unexpected token '<', \"<!DOCTYPE \"... is not valid JSON")), "code");
   assert.equal(f.errorKind(new Error("x".repeat(300))), "code");
   assert.equal(f.errorKind(new Error("")), "code");
+  // An API reply that isn't ours (a timeout page, a too-big request): the status is kept for the team, not shown.
+  const status = new Error("HTTP 504 from POST /api/logistics/kyc/nin");
+  assert.equal(f.errorKind(status), "code");
+  assert.equal(f.friendlyText(status, "That didn't work. Try again.").text, "That didn't work. Try again.");
 });
 
 test("friendly errors: our own plain messages pass through, and a caller's fallback is used for bugs", () => {

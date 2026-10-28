@@ -22,11 +22,16 @@ export function useKycT() {
   return useT("partnerKyc", "verification");
 }
 
-/** Calls a /api/logistics/kyc route; resolves with the page state it answers with, rejects with a readable message. */
+/**
+ * Calls a /api/logistics/kyc route; resolves with the page state it answers with, rejects with our readable message.
+ * Without one (no connection, or a reply that isn't ours, like a timeout or a too-big request) it rejects with the
+ * browser's error or the HTTP status, so friendlyError shows plain words and Admin › App errors sees what happened.
+ */
 export async function kycCall<T = KycState>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`/api/logistics/kyc${path}`, init).catch(() => null);
-  const body = (await response?.json().catch(() => null)) as { data?: T; error?: { message?: string } } | null;
-  if (!response?.ok || !body || body.data === undefined) throw new Error(body?.error?.message ?? "");
+  const url = `/api/logistics/kyc${path}`;
+  const response = await fetch(url, init);
+  const body = (await response.json().catch(() => null)) as { data?: T; error?: { message?: string } } | null;
+  if (!response.ok || !body || body.data === undefined) throw new Error(body?.error?.message || `HTTP ${response.status} from ${init?.method ?? "GET"} ${url}`);
   return body.data;
 }
 
@@ -49,7 +54,7 @@ export function useAction(onState: (state: KycState) => void) {
         after?.(result);
         return true;
       } catch (cause) {
-        setError(cause instanceof Error && cause.message ? cause.message : friendlyError(cause, t("page.failed")));
+        setError(friendlyError(cause, t("page.failed")));
         return false;
       } finally {
         setBusy(null);
