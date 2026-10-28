@@ -3,6 +3,7 @@ import type { PickupSlot } from "@shared/supplier-pickup";
 import type { ContractDocument } from "@shared/contracts";
 import { api, apiBody } from "./api";
 import type { PreorderBody } from "./preorder-pure";
+import type { BrandingChoice, BrandingOffer, LevelGoal, RateSource, SupplierLevel, SupplierPerks, ZoneRates } from "@shared/dropship-rules";
 
 // The supplier side of the app. Reads and writes go to the same backend as the web supplier portal:
 //   /api/mobile/supplier/overview · orders · orders/[id] · quotes/[id] · products/[id] · upload  (made for the app)
@@ -129,6 +130,29 @@ export interface SupplierProduct {
   preorderNote?: string | null;
   /** The share a shop pays when it places a preorder (0–100). Newer servers. */
   preorderDepositPct?: number;
+  /** Prices per channel and dropship options (shared/dropship-rules.ts; newer servers). */
+  priceMode?: string;
+  dropshipPrice?: number | null;
+  preorderPrice?: number | null;
+  minRetailPrice?: number | null;
+  dropshipMinQty?: number;
+  handlingDays?: number;
+  sizeBand?: string | null;
+  sampleAvailable?: boolean;
+}
+
+/** Prices per channel and dropship options, as POST /api/supplier/products and PATCH …/[id] take them. */
+export interface ChannelFields {
+  priceMode?: "same" | "per_channel";
+  wholesalePrice?: number;
+  suggestedRetailPrice?: number;
+  dropshipPrice?: number | null;
+  preorderPrice?: number | null;
+  minRetailPrice?: number | null;
+  dropshipMinQty?: number;
+  handlingDays?: number;
+  sizeBand?: "small" | "medium" | "bulky" | null;
+  sampleAvailable?: boolean;
 }
 
 export async function fetchSupplierProducts() {
@@ -139,7 +163,7 @@ export async function fetchSupplierProducts() {
 export const quickEditProduct = (id: string, patch: { stockQuantity?: number; wholesalePrice?: number; suggestedRetailPrice?: number; publish?: boolean; preorder?: PreorderBody }) =>
   api<Pick<SupplierProduct, "id" | "name" | "status" | "stockQuantity" | "wholesalePrice" | "suggestedRetailPrice" | "preorderEnabled" | "preorderShipsAt" | "preorderLimit" | "preorderTaken" | "preorderNote">>(`/api/mobile/supplier/products/${encodeURIComponent(id)}`, { method: "PATCH", json: patch });
 
-export interface NewSupplierProduct {
+export interface NewSupplierProduct extends Omit<ChannelFields, "wholesalePrice" | "suggestedRetailPrice"> {
   name: string;
   description: string;
   categoryId: string;
@@ -152,7 +176,7 @@ export interface NewSupplierProduct {
   bulkOrderAvailable: boolean;
   deliveryRegions: string[];
   processingTime?: string;
-  pricingTiers?: { minQty: number; price: number }[];
+  pricingTiers?: { minQty: number; maxQty?: number; price: number }[];
   status: "draft" | "pending_review";
   /** Take preorders (the server checks the date and cap with shared/preorder.ts). */
   preorder?: PreorderBody;
@@ -329,6 +353,9 @@ export interface SupplierJoin {
   completed: boolean;
   verificationStatus: string;
   tiers: { verifiedIndividual: boolean; registeredBusiness: boolean; payoutReady: boolean };
+  /** Track record level (new | trusted | established; newer servers). Pre-order is locked below Established. */
+  level?: string;
+  preorderLocked?: boolean;
 }
 
 export const fetchSupplierJoin = () => api<SupplierJoin>("/api/supplier/onboarding");
@@ -423,7 +450,7 @@ export const savePublicProfile = (input: { description?: string; whatsappNumber?
 
 export type PriceTier = { minQty: number; maxQty?: number; price: number };
 
-export interface ProductEdit {
+export interface ProductEdit extends ChannelFields {
   name?: string;
   description?: string;
   images?: string[];
@@ -439,3 +466,73 @@ export interface ProductEdit {
 
 export const editSupplierProduct = (id: string, patch: ProductEdit) =>
   api<SupplierProduct & { description: string }>(`/api/supplier/products/${encodeURIComponent(id)}`, { method: "PATCH", json: patch });
+
+// ─── Supplier & Dropship Rules (shared/dropship-rules.ts; the portal's own routes) ─
+
+/** "Your level": New → Trusted → Established, worked out fresh from the record (GET /api/supplier/level). */
+export interface SupplierLevelView {
+  level: SupplierLevel;
+  next: SupplierLevel | null;
+  goals: LevelGoal[];
+  perks: SupplierPerks;
+  nextPerks: SupplierPerks | null;
+  lockedMessage: string;
+}
+
+export const fetchSupplierLevel = () => api<SupplierLevelView>("/api/supplier/level");
+
+/** Delivery prices: Shopinbos partner rates, or the supplier's own card by zone and parcel size. */
+export interface DeliveryRatesView {
+  rateSource: RateSource;
+  zoneRates: ZoneRates;
+  originState: string | null;
+  originArea: string | null;
+  defaults: ZoneRates;
+}
+
+export const fetchDeliveryRates = () => api<DeliveryRatesView>("/api/supplier/delivery-rates");
+
+/** "own" is checked like the web (400 invalid_rates with the reason). */
+export const saveDeliveryRates = (input: { rateSource: RateSource; zoneRates?: ZoneRates }) => api<DeliveryRatesView>("/api/supplier/delivery-rates", { method: "PUT", json: input });
+
+/** The branding offered to sellers who dropship (packing slips and stickers unlock at Trusted: `allowed`). */
+export interface BrandingView {
+  offer: BrandingOffer;
+  level: SupplierLevel;
+  allowed: boolean;
+}
+
+export const fetchBranding = () => api<BrandingView>("/api/supplier/branding");
+
+export const saveBranding = (offer: Partial<BrandingOffer>) => api<BrandingView>("/api/supplier/branding", { method: "PUT", json: offer });
+
+/** Pack it the seller's way on one dropship order (GET/POST /api/supplier/orders/[id]/pack). */
+export interface PackView {
+  orderId: string;
+  branding: { sellerName: string; logoUrl: string | null; choice: BrandingChoice; fee: number; skus: string[] };
+  steps: Array<{ id: "plain" | "slip" | "sticker" | "code" | "photo"; text: string; detail: string; done: boolean }>;
+  packSteps: string[];
+  photoUrl: string | null;
+  stickersLeft: number | null;
+  packed: boolean;
+  /** Why it can't be marked packed yet, or null. */
+  problem: string | null;
+}
+
+const packPath = (id: string) => `/api/supplier/orders/${encodeURIComponent(id)}/pack`;
+
+export const fetchPack = (id: string) => api<PackView>(packPath(id));
+
+/** Ticks steps, saves the sealed-parcel photo, and with `packed: true` marks it packed (400 with the step left). */
+export const savePack = (id: string, input: { steps?: string[]; photoUrl?: string | null; packed?: true }) => api<PackView>(packPath(id), { method: "POST", json: input });
+
+/** Uploads a photo to the signed-in person's media library (POST /api/app/media) and returns its web address. */
+export async function uploadMediaPhoto(photo: { uri: string; mimeType?: string | null; fileName?: string | null }) {
+  const form = new FormData();
+  const type = photo.mimeType ?? "image/jpeg";
+  // React Native's FormData takes { uri, name, type } file parts.
+  form.append("file", { uri: photo.uri, name: photo.fileName ?? `parcel.${type.split("/")[1] ?? "jpg"}`, type } as unknown as Blob);
+  form.append("only", "image");
+  const asset = await api<{ url: string }>("/api/app/media", { method: "POST", body: form });
+  return asset.url;
+}

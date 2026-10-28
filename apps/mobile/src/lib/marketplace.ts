@@ -1,6 +1,7 @@
 import { api } from "./api";
 import { parsePricingTiers, shipsLabel, shortCategory, type FindTier } from "./find-pure";
 import type { PreorderState } from "./preorder-pure";
+import type { DropshipTerms } from "@shared/dropship-checkout";
 
 // Find products: supplier products from /api/mobile/marketplace/products (the same rows the web's /marketplace
 // shows: suppliers near the seller, verified or not, with their risk score), plus the seller's own bits from
@@ -40,6 +41,8 @@ interface RawProduct {
     risk?: SupplierRisk | null;
     km?: number | null;
     agreed?: boolean;
+    /** Track record level: new | trusted | established (newer servers). */
+    level?: string | null;
   };
   category: { name: string } | null;
 }
@@ -71,6 +74,9 @@ export interface FindProduct {
     km: number | null;
     /** The seller and the supplier both accepted the Dropship agreement. */
     agreed: boolean;
+    /** new | trusted | established, and how many shops rated them ("Trusted supplier · ★ 4.7 from 18 shops"). */
+    level: string | null;
+    ratingCount: number;
   };
   /** What the supplier charges per unit (dropship). */
   cost: number;
@@ -108,6 +114,8 @@ function toFindProduct(row: RawProduct): FindProduct {
       risk: row.supplier.risk ?? null,
       km: typeof row.supplier.km === "number" ? row.supplier.km : null,
       agreed: row.supplier.agreed === true,
+      level: row.supplier.level ?? null,
+      ratingCount: row.supplier.ratingCount ?? 0,
     },
     cost: Number(row.wholesalePrice) || 0,
     price: Number(row.suggestedRetailPrice) || 0,
@@ -165,8 +173,28 @@ export interface FindContext {
 
 export const fetchFindContext = () => api<FindContext>("/api/mobile/marketplace");
 
-export const addToStore = (supplierProductId: string, retailPrice: number) =>
-  api<{ storeProductId: string; already: boolean }>("/api/mobile/marketplace", { method: "POST", json: { supplierProductId, retailPrice } });
+/**
+ * The dropship terms of one supplier product for this seller (shared/dropship-checkout.ts DropshipTerms): You pay,
+ * the suggested and lowest price, the options, delivery to the seller's customers and the branding on offer. Null
+ * when it isn't offered for dropship (or on an older server).
+ */
+export const fetchDropshipTerms = (productId: string) =>
+  api<FindContext & { dropship?: DropshipTerms | null }>(`/api/mobile/marketplace?productId=${encodeURIComponent(productId)}`).then((body) => body.dropship ?? null);
+
+export interface AddToStoreInput {
+  supplierProductId: string;
+  retailPrice: number;
+  /** Who pays the supplier's delivery: the customer (default), the seller (free delivery) or a flat fee. */
+  deliveryPayer?: "customer" | "seller" | "flat";
+  deliveryFlatFee?: number;
+  brandingChoice?: "blind" | "packing_slip" | "stickers";
+  sku?: string;
+  barcode?: string;
+}
+
+/** "Add to store". A price below the supplier's lowest, or one that loses money, answers 409 PRICE_PROBLEM with why. */
+export const addToStore = (input: AddToStoreInput) =>
+  api<{ storeProductId: string; already: boolean }>("/api/mobile/marketplace", { method: "POST", json: input });
 
 /** A bulk order (here: a preorder on a listing that takes them). The supplier confirms it, then the seller pays them
  *  (Wholesale screen); Shopinbos holds no preorder money. */

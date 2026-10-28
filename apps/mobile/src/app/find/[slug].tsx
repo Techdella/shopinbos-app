@@ -9,7 +9,9 @@ import { OneLine, PreorderBox } from "@/components/Preorder";
 import { Screen } from "@/components/Screen";
 import { Card, Field, Label, Notice, PillButton, Segmented, T } from "@/components/ui";
 import { clampSellingPrice, priceStep, saleBreakdown, tierPrice } from "@/lib/find-pure";
-import { addToStore, fetchFindContext, fetchFindProduct, placeWholesaleOrder, requestQuote, type FindContext, type FindProduct, type Listing } from "@/lib/marketplace";
+import { addToStore, fetchDropshipTerms, fetchFindContext, fetchFindProduct, placeWholesaleOrder, requestQuote, type FindContext, type FindProduct, type Listing } from "@/lib/marketplace";
+import { AddFromSupplier, listingChoiceOf, listingDraftFrom, type ListingDraft } from "@/components/seller/AddFromSupplier";
+import { listingProblem, type DropshipTerms } from "@shared/dropship-checkout";
 import { depositLineText, preorderButton, preorderPillText } from "@/lib/preorder-pure";
 import { payWholesaleOrder } from "@/lib/wallet";
 import { BeforeYouList, SupplierRiskCard, SupplierTrustBadges } from "@/components/SupplierTrust";
@@ -24,6 +26,11 @@ import { colors, radii } from "@/theme";
 // A listing that takes preorders opens on Wholesale with a Preorder box (ship date, places left, the supplier's
 // promise, and that Shopinbos holds no preorder money) and "Preorder N for ₦…" (off when full), which places the bulk
 // order (POST /api/app/wholesale/request); the supplier confirms it and the seller pays them on Wholesale.
+// Dropship (Supplier & Dropship Rules, A-Seller-AddSupplier): with the product's dropship terms (GET
+// /api/mobile/marketplace?productId=), "Add to your store" shows You pay / Your price / You earn live, the lowest
+// price allowed, delivery to the seller's customers and who pays it (+ a flat fee), the branding choices with fees
+// and "Your SKU or barcode"; those go with the POST, and a price the server refuses (409 PRICE_PROBLEM) shows its
+// words. Older servers without terms keep the price stepper.
 
 function Stepper({ label, value, onMinus, onPlus, minusOff, plusOff }: { label: string; value: string; onMinus: () => void; onPlus: () => void; minusOff?: boolean; plusOff?: boolean }) {
   const t = useT("m_find");
@@ -58,7 +65,9 @@ export default function FindProductDetail() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const loaded = useLoad(async () => {
     const [found, context] = await Promise.all([fetchFindProduct(String(slug)), fetchFindContext().catch(() => null)]);
-    return { product: found.product, listing: found.listing, context };
+    // The dropship terms (You pay / Your price / You earn); null on an older server or when it isn't dropshipped.
+    const terms = found.product.dropship ? await fetchDropshipTerms(found.product.id).catch(() => null) : null;
+    return { product: found.product, listing: found.listing, context, terms };
   }, String(slug));
 
   if (!loaded.data) {
@@ -70,10 +79,10 @@ export default function FindProductDetail() {
     );
   }
   // Keyed by product so the price and quantity start from this product's numbers.
-  return <ProductView key={loaded.data.product.id} product={loaded.data.product} listing={loaded.data.listing} context={loaded.data.context} refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()} />;
+  return <ProductView key={loaded.data.product.id} product={loaded.data.product} listing={loaded.data.listing} context={loaded.data.context} terms={loaded.data.terms} refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()} />;
 }
 
-function ProductView({ product, listing, context, refreshing, onRefresh }: { product: FindProduct; listing: Listing; context: FindContext | null; refreshing: boolean; onRefresh: () => void }) {
+function ProductView({ product, listing, context, terms, refreshing, onRefresh }: { product: FindProduct; listing: Listing; context: FindContext | null; terms: DropshipTerms | null; refreshing: boolean; onRefresh: () => void }) {
   const t = useT("m_find");
   const tp = useT("m_ui");
   const preorder = product.preorder?.on ? product.preorder : null;
@@ -88,6 +97,8 @@ function ProductView({ product, listing, context, refreshing, onRefresh }: { pro
   // A preorder placed here: the button becomes "Preorder placed", so a second tap can't order twice.
   const [preordered, setPreordered] = useState(false);
   const [photo, setPhoto] = useState(0);
+  // Add to your store with the supplier's dropship terms: the price, who pays delivery, the branding and the SKU.
+  const [draft, setDraft] = useState<ListingDraft | null>(() => (terms ? listingDraftFrom(terms) : null));
   const width = Dimensions.get("window").width - 36;
 
   const sale = useMemo(() => saleBreakdown(price, product.cost), [price, product]);
@@ -101,10 +112,24 @@ function ProductView({ product, listing, context, refreshing, onRefresh }: { pro
     setBusy(true);
     setNote(null);
     try {
-      const result = await addToStore(product.id, price);
+      const choice = draft ? listingChoiceOf(draft) : null;
+      const retailPrice = choice ? choice.retailPrice : price;
+      const result = await addToStore({
+        supplierProductId: product.id,
+        retailPrice,
+        ...(choice && draft
+          ? {
+              deliveryPayer: draft.payer,
+              ...(draft.payer === "flat" && choice.flatFee !== null ? { deliveryFlatFee: choice.flatFee } : {}),
+              brandingChoice: draft.branding as "blind" | "packing_slip" | "stickers",
+              ...(draft.sku.trim() ? { sku: draft.sku.trim() } : {}),
+            }
+          : {}),
+      });
       setAddedId(result.storeProductId);
-      setNote({ tone: "success", text: result.already ? t("product.already") : t("product.added", { price: naira(price) }) });
+      setNote({ tone: "success", text: result.already ? t("product.already") : t("product.added", { price: naira(retailPrice) }) });
     } catch (addError) {
+      // PRICE_PROBLEM (below the supplier's lowest price, or a loss) and the other refusals come with the server's words.
       setNote({ tone: "error", text: addError instanceof Error ? addError.message : t("product.addFailed") });
     } finally {
       setBusy(false);
@@ -148,12 +173,14 @@ function ProductView({ product, listing, context, refreshing, onRefresh }: { pro
 
   // Dropship from a supplier the seller hasn't agreed with yet: the steps below come first, no add button.
   const mustAgree = mode === "dropship" && !already && listing.step !== "ready";
+  const listed = terms && draft ? listingChoiceOf(draft) : null;
+  const priceProblem = terms && listed ? listingProblem(terms, listed) : null;
   const footer =
     mode === "dropship" ? (
       already ? (
         <PillButton title={t("product.seeInProducts")} onPress={() => router.push("/products")} />
       ) : mustAgree ? undefined : (
-        <PillButton title={t("product.put", { price: naira(price) })} busy={busy} onPress={() => void add()} />
+        <PillButton title={t("product.put", { price: naira(listed ? listed.retailPrice : price) })} busy={busy} disabled={Boolean(priceProblem)} onPress={() => void add()} />
       )
     ) : preorderCta && preordered ? (
       <PillButton disabled accessibilityLabel={tp("preorders.placed")}>
@@ -244,7 +271,9 @@ function ProductView({ product, listing, context, refreshing, onRefresh }: { pro
       <SupplierRiskCard supplier={product.supplier} badges={false} />
       {mustAgree ? <BeforeYouList product={product} listing={listing} onSent={onRefresh} /> : null}
 
-      {mode === "dropship" ? (
+      {mode === "dropship" && terms && draft ? (
+        <AddFromSupplier product={product} terms={terms} draft={draft} onChange={setDraft} place={context?.destination.split(",")[0]?.trim() || null} />
+      ) : mode === "dropship" ? (
         <Card style={{ gap: 6 }}>
           <T style={{ color: colors.inkSoft, lineHeight: 20, marginBottom: 6 }}>{t("product.dropshipIntro", { name: product.supplier.name })}</T>
           <Stepper

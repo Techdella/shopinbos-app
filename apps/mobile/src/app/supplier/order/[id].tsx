@@ -10,6 +10,7 @@ import { Sheet } from "@/components/Sheet";
 import { NoteCard, Pic } from "@/components/SupplierKit";
 import { orderAmount, orderImage, orderItems } from "@/components/SupplierOrderRow";
 import { PreorderPill } from "@/components/Preorder";
+import { useWords } from "@/components/supplier/DropshipKit";
 import { Chip, Field, LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { fetchSupplierTrack } from "@/lib/familiar";
 import { useT } from "@/lib/i18n";
@@ -35,6 +36,8 @@ import { colors, fonts, radii } from "@/theme";
 // order: Accept or "I don't have it"; "It's packed, ready for pickup" (and the shop's label for dropship); then
 // "When can a rider pick it up?" and "Book the rider" (/api/supplier/orders/[id]/pickup), until the rider comes
 // with the pickup code. A new order counts down the time left to accept it.
+// A dropship order is packed the seller's way first (Supplier & Dropship Rules): "Pack it {shop}'s way" opens the
+// checklist with the sealed-parcel photo (supplier/order/pack, P-Order), which marks it packed when every step is done.
 // Screen words are in the app language (m_supplier "order.*"). The parcel label itself stays in English: it goes on
 // the parcel for the rider and the shop's customer, and is shared or printed as is.
 
@@ -78,6 +81,7 @@ function ShopLabel({ order }: { order: DropshipOrder }) {
 export default function SupplierOrderScreen() {
   const { id, kind } = useLocalSearchParams<{ id: string; kind?: string }>();
   const t = useT("m_supplier", "m_partner", "common");
+  const words = useWords();
   const orderKind = kind === "wholesale" ? "wholesale" : "dropship";
   const order = useLoad(() => fetchSupplierOrder(orderKind, String(id)), `${orderKind}:${id}`);
   const [busy, setBusy] = useState<OrderAction | null>(null);
@@ -252,6 +256,14 @@ export default function SupplierOrderScreen() {
       <>
         <PillButton title={t("order.accept")} tone="accent" busy={busy === "accept"} disabled={Boolean(busy)} onPress={() => void run(data, "accept")} />
         <PillButton title={t("order.dontHave")} tone="white" disabled={Boolean(busy)} onPress={() => cant(data)} />
+      </>
+    );
+  } else if (dropship && stage === "label") {
+    // Pack it the seller's way: the checklist and the sealed-parcel photo, then it's packed.
+    footer = (
+      <>
+        <PillButton title={words("pack.cta", "Pack it {shop}'s way", { shop: data.shop })} tone="accent" icon="box" onPress={() => router.push({ pathname: "/supplier/order/pack", params: { id: data.id } })} />
+        <PillButton title={t("order.seeLabel")} tone="white" onPress={() => setLabelOpen(true)} />
       </>
     );
   } else if (self && (stage === "label" || stage === "rider")) {

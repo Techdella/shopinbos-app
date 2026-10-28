@@ -108,7 +108,7 @@ export function SupplierJoinFlow() {
     setName(data.displayName || data.businessName || "");
     setCacNumber(data.cac?.number ?? "");
     setCats(data.categories);
-    setModes(BUY_MODES.filter((mode) => data.buyModes.includes(mode)));
+    setModes(BUY_MODES.filter((mode) => data.buyModes.includes(mode) && !(mode === "preorder" && data.preorderLocked !== false)));
     setMoq(data.minimumOrder ?? 10);
     setState(data.originState ?? "");
     setArea(data.city && data.city !== data.originState ? data.city : "");
@@ -143,6 +143,8 @@ export function SupplierJoinFlow() {
     );
   }
   const current = view;
+  // Older servers don't say: the server drops Pre-order below Established anyway, so show it locked.
+  const preorderIsLocked = current.preorderLocked !== false;
   const { index, total } = stepPosition(step, modes);
 
   function go(next: SupplierOnboardingStep) {
@@ -303,6 +305,9 @@ export function SupplierJoinFlow() {
       <View style={{ gap: 10 }}>
         {BUY_MODES.map((mode) => {
           const on = modes.includes(mode);
+          // Pre-order opens at Established (shared/supplier-onboarding.ts preorderLocked; the server drops it too):
+          // shown locked with what unlocks it, and not selectable.
+          if (mode === "preorder" && preorderIsLocked) return <LockedChoice key={mode} title={t("buy.preorder")} sub={t("buy.preorderLocked")} badge={t("buy.locked")} />;
           return <Choice key={mode} multi title={t(`buy.${mode}`)} sub={t(`buy.${mode}Sub`)} on={on} onPress={() => setModes(on ? modes.filter((item) => item !== mode) : BUY_MODES.filter((item) => item === mode || modes.includes(item)))} />;
         })}
       </View>
@@ -551,5 +556,27 @@ export function SupplierJoinFlow() {
       {body}
       {error ? <Notice>{error}</Notice> : null}
     </FlowFrame>
+  );
+}
+
+/** A choice the supplier can't pick yet (`.choice` with a dashed border and a "Locked" badge), like the web. */
+function LockedChoice({ title, sub, badge }: { title: string; sub: string; badge: string }) {
+  return (
+    <View
+      accessible
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: false, disabled: true }}
+      accessibilityLabel={`${title}. ${sub}. ${badge}`}
+      style={{ flexDirection: "row", alignItems: "center", gap: 14, minHeight: 64, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 20, borderWidth: 1.5, borderStyle: "dashed", borderColor: colors.lineStrong, backgroundColor: colors.canvas }}
+    >
+      <View style={{ flex: 1, gap: 3 }}>
+        <T weight="bold" style={{ fontSize: 16, color: colors.inkSoft }}>{title}</T>
+        <T style={{ fontSize: 14, lineHeight: 19, color: colors.inkSoft }}>{sub}</T>
+      </View>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.surface, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 }}>
+        <AppIcon name="lock" size={13} color={colors.inkSoft} />
+        <T weight="bold" style={{ fontSize: 12, color: colors.inkSoft }}>{badge}</T>
+      </View>
+    </View>
   );
 }

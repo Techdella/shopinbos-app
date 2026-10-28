@@ -3,47 +3,56 @@ import { Alert, Pressable, ScrollView, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import { naira } from "@shared/onboarding";
-import { Heading } from "@/components/design";
+import { Heading, Sub } from "@/components/design";
 import { AppIcon } from "@/components/icons";
 import { ChipRow, ErrorState, LoadingBlock } from "@/components/kit";
 import { Screen } from "@/components/Screen";
 import { FieldLabel } from "@/components/SupplierKit";
+import { ChannelPrices, DropshipSettings, LockedPreorderCard, useWords } from "@/components/supplier/DropshipKit";
 import { PreorderEditor } from "@/components/Preorder";
 import { Chip, Field, LinkButton, Notice, PillButton, T, Toggle } from "@/components/ui";
 import { VoiceInput } from "@/components/VoiceInput";
+import { dropshipBody, dropshipFormFrom, pricesFormFrom, readPricesForm, type DropshipForm, type PricesForm } from "@/lib/dropship-pure";
 import { useT } from "@/lib/i18n";
-import { parseAmount, parseCount } from "@/lib/partner-pure";
+import { parseCount } from "@/lib/partner-pure";
 import { PREORDER_PROBLEM_KEY, preorderFormFrom, preorderPatch, savedFromColumns, type PreorderForm } from "@/lib/preorder-pure";
-import { editSupplierProduct, fetchSupplierProduct, uploadSupplierPhoto, type PriceTier } from "@/lib/supplier";
+import { editSupplierProduct, fetchSupplierLevel, fetchSupplierProduct, uploadSupplierPhoto, type ProductEdit } from "@/lib/supplier";
 import { useLoad } from "@/lib/useLoad";
 import { colors } from "@/theme";
 
-// Edit a supplier product in the app (the web's /supplier/products/[id]/edit): photos, name, description, the
-// wholesale price tiers (cheaper per piece for bigger orders), minimum order, shipping time, regions, and dropship /
-// wholesale. Saved through the portal's own PATCH /api/supplier/products/[id]; a live product goes back for review
-// when what shops see changes. ?focus=tiers opens with the price tiers first (Account › Wholesale price tiers).
-// Preorders (shared/preorder.ts, like the web form): take them, ships from, most on preorder and the promise to shops;
-// sent as `preorder` only when changed (no new review).
+// Edit a supplier product in the app (the web's /supplier/products/[id]/edit): photos, name, description, the prices
+// per channel, minimum order, shipping time, regions, dropship / wholesale and the dropship settings. Saved through
+// the portal's own PATCH /api/supplier/products/[id]; a live product goes back for review when what shops see changes.
+// Two parts open on their own (Supplier & Dropship Rules, shared/dropship-rules.ts):
+//   ?focus=tiers (or prices)  "Prices" (P-Pricing): same price for all or per channel, dropship price, wholesale price
+//                             and quantity breaks, pre-order price (locked with a meter below Established), what
+//                             sellers charge; "Save prices" (Account › Wholesale price tiers, a product's Prices)
+//   ?focus=dropship           "Dropship settings" (P-Dropship): single pieces or a minimum, packing days, parcel
+//                             size, samples
+// The server checks the prices together (400 invalid_prices) and pre-orders open at Established (403
+// preorder_locked); its words show above the form. Preorders (shared/preorder.ts, like the web form): take them,
+// ships from, most on preorder and the promise to shops; sent as `preorder` only when changed (no new review).
 
 const SHIPS = ["Same day", "24 hours", "48 hours", "3 days"];
 const MAX_PHOTOS = 6;
-const MAX_TIERS = 5;
 
 type Photo = { uri: string; mimeType?: string | null; fileName?: string | null; uploaded?: boolean };
-type TierDraft = { minQty: string; price: string };
 
 export default function EditSupplierProduct() {
   const { id, focus } = useLocalSearchParams<{ id: string; focus?: string }>();
   const t = useT("m_supplier", "common", "m_ui");
+  const words = useWords();
   const product = useLoad(() => fetchSupplierProduct(String(id)), String(id));
+  const level = useLoad(() => fetchSupplierLevel().catch(() => null));
   const data = product.data;
-  const tiersOnly = focus === "tiers";
+  const part: "prices" | "dropship" | null = focus === "tiers" || focus === "prices" ? "prices" : focus === "dropship" ? "dropship" : null;
+  const preorderOpen = level.data?.perks.preorders === true;
   const [filled, setFilled] = useState(false);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [tiers, setTiers] = useState<TierDraft[]>([]);
+  const [prices, setPrices] = useState<PricesForm>(() => pricesFormFrom(null));
+  const [shipping, setShipping] = useState<DropshipForm>(() => dropshipFormFrom(null));
   const [moq, setMoq] = useState("1");
   const [ships, setShips] = useState("");
   const [regions, setRegions] = useState("");
@@ -59,7 +68,8 @@ export default function EditSupplierProduct() {
     setPhotos(data.images.map((uri) => ({ uri, uploaded: true })));
     setName(data.name);
     setDescription(data.description ?? "");
-    setTiers((data.pricingTiers ?? []).map((tier) => ({ minQty: String(tier.minQty), price: String(tier.price) })));
+    setPrices(pricesFormFrom(data));
+    setShipping(dropshipFormFrom(data));
     setMoq(String(data.moq || 1));
     const extra = data as { processingTime?: string | null; deliveryRegions?: string[] };
     setShips(extra.processingTime ?? "");
@@ -77,23 +87,13 @@ export default function EditSupplierProduct() {
     setPhotos((current) => [...current, ...result.assets.map((asset) => ({ uri: asset.uri, mimeType: asset.mimeType, fileName: asset.fileName }))].slice(0, MAX_PHOTOS));
   }
 
-  function readTiers(): PriceTier[] | string {
-    const out: PriceTier[] = [];
-    for (const tier of tiers) {
-      if (!tier.minQty.trim() && !tier.price.trim()) continue;
-      const minQty = parseCount(tier.minQty);
-      const price = parseAmount(tier.price);
-      if (!minQty || minQty < 1 || !price) return t("edit.badTier");
-      out.push({ minQty, price });
-    }
-    return out.sort((a, b) => a.minQty - b.minQty);
-  }
-
   async function save() {
     if (!data) return;
-    const priced = readTiers();
-    if (typeof priced === "string") return setError(priced);
-    if (!tiersOnly) {
+    const read = part === "dropship" ? null : readPricesForm(prices, preorderOpen, words);
+    if (read && !read.ok) return setError(read.message);
+    const channel = read?.ok ? read.body : null;
+    const priced = channel?.pricingTiers ?? [];
+    if (!part) {
       if (!photos.length) return setError(t("new.needPhoto"));
       if (name.trim().length < 2) return setError(t("new.needName"));
       if (description.trim().length < 10) return setError(t("new.needDescription"));
@@ -101,13 +101,13 @@ export default function EditSupplierProduct() {
       if (!dropship && !bulk) return setError(t("new.needKind"));
     }
     // Preorders: only from servers that send them, and only when changed.
-    const preorderResult = !tiersOnly && data.preorderEnabled !== undefined ? preorderPatch(preorder, savedFromColumns(data)) : ({ ok: true, patch: null } as const);
+    const preorderResult = !part && data.preorderEnabled !== undefined ? preorderPatch(preorder, savedFromColumns(data)) : ({ ok: true, patch: null } as const);
     if (!preorderResult.ok) return setError(t.dynamic(PREORDER_PROBLEM_KEY[preorderResult.problem]));
     setError(null);
     setBusy("save");
     try {
       const images: string[] = [];
-      if (!tiersOnly) {
+      if (!part) {
         for (const [index, photo] of photos.entries()) {
           if (photo.uploaded) images.push(photo.uri);
           else {
@@ -117,81 +117,75 @@ export default function EditSupplierProduct() {
         }
       }
       setBusy("save");
-      const saved = await editSupplierProduct(
-        data.id,
-        tiersOnly
-          ? { pricingTiers: priced }
-          : {
-              name: name.trim(),
-              description: description.trim(),
-              images,
-              moq: parseCount(moq)!,
-              ...(ships ? { processingTime: ships } : {}),
-              deliveryRegions: regions.split(",").map((item) => item.trim()).filter(Boolean),
-              dropshipAvailable: dropship,
-              bulkOrderAvailable: bulk,
-              pricingTiers: priced,
-              ...(preorderResult.patch ? { preorder: preorderResult.patch } : {}),
-            },
-      );
+      const patch: ProductEdit =
+        part === "dropship"
+          ? dropshipBody(shipping)
+          : part === "prices"
+            ? { ...channel!, pricingTiers: priced }
+            : {
+                name: name.trim(),
+                description: description.trim(),
+                images,
+                moq: parseCount(moq)!,
+                ...(ships ? { processingTime: ships } : {}),
+                deliveryRegions: regions.split(",").map((item) => item.trim()).filter(Boolean),
+                dropshipAvailable: dropship,
+                bulkOrderAvailable: bulk,
+                ...channel!,
+                pricingTiers: priced,
+                ...(dropship ? dropshipBody(shipping) : {}),
+                ...(preorderResult.patch ? { preorder: preorderResult.patch } : {}),
+              };
+      const saved = await editSupplierProduct(data.id, patch);
       Alert.alert(saved.status === "pending_review" && data.status === "published" ? t("product.savedReview") : t("product.saved"));
       router.back();
     } catch (saveError) {
+      // The server's own words: invalid_prices, preorder_locked (pre-orders open at Established), …
       setError(saveError instanceof Error ? saveError.message : t("product.saveFailed"));
     } finally {
       setBusy(null);
     }
   }
 
+  const title = part === "prices" ? words("prices.title", "Prices") : part === "dropship" ? words("ds.title", "Dropship settings") : t("edit.title");
+
   if (!data) {
     return (
-      <Screen title={t("edit.title")}>
+      <Screen title={title}>
         {product.loading ? <LoadingBlock /> : null}
         {product.error ? <ErrorState message={product.error} onRetry={() => void product.reload()} /> : null}
       </Screen>
     );
   }
 
-  const tierEditor = (
-    <View style={{ gap: 10 }}>
-      <View>
-        <FieldLabel>{t("money.tiers")}</FieldLabel>
-        <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{t("edit.tiersHint", { price: naira(data.wholesalePrice) })}</T>
-      </View>
-      {tiers.map((tier, index) => (
-        <View key={index} style={{ flexDirection: "row", alignItems: "flex-end", gap: 8 }}>
-          <View style={{ flex: 1 }}>
-            <T style={{ fontSize: 13, color: colors.inkSoft, marginBottom: 4 }}>{t("edit.fromQty")}</T>
-            <Field value={tier.minQty} onChangeText={(value) => setTiers((all) => all.map((item, at) => (at === index ? { ...item, minQty: value } : item)))} keyboardType="number-pad" placeholder="20" accessibilityLabel={t("edit.fromQty")} />
-          </View>
-          <View style={{ flex: 1.3 }}>
-            <T style={{ fontSize: 13, color: colors.inkSoft, marginBottom: 4 }}>{t("edit.pricePer")}</T>
-            <Field value={tier.price} onChangeText={(value) => setTiers((all) => all.map((item, at) => (at === index ? { ...item, price: value } : item)))} keyboardType="decimal-pad" placeholder="10,500" accessibilityLabel={t("edit.pricePer")} />
-          </View>
-          <Pressable accessibilityRole="button" accessibilityLabel={t("edit.removeTier")} hitSlop={6} onPress={() => setTiers((all) => all.filter((_, at) => at !== index))} style={{ width: 44, height: 54, alignItems: "center", justifyContent: "center" }}>
-            <AppIcon name="x" size={18} color={colors.inkSoft} />
-          </Pressable>
-        </View>
-      ))}
-      {tiers.length < MAX_TIERS ? <PillButton title={t("edit.addTier")} tone="white" size="md" onPress={() => setTiers((all) => [...all, { minQty: "", price: "" }])} /> : null}
-    </View>
-  );
+  const cta = part === "prices" ? words("prices.save", "Save prices") : part === "dropship" ? t("save") : t("product.save");
+  // A listing already taking pre-orders stays editable (and can be switched off); otherwise they open at Established.
+  const preorderEditable = data.preorderEnabled !== undefined && (preorderOpen || data.preorderEnabled === true);
 
   return (
     <Screen
-      title={tiersOnly ? t("money.tiers") : t("edit.title")}
+      title={title}
       footer={
         <>
           {busy && busy !== "save" ? <T style={{ color: colors.inkSoft, textAlign: "center", fontSize: 15 }}>{busy}</T> : null}
-          <PillButton title={t("product.save")} tone="accent" busy={Boolean(busy)} onPress={() => void save()} />
+          <PillButton title={cta} tone="accent" busy={Boolean(busy)} onPress={() => void save()} />
         </>
       }
     >
       {error ? <Notice>{error}</Notice> : null}
-      {tiersOnly ? (
+      {part === "prices" ? (
         <>
           <Heading>{data.name}</Heading>
-          {tierEditor}
+          <ChannelPrices value={prices} onChange={setPrices} level={level.data ?? null} />
+          <LinkButton title={t("edit.everything")} color={colors.inkSoft} onPress={() => router.setParams({ focus: "" })} />
+        </>
+      ) : part === "dropship" ? (
+        <>
+          <View style={{ gap: 4 }}>
+            <Heading>{data.name}</Heading>
+            <Sub>{words("ds.sub", "Sellers see these before they add your product")}</Sub>
+          </View>
+          <DropshipSettings value={shipping} onChange={setShipping} />
           <LinkButton title={t("edit.everything")} color={colors.inkSoft} onPress={() => router.setParams({ focus: "" })} />
         </>
       ) : (
@@ -222,7 +216,10 @@ export default function EditSupplierProduct() {
             <VoiceInput value={description} onChange={setDescription} maxLength={5000} context="a product description" style={{ marginTop: 8 }} />
           </View>
 
-          {tierEditor}
+          <View>
+            <FieldLabel>{words("prices.title", "Prices")}</FieldLabel>
+            <ChannelPrices value={prices} onChange={setPrices} level={level.data ?? null} showPreorder={preorderOpen} />
+          </View>
 
           <View>
             <FieldLabel>{t("new.moq")}</FieldLabel>
@@ -243,6 +240,12 @@ export default function EditSupplierProduct() {
             </View>
             <Toggle on={dropship} onChange={setDropship} label={t("kind.dropship")} />
           </View>
+          {dropship ? (
+            <View>
+              <FieldLabel>{words("ds.title", "Dropship settings")}</FieldLabel>
+              <DropshipSettings value={shipping} onChange={setShipping} />
+            </View>
+          ) : null}
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
             <View style={{ flex: 1 }}>
               <T weight="bold" style={{ fontSize: 15 }}>{t("kind.wholesale")}</T>
@@ -250,7 +253,11 @@ export default function EditSupplierProduct() {
             </View>
             <Toggle on={bulk} onChange={setBulk} label={t("kind.wholesale")} />
           </View>
-          {data.preorderEnabled !== undefined ? <PreorderEditor value={preorder} onChange={setPreorder} audience="shops" taken={data.preorderEnabled ? data.preorderTaken : null} /> : null}
+          {preorderEditable ? (
+            <PreorderEditor value={preorder} onChange={setPreorder} audience="shops" taken={data.preorderEnabled ? data.preorderTaken : null} />
+          ) : level.data ? (
+            <LockedPreorderCard level={level.data} />
+          ) : null}
         </>
       )}
     </Screen>

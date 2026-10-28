@@ -173,7 +173,8 @@ async function packViewOf(row: PackRow, shopName?: string) {
     photoUrl: row.packPhotoUrl,
     stickersLeft,
     packed: Boolean(row.packedAt),
-    problem: packReadyProblem(steps, done, row.packPhotoUrl),
+    // Orders made before the checklist existed carry no branding snapshot: they keep the old one-tap "packed".
+    problem: legacyOrder(row.branding) ? null : packReadyProblem(steps, done, row.packPhotoUrl),
   };
 }
 
@@ -214,10 +215,12 @@ export async function savePackProgress(supplierId: string, orderId: string, inpu
 export async function dropshipPackProblem(orderId: string): Promise<string | null> {
   const row = await db.supplierOrder.findUnique({ where: { id: orderId }, select: PACK_SELECT });
   if (!row) return null;
-  // Orders made before the checklist existed carry no branding snapshot: they keep the old one-tap "packed".
-  const snapshot = row.branding && typeof row.branding === "object" && !Array.isArray(row.branding) ? row.branding : {};
-  if (!Object.keys(snapshot).length) return null;
   return (await packViewOf(row)).problem;
+}
+
+/** No branding snapshot: the order was made before the pack checklist existed. */
+function legacyOrder(branding: unknown) {
+  return !branding || typeof branding !== "object" || Array.isArray(branding) || !Object.keys(branding).length;
 }
 
 /** After a parcel packed with the seller's stickers: one fewer in their pack, and a heads-up when it's low. */
