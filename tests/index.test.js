@@ -369,17 +369,25 @@ test("auth experience keeps each portal focused and conversational", () => {
   const portalRoutes = read("src/lib/portal-routes.ts");
   const onboardingPage = read("src/app/onboarding/page.tsx");
 
-  // Prototype 10 sign-in: phone code (WhatsApp when the server has it, else SMS), email code, password, Google;
-  // role tabs on sign up; name after the code; "Welcome to Shopinbos" before Rex's first run.
-  assert.match(auth, /Start your shop/);
-  assert.match(auth, /Start with my phone number/);
+  // Sign up asks one question per screen (Shopinbos Onboarding — Simplified): name, phone, code, then "What brings
+  // you to Shopinbos?"; phone code (WhatsApp when the server has it, else SMS), email code, password log in, Google;
+  // "Welcome to Shopinbos" before Rex's first run.
+  assert.match(auth, /What's your name\?/);
+  assert.match(auth, /What's your phone number\?/);
+  assert.match(auth, /Enter the code we sent you\./);
+  assert.match(auth, /What brings you to Shopinbos\?/);
+  assert.match(auth, /I want to sell/);
+  assert.match(auth, /I deliver orders/);
+  assert.match(auth, /I supply products/);
+  assert.match(auth, /Step \{step\} of \{total\}/);
   assert.match(auth, /Send me a code by SMS/);
   // WhatsApp wording only when the server says WhatsApp codes are on, and the code screen follows the channel used.
   assert.match(auth, /whatsapp \? t\("send\.whatsapp"\) : t\("sendSms"\)/);
-  assert.match(auth, /channel === "whatsapp" \? t\("code\.titleWhatsapp"\)/);
+  assert.match(auth, /channel === "whatsapp"\s*\? t\("code\.sentWhatsapp"/);
   assert.match(auth, /No WhatsApp on this number\?/);
-  assert.match(auth, /What should we call you\?/);
   assert.match(auth, /result\.needsName/);
+  // Android Chrome reads the SMS code by itself (WebOTP).
+  assert.match(auth, /otp: \{ transport: \["sms"\] \}/);
   assert.match(auth, /Welcome to Shopinbos, \{name\}/);
   assert.match(auth, /Email me a code instead/);
   assert.match(auth, /current-password/);

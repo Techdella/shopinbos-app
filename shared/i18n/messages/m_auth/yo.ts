@@ -169,6 +169,22 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "code.continue": "Tẹ̀síwájú",
   "form.signupLink": "Ṣé tuntun ni ọ́? Ṣí àkáǹtì",
   "form.riderLink": "Ṣé o ń gùn fún ilé-iṣẹ́ ìfijíṣẹ́? Ìwọlé àwọn rider",
+  // One question per screen (sign up)
+  "q.progress": "Ìgbésẹ̀ {step} nínú {total}",
+  "q.name": "Kí ni orúkọ rẹ?",
+  "q.nameSub": "Orúkọ àkọ́kọ́ àti orúkọ ìdílé rẹ. Rex àti Peggy yóò máa lò ó.",
+  "q.firstName": "Orúkọ àkọ́kọ́",
+  "q.lastName": "Orúkọ ìdílé",
+  "q.needName": "Tẹ orúkọ àkọ́kọ́ àti orúkọ ìdílé rẹ.",
+  "q.phone": "Kí ni nọ́mbà fóònù rẹ?",
+  "q.phoneSubNamed": "Ẹ ṣé, {name}. A ó fi kóòdù ránṣẹ́ sí ọ láti fìdí rẹ̀ múlẹ̀. O kò nílò ọ̀rọ̀ aṣínà.",
+  "q.email": "Kí ni ímeèlì rẹ?",
+  "q.code": "Tẹ kóòdù tí a fi ránṣẹ́ sí ọ.",
+  "q.role": "Kí ló mú ọ wá sí Shopinbos?",
+  "q.roleSub": "Yan ọ̀kan láti bẹ̀rẹ̀.",
+  "q.role.seller": "Mo fẹ́ tajà",
+  "q.role.logistics_partner": "Mo ń fi ọjà ránṣẹ́",
+  "q.role.supplier": "Mo ń pèsè ọjà",
 };
 
 export default yo;

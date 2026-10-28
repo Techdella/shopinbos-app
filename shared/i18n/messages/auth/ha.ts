@@ -245,6 +245,27 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "portal.opening.supplier": "Wannan account na mai kawo kaya ne. Muna buɗe portal ɗinka…",
   "portal.opening.logistics_partner": "Wannan account na abokin isar da kaya ne. Muna buɗe portal ɗinka…",
   "portal.opening.admin": "Wannan account na admin ne. Muna buɗe admin panel…",
+  // One question per screen (sign up)
+  "q.back": "Koma baya",
+  "q.progress": "Mataki {step} cikin {total}",
+  "q.name": "Mene ne sunanka?",
+  "q.nameSub": "Sunanka na farko da na ƙarshe. Rex da Peggy za su yi amfani da shi.",
+  "field.firstName": "Suna na farko",
+  "field.lastName": "Sunan iyali",
+  "error.needFullName": "Rubuta sunanka na farko da na ƙarshe.",
+  "q.phone": "Mene ne lambar wayarka?",
+  "q.phoneSub": "Za mu aiko maka da lamba don tabbatar da ita. Ba kwa buƙatar kalmar sirri.",
+  "q.phoneSubNamed": "Na gode, {name}. Za mu aiko maka da lamba don tabbatar da ita. Ba kwa buƙatar kalmar sirri.",
+  "q.email": "Mene ne imel ɗinka?",
+  "q.loginPhone": "Barka da dawowa. Mene ne lambar wayarka?",
+  "q.loginEmail": "Barka da dawowa. Mene ne imel ɗinka?",
+  "q.loginSub": "Yi amfani da wanda ka yi rajista da shi. Za mu aiko maka da lamba.",
+  "q.code": "Shigar da lambar da muka aiko maka.",
+  "q.role": "Me ya kawo ka Shopinbos?",
+  "q.roleSub": "Zaɓi ɗaya don farawa.",
+  "q.role.seller": "Ina so in sayar",
+  "q.role.logistics_partner": "Ina kai oda",
+  "q.role.supplier": "Ina samar da kayayyaki",
 };
 
 export default ha;

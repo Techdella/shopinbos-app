@@ -132,6 +132,14 @@ export function signInCodeMessage(otp: string) {
   return `Your Shopinbos code is ${otp}. Don't share it with anyone.`;
 }
 
+/** The app's host for SMS auto-read (WebOTP's last line, "@app.shopinbos.com #123456"). */
+export const WEB_OTP_HOST = "app.shopinbos.com";
+
+/** The SMS version: the same words, plus the line that lets Android Chrome read the code into the sign-in page. */
+export function signInCodeSms(otp: string) {
+  return `${signInCodeMessage(otp)}\n\n@${WEB_OTP_HOST} #${otp}`;
+}
+
 /** Notes live this long: a code request and its hook call happen within seconds. */
 export const CODE_CHANNEL_TTL_MS = 10 * 60 * 1000;
 

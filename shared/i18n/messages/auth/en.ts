@@ -243,6 +243,27 @@ const en = {
   "portal.opening.supplier": "This is a supplier account. Opening your supplier portal…",
   "portal.opening.logistics_partner": "This is a delivery partner account. Opening your delivery portal…",
   "portal.opening.admin": "This is an admin account. Opening the admin panel…",
+  // One question per screen (sign up)
+  "q.back": "Back",
+  "q.progress": "Step {step} of {total}",
+  "q.name": "What's your name?",
+  "q.nameSub": "Your first and last name. Rex and Peggy will use it.",
+  "field.firstName": "First name",
+  "field.lastName": "Last name",
+  "error.needFullName": "Type your first and last name.",
+  "q.phone": "What's your phone number?",
+  "q.phoneSub": "We'll send you a code to confirm it. No password needed.",
+  "q.phoneSubNamed": "Thanks, {name}. We'll send you a code to confirm it. No password needed.",
+  "q.email": "What's your email?",
+  "q.loginPhone": "Welcome back. What's your phone number?",
+  "q.loginEmail": "Welcome back. What's your email?",
+  "q.loginSub": "Use the one you signed up with. We'll send you a code.",
+  "q.code": "Enter the code we sent you.",
+  "q.role": "What brings you to Shopinbos?",
+  "q.roleSub": "Pick one to get started.",
+  "q.role.seller": "I want to sell",
+  "q.role.logistics_partner": "I deliver orders",
+  "q.role.supplier": "I supply products",
 } satisfies Record<string, string>;
 
 export default en;

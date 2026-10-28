@@ -12,11 +12,11 @@ import { ROLE_ICON, SIGNUP_ROLES, type SignupRole } from "@/lib/partner-pure";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
-// First screens ("Simple app, end to end" prototype, E2E-Start): Rex, "Shopinbos" and one line, then "Get started"
-// or "I already have an account". Get started asks "What do you want to do?" first (/welcome?step=role): sell
-// online, supply shops, run a delivery company, or "I'm a rider" (riders open the link their company sent). The
-// role is picked before the phone number, so a new account is made with the right one; the phone number and the
-// WhatsApp code come next (AuthForm, verify). Returning people go straight to their phone number (/login).
+// First screen ("Simple app, end to end" prototype, E2E-Start): Rex, "Shopinbos" and one line, then "Get started"
+// or "I already have an account". Get started is sign up, one question per screen (Shopinbos Onboarding —
+// Simplified): name → phone → code → "What brings you to Shopinbos?" (AuthForm, verify). Riders have no account:
+// "I'm a rider" opens their own sign-in. /welcome?step=role (older links) still shows the cards, and a card there
+// goes to sign up with that role, so it isn't asked again. Returning people go straight to their phone (/login).
 
 const TONE: Record<SignupRole, TileTone> = { seller: "peach", supplier: "blue", logistics_partner: "mint" };
 
@@ -110,8 +110,11 @@ export default function Welcome() {
         </View>
       </ScrollView>
       <View style={{ paddingHorizontal: 20, paddingTop: 14, paddingBottom: 12, gap: 10 }}>
-        <PillButton tone="accent" title={t("start.getStarted")} onPress={() => router.push({ pathname: "/welcome", params: { step: "role" } })} />
+        <PillButton tone="accent" title={t("start.getStarted")} onPress={() => router.push("/signup")} testID="welcome-start" />
         <PillButton tone="white" title={t("welcome.haveAccount")} onPress={() => router.push("/login")} />
+        <Pressable accessibilityRole="button" onPress={() => router.push("/rider/sign-in")} style={{ minHeight: 44, alignItems: "center", justifyContent: "center" }} testID="welcome-rider">
+          <T weight="bold" style={{ color: colors.inkSoft, fontSize: 15 }}>{t("welcome.rider")}</T>
+        </Pressable>
       </View>
     </SafeAreaView>
   );

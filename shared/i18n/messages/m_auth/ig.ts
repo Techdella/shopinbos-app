@@ -169,6 +169,22 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "code.continue": "Gaa n'ihu",
   "form.signupLink": "Ị bụ onye ọhụrụ? Mepee akaụntụ",
   "form.riderLink": "Ị na-anya maka ụlọ ọrụ nnyefe? Nbanye rider",
+  // One question per screen (sign up)
+  "q.progress": "Nzọụkwụ {step} n'ime {total}",
+  "q.name": "Kedu aha gị?",
+  "q.nameSub": "Aha mbụ na aha nna gị. Rex na Peggy ga-eji ya.",
+  "q.firstName": "Aha mbụ",
+  "q.lastName": "Aha nna",
+  "q.needName": "Dee aha mbụ na aha nna gị.",
+  "q.phone": "Kedu nọmba ekwentị gị?",
+  "q.phoneSubNamed": "Daalụ, {name}. Anyị ga-ezitere gị koodu iji kwado ya. Ọ dịghị mkpa paswọọdụ.",
+  "q.email": "Kedu email gị?",
+  "q.code": "Tinye koodu anyị zitere gị.",
+  "q.role": "Gịnị kpọtara gị na Shopinbos?",
+  "q.roleSub": "Họrọ otu ka ị malite.",
+  "q.role.seller": "Achọrọ m ire ahịa",
+  "q.role.logistics_partner": "Ana m ebuga ọda",
+  "q.role.supplier": "Ana m eweta ngwaahịa",
 };
 
 export default ig;

@@ -11,7 +11,7 @@ import {
   reportedChannel,
   metaWhatsAppRequest,
   sendchampWhatsAppRequest,
-  signInCodeMessage,
+  signInCodeSms,
   termiiWhatsAppRequest,
   whatsappCodeConfig,
   type CodeChannel,
@@ -121,7 +121,7 @@ export async function deliverSignInCode(phone: string, otp: string, env: Record<
       console.warn("[auth-otp] WhatsApp code failed, falling back to SMS", sent.error);
       continue;
     }
-    const sms = await sendPlatformSms({ to: [phone], body: signInCodeMessage(otp) });
+    const sms = await sendPlatformSms({ to: [phone], body: signInCodeSms(otp) });
     if (sms.ok) {
       await noteUsed(key, "sms");
       return { ok: true, channel: "sms" };

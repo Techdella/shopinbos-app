@@ -245,6 +245,27 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "portal.opening.supplier": "Na supplier account be this. We dey open your supplier portal…",
   "portal.opening.logistics_partner": "Na delivery partner account be this. We dey open your delivery portal…",
   "portal.opening.admin": "Na admin account be this. We dey open admin panel…",
+  // One question per screen (sign up)
+  "q.back": "Go back",
+  "q.progress": "Step {step} of {total}",
+  "q.name": "Wetin be your name?",
+  "q.nameSub": "Your first name and surname. Rex and Peggy go use am.",
+  "field.firstName": "First name",
+  "field.lastName": "Surname",
+  "error.needFullName": "Type your first name and surname.",
+  "q.phone": "Wetin be your phone number?",
+  "q.phoneSub": "We go send you code to confirm am. You no need password.",
+  "q.phoneSubNamed": "Thank you, {name}. We go send you code to confirm am. You no need password.",
+  "q.email": "Wetin be your email?",
+  "q.loginPhone": "Welcome back. Wetin be your phone number?",
+  "q.loginEmail": "Welcome back. Wetin be your email?",
+  "q.loginSub": "Use the one wey you take sign up. We go send you code.",
+  "q.code": "Type the code wey we send you.",
+  "q.role": "Wetin bring you come Shopinbos?",
+  "q.roleSub": "Pick one make we start.",
+  "q.role.seller": "I wan sell",
+  "q.role.logistics_partner": "I dey deliver orders",
+  "q.role.supplier": "I dey supply goods",
 };
 
 export default pcm;
