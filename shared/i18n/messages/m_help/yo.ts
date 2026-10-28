@@ -163,6 +163,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "call.screen.shop": "Ṣọ́ọ̀bù mi",
   "call.screen.start": "Bẹ̀rẹ̀ níbí",
   "call.screen.verification": "Ìjẹ́rìísí",
+  "call.screen.finish_setup": "Parí ìṣètò",
   "call.screen.wallet": "Àpò owó",
   "call.screen.where": "Ibi tí o ń tà sí",
   "call.peggyEnded": "Peggy parí ìpè náà",

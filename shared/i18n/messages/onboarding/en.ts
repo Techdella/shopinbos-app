@@ -139,6 +139,30 @@ const en = {
   "lp.next2": "The Shopinbos team checks what needs a person, usually within 1-2 business days.",
   "lp.next3": "Once you're verified, sellers can find you, ask for quotes and book deliveries.",
   "lp.peggyNote": "Once you're approved, I'll send you bookings from sellers in the zones you cover.",
+
+  // Delivery partner set-up on the web (components/onboarding/LogisticsOnboarding.tsx), the phone's two questions
+  "lps.bizTitle": "Your delivery business",
+  "lps.bizSub": "Two quick questions and you're in. We already have your name and phone from sign-up.",
+  "lps.name": "Business name",
+  "lps.nameHint": "Work on your own? Your own name is fine.",
+  "lps.home": "Which state do you work from?",
+  "lps.homePick": "Choose your state",
+  "lps.needName": "Type your business name, or your own name.",
+  "lps.needHome": "Choose the state you work from.",
+  "lps.deliverTitle": "How do you deliver?",
+  "lps.vehicles": "What do you ride or drive? Pick all you use.",
+  "lps.needVehicle": "Pick what you ride or drive: bike, car, van…",
+  "lps.reach": "Where do you deliver?",
+  "lps.reach.home": "Only in {state}",
+  "lps.reach.homeSub": "Inside your state",
+  "lps.reach.states": "{state} and other states",
+  "lps.reach.statesSub": "You choose the states",
+  "lps.reach.nationwide": "All of Nigeria",
+  "lps.reach.nationwideSub": "Anywhere in the country",
+  "lps.pickStates": "Choose the other states",
+  "lps.needStates": "Choose the other states, or pick “Only in {state}”.",
+  "lps.finish": "Finish set-up",
+  "lps.prices": "We'll start you on typical prices: {near} a delivery in {state}, {far} to other states. Change them any time under Pricing.",
 } satisfies Record<string, string>;
 
 export default en;

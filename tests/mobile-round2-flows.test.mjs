@@ -76,7 +76,8 @@ test("delivery set-up: no CAC or insurance needed; it finishes set-up and opens 
   const setup = app("app/logistics/setup.tsx");
   // Documents moved to the stepped verification screen (shared/partner-tiers.ts): set-up never uploads or submits.
   assert.doesNotMatch(setup, /LOGISTICS_DOC_TYPES|uploadVerificationDoc|submitVerification/);
-  assert.match(setup, /t\("kyc\.introTitle"\)/);
+  // The short set-up (two questions) ends on what verification needs, then opens it (or Jobs, "Later").
+  assert.match(setup, /"kyc\.need\.id", "kyc\.need\.bank", "kyc\.need\.vehicle", "kyc\.need\.guarantor"/);
   assert.match(setup, /router\.replace\("\/logistics\/verification"\)/);
   assert.doesNotMatch(app("lib/logistics-pure.ts"), /LOGISTICS_DOC_TYPES/);
   for (const key of ["kyc.introTitle", "kyc.introSub", "kyc.introCac", "kyc.start", "kyc.doneTitle", "kyc.doneSub"]) assert.ok(hasKey("m_partner", key), key);

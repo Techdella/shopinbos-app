@@ -83,7 +83,7 @@ export function IdentityStep({ state, onState, reload, accountEmail, accountPhon
         ) : null}
         <div className="flex flex-wrap items-end gap-2">
           <Field label={t("id.phone")}><input value={phone} onChange={(event) => { setPhone(event.target.value); setPhoneChallenge(null); }} inputMode="tel" autoComplete="tel" className={cx(field.input, "sm:min-w-[260px]")} /></Field>
-          <PillButton tone="white" size="md" busy={busy === "phone-send"} disabled={!phone.trim()} onClick={() => void run("phone-send", () => kycCall<{ challenge: string }>("/phone", jsonInit("POST", { action: "send", phone })), (result) => setPhoneChallenge(result.challenge))}>
+          <PillButton tone="white" size="md" busy={busy === "phone-send"} disabled={!phone.trim()} onClick={() => void run("phone-send", () => kycCall<KycState | { challenge: string }>("/phone", jsonInit("POST", { action: "send", phone })), (result) => setPhoneChallenge("challenge" in result ? result.challenge : null))}>
             {t("id.sendCode")}
           </PillButton>
         </div>

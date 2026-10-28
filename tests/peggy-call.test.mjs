@@ -151,12 +151,11 @@ test("phone: minimize, live lines, ticks, and the summary that goes to the next 
   assert.equal(pure.nextStepPath("logistics_partner", "rates"), "/logistics/rates");
   assert.equal(pure.nextStepPath("seller", "delivery"), "/start");
   assert.equal(pure.nextStepPath("supplier", null), null);
-  // The partner wizard never jumps to documents while something Peggy helps with is missing.
+  // The partner's short set-up has two steps; prices, documents and the bank are on "Finish setting up", never in it.
   const steps = (missing) => ["profile", "coverage", "pickup", "rates", "documents", "bank"].map((id) => ({ id, done: !missing.includes(id) }));
-  assert.equal(pure.partnerWizardStep(steps(["coverage", "documents"])), "cover");
-  assert.equal(pure.partnerWizardStep(steps(["rates", "documents", "bank"])), "rates");
-  assert.equal(pure.partnerWizardStep(steps(["documents", "bank"])), "docs");
-  assert.equal(pure.partnerWizardStep(steps(["bank"])), "payout");
+  assert.equal(pure.partnerWizardStep(steps(["profile", "coverage"])), "biz");
+  assert.equal(pure.partnerWizardStep(steps(["coverage", "documents"])), "deliver");
+  assert.equal(pure.partnerWizardStep(steps(["rates", "documents", "bank"])), "deliver");
   assert.equal(pure.supplierWizardStep([{ id: "pickup", done: false }, { id: "documents", done: false }]), "pickup");
   assert.equal(pure.callClock(75), "1:15");
   // Setup screens refresh as she saves and take Continue to their own next step.

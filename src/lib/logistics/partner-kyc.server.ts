@@ -69,6 +69,34 @@ export async function confirmedAuthEmail(supabaseId: string): Promise<string | n
   return row?.email && row.confirmed ? row.email.trim().toLowerCase() : null;
 }
 
+/** The account's own phone (E.164), when Supabase confirmed it with a sign-up or log-in code. Null when it can't be read. */
+export async function confirmedAuthPhone(supabaseId: string): Promise<string | null> {
+  const rows = await db.$queryRaw<Array<{ phone: string | null; confirmed: Date | null }>>`
+    SELECT u."phone" AS "phone", u."phone_confirmed_at" AS "confirmed" FROM auth.users u WHERE u."id"::text = ${supabaseId} LIMIT 1`.catch(() => null);
+  const row = rows?.[0];
+  const digits = row?.phone?.replace(/\D/g, "") ?? "";
+  return digits.length >= 8 && row?.confirmed ? `+${digits}` : null;
+}
+
+/**
+ * The phone and email the partner already confirmed with a code when signing up count for verification at once, so
+ * they're never asked to confirm them a second time (the same rule as the email step's "your own confirmed email").
+ * Only fills checks that are missing; never touches one that was approved, rejected or is waiting.
+ */
+export async function approveSignupContacts(partnerId: string, supabaseId: string) {
+  const [phone, email] = await Promise.all([confirmedAuthPhone(supabaseId), confirmedAuthEmail(supabaseId)]);
+  if (!phone && !email) return;
+  const row = await db.logisticsPartner.findUnique({ where: { id: partnerId }, select: { identityChecks: true } });
+  const current = readIdentityChecks(row?.identityChecks);
+  if ((!phone || current.phone) && (!email || current.email)) return;
+  const at = new Date().toISOString();
+  await updateIdentityChecks(partnerId, (checks) => ({
+    ...checks,
+    ...(phone && !checks.phone ? { phone: { value: phone, status: "approved" as const, verifiedAt: at } } : {}),
+    ...(email && !checks.email ? { email: { value: email, status: "approved" as const, verifiedAt: at } } : {}),
+  }));
+}
+
 const TIER_DOC_TYPES = new Set(LOGISTICS_TIER_DOC_TYPES.map((config) => config.type));
 
 /** Everything the verification page and the dashboard card show. Never a whole ID number, nor any hash. */
