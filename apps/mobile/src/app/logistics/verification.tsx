@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
+import { CallPeggyButton } from "@/components/CallPeggyButton";
 import { ONBOARDING_STEPS, type OnboardingStep } from "@shared/partner-tiers";
 import { Banner } from "@/components/design";
 import { ErrorState, LoadingBlock } from "@/components/kit";
-import { BankStep, CoverageStep, GuarantorStep, VehiclesStep } from "@/components/kyc/FleetSteps";
+import { BankStep, DeliveryStep } from "@/components/kyc/FleetSteps";
 import { CacStep, ReviewStep, openOnWeb } from "@/components/kyc/BusinessSteps";
 import { IdentityStep } from "@/components/kyc/IdentityStep";
 import { TonePill } from "@/components/partner";
@@ -13,14 +14,21 @@ import { Card, Notice, PillButton, T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
 import { fetchKyc, type KycState } from "@/lib/kyc";
 import { STEP_TONE, firstOpenStep, stepState } from "@/lib/kyc-pure";
+import { usePeggyContinue, usePeggySaved } from "@/lib/peggy-call";
 import { useLoad } from "@/lib/useLoad";
 import { colors } from "@/theme";
 
-// Delivery partner verification on the phone, in steps like the web page (/logistics/verification): Identity →
-// Bank → Vehicles → Coverage → Guarantor → (optional) CAC → Review & submit. Partners don't need CAC to start
-// (Tier 1, Verified Individual); adding it later makes them a Registered Business with no order limits. Every call
-// answers with the whole state (src/lib/kyc.ts), so the step pills follow at once. Opens on the first step that
-// still needs something, or the one asked for (?step=cac from "Upgrade to Registered Business").
+// Delivery partner sign-up on the phone: one flow of 4 numbered steps, like the web page (/logistics/verification):
+// 1. You (NIN + selfie, name, date of birth, phone, email, address) → 2. Bank account (in the NIN's name, never a
+// BVN) → 3. Your delivery (company name, where and how, vehicles) → 4. Review and send. CAC is an optional card
+// after them, not a numbered step: partners don't need it to start (Tier 1, Verified Individual); adding it makes
+// them a Registered Business with no order limits. Pricing is set later, from the portal. New partners land here
+// straight away (/logistics/home); saving "Your delivery" finishes set-up. Every call answers with the whole state
+// (src/lib/kyc.ts), so the step pills follow at once. Opens on the first step that still needs something, or the one
+// asked for (?step=cac from "Add CAC" on the tier card). After a Peggy call it reloads and opens the next open step.
+
+/** The numbered steps; CAC (the last of ONBOARDING_STEPS) is the optional card after them. */
+const NUMBERED = ONBOARDING_STEPS.filter((item) => item !== "cac");
 
 const STATE_TONE = { unverified: "muted", pending_review: "info", tier1_verified: "success", tier2_verified: "success", rejected: "danger", suspended: "danger" } as const;
 
@@ -38,13 +46,26 @@ export default function LogisticsVerification() {
 
   useEffect(() => {
     if (!data || step) return;
-    const asked = ONBOARDING_STEPS.find((item) => item === params.step);
+    // Older links named the steps "vehicles" and "coverage": both are on "Your delivery" now.
+    const wanted = params.step === "vehicles" || params.step === "coverage" ? "delivery" : params.step;
+    const asked = ONBOARDING_STEPS.find((item) => item === wanted);
     setStep(asked ?? firstOpenStep(data));
   }, [data, step, params.step]);
 
+  // Peggy saving on a call, and "Continue" after it: fresh state, then the first step still open.
+  usePeggySaved(() => void fetchKyc().then(setState).catch(() => null));
+  usePeggyContinue(() => {
+    void fetchKyc()
+      .then((fresh) => {
+        setState(fresh);
+        setStep(firstOpenStep(fresh));
+      })
+      .catch(() => null);
+    return true;
+  });
+
   const current = step ?? "identity";
-  const index = ONBOARDING_STEPS.indexOf(current);
-  const next = ONBOARDING_STEPS[index + 1];
+  const next = current === "cac" ? undefined : NUMBERED[NUMBERED.indexOf(current) + 1];
   const props = data ? { state: data, onState: setState } : null;
 
   return (
@@ -58,6 +79,9 @@ export default function LogisticsVerification() {
       {load.error && !data ? <ErrorState message={load.error} onRetry={() => void load.reload()} /> : null}
       {data && props ? (
         <>
+          <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
+            <CallPeggyButton variant="compact" />
+          </View>
           <Card style={{ gap: 8 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <T weight="extrabold" style={{ flex: 1, fontSize: 16 }}>{t(`state.${data.state}`)}</T>
@@ -67,16 +91,8 @@ export default function LogisticsVerification() {
             {(data.state === "rejected" || data.state === "suspended") && data.statusReason ? <Notice>{data.statusReason}</Notice> : null}
           </Card>
 
-          {data.tier !== "tier2" ? (
-            <Banner title={t("noCac.title")} tone="mint" icon="shield">
-              <Pressable accessibilityRole="link" onPress={() => openOnWeb("/logistics/cac-help")}>
-                <T weight="bold" style={{ color: colors.forest, marginTop: 4 }}>{t("noCac.link")}</T>
-              </Pressable>
-            </Banner>
-          ) : null}
-
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 2 }}>
-            {ONBOARDING_STEPS.map((item, position) => {
+            {NUMBERED.map((item, position) => {
               const status = stepState(data, item);
               const on = item === current;
               return (
@@ -96,11 +112,23 @@ export default function LogisticsVerification() {
 
           {current === "identity" ? <IdentityStep {...props} /> : null}
           {current === "bank" ? <BankStep {...props} /> : null}
-          {current === "vehicles" ? <VehiclesStep {...props} /> : null}
-          {current === "coverage" ? <CoverageStep {...props} /> : null}
-          {current === "guarantor" ? <GuarantorStep {...props} /> : null}
-          {current === "cac" ? <CacStep {...props} /> : null}
+          {current === "delivery" ? <DeliveryStep {...props} /> : null}
           {current === "review" ? <ReviewStep {...props} /> : null}
+          {current === "cac" ? <CacStep {...props} /> : null}
+
+          {/* CAC: optional, after the four steps. */}
+          {current !== "cac" && data.tier !== "tier2" ? (
+            <Banner title={t("noCac.title")} tone="mint" icon="shield">
+              <T style={{ color: colors.inkSoft, lineHeight: 20, marginTop: 4 }}>{t("cac.cardSub")}</T>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 12, marginTop: 8 }}>
+                <PillButton title={t("cac.open")} size="sm" tone="white" onPress={() => setStep("cac")} />
+                <Pressable accessibilityRole="link" onPress={() => openOnWeb("/logistics/cac-help")}>
+                  <T weight="bold" style={{ color: colors.forest }}>{t("noCac.link")}</T>
+                </Pressable>
+              </View>
+            </Banner>
+          ) : null}
+          {current === "cac" ? <PillButton tone="white" title={t("cac.back")} onPress={() => setStep(firstOpenStep(data))} /> : null}
         </>
       ) : null}
     </Screen>

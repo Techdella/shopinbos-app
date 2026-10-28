@@ -74,19 +74,6 @@ export function nextStepPath(role: CallRole, next: string | null | undefined): s
   return NEXT[role][next] ?? null;
 }
 
-/**
- * The delivery partner setup wizard's step to show after a call: the first one still missing, in the wizard's
- * order (company, coverage, rates, documents, bank). Documents only when everything Peggy could help with is done.
- */
-export function partnerWizardStep(steps: readonly SetupStepView[]): "biz" | "cover" | "rates" | "docs" | "payout" {
-  const missing = (id: string) => steps.some((step) => step.id === id && !step.done);
-  if (missing("profile")) return "biz";
-  if (missing("coverage")) return "cover";
-  if (missing("rates")) return "rates";
-  if (missing("documents")) return "docs";
-  return "payout";
-}
-
 /** The supplier setup wizard's step after a call: business, pickup address, bank, else where they sell. */
 export function supplierWizardStep(steps: readonly SetupStepView[]): "biz" | "pickup" | "where" | "bank" {
   const missing = (id: string) => steps.some((step) => step.id === id && !step.done);

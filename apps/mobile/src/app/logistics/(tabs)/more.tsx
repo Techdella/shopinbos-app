@@ -97,7 +97,7 @@ export default function LogisticsBusiness() {
   return (
     <TabScreen header={header} refreshing={overview.refreshing} onRefresh={refresh}>
       {overview.data && !overview.data.partner.onboarded ? (
-        <CardButton icon="truck" tint={colors.mintTint} iconBg="#FFFFFF" title={t("today.finish")} sub={t("today.finishHint")} onPress={() => router.push("/logistics/setup")} />
+        <CardButton icon="truck" tint={colors.mintTint} iconBg="#FFFFFF" title={t("today.finish")} sub={t("today.finishHint")} onPress={() => router.push("/logistics/verification")} />
       ) : null}
 
       <View style={{ flexDirection: "row", gap: 10 }}>
