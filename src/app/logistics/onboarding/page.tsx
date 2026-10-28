@@ -1,21 +1,10 @@
-import { Suspense } from "react";
-import { LogisticsOnboarding } from "@/components/onboarding/LogisticsOnboarding";
-import { requireRole } from "@/lib/server-auth";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
-export default async function LogisticsOnboardingPage() {
-  const user = await requireRole(["logistics_partner"], "/logistics/login");
-
-  return (
-    <Suspense>
-      <LogisticsOnboarding
-        initialUser={{
-          name: user.name,
-          city: user.city ?? null,
-          country: user.country ?? null,
-        }}
-      />
-    </Suspense>
-  );
+// Delivery partners sign up in one flow (/logistics/verification: You, Bank, Your delivery, Review). Links and gates
+// that still point at the old set-up wizard land there, keeping any sign-up intent.
+export default async function LogisticsOnboardingPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(await searchParams)) if (typeof value === "string") params.set(key, value);
+  const query = params.toString();
+  redirect(`/logistics/verification${query ? `?${query}` : ""}`);
 }

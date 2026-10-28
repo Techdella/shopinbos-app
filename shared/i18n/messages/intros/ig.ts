@@ -723,7 +723,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "partner-verification.1.caption": "Verification na-enye gị ohere ịnara jobs.",
   "partner-verification.1.sub": "Shops na-ahụ naanị delivery partners e nyochara, ya mere nke a bụ nzọụkwụ mbụ gị.",
   "partner-verification.2.caption": "Ị chọghị CAC iji malite.",
-  "partner-verification.2.sub": "Lelee NIN gị na selfie, tinye bank account n'aha gị, adreesị gị na otu guarantor.",
+  "partner-verification.2.sub": "Lelee NIN gị na selfie, wee tinye bank account n'aha gị na adreesị gị.",
   "partner-verification.3.caption": "Tinye ụgbọ na ebe ị na-eme delivery.",
   "partner-verification.3.sub": "Foto bike, car ma ọ bụ van gị na plate ya na licence gị, wee tinye ebe ị na-ekpuchi.",
   "partner-verification.4.caption": "Malite dị ka Verified Individual.",

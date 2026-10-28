@@ -70,7 +70,6 @@ const SNAPSHOT_SELECT = {
   badges: true,
   limitsLiftedAt: true,
   vehicles: { select: { status: true } },
-  guarantor: { select: { status: true } },
   payoutAccount: { select: { verificationStatus: true, accountName: true } },
 } satisfies Prisma.LogisticsPartnerSelect;
 
@@ -103,7 +102,6 @@ export function snapshotOf(row: SnapshotRow): TierSnapshot {
     docs,
     cacRegistryVerified: Boolean(cac),
     vehicles: row.vehicles,
-    guarantor: row.guarantor,
     registeredName: row.registeredName,
     cacType: row.cacType,
     cacNumber: row.cacNumber,

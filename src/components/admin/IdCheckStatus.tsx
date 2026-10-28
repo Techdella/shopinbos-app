@@ -17,7 +17,9 @@ export function CacChecksStatus({ providers }: { providers: Array<keyof typeof C
       <Pill tone={providers.length ? "success" : "danger"} dot>{providers.length ? "CAC checks: on" : "CAC checks: off"}</Pill>
       <span className="min-w-0 flex-1 basis-[280px] text-[13.5px] leading-[1.45]">
         {providers.length
-          ? `Tried in this order: ${providers.map((name) => CAC_PROVIDER_NAMES[name]).join(", then ")}. One that refuses (no balance, service not enabled) hands over to the next.`
+          ? providers.length === 1 && providers[0] === "korapay"
+            ? "Korapay Identity runs every CAC check (no fallback). If checks fail, use Test Korapay Identity below to see Korapay's own answer."
+            : `Tried in this order: ${providers.map((name) => CAC_PROVIDER_NAMES[name]).join(", then ")}. One that refuses (no balance, service not enabled) hands over to the next.`
           : "No CAC lookup is set up, so suppliers and delivery partners must upload their certificate. Add CAC_VAS_API_KEY (vas.cac.gov.ng) in Vercel, then redeploy."}
         <span className="block text-[12.5px] text-app-ink-soft">If checks fail, search the Vercel logs for "[kyb/cac]" to see each provider's answer.</span>
       </span>

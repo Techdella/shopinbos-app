@@ -6,7 +6,7 @@ import { partnerTierSnapshot } from "@/lib/logistics/partner-tiers.server";
 
 // Admin › Logistics partners › Waiting for review: partners who sent their tier verification and are still
 // pending, and any partner (verified ones too) with an item the team has to decide: a vehicle, a selfie, CAC
-// certificate or courier licence, a NIN or payout check, or a guarantor still waiting. Oldest sent first (the page
+// certificate or courier licence, or a NIN or bank account check. Oldest sent first (the page
 // sorts); each entry says what to check.
 
 /** Items the partner finishes themselves (a code) aren't the team's to check. */
@@ -17,7 +17,6 @@ const WORDS: Record<string, string> = {
   selfie: "selfie",
   payout: "Bank account",
   vehicles: "vehicle",
-  guarantor: "guarantor",
   cacCertificate: "CAC certificate",
   courierLicence: "courier licence",
 };
@@ -28,7 +27,6 @@ export async function reviewQueue(limit = 200): Promise<Array<{ id: string; pend
       OR: [
         { kycSubmittedAt: { not: null }, verificationStatus: { in: ["pending", "unverified"] } },
         { vehicles: { some: { status: "pending" } } },
-        { guarantor: { status: "pending" } },
         { identityChecks: { path: ["nin", "status"], equals: "pending" } },
         { identityChecks: { path: ["payout", "status"], equals: "pending" } },
         // Documents live in a JSON list; partners with any document sent are checked below.

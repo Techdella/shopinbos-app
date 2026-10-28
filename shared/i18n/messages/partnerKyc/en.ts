@@ -1,5 +1,5 @@
 // partnerKyc: delivery partner tiered verification (/logistics/verification, the dashboard tier card, the CAC help
-// and partner terms pages, the guarantor's confirm page). English is the source of truth; every key must exist in
+// and partner terms pages). English is the source of truth; every key must exist in
 // pcm.ts, yo.ts, ha.ts and ig.ts.
 const en = {
   // Page
@@ -36,16 +36,24 @@ const en = {
   "badge.licensed_courier": "Licensed Courier",
   "badge.verified_payout": "Verified Payout",
   // Steps
-  "step.identity": "Identity",
-  "step.bank": "Bank",
-  "step.vehicles": "Vehicles",
-  "step.coverage": "Coverage",
-  "step.guarantor": "Guarantor",
+  "step.identity": "You",
+  "step.bank": "Bank account",
   "step.cac": "CAC (optional)",
-  "step.review": "Review & submit",
+  "step.review": "Review & send",
   "step.of": "Step {step} of {total}",
   "nav.back": "Back",
   "nav.next": "Next",
+  "step.delivery": "Your delivery",
+  "nav.backToReview": "Back to review",
+  "id.change": "Change",
+  "del.title": "Your delivery",
+  "del.sub": "Your company name, the places you deliver to and your vehicles. Sellers find you by these.",
+  "del.company": "Company or trading name",
+  "del.companyHint": "Sellers see this name. Use your own name if you work alone.",
+  "del.needVehicle": "Add at least one vehicle, then save.",
+  "cacExtra.title": "Registered business? (optional)",
+  "cacExtra.body": "Add your CAC any time to become a Registered Business, with no order limits.",
+  "cacExtra.open": "Add CAC",
   "nav.save": "Save",
   // Item statuses
   "status.missing": "Needed",
@@ -66,7 +74,6 @@ const en = {
   "item.coverage": "Where you deliver",
   "item.methods": "How you deliver",
   "item.vehicles": "Vehicles",
-  "item.guarantor": "Guarantor",
   "item.businessName": "Business name",
   "item.cacType": "CAC registration type",
   "item.cacNumber": "CAC number",
@@ -78,7 +85,6 @@ const en = {
   "id.lastName": "Last name",
   "id.dob": "Date of birth",
   "id.nin": "NIN (11 digits)",
-  "id.checkNin": "Check my NIN",
   "id.ninDone": "NIN ending {last4} checked",
   "id.ninWaiting": "NIN ending {last4} sent. Our team will check it.",
   "id.ninManual": "Instant NIN checks aren't on yet. Our team will check your NIN by hand.",
@@ -109,8 +115,6 @@ const en = {
   "selfie.waiting": "Our team is checking your selfie.",
   "id.address": "Home address",
   "id.state": "State",
-  "id.utility": "Utility bill (optional)",
-  "id.utilityHint": "A recent electricity or water bill with your address.",
   // Files
   "file.choose": "Choose file",
   "file.replace": "Replace",
@@ -126,7 +130,6 @@ const en = {
   "bank.doneBank": "{bank} account ending {last4} in the name {name}",
   "bank.needNin": "Check your NIN on the Identity step first.",
   // Vehicles
-  "veh.title": "Your vehicles",
   "veh.sub": "Add at least one vehicle. Our team checks each one.",
   "veh.type": "Type",
   "veh.plate": "Plate number",
@@ -143,29 +146,12 @@ const en = {
   "method.tricycle": "Tricycle (keke)",
   "method.other": "Other",
   // Coverage
-  "cov.title": "Where and how you deliver",
-  "cov.sub": "Sellers find you by these places.",
-  "cov.methods": "How you deliver",
   "cov.areas": "Places you deliver to",
   "cov.pickState": "Choose a state",
   "cov.wholeState": "Whole state",
   "cov.addArea": "Add",
   "cov.removeArea": "Remove {area}",
   "cov.noAreas": "No places yet.",
-  // Guarantor
-  "gua.title": "Your guarantor",
-  "gua.sub": "Someone who knows you and will vouch for you. We text them a code to confirm.",
-  "gua.name": "Full name",
-  "gua.phone": "Phone number",
-  "gua.address": "Address",
-  "gua.relationship": "How you know them",
-  "gua.relationshipHint": "For example: uncle, pastor, former employer",
-  "gua.saveSend": "Save and text them",
-  "gua.pending": "We texted {name}. Waiting for them to confirm.",
-  "gua.confirmed": "{name} confirmed they are your guarantor.",
-  "gua.declined": "{name} declined. Add another guarantor.",
-  "gua.resend": "Text them again",
-  "gua.resendIn": "You can text them again in {seconds}s",
   // CAC
   "cac.title": "Register your business (optional)",
   "cac.sub": "Add your CAC details to become a Registered Business: no order limits, and you can get featured.",
@@ -225,16 +211,6 @@ const en = {
   "terms.accept": "I agree to the partner terms",
   "terms.accepted": "You agreed to these terms on {date}.",
   "terms.mustAccept": "Agree to the partner terms to continue.",
-  // Guarantor's page
-  "gpage.title": "Guarantor request",
-  "gpage.body": "Hello {name}. {partner} named you as their guarantor on Shopinbos, the delivery marketplace. A guarantor knows the person and vouches for them.",
-  "gpage.codeLabel": "Code from the text message",
-  "gpage.confirm": "Yes, I'm their guarantor",
-  "gpage.decline": "No, I'm not",
-  "gpage.confirmed": "Thank you. You confirmed you're the guarantor for {partner}.",
-  "gpage.declined": "Thank you. We've told {partner} you declined.",
-  "gpage.answered": "You've already answered. Thank you.",
-  "gpage.expired": "This link has expired. Ask the delivery partner to send a new one.",
 } satisfies Record<string, string>;
 
 export default en;

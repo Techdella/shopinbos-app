@@ -4,6 +4,7 @@ import { adminFrame, formatDate } from "@/components/admin/AdminKit";
 import { AiCheckCard } from "@/components/admin/AiCheckCard";
 import { LaunchSettings } from "@/components/admin/LaunchSettings";
 import { CacChecksStatus, IdChecksStatus, KorapayChecksStatus } from "@/components/admin/IdCheckStatus";
+import { KorapayCheckCard } from "@/components/admin/KorapayCheckCard";
 import { requireAdminSection } from "@/lib/admin-team/service.server";
 import { providerOrder } from "@/lib/ai/client";
 import { db } from "@/lib/db/client";
@@ -121,6 +122,7 @@ export default async function AdminDevelopersPage(props: { searchParams?: Promis
         <h2 id="checks-title" className="mb-3 mt-0 text-[20px] font-extrabold">ID and CAC checks</h2>
         {korapay ? <KorapayChecksStatus health={idChecks as KorapayIdentityHealth} /> : <IdChecksStatus health={idChecks as YouverifyHealth} />}
         <CacChecksStatus providers={cacProviders()} />
+        <KorapayCheckCard />
       </section>
 
       <section id="ai" aria-labelledby="ai-title" className="mb-8 scroll-mt-6">

@@ -72,14 +72,13 @@ test("suppliers and delivery partners can turn tips off", () => {
 
 // ─── Delivery partner ─────────────────────────────────────────────────────────
 
-test("delivery set-up: no CAC or insurance needed; it finishes set-up and opens the tiered verification", () => {
+test("delivery sign-up: no CAC or insurance needed; set-up is the 4-step verification, no rates or bank wizard", () => {
+  // The old wizard only redirects; documents, company name and coverage are all on /logistics/verification.
   const setup = app("app/logistics/setup.tsx");
-  // Documents moved to the stepped verification screen (shared/partner-tiers.ts): set-up never uploads or submits.
-  assert.doesNotMatch(setup, /LOGISTICS_DOC_TYPES|uploadVerificationDoc|submitVerification/);
-  assert.match(setup, /t\("kyc\.introTitle"\)/);
-  assert.match(setup, /router\.replace\("\/logistics\/verification"\)/);
+  assert.doesNotMatch(setup, /LOGISTICS_DOC_TYPES|uploadVerificationDoc|submitVerification|saveRateCard|finishOnboarding/);
+  assert.match(setup, /<Redirect href="\/logistics\/verification" \/>/);
   assert.doesNotMatch(app("lib/logistics-pure.ts"), /LOGISTICS_DOC_TYPES/);
-  for (const key of ["kyc.introTitle", "kyc.introSub", "kyc.introCac", "kyc.start", "kyc.doneTitle", "kyc.doneSub"]) assert.ok(hasKey("m_partner", key), key);
+  for (const file of ["app/logistics/(tabs)/jobs.tsx", "app/logistics/(tabs)/more.tsx"]) assert.doesNotMatch(app(file), /\/logistics\/setup/, file);
 });
 
 test("taking new jobs: why it's off, for every state, and never 'on hold' unless suspended", async () => {
@@ -122,7 +121,7 @@ test("Jobs: the switch is always tappable, says why it's off with one tap forwar
   assert.match(jobs, /await setTakingJobs\(next\);\s*await overview\.reload\(\);\s*setOverride\(null\);/, "re-read after saving");
   assert.match(jobs, /accessibilityRole="alert"[^>]*>\{switchError\}/, "the server's refusal is shown under the switch");
   const pure = app("lib/logistics-pure.ts");
-  assert.match(pure, /setup: \{ path: "\/logistics\/setup"/);
+  assert.match(pure, /setup: \{ path: "\/logistics\/verification"/);
   assert.match(pure, /documents: \{ path: "\/logistics\/verification"/);
   assert.match(pure, /checking: \{ path: null/);
   assert.match(pure, /hold: \{ path: "\/help"/);

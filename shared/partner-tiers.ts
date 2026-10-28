@@ -4,7 +4,8 @@
 //
 // Partners don't need CAC to start. Two tiers:
 //   Tier 1  Verified Individual  ID (NIN + selfie), phone, email, bank or BVN, address, coverage, delivery methods,
-//                                at least one approved vehicle and a confirmed guarantor. Works with order limits.
+//                                at least one approved vehicle. Works with order limits. (No guarantor and no BVN:
+//                                the owner's rules.)
 //   Tier 2  Registered Business  Tier 1 plus CAC (business name, BN/RC type, number, certificate). No limits.
 // Optional badges on top: Licensed Courier (NIPOST licence) and Verified Payout (business bank account in the
 // registered name). Shopinbos never requires a NIPOST licence.
@@ -52,8 +53,6 @@ export function isDeliveryMethod(value: unknown): value is DeliveryMethod {
   return typeof value === "string" && (DELIVERY_METHODS as readonly string[]).includes(value);
 }
 
-export const GUARANTOR_STATUSES = ["pending", "confirmed", "declined"] as const;
-export type GuarantorStatus = (typeof GUARANTOR_STATUSES)[number];
 
 export const CAC_TYPES = ["BN", "RC"] as const;
 export type CacType = (typeof CAC_TYPES)[number];
@@ -206,7 +205,6 @@ export interface TierSnapshot {
   /** The CAC registry confirmed the business (counts as the certificate). */
   cacRegistryVerified: boolean;
   vehicles: Array<{ status: string }>;
-  guarantor: { status: string } | null;
   registeredName: string | null;
   cacType: string | null;
   cacNumber: string | null;
@@ -214,7 +212,7 @@ export interface TierSnapshot {
   payoutAccount: { verified: boolean; accountName: string } | null;
 }
 
-export const TIER1_ITEMS = ["terms", "fullName", "phone", "email", "nin", "selfie", "payout", "address", "coverage", "methods", "vehicles", "guarantor"] as const;
+export const TIER1_ITEMS = ["terms", "fullName", "phone", "email", "nin", "selfie", "payout", "address", "coverage", "methods", "vehicles"] as const;
 export const TIER2_ITEMS = ["businessName", "cacType", "cacNumber", "cacCertificate"] as const;
 export type Tier1Item = (typeof TIER1_ITEMS)[number];
 export type Tier2Item = (typeof TIER2_ITEMS)[number];
@@ -233,15 +231,17 @@ export const ITEM_LABELS: Record<ChecklistItem, string> = {
   coverage: "Coverage areas",
   methods: "Delivery methods",
   vehicles: "A vehicle",
-  guarantor: "Guarantor",
   businessName: "Business name",
   cacType: "CAC registration type",
   cacNumber: "CAC number",
   cacCertificate: "CAC certificate",
 };
 
-/** Onboarding steps (spec: Identity → Bank → Vehicles → Coverage → Guarantor → (Optional) CAC → Review & submit). */
-export const ONBOARDING_STEPS = ["identity", "bank", "vehicles", "coverage", "guarantor", "cac", "review"] as const;
+/**
+ * The one sign-up flow (the owner's "4 steps"): You (NIN + selfie, phone, email, address) → Bank account → Your delivery
+ * (company name, where you deliver, how, vehicles) → Review & send. CAC is an optional extra after it.
+ */
+export const ONBOARDING_STEPS = ["identity", "bank", "delivery", "review", "cac"] as const;
 export type OnboardingStep = (typeof ONBOARDING_STEPS)[number];
 
 /** Which step each item is filled in on. */
@@ -254,10 +254,9 @@ export const ITEM_STEP: Record<ChecklistItem, OnboardingStep> = {
   selfie: "identity",
   address: "identity",
   payout: "bank",
-  vehicles: "vehicles",
-  coverage: "coverage",
-  methods: "coverage",
-  guarantor: "guarantor",
+  vehicles: "delivery",
+  coverage: "delivery",
+  methods: "delivery",
   businessName: "cac",
   cacType: "cac",
   cacNumber: "cac",
@@ -278,10 +277,6 @@ export function vehiclesState(vehicles: Array<{ status: string }>): ItemState {
   return "rejected";
 }
 
-export function guarantorState(guarantor: { status: string } | null): ItemState {
-  if (!guarantor) return "missing";
-  return guarantor.status === "confirmed" ? "approved" : guarantor.status === "declined" ? "rejected" : "pending";
-}
 
 export function tier1Checklist(s: TierSnapshot): Record<Tier1Item, ItemState> {
   return {
@@ -296,7 +291,6 @@ export function tier1Checklist(s: TierSnapshot): Record<Tier1Item, ItemState> {
     coverage: filled(s.deliveryAreas.length > 0),
     methods: filled(s.deliveryMethods.length > 0),
     vehicles: vehiclesState(s.vehicles),
-    guarantor: guarantorState(s.guarantor),
   };
 }
 

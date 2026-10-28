@@ -607,7 +607,7 @@ components:
         badges:
           type: array
           description: >
-            Verification badges. Verified Individual (ID, bank, vehicle and guarantor checked, no CAC) or Registered
+            Verification badges. Verified Individual (ID, bank and vehicle checked, no CAC) or Registered
             Business (also CAC-checked); Licensed Courier (NIPOST licence checked) and Verified Payout (paid into a
             business account in the registered name) are optional extras. Shopinbos verifies identity and documents;
             partners are independent operators.

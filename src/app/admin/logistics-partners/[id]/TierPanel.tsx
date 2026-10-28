@@ -52,7 +52,6 @@ const ITEM_LABELS: Record<string, string> = {
   coverage: "Coverage areas",
   methods: "Delivery methods",
   vehicles: "Vehicles",
-  guarantor: "Guarantor",
   businessName: "Business name",
   cacType: "CAC registration type",
   cacNumber: "CAC number",
@@ -100,13 +99,12 @@ export async function TierPanel({ partnerId }: { partnerId: string }) {
   const found = await partnerTierSnapshot(partnerId);
   if (!found) return null;
   const { snapshot } = found;
-  const [extra, vehicles, guarantor] = await Promise.all([
+  const [extra, vehicles] = await Promise.all([
     db.logisticsPartner.findUnique({
       where: { id: partnerId },
       select: { verificationStatus: true, verificationTier: true, kycSubmittedAt: true, statusReason: true, termsAcceptedAt: true, businessAddress: true, badges: true, limitsLiftedAt: true },
     }),
     db.logisticsVehicle.findMany({ where: { logisticsPartnerId: partnerId }, orderBy: { createdAt: "asc" } }),
-    db.logisticsGuarantor.findUnique({ where: { logisticsPartnerId: partnerId } }),
   ]);
   if (!extra) return null;
   const { progress, rules, limited } = await checkGraduation({ id: partnerId, verificationTier: extra.verificationTier, limitsLiftedAt: extra.limitsLiftedAt });
@@ -222,25 +220,6 @@ export async function TierPanel({ partnerId }: { partnerId: string }) {
                     ))}
                   </ul>
                 ) : "No vehicles added"}
-              </Row>
-              <Row
-                item="guarantor"
-                state={t1.guarantor}
-                actions={guarantor && (
-                  <>
-                    {guarantor.status !== "confirmed" && <TierActionButton url={`${base}/guarantor`} body={{ action: "confirm" }} label="Confirmed by call" confirm={`Did ${guarantor.fullName} confirm on the phone that they guarantee this partner?`} />}
-                    {guarantor.status !== "declined" && <TierActionButton url={`${base}/guarantor`} body={{ action: "decline" }} label="Declined" tone="danger" confirm={`Mark ${guarantor.fullName} as declined?`} />}
-                    {guarantor.status !== "pending" && <TierActionButton url={`${base}/guarantor`} body={{ action: "reset" }} label="Reset" tone="white" confirm="Put the guarantor back to waiting? The partner can send the code again." />}
-                  </>
-                )}
-              >
-                {guarantor ? (
-                  <>
-                    {guarantor.fullName} · {guarantor.relationship} · {guarantor.phone}
-                    <span className="block">{guarantor.address}</span>
-                    {guarantor.respondedAt && <span className="block">{guarantor.status} {guarantor.respondedVia === "call" ? "by call" : "with the texted code"} · {formatDate(guarantor.respondedAt)}</span>}
-                  </>
-                ) : "No guarantor added"}
               </Row>
             </ul>
           </Card>

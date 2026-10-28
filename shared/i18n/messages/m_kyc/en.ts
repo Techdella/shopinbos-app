@@ -30,11 +30,9 @@ const en = {
   "noCac.link": "Don't have CAC? Learn how to register",
 
   // Steps
-  "step.identity": "Identity",
-  "step.bank": "Bank",
-  "step.vehicles": "Vehicles",
-  "step.coverage": "Coverage",
-  "step.guarantor": "Guarantor",
+  "step.identity": "You",
+  "step.bank": "Bank account",
+  "step.delivery": "Your delivery",
   "step.cac": "CAC (optional)",
   "step.review": "Review",
   "stepState.done": "Done",
@@ -59,7 +57,6 @@ const en = {
   "item.name.coverage": "Where you deliver",
   "item.name.methods": "How you deliver",
   "item.name.vehicles": "A vehicle",
-  "item.name.guarantor": "Guarantor",
 
   // Identity
   "identity.title": "Your name and address",
@@ -137,9 +134,12 @@ const en = {
   "method.tricycle": "Tricycle (keke)",
   "method.other": "Other",
 
-  // Coverage
-  "coverage.title": "Where and how you deliver",
-  "coverage.sub": "Sellers find you by where you deliver.",
+  // Your delivery (company name, where and how)
+  "delivery.title": "Your delivery business",
+  "delivery.sub": "Your company name, where you deliver and how. Sellers find you by these.",
+  "delivery.company": "Company or trading name",
+  "delivery.companyHint": "The name sellers see. Your own name is fine if you work alone.",
+  "delivery.needCompany": "Type your company or trading name.",
   "coverage.some": "Some states",
   "coverage.all": "Nationwide",
   "coverage.states": "States you deliver to",
@@ -147,27 +147,14 @@ const en = {
   "coverage.needArea": "Pick at least one state, or Nationwide.",
   "coverage.needMethod": "Pick how you deliver.",
 
-  // Guarantor
-  "guarantor.title": "Your guarantor",
-  "guarantor.sub": "Someone who knows you and can vouch for you.",
-  "guarantor.name": "Their full name",
-  "guarantor.phone": "Their phone number",
-  "guarantor.address": "Their address",
-  "guarantor.relationship": "How you know them",
-  "guarantor.relationshipHint": "Uncle, former boss, pastor…",
-  "guarantor.how": "We text them a code and a link. They confirm with the code.",
-  "guarantor.save": "Save and text them",
-  "guarantor.sent": "We texted your guarantor.",
-  "guarantor.waiting": "Waiting for them to confirm. Ask them to open the text we sent.",
-  "guarantor.resend": "Text them again",
-  "guarantor.resendIn": "Text again in {seconds}s",
-  "guarantor.change": "Change guarantor",
-  "guarantor.declined": "Your guarantor said no. Add someone else.",
 
   // CAC and files
   "cac.title": "CAC (optional)",
   "cac.sub": "Add your business registration to become a Registered Business: a badge and no order limits.",
   "cac.help": "Don't have CAC? Learn how to register",
+  "cac.cardSub": "Optional. Add your CAC any time to become a Registered Business with no order limits.",
+  "cac.open": "Add CAC",
+  "cac.back": "Back to the steps",
   "cac.name": "Business name, as on your certificate",
   "cac.type": "Registration type",
   "cac.type.BN": "Business Name (BN)",

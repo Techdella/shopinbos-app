@@ -34,7 +34,7 @@ test("sellers are never asked for an ID: onboarding, the top bar, Start here, th
 });
 
 test("suppliers and delivery partners verify their CAC or BN registration, not the owner's NIN", () => {
-  for (const path of ["src/components/onboarding/SupplierOnboarding.tsx", "src/components/onboarding/LogisticsOnboarding.tsx", "src/app/supplier/verification/page.tsx", "src/app/logistics/verification/page.tsx"]) {
+  for (const path of ["src/components/onboarding/SupplierOnboarding.tsx", "src/app/supplier/verification/page.tsx", "src/app/logistics/verification/page.tsx"]) {
     assert.doesNotMatch(read(path), /VerifyIdCard|WalletIdHint/, path);
   }
   assert.match(read("src/app/supplier/verification/page.tsx"), /CacInstantCheck/);

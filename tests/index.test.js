@@ -299,7 +299,6 @@ test("onboarding memory is durable and shared with Rex builder", () => {
   const supplierOnboardingComponent = withWords("src/components/onboarding/SupplierOnboarding.tsx", "onboarding");
   const supplierOnboarding = read("src/app/supplier/onboarding/page.tsx");
   const logisticsOnboarding = read("src/app/logistics/onboarding/page.tsx");
-  const logisticsOnboardingComponent = read("src/components/onboarding/LogisticsOnboarding.tsx");
   const builder = withWords("src/components/builder/ChipBuilder.tsx", "builder");
   const builderPage = read("src/app/builder/page.tsx");
   const templatesPage = read("src/app/builder/templates/page.tsx");
@@ -340,13 +339,9 @@ test("onboarding memory is durable and shared with Rex builder", () => {
   assert.match(storeRouteApp, /"onboardingState"/);
   assert.match(storeRouteApp, /"firstDashboardVisitComplete"/);
   assert.match(supplierOnboarding, /initialSupplier/);
-  // Logistics setup has its own page component; progress is durable on the partner row via the onboarding API.
-  assert.match(logisticsOnboarding, /<LogisticsOnboarding/);
-  assert.match(logisticsOnboarding, /requireRole\(\["logistics_partner"\]/);
-  assert.match(logisticsOnboardingComponent, /fetch\("\/api\/logistics\/onboarding"\)/);
-  assert.match(logisticsOnboardingComponent, /method: "PATCH"/);
-  assert.match(logisticsOnboardingComponent, /coverageMap: \{ zones/);
-  assert.match(logisticsOnboardingComponent, /completed,/);
+  // Delivery partners set up in the one verification flow; the old set-up page sends them there.
+  assert.match(logisticsOnboarding, /redirect\(`\/logistics\/verification/);
+  assert.equal(exists("src/components/onboarding/LogisticsOnboarding.tsx"), false);
 
   assert.match(builderPage, /onboardingMemory=\{workspace\.settings\.onboardingMemory \?\? null\}/);
   assert.match(builderPage, /params\?\.mode === "rex" \? "products" : undefined/);
