@@ -34,6 +34,7 @@ import { CodeInput, GoogleMark, Mascot, Notice, PillButton, TextInput, Wordmark 
 import { AuthShowcasePanel } from "./AuthShowcasePanel";
 import {
   AuthApiError,
+  currentAccessToken,
   fetchWhatsAppCodes,
   friendlyNetworkError,
   ensureSessionSaved,
@@ -54,6 +55,28 @@ const { extractIntentParams, getContinuationPath } = intentRouting;
 
 type Mode = "login" | "signup";
 type Screen = "name" | "details" | "code" | "role" | "ready";
+
+/** Session-only note that a sign-up is waiting on "What brings you?" (survives a reload of the tab). */
+const ROLE_WAIT_KEY = "sib:signup-role-wait";
+type RoleWait = { fullName?: string; phone?: string };
+function rememberRoleWait(wait: RoleWait) {
+  try {
+    sessionStorage.setItem(ROLE_WAIT_KEY, JSON.stringify(wait));
+  } catch {}
+}
+function readRoleWait(): RoleWait | null {
+  try {
+    const raw = sessionStorage.getItem(ROLE_WAIT_KEY);
+    return raw ? (JSON.parse(raw) as RoleWait) : null;
+  } catch {
+    return null;
+  }
+}
+function forgetRoleWait() {
+  try {
+    sessionStorage.removeItem(ROLE_WAIT_KEY);
+  } catch {}
+}
 type Method = "phone" | "email";
 
 /** "What brings you to Shopinbos?": sell, deliver, supply (in that order). */
@@ -306,6 +329,30 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
     return () => abort.abort();
   }, [screen, channel, target]);
 
+  // Reloaded on "What brings you?": the code was already checked but no account was made, so come back to that
+  // question (a plain sign-in later would otherwise make it a seller account).
+  useEffect(() => {
+    if (mode !== "signup" || roleKnown) return;
+    const wait = readRoleWait();
+    if (!wait) return;
+    let live = true;
+    void currentAccessToken().then((accessToken) => {
+      if (!live) return;
+      if (!accessToken) return forgetRoleWait();
+      if (wait.fullName) {
+        const [first, ...rest] = wait.fullName.split(" ");
+        setGivenName(first);
+        setFamilyName(rest.join(" "));
+      }
+      setPending({ accessToken, phone: wait.phone });
+      setScreen("role");
+    });
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function resetMessages() {
     setError(null);
     setInfo(null);
@@ -431,6 +478,7 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
   /** After the code (or a late name): ask the role when nobody said yet, else open the account. */
   async function afterCode(accessToken: string | null, signedUpPhone?: string) {
     if (mode === "signup" && !roleKnown) {
+      rememberRoleWait({ fullName, phone: signedUpPhone });
       setPending({ accessToken, phone: signedUpPhone });
       setBusy(null);
       goTo("role");
@@ -488,6 +536,7 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
     setBusy(chosen);
     try {
       await finishWithToken(pending?.accessToken ?? null, pending?.phone, fullName, chosen);
+      forgetRoleWait();
     } catch (roleError) {
       setError(friendlyNetworkError(roleError));
       setBusy(null);

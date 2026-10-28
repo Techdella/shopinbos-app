@@ -133,6 +133,14 @@ function cookiesBlocked() {
  * away, every page would send them back to log in (a code that "works" but loops), so throw words saying how to fix
  * it instead. Other reasons for a missing session are left to the pages, as before.
  */
+/** The signed-in session's access token, or null. */
+export async function currentAccessToken(): Promise<string | null> {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) return null;
+  const { data } = await supabase.auth.getSession();
+  return data.session?.access_token ?? null;
+}
+
 export async function ensureSessionSaved() {
   if (await waitForSession()) return;
   if (!cookiesBlocked()) return;
