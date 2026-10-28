@@ -3,6 +3,7 @@
 // (pay on delivery at Cash trusted).
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 
 const r = await import("../shared/dropship-rules.ts");
 
@@ -127,18 +128,47 @@ test("pre-orders only at Established; the locked card shows progress to it", () 
 
 const partner = (over = {}) => ({ verified: true, delivered: 64, failed: 0, rating: 4.6, baseVerified: true, createdAt: "2026-09-17T00:00:00Z", lateRemittances: 0, cacOrGuarantor: false, now, ...over });
 
-test("partner levels: pay on delivery only at Cash trusted, and paused after late cash", () => {
+test("partner tiers: reach, not cash; pay on delivery for every verified partner, paused only for older cash owed", () => {
   assert.equal(r.partnerLevel(partner({ delivered: 10 })), "verified");
   assert.equal(r.partnerLevel(partner()), "trusted");
-  const cash = partner({ delivered: 150, createdAt: "2026-08-01T00:00:00Z", cacOrGuarantor: true });
-  assert.equal(r.partnerLevel(cash), "cash_trusted");
-  assert.equal(r.partnerLevel({ ...cash, lateRemittances: 1 }), "trusted");
-  assert.equal(r.canOfferPayOnDelivery({ level: "trusted" }), false);
+  const top = partner({ delivered: 150, createdAt: "2026-08-01T00:00:00Z", cacOrGuarantor: true });
+  assert.equal(r.partnerLevel(top), "cash_trusted");
+  assert.equal(r.PARTNER_LEVEL_LABELS.cash_trusted, "Top partner");
+  assert.equal(r.partnerLevel({ ...top, lateRemittances: 1 }), "cash_trusted", "no cash, so late pay-ins no longer count");
+  assert.equal(r.partnerLevel({ ...top, cacOrGuarantor: false }), "trusted");
+  assert.equal(r.canOfferPayOnDelivery({ level: "verified" }), true);
+  assert.equal(r.canOfferPayOnDelivery({ level: "verified", verificationStatus: "pending" }), false);
+  assert.equal(r.canOfferPayOnDelivery({ level: "trusted", verificationStatus: "verified" }), true);
   assert.equal(r.canOfferPayOnDelivery({ level: "cash_trusted", codPaused: true }), false);
-  assert.equal(r.canOfferPayOnDelivery({ level: "cash_trusted", codPaused: false }), true);
+  // What each tier unlocks.
+  assert.deepEqual([1, 2, 3].map((tier) => r.partnerTierNumber(r.PARTNER_LEVELS[tier - 1])), [1, 2, 3]);
+  assert.equal(r.partnerTierNumber("nonsense"), 1);
+  assert.equal(r.partnerPerks("verified").interstate, false);
+  assert.equal(r.partnerPerks("trusted").interstate, true);
+  assert.equal(r.partnerPerks("trusted").highValue, false);
+  assert.equal(r.partnerPerks("cash_trusted").highValue, true);
+  assert.equal(r.partnerPerks("cash_trusted").canApplyFeatured, true);
+  assert.ok(r.partnerPerks("cash_trusted").rankBoost > r.partnerPerks("trusted").rankBoost && r.partnerPerks("trusted").rankBoost > r.partnerPerks("verified").rankBoost);
+  assert.match(r.tierJobProblem("trusted", r.HIGH_VALUE_ORDER_NAIRA), /Top partners only/);
+  assert.equal(r.tierJobProblem("cash_trusted", 2_000_000), null);
+  assert.equal(r.tierJobProblem("verified", r.HIGH_VALUE_ORDER_NAIRA - 1), null);
   assert.equal(r.podCashCap({ delivered: 150 }), 100000);
   assert.equal(r.podCashCap({ delivered: 260, deposit: 50000 }), 170000);
   assert.equal(r.podJobFits({ cashHeld: 90000, jobCash: 15000, cap: 100000 }), false);
   const goals = r.partnerLevelGoals(partner()).goals;
   assert.deepEqual(goals.find((g) => g.key === "delivered").need, 150);
+});
+
+test("partner tiers on the server: interstate at Trusted, high-value at Top partner, ranked by tier, featuring", () => {
+  const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
+  const levels = read("src/lib/logistics/partner-levels.server.ts");
+  assert.match(levels, /!partnerPerks\(level\)\.interstate && partner\.services\.includes\("interstate"\)/, "dropping below Trusted takes interstate off");
+  assert.match(levels, /export async function applyToBeFeatured/);
+  assert.match(levels, /canApplyFeatured/);
+  const manage = read("src/lib/delivery-market/manage.server.ts");
+  assert.match(manage, /services\.includes\("interstate"\)\) \{\s*const locked = await interstateProblem\(partnerId\)/);
+  assert.match(manage, /tierBoost: partnerPerks\(partner\.level\)\.rankBoost/);
+  const tiers = read("src/lib/logistics/partner-tiers.server.ts");
+  assert.match(tiers, /const tier = tierJobProblem\(partner\.level/);
+  assert.match(tiers, /orderValue >= HIGH_VALUE_ORDER_NAIRA[\s\S]{0,200}level: \{ not: "cash_trusted" \}/);
 });

@@ -141,7 +141,7 @@ test("checkout enforces the supplier's dropship minimum and adds supplier parcel
   assert.match(read("src/lib/wallet/wallet.server.ts"), /unitCost: dropshipUnitPrice\(product\.supplierProduct\)/);
 });
 
-test("pay on delivery opens only at Cash trusted: the server refuses it, the API says pod_locked", () => {
+test("pay on delivery opens once a partner is verified: the server refuses it before, the API says pod_locked", () => {
   const manage = read("src/lib/delivery-market/manage.server.ts");
   assert.equal((manage.match(/await partnerPodProblem\(partnerId\)/g) ?? []).length, 2, "coverage switch and per-shop switch");
   assert.match(manage, /code: POD_LOCKED_CODE/);
@@ -153,5 +153,5 @@ test("pay on delivery opens only at Cash trusted: the server refuses it, the API
   assert.match(read("src/lib/logistics/jobs.ts"), /input\.to === "delivered"\) void import\("\.\/partner-levels\.server"\)\.then\(\(levels\) => levels\.refreshPartnerLevel\(input\.partnerId\)\)/);
   const coverage = read("src/app/logistics/coverage/page.tsx");
   assert.match(coverage, /level && !level\.podOpen \? \(\s*<PodLocked view=\{level\} \/>/);
-  assert.match(read("src/components/logistics/PartnerLevel.tsx"), /Unlocks at Cash trusted/);
+  assert.match(read("src/components/logistics/PartnerLevel.tsx"), /Opens once you&apos;re verified|Opens once you're verified/);
 });

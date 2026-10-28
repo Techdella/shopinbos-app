@@ -42,7 +42,7 @@ import { PartnerBrief } from "@/components/assistant/PartnerBrief";
 import { SetupWithPeggySlot } from "@/components/peggy/SetupWithPeggySlot";
 import { partnerBriefFor } from "@/lib/dashboard/partner-brief.server";
 import { PromoBanner } from "@/components/pricing/PromoBanner";
-import { PARTNER_LEVEL_LABELS, isPartnerLevel } from "@shared/dropship-rules";
+import { PARTNER_LEVEL_LABELS, isPartnerLevel, partnerTierNumber } from "@shared/dropship-rules";
 
 // Partner "Today", following the 2026 "Shopinbos Partners · web dispatch console" and mobile mockups.
 
@@ -135,8 +135,8 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
       actions={
         <>
           <Pill tone={taking ? "success" : "muted"} dot>{taking ? t("today.taking") : t("today.notTaking")}</Pill>
-          {/* Verified → Trusted → Cash trusted (pay on delivery opens at Cash trusted): /logistics/level. */}
-          <PillLink href="/logistics/level" size="sm" icon="shield">Level: {PARTNER_LEVEL_LABELS[isPartnerLevel(partner.level) ? partner.level : "verified"]}</PillLink>
+          {/* Tier 1 Verified → 2 Trusted → 3 Top partner: /logistics/level. */}
+          <PillLink href="/logistics/level" size="sm" icon="shield">Tier {partnerTierNumber(partner.level)} · {PARTNER_LEVEL_LABELS[isPartnerLevel(partner.level) ? partner.level : "verified"]}</PillLink>
         </>
       }
     >

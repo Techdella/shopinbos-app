@@ -16,6 +16,7 @@ import { getT } from "@/lib/i18n/server";
 import { PageTip } from "@/components/learn/PageTip";
 import { partnerLevelView } from "@/lib/logistics/partner-levels.server";
 import { PodLocked } from "@/components/logistics/PartnerLevel";
+import { INTERSTATE_LOCKED_MESSAGE } from "@shared/dropship-rules";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -33,7 +34,7 @@ export default async function LogisticsCoveragePage({ searchParams }: { searchPa
 
   const zones = coverageZoneRows(partner);
   const depot = coverageDepot(partner) ?? partner.city ?? "";
-  // Pay on delivery opens at Cash trusted (shared/dropship-rules.ts): below it the switch shows locked with the goals.
+  // Pay on delivery is open to verified partners (shared/dropship-rules.ts): before that the switch shows locked.
   const level = await partnerLevelView(partner.id);
 
   return (
@@ -62,12 +63,17 @@ export default async function LogisticsCoveragePage({ searchParams }: { searchPa
           <fieldset className="m-0 min-w-0 border-0 p-0 lg:col-span-2">
             <legend className={labelClass}>{t("market.cov.services")}</legend>
             <div className="flex flex-wrap gap-2">
-              {PARTNER_SERVICES.map((service) => (
-                <label key={service} className="flex min-h-[44px] items-center gap-2 rounded-full border border-app-line bg-white px-4 text-[15px] font-bold">
-                  <input type="checkbox" name="services" value={service} defaultChecked={partner.services.includes(service)} className="h-5 w-5 accent-[#16141F]" />
-                  {serviceLabel(t, service)}
-                </label>
-              ))}
+              {PARTNER_SERVICES.map((service) => {
+                // Interstate jobs open at Trusted (Tier 2, shared/dropship-rules.ts partnerPerks).
+                const locked = service === "interstate" && Boolean(level) && !level!.perks.interstate;
+                return (
+                  <label key={service} className={`flex min-h-[44px] items-center gap-2 rounded-full border border-app-line bg-white px-4 text-[15px] font-bold${locked ? " opacity-60" : ""}`} title={locked ? INTERSTATE_LOCKED_MESSAGE : undefined}>
+                    <input type="checkbox" name="services" value={service} defaultChecked={partner.services.includes(service)} disabled={locked} className="h-5 w-5 accent-[#16141F]" />
+                    {serviceLabel(t, service)}
+                    {locked ? <span className="text-[12.5px] font-semibold text-app-ink-soft">· Tier 2</span> : null}
+                  </label>
+                );
+              })}
             </div>
             <p className="mb-0 mt-1.5 text-[15px] text-app-ink-soft">{t("market.cov.servicesHint")}</p>
           </fieldset>

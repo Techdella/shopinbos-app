@@ -7,7 +7,7 @@ import { partnerForUser } from "../_shared";
 
 export const dynamic = "force-dynamic";
 
-// GET /api/mobile/logistics/level: the delivery partner's track-record level (Verified → Trusted → Cash trusted, the
+// GET /api/mobile/logistics/level: the delivery partner's tier (1 Verified → 2 Trusted → 3 Top partner, stored as cash_trusted, the
 // same screen as the web's /logistics/level), refreshed from their record on every read:
 //   { level: "verified"|"trusted"|"cash_trusted", next: same | null,
 //     goals: [{ key, label, have, need, done, kind: "count"|"check" }],

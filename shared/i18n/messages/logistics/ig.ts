@@ -654,7 +654,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "market.cov.addArea": "Tinye steeti ma ọ bụ LGA",
   "market.cov.lga": "LGA",
   "market.cov.wholeState": "Steeti niile",
-  "market.cov.podLabel": "Anyị na-anara ego cash pay on delivery maka ụlọ ahịa ndị họọrọ ya",
+  "market.cov.podLabel": "Anyị na-ewe ọrụ pay on delivery maka ụlọ ahịa ndị họọrọ ya (ndị ahịa na-akwụ n'app, rider anaghị ebu ego)",
   "market.cov.podChoose": "Ị ga-ahọrọ ndị azụmahịa na Connections.",
   "market.cov.save": "Chekwaa ọrụ na ebe",
   "market.biz.title": "Nkọwa azụmahịa",
