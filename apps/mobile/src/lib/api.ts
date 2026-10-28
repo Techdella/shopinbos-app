@@ -45,7 +45,7 @@ export function phoneMessage(message: string | null | undefined, status: number,
 }
 
 /** The token, and the header that tells the server this is the phone app (it keeps its answers store-safe). */
-async function authHeader(): Promise<Record<string, string>> {
+export async function authHeader(): Promise<Record<string, string>> {
   const { data } = await supabase.auth.getSession();
   return { [APP_CLIENT_HEADER]: APP_CLIENT_VALUE, ...(data.session ? { Authorization: `Bearer ${data.session.access_token}` } : {}) };
 }

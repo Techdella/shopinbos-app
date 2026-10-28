@@ -111,6 +111,7 @@ const TILES: { id: string; icon: AppIconName; tone: TileTone; path: string; labe
 
 export default function MyShop() {
   const t = useT("m_shop", "m_products", "m_onboarding", "nav", "common");
+  const tBulk = useT("bulkAdd");
   const [notSeller, setNotSeller] = useState(false);
   const [setup, setSetup] = useState<SetupOverview | null>(null);
   // Held here, not in the button: once the shop is live the button (and anything inside it) goes away.
@@ -219,6 +220,7 @@ export default function MyShop() {
           {(products ?? []).slice(0, INLINE_PRODUCTS).map((product) => <StockRow key={product.id} product={product} onStock={setStock} />)}
           {products && products.length > INLINE_PRODUCTS ? <Row lead={<Tile icon="tag" tone="peach" />} title={t("products.seeAll", { count: products.length })} onPress={() => router.push("/products")} /> : null}
           <Row testID="shop-add-product" lead={<Tile icon="camera" tone="peach" />} title={t("products.add")} sub={t("products.addSub")} onPress={() => router.push("/add-products")} />
+          <Row testID="shop-bulk-add" lead={<Tile icon="sparkle" tone="lilac" />} title={tBulk("entry.title")} sub={tBulk("entry.sub")} onPress={() => router.push("/bulk-add")} />
         </List>
       </View>
 

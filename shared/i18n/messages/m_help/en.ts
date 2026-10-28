@@ -126,6 +126,7 @@ const en = {
   "call.opened": "Peggy opened {screen}",
   "call.screen.account": "Account",
   "call.screen.add_product": "Add a product",
+  "call.screen.bulk_add": "Add many with Peggy",
   "call.screen.add_rider": "Add a rider",
   "call.screen.bank": "Bank for payments",
   "call.screen.cash": "Cash for sellers",

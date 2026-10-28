@@ -124,6 +124,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "call.opened": "Peggy ṣí {screen}",
   "call.screen.account": "Àkáǹtì",
   "call.screen.add_product": "Fi ọjà kún un",
+  "call.screen.bulk_add": "Fi ọ̀pọ̀ kún un pẹ̀lú Peggy",
   "call.screen.add_rider": "Fi awakọ̀ kún un",
   "call.screen.bank": "Báǹkì fún owó",
   "call.screen.cash": "Owó àwọn olùtajà",

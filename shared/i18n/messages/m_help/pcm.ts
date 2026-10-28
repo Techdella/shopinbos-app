@@ -124,6 +124,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "call.opened": "Peggy don open {screen}",
   "call.screen.account": "Account",
   "call.screen.add_product": "Add product",
+  "call.screen.bulk_add": "Add plenty with Peggy",
   "call.screen.add_rider": "Add rider",
   "call.screen.bank": "Bank wey money go enter",
   "call.screen.cash": "Cash for sellers",

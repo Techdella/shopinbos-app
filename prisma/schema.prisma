@@ -3000,6 +3000,67 @@ model AiChat {
   @@index([userId, assistant, updatedAt])
 }
 
+// ─── Add many with Peggy (shared/bulk-products.ts, src/lib/products/bulk/) ───────────────────────────────────────
+// A seller or supplier uploads many product photos at once, Peggy drafts each one from its photo and the person
+// prices them by chatting. Kept server-side so they can leave and come back; publishing creates StoreProduct or
+// SupplierProduct rows and records each one's id on its item (no duplicates on retry). Money in kobo.
+
+model BulkProductSession {
+  id         String            @id @default(cuid())
+  userId     String
+  role       String // seller | supplier
+  status     String            @default("open") // open | done | discarded
+  /// Peggy's chat: [{ id, at, from: "me" | "peggy", kind, ... }] (shared/bulk-products.ts BulkEvent), newest last.
+  thread     Json              @default("[]")
+  /// Group suggestions the person said no to (their keys).
+  dismissed  String[]          @default([])
+  /// The next item number ("1. Black leather handbag"); numbers never change once given.
+  nextNumber Int               @default(1)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  items      BulkProductItem[]
+
+  @@index([userId, status, updatedAt])
+}
+
+model BulkProductItem {
+  id           String             @id @default(cuid())
+  sessionId    String
+  session      BulkProductSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  number       Int
+  /// The phone or browser's key for the photo upload, so a retried upload never makes a second item.
+  clientKey    String
+  /// The photo's file name on the device ("IMG_2041.jpg"), so a spreadsheet import can match it.
+  fileName     String?
+  photos       String[]
+  name         String             @default("")
+  description  String             @default("")
+  category     String             @default("")
+  priceKobo    Int?
+  /// Peggy's guess, shown as a hint only; never saved as the price.
+  hintLowKobo  Int?
+  hintHighKobo Int?
+  stock        Int?
+  /// Variants: one colour per photo when photos of the same item in different colours were joined.
+  colours      String[]           @default([])
+  /// What Peggy saw, to suggest joining photos of the same item ("black-leather-tote") and its colour.
+  lookKey      String?
+  colour       String?
+  /// pending | working:<token> | done | skipped (AI off, over the daily cap or failed: a blank draft)
+  aiState      String             @default("pending")
+  aiClaimedAt  DateTime?
+  removed      Boolean            @default(false)
+  /// Set when published: the StoreProduct or SupplierProduct id.
+  productId    String?
+  publishError String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@unique([sessionId, clientKey])
+  @@unique([sessionId, number])
+  @@index([sessionId, aiState])
+}
+
 // ─── One-minute help videos (Help → "Watch a 1-minute video"; topics in shared/help-videos.ts) ─────
 
 model HelpVideo {
