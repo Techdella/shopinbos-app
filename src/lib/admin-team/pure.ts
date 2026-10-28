@@ -28,7 +28,7 @@ export const ADMIN_ROLE_HELP: Record<AdminRole, string> = {
   growth: "Inbox, leads, campaigns, WhatsApp, analytics, product news, the push center, help videos and requests.",
   operations: "Inbox, suppliers, logistics, catalog, marketplace, orders and requests.",
   finance: "Wallets, money owed, pricing and analytics.",
-  developer: "The Developers and App errors pages: delivery partners' software connections, API docs, service setup and errors people hit.",
+  developer: "The Developers, App errors and App updates pages: delivery partners' software connections, API docs, service setup, errors people hit and the phone app's update prompts.",
   sourcing: "Only China imports: quote sellers' requests, update each order's progress and add QC photos. For the sourcing partner's staff (ShopKonfam).",
 };
 
@@ -90,6 +90,7 @@ const SEGMENT_SECTION: Record<string, AdminSection> = {
   team: "team",
   developers: "developers",
   errors: "developers",
+  "app-release": "developers",
 };
 
 // Nav item id (src/lib/nav.ts) → section, for the sidebar.
@@ -120,6 +121,7 @@ const NAV_SECTION: Record<string, AdminSection> = {
   team: "team",
   developers: "developers",
   errors: "developers",
+  "app-release": "developers",
 };
 
 /** The stored value as a role: unknown or empty means owner (admins from before roles existed). */

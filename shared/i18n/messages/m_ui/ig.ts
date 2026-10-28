@@ -246,6 +246,14 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "preorders.seeMine": "Lee ịtụ n'ihu oge m",
   "preorders.depositPaidNote": "E zigara {name} ịtụ n'ihu oge, a kwụọkwala nkwụnye ego gị. Kwụọ ndị fọdụrụ mgbe ha kwuru na ngwaahịa adịla njikere.",
   "preorders.depositLater": "E zigara {name} ịtụ n'ihu oge. Kwụọ nkwụnye ego site na Lee ịtụ n'ihu oge m ka ị jide ọnọdụ gị.",
+  "update.title": "Ụdị ọhụrụ nke Shopinbos adịla njikere",
+  "update.body": "Melite ka ị nweta ihe ọhụrụ na ndozi kachasị ọhụrụ.",
+  "update.now": "Melite ugbu a",
+  "update.later": "Emechaa",
+  "update.requiredTitle": "Melite Shopinbos ka ị gaa n'ihu",
+  "update.requiredBody": "Ụdị ngwa a agbaala nká nke ukwuu ịrụ ọrụ. Melite ya site na Google Play. Ọ na-ewe naanị otu nkeji, ụlọ ahịa gị na ihe niile dị n'ime ya ga-anọ otu ha dị.",
+  "update.help": "Ị chọrọ enyemaka? Kpọtụrụ anyị",
+  "update.storeFailed": "Anyị enweghị ike imeghe Google Play. Mepee ngwa Play Store ma chọọ Shopinbos.",
 };
 
 export default ig;
