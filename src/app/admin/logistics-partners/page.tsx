@@ -16,6 +16,7 @@ import {
   withParams,
 } from "@/components/admin/AdminKit";
 import { db } from "@/lib/db/client";
+import { PLAN_SOURCE_SELECT, planSource, runningGrants } from "@/lib/admin/plan-source.server";
 import { requireRole } from "@/lib/server-auth";
 import { SERVICE_LABELS, type PartnerService } from "@shared/delivery-market";
 import { BADGE_LABELS, isPartnerBadge, partnerVerificationState } from "@shared/partner-tiers";
@@ -76,6 +77,7 @@ export default async function AdminLogisticsPartnersPage(props: { searchParams?:
         cacNumber: true,
         offersPayOnDelivery: true,
         updatedAt: true,
+        userId: true,
       },
     }),
     db.logisticsPartner.groupBy({ by: ["verificationStatus"], _count: { _all: true } }),
@@ -87,6 +89,14 @@ export default async function AdminLogisticsPartnersPage(props: { searchParams?:
   const openIssues = await db.deliveryIssue.groupBy({ by: ["logisticsPartnerId"], where: { status: "open", logisticsPartnerId: { in: partners.map((row) => row.id) } }, _count: { _all: true } });
   const openIssuesTotal = await db.deliveryIssue.count({ where: { status: "open" } });
   const issuesFor = (id: string) => openIssues.find((row) => row.logisticsPartnerId === id)?._count._all ?? 0;
+  // Each partner's plan, and whether it was paid through Paystack or is free time (a referral welcome month).
+  const partnerUserIds = partners.map((row) => row.userId);
+  const [planUsers, grants] = await Promise.all([
+    db.user.findMany({ where: { id: { in: partnerUserIds } }, select: { id: true, ...PLAN_SOURCE_SELECT } }),
+    runningGrants(partnerUserIds, new Date()),
+  ]);
+  const planUserBy = new Map(planUsers.map((row) => [row.id, row]));
+  const planFor = (userId: string) => planSource("logistics_partner", planUserBy.get(userId), grants.get(userId));
 
   const countFor = (status: string) => byStatus.find((row) => row.verificationStatus === status)?._count._all ?? 0;
   const selectedIds = partners.map((s) => s.id);
@@ -189,6 +199,8 @@ export default async function AdminLogisticsPartnersPage(props: { searchParams?:
                     {row.status !== "active" && <Pill tone={row.status === "paused" ? "warning" : "danger"}>{row.status === "suspended" ? "Account suspended" : row.status === "paused" ? "Paused by partner" : row.status}</Pill>}
                     {issuesFor(row.id) > 0 && <Pill tone="warning">{issuesFor(row.id)} open problem{issuesFor(row.id) === 1 ? "" : "s"}</Pill>}
                     <OnboardingPill status={onboardingSubmitted(row.onboardingState) ? "submitted" : "draft"} />
+                    <Pill tone={planFor(row.userId).paidPlan ? "accent" : "muted"}>{planFor(row.userId).plan}</Pill>
+                    {planFor(row.userId).giftNote && <span className="text-[12px] text-app-ink-soft">{planFor(row.userId).giftNote}</span>}
                   </div>
                   <div className="w-full text-[13px] text-app-ink-soft sm:w-auto lg:w-[200px] lg:shrink-0 lg:text-right">
                     {row.coverageZones.length} zones · from {formatMoney(row.basePrice)}

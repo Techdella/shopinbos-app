@@ -3,7 +3,7 @@ import "server-only";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { PAID_ORDER_STATUSES } from "@/lib/insights";
-import { PLANS_BY_ROLE, PLAN_MARKERS, PLAN_NAMES, planKeyFor } from "@shared/plans";
+import { PAID_THROUGH_PAYSTACK, PLAN_SOURCE_SELECT, paidMarkers, planSource, runningGrants } from "@/lib/admin/plan-source.server";
 
 // Admin › Sellers: shops and the business side of their owners. Under the NDPA only what running the platform needs:
 // shop details, plan and totals. Owners' contact details stay masked until revealed with a reason (the page), and a
@@ -14,14 +14,8 @@ export const SELLER_FILTERS = ["active", "suspended", "paid", "gifted", "new"] a
 export type SellerFilter = (typeof SELLER_FILTERS)[number];
 export const SELLERS_PER_PAGE = 50;
 
-const PAID_SELLER_MARKERS = PLANS_BY_ROLE.seller.filter((key) => key in PLAN_MARKERS).map((key) => PLAN_MARKERS[key as keyof typeof PLAN_MARKERS]);
+const PAID_SELLER_MARKERS = paidMarkers("seller");
 const paidStatuses = [...PAID_ORDER_STATUSES];
-
-// A paid tier is only "paid" when money came in through Paystack: a redeemed payment or a live subscription. A tier
-// without either is free time (a referral welcome month, a milestone or an admin gift, PlanGrant) and is counted apart.
-const PAID_THROUGH_PAYSTACK: Prisma.UserWhereInput = {
-  OR: [{ planStatus: { in: ["active", "non_renewing"] } }, { paymentReceipts: { some: {} } }],
-};
 
 function filterWhere(filter: SellerFilter | undefined, now: Date): Prisma.StoreWhereInput {
   if (filter === "active") return { status: "active" };
@@ -57,7 +51,7 @@ export async function listSellers(input: { filter?: SellerFilter; q?: string; pa
       take: SELLERS_PER_PAGE,
       select: {
         id: true, name: true, slug: true, logoUrl: true, city: true, country: true, status: true, customDomain: true, createdAt: true, userId: true,
-        user: { select: { name: true, aiCredits: true, planStatus: true, _count: { select: { paymentReceipts: true } } } },
+        user: { select: { name: true, ...PLAN_SOURCE_SELECT } },
         _count: { select: { storeProducts: true } },
       },
     }),
@@ -69,7 +63,7 @@ export async function listSellers(input: { filter?: SellerFilter; q?: string; pa
       ? db.retailOrder.groupBy({ by: ["storeId"], where: { storeId: { in: ids }, status: { in: paidStatuses }, createdAt: { gte: new Date(now.getTime() - 30 * DAY) } }, _count: { _all: true }, _sum: { total: true } })
       : [],
     userIds.length ? db.userActivityDay.groupBy({ by: ["userId"], where: { userId: { in: userIds } }, _max: { day: true } }).catch(() => []) : [],
-    userIds.length ? runningGrants(userIds, now) : new Map<string, GrantInfo>(),
+    runningGrants(userIds, now),
   ]);
   const orderBy = new Map(orders.map((row) => [row.storeId, row]));
   const activeBy = new Map(active.map((row) => [row.userId, row._max.day]));
@@ -80,37 +74,12 @@ export async function listSellers(input: { filter?: SellerFilter; q?: string; pa
     rows: stores.map((store) => ({
       ...store,
       ownerFirstName: store.user.name.trim().split(/\s+/)[0] ?? "",
-      plan: PLAN_NAMES[planKeyFor("seller", store.user.aiCredits)],
-      ...planSource(store.user, grants.get(store.userId)),
+      ...planSource("seller", store.user, grants.get(store.userId)),
       products: store._count.storeProducts,
       orders30: orderBy.get(store.id)?._count._all ?? 0,
       sales30: orderBy.get(store.id)?._sum.total ?? 0,
       lastActive: activeBy.get(store.userId) ?? null,
     })),
-  };
-}
-
-type GrantInfo = { source: string; endsAt: Date };
-
-/** The free time running for each user (the latest-ending grant), so a gifted tier says where it came from. */
-async function runningGrants(userIds: string[], now: Date) {
-  const rows = await db.planGrant
-    .findMany({ where: { userId: { in: userIds }, endsAt: { gt: now } }, orderBy: { endsAt: "asc" }, select: { userId: true, source: true, endsAt: true } })
-    .catch(() => []);
-  return new Map(rows.map((row) => [row.userId, { source: row.source, endsAt: row.endsAt }]));
-}
-
-const GRANT_LABELS: Record<string, string> = { referral: "referral reward", referral_welcome: "referral welcome", milestone: "milestone reward", admin: "admin gift" };
-
-/** Whether a seller's tier was paid through Paystack, or is free time (and which kind, until when). */
-function planSource(user: { aiCredits: number; planStatus: string | null; _count: { paymentReceipts: number } }, grant: GrantInfo | undefined) {
-  const tiered = PAID_SELLER_MARKERS.includes(user.aiCredits);
-  const paidPlan = tiered && (user.planStatus === "active" || user.planStatus === "non_renewing" || user._count.paymentReceipts > 0);
-  const giftedPlan = tiered && !paidPlan;
-  return {
-    paidPlan,
-    giftedPlan,
-    giftNote: giftedPlan ? `Free · ${grant ? `${GRANT_LABELS[grant.source] ?? grant.source}, ends ${grant.endsAt.toISOString().slice(0, 10)}` : "not paid"}` : null,
   };
 }
 
@@ -142,8 +111,7 @@ export async function sellerDetail(storeId: string, now = new Date()) {
   ]);
   return {
     ...store,
-    plan: PLAN_NAMES[planKeyFor("seller", store.user.aiCredits)],
-    ...planSource(store.user, grants.get(store.userId)),
+    ...planSource("seller", store.user, grants.get(store.userId)),
     stats: {
       products: store._count.storeProducts,
       orders: all._count._all,
