@@ -150,6 +150,23 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "badge.verified_individual": "Verified Individual",
   "badge.registered_business": "Registered Business",
   "badge.payout_ready": "Payout ready",
+  "name.pitch": "Ɗaruruwan shaguna za su iya sayar da kayanka. Kai ne ka sa farashi, su kawo kwastomomi.",
+  "review.item.id": "Katin shaida da selfie",
+  "review.item.id.sub": "Zai mai da kai Verified Individual",
+  "review.item.id.done": "Kai Verified Individual ne yanzu",
+  "review.item.catalogue": "Kundin kayanka",
+  "review.item.catalogue.sub": "Muna saka shi daga WhatsApp",
+  "review.item.catalogue.done": "An saka shi",
+  "review.item.cac": "Lambar CAC",
+  "review.item.cac.sub": "Ƙara daga baya don Registered Business",
+  "review.item.cac.done": "Alamar Registered Business",
+  "review.state.done": "An gama",
+  "review.state.checking": "Ana dubawa",
+  "review.state.progress": "Ana kan aiki",
+  "review.state.optional": "Ba dole ba",
+  "review.state.needed": "Ana bukata",
+  "review.once": "Da zarar an tabbatar da kai, masu sayarwa za su iya samun kayanka, su yi dropship ko su saya da yawa.",
+  "review.lookAround": "Duba ko'ina yayin da kake jira",
 };
 
 export default ha;

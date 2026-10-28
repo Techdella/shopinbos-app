@@ -106,6 +106,16 @@ const en = {
   "create.post": "Make a post or reel",
   "create.postSub": "Rex designs it for your Status, TikTok, Instagram",
   "greeting.addName": "Add your name",
+  "create.video": "Make a video with Rex",
+  "create.videoSub": "Pick a product. Rex makes a 15-second video for TikTok and Status.",
+  "create.more": "More ways to sell",
+  "create.ad": "Boost with an ad",
+  "create.adSub": "Reach more people on Instagram and Facebook",
+  "create.sale": "Run a sale with countdown",
+  "create.saleSub": "Black Friday, Christmas or your own sale",
+  "create.preorders": "Take pre-orders",
+  "create.preordersSub": "Sell before your stock arrives",
+  "create.web": "Want more room? Edit videos, ad reports and your store design at shopinbos.com.",
 } satisfies Record<string, string>;
 
 export default en;

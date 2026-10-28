@@ -161,6 +161,23 @@ const en = {
   "badge.verified_individual": "Verified Individual",
   "badge.registered_business": "Registered Business",
   "badge.payout_ready": "Payout ready",
+  "name.pitch": "Hundreds of shops can sell your products. You set the price, they bring the customers.",
+  "review.item.id": "ID and selfie",
+  "review.item.id.sub": "Makes you a Verified Individual",
+  "review.item.id.done": "You're a Verified Individual",
+  "review.item.catalogue": "Your catalogue",
+  "review.item.catalogue.sub": "We're listing it from WhatsApp",
+  "review.item.catalogue.done": "Listed",
+  "review.item.cac": "CAC number",
+  "review.item.cac.sub": "Add later for Registered Business",
+  "review.item.cac.done": "Registered Business badge",
+  "review.state.done": "Done",
+  "review.state.checking": "Checking",
+  "review.state.progress": "In progress",
+  "review.state.optional": "Optional",
+  "review.state.needed": "Needed",
+  "review.once": "Once verified, sellers can find your products, dropship them or buy wholesale.",
+  "review.lookAround": "Look around while you wait",
 } satisfies Record<string, string>;
 
 export default en;

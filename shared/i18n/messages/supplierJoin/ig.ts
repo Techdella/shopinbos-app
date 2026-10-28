@@ -150,6 +150,23 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "badge.verified_individual": "Verified Individual",
   "badge.registered_business": "Registered Business",
   "badge.payout_ready": "Payout ready",
+  "name.pitch": "Ọtụtụ narị ụlọ ahịa nwere ike ire ngwaahịa gị. Ị na-ekpebi ọnụahịa, ha na-akpọta ndị ahịa.",
+  "review.item.id": "Akwụkwọ njirimara na selfie",
+  "review.item.id.sub": "Ọ ga-eme gị Verified Individual",
+  "review.item.id.done": "Ị bụzi Verified Individual",
+  "review.item.catalogue": "Katalọg gị",
+  "review.item.catalogue.sub": "Anyị na-edepụta ya site na WhatsApp",
+  "review.item.catalogue.done": "Edepụtala ya",
+  "review.item.cac": "Nọmba CAC",
+  "review.item.cac.sub": "Tinye ya emesịa maka Registered Business",
+  "review.item.cac.done": "Baajị Registered Business",
+  "review.state.done": "Emechala",
+  "review.state.checking": "A na-enyocha",
+  "review.state.progress": "Ọ na-aga n'ihu",
+  "review.state.optional": "Ọ bụghị iwu",
+  "review.state.needed": "Achọrọ ya",
+  "review.once": "Ozugbo e nyochachara gị, ndị na-ere ahịa nwere ike ịchọta ngwaahịa gị, mee dropship ha ma ọ bụ zụta n'ọtụtụ.",
+  "review.lookAround": "Lelee anya ka ị na-echere",
 };
 
 export default ig;
