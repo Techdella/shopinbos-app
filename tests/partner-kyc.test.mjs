@@ -128,8 +128,11 @@ test("the guarantor page and its API are public and rate limited", () => {
 });
 
 test("terms at setup, the CAC banner and link, and the spec's pages", () => {
-  const onboarding = read("src/components/onboarding/LogisticsOnboarding.tsx");
-  assert.match(onboarding, /acceptTerms: true/);
+  // Set-up is two questions on the web and the phone; the terms are ticked at verification's Review step (both), and
+  // the set-up route still takes them when a client sends acceptTerms.
+  assert.doesNotMatch(read("src/components/onboarding/LogisticsOnboarding.tsx"), /acceptTerms/);
+  assert.match(read("src/components/logistics/verification/CacReviewSteps.tsx"), /kycCall\("\/terms"/);
+  assert.match(read("apps/mobile/src/components/kyc/BusinessSteps.tsx"), /t\("terms\.needed"\)/);
   assert.match(read("src/app/api/logistics/onboarding/route.ts"), /termsVersion: PARTNER_TERMS_VERSION/);
   const en = read("shared/i18n/messages/partnerKyc/en.ts");
   assert.match(en, /"page.noCacBanner": "You don't need CAC to start\. Add it later to unlock more orders\."/);

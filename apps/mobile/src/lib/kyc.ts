@@ -50,7 +50,8 @@ export const saveIdentity = (input: { firstName?: string; lastName?: string; add
 export const checkNin = (input: { nin: string; firstName: string; lastName: string; dateOfBirth: string; selfie: string; liveness?: { reference: string; passed: boolean } }) =>
   api<KycState>(`${BASE}/nin`, { method: "POST", json: input });
 
-export const sendPhoneCode = (phone: string) => api<{ challenge: string }>(`${BASE}/phone`, { method: "POST", json: { action: "send", phone } });
+/** Sends a phone code, or approves at once when it is the number the account signed up with (then there is no challenge). */
+export const sendPhoneCode = (phone: string) => api<{ challenge: string } | KycState>(`${BASE}/phone`, { method: "POST", json: { action: "send", phone } });
 export const verifyPhoneCode = (phone: string, challenge: string, code: string) =>
   api<KycState>(`${BASE}/phone`, { method: "POST", json: { action: "verify", phone, challenge, code } });
 

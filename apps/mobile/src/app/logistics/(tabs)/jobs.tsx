@@ -14,11 +14,14 @@ import { NotificationBellButton } from "@/components/NotificationBellButton";
 import { PayInOverdueCard } from "@/components/PayInOverdueCard";
 import { CardButton, PeggyButton, RouteCard, shopRoleOf } from "@/components/PartnerKit";
 import { TierCard } from "@/components/kyc/TierCard";
+import { FinishLaterCard } from "@/components/kyc/FinishLaterCard";
 import { PushPromptCard } from "@/components/PushPromptCard";
 import { TabScreen } from "@/components/TabScreen";
 import { Card, T, Toggle } from "@/components/ui";
 import { fetchRewards, fetchStatusFeed, levelProgress, type StatusAuthor, type StatusPost } from "@/lib/familiar";
 import { useT } from "@/lib/i18n";
+import { fetchKyc } from "@/lib/kyc";
+import { finishLater } from "@/lib/partner-setup-pure";
 import { fetchEarnings, fetchJobs, fetchLogisticsOverview, fetchMarket, setTakingJobs, type Job, type JobView } from "@/lib/logistics";
 import { STATUS_WORD, TAKING_BLOCK_ACTION, takingBlockOf } from "@/lib/logistics-pure";
 import type { TakingBlock } from "@shared/taking-jobs";
@@ -93,6 +96,7 @@ export default function LogisticsJobs() {
   const earnings = useLoad(fetchEarnings);
   const status = useLoad(fetchStatusFeed);
   const rewards = useLoad(fetchRewards);
+  const kyc = useLoad(fetchKyc);
   const data = overview.data;
   const [override, setOverride] = useState<boolean | null>(null);
   const [switching, setSwitching] = useState(false);
@@ -143,6 +147,7 @@ export default function LogisticsJobs() {
     void earnings.reload();
     void status.reload();
     void rewards.reload();
+    void kyc.reload();
   }
 
   // A story's button: "Chat with them" and "Offer to deliver" open the chat with that business; "See their shop"
@@ -157,11 +162,15 @@ export default function LogisticsJobs() {
     router.push({ pathname: "/logistics/chat/[id]", params: { id: post.cta?.target?.userId ?? author.userId, name: author.name, role: author.role } });
   }
 
+  // "Finish setting up" (components/kyc/FinishLaterCard.tsx): everything the short set-up left for later, in tier
+  // order, until the verification steps are sent. It takes the place of "Get set up" and the verification card.
+  const later = data?.partner.onboarded && kyc.data ? finishLater(kyc.data) : null;
+  const sent = kyc.data ? !["unverified", "rejected"].includes(kyc.data.state) : ["verified", "pending"].includes(data?.partner.verificationStatus ?? "");
   // "Get set up" (prototype `ckList`), read from what the company already has.
   const checklist: ChecklistItem[] =
-    data && market.data && data.partner.onboarded && !hideChecklist
+    data && market.data && data.partner.onboarded && !hideChecklist && !later
       ? [
-          { key: "docs", label: t("fam.ck.docs"), done: ["verified", "pending"].includes(data.partner.verificationStatus), onPress: () => router.push("/logistics/verification") },
+          { key: "docs", label: t("fam.ck.docs"), done: sent, onPress: () => router.push("/logistics/verification") },
           { key: "rates", label: t("fam.ck.rates"), done: (market.data.rateCard?.rows.length ?? 0) > 0, onPress: () => router.push("/logistics/rates") },
           { key: "points", label: t("fam.ck.points"), done: market.data.pickupPoints.length > 0, onPress: () => router.push("/logistics/points") },
           { key: "riders", label: t("fam.ck.riders"), done: data.riders.total > 0, onPress: () => router.push("/logistics/team") },
@@ -210,12 +219,13 @@ export default function LogisticsJobs() {
         </View>
       ) : null}
 
+      {later && kyc.data ? <FinishLaterCard kyc={kyc.data} hasRiders={(data?.riders.total ?? 0) > 0} /> : null}
       {checklistShown ? <Checklist title={t("fam.ck.title")} items={checklist} onDismiss={() => setHideChecklist(true)} /> : null}
       <GettingStartedCard />
 
       {data && !data.partner.onboarded ? (
         <CardButton icon="truck" tint={colors.mintTint} iconBg="#FFFFFF" title={t("today.finish")} sub={t("today.finishHint")} onPress={() => router.push("/logistics/setup")} />
-      ) : data && verification && data.partner.verificationStatus !== "verified" && !(checklistShown && data.partner.verificationStatus === "unverified") ? (
+      ) : data && verification && data.partner.verificationStatus !== "verified" && !later && (kyc.data ? kyc.data.state !== "unverified" : !(checklistShown && data.partner.verificationStatus === "unverified")) ? (
         <CardButton icon="shield" tint={colors.warnTint} iconBg="#FFFFFF" iconFg={colors.warnInk} title={verification.label} sub={verification.hint} onPress={() => router.push("/logistics/verification")} />
       ) : null}
       {data?.partner.verificationStatus === "verified" ? <TierCard /> : null}

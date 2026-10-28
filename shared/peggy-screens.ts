@@ -112,7 +112,9 @@ const SUPPLIER: PeggyScreen[] = [
 
 const PARTNER: PeggyScreen[] = [
   { id: "home", name: "Home", app: "/logistics/home", web: "/logistics/dashboard", also: ["dashboard"] },
-  { id: "setup", name: "Set-up", app: "/logistics/setup", web: "/logistics/onboarding", also: ["setup"] },
+  { id: "setup", name: "Set-up", app: "/logistics/setup", web: "/logistics/onboarding", also: ["setup", "business name", "vehicles"], about: "two questions: the business and how they deliver" },
+  // The short set-up leaves the rest (ID, bank, vehicle, guarantor, then prices, riders, CAC) on this list on Jobs.
+  { id: "finish_setup", name: "Finish setting up", app: "/logistics/jobs", web: "/logistics/dashboard", also: ["finish later", "checklist", "what's left"], about: "what's left before jobs come, in order" },
   { id: "jobs", name: "Jobs", app: "/logistics/jobs", web: "/logistics/bookings", also: ["bookings", "deliveries"] },
   { id: "coverage", name: "Where you deliver", app: "/logistics/coverage", web: "/logistics/coverage", also: ["coverage", "areas"] },
   { id: "pickup_points", name: "Pickup points", app: "/logistics/points", web: "/logistics/pickup-points", also: ["pickup", "hubs", "offices"] },

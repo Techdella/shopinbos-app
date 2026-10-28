@@ -165,6 +165,7 @@ const en = {
   "call.screen.shop": "My shop",
   "call.screen.start": "Start here",
   "call.screen.verification": "Verification",
+  "call.screen.finish_setup": "Finish setting up",
   "call.screen.wallet": "Wallet",
   "call.screen.where": "Where you sell",
   "call.peggyEnded": "Peggy ended the call",

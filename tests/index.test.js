@@ -345,8 +345,8 @@ test("onboarding memory is durable and shared with Rex builder", () => {
   assert.match(logisticsOnboarding, /requireRole\(\["logistics_partner"\]/);
   assert.match(logisticsOnboardingComponent, /fetch\("\/api\/logistics\/onboarding"\)/);
   assert.match(logisticsOnboardingComponent, /method: "PATCH"/);
-  assert.match(logisticsOnboardingComponent, /coverageMap: \{ zones/);
-  assert.match(logisticsOnboardingComponent, /completed,/);
+  assert.match(logisticsOnboardingComponent, /pickupAreas: \[home\]/);
+  assert.match(logisticsOnboardingComponent, /completed: true,/);
 
   assert.match(builderPage, /onboardingMemory=\{workspace\.settings\.onboardingMemory \?\? null\}/);
   assert.match(builderPage, /params\?\.mode === "rex" \? "products" : undefined/);
@@ -478,7 +478,7 @@ test("supplier and logistics onboarding require manual verification before platf
   assert.match(appUser, /verificationStatus: "unverified"/);
   assert.match(appUser, /onboardingState: \{ source: "signup", completed: false \}/);
   assert.match(supplierRoute, /parsed\.data\.completed \? "pending" : "unverified"/);
-  assert.match(logisticsRoute, /parsed\.data\.completed \? "pending" : "unverified"/);
+  assert.match(logisticsRoute, /data\.completed \? "pending" : "unverified"/);
   assert.match(supplierDashboard, /ensureSupplierAccess\(supplier\)/);
   assert.match(logisticsDashboard, /ensureLogisticsAccess\(partner\)/);
   assert.match(adminSuppliers, /Onboarding/);
@@ -516,7 +516,7 @@ test("supplier and logistics starter limits are enforced and shown in billing UI
   assert.match(logisticsActions, /export async function updateLogisticsTeamMemberStatus/);
   assert.match(logisticsActions, /Billing%20%26%20Plan&limit=routes/);
   assert.match(logisticsActions, /Billing%20%26%20Plan&limit=team/);
-  assert.match(logisticsRoute, /coverageStateCount\(parsed\.data\.coverageZones, parsed\.data\.coverageMap\) > coverageLimit/);
+  assert.match(logisticsRoute, /coverageStateCount\(data\.coverageZones, data\.coverageMap\) > coverageLimit/);
   assert.match(logisticsProfileRoute, /coverageStateCount\(parsed\.data\.coverageZones\) > limit/);
   assert.match(logisticsCouriers, /addLogisticsTeamMember/);
   assert.match(logisticsCouriers, /t\("riders\.starterLimit", \{ limit: teamLimit \?\? 0 \}\)/);
