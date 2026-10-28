@@ -94,6 +94,10 @@ const SELLER: PeggyScreen[] = [
   },
   { id: "reviews", name: "Reviews", app: "/reviews", web: "/home/reviews" },
   { id: "customers", name: "Customers", app: "/customers", web: "/home/customers" },
+  // The grow screens of the Menu (canvas board M-Menu).
+  { id: "insights", name: "Insights", app: "/insights", web: "/home/analytics", also: ["analytics", "stats", "store visits", "best sellers", "how my shop is doing"], about: "sales, orders, store visits, where visitors come from and the best sellers" },
+  { id: "email", name: "Email", app: "/marketing/email", web: "/home/marketing/campaigns", also: ["emails", "email campaigns", "newsletter", "send an email", "subscribers email"], about: "emails to subscribers: the ones sent and planned, and a new one Rex writes" },
+  { id: "popups", name: "Popups", app: "/marketing/popups", web: "/home/marketing/forms", also: ["popup", "pop-up", "pop-ups", "sign-up popup", "collect emails"], about: "offers that show on the shop and collect emails and WhatsApp numbers" },
   { id: "domain", name: "Web address", app: "/domain", web: "/home/domain", also: ["domain"] },
   { id: "settings", name: "Settings", app: "/settings", web: "/home/settings" },
   { id: "help", name: "Help", app: "/help", web: "/home/peggy" },

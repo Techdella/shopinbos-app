@@ -16,10 +16,10 @@ const setupWords = await import("../apps/mobile/src/lib/setup-words.ts");
 
 // ─── Structure ───────────────────────────────────────────────────────────────
 
-test("seller tab bar: exactly Home, Orders, Chats, My shop, with the + in the middle", () => {
+test("seller tab bar: exactly Home, Orders, Chats, Menu (was My shop), with the + in the middle", () => {
   const layout = read("app/(tabs)/_layout.tsx");
   const tabs = layout.slice(layout.indexOf("export const TABS"), layout.indexOf("];", layout.indexOf("export const TABS")));
-  assert.deepEqual([...tabs.matchAll(/label: "([^"]+)"/g)].map((match) => match[1]), ["Home", "Orders", "Chats", "My shop"]);
+  assert.deepEqual([...tabs.matchAll(/label: "([^"]+)"/g)].map((match) => match[1]), ["Home", "Orders", "Chats", "Menu"]);
   assert.deepEqual([...tabs.matchAll(/name: "([^"]+)"/g)].map((match) => match[1]), ["home", "orders", "chats", "shop"]);
   // The "+" sits between the first two tabs and the last two, and opens the create sheet.
   assert.match(layout, /plus=\{\{[^}]*testID: "create-button"/);

@@ -237,7 +237,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "tab.home": "Gida",
   "tab.orders": "Orders",
   "tab.chats": "Hira",
-  "tab.shop": "Shagona",
+  "tab.shop": "Menu",
   "tab.create": "Ƙara ko sayar",
   "tab.supplier.home": "Gida",
   "tab.supplier.orders": "Orders",

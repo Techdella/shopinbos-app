@@ -53,6 +53,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "watch.adHint": "Yi amfani da wannan bidiyon a matsayin talla a Facebook da Instagram.",
   "watch.adOnWeb": "Yi tallan a yanar gizo",
   "watch.saveFailed": "Ba a iya saka bidiyon a wayarka ba. Duba haɗinka ka sake gwadawa.",
+  "watch.boost": "Ƙara shi da talla",
 };
 
 export default ha;

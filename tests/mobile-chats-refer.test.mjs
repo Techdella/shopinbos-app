@@ -34,16 +34,22 @@ test("seller chats: customers and partners in one list, newest first, each partn
   assert.equal(chats.mergeSellerChats([inboxItem({})], null).length, 1);
 });
 
-test("seller chat filters: All, Customers, Partners, Unread; done chats only when searching", () => {
-  assert.deepEqual([...chats.SELLER_CHAT_FILTERS], ["all", "customers", "partners", "unread"]);
+test("seller chat filters: All, Customers, Riders, Suppliers, Unread (board A-Seller-Chats); done chats only when searching", () => {
+  assert.deepEqual([...chats.SELLER_CHAT_FILTERS], ["all", "customers", "riders", "suppliers", "unread"]);
   const list = chats.mergeSellerChats(
     [inboxItem({ unread: 2 }), inboxItem({ key: "c:2", id: "2", name: "Bola", status: "closed", unread: 1 })],
-    [{ id: "u", name: "Kola", kind: "supplier", lastMessage: "Hi", lastMessageAt: "2026-10-01T00:00:00Z", unread: 0 }],
+    [
+      { id: "u", name: "Kola", kind: "supplier", lastMessage: "Hi", lastMessageAt: "2026-10-01T00:00:00Z", unread: 0 },
+      { id: "r", name: "Swift Riders", kind: "logistics_partner", lastMessage: "Picked up", lastMessageAt: "2026-09-30T00:00:00Z", unread: 0 },
+    ],
   );
   const names = (filter, q) => list.filter((chat) => chats.sellerChatMatches(chat, filter, q)).map((chat) => chat.name);
-  assert.deepEqual(names("all"), ["Ada", "Kola"]);
+  assert.deepEqual(names("all"), ["Ada", "Kola", "Swift Riders"]);
   assert.deepEqual(names("customers"), ["Ada"]);
-  assert.deepEqual(names("partners"), ["Kola"]);
+  assert.deepEqual(names("riders"), ["Swift Riders"]);
+  assert.deepEqual(names("suppliers"), ["Kola"]);
+  // Old links with ?filter=partners still open both kinds.
+  assert.deepEqual(names("partners"), ["Kola", "Swift Riders"]);
   assert.deepEqual(names("unread"), ["Ada"]);
   assert.deepEqual(names("all", "bola"), ["Bola"]);
   assert.equal(chats.asSellerChatFilter("partners"), "partners");

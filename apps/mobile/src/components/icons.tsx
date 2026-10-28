@@ -3,7 +3,7 @@ import { colors } from "@/theme";
 
 // Line icons for the app chrome (tab bar, quick actions, Peggy tasks). 24px grid, 1.9 stroke.
 
-export type AppIconName = "home" | "box" | "chat" | "bag" | "grid" | "plus" | "search" | "bell" | "mic" | "receipt" | "play" | "megaphone" | "sparkle" | "truck" | "mail" | "coin" | "chevron" | "store" | "user" | "printer" | "tag" | "wifiOff" | "star" | "check" | "clock" | "share" | "doc" | "send" | "settings" | "image" | "bot" | "phone" | "pin" | "camera" | "shield" | "users" | "help" | "wallet" | "logout" | "x" | "globe" | "link" | "route" | "filter" | "lock" | "copy";
+export type AppIconName = "home" | "box" | "chat" | "bag" | "grid" | "plus" | "search" | "bell" | "mic" | "receipt" | "play" | "megaphone" | "sparkle" | "truck" | "mail" | "coin" | "chevron" | "store" | "user" | "printer" | "tag" | "wifiOff" | "star" | "check" | "clock" | "share" | "doc" | "send" | "settings" | "image" | "bot" | "phone" | "pin" | "camera" | "shield" | "users" | "help" | "wallet" | "logout" | "x" | "globe" | "link" | "route" | "filter" | "lock" | "copy" | "chart" | "zap" | "popup";
 
 const PATHS: Record<AppIconName, (color: string) => React.ReactNode> = {
   home: () => <Path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />,
@@ -52,6 +52,10 @@ const PATHS: Record<AppIconName, (color: string) => React.ReactNode> = {
   filter: () => <Path d="M4 6h16M7 12h10M10 18h4" />,
   lock: () => <><Rect x="5" y="11" width="14" height="10" rx="2" /><Path d="M8 11V8a4 4 0 0 1 8 0v3" /></>,
   copy: () => <><Rect x="9" y="9" width="11" height="11" rx="2" /><Path d="M15 9V5.5A1.5 1.5 0 0 0 13.5 4h-8A1.5 1.5 0 0 0 4 5.5v8A1.5 1.5 0 0 0 5.5 15H9" /></>,
+  // Insights, Automations and Popups (canvas board M-Menu).
+  chart: () => <Path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />,
+  zap: () => <Path d="M13 3L5 14h6l-1 7 8-11h-6z" />,
+  popup: () => <><Rect x="3" y="3" width="18" height="18" rx="3" /><Rect x="7" y="8" width="10" height="8" rx="2" /></>,
 };
 
 export function AppIcon({ name, size = 22, color = colors.ink, strokeWidth = 1.9 }: { name: AppIconName; size?: number; color?: string; strokeWidth?: number }) {

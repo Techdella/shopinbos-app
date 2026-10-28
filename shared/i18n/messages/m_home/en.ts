@@ -115,7 +115,17 @@ const en = {
   "create.saleSub": "Black Friday, Christmas or your own sale",
   "create.preorders": "Take pre-orders",
   "create.preordersSub": "Sell before your stock arrives",
-  "create.web": "Want more room? Edit videos, ad reports and your store design at shopinbos.com.",
+  "create.web": "Everything works here on your phone. It's all on shopinbos.com too.",
+  "create.status": "Post to Status",
+  "create.statusSub": "A photo or words for your customers to see today",
+  "create.email": "Send an email",
+  "create.emailSub": "Rex writes it for your subscribers",
+  "create.automation": "Automation",
+  "create.automationSub": "Messages that send themselves, like a cart reminder",
+  "create.popup": "Popup",
+  "create.popupSub": "An offer on your shop that collects emails and WhatsApp numbers",
+  "needs.allOrders": "All orders",
+  "fromPeggy": "From Peggy",
 } satisfies Record<string, string>;
 
 export default en;

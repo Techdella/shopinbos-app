@@ -113,7 +113,17 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "create.saleSub": "Black Friday, Kirsimeti ko rangwamenka",
   "create.preorders": "Karɓi odar gaba",
   "create.preordersSub": "Sayar kafin kayanka su iso",
-  "create.web": "Kana son ƙarin fili? Gyara bidiyo, rahotannin talla da zanen shagonka a shopinbos.com.",
+  "create.web": "Komai yana aiki a nan a wayarka. Duk yana kan shopinbos.com ma.",
+  "create.status": "Saka a Status",
+  "create.statusSub": "Hoto ko kalmomi da kwastomominka za su gani yau",
+  "create.email": "Aika imel",
+  "create.emailSub": "Rex zai rubuta shi don masu biyan kuɗinka",
+  "create.automation": "Aiki da kansa",
+  "create.automationSub": "Saƙonni masu aikawa da kansu, kamar tunatarwar kwando",
+  "create.popup": "Popup",
+  "create.popupSub": "Tayi a shagonka mai tara imel da lambobin WhatsApp",
+  "needs.allOrders": "Duk oda",
+  "fromPeggy": "Daga Peggy",
 };
 
 export default ha;

@@ -187,6 +187,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "sec.newsletter": "Debanye aha",
   "sec.testimonials": "Nyocha",
   "sec.trust-strip": "Akara ntụkwasị obi",
+  "link.posts.label": "Kalenda posts",
+  "link.posts.hint": "Posts emerela na ndị ahaziri, kwa ụbọchị",
 };
 
 export default ig;

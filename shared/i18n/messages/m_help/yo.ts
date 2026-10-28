@@ -176,6 +176,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "call.screen.agreements": "Àdéhùn dropship",
   "call.screen.status": "Fi Status ránṣẹ́",
   "call.screen.rewards": "Ẹ̀bùn",
+  "call.screen.insights": "Àkíyèsí",
+  "call.screen.email": "Ímeèlì",
+  "call.screen.popups": "Pọ́ọ̀pù",
 };
 
 export default yo;

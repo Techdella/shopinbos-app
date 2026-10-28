@@ -53,6 +53,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "watch.adHint": "Jiri vidiyo a mee mgbasa ozi na Facebook na Instagram.",
   "watch.adOnWeb": "Mee mgbasa ozi ahụ na weebụ",
   "watch.saveFailed": "Enweghị ike itinye vidiyo ahụ na ekwentị gị. Lelee njikọ gị ma nwaa ọzọ.",
+  "watch.boost": "Kwalite ya na mgbasa ozi",
 };
 
 export default ig;

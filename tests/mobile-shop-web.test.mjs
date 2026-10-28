@@ -13,15 +13,16 @@ const prints = await import("../shared/print-orders.ts");
 const packaging = await import("../shared/packaging.ts");
 const { NAMESPACES, CATALOGS } = await import("../shared/i18n/catalog.ts");
 
-test("My shop: the four tiles are a 2×2 grid of equal tiles, never a percentage width that wraps at 360px", () => {
+test("Menu (was My shop): the Grow and Store grids are rows of three equal tiles, never a percentage width that wraps at 360px", () => {
   const shop = app("app/(tabs)/shop.tsx");
-  const grid = shop.slice(shop.indexOf("{/* Money, Delivery, Posts, Web address"), shop.indexOf("{/* The products, with their stock"));
-  assert.match(grid, /\[TILES\.slice\(0, 2\), TILES\.slice\(2, 4\)\]/);
-  assert.match(grid, /flexDirection: "row", gap: 10/);
+  const grid = shop.slice(shop.indexOf("function ToolGrid("), shop.indexOf("export default function Menu"));
+  assert.match(grid, /tools\.slice\(index, index \+ 3\)/);
+  assert.match(grid, /flexDirection: "row", gap: 8/);
   assert.match(grid, /flex: 1, minWidth: 0/);
   assert.doesNotMatch(grid, /width: "\d+(\.\d+)?%"|flexWrap/);
-  assert.match(shop, /id: "domain", icon: "globe", tone: "lilac", path: "app:\/domain"/);
-  assert.match(shop, /router\.push\("\/packaging" as never\)/);
+  // Web address and Packaging moved off the screen's top into the Look group; both are still app screens.
+  assert.match(shop, /id: "domain", label: "Web address", icon: "globe", path: "app:\/domain"/);
+  assert.match(shop, /id: "packaging", label: "Packaging and labels", icon: "box", path: "app:\/packaging"/);
 });
 
 test("My shop: no Sell everywhere and nothing that opens the web app", () => {

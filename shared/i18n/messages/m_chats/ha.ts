@@ -176,6 +176,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "bot.faqA": "Amsar Peggy",
   "bot.faqAdd": "Ƙara tambaya",
   "bot.faqRemove": "Cire",
+  "chats.riders": "Masu isarwa",
+  "chats.suppliers": "Masu kawo kaya",
 };
 
 export default ha;

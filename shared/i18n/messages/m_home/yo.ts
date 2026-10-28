@@ -113,7 +113,17 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "create.saleSub": "Black Friday, Kérésìmesì tàbí àtàjà tìrẹ",
   "create.preorders": "Gba àṣẹ ṣáájú",
   "create.preordersSub": "Tà kí ọjà rẹ tó dé",
-  "create.web": "Ṣé o fẹ́ àyè púpọ̀ sí i? Ṣàtúnṣe fídíò, ìròyìn ìpolówó àti àwòrán ṣọ́ọ̀bù rẹ ní shopinbos.com.",
+  "create.web": "Gbogbo nǹkan ń ṣiṣẹ́ níbí lórí fóònù rẹ. Gbogbo rẹ̀ tún wà lórí shopinbos.com.",
+  "create.status": "Fi sí Status",
+  "create.statusSub": "Àwòrán tàbí ọ̀rọ̀ fún àwọn oníbàárà rẹ láti rí lónìí",
+  "create.email": "Fi ímeèlì ránṣẹ́",
+  "create.emailSub": "Rex yóò kọ ọ́ fún àwọn alábàápín rẹ",
+  "create.automation": "Iṣẹ́ aládàáṣe",
+  "create.automationSub": "Ọ̀rọ̀ tó ń lọ fúnra rẹ̀, bí ìrántí apẹ̀rẹ̀",
+  "create.popup": "Pọ́ọ̀pù",
+  "create.popupSub": "Ìfilọ̀ lórí ṣọ́ọ̀bù rẹ tó ń gba ímeèlì àti nọ́mbà WhatsApp",
+  "needs.allOrders": "Gbogbo ọ̀rọ̀ àṣẹ",
+  "fromPeggy": "Láti ọ̀dọ̀ Peggy",
 };
 
 export default yo;

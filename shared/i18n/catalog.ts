@@ -53,6 +53,7 @@ import m_domain from "./messages/m_domain/index.ts";
 import m_packaging from "./messages/m_packaging/index.ts";
 import m_campaigns from "./messages/m_campaigns/index.ts";
 import m_video from "./messages/m_video/index.ts";
+import m_grow from "./messages/m_grow/index.ts";
 import m_money from "./messages/m_money/index.ts";
 import wallet from "./messages/wallet/index.ts";
 import m_ads from "./messages/m_ads/index.ts";
@@ -154,6 +155,7 @@ export const CATALOGS = {
   m_packaging,
   m_campaigns,
   m_video,
+  m_grow,
   m_money,
   wallet,
   m_ads,
