@@ -43,6 +43,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "ready.ownHint": "Za ka ɗauki hoton na farko yanzu",
   "ready.dropship": "A'a, nemo min supplier",
   "ready.dropshipHint": "Dropship: su ne ke ajiye kayan su kai shi",
+  "ready.packs": "Ko ka fara da kunshin kaya da aka shirya",
 
   "product.title": "Ƙara kayanka na farko.",
   "product.snap": "Buɗe kyamara",

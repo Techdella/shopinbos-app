@@ -43,6 +43,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "ready.ownHint": "You go snap the first one next",
   "ready.dropship": "No, find me supplier",
   "ready.dropshipHint": "Dropship: dem keep the stock and deliver am",
+  "ready.packs": "Or start with pack of products wey don ready",
 
   "product.title": "Add your first product.",
   "product.snap": "Open camera",

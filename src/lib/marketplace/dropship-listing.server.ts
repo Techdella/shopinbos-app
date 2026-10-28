@@ -27,7 +27,7 @@ export type ListingChoiceInput = z.infer<typeof ListingChoiceSchema>;
 type TermsProduct = Parameters<typeof dropshipTerms>[0]["product"] & { id: string; supplierId: string };
 
 /** Where the seller is: their delivery settings' origin, else their store's city. */
-async function sellerPlaceOf(sellerUserId: string): Promise<Place | null> {
+export async function sellerPlaceOf(sellerUserId: string): Promise<Place | null> {
   const [settings, store] = await Promise.all([
     db.deliverySettings.findUnique({ where: { userId: sellerUserId }, select: { originState: true, originArea: true } }),
     db.store.findUnique({ where: { userId: sellerUserId }, select: { city: true } }),

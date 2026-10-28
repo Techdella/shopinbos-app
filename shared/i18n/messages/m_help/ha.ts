@@ -138,6 +138,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "call.screen.domain": "Adireshin yanar gizo",
   "call.screen.earnings": "Kuɗi",
   "call.screen.find": "Nemo kayan sayarwa",
+  "call.screen.starter_packs": "Kunshin kayan farawa",
+  "call.screen.supplier_products": "Kayan supplier dina",
   "call.screen.help": "Taimako",
   "call.screen.home": "Gida",
   "call.screen.jobs": "Ayyuka",

@@ -259,6 +259,8 @@ export const ROUTE_NAMESPACES: ReadonlyArray<readonly [string, readonly string[]
   ["/logistics/wallet", ["auth","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification","wallet"]],
   ["/marketplace", ["auth","common","glossary","help","introTitles","learn","marketplace","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/marketplace/logistics", ["auth","common","glossary","help","introTitles","learn","marketplace","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
+  ["/marketplace/mine", ["auth","common","glossary","help","introTitles","learn","marketplace","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
+  ["/marketplace/packs", ["auth","common","glossary","help","introTitles","learn","marketplace","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/marketplace/product/[id]", ["auth","common","contracts","glossary","help","introTitles","learn","marketplace","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/marketplace/suppliers", ["auth","common","glossary","help","introTitles","learn","marketplace","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/marketplace/wholesale", ["auth","common","glossary","help","introTitles","learn","marketplace","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],

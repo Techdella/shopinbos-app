@@ -43,6 +43,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "ready.ownHint": "Ị ga-ese foto nke mbụ ugbu a",
   "ready.dropship": "Mba, chọtara m supplier",
   "ready.dropshipHint": "Dropship: ha na-edebe ngwaahịa ma na-ezigara ya",
+  "ready.packs": "Ma ọ bụ jiri ngwugwu ngwaahịa edoziri edozi malite",
 
   "product.title": "Tinye ngwaahịa mbụ gị.",
   "product.snap": "Mepee igwefoto",

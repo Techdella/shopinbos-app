@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { productLimitProblem } from "@/lib/plans/gates.server";
 import { z } from "zod";
 import { db } from "@/lib/db/client";
-import { withShortCode } from "@/lib/products/short-code.server";
+import { linkSupplierProduct } from "@/lib/marketplace/quick-add.server";
 import { getCurrentAppUser } from "@/lib/server-auth";
 import { mergeBrandSettings } from "@/lib/workspace";
 import { createNotification } from "@/lib/notifications/create";
@@ -64,7 +64,7 @@ export async function addSupplierProductToStore(input: { supplierProductId: stri
   const product = await liveSupplierProduct(parsed.data.supplierProductId);
   if (!product) return { ok: false, error: "This product isn't available any more." };
 
-  const existing = await db.storeProduct.findFirst({ where: { storeId: store.id, supplierProductId: product.id }, select: { id: true } });
+  const existing = await db.storeProduct.findFirst({ where: { storeId: store.id, supplierProductId: product.id, status: { not: "archived" } }, select: { id: true } });
   if (existing) return { ok: true, storeProductId: existing.id, already: true };
 
   const dropship = product.dropshipAvailable;
@@ -81,39 +81,22 @@ export async function addSupplierProductToStore(input: { supplierProductId: stri
   if (check && !check.ok) return { ok: false, error: check.message, code: check.code };
   const retailPrice = check?.ok ? check.retailPrice : clampSellingPrice(parsed.data.retailPrice ?? product.suggestedRetailPrice, product.wholesalePrice);
   const costPrice = check?.ok ? check.costPrice : product.wholesalePrice;
-  const storeProduct = await withShortCode(store.id, { name: product.name, categoryId: product.categoryId }, (shortCode) => db.storeProduct.create({
-    data: {
-      storeId: store.id,
-      userId: user.id,
-      supplierProductId: product.id,
-      name: product.name,
-      shortCode,
-      description: product.description,
-      images: product.images,
-      retailPrice,
-      costPrice,
-      currency: product.currency,
-      margin: retailPrice - costPrice,
-      ...(check?.ok ? { deliveryPayer: check.deliveryPayer, deliveryFlatFee: check.deliveryFlatFee, brandingChoice: check.brandingChoice } : {}),
-      ...skuFields(parsed.data),
-      categoryId: product.categoryId,
-      fulfillmentType: dropship ? "dropship" : "merchant_fulfilled",
-      inventoryType: dropship ? "dropshipping" : "seller",
-      sourceType: dropship ? "dropship" : "supplier",
-      supplierStock: product.stockQuantity,
-      supplierLastSync: new Date(),
-      status: "draft",
-    },
-  }));
-  if (dropship) {
-    await db.dropshipRelationship.create({
-      data: { sellerId: user.id, storeId: store.id, supplierId: product.supplierId, supplierProductId: product.id, storeProductId: storeProduct.id },
-    });
-  }
+  // Made under the store's lock, so a double click or another device never adds it twice (quick-add.server.ts).
+  const linked = await linkSupplierProduct({
+    storeId: store.id,
+    userId: user.id,
+    product,
+    retailPrice,
+    costPrice,
+    dropship,
+    ...(check?.ok ? { deliveryPayer: check.deliveryPayer, deliveryFlatFee: check.deliveryFlatFee, brandingChoice: check.brandingChoice } : {}),
+    ...skuFields(parsed.data),
+  });
+  if (linked.already) return { ok: true, storeProductId: linked.storeProductId, already: true };
   await db.store.update({ where: { id: store.id }, data: { brandSettings: mergeBrandSettings(store.brandSettings, { setup: { productAdded: true } }) } });
   revalidatePath("/marketplace");
   revalidatePath("/products");
-  return { ok: true, storeProductId: storeProduct.id, already: false };
+  return { ok: true, storeProductId: linked.storeProductId, already: false };
 }
 
 const AgreementSchema = z.object({
