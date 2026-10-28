@@ -19,6 +19,7 @@ import { moveWholesaleOrder } from "@/lib/supplier-orders/wholesale.server";
 import { setSupplierPayout } from "@/lib/supplier-orders/money.server";
 import { notifyProductForReview, notifySupplierQuoteAnswered } from "@/lib/notifications/events.server";
 import { editNeedsReview, statusAfterEdit } from "@shared/supplier-product-review";
+import { notifyPriceNotice, supplierPriceEdit } from "@/lib/marketplace/price-notice.server";
 import { channelPriceProblem, cleanDropshipMinQty, cleanHandlingDays } from "@shared/dropship-rules";
 import { preorderLevelProblem } from "@/lib/supplier-levels.server";
 
@@ -267,10 +268,19 @@ export async function updateSupplierProduct(formData: FormData) {
   const category = await db.category.findUnique({ where: { id: parsed.data.categoryId } });
   if (!category) redirect(`/supplier/products/${product.id}/edit?error=Choose%20a%20valid%20category.`);
 
+  // A price rise on a product shops already list waits 7 days (shared/price-notice.ts): the old prices stay live and
+  // the shops are told; the edit page shows "Takes effect on …". Cuts go live now.
+  const priceEdit = await supplierPriceEdit(product, {
+    ...(parsed.data.priceMode !== undefined ? { priceMode: parsed.data.priceMode } : {}),
+    wholesalePrice: parsed.data.wholesalePrice,
+    ...(parsed.data.dropshipPrice !== undefined ? { dropshipPrice: parsed.data.dropshipPrice } : {}),
+    pricingTiers: parsed.data.pricingTiers,
+  });
   const updated = await db.supplierProduct.update({
     where: { id: product.id },
-    data: { ...parsed.data, ...preorderSaveData(preorder.value, { wasEnabled: product.preorderEnabled }), preorderDepositPct: deposit.value, status: nextStatus },
+    data: { ...parsed.data, ...priceEdit.data, ...preorderSaveData(preorder.value, { wasEnabled: product.preorderEnabled }), preorderDepositPct: deposit.value, status: nextStatus },
   });
+  if (priceEdit.plan.kind === "notice") await notifyPriceNotice(updated.id);
 
   invalidatePublicMarketplaceCache({ productSlug: updated.slug, supplierSlug: supplier.slug, categorySlug: category.slug ?? product.category.slug });
   if (updated.status === "pending_review" && product.status !== "pending_review") await notifyProductForReview(updated.id, updated.name, supplier.displayName);

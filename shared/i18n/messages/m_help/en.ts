@@ -143,6 +143,7 @@ const en = {
   "call.screen.find": "Find products to sell",
   "call.screen.starter_packs": "Starter packs",
   "call.screen.supplier_products": "My supplier products",
+  "call.screen.wholesale_orders": "My wholesale orders",
   "call.screen.help": "Help",
   "call.screen.home": "Home",
   "call.screen.jobs": "Jobs",

@@ -569,6 +569,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "account.agreementsSub": "Shops wey wan sell your products",
   "home.agreements": "{count, plural, one {# shop wan sell your products} other {# shops wan sell your products}}",
   "home.agreementsSub": "Read the agreement and sign",
+  "kind.sample": "Sample",
 };
 
 export default pcm;

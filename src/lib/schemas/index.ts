@@ -546,6 +546,8 @@ export const WholesaleOrderCreateSchema = z.object({
   quantity: z.number().int().min(1, "Enter how many you want.").max(1_000_000),
   deliveryAddress: z.string().trim().min(5, "Enter the full delivery address.").max(300),
   notes: z.string().trim().max(1000).optional(),
+  /** One sample at the dropship price (shared/samples.ts): the quantity is always 1. */
+  sample: z.boolean().optional(),
 });
 
 export const OrderStatusUpdateSchema = z.object({

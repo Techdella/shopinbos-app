@@ -569,6 +569,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "account.agreementsSub": "Àwọn ṣọ́ọ̀bù tó fẹ́ ta ọjà rẹ",
   "home.agreements": "{count, plural, other {Ṣọ́ọ̀bù # fẹ́ ta ọjà rẹ}}",
   "home.agreementsSub": "Ka àdéhùn náà kí o sì fọwọ́ sí i",
+  "kind.sample": "Àpẹẹrẹ",
 };
 
 export default yo;

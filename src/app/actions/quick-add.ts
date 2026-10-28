@@ -91,3 +91,17 @@ export async function removeSupplierProductsAction(ids: string[]): Promise<Resul
   refresh();
   return { ok: true, removed: result.removed };
 }
+
+/** "Raise to ₦X" on a product paused because the supplier's new price would lose money (shared/price-notice.ts). */
+export async function fixPausedListingAction(storeProductId: string): Promise<Result<{ price: number }>> {
+  const id = z.string().min(1).max(64).safeParse(storeProductId);
+  if (!id.success) return { ok: false, error: "Pick the product first." };
+  const user = await seller();
+  if (!user) return { ok: false, error: "Sign in to your store first." };
+  if (await overQuickLimit(user.id, "mine")) return { ok: false, error: "Wait a few minutes and try again.", code: "RATE_LIMITED" };
+  const { fixPausedListing } = await import("@/lib/marketplace/price-notice.server");
+  const result = await fixPausedListing(user.id, id.data);
+  if (!result.ok) return { ok: false, error: result.message, code: result.code };
+  refresh();
+  return { ok: true, price: result.price };
+}

@@ -25,6 +25,7 @@ import { activeImportCount, isImportStatus } from "@/lib/imports/pure";
 import { chinaImportsOpen } from "@/lib/imports/service.server";
 import { inShopIds, sameState, sellerState, starterPacksFor } from "@/lib/marketplace/quick-add.server";
 import { DEFAULT_MARKUP } from "@shared/supplier-markup";
+import { customerPlacesFor, nearCustomersFor, shopsSellingFor } from "@/lib/marketplace/find-extras.server";
 
 export const dynamic = "force-dynamic";
 
@@ -86,7 +87,10 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
     rows.map((row) => { const product = toFindProduct(row); return { ...product, supplier: { ...product.supplier, sameState: sameState(state, { city: row.supplier.city, address: row.supplier.address }) } }; }),
     addressOf,
   );
-  const live = nearby.products;
+  // "N shops selling" and "Near my customers" (src/lib/marketplace/find-extras.server.ts).
+  const [selling, customers] = await Promise.all([shopsSellingFor(nearby.products.map((product) => product.id)), safeQuery(() => customerPlacesFor(user.id), null)]);
+  const nearCustomers = customers ? await safeQuery(() => nearCustomersFor(customers, rows.map((row) => row.supplier)), new Set<string>()) : new Set<string>();
+  const live = nearby.products.map((product) => ({ ...product, shopsSelling: selling.get(product.id) ?? 0, supplier: { ...product.supplier, nearCustomers: Boolean(product.supplier.id && nearCustomers.has(product.supplier.id)) } }));
   const sampleMode = live.length === 0;
   const catalogue: FindProduct[] = sampleMode ? SAMPLE_PRODUCTS : live;
   const categories = categoriesOf(catalogue);
@@ -130,7 +134,7 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
         supplierName={supplierName}
         insight={insight}
         trends={trends}
-        nearby={{ hasPlace: nearby.hasPlace, city: store.city ?? null }}
+        nearby={{ hasPlace: nearby.hasPlace, city: store.city ?? null, customerStates: customers?.states ?? [], customerBasis: customers?.basis ?? "none" }}
         addedIds={inStore}
         markup={{ markup: sourcing.markup ?? DEFAULT_MARKUP, asked: Boolean(sourcing.markup) }}
         packs={packs?.packs ?? []}

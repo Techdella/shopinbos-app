@@ -31,7 +31,8 @@ interface Filters {
   notInShop: boolean;
   verified: boolean;
   way: "" | "dropship" | "wholesale";
-  near: "" | "near" | "state";
+  /** near me (km) · in my state · near my customers (shared/near-customers.ts). */
+  near: "" | "near" | "state" | "customers";
   price: "" | (typeof PRICE_BANDS)[number]["key"];
 }
 const NO_FILTERS: Filters = { notInShop: false, verified: false, way: "", near: "", price: "" };
@@ -45,7 +46,7 @@ const needsAgreement = (product: FindProduct) => !product.sample && product.drop
  * supplier's suggested price, else cost + the seller's markup (asked the first time), with Undo; "Select" ticks many
  * and adds them all. Off-screen cards aren't drawn (content-visibility), so a long list stays quick.
  */
-export function ProductGrid({ products, addedIds, chips, notified, emptyText, markup: initialMarkup }: { products: FindProduct[]; addedIds: string[]; chips: Chip[]; notified: boolean; emptyText: string; markup: MarkupState }) {
+export function ProductGrid({ products, addedIds, chips, notified, emptyText, markup: initialMarkup, customers = null }: { products: FindProduct[]; addedIds: string[]; chips: Chip[]; notified: boolean; emptyText: string; markup: MarkupState; /** Where the seller's customers are, for "Near my customers" (null: no orders and no shop state). */ customers?: { states: string[]; basis: "orders" | "store" | "none" } | null }) {
   const t = useT("marketplace");
   const locale = useLocale();
   const money = (amount: number) => (locale === "en" ? naira(amount) : formatMoney(Math.round(amount), locale));
@@ -76,6 +77,7 @@ export function ProductGrid({ products, addedIds, chips, notified, emptyText, ma
         (filters.way !== "wholesale" || product.wholesale) &&
         (filters.near !== "near" || product.supplier.km == null || product.supplier.km <= NEAR_ME_KM) &&
         (filters.near !== "state" || product.supplier.sameState === true) &&
+        (filters.near !== "customers" || product.supplier.nearCustomers === true) &&
         (!band || (product.cost >= band.min && product.cost < band.max)),
     );
   }, [products, filters, added]);
@@ -124,6 +126,7 @@ export function ProductGrid({ products, addedIds, chips, notified, emptyText, ma
           {filterChip("wholesale", t("filter.wholesale"), filters.way === "wholesale", () => set({ way: filters.way === "wholesale" ? "" : "wholesale" }))}
           {filterChip("near", t("filter.nearMe", { km: NEAR_ME_KM }), filters.near === "near", () => set({ near: filters.near === "near" ? "" : "near" }))}
           {filterChip("state", t("filter.myState"), filters.near === "state", () => set({ near: filters.near === "state" ? "" : "state" }))}
+          {customers ? filterChip("customers", t("filter.nearCustomers"), filters.near === "customers", () => set({ near: filters.near === "customers" ? "" : "customers" })) : null}
           <label className="inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-full border border-app-line bg-white pl-4 pr-2 text-[14px] font-bold">
             {t("filter.price")}
             <select aria-label={t("filter.price")} value={filters.price} onChange={(event) => set({ price: event.target.value as Filters["price"] })} className="min-h-[34px] rounded-full border-0 bg-app-canvas px-2 text-[14px] font-bold outline-none">
@@ -135,6 +138,12 @@ export function ProductGrid({ products, addedIds, chips, notified, emptyText, ma
         </div>
       )}
       {products.length > 0 ? <p className="m-0 text-[13.5px] text-app-ink-soft">{selecting ? t("select.hint") : t("quick.hint", { count: shown.length })}</p> : null}
+      {filters.near === "customers" && customers ? (
+        <p data-testid="near-customers-hint" className="m-0 flex flex-wrap items-center gap-1.5 text-[13.5px] text-app-ink-soft">
+          <Icon name="pin" size={14} />
+          {customers.basis === "orders" ? t("filter.nearCustomersFrom", { places: customers.states.join(", ") }) : t("filter.nearCustomersStore", { places: customers.states.join(", ") })}
+        </p>
+      ) : null}
 
       {shown.length === 0 ? (
         <div className="rounded-[22px] border border-app-line bg-white px-6 py-12 text-center">
@@ -200,6 +209,7 @@ export function ProductGrid({ products, addedIds, chips, notified, emptyText, ma
                   </h3>
                   <p className="mb-0 mt-1 text-[12px] leading-[1.4] text-app-ink-soft sm:text-[12.5px]">{supplierLine(product)}</p>
                   {!product.sample ? <div className="mt-1.5"><SupplierTrustBadges supplier={product.supplier} compact /></div> : null}
+                  <CardFacts product={product} />
                   <div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-2 text-[13px] sm:text-[14px]">
                     <span>{t("grid.cost")} <strong className="font-extrabold">{money(product.cost)}</strong></span>
                     <span>{t("grid.sell")} <strong className="font-extrabold">{money(sell)}</strong></span>
@@ -259,5 +269,23 @@ export function ProductGrid({ products, addedIds, chips, notified, emptyText, ma
       {quick.ui}
       <SampleNotice open={Boolean(sample)} onClose={() => setSample(null)} productName={sample?.name} notified={notified} />
     </>
+  );
+}
+
+/** "★ 4.6 (18) · 12 shops selling": the supplier's rating from shops and how many shops sell it now (hidden at 0). */
+function CardFacts({ product }: { product: FindProduct }) {
+  const t = useT("marketplace");
+  const rated = !product.sample && product.supplier.rating && (product.supplier.ratingCount ?? 0) > 0;
+  const selling = product.shopsSelling ?? 0;
+  if (!rated && selling <= 0) return null;
+  return (
+    <p className="mb-0 mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] font-bold text-app-ink-soft" data-testid={`find-facts-${product.id}`}>
+      {rated ? (
+        <span aria-label={t("rate.cardLabel", { rating: product.supplier.rating!.toFixed(1), count: product.supplier.ratingCount ?? 0 })}>
+          <span className="text-[#F2A93B]">★</span> {product.supplier.rating!.toFixed(1)} <span className="font-normal">({product.supplier.ratingCount})</span>
+        </span>
+      ) : null}
+      {selling > 0 ? <span className="rounded-full bg-[#E2F6F1] px-2 py-0.5 text-[#0C4A44]">{t("shops.selling", { count: selling })}</span> : null}
+    </p>
   );
 }

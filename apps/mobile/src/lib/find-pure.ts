@@ -118,7 +118,7 @@ export interface FindFilters {
   city: string;
   verified: boolean;
   /** "near": within NEAR_ME_KM of the seller; "state": the supplier is in the seller's state (delivers there). */
-  near?: "" | "near" | "state";
+  near?: "" | "near" | "state" | "customers";
   /** Hide what's already in the shop (the screen applies it with the shop's ids: withoutAdded). */
   notInShop?: boolean;
 }
@@ -135,7 +135,7 @@ interface Filterable {
   cost: number;
   dropship: boolean;
   wholesale: boolean;
-  supplier: { name: string; city: string; verificationStatus: string; km?: number | null; sameState?: boolean };
+  supplier: { name: string; city: string; verificationStatus: string; km?: number | null; sameState?: boolean; nearCustomers?: boolean };
 }
 
 /** Every word must appear (plurals folded), in the name, description, category or the supplier. */
@@ -160,6 +160,8 @@ export function filterFind<P extends Filterable>(products: readonly P[], filters
       // No distance means the city matched by name (Find only lists near suppliers), so it counts as near.
       (filters.near !== "near" || product.supplier.km == null || product.supplier.km <= NEAR_ME_KM) &&
       (filters.near !== "state" || product.supplier.sameState === true) &&
+      // Near where the seller's customers are (shared/near-customers.ts), worked out by the server.
+      (filters.near !== "customers" || product.supplier.nearCustomers === true) &&
       findMatches(product, filters.q),
   );
 }

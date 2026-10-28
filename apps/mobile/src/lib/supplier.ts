@@ -69,6 +69,8 @@ export interface WholesaleOrder {
   sellerPhone: string | null;
   product: { id: string; name: string; image: string | null };
   quantity: number;
+  /** One piece at the dropship price for the shop to try (shared/samples.ts). Newer servers. */
+  sample?: boolean;
   unitPrice: number;
   total: number;
   currency: string;
@@ -130,6 +132,8 @@ export interface SupplierProduct {
   preorderNote?: string | null;
   /** The share a shop pays when it places a preorder (0–100). Newer servers. */
   preorderDepositPct?: number;
+  /** A price rise waiting out its 7 days' notice to the shops selling it (shared/price-notice.ts). Newer servers. */
+  pendingPrice?: { wholesalePrice: number; dropshipPrice: number; at: string } | null;
   /** Prices per channel and dropship options (shared/dropship-rules.ts; newer servers). */
   priceMode?: string;
   dropshipPrice?: number | null;
@@ -161,7 +165,7 @@ export async function fetchSupplierProducts() {
 }
 
 export const quickEditProduct = (id: string, patch: { stockQuantity?: number; wholesalePrice?: number; suggestedRetailPrice?: number; publish?: boolean; preorder?: PreorderBody }) =>
-  api<Pick<SupplierProduct, "id" | "name" | "status" | "stockQuantity" | "wholesalePrice" | "suggestedRetailPrice" | "preorderEnabled" | "preorderShipsAt" | "preorderLimit" | "preorderTaken" | "preorderNote">>(`/api/mobile/supplier/products/${encodeURIComponent(id)}`, { method: "PATCH", json: patch });
+  api<Pick<SupplierProduct, "id" | "name" | "status" | "stockQuantity" | "wholesalePrice" | "suggestedRetailPrice" | "preorderEnabled" | "preorderShipsAt" | "preorderLimit" | "preorderTaken" | "preorderNote" | "pendingPrice">>(`/api/mobile/supplier/products/${encodeURIComponent(id)}`, { method: "PATCH", json: patch });
 
 export interface NewSupplierProduct extends Omit<ChannelFields, "wholesalePrice" | "suggestedRetailPrice"> {
   name: string;

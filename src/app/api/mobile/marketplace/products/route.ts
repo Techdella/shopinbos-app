@@ -6,6 +6,7 @@ import { db } from "@/lib/db/client";
 import { nearbyForSeller } from "@/lib/marketplace/agreements.server";
 import { sameState, sellerState } from "@/lib/marketplace/quick-add.server";
 import { productSelect, productWhere, sellerStore, withPreorderState } from "./_shared";
+import { customerPlacesFor, nearCustomersFor, shopsSellingFor } from "@/lib/marketplace/find-extras.server";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,8 @@ export const dynamic = "force-dynamic";
 // whether the seller already has a Dropship agreement with it (src/lib/marketplace/agreements.server.ts), and
 // `preorder` when the supplier takes preorders (ship date, places left, promise; never the raw counts), the
 // seller's `state` and, per supplier, `sameState` (in the seller's state), and the channel prices the one-tap price
-// needs (priceMode, dropshipPrice, minRetailPrice).
+// needs (priceMode, dropshipPrice, minRetailPrice). Newer: `shopsSelling` per product ("12 shops selling", 0 hides
+// it), `supplier.nearCustomers` ("Near my customers") and `customers` ({ states, basis: orders | store | none }).
 export const GET = withSeller(async (req: NextRequest, { user }) => {
   const store = await sellerStore(user.id);
   if (!store) return apiError("NOT_FOUND", "Set up your store first.", 404);
@@ -25,12 +27,23 @@ export const GET = withSeller(async (req: NextRequest, { user }) => {
     orderBy: [PRODUCT_PLAN_FIRST, { trendScore: "desc" }, { createdAt: "desc" }],
     take: 300,
   });
-  const [nearby, state] = await Promise.all([nearbyForSeller(user.id, rows, new Map(rows.map((row) => [row.supplier.id, row.supplier.address]))), sellerState(user.id)]);
+  const [nearby, state, selling, customers] = await Promise.all([
+    nearbyForSeller(user.id, rows, new Map(rows.map((row) => [row.supplier.id, row.supplier.address]))),
+    sellerState(user.id),
+    shopsSellingFor(rows.map((row) => row.id)),
+    customerPlacesFor(user.id).catch(() => null),
+  ]);
+  const nearCustomers = customers ? await nearCustomersFor(customers, rows.map((row) => row.supplier)).catch(() => new Set<string>()) : new Set<string>();
   // `supplier.sameState`: the supplier is in the seller's state ("Delivers to my state" filter).
   return ok({
     hasPlace: nearby.hasPlace,
     city: store.city,
     state,
-    products: nearby.products.slice(0, 300).map(({ supplier: { address, ...supplier }, ...row }) => ({ ...withPreorderState(row), supplier: { ...supplier, sameState: sameState(state, { city: supplier.city, address }) } })),
+    customers: customers ? { states: customers.states, basis: customers.basis } : null,
+    products: nearby.products.slice(0, 300).map(({ supplier: { address, ...supplier }, ...row }) => ({
+      ...withPreorderState(row),
+      shopsSelling: selling.get(row.id) ?? 0,
+      supplier: { ...supplier, sameState: sameState(state, { city: supplier.city, address }), nearCustomers: nearCustomers.has(supplier.id) },
+    })),
   });
 });

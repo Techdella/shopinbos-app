@@ -306,7 +306,7 @@ export default function SupplierOrderScreen() {
       {/* The pills on one line (wrapping when they must), and the note under them at full width. */}
       <View style={{ gap: 8 }}>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
-          <Pill label={orderKindLabel(data.kind, t)} tone={dropship ? "org" : "teal"} />
+          <Pill label={data.kind === "wholesale" && data.sample ? t("kind.sample") : orderKindLabel(data.kind, t)} tone={dropship ? "org" : "teal"} />
           {data.kind === "wholesale" && data.paidAt ? <Pill label={t("order.paidInApp")} tone="ok" icon="check" /> : null}
           <PreorderPill preorder={data.preorder} />
         </View>
