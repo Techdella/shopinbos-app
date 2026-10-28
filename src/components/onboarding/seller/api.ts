@@ -223,6 +223,31 @@ export async function publishStore(): Promise<string | null> {
   return body?.error?.blockers?.[0] ?? body?.error?.message ?? "Something stopped it. Try again.";
 }
 
+// ── Looks (the theme library, the same routes as /builder/templates) ─────────
+
+export interface ThemeAccess {
+  tier: "basic" | "premium" | "platinum";
+  owned: string[];
+}
+
+/** Which themes the seller's plan includes (GET /api/store/templates/access); null when it can't be read. */
+export async function fetchThemeAccess(): Promise<ThemeAccess | null> {
+  try {
+    const response = await fetch("/api/store/templates/access");
+    if (!response.ok) return null;
+    const body = (await response.json().catch(() => null)) as { data?: Partial<ThemeAccess> } | null;
+    const tier = body?.data?.tier;
+    return tier === "basic" || tier === "premium" || tier === "platinum" ? { tier, owned: Array.isArray(body?.data?.owned) ? body.data.owned : [] } : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Switches the store's draft to a library theme (POST /api/store/templates/apply; the server checks the plan). */
+export function applyTheme(templateId: string) {
+  return call<{ storeSlug?: string; draftOnly?: boolean }>("/api/store/templates/apply", json("POST", { templateId }), "We couldn't use that look. Try again.");
+}
+
 // ── Rex store build ──────────────────────────────────────────────────────────
 
 export interface BuildInput {

@@ -1,13 +1,12 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Image, Linking, Pressable, ScrollView, TextInput, useWindowDimensions, View } from "react-native";
+import { ActivityIndicator, Image, Linking, Pressable, ScrollView, TextInput, useWindowDimensions, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import * as Clipboard from "expo-clipboard";
 import {
-  BRAND_LOOKS,
-  BRAND_PALETTES,
   businessCategories,
   firstNameOf,
   lettermark,
+  lookFromTheme,
   naira,
   nextSellerQuestion,
   ONBOARDING_LANGUAGES,
@@ -44,6 +43,9 @@ import {
   type SupplierPick,
 } from "@/lib/onboarding";
 import { pickPhotos, uploadPhoto, type PhotoSource } from "@/lib/photos";
+import { applyLook, fetchLookLibrary, lookDemoUrl, recommendLook, type LookLibrary } from "@/lib/templates";
+import { MiniShop } from "@/components/MiniShop";
+import * as WebBrowser from "expo-web-browser";
 import { publishShop } from "@/lib/publish";
 import { shareOnWhatsApp, shareText } from "@/lib/share";
 import { localeFromName } from "@shared/i18n";
@@ -57,11 +59,15 @@ import { colors, fonts, radii } from "@/theme";
 // CAC: the payout bank and delivery wait on Start here. Buying a domain is a paid checkout, so the phone doesn't offer it.
 
 const OPTIONAL: SellerQuestion[] = ["logo", "product", "details"];
+/** Looks shown at a time on "Pick a look". */
+const LOOKS_PAGE = 8;
 
 export default function SellerQuestions() {
   const { status, refresh, lang, setLang } = useOnboarding();
   const params = useLocalSearchParams<{ screen?: string }>();
   const t = useT("sellerStart", "common");
+  const tb = useT("builder");
+  const tl = useT("m_looks");
   const tSettings = useT("settings");
   const appLocale = useLocale();
   const setAppLocale = useSetLocale();
@@ -90,7 +96,12 @@ export default function SellerQuestions() {
   const [picks, setPicks] = useState<SupplierPick[] | null>(null);
   const [added, setAdded] = useState<Set<string>>(new Set());
   const [termsFirst, setTermsFirst] = useState<Set<string>>(new Set());
-  const [lookIndex, setLookIndex] = useState(0);
+  // "Pick a look": the web's theme library (GET /api/mobile/looks), the same themes as /builder/templates.
+  const [library, setLibrary] = useState<LookLibrary | null>(null);
+  const [libraryFailed, setLibraryFailed] = useState(false);
+  const [lookId, setLookId] = useState<string | null>(null);
+  const [lookChip, setLookChip] = useState("all");
+  const [looksShown, setLooksShown] = useState(LOOKS_PAGE);
   const [vibe, setVibe] = useState("");
   // No "Buy a new domain" on the phone: a domain is a paid checkout, and app store rules keep that off the app.
   const [addressChoice, setAddressChoice] = useState<"free" | "have">("free");
@@ -114,7 +125,7 @@ export default function SellerQuestions() {
     setSlug(status.store.slug);
     setLiveUrl(status.store.url);
     setLive(status.store.live);
-    setLookIndex(Math.max(0, BRAND_LOOKS.findIndex((look) => look.templateId === saved?.templateId)));
+    if (saved?.templateId) setLookId(saved.templateId);
     setIntro((current) => current && !saved?.screen);
   }, [status, params.screen]);
 
@@ -140,6 +151,27 @@ export default function SellerQuestions() {
     if (question !== "sell" || categories.length) return;
     void fetchSellCategories().then((names) => setCategories(businessCategories(names)));
   }, [question, categories.length]);
+
+  // "Pick a look": the theme library, and (before they've picked one) Rex's pick for what they sell.
+  useEffect(() => {
+    if (question !== "look" || library) return;
+    let live = true;
+    fetchLookLibrary()
+      .then(async (loadedLibrary) => {
+        if (!live) return;
+        if (!loadedLibrary?.looks.length) return setLibraryFailed(true);
+        setLibrary(loadedLibrary);
+        const usable = (id: string | null | undefined) => Boolean(id && loadedLibrary.looks.some((look) => look.id === id && !look.lockedPlan));
+        if (usable(lookId)) return;
+        const pick = await recommendLook().catch(() => null);
+        if (live) setLookId(usable(pick?.themeId) ? pick!.themeId : loadedLibrary.looks.find((look) => !look.lockedPlan)?.id ?? null);
+      })
+      .catch(() => live && setLibraryFailed(true));
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [question, library]);
 
   useEffect(() => {
     if (question !== "product" || path !== "dropship" || picks) return;
@@ -266,16 +298,19 @@ export default function SellerQuestions() {
   }
 
   async function buildLook() {
-    const look = BRAND_LOOKS[lookIndex] ?? BRAND_LOOKS[0];
-    const palette = BRAND_PALETTES[lookIndex % BRAND_PALETTES.length];
+    const picked = library?.looks.find((look) => look.id === lookId) ?? library?.looks.find((look) => !look.lockedPlan) ?? null;
+    if (!picked) return setError(t("look.loadFailed"));
+    const { look, palette } = lookFromTheme(picked);
     setBusy(true);
     setError(null);
     const [primary, accent, background] = palette.swatches;
-    await saveMemory({ templateId: look.templateId, palette: { id: palette.key, name: palette.label, colors: { primary, accent, background } } }).catch(() => null);
+    await saveMemory({ templateId: picked.id, palette: { id: palette.key, name: palette.label, colors: { primary, accent, background } } }).catch(() => null);
     try {
-      // Always saves a design: Rex's, or the plain name, colours and look when Rex is unavailable.
+      // The theme first (its pages and sections, the web's switch route, which checks the plan), then Rex's words
+      // and colours on it. Always saves a design: Rex's, or the plain name and colours when Rex is unavailable.
+      await applyLook(picked.id);
       await buildStore({ storeName: displayName, slug, description, category: chosen[0], palette, look, tweak: vibe.trim() || undefined });
-      forward({ templateId: look.templateId });
+      forward({ templateId: picked.id });
     } catch (cause) {
       fail(cause);
     }
@@ -574,56 +609,68 @@ export default function SellerQuestions() {
   }
 
   if (question === "look") {
-    const cardWidth = width - 72;
+    const cardWidth = Math.floor((width - 40 - 12) / 2);
+    const inChip = (library?.looks ?? []).filter((look) => lookChip === "all" || look.categories.includes(lookChip));
+    const picked = library?.looks.find((look) => look.id === lookId) ?? null;
+    // The picked look first, then the rest of the chip.
+    const ordered = picked ? [picked, ...inChip.filter((look) => look.id !== picked.id)] : inChip;
+    const shown = ordered.slice(0, looksShown);
     body = (
       <>
-        {title(t("look.title"), t("look.hint"))}
-        <ScrollView
-          horizontal
-          snapToInterval={cardWidth + 12}
-          decelerationRate="fast"
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 12, paddingRight: 20 }}
-          style={{ marginHorizontal: -20, paddingLeft: 20 }}
-          onMomentumScrollEnd={(event) => setLookIndex(Math.max(0, Math.min(BRAND_LOOKS.length - 1, Math.round(event.nativeEvent.contentOffset.x / (cardWidth + 12)))))}
-        >
-          {BRAND_LOOKS.map((item, index) => {
-            const palette = BRAND_PALETTES[index % BRAND_PALETTES.length];
-            return (
-              <Pressable
-                key={item.key}
-                accessibilityRole="button"
-                accessibilityLabel={t("look.of", { current: index + 1, total: BRAND_LOOKS.length })}
-                accessibilityState={{ selected: lookIndex === index }}
-                onPress={() => setLookIndex(index)}
-                style={{ width: cardWidth, height: 420, borderRadius: 26, overflow: "hidden", backgroundColor: item.background, borderWidth: 2, borderColor: lookIndex === index ? colors.ink : "transparent" }}
-              >
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 8, padding: 18 }}>
-                  {logoUrl ? (
-                    <Image source={{ uri: logoUrl }} style={{ width: 32, height: 32, borderRadius: 8 }} resizeMode="contain" />
-                  ) : (
-                    <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: palette.swatches[0], alignItems: "center", justifyContent: "center" }}>
-                      <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 12 }}>{lettermark(displayName)}</T>
-                    </View>
-                  )}
-                  <T weight="semibold" numberOfLines={1} style={{ color: item.ink, fontSize: 17, flex: 1 }}>{displayName}</T>
-                </View>
-                <View style={{ flex: 1, marginHorizontal: 18, borderRadius: 18, padding: 18, justifyContent: "flex-end", backgroundColor: palette.swatches[0] }}>
-                  <T weight="semibold" style={{ color: palette.swatches[2], fontSize: 26, lineHeight: 28 }}>{displayName}</T>
-                  <View style={{ alignSelf: "flex-start", marginTop: 12, borderRadius: radii.pill, paddingHorizontal: 16, paddingVertical: 8, backgroundColor: palette.swatches[1] }}>
-                    <T weight="bold" style={{ color: palette.swatches[2], fontSize: 13 }}>{t("look.shopNow")}</T>
+        {title(t("look.title"), t("look.hintLibrary", { count: library?.looks.length ?? 60 }))}
+        {!library ? (
+          libraryFailed ? <Notice>{t("look.loadFailed")}</Notice> : <ActivityIndicator color={colors.ink} style={{ marginVertical: 24 }} />
+        ) : (
+          <>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20, marginBottom: 12 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }}>
+              {library.chips.map((chip) => (
+                <Chip key={chip} label={chip === "all" ? t("look.all") : tb.dynamic(`chipf.${chip}`, chip)} on={lookChip === chip} onPress={() => { setLookChip(chip); setLooksShown(LOOKS_PAGE); }} />
+              ))}
+            </ScrollView>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
+              {shown.map((look) => {
+                const selected = look.id === lookId;
+                return (
+                  <View key={look.id} style={{ width: cardWidth, borderRadius: 20, padding: 6, gap: 6, backgroundColor: colors.surface, borderWidth: selected ? 2.5 : 1, borderColor: selected ? colors.ink : colors.line }}>
+                    <Pressable
+                      testID={`onboarding-look-${look.id}`}
+                      accessibilityRole="button"
+                      accessibilityLabel={t("look.pick", { name: look.name })}
+                      accessibilityState={{ selected, disabled: Boolean(look.lockedPlan) }}
+                      disabled={Boolean(look.lockedPlan)}
+                      onPress={() => setLookId(look.id)}
+                      style={({ pressed }) => ({ gap: 6, opacity: look.lockedPlan ? 0.55 : pressed ? 0.88 : 1 })}
+                    >
+                      <MiniShop look={look} height={190} storeName={displayName} />
+                      {selected ? (
+                        <View style={{ position: "absolute", left: 6, top: 30, flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3, backgroundColor: colors.ink }}>
+                          <AppIcon name="check" size={11} color="#FFFFFF" strokeWidth={2.6} />
+                          <T weight="bold" style={{ fontSize: 11, color: "#FFFFFF" }}>{t("look.selected")}</T>
+                        </View>
+                      ) : null}
+                      <View style={{ paddingHorizontal: 4, gap: 2 }}>
+                        <T weight="extrabold" numberOfLines={1} style={{ fontSize: 14 }}>{look.name}</T>
+                        <T numberOfLines={2} style={{ fontSize: 12.5, lineHeight: 16, color: colors.inkSoft, minHeight: 32 }}>{look.lockedPlan ? tl("notOnPlan") : tb.dynamic(`theme.${look.id}.meaning`, look.meaning)}</T>
+                      </View>
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="link"
+                      accessibilityLabel={t("look.previewName", { name: look.name })}
+                      onPress={() => void WebBrowser.openBrowserAsync(lookDemoUrl(look))}
+                      style={{ flexDirection: "row", alignItems: "center", alignSelf: "flex-start", gap: 6, marginHorizontal: 4, marginBottom: 4, minHeight: 34, paddingHorizontal: 12, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.line }}
+                    >
+                      <AppIcon name="globe" size={14} color={colors.ink} />
+                      <T weight="bold" style={{ fontSize: 13 }}>{t("look.preview")}</T>
+                    </Pressable>
                   </View>
-                </View>
-                <View style={{ flexDirection: "row", gap: 8, padding: 18 }}>
-                  <View style={{ flex: 1, height: 56, borderRadius: 12, backgroundColor: palette.swatches[1], opacity: 0.85 }} />
-                  <View style={{ flex: 1, height: 56, borderRadius: 12, backgroundColor: palette.swatches[2] }} />
-                </View>
-                <T weight="bold" style={{ color: item.ink, paddingHorizontal: 18, paddingBottom: 14 }}>{item.label}</T>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-        <T style={{ color: colors.inkSoft, fontSize: 13, textAlign: "center", marginTop: 8 }}>{t("look.of", { current: lookIndex + 1, total: BRAND_LOOKS.length })}</T>
+                );
+              })}
+            </View>
+            {ordered.length > shown.length ? (
+              <PillButton size="md" tone="white" style={{ marginTop: 14, alignSelf: "center" }} title={t("look.more", { count: ordered.length - shown.length })} onPress={() => setLooksShown((count) => count + LOOKS_PAGE)} />
+            ) : null}
+          </>
+        )}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 16, backgroundColor: colors.surface, borderRadius: 20, padding: 12 }}>
           <Mascot name="rex" size={40} />
           <TextInput

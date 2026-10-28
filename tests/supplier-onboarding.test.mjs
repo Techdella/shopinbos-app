@@ -6,6 +6,17 @@ import { existsSync, readFileSync } from "node:fs";
 // by question"), and the supplier verification tiers.
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
+
+/** A route's source, or the shared step it hands to (the phone link runs the same step, src/lib/kyc/handoff.server.ts). */
+function stepSource(path) {
+  const src = read(path);
+  const shared = /import \{ (\w+) \} from "@\/lib\/(logistics\/kyc-steps|kyc\/supplier-steps)\.server"/.exec(src);
+  if (!shared) return src;
+  const lib = read(`src/lib/${shared[2]}.server.ts`);
+  const start = lib.indexOf(`export async function ${shared[1]}(`);
+  const next = lib.indexOf("\nexport async function ", start + 1);
+  return lib.slice(start, next === -1 ? undefined : next);
+}
 const rules = await import("../shared/supplier-onboarding.ts");
 const kyc = await import("../src/lib/kyc/identity.ts");
 
@@ -80,16 +91,16 @@ test("the API: one answer per save, ID and selfie routes, completion needs the I
   assert.match(route, /cleanBuyModes\(input\.buyModes, supplier\.level\)/, "Pre-order is dropped below Established");
   assert.match(route, /\.\.\.\(buyModes \? \{ buyModes \} : \{\}\)/);
   assert.doesNotMatch(route, /buyModes: input\.buyModes/, "the raw answer is never saved");
-  const selfie = read("src/app/api/supplier/kyc/selfie/route.ts");
+  const selfie = stepSource("src/app/api/supplier/kyc/selfie/route.ts");
   assert.match(selfie, /verifyKorapayIdentity\(\{ \.\.\.typed, selfie: selfie\.dataUri \}\)/);
   assert.match(selfie, /retrying without it/, "a refused face match still checks the NIN");
   assert.match(selfie, /if \(decision\.status === "approved"\) await setSupplierDocStatus\(supplier\.id, "identity", "approved"\)/);
   assert.match(selfie, /korapayLivenessReady\(\) && !liveness\) decision = \{ status: "pending" \}/);
-  assert.match(read("src/app/api/supplier/kyc/id-document/route.ts"), /saveSupplierPhoto\(supplier\.id, "identity", photo/);
+  assert.match(stepSource("src/app/api/supplier/kyc/id-document/route.ts"), /saveSupplierPhoto\(supplier\.id, "identity", photo/);
   assert.match(read("src/app/api/supplier/verification/submit/route.ts"), /identitySent\(docs\)/);
   assert.match(read("src/app/api/admin/suppliers/[id]/documents/route.ts"), /refreshSupplierVerification\(params\.id\)/);
   // Onboarding never touches logistics code.
-  for (const file of ["src/lib/kyc/supplier.server.ts", "src/app/api/supplier/kyc/selfie/route.ts"]) assert.doesNotMatch(read(file), /@\/lib\/logistics\//, file);
+  for (const file of ["src/lib/kyc/supplier.server.ts", "src/lib/kyc/supplier-steps.server.ts", "src/app/api/supplier/kyc/selfie/route.ts"]) assert.doesNotMatch(read(file), /@\/lib\/logistics\//, file);
   // New products take the onboarding answers as defaults.
   assert.match(read("src/app/api/supplier/products/route.ts"), /raw\.moq === undefined && supplier\.minimumOrder/);
   assert.ok(existsSync(new URL("../docs/migrations/2026-12-04-supplier-onboarding.sql", import.meta.url)));
@@ -109,7 +120,7 @@ test("the screens: web and phone, one question each, camera and location, no ban
   assert.match(web, /<StepRail/);
   assert.match(web, /preorderLocked/);
   assert.match(web, /t\("buy\.preorderLocked"\)/);
-  assert.match(web, /<SelfieWays/);
+  assert.match(web, /<PhoneOrThisDevice purpose="selfie"/);
   assert.match(read("src/components/onboarding/StepRail.tsx"), /t\("rail\.noBvn"\)/);
   assert.match(web, /capture="environment"/);
   assert.match(phone, /Location\.getCurrentPositionAsync/);

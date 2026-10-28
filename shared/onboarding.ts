@@ -62,6 +62,27 @@ export interface BrandLook {
   templateId: string;
 }
 
+/** What "Pick a look" needs of a storefront theme (src/lib/store-templates/theme-library.ts, GET /api/mobile/looks). */
+export interface LookTheme {
+  id: string;
+  name: string;
+  preview: { bg: string; ink: string; accent: string; nameFont: "serif" | "sans" | "grotesk"; dark: boolean };
+}
+
+/**
+ * A library theme as the look and colours the store builder seeds from: the theme's own id and type, and its
+ * colours as dark, accent and light (a dark theme's background is its dark colour).
+ */
+export function lookFromTheme(theme: LookTheme): { look: BrandLook; palette: BrandPalette } {
+  const { bg, ink, accent, nameFont, dark } = theme.preview;
+  const serif = nameFont === "serif";
+  return {
+    look: { key: theme.id, label: theme.name, background: bg, ink, fontCss: serif ? "'Fraunces', serif" : "'Plus Jakarta Sans', sans-serif", fontStyle: serif ? "fraunces" : "grotesk", templateId: theme.id },
+    palette: { key: theme.id, label: theme.name, swatches: dark ? [bg, accent, ink] : [ink, accent, bg] },
+  };
+}
+
+/** The first look screens (still used by the older phone set-up screens); new sign-ups pick from the theme library. */
 export const BRAND_LOOKS: BrandLook[] = [
   { key: "adire", label: "Adire", background: "#F3EDE6", ink: "#2A2018", fontCss: "'Fraunces', serif", fontStyle: "fraunces", templateId: "heritage" },
   { key: "stride", label: "Stride", background: "#FFE9DD", ink: "#3A1A08", fontCss: "'Plus Jakarta Sans', sans-serif", fontStyle: "grotesk", templateId: "market" },

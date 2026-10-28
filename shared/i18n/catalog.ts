@@ -21,6 +21,7 @@ import supplierJoin from "./messages/supplierJoin/index.ts";
 import logistics from "./messages/logistics/index.ts";
 import delivery from "./messages/delivery/index.ts";
 import rider from "./messages/rider/index.ts";
+import handoff from "./messages/handoff/index.ts";
 import m_supplier from "./messages/m_supplier/index.ts";
 import m_partner from "./messages/m_partner/index.ts";
 import m_rider from "./messages/m_rider/index.ts";
@@ -120,6 +121,7 @@ export const CATALOGS = {
   logistics,
   delivery,
   rider,
+  handoff,
   m_supplier,
   m_partner,
   m_rider,

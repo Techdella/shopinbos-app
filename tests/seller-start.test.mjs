@@ -82,3 +82,24 @@ test("verification screens have no page head or banner above the question", () =
   assert.match(read("src/app/logistics/verification/page.tsx"), /\bbare bleed>/);
   assert.match(read("src/components/verification/AnnouncementBanner.tsx"), /VERIFYING_PATHS/);
 });
+
+test("Pick a look: the real theme library with full previews, applied before Rex builds on it", () => {
+  const { look, palette } = onboarding.lookFromTheme({ id: "noir", name: "Dúdú", preview: { bg: "#141414", ink: "#F5F2EA", accent: "#C8A96A", nameFont: "serif", dark: true } });
+  assert.equal(look.templateId, "noir");
+  assert.equal(look.fontStyle, "fraunces");
+  assert.deepEqual(palette.swatches, ["#141414", "#C8A96A", "#F5F2EA"], "a dark theme's background is its dark colour");
+  assert.deepEqual(onboarding.lookFromTheme({ id: "plain", name: "Jẹ́jẹ́", preview: { bg: "#F2F2F2", ink: "#111111", accent: "#111111", nameFont: "grotesk", dark: false } }).palette.swatches, ["#111111", "#111111", "#F2F2F2"]);
+
+  const web = read("src/components/onboarding/seller/SellerOnboarding.tsx");
+  assert.doesNotMatch(web, /BRAND_LOOKS|BRAND_PALETTES/, "no more hand-drawn mock looks");
+  for (const piece of ["<ThemeThumbnail", "<ThemePreviewDialog", "themeCategoryChips()", "pickThemeByRules(", "brand={brand}"]) assert.ok(web.includes(piece), piece);
+  // The theme's pages first, then Rex's words and colours on them; the server checks the plan.
+  assert.match(web, /await applyTheme\(picked\.id\);[\s\S]*await buildStore\(/);
+  assert.match(read("src/components/onboarding/seller/api.ts"), /"\/api\/store\/templates\/apply"/);
+  // A selected chip keeps its check and label on one line.
+  assert.match(web, /<Icon name="check" size=\{14\} className="shrink-0" \/>\}\s*<span>\{category\}<\/span>/);
+
+  const phone = read("apps/mobile/src/app/onboarding/index.tsx");
+  assert.doesNotMatch(phone, /BRAND_LOOKS|BRAND_PALETTES/);
+  for (const piece of ["fetchLookLibrary()", "<MiniShop", "lookDemoUrl(look)", "await applyLook(picked.id);"]) assert.ok(phone.includes(piece), piece);
+});
