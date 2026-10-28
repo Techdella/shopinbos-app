@@ -1,4 +1,4 @@
-import { useEffect, useState, type RefObject } from "react";
+import { useEffect, useState, useSyncExternalStore, type RefObject } from "react";
 import { Modal, Pressable, useWindowDimensions, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { Mascot, PillButton, T } from "@/components/ui";
@@ -22,8 +22,31 @@ function roundedRect({ x, y, width: w, height: h }: Rect, radius: number) {
 }
 const PAD = 8;
 
+// Whether a tour is on screen, so other prompts (components/UpdatePrompt.tsx) wait for it to finish.
+let toursOpen = 0;
+const tourListeners = new Set<() => void>();
+function tourOpened() {
+  toursOpen += 1;
+  tourListeners.forEach((listener) => listener());
+  return () => {
+    toursOpen -= 1;
+    tourListeners.forEach((listener) => listener());
+  };
+}
+const subscribeTour = (listener: () => void) => {
+  tourListeners.add(listener);
+  return () => void tourListeners.delete(listener);
+};
+
+/** True while a tour is showing anywhere in the app. */
+export function useTourOpen() {
+  return useSyncExternalStore(subscribeTour, () => toursOpen > 0, () => false);
+}
+
 export function Tour({ steps, visible, onDone }: { steps: TourStep[]; visible: boolean; onDone: () => void }) {
   const t = useT("m_familiar");
+  const showing = visible && Boolean(steps.length);
+  useEffect(() => (showing ? tourOpened() : undefined), [showing]);
   const { width, height } = useWindowDimensions();
   const [index, setIndex] = useState(0);
   const [rect, setRect] = useState<Rect | null>(null);

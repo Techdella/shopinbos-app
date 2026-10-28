@@ -193,6 +193,7 @@ const en = {
   "admin.team": "Team",
   "admin.developers": "Developers",
   "admin.errors": "App errors",
+  "admin.app-release": "App updates",
   "admin.referrals": "Referrals",
   "admin.member-tips": "Member tips",
   "admin.member-stories": "Member stories",

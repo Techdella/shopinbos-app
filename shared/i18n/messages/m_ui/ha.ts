@@ -246,6 +246,14 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "preorders.seeMine": "Duba odar kafin lokaci ta",
   "preorders.depositPaidNote": "An aika odar kafin lokaci zuwa {name} kuma an biya ajiyarka. Biya sauran idan sun ce kaya sun shirya.",
   "preorders.depositLater": "An aika odar kafin lokaci zuwa {name}. Biya ajiya daga Duba odar kafin lokaci ta don riƙe gurbinka.",
+  "update.title": "Sabuwar sigar Shopinbos ta shirya",
+  "update.body": "Sabunta don samun sababbin abubuwa da gyare-gyare.",
+  "update.now": "Sabunta yanzu",
+  "update.later": "Anjima",
+  "update.requiredTitle": "Sabunta Shopinbos don ci gaba",
+  "update.requiredBody": "Wannan sigar manhajar ta tsufa ba za ta yi aiki ba. Sabunta ta daga Google Play. Minti ɗaya kawai, kuma shagonka da duk abin da ke ciki za su kasance yadda suke.",
+  "update.help": "Kana buƙatar taimako? Tuntuɓe mu",
+  "update.storeFailed": "Ba mu iya buɗe Google Play ba. Buɗe manhajar Play Store ka nemi Shopinbos.",
 };
 
 export default ha;

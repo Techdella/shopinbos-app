@@ -191,6 +191,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "admin.team": "Ƙungiya",
   "admin.developers": "Masu haɓakawa",
   "admin.errors": "Kurakuran app",
+  "admin.app-release": "Sabunta app",
   "admin.referrals": "Gayyata",
   "admin.member-tips": "Shawarwari ga membobi",
   "admin.member-stories": "Labarun membobi",

@@ -246,6 +246,14 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "preorders.seeMine": "Wo àwọn àṣẹ ṣáájú mi",
   "preorders.depositPaidNote": "A ti fi àṣẹ ṣáájú ránṣẹ́ sí {name}, o sì ti san ìdógò. San èyí tó kù nígbà tí wọ́n bá sọ pé ọjà ti ṣetán.",
   "preorders.depositLater": "A ti fi àṣẹ ṣáájú ránṣẹ́ sí {name}. San ìdógò láti Wo àwọn àṣẹ ṣáájú mi kí o lè di ààyè rẹ mú.",
+  "update.title": "Ẹ̀yà tuntun Shopinbos ti ṣetán",
+  "update.body": "Ṣe àtúnṣe láti rí àwọn ohun tuntun àti àtúnṣe gbà.",
+  "update.now": "Ṣe àtúnṣe báyìí",
+  "update.later": "Nígbà míì",
+  "update.requiredTitle": "Ṣe àtúnṣe Shopinbos láti tẹ̀síwájú",
+  "update.requiredBody": "Ẹ̀yà app yìí ti di àtijọ́ jù láti ṣiṣẹ́. Ṣe àtúnṣe rẹ̀ láti Google Play. Ìṣẹ́jú kan péré ni, ṣọ́ọ̀bù rẹ àti gbogbo ohun inú rẹ̀ yóò wà bí wọ́n ṣe wà.",
+  "update.help": "Ṣé o nílò ìrànlọ́wọ́? Kàn sí wa",
+  "update.storeFailed": "A kò lè ṣí Google Play. Ṣí app Play Store kí o sì wá Shopinbos.",
 };
 
 export default yo;
