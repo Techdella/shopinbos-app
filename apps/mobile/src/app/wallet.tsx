@@ -176,7 +176,7 @@ function WalletBody({ data, t, reload }: { data: WalletData; t: TFn; reload: () 
               hint={`${new Date(entry.createdAt).toLocaleDateString("en-NG", { day: "numeric", month: "short" })}${entry.status === "refunded" ? ` · ${t("w.refunded")}` : ""}`}
               // Money taken for what this business owes (who pays when things go wrong): the whole line, with why.
               amount={entry.kind === "deduction" ? `−${nairaFromKobo(Math.abs(entry.amountKobo))}` : nairaFromKobo(entry.amountKobo)}
-              lines={entry.kind === "deduction" ? 3 : 1}
+              lines={entry.kind === "deduction" ? 6 : 1}
               color={entry.kind === "deduction" ? colors.danger : undefined}
               onPress={role === "seller" && entry.orderId ? () => router.push({ pathname: "/order/[id]", params: { id: entry.orderId as string } }) : undefined}
             />

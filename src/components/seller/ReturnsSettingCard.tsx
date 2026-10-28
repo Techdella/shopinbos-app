@@ -47,15 +47,15 @@ export function ReturnsSettingCard({ initial }: { initial: ReturnsSetting }) {
       </div>
       {value.returnsAllowed ? (
         <div className="grid gap-3 sm:grid-cols-2">
-          <label className="grid gap-1 text-[13px] font-bold">
+          <label className="grid min-w-0 gap-1 text-[13px] font-bold">
             {t("settings.window")}
-            <select value={value.returnWindowDays} disabled={busy} onChange={(event) => void save({ ...value, returnWindowDays: Number(event.target.value) })} className="h-11 rounded-full border border-app-line bg-white px-4 text-[14px] font-normal">
+            <select value={value.returnWindowDays} disabled={busy} onChange={(event) => void save({ ...value, returnWindowDays: Number(event.target.value) })} className="h-11 w-full min-w-0 rounded-full border border-app-line bg-white px-4 text-[14px] font-normal">
               {[3, 7, 14, 30].map((days) => <option key={days} value={days}>{days}</option>)}
             </select>
           </label>
-          <label className="grid gap-1 text-[13px] font-bold">
+          <label className="grid min-w-0 gap-1 text-[13px] font-bold">
             {t("settings.payer")}
-            <select value={value.returnShippingPayer} disabled={busy} onChange={(event) => void save({ ...value, returnShippingPayer: event.target.value })} className="h-11 rounded-full border border-app-line bg-white px-4 text-[14px] font-normal">
+            <select value={value.returnShippingPayer} disabled={busy} onChange={(event) => void save({ ...value, returnShippingPayer: event.target.value })} className="h-11 w-full min-w-0 rounded-full border border-app-line bg-white px-4 text-[14px] font-normal">
               <option value="customer">{t("settings.payer.customer")}</option>
               <option value="seller">{t("settings.payer.seller")}</option>
             </select>

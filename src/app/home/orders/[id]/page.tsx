@@ -385,7 +385,7 @@ export default async function OrderDetailPage({ params, searchParams }: { params
             )}
           </Card>
 
-          {orderMoney ? <div className="max-xl:order-2"><EarningsCard money={orderMoney} /></div> : null}
+          {orderMoney && !["pending", "awaiting_payment"].includes(order.status) ? <div className="max-xl:order-2"><EarningsCard money={orderMoney} /></div> : null}
           {orderMoney?.returns.length ? <div className="max-xl:order-2"><ReturnsCard orderId={order.id} money={orderMoney} /></div> : null}
           {orderMoney?.problems.length ? <div className="max-xl:order-2"><ProblemsCard money={orderMoney} /></div> : null}
 

@@ -91,7 +91,7 @@ export default function SupplierMoney() {
                     <Row
                       key={entry.id}
                       lead={<Tile icon={deducted ? "receipt" : "coin"} tone={deducted ? "peach" : "ok"} />}
-                      title={entry.description}
+                      title={deducted ? <T weight="bold" style={{ fontSize: 15, lineHeight: 20 }}>{entry.description}</T> : entry.description}
                       sub={`${friendlyDay(entry.createdAt, new Date(), t)}${deducted ? ` · ${f("money.deductedSub")}` : bank ? ` · ${t("money.paidTo", { bank: bank.bankName })}` : ""}`}
                       right={<T weight="extrabold" style={{ fontSize: 15, color: deducted ? colors.danger : entry.status === "refunded" ? colors.inkSoft : colors.success }}>{deducted ? `−${nairaFromKobo(Math.abs(entry.amountKobo))}` : `+${nairaFromKobo(entry.amountKobo)}`}</T>}
                     />
