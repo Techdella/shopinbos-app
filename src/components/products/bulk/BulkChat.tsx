@@ -19,6 +19,7 @@ export function BulkChat({ session, money, onSession, onError, onAct }: { sessio
   const tt: BulkT = (key, values) => t.dynamic(`${key}`, key, values);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState<string | null>(null);
+  const [ideas, setIdeas] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const byNumber = new Map(session.items.map((item) => [item.number, item]));
 
@@ -44,7 +45,7 @@ export function BulkChat({ session, money, onSession, onError, onAct }: { sessio
   }
 
   return (
-    <section className="flex h-[min(72vh,760px)] min-h-[420px] flex-col overflow-hidden rounded-[22px] border border-app-line bg-white" aria-label={t("tab.chat")}>
+    <section className="flex h-[min(62vh,640px)] min-h-[420px] flex-col overflow-hidden rounded-[22px] border border-app-line bg-white" aria-label={t("tab.chat")}>
       <header className="flex items-center gap-3 border-b border-app-line px-4 py-3">
         <Mascot name="peggy" className="h-10 w-10" />
         <div className="min-w-0">
@@ -52,12 +53,17 @@ export function BulkChat({ session, money, onSession, onError, onAct }: { sessio
           <span className="block truncate text-[12.5px] text-app-ink-soft">{t("entry.sub")}</span>
         </div>
       </header>
-      <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-4" data-testid="bulk-thread">
-        {session.thread.map((event) => (
-          <Turn key={event.id} event={event} items={session.items} byNumber={byNumber} t={tt} money={money} />
-        ))}
-        {session.groups.slice(0, 3).map((group) => (
-          <div key={group.key} className="max-w-[92%] self-start rounded-[16px] border border-app-line bg-app-canvas p-3 text-[14px]">
+      {session.groups.length > 0 && (
+        <div className="border-b border-app-line bg-app-canvas px-4 py-2.5" data-testid="bulk-ideas">
+          <button type="button" onClick={() => setIdeas((open) => !open)} aria-expanded={ideas} className="flex w-full items-center gap-3 text-left text-[13.5px] font-bold">
+            <span className="flex">{session.groups[0].numbers.slice(0, 3).map((n, index) => <span key={n} className={index ? "-ml-3" : ""}><Photo src={byNumber.get(n)?.photos[0]} size={30} label={String(n)} /></span>)}</span>
+            <span className="flex-1">{t("group.banner", { count: session.groups.length })}</span>
+            <Icon name={ideas ? "chevDown" : "chevRight"} size={16} />
+          </button>
+          {ideas && (
+            <div className="mt-2.5 flex max-h-[300px] flex-col gap-2.5 overflow-y-auto">
+              {session.groups.slice(0, 10).map((group) => (
+          <div key={group.key} className="rounded-[16px] border border-app-line bg-white p-3 text-[14px]">
             <div className="mb-2 flex gap-1.5">
               {group.numbers.slice(0, 5).map((n) => <Photo key={n} src={byNumber.get(n)?.photos[0]} size={44} label={String(n)} />)}
             </div>
@@ -67,6 +73,14 @@ export function BulkChat({ session, money, onSession, onError, onAct }: { sessio
               <button type="button" className="min-h-[36px] rounded-full border border-app-line bg-white px-4 text-[13px] font-bold" onClick={() => void onAct(() => bulkApi.items(session.id, { op: "dismiss", key: group.key }))}>{t("group.no")}</button>
             </div>
           </div>
+        ))}
+            </div>
+          )}
+        </div>
+      )}
+      <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-4" data-testid="bulk-thread">
+        {session.thread.map((event) => (
+          <Turn key={event.id} event={event} items={session.items} byNumber={byNumber} t={tt} money={money} />
         ))}
         {sending && (
           <>
@@ -133,7 +147,7 @@ function Turn({ event, items, byNumber, t, money }: { event: BulkEvent; items: B
     <div className="flex flex-col gap-2">
       {lines.slice(0, 1).map((line, index) => <Bubble key={index} text={line} />)}
       {cards.length > 0 && (
-        <div className="grid max-w-[96%] grid-cols-2 gap-2 self-start sm:grid-cols-3" data-testid="bulk-cards">
+        <div className="grid max-w-[96%] grid-cols-2 gap-2 self-start" data-testid="bulk-cards">
           {cards.map((item) => (
             <div key={item.id} className="flex items-center gap-2 rounded-[14px] border border-app-line bg-white p-1.5 pr-2.5">
               <Photo src={item.photos[0]} size={46} label={String(item.number)} />

@@ -49,6 +49,8 @@ export function BulkAddWithPeggy({ role, productsHref, importHref, oneHref }: { 
   const fileInput = useRef<HTMLInputElement>(null);
   const queue = useQueue(session?.id ?? null);
   const looking = useRef(false);
+  const uploadingRef = useRef(false);
+  uploadingRef.current = queue.uploading + queue.waiting > 0;
 
   useEffect(() => {
     let alive = true;
@@ -72,7 +74,7 @@ export function BulkAddWithPeggy({ role, productsHref, importHref, oneHref }: { 
     looking.current = true;
     try {
       for (let round = 0; round < 40; round++) {
-        const answer = await bulkApi.look(id);
+        const answer = await bulkApi.look(id, uploadingRef.current);
         if (answer.session) setSession(answer.session);
         if (!answer.pending || !answer.drafted) break;
       }
@@ -84,10 +86,11 @@ export function BulkAddWithPeggy({ role, productsHref, importHref, oneHref }: { 
   }, []);
 
   // While photos upload, refresh every few seconds so new products appear, and keep Peggy reading.
+  // A boolean, so the refresh timer isn't restarted by every finished upload.
+  const busy = queue.uploading + queue.waiting > 0;
   useEffect(() => {
     if (!session?.id) return;
     const id = session.id;
-    const busy = queue.uploading + queue.waiting > 0;
     if (!busy && !session.summary.drafting) return;
     const timer = setInterval(() => {
       void bulkApi.get(id).then((fresh) => {
@@ -96,14 +99,15 @@ export function BulkAddWithPeggy({ role, productsHref, importHref, oneHref }: { 
       }).catch(() => undefined);
     }, 3500);
     return () => clearInterval(timer);
-  }, [session?.id, session?.summary.drafting, queue.uploading, queue.waiting, pumpLook]);
+  }, [session?.id, session?.summary.drafting, busy, pumpLook]);
 
   useEffect(() => {
-    if (session?.id && queue.total && !queue.uploading && !queue.waiting) void bulkApi.get(session.id).then((fresh) => { setSession(fresh); void pumpLook(fresh.id); }).catch(() => undefined);
-  }, [session?.id, queue.total, queue.uploading, queue.waiting, pumpLook]);
+    if (session?.id && queue.total && !busy) void bulkApi.get(session.id).then((fresh) => { setSession(fresh); void pumpLook(fresh.id); }).catch(() => undefined);
+  }, [session?.id, queue.total, busy, pumpLook]);
 
-  async function pick(files: FileList | File[] | null) {
-    if (!files || !files.length) return;
+  /** Takes a copy of the files: the input is cleared straight after, which empties its live FileList. */
+  async function pick(files: File[]) {
+    if (!files.length) return;
     setError(null);
     setResult(null);
     try {
@@ -111,7 +115,7 @@ export function BulkAddWithPeggy({ role, productsHref, importHref, oneHref }: { 
       if (!session) setSession(current);
       const room = current.max - current.items.length;
       if (room <= 0) return setError(t("upload.full"));
-      addFiles(current.id, Array.from(files).slice(0, room));
+      addFiles(current.id, files.slice(0, room));
       forgetLost(current.id);
       setLost(0);
     } catch (pickError) {
@@ -169,9 +173,9 @@ export function BulkAddWithPeggy({ role, productsHref, importHref, oneHref }: { 
       onDrop={(event) => {
         event.preventDefault();
         setDragging(false);
-        void pick(event.dataTransfer.files);
+        void pick(Array.from(event.dataTransfer.files));
       }}
-      className={cx("flex flex-col items-center gap-3 rounded-[22px] border-2 border-dashed px-5 py-8 text-center transition", dragging ? "border-app-accent bg-app-accent/5" : "border-app-line bg-white", hasItems && "py-4")}
+      className={cx("flex flex-col items-center gap-3 rounded-[22px] border-2 border-dashed px-5 py-8 text-center transition", dragging ? "border-app-accent bg-app-accent/5" : "border-app-line bg-white", hasItems && "py-2.5 max-lg:border-0 max-lg:bg-transparent max-lg:p-0")}
     >
       {!hasItems && (
         <>
@@ -180,7 +184,7 @@ export function BulkAddWithPeggy({ role, productsHref, importHref, oneHref }: { 
           <p className="m-0 max-w-[520px] text-[14.5px] text-app-ink-soft">{t("pick.sub")}</p>
         </>
       )}
-      <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp,image/heic" multiple className="sr-only" onChange={(event) => { void pick(event.target.files); event.target.value = ""; }} aria-label={t("pick.choose")} data-testid="bulk-file-input" />
+      <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp,image/heic" multiple className="sr-only" onChange={(event) => { const picked = Array.from(event.target.files ?? []); event.target.value = ""; void pick(picked); }} aria-label={t("pick.choose")} data-testid="bulk-file-input" />
       <div className="flex flex-wrap items-center justify-center gap-2 text-[14px] text-app-ink-soft">
         <span className="hidden lg:inline">{t("pick.drop")}</span>
         <PillButton tone={hasItems ? "white" : "orange"} size="md" onClick={() => fileInput.current?.click()}>
@@ -228,7 +232,7 @@ export function BulkAddWithPeggy({ role, productsHref, importHref, oneHref }: { 
                   </button>
                 ))}
               </div>
-              <div className="grid gap-4 lg:grid-cols-[minmax(340px,5fr)_7fr]">
+              <div className="grid gap-4 lg:grid-cols-[minmax(320px,2fr)_3fr]">
                 <div className={cx(tab !== "chat" && "max-lg:hidden")}>
                   <BulkChat session={session} money={money} onSession={setSession} onError={setError} onAct={act} />
                 </div>
@@ -237,12 +241,12 @@ export function BulkAddWithPeggy({ role, productsHref, importHref, oneHref }: { 
                 </div>
               </div>
 
-              <section className="sticky bottom-3 z-10 flex flex-wrap items-center gap-3 rounded-[22px] border border-app-line bg-white px-4 py-3 shadow-[0_8px_30px_rgba(22,20,31,0.08)]">
+              <section className="sticky bottom-3 z-10 flex flex-wrap items-center gap-3 rounded-[22px] border border-app-line bg-white px-4 py-3 max-sm:py-2 shadow-[0_8px_30px_rgba(22,20,31,0.08)]">
                 <label className="flex items-center gap-2 text-[14px]">
                   <input type="checkbox" checked={live} onChange={(event) => setLive(event.target.checked)} className="h-5 w-5 accent-[var(--color-app-forest)]" />
                   {role === "supplier" ? t("publish.liveSupplier") : t("publish.live")}
                 </label>
-                <span className="text-[13px] text-app-ink-soft">{session.summary.left > 0 || session.summary.unnamed > 0 ? t("publish.notReady", { count: session.summary.left + session.summary.unnamed - Math.min(session.summary.left, session.summary.unnamed) }) : null}</span>
+                <span className="text-[13px] text-app-ink-soft max-sm:hidden">{session.summary.left > 0 || session.summary.unnamed > 0 ? t("publish.notReady", { count: session.summary.left + session.summary.unnamed - Math.min(session.summary.left, session.summary.unnamed) }) : null}</span>
                 <PillButton tone="orange" size="md" className="ml-auto" disabled={!session.ready || Boolean(publishing)} busy={false} onClick={() => void publish()} data-testid="bulk-publish">
                   {publishing ? t("publish.progress", { done: publishing.done, total: publishing.total }) : t("publish.button", { count: session.ready })}
                 </PillButton>
@@ -278,6 +282,7 @@ export function BulkAddWithPeggy({ role, productsHref, importHref, oneHref }: { 
 
 function DonePanel({ result, role, productsHref, onMore }: { result: { published: PublishResult["published"]; live: boolean }; role: BulkRole; productsHref: string; onMore: () => void }) {
   const t = useT("bulkAdd");
+  const locale = useLocale();
   const shown = result.published.slice(0, 6);
   return (
     <section className="flex flex-col items-center gap-4 rounded-[24px] bg-white px-5 py-8 text-center" data-testid="bulk-done">
@@ -289,6 +294,7 @@ function DonePanel({ result, role, productsHref, onMore }: { result: { published
           {shown.map((entry) => (
             <li key={entry.productId} className="flex items-center gap-3 rounded-[14px] border border-app-line px-3 py-2">
               <span className="min-w-0 flex-1 truncate text-[14.5px] font-bold">{entry.number}. {entry.name}</span>
+              <span className="shrink-0 text-[14px] text-app-ink-soft">{formatMoney(Math.round(entry.price), locale)}</span>
               {entry.url ? <ShareWhatsAppButton compact product={{ name: entry.name, price: entry.price, shortCode: entry.shortCode, url: entry.url }} /> : null}
             </li>
           ))}

@@ -38,10 +38,14 @@ export function BulkDrafts({ session, money, onAct, onPublishSome }: { session: 
   const [scrollTop, setScrollTop] = useState(0);
   const box = useRef<HTMLDivElement>(null);
   const rowHeight = wide ? 60 : 92;
-  const viewHeight = 560;
+  const viewHeight = wide ? 470 : 560;
 
   const shown = useMemo(() => filterItems(session.items, filter), [session.items, filter]);
   const categories = useMemo(() => categoriesOf(session.items), [session.items]);
+  // A filter emptied by an action (all "No price" just got a price) goes back to All.
+  useEffect(() => {
+    if (filter !== "all" && session.items.length && !shown.length) setFilter("all");
+  }, [filter, session.items.length, shown.length]);
   const counts = useMemo(() => ({ needsPrice: filterItems(session.items, "needsPrice").length, needsName: filterItems(session.items, "needsName").length, ready: filterItems(session.items, "ready").length, published: filterItems(session.items, "published").length }), [session.items]);
   const first = Math.max(0, Math.floor(scrollTop / rowHeight) - 6);
   const last = Math.min(shown.length, Math.ceil((scrollTop + viewHeight) / rowHeight) + 6);
@@ -132,7 +136,7 @@ export function BulkDrafts({ session, money, onAct, onPublishSome }: { session: 
       </div>
 
       {wide && (
-        <div className="grid grid-cols-[32px_52px_40px_minmax(0,2.2fr)_minmax(0,1fr)_70px_minmax(0,1fr)_86px] gap-2 border-b border-app-line bg-app-canvas px-3 py-2 text-[11.5px] font-extrabold uppercase tracking-[0.06em] text-app-ink-soft" role="row">
+        <div className="grid grid-cols-[28px_48px_34px_minmax(0,1fr)_104px_52px_96px_36px] gap-2 border-b border-app-line bg-app-canvas px-3 py-2 text-[11.5px] font-extrabold uppercase tracking-[0.06em] text-app-ink-soft" role="row">
           <span />
           <span>{t("grid.photo")}</span>
           <span>#</span>
@@ -175,6 +179,8 @@ export function BulkDrafts({ session, money, onAct, onPublishSome }: { session: 
                 {...props}
               />
             );
+            // Desktop: an icon with its words as the tooltip (the column is narrow); phones: the words.
+            const mark = state === "published" ? <span title={t("item.published")} aria-label={t("item.published")}><Icon name="check" size={16} className="text-app-forest" /></span> : state === "drafting" ? <span title={t("item.reading")} aria-label={t("item.reading")}><Icon name="clock" size={16} className="text-app-ink-soft" /></span> : item.publishError ? <span title={t("item.failed")} aria-label={t("item.failed")}><Icon name="warn" size={16} className="text-app-danger" /></span> : state === "ready" ? <Icon name="checkCircle" size={16} className="text-app-forest" /> : null;
             const badge = state === "published" ? <span className="rounded-full bg-app-mint px-2 py-0.5 text-[11.5px] font-bold">{t("item.published")}</span> : state === "drafting" ? <span className="text-[11.5px] text-app-ink-soft">{t("item.reading")}</span> : item.publishError ? <span className="text-[11.5px] font-bold text-app-danger">{t("item.failed")}</span> : state === "ready" ? <Icon name="checkCircle" size={16} className="text-app-forest" /> : null;
             const photo = (
               <span className="relative">
@@ -185,7 +191,7 @@ export function BulkDrafts({ session, money, onAct, onPublishSome }: { session: 
             );
             const hint = item.hintLowKobo && !item.priceKobo ? t("item.hint", { low: money(item.hintLowKobo), high: money(item.hintHighKobo ?? item.hintLowKobo) }) : "";
             return wide ? (
-              <div key={item.id} role="row" className={cx("absolute inset-x-0 grid grid-cols-[32px_52px_40px_minmax(0,2.2fr)_minmax(0,1fr)_70px_minmax(0,1fr)_86px] items-center gap-2 border-b border-app-line-soft px-3", selected.has(item.id) && "bg-app-mint/40")} style={{ top: row * rowHeight, height: rowHeight }}>
+              <div key={item.id} role="row" className={cx("absolute inset-x-0 grid grid-cols-[28px_48px_34px_minmax(0,1fr)_104px_52px_96px_36px] items-center gap-2 border-b border-app-line-soft px-3", selected.has(item.id) && "bg-app-mint/40")} style={{ top: row * rowHeight, height: rowHeight }}>
                 <input type="checkbox" className="h-4 w-4" checked={selected.has(item.id)} disabled={locked} onChange={() => toggle(item.id)} aria-label={`${t("select.start")} ${item.number}`} />
                 {photo}
                 <span className="text-[13px] font-bold text-app-ink-soft">{item.number}</span>
@@ -193,7 +199,7 @@ export function BulkDrafts({ session, money, onAct, onPublishSome }: { session: 
                 {cell("price", fieldFromKobo(item.priceKobo), "", { inputMode: "numeric", placeholder: hint ? `~${money(item.hintLowKobo!)}` : "₦", title: hint })}
                 {cell("stock", item.stock === null ? "" : String(item.stock), "", { inputMode: "numeric", placeholder: "–" })}
                 {cell("category", item.category, "text-app-ink-soft")}
-                <span className="flex justify-end">{badge}</span>
+                <span className="flex justify-end">{mark}</span>
               </div>
             ) : (
               <div key={item.id} className={cx("absolute inset-x-0 flex items-center gap-2.5 border-b border-app-line-soft px-3", selected.has(item.id) && "bg-app-mint/40")} style={{ top: row * rowHeight, height: rowHeight }}>

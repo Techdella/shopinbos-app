@@ -126,7 +126,7 @@ async function callVision(prompt: string, photos: string[]): Promise<string> {
  * and says how many are still waiting. Adds Peggy's first message after the first batch, and a summary once a big
  * session has all been read.
  */
-export async function draftNextBatch(session: { id: string; userId: string; role: string }) {
+export async function draftNextBatch(session: { id: string; userId: string; role: string }, options: { more?: boolean } = {}) {
   const token = `working:${newEventId()}`;
   const stale = new Date(Date.now() - STALE_MS);
   const waiting = await db.bulkProductItem.findMany({
@@ -196,15 +196,19 @@ Never invent materials, sizes or claims you cannot see.`;
   }
 
   const pending = await db.bulkProductItem.count({ where: { sessionId: session.id, removed: false, productId: null, OR: [{ aiState: "pending" }, { aiState: { startsWith: "working" } }] } });
-  if (batch.length) {
+  // After the last upload the client asks once more (more: false), so the summary comes even with nothing left to read.
+  if (batch.length || !options.more) {
     const fresh = await db.bulkProductSession.findUnique({ where: { id: session.id }, select: { thread: true } });
-    const kinds = new Set(threadOf({ thread: fresh?.thread ?? [] }).map((event) => event.kind));
+    const thread = threadOf({ thread: fresh?.thread ?? [] });
+    const kinds = new Set(thread.map((event) => event.kind));
+    // The last "I've looked at all N": a new one only when more photos came in since.
+    const lastSeen = [...thread].reverse().find((event) => event.kind === "allSeen");
     const items = await sessionItems(session.id);
     const at = new Date().toISOString();
     const events: BulkEvent[] = [];
     if (capped && !kinds.has("capped")) events.push({ id: newEventId(), at, from: "peggy", kind: "capped" });
-    if (!kinds.has("intro")) events.push({ id: newEventId(), at, from: "peggy", kind: "intro", numbers: batch.map((row) => row.number), ai: usedAi, summary: summarize(items), ask: nextAsk(items) });
-    else if (!pending && items.length > BULK_VISION_BATCH && !kinds.has("allSeen")) events.push({ id: newEventId(), at, from: "peggy", kind: "allSeen", summary: summarize(items), ask: nextAsk(items) });
+    if (!kinds.has("intro") && batch.length) events.push({ id: newEventId(), at, from: "peggy", kind: "intro", numbers: batch.map((row) => row.number), ai: usedAi, summary: summarize(items), ask: nextAsk(items) });
+    else if (kinds.has("intro") && !pending && !options.more && items.length > BULK_VISION_BATCH && (!lastSeen || (lastSeen.kind === "allSeen" && lastSeen.summary.total < summarize(items).total))) events.push({ id: newEventId(), at, from: "peggy", kind: "allSeen", summary: summarize(items), ask: nextAsk(items) });
     await appendEvents(session.id, events);
   }
   return { drafted: batch.length, pending, capped };

@@ -38,7 +38,7 @@ export const bulkApi = {
   open: () => api<BulkSession>(BASE, { method: "POST" }),
   get: (id: string) => api<BulkSession>(`${BASE}/${id}`),
   discard: (id: string) => api(`${BASE}/${id}`, { method: "DELETE" }),
-  look: (id: string) => api<{ drafted: number; pending: number; capped: boolean; session: BulkSession | null }>(`${BASE}/${id}/look`, { method: "POST" }),
+  look: (id: string, more = false) => api<{ drafted: number; pending: number; capped: boolean; session: BulkSession | null }>(`${BASE}/${id}/look`, { method: "POST", json: { more } }),
   reply: (id: string, text: string) => api<{ usedAi: boolean; session: BulkSession | null }>(`${BASE}/${id}/reply`, { method: "POST", json: { text } }),
   items: (id: string, body: unknown) => api<BulkSession | null>(`${BASE}/${id}/items`, { method: "PATCH", json: body }),
   publish: (id: string, live: boolean, ids?: string[]) => api<PublishResult>(`${BASE}/${id}/publish`, { method: "POST", json: { live, ...(ids ? { ids } : {}) } }),

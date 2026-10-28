@@ -141,6 +141,10 @@ test("200 products: priced by group, range and pattern in a few replies; Peggy a
   // Big replies read as a few lines, not 200.
   const lines = bulk.changeLines([...Array(40)].map((_, i) => ({ n: i + 1, priceKobo: 1_500_000 })), items, (k, v) => `${k}:${v?.numbers ?? ""}`, (k) => `₦${k / 100}`);
   assert.deepEqual(lines, ["peggy.linePriceMany:1-40"]);
+  const stock = bulk.changeLines([...Array(30)].map((_, i) => ({ n: i + 151, stock: 10 })), items, (k, v) => `${k}:${v?.numbers ?? v?.n}`, (k) => `₦${k / 100}`);
+  assert.deepEqual(stock, ["peggy.lineStockMany:151-180"], "stock for a group is one line too");
+  // "I've looked at all of them" waits for the last upload (the client sends more: true until then).
+  assert.match(read("src/lib/products/bulk/vision.server.ts"), /!pending && !options\.more/);
 });
 
 test("filters and categories scale to 200", () => {

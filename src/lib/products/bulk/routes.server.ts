@@ -91,12 +91,14 @@ export const photoHandler = withBulk(async (req, { user, params, role }) => {
   return ok(added.item, added.created ? 201 : 200);
 });
 
-export const lookHandler = withBulk(async (_req, { user, params }) => {
+export const lookHandler = withBulk(async (req, { user, params }) => {
   const session = await ownSession(user.id, params.id);
   if (!session) return notFound();
   const burst = await checkRateLimitShared(rateLimitKey("bulk-look", user.id), { maxRequests: 40, windowMs: 60_000 });
   if (!burst.allowed) return apiError("RATE_LIMITED", "Peggy is still looking. Give her a minute.", 429);
-  const result = await draftNextBatch(session);
+  // `more`: photos are still uploading, so Peggy doesn't say she has seen them all yet.
+  const body = (await req.json().catch(() => null)) as { more?: unknown } | null;
+  const result = await draftNextBatch(session, { more: body?.more === true });
   const fresh = await findSession(user.id, session.id);
   return ok({ ...result, session: fresh ? await sessionView(fresh) : null });
 });

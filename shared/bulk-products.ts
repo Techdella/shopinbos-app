@@ -650,13 +650,21 @@ export function changeLines(changes: BulkChange[], items: BulkItem[], t: BulkT, 
       lines.push(t("peggy.linePrice", { n: numbers[0], name: name || t("item.unnamed", { n: numbers[0] }), price: money(price) }));
     } else lines.push(t("peggy.linePriceMany", { count: numbers.length, numbers: asRanges(numbers), price: money(price) }));
   }
+  const byValue = (pick: (c: BulkChange) => string | number | undefined) => {
+    const map = new Map<string | number, number[]>();
+    for (const c of changes) {
+      const value = c.removed ? undefined : pick(c);
+      if (value !== undefined) map.set(value, [...(map.get(value) ?? []), c.n]);
+    }
+    return map;
+  };
   for (const c of changes) {
     if (c.removed) continue;
     if (c.name !== undefined && c.priceKobo === undefined) lines.push(t("peggy.lineName", { n: c.n, name: c.name }));
-    if (c.stock !== undefined) lines.push(t("peggy.lineStock", { n: c.n, count: c.stock }));
-    if (c.category !== undefined) lines.push(t("peggy.lineCategory", { n: c.n, category: c.category }));
     if (c.description !== undefined) lines.push(t("peggy.lineDescription", { n: c.n }));
   }
+  for (const [count, numbers] of byValue((c) => c.stock)) lines.push(numbers.length > 1 ? t("peggy.lineStockMany", { numbers: asRanges(numbers), count }) : t("peggy.lineStock", { n: numbers[0], count }));
+  for (const [category, numbers] of byValue((c) => c.category)) lines.push(numbers.length > 1 ? t("peggy.lineCategoryMany", { numbers: asRanges(numbers), category }) : t("peggy.lineCategory", { n: numbers[0], category }));
   if (removed.length) lines.push(t("peggy.lineRemoved", { count: removed.length, numbers: asRanges(removed) }));
   // Many stock or category lines for a group read as one.
   const collapsed: string[] = [];

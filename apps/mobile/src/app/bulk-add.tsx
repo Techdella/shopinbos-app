@@ -64,6 +64,8 @@ export default function BulkAdd() {
   const [result, setResult] = useState<{ published: PublishResult["published"]; failed: PublishResult["failed"]; overLimit: number; live: boolean } | null>(null);
   const queue = useQueue(session?.id ?? null);
   const looking = useRef(false);
+  const uploadingRef = useRef(false);
+  const [ideas, setIdeas] = useState(false);
   const chat = useRef<ScrollView>(null);
   useScrollToEndOnKeyboard(chat);
 
@@ -89,7 +91,7 @@ export default function BulkAdd() {
     looking.current = true;
     try {
       for (let round = 0; round < 40; round++) {
-        const answer = await bulkApi.look(id);
+        const answer = await bulkApi.look(id, uploadingRef.current);
         if (answer.session) setSession(answer.session);
         if (!answer.pending || !answer.drafted) break;
       }
@@ -101,6 +103,7 @@ export default function BulkAdd() {
   }, []);
 
   const busy = queue.uploading + queue.waiting > 0;
+  uploadingRef.current = busy;
   useEffect(() => {
     if (!session?.id || (!busy && !session.summary.drafting)) return;
     const id = session.id;
@@ -189,6 +192,9 @@ export default function BulkAdd() {
   const items = session?.items ?? [];
   const shown = useMemo(() => filterItems(items, filter), [items, filter]);
   const categories = useMemo(() => categoriesOf(items, 6), [items]);
+  useEffect(() => {
+    if (filter !== "all" && items.length && !shown.length) setFilter("all");
+  }, [filter, items.length, shown.length]);
   const byNumber = useMemo(() => new Map(items.map((item) => [item.number, item])), [items]);
   const hasItems = items.length > 0 || queue.total > 0;
   const selecting = selected.size > 0;
@@ -283,18 +289,6 @@ export default function BulkAdd() {
               <>
                 <ScrollView ref={chat} contentContainerStyle={{ padding: 16, gap: 12 }} onContentSizeChange={() => chat.current?.scrollToEnd({ animated: false })} testID="bulk-thread">
                   {session?.thread.map((event) => <Turn key={event.id} event={event} items={items} byNumber={byNumber} t={tt} />)}
-                  {session?.groups.slice(0, 3).map((group) => (
-                    <View key={group.key} style={{ alignSelf: "flex-start", maxWidth: "94%", backgroundColor: colors.surface, borderRadius: 18, borderWidth: 1, borderColor: colors.line, padding: 12, gap: 10 }}>
-                      <View style={{ flexDirection: "row", gap: 6 }}>
-                        {group.numbers.slice(0, 5).map((n) => <Thumb key={n} uri={byNumber.get(n)?.photos[0]} size={44} />)}
-                      </View>
-                      <T style={{ fontSize: 14.5, lineHeight: 20 }}>{group.kind === "colours" ? t("group.colours", { numbers: group.numbers.join(", "), name: group.name.toLowerCase(), count: group.colours.length }) : t("group.angles", { numbers: group.numbers.join(", "), name: group.name.toLowerCase() })}</T>
-                      <ButtonRow labels={[t("group.join"), t("group.no")]} size="sm">
-                        <PillButton size="sm" style={{ flex: 1 }} title={t("group.join")} onPress={() => session && void act(() => bulkApi.items(session.id, { op: "join", ids: group.numbers.map((n) => byNumber.get(n)?.id).filter(Boolean), kind: group.kind }))} />
-                        <PillButton size="sm" tone="white" style={{ flex: 1 }} title={t("group.no")} onPress={() => session && void act(() => bulkApi.items(session.id, { op: "dismiss", key: group.key }))} />
-                      </ButtonRow>
-                    </View>
-                  ))}
                   {sending ? (
                     <>
                       <Bubble mine text={sending} />
@@ -302,6 +296,15 @@ export default function BulkAdd() {
                     </>
                   ) : null}
                 </ScrollView>
+                {session?.groups.length ? (
+                  <Pressable testID="bulk-ideas" accessibilityRole="button" onPress={() => setIdeas(true)} style={{ marginHorizontal: 16, marginTop: 6, flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 12, paddingVertical: 8 }}>
+                    <View style={{ flexDirection: "row" }}>
+                      {session.groups[0].numbers.slice(0, 3).map((n, index) => <View key={n} style={{ marginLeft: index ? -14 : 0 }}><Thumb uri={byNumber.get(n)?.photos[0]} size={32} /></View>)}
+                    </View>
+                    <T weight="bold" style={{ flex: 1, fontSize: 14 }} numberOfLines={2}>{t("group.banner", { count: session.groups.length })}</T>
+                    <AppIcon name="chevron" size={16} color={colors.inkSoft} />
+                  </Pressable>
+                ) : null}
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, paddingTop: 6, paddingBottom: 6 }}>
                   <TextInput
                     value={draft}
@@ -321,14 +324,14 @@ export default function BulkAdd() {
               </>
             ) : (
               <>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingBottom: 8 }}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, flexShrink: 0, minHeight: 58 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingBottom: 8, alignItems: "center" }}>
                   {(["all", "needsPrice", "needsName", "ready"] as const).map((key) => (
                     <Seg key={key} label={t(`filter.${key}`)} count={filterItems(items, key).length} on={filter === key} onPress={() => setFilter(key)} />
                   ))}
                   {categories.map((category) => <Seg key={category.name} label={category.name} count={category.count} on={filter === `cat:${category.name}`} onPress={() => setFilter(`cat:${category.name}`)} />)}
                 </ScrollView>
                 {selecting ? (
-                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, paddingHorizontal: 16, paddingBottom: 8, alignItems: "center" }} testID="bulk-select-bar">
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, flexShrink: 0, minHeight: 58 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingBottom: 8, alignItems: "center" }} testID="bulk-select-bar">
                     <T weight="bold" style={{ fontSize: 14 }}>{t("select.count", { count: selected.size })}</T>
                     <PillButton size="sm" tone="white" title={t("bulk.price")} onPress={() => setEdit({ kind: "bulk", field: "price" })} />
                     <PillButton size="sm" tone="white" title={t("bulk.stock")} onPress={() => setEdit({ kind: "bulk", field: "stock" })} />
@@ -336,7 +339,7 @@ export default function BulkAdd() {
                     {selected.size > 1 ? <PillButton size="sm" tone="white" title={t("bulk.join")} onPress={() => { if (session) void act(() => bulkApi.items(session.id, { op: "join", ids: [...selected], kind: "angles" })); setSelected(new Set()); }} /> : null}
                     <PillButton size="sm" tone="white" title={t("bulk.remove")} onPress={() => { if (session) void act(() => bulkApi.items(session.id, { op: "remove", ids: [...selected] })); setSelected(new Set()); }} />
                     <PillButton size="sm" tone="white" title={t("select.cancel")} onPress={() => setSelected(new Set())} />
-                  </View>
+                  </ScrollView>
                 ) : (
                   <View style={{ flexDirection: "row", paddingHorizontal: 16, paddingBottom: 6 }}>
                     <Pressable onPress={() => setSelected(new Set(shown.filter((item) => !item.productId).map((item) => item.id)))} hitSlop={8}>
@@ -383,6 +386,23 @@ export default function BulkAdd() {
             </View>
           </>
         )}
+
+        <Sheet visible={ideas && Boolean(session?.groups.length)} onClose={() => setIdeas(false)} title={t("group.title")} testID="bulk-ideas-sheet">
+          <ScrollView style={{ maxHeight: 520 }} contentContainerStyle={{ gap: 12 }}>
+            {session?.groups.slice(0, 10).map((group) => (
+              <View key={group.key} style={{ backgroundColor: colors.canvas, borderRadius: 18, padding: 12, gap: 10 }}>
+                <View style={{ flexDirection: "row", gap: 6 }}>
+                  {group.numbers.slice(0, 5).map((n) => <Thumb key={n} uri={byNumber.get(n)?.photos[0]} size={48} />)}
+                </View>
+                <T style={{ fontSize: 14.5, lineHeight: 20 }}>{group.kind === "colours" ? t("group.colours", { numbers: group.numbers.join(", "), name: group.name.toLowerCase(), count: group.colours.length }) : t("group.angles", { numbers: group.numbers.join(", "), name: group.name.toLowerCase() })}</T>
+                <ButtonRow labels={[t("group.join"), t("group.no")]} size="sm">
+                  <PillButton size="sm" style={{ flex: 1 }} title={t("group.join")} onPress={() => session && void act(() => bulkApi.items(session.id, { op: "join", ids: group.numbers.map((n) => byNumber.get(n)?.id).filter(Boolean), kind: group.kind }))} />
+                  <PillButton size="sm" tone="white" style={{ flex: 1 }} title={t("group.no")} onPress={() => session && void act(() => bulkApi.items(session.id, { op: "dismiss", key: group.key }))} />
+                </ButtonRow>
+              </View>
+            ))}
+          </ScrollView>
+        </Sheet>
 
         <EditSheet
           edit={edit}
