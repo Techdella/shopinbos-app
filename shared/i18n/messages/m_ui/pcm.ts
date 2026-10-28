@@ -246,6 +246,14 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "preorders.seeMine": "See my preorders",
   "preorders.depositPaidNote": "Preorder don reach {name} and your deposit don pay. Pay the remain when dem talk say stock don ready.",
   "preorders.depositLater": "Preorder don reach {name}. Pay the deposit for See my preorders to hold your space.",
+  "update.title": "New Shopinbos version don ready",
+  "update.body": "Update am make you get the newest things and fixes.",
+  "update.now": "Update am now",
+  "update.later": "Later",
+  "update.requiredTitle": "Update Shopinbos make you fit continue",
+  "update.requiredBody": "This app version don too old to work. Update am for Google Play. E no go take pass one minute, and your shop and everything inside go stay as dem dey.",
+  "update.help": "You need help? Talk to us",
+  "update.storeFailed": "We no fit open Google Play. Open the Play Store app and search for Shopinbos.",
 };
 
 export default pcm;

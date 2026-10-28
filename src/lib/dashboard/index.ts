@@ -5,6 +5,7 @@ import { getSellerOnboardingStatus } from "@/lib/onboarding-status";
 import { ensureStorefrontVisitorTables } from "@/lib/storefront/visitor-data";
 import { naira } from "@shared/onboarding";
 import { computeDashboard, startOfLagosDay, type DashboardOrder, type DashboardProduct } from "./compute";
+import { realName } from "@shared/person-name";
 
 // Seller home dashboard (2026 "Seller app" mockups): one loader for web /home and GET /api/app/dashboard.
 
@@ -111,7 +112,7 @@ export async function getSellerDashboard(userId: string, now = new Date()) {
 
   return {
     store: { id: store.id, name: store.name, slug: store.slug, logoUrl: store.logoUrl, url: onboarding?.store.url ?? null, live: onboarding?.store.live ?? false },
-    ownerName: store.user.name,
+    ownerName: realName(store.user.name),
     /** The person's profile photo (same as the web top bar), or null. */
     ownerAvatarUrl: store.user.avatarUrl ?? null,
     today: today.toISOString(),

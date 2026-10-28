@@ -105,6 +105,7 @@ const en = {
   "tour.3.body": "Ask Rex to change your shop. Ask Peggy about sales, replies and what to do next.",
   "create.post": "Make a post or reel",
   "create.postSub": "Rex designs it for your Status, TikTok, Instagram",
+  "greeting.addName": "Add your name",
 } satisfies Record<string, string>;
 
 export default en;

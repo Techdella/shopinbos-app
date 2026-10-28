@@ -125,6 +125,8 @@ export const PUBLIC_LIMITS = {
   visit: { maxRequests: 60, windowMs: 60_000 },
   // Browsers reporting errors to Admin › App errors (each distinct error once per page load).
   errorReport: { maxRequests: 30, windowMs: 10 * 60_000 },
+  // The phone app asking whether a newer version is out (launch and coming back to the front, at most hourly).
+  appRelease: { maxRequests: 60, windowMs: 60_000 },
 } as const satisfies Record<string, RateLimitConfig>;
 
 export type PublicAction = keyof typeof PUBLIC_LIMITS;

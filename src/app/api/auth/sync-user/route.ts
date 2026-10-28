@@ -49,11 +49,10 @@ export async function POST(request: NextRequest) {
   // The role saved on the login when it was made, else (Google sign-ups carry none) the one picked on the sign-up
   // page. It only matters for a brand-new account: an existing one keeps its role (src/lib/auth/role-rules.ts).
   const requestedRole = requestedSignupRole(claims.user_metadata?.rawRole, body.role, body.source === "signup");
-  const fullName =
-    body.fullName ||
-    claims.user_metadata?.name ||
-    claims.email?.split("@")[0]?.replace(/[._-]/g, " ") ||
-    "Shopinbos User";
+  // Only a name someone typed (the form, or the login's metadata: the phone app saves it as full_name). Without one,
+  // ensureAppUserForSupabaseUser makes a new account's name from the email, or the stand-in.
+  const meta = (claims.user_metadata ?? {}) as Record<string, unknown>;
+  const fullName = [body.fullName, meta.full_name, meta.fullName, meta.name].find((value): value is string => typeof value === "string" && value.trim() !== "")?.trim();
 
   const email = claims.email?.toLowerCase() ?? null;
 

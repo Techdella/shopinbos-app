@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { buildStorefrontUrl } from "@/lib/domains/storefront";
 import { parseOnboardingMemory } from "@/lib/onboarding-memory";
 import { CHECKLIST, type ChecklistKey } from "@shared/onboarding";
+import { realName } from "@shared/person-name";
 
 // What the redesigned seller onboarding (web and mobile) needs to render: the store, its link,
 // launch billing, and the "Finish setting up" checklist.
@@ -62,7 +63,7 @@ export async function getSellerOnboardingStatus(userId: string) {
       live,
       url: buildStorefrontUrl({ slug: store.slug, customDomain: store.customDomain }),
     },
-    ownerName: store.user.name,
+    ownerName: realName(store.user.name),
     /** True once the seller has left onboarding for the dashboard (finished or skipped). */
     finished: store.firstDashboardVisitComplete,
     memory: parseOnboardingMemory(settings.onboardingMemory) ?? null,

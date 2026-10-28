@@ -103,6 +103,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "tour.3.body": "Jụọ Rex ka ọ gbanwee ụlọ ahịa gị. Jụọ Peggy maka ahịa, nzaghachi na ihe ị ga-eme ọzọ.",
   "create.post": "Mee post ma ọ bụ reel",
   "create.postSub": "Rex na-emepụta ya maka Status, TikTok, Instagram gị",
+  "greeting.addName": "Tinye aha gị",
 };
 
 export default ig;

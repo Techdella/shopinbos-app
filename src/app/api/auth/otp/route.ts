@@ -9,6 +9,7 @@ import { chooseCodeChannel, whatsappCodesAvailable } from "@/lib/auth/otp-channe
 import { channelUsedFor, rememberWantedChannel } from "@/lib/auth/otp-delivery.server";
 import { PHONE_TAKEN, phoneOwner, signsInWithPhone } from "@/lib/auth/phone-owner.server";
 import { ACCOUNT_CHECK_UNAVAILABLE, accountExistsMessage, accountFor, noAccountMessage, profileEmailOwner } from "@/lib/auth/account-lookup.server";
+import { isPlaceholderName } from "@shared/person-name";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -97,7 +98,7 @@ async function needsName(user: { id: string; user_metadata?: Record<string, unkn
   if ([meta.full_name, meta.fullName, meta.name].some((value) => typeof value === "string" && value.trim())) return false;
   const existing = await db.user.findUnique({ where: { supabaseId: user.id }, select: { name: true } }).catch(() => ({ name: "unknown" }));
   // "Shopinbos User" is the stand-in name when someone left at the name screen and the account row was made later.
-  return !existing || existing.name.trim() === "Shopinbos User";
+  return !existing || isPlaceholderName(existing.name);
 }
 
 export async function POST(request: NextRequest) {
