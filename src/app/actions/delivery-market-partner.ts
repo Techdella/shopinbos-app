@@ -47,14 +47,14 @@ async function setupActor() {
 /** Working with businesses and jobs: verified, like the dispatch actions in actions/logistics.ts. */
 async function verifiedActor() {
   const actor = await setupActor();
-  if (actor.partner.verificationStatus !== "verified") redirect("/logistics/profile?verification=pending");
+  if (actor.partner.verificationStatus !== "verified") redirect("/logistics/verification");
   return actor;
 }
 
 /** Jobs it already has (decline, cash records): verified, or suspended, since existing jobs carry on. */
 async function jobActor() {
   const actor = await setupActor();
-  if (!canWorkExistingJobs(actor.partner)) redirect("/logistics/profile?verification=pending");
+  if (!canWorkExistingJobs(actor.partner)) redirect("/logistics/verification");
   return actor;
 }
 

@@ -663,7 +663,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "kyc.introTitle": "Ba ka buƙatar CAC don farawa",
   "kyc.introSub": "Bayan set-up za ka tabbatar da kanka a waya. Shirya waɗannan:",
   "kyc.need.id": "NIN ɗinka da selfie ɗaya",
-  "kyc.need.bank": "BVN ɗinka, ko bank account mai sunanka",
+  "kyc.need.bank": "Bank account mai sunanka",
   "kyc.need.vehicle": "Hoton abin hawanka da lasisin direba",
   "kyc.need.guarantor": "Mai tsaya maka wanda zai iya tabbatarwa ta text",
   "kyc.introCac": "Kana da CAC? Ƙara shi lokacin verification don zama Registered Business ba tare da order limits ba.",

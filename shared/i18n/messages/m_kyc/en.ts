@@ -54,7 +54,7 @@ const en = {
   "item.name.email": "Email",
   "item.name.nin": "NIN",
   "item.name.selfie": "Selfie",
-  "item.name.payout": "BVN or bank account",
+  "item.name.payout": "Bank account",
   "item.name.address": "Address",
   "item.name.coverage": "Where you deliver",
   "item.name.methods": "How you deliver",
@@ -101,8 +101,8 @@ const en = {
   "dob.invalid": "Type your date of birth like 14/02/1990.",
 
   // Bank
-  "bank.title": "BVN or bank account",
-  "bank.sub": "Use your BVN, or a bank account in the same name as your NIN.",
+  "bank.title": "Bank account",
+  "bank.sub": "Add a bank account in the same name as your NIN.",
   "bank.account": "Bank account",
   "bank.pick": "Your bank",
   "bank.number": "Account number (10 digits)",
@@ -112,10 +112,6 @@ const en = {
   "bank.checked": "Checked. See the result above.",
   "bank.ending": "{bank} ••• {last4} · {name}",
   "bank.ninFirst": "Check your NIN on the Identity step first.",
-  "bvn.label": "BVN",
-  "bvn.number": "BVN (11 digits)",
-  "bvn.length": "Type your 11-digit BVN.",
-  "bvn.ending": "BVN ending {last4}",
 
   // Vehicles
   "vehicle.title": "Your vehicles",

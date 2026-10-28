@@ -2,6 +2,8 @@ import "server-only";
 
 import { db } from "@/lib/db/client";
 import { docTypesForRole, normalizeVerificationDocs } from "@shared/verification-docs";
+import { partnerTierSnapshot } from "@/lib/logistics/partner-tiers.server";
+import { ITEM_LABELS, itemsWhere, tier1Checklist, type ChecklistItem } from "@shared/partner-tiers";
 import { bankIsSet, documentsDone, partnerCoverageSet, partnerProfileSet, partnerRatesSet, sellerDeliverySet, storeIsLive, supplierPickupSet, supplierProfileSet } from "./setup-rules";
 
 // Where a supplier, delivery partner or seller is in getting set up: what's done, what's next and where to do it.
@@ -42,7 +44,7 @@ export async function setupStatus(userId: string): Promise<SetupStatus | null> {
       role: true,
       wallet: { select: { accountNumber: true, subaccountStatus: true } },
       supplier: { select: { id: true, businessName: true, displayName: true, city: true, address: true, description: true, categories: true, verificationStatus: true, verificationDocuments: true, payoutAccount: { select: { id: true } }, _count: { select: { products: true } } } },
-      logisticsPartner: { select: { id: true, companyName: true, displayName: true, city: true, address: true, coverageZones: true, deliveryAreas: true, pickupAreas: true, basePrice: true, verificationStatus: true, verificationDocuments: true, payoutAccount: { select: { id: true } }, _count: { select: { pickupPoints: { where: { active: true } }, rateCards: { where: { ownerUserId: null, status: "active" } } } } } },
+      logisticsPartner: { select: { id: true, companyName: true, displayName: true, city: true, address: true, coverageZones: true, deliveryAreas: true, pickupAreas: true, basePrice: true, verificationStatus: true, verificationDocuments: true, kycSubmittedAt: true, payoutAccount: { select: { id: true } }, _count: { select: { pickupPoints: { where: { active: true } }, rateCards: { where: { ownerUserId: null, status: "active" } } } } } },
       store: { select: { id: true, name: true, status: true, onboardingState: true, brandSettings: true, _count: { select: { storeProducts: true, launchPayments: { where: { status: { in: ["paid", "settled", "deposit_paid"] } } } } } } },
     },
   });
@@ -67,14 +69,18 @@ export async function setupStatus(userId: string): Promise<SetupStatus | null> {
 
   if (user.role === "logistics_partner" && user.logisticsPartner) {
     const p = user.logisticsPartner;
-    const docs = docsDone(p.verificationDocuments, "logistics_partner", p.verificationStatus);
+    // Delivery partners verify in tiers (shared/partner-tiers.ts), with no CAC needed to start: "done" once they've
+    // sent their Tier 1 checks for review, else what's still missing or needs fixing.
+    const tier1 = await safe(partnerTierSnapshot(p.id).then((found) => (found ? tier1Checklist(found.snapshot) : null)), null);
+    const open = tier1 ? (itemsWhere(tier1, ["missing", "rejected"]) as ChecklistItem[]).map((item) => ITEM_LABELS[item]) : [];
+    const docs = { done: Boolean(p.kycSubmittedAt) || p.verificationStatus === "verified", missing: open };
     const bank = bankIsSet({ ...wallet, payoutAccount: Boolean(p.payoutAccount) });
     return finish("logistics_partner", first(user.name), p.displayName || p.companyName, p.verificationStatus, [
       { id: "profile", label: "Company details", done: partnerProfileSet(p), href: "/logistics/onboarding", hint: "Company name, city, the vehicles you use" },
       { id: "coverage", label: "Where you deliver", done: partnerCoverageSet(p), href: "/logistics/coverage", hint: "The states and areas you cover" },
       { id: "pickup", label: "Pickup points", done: p._count.pickupPoints > 0, href: "/logistics/pickup-points", hint: "Offices or hubs where parcels can be dropped or collected" },
       { id: "rates", label: "Your rates", done: partnerRatesSet({ basePrice: p.basePrice, rateCards: p._count.rateCards }), href: "/logistics/pricing", hint: "What you charge per delivery" },
-      { id: "documents", label: "Verification documents", done: docs.done, href: "/logistics/verification", hint: docs.done ? "Uploaded" : `Still needed: ${docs.missing.join(", ")}` },
+      { id: "documents", label: "Verification steps", done: docs.done, href: "/logistics/verification", hint: docs.done ? "Sent for review" : docs.missing.length ? `Still needed: ${docs.missing.join(", ")}` : "Ready to send for review" },
       { id: "bank", label: "Bank for payments", done: bank, href: "/logistics/wallet", hint: "Where delivery fees are paid" },
       { id: "verified", label: "Verified by Shopinbos", done: p.verificationStatus === "verified", href: "/logistics/verification", hint: p.verificationStatus === "rejected" ? "Not approved yet: check what to fix" : "The team reviews your documents" },
     ]);

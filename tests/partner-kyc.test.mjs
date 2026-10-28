@@ -181,3 +181,32 @@ test("wiring: the NIN check sends the selfie to Korapay and the generic upload r
   assert.match(config, /source: "\/logistics\/verification",\s*headers: baseHeaders\(true\)/);
   assert.match(config, /camera=\(\), microphone=\(self\)/, "the camera stays off everywhere else");
 });
+
+// ─── No BVN, and unverified partners are sent to verify ──────────────────────
+
+test("partners are never asked for a BVN: bank account only, on the web, the phone and the server", () => {
+  const route = read("src/app/api/logistics/kyc/payout/route.ts");
+  assert.doesNotMatch(route, /method === "bvn"|verifyKorapayIdentity|idNumberHash\(secret, "bvn"/);
+  for (const path of ["src/components/logistics/verification/IdentityBankSteps.tsx", "apps/mobile/src/components/kyc/FleetSteps.tsx"]) {
+    assert.doesNotMatch(read(path).replace(/^\s*\/\/.*$/gm, ""), /bvn/i, `${path} asks for a BVN`);
+  }
+  for (const ns of ["partnerKyc", "m_kyc"]) {
+    for (const locale of ["en", "pcm", "yo", "ha", "ig"]) assert.doesNotMatch(read(`shared/i18n/messages/${ns}/${locale}.ts`), /BVN/, `${ns}/${locale} mentions BVN`);
+  }
+  assert.doesNotMatch(read("shared/i18n/messages/m_partner/en.ts"), /"kyc\.need\.bank": "[^"]*BVN/);
+  assert.match(read("shared/partner-tiers.ts"), /payout: "Bank account"/);
+});
+
+test("unverified partners are sent to verify: after set-up, from blocked job pages, and the banner tells the truth", async () => {
+  assert.match(read("src/components/onboarding/LogisticsOnboarding.tsx"), /router\.push\(destination \|\| \(verified \? "\/logistics\/dashboard" : "\/logistics\/verification"\)\)/);
+  assert.doesNotMatch(read("src/components/onboarding/LogisticsOnboarding.tsx"), /Verify your business/, "set-up no longer asks for CAC as the way to verify");
+  for (const path of ["src/app/actions/logistics.ts", "src/app/actions/delivery-market-partner.ts"]) {
+    assert.doesNotMatch(read(path), /verification=pending/);
+    assert.match(read(path), /redirect\("\/logistics\/verification"\)/);
+  }
+  const kit = read("src/components/logistics/kit.tsx");
+  assert.match(kit, /verificationStatus: bannerStatus\(partner\)/);
+  assert.match(kit, /partner\.verificationStatus === "pending" && "kycSubmittedAt" in partner && !partner\.kycSubmittedAt\) return "unverified"/);
+  const setup = read("src/lib/onboarding/setup-status.server.ts");
+  assert.match(setup, /tier1Checklist\(found\.snapshot\)/, "the set-up checklist follows the tier steps, not CAC + insurance");
+});

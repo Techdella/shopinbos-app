@@ -60,7 +60,8 @@ export const verifyEmailCode = (email: string, challenge: string, code: string) 
   api<KycState>(`${BASE}/email`, { method: "POST", json: { action: "verify", email, challenge, code } });
 
 export const fetchPayoutBanks = () => api<{ banks: string[] }>(`${BASE}/payout`);
-export const savePayout = (input: { method: "bvn"; bvn: string; firstName: string; lastName: string; dateOfBirth: string } | { method: "bank"; bankName: string; accountNumber: string }) =>
+/** A bank account in the NIN's name (partners are never asked for a BVN). */
+export const savePayout = (input: { method: "bank"; bankName: string; accountNumber: string }) =>
   api<KycState>(`${BASE}/payout`, { method: "POST", json: input });
 
 export const saveKycCoverage = (input: { deliveryAreas: string[]; deliveryMethods: string[] }) => api<KycState>(`${BASE}/coverage`, { method: "PATCH", json: input });

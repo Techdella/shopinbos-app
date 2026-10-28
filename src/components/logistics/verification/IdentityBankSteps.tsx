@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PillButton, Segmented, cx } from "@/components/app-ui";
+import { PillButton, cx } from "@/components/app-ui";
 import { field } from "@/components/seller-core";
 import { NG_STATES } from "@shared/delivery-market";
 import { CodeConfirm, DocUpload, Field, Row, StepCard, StepError, docItemState, jsonInit, kycCall, useAction, useKycT, type KycState } from "./kit";
 import { SelfieCapture, type SelfieValue } from "./SelfieCapture";
 
-// Identity (name, NIN, phone, email, selfie, address) and Bank (BVN or a bank account in the NIN's name).
+// Identity (name, NIN, phone, email, selfie, address) and Bank (a bank account in the NIN's name; never a BVN).
 
 type StepProps = { state: KycState; onState: (state: KycState) => void; reload: () => void };
 
@@ -153,13 +153,9 @@ export function BankStep({ state, onState }: StepProps) {
   const t = useKycT();
   const { busy, error, run } = useAction(onState);
   const payout = state.identity.payout;
-  const [method, setMethod] = useState<"bank" | "bvn">(payout?.method ?? "bank");
   const [banks, setBanks] = useState<string[]>([]);
   const [bankName, setBankName] = useState(payout?.bankName ?? "");
   const [accountNumber, setAccountNumber] = useState("");
-  const [bvn, setBvn] = useState("");
-  const [dateOfBirth, setDateOfBirth] = useState("");
-  const name = splitName(state.identity.fullName);
 
   useEffect(() => {
     kycCall<{ banks: string[] }>("/payout").then((data) => setBanks(data.banks), () => setBanks([]));
@@ -172,40 +168,24 @@ export function BankStep({ state, onState }: StepProps) {
         <p className="m-0 text-[14.5px] text-app-ink-soft">{t("bank.needNin")}</p>
       ) : (
         <Row label={t("item.payout")} state={state.tier1.payout} reason={payout?.rejectionReason}>
-          {payout?.status === "approved" && (
-            <p className="m-0 text-[14.5px]">
-              {payout.method === "bank"
-                ? t("bank.doneBank", { bank: payout.bankName ?? "", last4: payout.last4, name: payout.accountName ?? "" })
-                : t("bank.doneBvn", { last4: payout.last4 })}
-            </p>
+          {payout?.status === "approved" && payout.method === "bank" && (
+            <p className="m-0 text-[14.5px]">{t("bank.doneBank", { bank: payout.bankName ?? "", last4: payout.last4, name: payout.accountName ?? "" })}</p>
           )}
-          <Segmented options={[{ value: "bank" as const, label: t("bank.useBank") }, { value: "bvn" as const, label: t("bank.useBvn") }]} value={method} onChange={setMethod} className="max-w-[360px]" />
-          {method === "bank" ? (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field label={t("bank.bank")}>
-                <select value={bankName} onChange={(event) => setBankName(event.target.value)} className={field.select}>
-                  <option value="">{t("bank.pickBank")}</option>
-                  {banks.map((bank) => <option key={bank} value={bank}>{bank}</option>)}
-                </select>
-              </Field>
-              <Field label={t("bank.account")}><input value={accountNumber} onChange={(event) => setAccountNumber(event.target.value.replace(/\D/g, "").slice(0, 10))} inputMode="numeric" className={field.input} /></Field>
-            </div>
-          ) : (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field label={t("bank.bvn")}><input value={bvn} onChange={(event) => setBvn(event.target.value.replace(/\D/g, "").slice(0, 11))} inputMode="numeric" className={field.input} /></Field>
-              <Field label={t("id.dob")}><input type="date" value={dateOfBirth} onChange={(event) => setDateOfBirth(event.target.value)} className={field.input} /></Field>
-            </div>
-          )}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label={t("bank.bank")}>
+              <select value={bankName} onChange={(event) => setBankName(event.target.value)} className={field.select}>
+                <option value="">{t("bank.pickBank")}</option>
+                {banks.map((bank) => <option key={bank} value={bank}>{bank}</option>)}
+              </select>
+            </Field>
+            <Field label={t("bank.account")}><input value={accountNumber} onChange={(event) => setAccountNumber(event.target.value.replace(/\D/g, "").slice(0, 10))} inputMode="numeric" className={field.input} /></Field>
+          </div>
           <div>
             <PillButton
               size="md"
               busy={busy === "payout"}
-              disabled={method === "bank" ? !bankName || accountNumber.length !== 10 : bvn.length !== 11 || !dateOfBirth}
-              onClick={() =>
-                void run("payout", () =>
-                  kycCall("/payout", jsonInit("POST", method === "bank" ? { method, bankName, accountNumber } : { method, bvn, dateOfBirth, firstName: name.first, lastName: name.last })),
-                )
-              }
+              disabled={!bankName || accountNumber.length !== 10}
+              onClick={() => void run("payout", () => kycCall("/payout", jsonInit("POST", { method: "bank", bankName, accountNumber })))}
             >
               {t("bank.check")}
             </PillButton>

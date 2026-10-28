@@ -46,7 +46,7 @@ Sellers who already have a website or social pages
 
 Suppliers and delivery partners
 - Suppliers sign up at https://app.shopinbos.com/supplier/signup, delivery partners at https://app.shopinbos.com/logistics/signup (from 22 October 2026).
-- Verification: suppliers upload CAC (business name or company) and product photos; delivery partners upload CAC and insurance. There's also an instant CAC lookup and a BVN/NIN check. The Shopinbos team reviews and verifies.
+- Verification: suppliers upload CAC (business name or company) and product photos; there's also an instant CAC lookup. Delivery partners don't need CAC to start: they verify in steps at /logistics/verification (NIN with a selfie, phone, email, a bank account in their NIN name, address, coverage, one vehicle and a guarantor) to become a Verified Individual and take jobs with limits; adding CAC makes them a Registered Business with no limits. Nobody is asked for a BVN. The Shopinbos team reviews and verifies.
 - Suppliers get dropship and wholesale orders from sellers, earnings tracking and rider pickups. Free suppliers can list 50 products (Supplier Max: unlimited). Delivery partners get delivery jobs and quote requests from sellers.
 
 Getting started and contacts
