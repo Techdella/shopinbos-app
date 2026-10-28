@@ -3,24 +3,25 @@ import "server-only";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { PAID_ORDER_STATUSES } from "@/lib/insights";
-import { PLANS_BY_ROLE, PLAN_MARKERS, PLAN_NAMES, planKeyFor } from "@shared/plans";
+import { PAID_THROUGH_PAYSTACK, PLAN_SOURCE_SELECT, paidMarkers, planSource, runningGrants } from "@/lib/admin/plan-source.server";
 
 // Admin › Sellers: shops and the business side of their owners. Under the NDPA only what running the platform needs:
 // shop details, plan and totals. Owners' contact details stay masked until revealed with a reason (the page), and a
 // shop's customers are only ever counted, never listed.
 
 const DAY = 86_400_000;
-export const SELLER_FILTERS = ["active", "suspended", "paid", "new"] as const;
+export const SELLER_FILTERS = ["active", "suspended", "paid", "gifted", "new"] as const;
 export type SellerFilter = (typeof SELLER_FILTERS)[number];
 export const SELLERS_PER_PAGE = 50;
 
-const PAID_SELLER_MARKERS = PLANS_BY_ROLE.seller.filter((key) => key in PLAN_MARKERS).map((key) => PLAN_MARKERS[key as keyof typeof PLAN_MARKERS]);
+const PAID_SELLER_MARKERS = paidMarkers("seller");
 const paidStatuses = [...PAID_ORDER_STATUSES];
 
 function filterWhere(filter: SellerFilter | undefined, now: Date): Prisma.StoreWhereInput {
   if (filter === "active") return { status: "active" };
   if (filter === "suspended") return { status: { not: "active" } };
-  if (filter === "paid") return { user: { aiCredits: { in: PAID_SELLER_MARKERS } } };
+  if (filter === "paid") return { user: { aiCredits: { in: PAID_SELLER_MARKERS }, ...PAID_THROUGH_PAYSTACK } };
+  if (filter === "gifted") return { user: { aiCredits: { in: PAID_SELLER_MARKERS }, NOT: PAID_THROUGH_PAYSTACK } };
   if (filter === "new") return { createdAt: { gte: new Date(now.getTime() - 7 * DAY) } };
   return {};
 }
@@ -50,18 +51,19 @@ export async function listSellers(input: { filter?: SellerFilter; q?: string; pa
       take: SELLERS_PER_PAGE,
       select: {
         id: true, name: true, slug: true, logoUrl: true, city: true, country: true, status: true, customDomain: true, createdAt: true, userId: true,
-        user: { select: { name: true, aiCredits: true } },
+        user: { select: { name: true, ...PLAN_SOURCE_SELECT } },
         _count: { select: { storeProducts: true } },
       },
     }),
   ]);
   const ids = stores.map((store) => store.id);
   const userIds = stores.map((store) => store.userId);
-  const [orders, active] = await Promise.all([
+  const [orders, active, grants] = await Promise.all([
     ids.length
       ? db.retailOrder.groupBy({ by: ["storeId"], where: { storeId: { in: ids }, status: { in: paidStatuses }, createdAt: { gte: new Date(now.getTime() - 30 * DAY) } }, _count: { _all: true }, _sum: { total: true } })
       : [],
     userIds.length ? db.userActivityDay.groupBy({ by: ["userId"], where: { userId: { in: userIds } }, _max: { day: true } }).catch(() => []) : [],
+    runningGrants(userIds, now),
   ]);
   const orderBy = new Map(orders.map((row) => [row.storeId, row]));
   const activeBy = new Map(active.map((row) => [row.userId, row._max.day]));
@@ -72,8 +74,7 @@ export async function listSellers(input: { filter?: SellerFilter; q?: string; pa
     rows: stores.map((store) => ({
       ...store,
       ownerFirstName: store.user.name.trim().split(/\s+/)[0] ?? "",
-      plan: PLAN_NAMES[planKeyFor("seller", store.user.aiCredits)],
-      paidPlan: PAID_SELLER_MARKERS.includes(store.user.aiCredits),
+      ...planSource("seller", store.user, grants.get(store.userId)),
       products: store._count.storeProducts,
       orders30: orderBy.get(store.id)?._count._all ?? 0,
       sales30: orderBy.get(store.id)?._sum.total ?? 0,
@@ -90,6 +91,7 @@ export async function sellerDetail(storeId: string, now = new Date()) {
       user: {
         select: {
           id: true, name: true, email: true, phone: true, aiCredits: true, planInterval: true, planStatus: true, planPaidUntil: true, createdAt: true,
+          _count: { select: { paymentReceipts: true } },
           wallet: { select: { bankName: true, accountNumber: true, kycStatus: true, status: true } },
         },
       },
@@ -99,16 +101,17 @@ export async function sellerDetail(storeId: string, now = new Date()) {
   if (!store) return null;
   const since = new Date(now.getTime() - 30 * DAY);
   const paid = { storeId, status: { in: paidStatuses } };
-  const [all, recent, customers, lastActive] = await Promise.all([
+  const [all, recent, customers, lastActive, grants] = await Promise.all([
     db.retailOrder.aggregate({ where: paid, _count: { _all: true }, _sum: { total: true } }),
     db.retailOrder.aggregate({ where: { ...paid, createdAt: { gte: since } }, _count: { _all: true }, _sum: { total: true } }),
     // A count of distinct buyers only: their names and details are the seller's data, not ours to browse.
     db.retailOrder.groupBy({ by: ["buyerEmail"], where: paid }).then((rows) => rows.length),
     db.userActivityDay.findFirst({ where: { userId: store.userId }, orderBy: { day: "desc" }, select: { day: true } }).catch(() => null),
+    runningGrants([store.userId], now),
   ]);
   return {
     ...store,
-    plan: PLAN_NAMES[planKeyFor("seller", store.user.aiCredits)],
+    ...planSource("seller", store.user, grants.get(store.userId)),
     stats: {
       products: store._count.storeProducts,
       orders: all._count._all,

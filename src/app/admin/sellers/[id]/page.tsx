@@ -47,7 +47,7 @@ export default async function AdminSellerPage(props: { params: Promise<{ id: str
     >
       <section aria-label="Shop summary" className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-6">
         <StatTile tone="card" label="Shop" value={<Pill tone={live ? "success" : "danger"} dot>{live ? "Live" : "Paused"}</Pill>} />
-        <StatTile tone="card" label="Plan" value={<span className="text-[20px]">{seller.plan}</span>} hint={owner.planStatus ? `${owner.planInterval ?? ""} ${owner.planStatus}${owner.planPaidUntil ? `, paid to ${formatDate(owner.planPaidUntil)}` : ""}` : undefined} />
+        <StatTile tone="card" label="Plan" value={<span className="text-[20px]">{seller.plan}</span>} hint={owner.planStatus ? `${owner.planInterval ?? ""} ${owner.planStatus}${owner.planPaidUntil ? `, paid to ${formatDate(owner.planPaidUntil)}` : ""}` : seller.giftNote ?? undefined} />
         <StatTile tone="card" label="Products" value={seller.stats.products} />
         <StatTile tone="card" label="Paid orders (30 days)" value={seller.stats.orders30} hint={formatMoney(seller.stats.sales30, seller.currency)} />
         <StatTile tone="card" label="Paid orders (all time)" value={seller.stats.orders} hint={formatMoney(seller.stats.sales, seller.currency)} />

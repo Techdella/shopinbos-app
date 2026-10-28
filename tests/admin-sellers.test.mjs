@@ -58,3 +58,22 @@ test("admin sellers: in the Partners section and the nav; logged actions; no buy
   assert.match(server, /groupBy\(\{ by: \["buyerEmail"\][\s\S]*rows\.length/);
   assert.match(server, /email: \{ equals: q/);
 });
+
+test("admin sellers: 'paid plan' means paid through Paystack; free plan time (PlanGrant) is counted apart", () => {
+  const source = read("src/lib/admin/plan-source.server.ts");
+  assert.match(source, /PAID_THROUGH_PAYSTACK[\s\S]*planStatus: \{ in: \["active", "non_renewing"\] \}[\s\S]*paymentReceipts: \{ some: \{\} \}/);
+  assert.match(source, /const paidPlan = Boolean\(tiered && user && \(user\.planStatus === "active" \|\| user\.planStatus === "non_renewing" \|\| user\._count\.paymentReceipts > 0\)\)/);
+  const server = read("src/lib/admin/sellers.server.ts");
+  assert.match(server, /filter === "paid"\) return \{ user: \{ aiCredits: \{ in: PAID_SELLER_MARKERS \}, \.\.\.PAID_THROUGH_PAYSTACK \} \}/);
+  assert.match(server, /filter === "gifted"\) return \{ user: \{ aiCredits: \{ in: PAID_SELLER_MARKERS \}, NOT: PAID_THROUGH_PAYSTACK \} \}/);
+  assert.ok(!/paidPlan: PAID_SELLER_MARKERS\.includes/.test(server), "a tier marker alone is not a payment");
+});
+
+test("admin logistics: partners show their plan, paid through Paystack or free time", () => {
+  const list = read("src/app/admin/logistics-partners/page.tsx");
+  assert.match(list, /planSource\("logistics_partner"/);
+  assert.match(list, /planFor\(row\.userId\)\.giftNote/);
+  const detail = read("src/app/admin/logistics-partners/[id]/page.tsx");
+  assert.match(detail, /planSource\("logistics_partner"/);
+  assert.match(detail, /label="Plan"/);
+});
