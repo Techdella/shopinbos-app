@@ -240,9 +240,9 @@ export interface MarketData {
     pickupAreas: string[];
     deliveryAreas: string[];
     offersPayOnDelivery: boolean;
-    /** Track record level: verified | trusted | cash_trusted (newer servers). */
+    /** Tier: verified (1) | trusted (2) | cash_trusted (3, "Top partner") (newer servers). */
     level?: string;
-    /** Pay on delivery can be switched on: Cash trusted and not paused for late cash (newer servers). */
+    /** Pay on delivery can be switched on: verified and not paused for cash owed on older jobs (newer servers). */
     podOpen?: boolean;
   };
   rateCard: MarketRateCard | null;
@@ -254,7 +254,7 @@ export interface MarketData {
 
 export const fetchMarket = () => api<MarketData>("/api/mobile/logistics/market");
 
-/** "Pay on delivery jobs" (A-Rider-POD): the level, the goals to Cash trusted, the cash cap and the rules. */
+/** "Pay on delivery jobs" (A-Rider-POD): the tier, the goals to the next one, and whether pay on delivery is open. */
 export interface PartnerLevelView {
   level: "verified" | "trusted" | "cash_trusted";
   next: "verified" | "trusted" | "cash_trusted" | null;

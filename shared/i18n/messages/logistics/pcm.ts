@@ -654,7 +654,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "market.cov.addArea": "Add state or LGA",
   "market.cov.lga": "LGA",
   "market.cov.wholeState": "The whole state",
-  "market.cov.podLabel": "We dey collect pay on delivery cash for shops wey choose am",
+  "market.cov.podLabel": "We dey take pay on delivery jobs for shops wey choose am (customers go pay for app, riders no go carry cash)",
   "market.cov.podChoose": "Na you go choose which businesses for Connections.",
   "market.cov.save": "Save services and areas",
   "market.biz.title": "Business details",

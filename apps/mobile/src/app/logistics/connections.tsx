@@ -34,7 +34,7 @@ export default function Connections() {
     } catch (podError) {
       setError(podError instanceof Error ? podError.message : t("error.retry"));
       void market.reload();
-      // Below Cash trusted (403 pod_locked): show what's left to unlock pay on delivery.
+      // Not verified yet, or paused for cash owed on older jobs (403 pod_locked): show how pay on delivery opens.
       if (podError instanceof ApiError && podError.code === POD_LOCKED_CODE) router.push("/logistics/pay-on-delivery");
     } finally {
       setBusy(null);

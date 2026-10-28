@@ -53,7 +53,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "q.charge.flat": "Kuɗi ɗaya ga kowace isarwa",
   "q.charge.amount": "Kuɗin kowace isarwa (₦)",
   "q.charge.quote": "Zan faɗi farashi ga kowane oda a chat",
-  "q.charge.podLater": "Za ka fara da prepaid jobs kawai. Pay on delivery zai buɗe a Cash trusted: jobs 150 da aka kai, kwanaki 60 a Shopinbos, babu cash pay-in da ya makara, da CAC ko guarantor.",
+  "q.charge.podLater": "Biya bayan isarwa zai buɗe maka da zarar an tabbatar da kai. Abokan ciniki suna biya a app a ƙofa kuma su ba rider ɗinka lamba, don haka rider ɗinka ba sa ɗaukar kuɗi.",
   "rail.title": "Sign-up na delivery partner",
   "rail.name": "Sunan business",
   "rail.cac": "CAC",

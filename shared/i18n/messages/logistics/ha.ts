@@ -654,7 +654,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "market.cov.addArea": "Ƙara jiha ko LGA",
   "market.cov.lga": "LGA",
   "market.cov.wholeState": "Duk jihar",
-  "market.cov.podLabel": "Muna karɓar kuɗin biya bayan isarwa ga shagunan da suka zaɓa",
+  "market.cov.podLabel": "Muna ɗaukar ayyukan biya bayan isarwa ga shagunan da suka zaɓa (abokan ciniki suna biya a app, rider ba sa ɗaukar kuɗi)",
   "market.cov.podChoose": "Kai ne ke zaɓar ƴan kasuwa a Haɗin kasuwanci.",
   "market.cov.save": "Ajiye ayyuka da yankuna",
   "market.biz.title": "Bayanan kasuwanci",

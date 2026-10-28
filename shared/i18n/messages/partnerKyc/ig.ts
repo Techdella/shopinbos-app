@@ -53,7 +53,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "q.charge.flat": "Otu ego maka nnyefe ọ bụla",
   "q.charge.amount": "Ego maka nnyefe ọ bụla (₦)",
   "q.charge.quote": "M ga-ekwu ọnụahịa maka order ọ bụla na chat",
-  "q.charge.podLater": "Ị ga-ebido naanị na prepaid jobs. Pay on delivery ga-emeghe na Cash trusted: jobs 150 e zigara, ụbọchị 60 na Shopinbos, enweghị cash pay-in nke gafere oge, na CAC ma ọ bụ guarantor.",
+  "q.charge.podLater": "Pay on delivery ga-emeghere gị ozugbo e kwadoro gị. Ndị ahịa na-akwụ ụgwọ n'app n'ọnụ ụzọ ma nye rider gị koodu, ya mere rider gị anaghị ebu ego.",
   "rail.title": "Sign-up delivery partner",
   "rail.name": "Aha business",
   "rail.cac": "CAC",

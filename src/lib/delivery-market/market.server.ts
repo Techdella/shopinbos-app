@@ -63,7 +63,7 @@ const PARTNER_SELECT = {
   pickupAreas: true,
   deliveryAreas: true,
   offersPayOnDelivery: true,
-  // Pay on delivery only from Cash trusted partners not paused for late cash (shared/dropship-rules.ts).
+  // Pay on delivery from verified partners not paused for cash owed on older jobs (shared/dropship-rules.ts).
   level: true,
   codPaused: true,
   rateCards: { where: { ownerUserId: null, status: "active" }, orderBy: { createdAt: "desc" as const }, take: 1, select: { id: true, rows: true } },

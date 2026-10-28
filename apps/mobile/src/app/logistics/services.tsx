@@ -16,7 +16,7 @@ import { colors } from "@/theme";
 
 // Services ("Delivery partner app" prototype `services`): doorstep, pickup points, same-day and interstate, plus
 // whether you offer pay on delivery at all (each business you work with also has its own switch). Saved with the
-// coverage (PUT market { section: "coverage" }). Pay on delivery opens at Cash trusted (Supplier & Dropship Rules):
+// coverage (PUT market { section: "coverage" }). Pay on delivery is open to verified partners (riders never hold cash; Supplier & Dropship Rules):
 // below it the switch is locked and opens "Pay on delivery jobs" (logistics/pay-on-delivery: the goals and the cash
 // rules); a 403 pod_locked from the server opens it too.
 
@@ -55,7 +55,7 @@ function ServicesForm({ data }: { data: MarketData }) {
         {lock.locked ? (
           <Row
             title={t("svc.pod")}
-            sub={words("pod.lockedRow", "Unlocks at Cash trusted. See what's left.")}
+            sub={words("pod.lockedRowVerify", "Opens once you're verified. See how it works.")}
             right={
               <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.grayTint, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 }}>
                 <AppIcon name="lock" size={13} color={colors.grayInk} />

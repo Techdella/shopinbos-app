@@ -679,7 +679,7 @@ const en = {
   "market.cov.addArea": "Add a state or LGA",
   "market.cov.lga": "LGA",
   "market.cov.wholeState": "Whole state",
-  "market.cov.podLabel": "We collect pay on delivery cash for shops that opt in",
+  "market.cov.podLabel": "We take pay on delivery jobs for shops that opt in (customers pay in the app, riders carry no cash)",
   "market.cov.podChoose": "You choose which businesses on Connections.",
   "market.cov.save": "Save services and areas",
   "market.biz.title": "Business details",
