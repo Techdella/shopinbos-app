@@ -7,13 +7,15 @@ import { Icon } from "@/components/ui/Icon";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { useT } from "@/components/i18n/I18nProvider";
 import type { AssistantFormState, SuggestionInput } from "@shared/product-assistant";
+import { peggyOpener, type PeggyOpener } from "@shared/peggy-opener";
 import { ChatText } from "@/components/chat/ChatText";
 import { friendlyError } from "@/lib/errors/report-client";
 import { uploadToFolder } from "@/components/media/media-client";
 
 // Peggy docked on the add / edit product page. She opens by herself once per browser session per page kind (new or
-// edit) with a short greeting, and can be closed to a small "Ask Peggy" button. The seller tells her sizes, colours
-// and prices (or sends a photo); /api/app/products/assistant answers with a checked suggestion that shows as
+// edit) with a short greeting, and can be closed to a small "Ask Peggy" button. The greeting, examples and placeholder
+// follow the product's type and what's still empty (@shared/peggy-opener: brand and warranty for a TV, sizes for a
+// dress). The seller tells her what to fill in (or sends a photo); /api/app/products/assistant answers with a checked suggestion that shows as
 // "Peggy suggests: …" with Apply / Change. Applying fills the form (and on a saved product, saves those parts).
 
 interface Turn {
@@ -54,6 +56,9 @@ export const ProductPeggy = forwardRef<ProductPeggyHandle, Props>(function Produ
   const fileRef = useRef<HTMLInputElement>(null);
   const media = useMediaLibrary();
   const endRef = useRef<HTMLDivElement>(null);
+  // Follows the form until the seller first writes, then stays put above the chat.
+  const [sentOpener, setSentOpener] = useState<PeggyOpener | null>(null);
+  const opener = sentOpener ?? peggyOpener(getState(), (key, vars) => t(key as Parameters<typeof t>[0], vars));
 
   // Opens once per session for this page kind; never again after the seller has seen it.
   useEffect(() => {
@@ -114,6 +119,7 @@ export const ProductPeggy = forwardRef<ProductPeggyHandle, Props>(function Produ
     const message = draft.trim() || (photo ? t("peggy.photoAsk") : "");
     if (!message || busy) return;
     const sentPhoto = photo;
+    if (!sentOpener) setSentOpener(opener);
     const history = turns.filter((turn) => !turn.failed).slice(-8).map((turn) => ({ role: turn.role, content: turn.content.slice(0, 2000) }));
     setTurns((current) => [...current, { role: "user", content: message, ...(sentPhoto ? { photo: sentPhoto } : {}) }]);
     setDraft("");
@@ -197,10 +203,10 @@ export const ProductPeggy = forwardRef<ProductPeggyHandle, Props>(function Produ
 
       <div className="min-h-0 flex-1 overflow-y-auto px-3.5 py-3" aria-live="polite">
         <div className="flex flex-col gap-2.5">
-          <Bubble role="assistant">{t("peggy.greeting")}</Bubble>
+          <Bubble role="assistant">{opener.greeting}</Bubble>
           {turns.length === 0 ? (
             <div className="flex flex-wrap gap-1.5">
-              {[t("peggy.example1"), t("peggy.example2")].map((example) => (
+              {opener.examples.map((example) => (
                 <button key={example} type="button" onClick={() => setDraft(example)} className="min-h-[34px] whitespace-normal rounded-[18px] border border-app-line bg-white px-3 py-1.5 text-left text-[12.5px] font-bold leading-snug hover:border-app-line-strong">
                   {example}
                 </button>
@@ -269,7 +275,7 @@ export const ProductPeggy = forwardRef<ProductPeggyHandle, Props>(function Produ
           </button>
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => void uploadPhoto(e.target.files)} aria-label={t("peggy.sendPhoto")} />
           {media.dialog}
-          <label htmlFor="product-peggy-input" className="sr-only">{t("peggy.placeholder")}</label>
+          <label htmlFor="product-peggy-input" className="sr-only">{opener.placeholder}</label>
           <textarea
             id="product-peggy-input"
             ref={inputRef}
@@ -283,10 +289,10 @@ export const ProductPeggy = forwardRef<ProductPeggyHandle, Props>(function Produ
                 void send();
               }
             }}
-            placeholder={t("peggy.placeholder")}
+            placeholder={opener.placeholder}
             className="max-h-[120px] min-h-[44px] flex-1 resize-none rounded-[22px] border border-app-line bg-app-canvas px-4 py-2.5 text-[15px] leading-[1.4] outline-none placeholder:text-app-ink-faint focus:border-app-line-strong field-sizing-content"
           />
-          <VoiceInputButton variant="icon" value={draft} onChange={setDraft} maxLength={2000} context="sizes, colours and prices for a product" disabled={busy} />
+          <VoiceInputButton variant="icon" value={draft} onChange={setDraft} maxLength={2000} context={opener.voiceContext} disabled={busy} />
           <button type="submit" disabled={busy || (!draft.trim() && !photo)} aria-label={t("peggy.send")} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-app-ink text-white disabled:opacity-40">
             <Icon name="arrowUp" size={16} />
           </button>

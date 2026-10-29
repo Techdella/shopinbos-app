@@ -387,7 +387,7 @@ test("product form: Peggy greets once per session, and the form saves type, deta
   const peggy = read("src/app/components/product-form/ProductPeggy.tsx");
   assert.match(peggy, /sessionStorage/);
   assert.match(peggy, /\/api\/app\/products\/assistant/);
-  assert.match(en["peggy.greeting"], /^I'm here to help with this product\. Tell me the sizes, colours and prices, and I'll fill them in\. You can also send a photo\.$/);
+  assert.match(en["peggy.greetType"], /^I'm here to help with this product\. Tell me the \{things\}, and I'll fill them in\./);
   const form = read("src/app/components/ProductForm.tsx");
   for (const key of ["productType:", "productDetails:", "relatedProductIds: relatedIds", "variantPayload("]) assert.ok(form.includes(key), key);
   assert.match(form, /<ProductPeggy /);
