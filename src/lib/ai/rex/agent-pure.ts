@@ -206,6 +206,28 @@ export const REX_TOOL_SPECS = {
       })
       .strict(),
   },
+  start_store_build: {
+    kind: "read",
+    description:
+      "Start building (or rebuilding) the WHOLE store from what the seller described: opens the build setup in the Studio with their brief, any store links they want it to look like and a theme, so they confirm and the full build runs (design, every page's words, sample products, photos). Use only when they ask to build, create or redo the whole store, not for changes to parts of it (use edit_store_section).",
+    schema: z
+      .object({
+        brief: z.string().trim().max(1500).describe("What the store is and how it should feel, in the seller's words plus what you know of the business"),
+        links: z.array(z.string().trim().max(300)).max(3).nullable().describe("Store or Instagram links they want it to look like; null for none"),
+        themeId: z.enum(REX_THEME_IDS).nullable().describe("A theme they asked for; null to let the build choose"),
+      })
+      .strict(),
+  },
+  edit_menu: {
+    kind: "store",
+    description:
+      "Design the store's menus on the DRAFT: the header menu (pages, categories, products, content and links, with one level of dropdowns), the footer links, the menu style on computers (including a picture mega menu), the phone menu and the menu's own colours. Only uses what the store has. Saved as a new draft version with undo. Use for anything about the menu, navigation, links in the header or footer, or duplicated menu items.",
+    schema: z
+      .object({
+        instruction: z.string().trim().min(3).max(1500).describe("What the seller wants, e.g. 'Add a Shop dropdown with my categories and remove the repeated links'"),
+      })
+      .strict(),
+  },
   fill_section_images: {
     kind: "store",
     description:

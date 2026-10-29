@@ -1467,6 +1467,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "rex.hi.fixes": "Mo ti wo àkọsílẹ̀ rẹ, mo sì rí nǹkan {count} tí mo lè tún ṣe, bí ọ̀rọ̀ òfo tàbí ọ̀rọ̀ àpẹẹrẹ àti àwọn abala tí ó lè jókòó dáadáa. Ṣé kí n ràn ọ́ lọ́wọ́ láti tún wọn ṣe?",
   "rex.offer.Make pictures for my store": "Ṣe àwòrán fún ilé ìtajà mi",
   "rex.offer.Fix those for me": "Tún wọn ṣe fún mi",
+  "rex.cd.openBuild": "Ṣí ètò ìkọ́lé",
   "rex.offer.Build my store": "Kọ́ ṣọ́ọ̀bù mi",
   "rex.offer.Show me my store": "Fi ṣọ́ọ̀bù mi hàn mí",
   "rex.offer.Write the search titles and descriptions for every page": "Kọ àkọlé ìwádìí àti àpèjúwe fún gbogbo ojú-ìwé",

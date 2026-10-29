@@ -1467,6 +1467,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "rex.hi.fixes": "Na duba daftarinka kuma na ga abubuwa {count} da zan iya gyarawa, kamar kalmomi marasa komai ko na misali da sassan da za su iya zama da kyau. In taimaka maka ka gyara su?",
   "rex.offer.Make pictures for my store": "Yi hotuna don shagona",
   "rex.offer.Fix those for me": "Gyara mini su",
+  "rex.cd.openBuild": "Buɗe saitin gini",
   "rex.offer.Build my store": "Gina shagona",
   "rex.offer.Show me my store": "Nuna min shagona",
   "rex.offer.Write the search titles and descriptions for every page": "Rubuta taken bincike da bayanai na kowane shafi",
