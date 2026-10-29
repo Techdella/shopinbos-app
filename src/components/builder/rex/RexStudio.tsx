@@ -8,6 +8,8 @@ import { Icon } from "@/components/ui/Icon";
 import { useT } from "@/components/i18n/I18nProvider";
 import type { StoreEditorSnapshot } from "@/lib/store-templates";
 import { themeLibraryEntry } from "@/lib/store-templates/theme-library";
+import { isBoutiqueTheme } from "@/lib/store-templates/boutique-themes";
+import { reviewStoreDraft } from "@/lib/ai/rex/design-review";
 import { hasInspiration } from "@/lib/ai/rex/inspiration";
 import { computeStoreHealth, draftHealthFacts, rexSuggestionChips, type StorePageKey, type StorePageStatus } from "@/lib/store-health";
 import type { RexVersionSummary } from "@/lib/ai/rex/studio-versions";
@@ -51,7 +53,7 @@ function previewTab(page: string | null | undefined): StorePageKey | null {
 type Words = ReturnType<typeof useT<["builder", "common"]>>;
 
 // Offers are sent to Rex as written (in English, which the build/preview matchers read); RexChat shows them translated.
-function greeting(t: Words, firstName: string, fromOnboarding: boolean, draftSaved: boolean): Extract<ChatMessage, { role: "rex" }> {
+function greeting(t: Words, firstName: string, fromOnboarding: boolean, draftSaved: boolean, draft: StoreEditorSnapshot): Extract<ChatMessage, { role: "rex" }> {
   if (!draftSaved) {
     return {
       id: "hello",
@@ -60,12 +62,17 @@ function greeting(t: Words, firstName: string, fromOnboarding: boolean, draftSav
       offer: "Build my store",
     };
   }
-  return {
-    id: "hello",
-    role: "rex",
-    text: fromOnboarding ? t("rex.hi.onboarded", { name: firstName }) : t("rex.hi.back", { name: firstName }),
-    offer: "Show me my store",
-  };
+  const hello = fromOnboarding ? t("rex.hi.onboarded", { name: firstName }) : t("rex.hi.back", { name: firstName });
+  // Rex opens as the seller's designer: what it would fix in the draft (src/lib/ai/rex/design-review.ts).
+  const review = reviewStoreDraft(draft, { boutique: isBoutiqueTheme(draft.templateId), limit: 6 });
+  const fixes = review.findings.filter((finding) => finding.fix).length;
+  if (review.pictureSlots.length) {
+    return { id: "hello", role: "rex", text: `${hello}\n\n${t("rex.hi.pictures", { count: review.pictureSlots.length })}`, offer: "Make pictures for my store" };
+  }
+  if (fixes) {
+    return { id: "hello", role: "rex", text: `${hello}\n\n${t("rex.hi.fixes", { count: fixes })}`, offer: "Fix those for me" };
+  }
+  return { id: "hello", role: "rex", text: hello, offer: "Show me my store" };
 }
 
 export function RexStudio(props: RexStudioProps) {
@@ -73,7 +80,7 @@ export function RexStudio(props: RexStudioProps) {
   const [draft, setDraft] = useState<StoreEditorSnapshot>(props.initialDraft);
   const [draftSaved, setDraftSaved] = useState(props.draftSaved);
   const [versions, setVersions] = useState<RexVersionSummary[]>(props.versions);
-  const [messages, setMessages] = useState<ChatMessage[]>([greeting(t, props.firstName, props.fromOnboarding, props.draftSaved)]);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => [greeting(t, props.firstName, props.fromOnboarding, props.draftSaved, props.initialDraft)]);
   const [busy, setBusy] = useState<null | "chat" | "build">(null);
   const [busyJob, setBusyJob] = useState<RexJob | null>(null);
   const [undoingId, setUndoingId] = useState<string | null>(null);
@@ -89,7 +96,7 @@ export function RexStudio(props: RexStudioProps) {
   const [toast, setToast] = useState<{ text: string; href?: string } | null>(null);
   const [isPhone, setIsPhone] = useState(false);
   /** The "Build my store" setup (null: closed); `screenshots` are photos sent with a typed build request. */
-  const [setup, setSetup] = useState<{ screenshots: string[]; links: string[]; note: string } | null>(null);
+  const [setup, setSetup] = useState<{ screenshots: string[]; links: string[]; note: string; themeId?: string | null } | null>(null);
   const [buildSteps, setBuildSteps] = useState<BuildStep[] | null>(null);
   const router = useRouter();
   const toolsRef = useRef<HTMLDivElement>(null);
@@ -166,7 +173,7 @@ export function RexStudio(props: RexStudioProps) {
   }
 
   function newChat() {
-    const fresh = [greeting(t, props.firstName, false, draftSaved)];
+    const fresh = [greeting(t, props.firstName, false, draftSaved, draft)];
     setMessages(fresh);
     adopt(null, fresh.length);
   }
@@ -239,6 +246,9 @@ export function RexStudio(props: RexStudioProps) {
       const result = await askRex({ messages: messagesForRex, imageUrls });
       if (result.draft) takeDraft(result.draft, result.versions);
       rexSays({ text: result.text, cards: result.cards, ...(result.creditsNeeded ? { buyCredits: true } : {}) });
+      // Rex was asked to build the whole store: the build setup opens with what the seller said.
+      const buildCard = result.cards.find((card) => card.type === "build");
+      if (buildCard && buildCard.type === "build") setSetup({ screenshots: photos, links: buildCard.links, note: buildCard.brief, themeId: buildCard.themeId });
       // Rex changed the store or was asked to show it: open the preview on the page he worked on.
       const storeCard = [...result.cards].reverse().find((card) => card.type === "store" || card.type === "preview");
       if (result.draft || storeCard) showPreview(storeCard && "page" in storeCard ? storeCard.page : null);
@@ -662,6 +672,7 @@ export function RexStudio(props: RexStudioProps) {
           initialScreenshots={setup.screenshots}
           initialLinks={setup.links}
           initialNote={setup.note}
+          initialThemeId={setup.themeId ?? null}
           currentThemeId={draftSaved ? draft.templateId : null}
           rebuilding={draftSaved}
           onStart={(choice) => void runBuild(choice)}

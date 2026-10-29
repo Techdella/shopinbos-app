@@ -10,6 +10,7 @@ import { productFieldsData } from "@/lib/products/save-fields.server";
 import { stockTrackingFor } from "@shared/product-stock";
 import { isShortCodeClash } from "@shared/product-codes";
 import { withShortCode } from "@/lib/products/short-code.server";
+import { announceStorePaths } from "@/lib/seo/search-ping.server";
 
 export const GET = withSeller(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const sp = req.nextUrl.searchParams;
@@ -91,5 +92,6 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
   void import("@/lib/rewards/rewards.server").then((rewards) => rewards.recordRewardEvent({ userId: user.id, kind: "product_added", ref: product.id })).catch(() => undefined);
 
   await markCatalogDirty(store.id);
+  announceStorePaths(store.slug, [`/product/${encodeURIComponent(product.id)}`]);
   return ok(product, 201);
 });

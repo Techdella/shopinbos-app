@@ -17,6 +17,8 @@ import type { RexCard, RexReply } from "./cards";
 import { loadStudioStore } from "./studio-edit.server";
 import { loadHealthFacts, studioDraft, themeNameFor } from "./studio.server";
 import { MarketingError, REX_TOOL_RUNNERS, RexCreditsError, RexToolError, type RexToolContext } from "./tools";
+import { reviewStoreDraft } from "@/lib/ai/rex/design-review";
+import { isBoutiqueTheme } from "@/lib/store-templates";
 
 // Rex's agent loop over Claude (Messages API, manual tool loop) and OpenAI (Responses API, function tools),
 // shaped like Peggy's (src/lib/ai/peggy/agent.ts). The preferred provider runs first; if it fails or refuses
@@ -34,7 +36,7 @@ Format your replies as light Markdown, which the app shows as rich text: short p
 Your tools:
 - Pictures: edit_product_photo (sharper and brighter, white studio background, or a custom edit), remove_background, lifestyle_photo, generate_product_image (in the seller's brand, can copy their real logo onto the product), generate_logo. Results appear for the seller with buttons (Save to product, Use as logo); you never save them yourself.
 - Video: make_product_video prepares a branded reel (brand colours and logo) from a product's photos, or from pictures you just made or the seller attached (pass them in photos). It can first clean the photos into reel shots (shots: cutout, studio or brand; each costs a picture), and picks a template (float, bold, pop, words, grid, classic), a Nigerian-accent female or male voice and background music (afrobeats, amapiano, upbeat, chill, luxury). For "make a video of X", a good default is shots cutout + float for products on plain backgrounds, or pop. The seller previews it in the video studio, can record their own voice or use ElevenLabs instead, and records it; a finished video costs a video from the daily allowance, then credits.
-- Store design (DRAFT only, saved as a version with undo): edit_store_section for changes to words, sections, pages and colours; set_theme_style for the store-wide look in Theme settings (2026 themes: font pairing, button shape, page width, product photo shape; classic themes: heading font, corners, store layout); rebuild_section to redo a section or page from scratch; switch_theme; list_themes to show the themes; open_preview to show the seller their store.
+- Store design (DRAFT only, saved as a version with undo): edit_store_section for anything a section's panel can do (words, layout variations, buttons, pictures, slides and lists, adding ready-made blocks, moving, duplicating, hiding or removing sections, the space around a section) plus pages and colours; review_store_design to look the draft over and find what to fix; fill_section_images to make on-brand pictures for sections with no picture or the theme's sample photo and put them in place; edit_menu for the header menu, dropdowns, footer links, picture mega menus, the phone menu and menu colours; start_store_build when the seller asks to build or redo the whole store (it opens the build setup with their brief; the build runs from there); edit_store_section also builds custom rows and columns (headings, text, pictures, buttons, icon lists) on the 2026 themes; set_theme_style for the store-wide look in Theme settings (2026 themes: font pairing, button shape, page width, product photo shape; classic themes: heading font, corners, store layout); rebuild_section to redo a section or page from scratch; switch_theme; list_themes to show the themes; open_preview to show the seller their store.
 - Words: write_product_copy shows a new product description with an Apply button; nothing changes until the seller applies it.
 - Marketing: create_segment, create_campaign (saved as a draft, never sent), create_automation (saved switched off).
 - Email design: draft_email_template designs an email (photo, products, discount code, button) saved as a draft template the seller edits in the email builder; improve_email_copy rewrites a saved template into a new draft copy.
@@ -51,6 +53,7 @@ How to work:
 - Write image prompts like a good product photographer: the product, the surface and backdrop, the light, the angle, the props, the mood. Keep Nigerian people and settings when people or places appear.
 - When the seller asks for ideas or isn't sure what to make, suggest three short, specific ideas from their real products, categories and best sellers, tied to Nigerian moments (Detty December, Sallah, Easter, Valentine's, back-to-school, owambe weekends, rainy season, payday at month end). One line each; offer to make the one they like.
 - After you change the store, say what changed in one or two sentences and that it is in the preview; shoppers see nothing until they press Publish. Never say you published anything.
+- Be the seller's designer, not just an order-taker. The context's "designReview" lists what looks weak in their draft right now. When the seller opens the chat, asks what's next or what to improve, or after you build, rebuild or switch a theme, offer to fix the top items in one or two plain lines, for example "Let me help you fix a few sections: the about story is empty and the banner still has sample words. Want me to?" and, when sections show the theme's sample photos or have none, "Want me to make pictures for your store?". Fix the words, sections, spacing and colours with edit_store_section (one call can carry several fixes) once they agree. Ask before fill_section_images, because pictures cost images. Don't repeat the same offer after the seller has said no.
 - Never say you did something a tool did not confirm. If a tool returns an error, explain it simply and say what the seller can do next.
 - Don't invent prices, discounts, reviews, delivery times, materials or awards.
 - You cannot change prices, stock, orders, delivery fees, payments or domains. For those, point to /products, /home/orders, /home/settings or Peggy at /home/peggy.
@@ -261,6 +264,10 @@ export async function runRex(userId: string, turns: RexTurn[], imageUrls: string
         }
       : null,
     health: { score: health.score, topGaps: health.missing.slice(0, 4).map((item) => item.label) },
+    designReview: (() => {
+      const review = reviewStoreDraft(draft, { boutique: isBoutiqueTheme(draft.templateId), storeName: store.name, limit: 4 });
+      return { findings: review.findings.map((finding) => finding.message), pictureSpots: review.pictureSlots.length };
+    })(),
     products: { published: facts.products, newest: products.map((p) => ({ id: p.id, name: p.name, price: naira(p.retailPrice), status: p.status, photos: p.images.filter(Boolean).length })) },
     attachedPhotosThisMessage: newPhotos,
     photosAttachedEarlier: attachments.filter((url) => !newPhotos.includes(url)),

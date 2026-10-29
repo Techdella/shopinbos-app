@@ -24,6 +24,7 @@ export async function loadCommerceContext(slug: string): Promise<CommerceContext
       id: true,
       userId: true,
       brandSettings: true,
+      handlingDays: true,
       checkoutConfig: { select: { requirePhone: true, enableNotes: true, enableGiftNote: true, enableCoupon: true, enableUpsells: true, enableTrustBadges: true, upsellProducts: true } },
     },
   });
@@ -45,6 +46,7 @@ export async function loadCommerceContext(slug: string): Promise<CommerceContext
     cart: readCartSettings(store?.brandSettings),
     checkout: readCheckoutSettings(store?.checkoutConfig ?? null),
     deliveryMode: deliverySettings?.checkoutMode === "partners" ? "partners" : "zones",
+    handlingDays: store?.handlingDays ?? 1,
   };
 }
 

@@ -93,6 +93,12 @@ export const REX_TOOL_SPECS = {
     description: "The store's health score out of 100 from real facts (products, photos, delivery, payments, pages, reviews) and the biggest gaps to fix first.",
     schema: z.object({}).strict(),
   },
+  review_store_design: {
+    kind: "read",
+    description:
+      "Look over the store's DRAFT like a designer: sections still showing the theme's sample photos or with no picture, missing or sample words, empty stories, doubled-up or hidden sections, a homepage that's too short or too long, hard-to-read colours. Returns each finding with the instruction to fix it (pass it to edit_store_section) and the picture spots fill_section_images can fill. Use it when the seller asks what to improve, after building or switching a theme, or when they say the store doesn't look right.",
+    schema: z.object({}).strict(),
+  },
   list_products: {
     kind: "read",
     description: "The seller's products with ids, prices, how many photos each has and a short description. Use it to find the product a seller means before editing its photos or copy.",
@@ -192,11 +198,45 @@ export const REX_TOOL_SPECS = {
   edit_store_section: {
     kind: "store",
     description:
-      "Change the store's DRAFT design: rewrite or restyle a section, add, hide or remove a section, add a page, change colours and fonts, or write search titles. Pass the seller's request as a clear instruction. Saved as a new draft version with undo; shoppers see nothing until Publish.",
+      "Change the store's DRAFT design, anything the builder's section panels can do: rewrite a section; change its layout variation, buttons, toggles, colours, pictures, slides, tiles and lists; add (including ready-made blocks like trust badges, product carousels, split heroes), hide, remove, move (reorder) or duplicate a section; tighten or open up the space around a section; change colours and fonts; add a page; write search titles. Pass the seller's request (or your own suggested fix) as a clear instruction, with any picture links to use. Saved as a new draft version with undo; shoppers see nothing until Publish.",
     schema: z
       .object({
         instruction: z.string().trim().min(3).max(1500).describe("What to change, in plain words, e.g. 'Rewrite the homepage banner in Pidgin, warmer'"),
         page: z.enum(REX_SECTION_PAGES).nullable().describe("The page it is on; null when it is store-wide or unclear"),
+      })
+      .strict(),
+  },
+  start_store_build: {
+    kind: "read",
+    description:
+      "Start building (or rebuilding) the WHOLE store from what the seller described: opens the build setup in the Studio with their brief, any store links they want it to look like and a theme, so they confirm and the full build runs (design, every page's words, sample products, photos). Use only when they ask to build, create or redo the whole store, not for changes to parts of it (use edit_store_section).",
+    schema: z
+      .object({
+        brief: z.string().trim().max(1500).describe("What the store is and how it should feel, in the seller's words plus what you know of the business"),
+        links: z.array(z.string().trim().max(300)).max(3).nullable().describe("Store or Instagram links they want it to look like; null for none"),
+        themeId: z.enum(REX_THEME_IDS).nullable().describe("A theme they asked for; null to let the build choose"),
+      })
+      .strict(),
+  },
+  edit_menu: {
+    kind: "store",
+    description:
+      "Design the store's menus on the DRAFT: the header menu (pages, categories, products, content and links, with one level of dropdowns), the footer links, the menu style on computers (including a picture mega menu), the phone menu and the menu's own colours. Only uses what the store has. Saved as a new draft version with undo. Use for anything about the menu, navigation, links in the header or footer, or duplicated menu items.",
+    schema: z
+      .object({
+        instruction: z.string().trim().min(3).max(1500).describe("What the seller wants, e.g. 'Add a Shop dropdown with my categories and remove the repeated links'"),
+      })
+      .strict(),
+  },
+  fill_section_images: {
+    kind: "store",
+    description:
+      "Make on-brand pictures for the store's sections that have no picture or still show the theme's sample photo (banner, story, promo and similar), and put them in place on the DRAFT. Each picture costs one image from the allowance, then credits. Saved as a new draft version with undo. Use when the seller agrees to have pictures made for their store.",
+    schema: z
+      .object({
+        page: z.enum(REX_SECTION_PAGES).nullable().describe("Only this page's sections; null for every page"),
+        max: z.number().int().min(1).max(6).nullable().describe("How many pictures at most (1-6); null for 3"),
+        direction: z.string().trim().max(600).nullable().describe("The look the seller wants (e.g. 'bright studio shots', 'Lagos street style'); null to match the brand"),
       })
       .strict(),
   },

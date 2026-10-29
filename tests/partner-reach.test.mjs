@@ -35,10 +35,10 @@ test("tiers: Tier 1 Verified, Tier 2 Trusted at 50 / 4.3 / <2% / base, Tier 3 To
   assert.equal(rules.partnerTierName("cash_trusted"), "Tier 3 · Top partner");
   assert.equal(rules.partnerTierName("nonsense"), "Tier 1 · Verified");
   assert.equal(rules.partnerLevelOf(null), "verified");
-  // Pay on delivery (main's rebuild): open from Tier 1 since riders never hold cash, paused only for older cash owed.
+  // Pay on delivery: open from Tier 1; how it's paid, and any cash owed, is between the partner and each shop.
   assert.equal(rules.canOfferPayOnDeliveryRules({ level: "cash_trusted", codPaused: false }), true);
   assert.equal(rules.canOfferPayOnDeliveryRules({ level: "trusted" }), true);
-  assert.equal(rules.canOfferPayOnDeliveryRules({ level: "verified", codPaused: true }), false);
+  assert.equal(rules.canOfferPayOnDeliveryRules({ level: "verified", codPaused: true }), true);
 });
 
 test("perks: what each tier unlocks; faster payouts is a flag only (coming soon)", () => {

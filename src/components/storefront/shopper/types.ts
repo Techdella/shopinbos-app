@@ -28,4 +28,6 @@ export interface ShopperCommerce {
    * (Logistics marketplace), which only the server can work out (the checkout quote). Missing means zones.
    */
   deliveryMode?: "zones" | "partners";
+  /** Days the store takes to send its own stock (Store.handlingDays), for "Arrives …" at checkout. */
+  handlingDays?: number;
 }

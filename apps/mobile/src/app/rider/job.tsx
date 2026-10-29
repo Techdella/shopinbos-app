@@ -547,7 +547,7 @@ export default function RiderJob() {
         {errorNotice}
         {ok && photoDone ? <TextLink title={t.photoDone} color={colors.inkSoft} onPress={() => go("hphoto")} /> : null}
         {/* Pay on delivery: the code is the customer's proof of payment, so there's no photo instead. */}
-        {!ok && !drop.payInApp ? <TextLink title={say("noCode.link")} onPress={() => { setNoCode(true); setError(null); }} /> : null}
+        {!ok ? <TextLink title={say("noCode.link")} onPress={() => { setNoCode(true); setError(null); }} /> : null}
         {helpLink}
       </Screen>
     );

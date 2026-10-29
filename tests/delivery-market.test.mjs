@@ -301,7 +301,10 @@ test("chat guardrails: phone numbers, bank accounts, emails and 'pay me directly
   assert.deepEqual(m.offPlatformSignals("Can you do ₦2,000 for 50 parcels a week from Yaba?"), []);
   assert.deepEqual(m.offPlatformSignals("Order 1234567890 is ready"), [], "ten digits without bank words is an order number");
   assert.match(m.OFF_PLATFORM_WARNING, /Keep jobs and payments in Shopinbos/);
-  assert.match(m.POD_DISCLAIMER, /does not handle, hold or guarantee/);
+  // Pay on delivery is the seller's own arrangement: Shopinbos only provides the platform.
+  assert.match(m.POD_DISCLAIMER, /between you, your customer and your delivery partner/);
+  assert.match(m.POD_DISCLAIMER, /doesn't collect, hold or guarantee/);
+  assert.match(m.POD_DISCLAIMER_PARTNER, /between you and the shop/);
 });
 
 test("wiring: the migration adds every new column and table, and the schema has the new statuses", () => {

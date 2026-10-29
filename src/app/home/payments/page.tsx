@@ -11,6 +11,7 @@ import { isOnlinePayment } from "@shared/seller-payments";
 import { sellerMoneyOverview, sellerPaymentStates } from "@/lib/seller-payments.server";
 import { BankCard } from "./BankCard";
 import { PaymentMethods } from "./PaymentMethods";
+import { readCodLimit } from "@shared/checkout-payments";
 import { PaymentLogos } from "./PaymentLogos";
 
 export const dynamic = "force-dynamic";
@@ -132,7 +133,7 @@ export default async function SellerPaymentsPage() {
                 <p className="mb-0 mt-2 text-[14px] text-app-ink-soft">{t("money.howEmpty")}</p>
               )}
             </Card>
-            <PaymentMethods initial={savedMethods} states={methodStates} transferWindow={transferWindow} />
+            <PaymentMethods initial={savedMethods} states={methodStates} transferWindow={transferWindow} codLimit={readCodLimit(store?.brandSettings)} />
             {store ? <PaymentLogos initial={paymentBadges.selected} defaults={paymentBadges.defaults} available={paymentBadges.available} blocked={paymentBadges.blocked} /> : null}
             <AssistantNote>
               {t("money.note")}

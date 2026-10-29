@@ -24,8 +24,10 @@ export interface BuildSetup {
 
 const STEPS = ["business", "inspiration", "build"] as const;
 
-export function RexBuildSetup({ initialBrief, initialScreenshots = [], initialLinks = [], initialNote = "", currentThemeId, rebuilding, onStart, onClose }: {
+export function RexBuildSetup({ initialBrief, initialScreenshots = [], initialLinks = [], initialNote = "", initialThemeId = null, currentThemeId, rebuilding, onStart, onClose }: {
   initialBrief: string;
+  /** A theme already chosen (Rex's start_store_build). */
+  initialThemeId?: string | null;
   /** Photos the seller sent with a typed "build my store". */
   initialScreenshots?: string[];
   /** Links typed with it; Rex reads them when the setup opens. */
@@ -46,7 +48,7 @@ export function RexBuildSetup({ initialBrief, initialScreenshots = [], initialLi
   const [reading, setReading] = useState(false);
   const [screenshots, setScreenshots] = useState<string[]>(initialScreenshots.slice(0, MAX_INSPIRATION_IMAGES));
   const [uploading, setUploading] = useState(false);
-  const [themeId, setThemeId] = useState<string | null>(null);
+  const [themeId, setThemeId] = useState<string | null>(initialThemeId);
   const [note, setNote] = useState(initialNote.slice(0, 1200));
   const [error, setError] = useState<string | null>(null);
   const [plans, setPlans] = useState<BuildPlans | null>(null);

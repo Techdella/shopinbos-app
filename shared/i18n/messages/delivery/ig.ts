@@ -1,5 +1,5 @@
 // Draft: needs native-speaker review
-// "pod.disclaimer" and "pod.disclaimerPartner" are legal wording: they also need legal review (see the note in en.ts).
+// "pod.disclaimer" and "pod.disclaimerPartner" are the published pay-on-delivery terms: they must say exactly what en.ts says.
 import type en from "./en.ts";
 
 const ig: Partial<Record<keyof typeof en, string>> = {
@@ -39,9 +39,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "decline.other": "Ihe ọzọ",
   "decline.none": "Ha ekwughị ihe kpatara ya",
   "pod.disclaimer":
-    "Pay on delivery bụ nkwekọrịta n'etiti gị na logistics partner gị. Ọ bụ partner na-anara cash ahụ, settlement dịkwa n'etiti gị na ha. Shopinbos anaghị emetụ ego pay on delivery aka, anaghị ejide ya, anaghịkwa ekwe nkwa maka ya.",
+    "Pay on delivery dị n'etiti gị, onye ahịa gị na onye na-ebuga gị ngwa. Onye ahịa gị ga-akwụ gị ma ọ bụ rider gị mgbe ọ rutere, site na cash ma ọ bụ transfer dịka unu kwekọrịtara, ma ọ bụ n'ime app site na peeji order ha; kaa order ahụ akara dị ka akwụọla mgbe ego ahụ rutere gị. Ọ bụrụ na ị na-anara ịkwụ ụgwọ kaadị, onye ahịa nwere ike ịkwụ ụgwọ nnyefe na checkout. Shopinbos anaghị anara, anaghị ejide, anaghịkwa ekwe nkwa maka ego pay on delivery.",
   "pod.disclaimerPartner":
-    "Pay on delivery bụ nkwekọrịta n'etiti gị na ụlọ ahịa ahụ. Ọ bụ rider gị na-anara cash ahụ n'aka onye ahịa, ọ bụkwa gị na ụlọ ahịa ahụ ga-eme settlement ya ozugbo. Shopinbos anaghị emetụ ego pay on delivery aka, anaghị ejide ya, anaghịkwa ekwe nkwa maka ya.",
+    "Pay on delivery dị n'etiti gị na ụlọ ahịa ahụ. Onye ahịa ga-akwụ rider gị ma ọ bụ ụlọ ahịa n'ọnụ ụzọ, site na cash ma ọ bụ transfer dịka gị na ụlọ ahịa kwekọrịtara, ma ọ bụ n'ime app. Nyefee cash ọ bụla dịka unu kwekọrịtara. Shopinbos anaghị anara, anaghị ejide, anaghịkwa ekwe nkwa maka ego pay on delivery.",
   "offPlatform.warning":
     "Debe ọrụ na ịkwụ ụgwọ n'ime Shopinbos. A na-akwụ ụgwọ ọrụ dị n'ime app n'onwe ya, a na-esochi ha, ha na-agụkwa na rating gị. Shopinbos anaghị echebe ịkwụ ụgwọ unu hazịrị n'èzí app.",
   "time.sameDay": "N'otu ụbọchị",

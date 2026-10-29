@@ -31,7 +31,7 @@ import { LIVE_PARTNER_WHERE, deliverySettingsFor, originOf } from "./market.serv
 import { PARTNER_LEVEL_TIER, partnerLevelOf } from "@shared/dropship-rules";
 import { isFeaturedNow } from "@shared/partner-reach";
 import { interstateProblem, payOnDeliveryProblem as partnerPodProblem } from "@/lib/logistics/partner-levels.server";
-import { acceptPrivateRatesProblem, connectionLimitProblem, payOnDeliveryProblem, pickupPointLimitProblem, proposePrivateRatesProblem, sellAreaProblem } from "@/lib/plans/market.server";
+import { acceptPrivateRatesProblem, connectionLimitProblem, payOnDeliveryProblem, pickupPointLimitProblem, proposePrivateRatesProblem } from "@/lib/plans/market.server";
 
 // Managing the logistics marketplace: a business's delivery settings ("Where I sell"), its delivery partners
 // (connect, choose what customers see, pay on delivery, end), partners' rate cards (public and private), pickup
@@ -75,9 +75,6 @@ export async function saveDeliverySettings(userId: string, input: SettingsInput)
   const sellStates = [...new Set(states)];
   if (sellArea === "one_state" && sellStates.length !== 1) return { ok: false, error: "Pick the one state you sell in." };
   if (sellArea === "selected" && sellStates.length === 0) return { ok: false, error: "Pick at least one state you sell in." };
-  // The plan's selling states (shared/plans.ts sellingStates).
-  const areaProblem = await sellAreaProblem(userId, { sellArea, states: sellArea === "nationwide" ? Infinity : sellStates.length }, { sellArea: current.sellArea, states: current.sellArea === "nationwide" ? Infinity : current.sellStates.length });
-  if (areaProblem) return { ok: false, error: areaProblem };
   const originState = input.originState === undefined ? current.originState : input.originState ? canonicalState(String(input.originState)) : null;
   if (input.originState && !originState) return { ok: false, error: "Pick the state your parcels leave from." };
   const checkoutMode = input.checkoutMode === undefined ? current.checkoutMode : input.checkoutMode === "partners" ? "partners" : "zones";
@@ -563,7 +560,7 @@ export async function reportDeliveryIssue(input: { orderId: string; storeId: str
     data: { retailOrderId: order.id, storeId: input.storeId, bookingId: job?.id ?? null, logisticsPartnerId: toPartner ? job!.logisticsPartnerId : null, kind, message: text(input.message, 1000), reporterName: text(input.reporterName, 80), photos: (input.photos ?? []).filter((url) => /^https:\/\/\S{4,1000}$/.test(url)).slice(0, 4) },
   });
   const words = { late: "is late", not_delivered: "wasn't delivered", damaged: "arrived damaged", wrong_item: "had the wrong item" }[kind];
-  await createNotification({ userId: order.store.userId, type: "logistics", priority: "critical", title: `Customer says order ${order.orderNumber} ${words}`, description: issue.message ?? "Contact your customer to sort it out.", link: `/home/orders/${order.id}`, event: "delivery.update", dedupeKey: `delivery.issue:${issue.id}` }).catch(() => null);
+  await createNotification({ userId: order.store.userId, type: "logistics", priority: "critical", title: `Customer says order ${order.orderNumber} ${words}`, description: kind === "late" ? issue.message ?? "Contact your customer to sort it out." : `${issue.message ? `"${issue.message.slice(0, 200)}" ` : ""}See the packing and delivery photos and decide what happens: it's your customer, so it's your call.`, link: kind === "late" ? `/home/orders/${order.id}` : `/home/orders/${order.id}/problems/${issue.id}`, event: "delivery.update", dedupeKey: `delivery.issue:${issue.id}` }).catch(() => null);
   if (toPartner) {
     await createNotification({ userId: job!.logisticsPartner.userId, type: "logistics", priority: "warning", title: `A customer reported a problem: order ${order.orderNumber} ${words}`, description: issue.message ?? "Check the job and contact the shop.", link: "/logistics/bookings", event: "delivery.update", dedupeKey: `delivery.issue.partner:${issue.id}` }).catch(() => null);
   }

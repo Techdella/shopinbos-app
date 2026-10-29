@@ -190,6 +190,21 @@ const THEME_STYLE_NOTE: FieldGroup = {
   fields: [{ id: "theme-colours", type: "note", label: "Colours, fonts and buttons are set for the whole theme, so every section stays consistent. Open Theme settings to change them." }],
 };
 
+/** Space above and below one section on the 2026 themes (BoutiqueStorefront's .bq-sec wrapper, look.ts). */
+export const SECTION_SPACING_OPTIONS: ChoiceOption[] = [
+  { value: "compact", label: "Tighter" },
+  { value: "normal", label: "Normal" },
+  { value: "roomy", label: "Roomy" },
+];
+/** Shared chrome, the checkout (its own page, not drawn in the section list) and layout rows (their own padding) take no spacing. */
+const NO_SPACING_KINDS = ["announcement-bar", "header", "footer", "checkout-form", LAYOUT_ROW_KIND];
+
+/** The 2026 themes' Style tab: the theme note, plus the section's spacing (not for the header, footer or bar). */
+function boutiqueStyle(kind: string): FieldGroup[] {
+  if (NO_SPACING_KINDS.includes(kind)) return [THEME_STYLE_NOTE];
+  return [THEME_STYLE_NOTE, { fields: [{ id: "spacing", type: "segmented", label: "Space above and below", target: setting("spacing"), fallback: "normal", options: SECTION_SPACING_OPTIONS }] }];
+}
+
 // ─── Reward sections (both renderers, src/components/storefront/gamification) ─
 
 /** Same list as GAME_SECTION_KINDS in src/lib/gamification/logic.ts (this file has no runtime imports; tests check). */
@@ -464,7 +479,7 @@ function heroLayoutOptions(themeId: string): ChoiceOption[] {
 
 function boutiqueSchema(kind: string, themeId: string): SectionSchema {
   const heroDefault = heroDefaultLayout("boutique", themeId);
-  const plain = (settings: FieldGroup[], addable: SectionSchema["addable"] = []): SectionSchema => ({ settings, style: [THEME_STYLE_NOTE], addable });
+  const plain = (settings: FieldGroup[], addable: SectionSchema["addable"] = []): SectionSchema => ({ settings, style: boutiqueStyle(kind), addable });
   // Ready-made blocks carry their own fields (blocks/block-catalog.ts).
   const block = storeBlockMeta(kind);
   if (block) return plain(block.schema(themeId));

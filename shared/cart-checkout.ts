@@ -3,6 +3,7 @@
 // shopper sees is the total the API charges.
 
 import { matchZone } from "./checkout-payments.ts";
+import { arrivalWords } from "./dropship-rules.ts";
 
 // ─── Bag lines ────────────────────────────────────────────────────────────────
 
@@ -175,6 +176,11 @@ export interface DeliveryOption {
   name: string;
   price: number;
   estimatedDays: string | null;
+  /**
+   * "Arrives Mon 3 – Thu 6 Nov": the store's handling time (Store.handlingDays) plus the rate's days, when its
+   * estimated days read as a number of days ("2-3 days", "next day"). Null: show estimatedDays as it is.
+   */
+  arrival?: string | null;
   /** The shopper collects the order. */
   pickup: boolean;
 }
@@ -192,7 +198,7 @@ const PICKUP_WORDS = /pick\s*-?\s*up|collect/i;
  * zone whose order-value band fits (same matching as deliveryFeeFor), or the flat rate when there are no zones.
  * The first option is what deliveryFeeFor charges, so leaving the choice alone keeps the old totals.
  */
-export function deliveryOptionsFor(zones: DeliveryZoneInput[], flatRate: number, address: { city?: string; state?: string }, subtotal: number): DeliveryChoice {
+export function deliveryOptionsFor(zones: DeliveryZoneInput[], flatRate: number, address: { city?: string; state?: string }, subtotal: number, handlingDays?: number | null, now: Date = new Date()): DeliveryChoice {
   if (zones.length === 0) {
     return { covered: true, options: [{ id: "flat", name: "Delivery", price: Math.max(0, flatRate || 0), estimatedDays: null, pickup: false }] };
   }
@@ -210,6 +216,7 @@ export function deliveryOptionsFor(zones: DeliveryZoneInput[], flatRate: number,
       name,
       price: typeof rate.price === "number" && rate.price > 0 ? rate.price : 0,
       estimatedDays: str(rate.estimatedDays) || null,
+      arrival: handlingDays != null && !PICKUP_WORDS.test(name) ? ownArrival(str(rate.estimatedDays), handlingDays, now) : null,
       pickup: PICKUP_WORDS.test(name),
     });
   });
@@ -461,4 +468,40 @@ export function orderNotes(settings: Pick<CheckoutSettings, "enableNotes" | "ena
     settings.enableGiftNote && giftMessage?.trim() ? `Gift message: ${giftMessage.trim().slice(0, 500)}` : null,
   ].filter(Boolean);
   return parts.length ? parts.join("\n\n") : null;
+}
+
+// ─── Arrival dates for the store's own stock ─────────────────────────────────
+
+/** Days a seller can take to send an order (Store.handlingDays): 0 = same day, up to 5. */
+export const HANDLING_DAY_CHOICES = [0, 1, 2, 3, 5] as const;
+export const cleanHandlingDays = (value: unknown) => {
+  const n = Math.round(Number(value));
+  return Number.isFinite(n) ? Math.min(5, Math.max(0, n)) : 1;
+};
+
+/**
+ * A zone rate's free-text "estimated days" as a range of days: "2-3 days", "2 – 3 working days", "3 days", "next
+ * day", "same day", "1 week". Null when it doesn't read as days (then the text is shown as the seller wrote it).
+ */
+export function estimatedDayRange(text: string | null | undefined): { min: number; max: number } | null {
+  const value = String(text ?? "").toLowerCase().trim();
+  if (!value) return null;
+  if (/same[\s-]*day|today/.test(value)) return { min: 0, max: 0 };
+  if (/next[\s-]*day|tomorrow|24\s*h/.test(value)) return { min: 1, max: 1 };
+  const week = value.match(/^(\d+)\s*(?:-|–|to)?\s*(\d+)?\s*weeks?/);
+  if (week) return { min: Number(week[1]) * 7, max: Number(week[2] ?? week[1]) * 7 };
+  const days = value.match(/^(\d+)\s*(?:-|–|to)\s*(\d+)\s*(?:working|business)?\s*days?/) ?? value.match(/^(\d+)\s*(?:working|business)?\s*days?/);
+  if (!days) return null;
+  const min = Number(days[1]);
+  const max = Number(days[2] ?? days[1]);
+  return min >= 0 && max >= min && max <= 30 ? { min, max } : null;
+}
+
+/** "Arrives Mon 3 – Thu 6 Nov" for the store's own stock: its handling time plus the rate's delivery days. */
+export function ownArrival(estimatedDays: string | null | undefined, handlingDays: number, now: Date = new Date()): string | null {
+  const range = estimatedDayRange(estimatedDays);
+  if (!range) return null;
+  const handling = cleanHandlingDays(handlingDays);
+  if (range.max + handling === 0) return "Arrives today";
+  return arrivalWords(range.min + handling, range.max + handling, now);
 }

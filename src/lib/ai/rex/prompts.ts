@@ -194,8 +194,8 @@ ${input.products.length ? input.products.map((product) => `- ${product.name}, ${
 Store facts: ${input.facts.join("; ")}
 ${input.imageUrls.length ? `\nThe seller attached these pictures (use them as "imageUrl" where they asked): ${input.imageUrls.join(", ")}` : ""}
 
-The draft right now (pages, sections with their id, kind and words):
-${JSON.stringify(input.draft).slice(0, 14000)}
+The draft right now (pages; sections with their id, kind, words, and "fields": every setting you can change on that section, what it takes and its value now):
+${JSON.stringify(input.draft).slice(0, 32000)}
 
 Section kinds this theme can show: ${input.allowedKinds.join(", ")}.
 - "testimonials" shows the store's real approved reviews only. Add it, but never write review quotes.
@@ -210,7 +210,15 @@ Reply with ONE JSON object only, no Markdown:
  "tokensSummary": "short past-tense line, e.g. Gold accents and serif headings",
  "layout": null or a store layout for classic themes: "minimal-showcase"|"editorial-boutique"|"fashion-runway"|"food-market"|"home-living"|"electronics-grid"|"book-lifestyle"|"pet-lifestyle"|"marketplace-grid",
  "pages": [{"page": "about", "title": "About us", "metaTitle": "...", "metaDescription": "..."}] (to add a page or fix its search title/description),
- "ops": [{"action": "update"|"add"|"remove"|"hide"|"show", "page": "home", "kind": "hero-split", "sectionId": "optional id from the draft", "copy": {...}, "items": [...], "imageUrl": "https://...", "position": "top"|"bottom", "summary": "short past-tense line for the seller, e.g. Wrote the homepage in Pidgin"}]}
+ "ops": [{"action": "update"|"add"|"remove"|"hide"|"show"|"move"|"duplicate", "page": "home", "kind": "hero-split", "sectionId": "optional id from the draft", "copy": {...}, "items": [...], "imageUrl": "https://...", "fields": {"fieldId": value}, "preset": "layout rows only", "columns": [[elements]], "after": "a section id", "before": "a section id", "position": "top"|"bottom", "summary": "short past-tense line for the seller, e.g. Wrote the homepage in Pidgin"}]}
+
+Editing sections fully:
+- "fields" sets anything the seller could set in that section's panel, using the ids and values listed under the section's "fields" (layout variations, columns, buttons and where they go, toggles, colours, pictures, lists of slides or tiles, "spacing"). Use only listed ids and values; anything else is ignored.
+- "move" reorders: give "sectionId" and "after" or "before" another section's id (or "position"). "duplicate" copies a section next to itself (or where "after"/"before" says).
+- "add" can also place the new section with "after"/"before", and takes "fields" to set it up straight away.
+- Rows and columns (2026 themes, kind "layout-row"): build your own section from elements. Give "preset" ("1"|"50-50"|"33-66"|"66-33"|"3"|"4"|"grid-2x2"|"grid-3x2") and "columns": one list of elements per column, left to right. Elements: {"type":"heading","text","level":"h2"|"h3"|"h4","align":"left"|"center"|"right"}, {"type":"text","text","align"}, {"type":"image","imageUrl":"https://...","alt","ratio":"auto"|"square"|"portrait"|"landscape"}, {"type":"button","label","link":{"type":"page"|"url","value":"products"|"about"|"contact"|"faq"|"https://..."},"style":"primary"|"outline","align"}, {"type":"video","videoUrl"}, {"type":"spacer","size":4-160}, {"type":"divider","style":"solid"|"dashed"}, {"type":"icon-list","lines":"one point per line","icon":"check"|"star"|"truck"|"heart"|"shield"|"leaf"|"clock"|"package"}. Sending "columns" replaces the row's elements, so send the full set. The row's gap, align, background, padding and stackOnMobile go in "fields".
+- Spacing: ${input.boutique ? `set "spacing": "compact"|"normal"|"roomy" in a section's fields to tighten or open up the space around it. Use it when sections feel crowded or too far apart.` : `classic sections take "padding" and "margin" in their fields (CSS lengths like "48px 0").`}
+- Pictures: put https picture links in a section's picture fields ("image" or "media" types, or items' picture keys). Never invent a link; use the seller's attached pictures or ones you were given.
 
 Look choices: the draft's "style" shows what this theme reads. ${input.boutique ? `This is a 2026 theme: change fonts with "fontPair" (classic = serif headings and sans text, modern = grotesk headings, clean = all sans, bold = all grotesk, theme = the theme's own), button corners with "buttonShape", how wide pages run with "pageWidth" and product photo shape with "productRatio". "headingStyle", "radius" and "layout" don't apply here.` : `This is a classic theme: change heading fonts with "headingStyle", corners with "radius" and the whole store's layout with "layout". "fontPair", "buttonShape", "pageWidth" and "productRatio" don't apply here.`}
 

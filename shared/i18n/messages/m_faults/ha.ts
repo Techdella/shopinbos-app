@@ -37,6 +37,12 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "earn.problems": "Bayan matsalolin wannan order",
   "earn.estimate": "An ƙididdige shi daga order: ba a raba kuɗin a checkout ba.",
   "problems.title": "Matsaloli a wannan order",
+  "problems.yourCall": "Shawararka",
+  "problems.handling": "Kana kula da shi",
+  "problems.suggested": "Shawara: {line}",
+  "problems.customerWould": "Za a gaya wa abokin cinikinka: {line}",
+  "problems.accept": "Karɓa",
+  "problems.myself": "Zan kula da shi da kaina",
 
   "returns.title": "Buƙatar mayarwa",
   "returns.status.requested": "Yana jiranka",

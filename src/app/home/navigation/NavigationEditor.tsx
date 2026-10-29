@@ -213,7 +213,8 @@ function MenuList(props: ListProps) {
   const add = () => {
     const used = new Set(items.flatMap((item) => [item, ...(item.children ?? [])]).filter((item) => item.kind === "page").map((item) => item.ref));
     const ref = props.pages.find((page) => !used.has(page)) ?? "home";
-    onChange(addMenuItems(items, [{ kind: "page", ref, label: "" }]));
+    // Every page already in: a Home item the seller re-points (category, product, link) straight away.
+    onChange(addMenuItems(items, [{ kind: "page", ref, label: "" }], { allowRepeats: true }));
   };
   return (
     <div className="grid gap-3">

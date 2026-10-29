@@ -11,7 +11,7 @@ import { formatDate, formatMoney } from "@shared/i18n";
 import type { PreorderStage, StorePreorderStage } from "@shared/preorder";
 import { sellerWholesaleRows, storePreorders } from "@/lib/supplier-orders/preorders.server";
 import { WHOLESALE_PAY_PREFIX, confirmWholesalePayment } from "@/lib/supplier-orders/wholesale-payments.server";
-import { storeBalancePaidAction, storeCancelUnpaidBalanceAction, storeEndPreordersAction, storeStockReadyAction } from "@/app/actions/preorders";
+import { storeBalancePaidAction, storeCancelUnpaidBalanceAction, storeEndPreordersAction, storeStartPreorderAction, storeStockReadyAction } from "@/app/actions/preorders";
 
 export const dynamic = "force-dynamic";
 
@@ -48,6 +48,32 @@ export default async function SellerPreordersPage({ searchParams }: PageProps) {
     sellerWholesaleRows(user.id, { onlyPreorders: true }),
   ]);
   const fromSuppliers = orders.filter((order) => order.preorder);
+  // "Take pre-orders": the store's own products not taking them yet (dropship ones follow their supplier).
+  const startable = store && view === "shop"
+    ? await db.storeProduct.findMany({ where: { storeId: store.id, preorderEnabled: false, status: { not: "archived" }, fulfillmentType: { not: "dropship" }, inventoryType: { not: "dropshipping" } }, orderBy: { name: "asc" }, take: 300, select: { id: true, name: true } })
+    : [];
+  const today = new Date().toISOString().slice(0, 10);
+  const startCard = startable.length ? (
+    <Card id="start" className="mb-4 scroll-mt-24 p-4 sm:p-5">
+      <h2 className="m-0 text-[16px] font-extrabold">{t("preorders.start.title")}</h2>
+      <p className="m-0 mt-1 text-[13.5px] text-app-ink-soft">{t("preorders.start.sub")}</p>
+      <form action={storeStartPreorderAction} className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_200px_auto] sm:items-end">
+        <label className="grid min-w-0 gap-1 text-[13px] font-bold">
+          {t("preorders.start.product")}
+          <select name="productId" required defaultValue="" className="h-11 w-full min-w-0 rounded-full border border-app-line bg-white px-4 text-[14px] font-normal">
+            <option value="" disabled>{t("preorders.start.pick")}</option>
+            {startable.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
+          </select>
+        </label>
+        <label className="grid min-w-0 gap-1 text-[13px] font-bold">
+          {t("preorders.start.shipsAt")}
+          <input type="date" name="shipsAt" min={today} className="h-11 w-full min-w-0 rounded-full border border-app-line bg-white px-4 text-[14px] font-normal" />
+        </label>
+        <button type="submit" className="inline-flex min-h-[44px] items-center justify-center whitespace-nowrap rounded-full bg-app-ink px-5 text-[14px] font-extrabold text-white">{t("preorders.start.submit")}</button>
+      </form>
+      <p className="m-0 mt-2 text-[12.5px] text-app-ink-soft">{t("preorders.start.terms")}</p>
+    </Card>
+  ) : null;
 
   const notice = params.error
     ? { tone: "error" as const, text: params.error }
@@ -84,6 +110,8 @@ export default async function SellerPreordersPage({ searchParams }: PageProps) {
         </div>
       )}
 
+      {view === "shop" ? startCard : null}
+
       {view === "shop" ? (
         shop.groups.length === 0 ? (
           <EmptyState icon="clock" title={t("preorders.shopEmpty")} action={<PillLink href="/products" tone="ink">{t("preorders.toProducts")}</PillLink>}>
@@ -92,19 +120,28 @@ export default async function SellerPreordersPage({ searchParams }: PageProps) {
         ) : (
           <div className="grid gap-4">
             {shop.groups.map((group) => (
-              <Card key={group.productId} className="p-4 sm:p-5">
+              <Card key={group.productId} id={`p-${group.productId}`} className="scroll-mt-24 p-4 sm:p-5">
                 <div className="flex flex-wrap items-start gap-3">
                   <Thumb src={group.image} label={group.name} size={56} />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <Link href={`/products/${group.productId}`} className="text-[16px] font-extrabold text-app-ink no-underline hover:underline">{group.name}</Link>
+                      <Link href={`/products/${group.productId}#preorder`} className="text-[16px] font-extrabold text-app-ink no-underline hover:underline">{group.name}</Link>
                       {group.product && <Pill tone={group.product.on ? "warning" : "muted"} dot>{group.product.on ? t("preorders.taking") : t("preorders.stopped")}</Pill>}
                     </div>
                     <p className="m-0 mt-1 text-[13.5px] text-app-ink-soft">
                       {[group.shipsOn ? t("preorders.shipBy", { date: day(group.shipsOn) }) : t("preorders.noDate"), t("preorders.orders", { count: group.orders.length }), t("preorders.units", { count: group.units })].join(" · ")}
                     </p>
+                    {group.product?.on ? (
+                      <p className="m-0 mt-0.5 text-[12.5px] text-app-ink-soft">
+                        {[
+                          group.product.limit ? t("preorders.takenOf", { taken: group.product.taken, limit: group.product.limit }) : t("preorders.noLimit", { taken: group.product.taken }),
+                          group.product.depositPct > 0 ? t("preorders.depositPct", { pct: group.product.depositPct }) : t("preorders.payInFull"),
+                        ].join(" · ")}
+                      </p>
+                    ) : null}
                   </div>
                   <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
+                    <PillLink href={`/products/${group.productId}#preorder`} icon="edit">{t("preorders.edit")}</PillLink>
                     {(group.waiting > 0 || group.orders.some((order) => order.stage === "balance_due" && !order.balanceDueOn)) && (
                       <details className="w-full sm:w-auto">
                         <summary className="inline-flex min-h-[44px] cursor-pointer list-none items-center justify-center gap-2 whitespace-nowrap rounded-full bg-app-ink px-5 text-[14px] font-extrabold text-white"><Icon name="checkCircle" size={16} /> {t("preorders.stockReady")}</summary>
@@ -132,11 +169,15 @@ export default async function SellerPreordersPage({ searchParams }: PageProps) {
                     )}
                   </div>
                 </div>
-                <ul className="m-0 mt-3 list-none divide-y divide-app-line rounded-[16px] border border-app-line p-0">
+                {group.orders.length === 0 ? (
+                  <p className="m-0 mt-3 rounded-[16px] border border-dashed border-app-line px-3 py-3 text-[13.5px] text-app-ink-soft">{t("preorders.noOrdersYet")}</p>
+                ) : null}
+                <ul className={`m-0 mt-3 list-none divide-y divide-app-line rounded-[16px] border border-app-line p-0 ${group.orders.length ? "" : "hidden"}`}>
                   {group.orders.map((order) => (
                     <li key={order.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5 text-[13.5px]">
                       <span className="min-w-0 flex-1">
                         <span className="font-bold">#{order.orderNumber} · {order.buyerName} · × {order.quantity}</span>
+                        <span className="block text-[12.5px] text-app-ink-soft">{t("preorders.orderedOn", { date: formatDate(new Date(order.createdAt), locale, { day: "numeric", month: "short", timeZone: "Africa/Lagos" }) })}</span>
                         {order.stage === "balance_due" && (
                           <span className={`block text-[12.5px] ${order.overdue ? "font-bold text-[#B42318]" : "text-app-ink-soft"}`}>
                             {order.balanceDueOn

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ReactNode, RefObject } from "react";
 import { Platform, Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { router, usePathname } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -71,6 +71,7 @@ export function Screen({
   onBack,
   headerRight,
   fallback,
+  scrollRef,
 }: {
   /** Short title in the header bar. */
   title: string;
@@ -87,12 +88,15 @@ export function Screen({
   headerRight?: ReactNode;
   /** Where Back goes when there's nothing to go back to. */
   fallback?: string;
+  /** To scroll the body from the screen (e.g. straight to a section). */
+  scrollRef?: RefObject<ScrollView | null>;
 }) {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
       <KeyboardShift>
         <ScreenHeader title={title} help={help} onBack={onBack} right={headerRight} fallback={fallback} />
         <ScrollView
+          ref={scrollRef}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 32, gap: 20 }}
           refreshControl={onRefresh ? <RefreshControl refreshing={Boolean(refreshing)} onRefresh={onRefresh} /> : undefined}

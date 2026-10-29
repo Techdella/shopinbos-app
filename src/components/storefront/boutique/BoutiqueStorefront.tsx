@@ -347,7 +347,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
 
   function wrap(section: TemplateSectionNode, node: React.ReactNode) {
     if (!node) return null;
-    if (live || props.demo) return <div key={section.id}>{node}</div>;
+    const spacing = typeof section.settings?.spacing === "string" && section.settings.spacing !== "normal" ? section.settings.spacing : undefined;
+    if (live || props.demo) return <div key={section.id} className="bq-sec" data-spacing={spacing}>{node}</div>;
     const selected = props.selectedSectionId === section.id;
     const editCopy = props.onUpdateSectionCopy;
     // Words open for typing on a click; inside a button or link (which still works as one) on a double-click.
@@ -363,6 +364,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     return (
       <div
         key={section.id}
+        className="bq-sec"
+        data-spacing={spacing}
         data-section-id={section.id}
         onClick={(event) => {
           event.stopPropagation();
@@ -821,7 +824,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       return href ? (
         <Link key={product.id} href={href} prefetch={false} className={className} style={style}>{children}</Link>
       ) : (
-        <button key={product.id} type="button" className={className} style={{ background: "transparent", border: 0, padding: 0, textAlign: "left", color: "inherit", cursor: "pointer", ...style }} onClick={live ? undefined : () => openProduct(product.id)}>{children}</button>
+        <button key={product.id} type="button" className={className ? `bq-plain ${className}` : "bq-plain"} style={{ textAlign: "left", ...style }} onClick={live ? undefined : () => openProduct(product.id)}>{children}</button>
       );
     };
 
@@ -3068,7 +3071,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       return href ? (
         <Link key={product.id} href={href} prefetch={false} className={className} style={style}>{children}</Link>
       ) : (
-        <button key={product.id} type="button" className={className} style={{ background: "transparent", border: 0, padding: 0, textAlign: "left", color: "inherit", cursor: "pointer", ...style }} onClick={live ? undefined : () => openProduct(product.id)}>{children}</button>
+        <button key={product.id} type="button" className={className ? `bq-plain ${className}` : "bq-plain"} style={{ textAlign: "left", ...style }} onClick={live ? undefined : () => openProduct(product.id)}>{children}</button>
       );
     };
     if (layout === "feature") {

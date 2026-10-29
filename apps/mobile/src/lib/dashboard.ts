@@ -50,6 +50,11 @@ export interface ProductItem {
   /** The short code customers quote ("BAG2") and the product's storefront page (older servers leave them out). */
   shortCode?: string | null;
   url?: string;
+  /** Taking preorders: ship date (YYYY-MM-DD…), how many are taken of the limit (older servers leave them out). */
+  preorderEnabled?: boolean;
+  preorderShipsAt?: string | null;
+  preorderLimit?: number | null;
+  preorderTaken?: number;
 }
 
 /** The newest 50 products, or the newest 50 in one category. */

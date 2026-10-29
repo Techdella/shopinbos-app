@@ -132,6 +132,13 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "lg.tip": "Ṣé tuntun ni ọ́ sí delivery? Bẹ̀rẹ̀ pẹ̀lú Delivery settings: sọ ibi tí o ti ń fi ẹrù ránṣẹ́ àti ibi tí o ń kó lọ. Lẹ́yìn náà oníbàárà máa rí owó delivery nígbà tí wọ́n bá ń rà.",
   "tip.list": "Bẹ̀rẹ̀ pẹ̀lú ibi tí o ń kó ọjà lọ jù, bíi ìlú rẹ. Lẹ́yìn náà fi ibì kan tí kò ní ìlú kankan kún un fún “gbogbo ibòmíì”, kí gbogbo oníbàárà lè rí owó. O lè fi kún un lẹ́yìn.",
   "tip.form": "Ṣe é ní ṣókí: orúkọ kan, ìlú díẹ̀, owó kan. Fi 0 tí delivery bá jẹ́ ọ̀fẹ́.",
+  "handling.title": "Bí o ṣe ń fi order ránṣẹ́ kíákíá",
+  "handling.sub": "Ọjọ́ tí o máa ń lò láti fi order ọjà tìrẹ ránṣẹ́. Àwọn oníbàárà yóò rí ọjọ́ tí yóò dé nígbà checkout: èyí pẹ̀lú ọjọ́ agbègbè ìfijíṣẹ́ kọ̀ọ̀kan.",
+  "handling.label": "Mo máa ń fi order ránṣẹ́ láàrin",
+  "handling.sameDay": "Ọjọ́ kan náà",
+  "handling.days": "{count, plural, one {ọjọ́ #} other {ọjọ́ #}}",
+  "handling.saved": "A ti fi pamọ́. Checkout yóò fi ọjọ́ tuntun hàn.",
+  "handling.error": "Kò fi pamọ́. Gbìyànjú lẹ́ẹ̀kan sí i.",
 };
 
 export default yo;

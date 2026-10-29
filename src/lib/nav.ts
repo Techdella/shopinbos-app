@@ -433,7 +433,6 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
         },
         { id: "wallets", label: "Wallets", icon: "coin", href: "/admin/wallets" },
         { id: "money-owed", label: "Money owed", icon: "coin", href: "/admin/money-owed" },
-        { id: "refunds", label: "Refunds", icon: "coin", href: "/admin/refunds" },
         { id: "contracts", label: "Contracts", icon: "document", href: "/admin/contracts" },
         {
           id: "pricing", label: "Pricing", icon: "percent", href: "/admin/pricing",

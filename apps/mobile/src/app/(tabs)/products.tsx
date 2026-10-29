@@ -89,6 +89,13 @@ export default function Products() {
           <Seg key={show} label={t(`filters.show.${show}`)} on={query.show === show} onPress={() => pick({ show })} />
         ))}
       </FilterBar>
+      {query.show === "preorder" ? (
+        // Pre-order products: tap one to change its ship date, limit and deposit; orders and buyers live on Pre-orders.
+        <View style={{ backgroundColor: colors.surface, borderRadius: 20, borderWidth: 1, borderColor: colors.line, padding: 16, gap: 10 }}>
+          <T style={{ fontSize: 14.5, lineHeight: 21, color: colors.inkSoft }}>{t("list.preorderBar")}</T>
+          <PillButton testID="products-preorders" size="sm" tone="white" icon="clock" title={t("list.preorderManage")} onPress={() => router.push("/preorders")} />
+        </View>
+      ) : null}
       {error && <Notice>{error}</Notice>}
       {products && !products.length && (
         <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20, gap: 12 }}>
@@ -98,7 +105,7 @@ export default function Products() {
       )}
       {products?.length ? (
         <List>
-          {products.map((product) => <StockRow key={product.id} product={product} onStock={setStock} />)}
+          {products.map((product) => <StockRow key={product.id} product={product} onStock={setStock} section={query.show === "preorder" ? "preorder" : undefined} />)}
         </List>
       ) : null}
       {products?.length ? <Small>{t("list.stockHint")}</Small> : null}

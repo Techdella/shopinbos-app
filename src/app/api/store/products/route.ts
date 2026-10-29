@@ -24,7 +24,7 @@ export const GET = withSeller(async (req: NextRequest, { user }: { user: AuthUse
   }
 
   const { page, limit, skip } = parsePagination(req.nextUrl.searchParams);
-  const { status, visibility, inventoryType, categoryId, collectionId, q, code, featured, lowStock, sort } = parsed.data;
+  const { status, visibility, inventoryType, categoryId, collectionId, q, code, featured, lowStock, preorder, sort } = parsed.data;
 
   const where: any = { storeId: store.id };
 
@@ -40,6 +40,7 @@ export const GET = withSeller(async (req: NextRequest, { user }: { user: AuthUse
   if (q) where.OR = [{ name: { contains: q, mode: "insensitive" } }, { shortCode: normalizeShortCode(q).replace(/\s+/g, "") }];
   if (code) where.shortCode = normalizeShortCode(code).replace(/\s+/g, "");
   if (featured !== undefined) where.featured = featured;
+  if (preorder) where.preorderEnabled = preorder === "true";
   if (lowStock) {
     where.currentStock = { not: undefined };
   }
@@ -81,6 +82,10 @@ export const GET = withSeller(async (req: NextRequest, { user }: { user: AuthUse
         incomingStock: true,
         damagedStock: true,
         lowStockThreshold: true,
+        preorderEnabled: true,
+        preorderShipsAt: true,
+        preorderLimit: true,
+        preorderTaken: true,
         featured: true,
         sortOrder: true,
         tags: true,

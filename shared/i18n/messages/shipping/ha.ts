@@ -132,6 +132,13 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "lg.tip": "Sabo ne kai a delivery? Fara da Delivery settings: faɗi inda kake aika kaya daga gare shi da inda kake kai kaya. Sannan abokan ciniki za su ga kuɗin delivery lokacin da suke saye.",
   "tip.list": "Fara da wurin da kake fi kai kaya, kamar garinku. Sannan ƙara wuri ɗaya ba tare da wani gari a ciki ba don “ko'ina kuma”, don kowane abokin ciniki ya sami kuɗi. Za ka iya ƙara wasu daga baya.",
   "tip.form": "Ka sauƙaƙa: suna ɗaya, garuruwa kaɗan, kuɗi ɗaya. Sa 0 idan delivery kyauta ne.",
+  "handling.title": "Saurin da kake tura oda",
+  "handling.sub": "Kwanakin da kake ɗauka kafin ka tura odar kayanka. Abokan ciniki za su ga ranar da zai iso a checkout: wannan da kwanakin kowane yankin isarwa.",
+  "handling.label": "Ina tura oda cikin",
+  "handling.sameDay": "Rana ɗaya",
+  "handling.days": "{count, plural, one {kwana #} other {kwanaki #}}",
+  "handling.saved": "An ajiye. Checkout zai nuna sababbin ranaku.",
+  "handling.error": "Bai ajiye ba. Sake gwadawa.",
 };
 
 export default ha;

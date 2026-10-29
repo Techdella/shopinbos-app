@@ -37,6 +37,12 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "earn.problems": "After the wahala for this order",
   "earn.estimate": "We calculate am from the order: the payment no split for checkout.",
   "problems.title": "Wahala for this order",
+  "problems.yourCall": "Na your call",
+  "problems.handling": "You dey handle am",
+  "problems.suggested": "Wetin we suggest: {line}",
+  "problems.customerWould": "We go tell your customer: {line}",
+  "problems.accept": "Accept am",
+  "problems.myself": "I go handle am myself",
 
   "returns.title": "Return request",
   "returns.status.requested": "E dey wait for you",

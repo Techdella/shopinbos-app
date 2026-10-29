@@ -132,6 +132,13 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "lg.tip": "You new for delivery? Start with Delivery settings: talk where you dey send parcels from and where you dey deliver to. Then customers go see delivery price when dem dey buy.",
   "tip.list": "Start with the place wey you dey deliver to pass, like your own city. Then add one place wey no get any town inside for “everywhere else”, so every customer go get price. You fit add more later.",
   "tip.form": "Make am simple: one name, small towns, one price. Put 0 if delivery na free.",
+  "handling.title": "How fast you dey send orders",
+  "handling.sub": "Days wey you dey take send order of your own stock. Customers go see the date wey e go reach for checkout: this one plus each delivery zone days.",
+  "handling.label": "I dey send orders within",
+  "handling.sameDay": "The same day",
+  "handling.days": "{count, plural, one {# day} other {# days}}",
+  "handling.saved": "E don save. Checkout go show the new dates.",
+  "handling.error": "E no save. Try again.",
 };
 
 export default pcm;

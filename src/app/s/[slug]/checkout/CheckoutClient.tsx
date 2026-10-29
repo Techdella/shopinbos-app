@@ -209,7 +209,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
   const marketDelivery = liveMarket?.value ?? null;
   const deliveryChoice = partners
     ? { covered: marketDelivery?.covered ?? true, options: marketDelivery?.options ?? [] }
-    : deliveryOptionsFor(commerce.zones, commerce.flatRate, address, cart.subtotal);
+    : deliveryOptionsFor(commerce.zones, commerce.flatRate, address, cart.subtotal, commerce.handlingDays);
   const delivery = chooseDelivery(deliveryChoice, deliveryOptionId);
   const marketOption = partners ? marketDelivery?.options.find((option) => option.id === delivery.option?.id) ?? null : null;
   // What stops the order with delivery partners: no address yet, still checking, or nothing covers the address.
@@ -283,7 +283,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
     // On Steps, a returning shopper with their details saved starts at the first step that still needs something.
     if (stepped && Object.keys(saved).length > 0 && searchParams.get("step") !== "contact") {
       const nextRegions = regionsFor(next.country);
-      const nextChoice = partners ? { covered: true, options: [] } : deliveryOptionsFor(commerce.zones, commerce.flatRate, next, cart.subtotal);
+      const nextChoice = partners ? { covered: true, options: [] } : deliveryOptionsFor(commerce.zones, commerce.flatRate, next, cart.subtotal, commerce.handlingDays);
       const start = resumeStepIndex(next, { ...rules, requireState: nextRegions.length > 0, deliveryOptionIds: nextChoice.options.map((option) => option.id) }, {
         deliveryOptionId: nextChoice.options[0]?.id ?? null,
         paymentMethod: paymentOptions[0]?.key,
@@ -923,7 +923,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
     ? `${marketOption.name} (${marketOption.detail})`
     : delivery.option?.name ?? "";
   const deliveryLine = delivery.option
-    ? `${optionName} · ${totals.shippingFee - totals.deliveryDiscount > 0 ? formatStoreMoney(totals.shippingFee - totals.deliveryDiscount, store.currency) : "Free"}${delivery.option.estimatedDays ? ` · ${delivery.option.estimatedDays}` : ""}`
+    ? `${optionName} · ${totals.shippingFee - totals.deliveryDiscount > 0 ? formatStoreMoney(totals.shippingFee - totals.deliveryDiscount, store.currency) : "Free"}${delivery.option.arrival ?? delivery.option.estimatedDays ? ` · ${delivery.option.arrival ?? delivery.option.estimatedDays}` : ""}`
     : partners ? marketProblem ?? "" : deliveryChoice.covered ? "Free delivery" : "The store will confirm delivery with you";
 
   const form = stepped && step ? (

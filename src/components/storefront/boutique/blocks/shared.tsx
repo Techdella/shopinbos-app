@@ -183,7 +183,8 @@ export function ItemLink({ ctx, link, className, style, label, children }: { ctx
       ? <a href={target.href} target="_blank" rel="noopener noreferrer" className={className} style={style} aria-label={label}>{children}</a>
       : <Link href={target.href} prefetch={false} className={className} style={style} aria-label={label}>{children}</Link>;
   }
-  if (target.onClick) return <button type="button" onClick={target.onClick} className={className} style={{ background: "none", border: 0, padding: 0, color: "inherit", cursor: "pointer", textAlign: "inherit", ...style }} aria-label={label}>{children}</button>;
+  // bq-plain resets the button with zero specificity, so a .bq-btn keeps its padding (inline padding:0 squashed it).
+  if (target.onClick) return <button type="button" onClick={target.onClick} className={className ? `bq-plain ${className}` : "bq-plain"} style={style} aria-label={label}>{children}</button>;
   return <span className={className} style={style}>{children}</span>;
 }
 

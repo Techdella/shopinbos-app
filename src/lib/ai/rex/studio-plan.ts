@@ -5,6 +5,7 @@
 
 import { z } from "zod";
 import type { StoreEditorSnapshot, TemplatePageSeed, TemplateSectionNode, ThemeTokenSet } from "@/lib/store-templates";
+import { COLUMN_PRESETS, LAYOUT_ROW_KIND, columnPreset, normaliseLayoutCells, normaliseLayoutRow, type LayoutElement } from "../../../components/storefront/boutique/blocks/layout-logic.ts";
 
 const PAGE_TYPES = ["home", "products", "product", "categories", "cart", "checkout", "wishlist", "blog", "about", "contact", "faq"] as const;
 type PageType = (typeof PAGE_TYPES)[number];
@@ -69,7 +70,7 @@ const ItemSchema = z
   });
 
 const OpSchema = z.object({
-  action: z.enum(["update", "add", "remove", "hide", "show"]),
+  action: z.enum(["update", "add", "remove", "hide", "show", "move", "duplicate"]),
   page: z.enum(PAGE_TYPES),
   kind: shortText(40),
   sectionId: shortText(80).optional().catch(undefined),
@@ -77,6 +78,14 @@ const OpSchema = z.object({
   items: z.array(ItemSchema).max(12).optional().catch(undefined),
   imageUrl: z.string().trim().max(2000).regex(HTTPS_URL).optional().catch(undefined),
   position: z.enum(["top", "bottom"]).optional().catch(undefined),
+  /** Put the section (added, moved or duplicated) right after / before this section id. */
+  after: shortText(80).optional().catch(undefined),
+  before: shortText(80).optional().catch(undefined),
+  /** Layout rows: the column preset, and each column's elements (heading, text, image, button, …), left to right. */
+  preset: z.enum(COLUMN_PRESETS.map((preset) => preset.id) as [string, ...string[]]).optional().catch(undefined),
+  columns: z.array(z.array(z.record(z.string(), z.unknown())).max(24)).max(6).optional().catch(undefined),
+  /** Any field the builder's inspector shows for the section, by id ({"layout": "full-bleed", "spacing": "roomy"}). */
+  fields: z.record(z.string(), z.unknown()).optional().catch(undefined),
   summary: shortText(90).optional().catch(undefined),
 });
 
@@ -186,6 +195,8 @@ export interface ApplyContext {
   reviewItems: Array<{ quote: string; person: string }>;
   /** A 2026 (boutique) theme: reads fontPair, buttonShape, pageWidth and productRatio, and has no store layout to pick. */
   isBoutique?: (themeId: string) => boolean;
+  /** Sets inspector fields on a section (src/lib/ai/rex/section-fields.ts); returns the field ids changed. */
+  applyFields?: (section: TemplateSectionNode, fields: Record<string, unknown>, themeId: string) => string[];
   now?: string;
 }
 
@@ -295,6 +306,38 @@ function insertIndex(page: TemplatePageSeed, position: "top" | "bottom" | undefi
   return footer === -1 ? page.sections.length : footer;
 }
 
+/** Links an element may carry: pictures and videos on https only. */
+function safeElement(raw: Record<string, unknown>): Record<string, unknown> | null {
+  const element = { ...raw };
+  for (const key of ["imageUrl", "videoUrl"]) {
+    if (key in element && !(typeof element[key] === "string" && HTTPS_URL.test((element[key] as string).trim()))) element[key] = "";
+  }
+  return typeof element.type === "string" ? element : null;
+}
+
+/** A layout row's columns from Rex: the preset, then each column's elements, cleaned like any saved row. */
+function writeLayoutRow(section: TemplateSectionNode, presetId: string | undefined, columns: Array<Array<Record<string, unknown>>> | undefined) {
+  const preset = columnPreset(presetId ?? section.settings?.preset);
+  section.settings = { ...(section.settings ?? {}), preset: preset.id };
+  const current = normaliseLayoutRow(section).cells;
+  const raw = columns
+    ? columns.map((elements, column) => ({
+        id: current[column]?.id ?? `${section.id}-col-${column + 1}`,
+        elements: elements.map(safeElement).filter((element): element is Record<string, unknown> => element !== null).map((element, index) => ({ ...element, id: `${section.id}-c${column + 1}-e${index + 1}` })),
+      }))
+    : current;
+  section.items = normaliseLayoutCells(raw, preset.cells).map((cell) => ({ id: cell.id, elements: cell.elements.map((element: LayoutElement) => ({ ...element })) }));
+}
+
+/** Where a section goes: right after / before a named section, else top or bottom (never above the header). */
+function placeIndex(page: TemplatePageSeed, op: { after?: string; before?: string; position?: "top" | "bottom" }) {
+  const after = op.after ? page.sections.findIndex((section) => section.id === op.after) : -1;
+  if (after !== -1 && page.sections[after].kind !== "footer") return after + 1;
+  const before = op.before ? page.sections.findIndex((section) => section.id === op.before) : -1;
+  if (before !== -1 && !["announcement-bar", "header"].includes(page.sections[before].kind)) return before;
+  return insertIndex(page, op.position);
+}
+
 function humanKind(kind: string) {
   const names: Record<string, string> = {
     "hero-split": "the banner",
@@ -379,6 +422,22 @@ export function applyRexStudioPlan(draft: StoreEditorSnapshot, plan: RexStudioPl
       ?? page.sections.find((section) => section.kind === op.kind)
       ?? null;
 
+    if (op.action === "move" || op.action === "duplicate") {
+      if (!target || LOCKED_KINDS.has(target.kind)) continue;
+      if (op.action === "move") {
+        page.sections = page.sections.filter((section) => section !== target);
+        page.sections.splice(placeIndex(page, op), 0, target);
+        changes.push(op.summary || `Moved ${humanKind(target.kind)} on ${pageName(op.page, page)}`);
+      } else {
+        const copy = clone(target);
+        copy.id = `${target.kind}-${Math.random().toString(36).slice(2, 8)}`;
+        copy.blocks = copy.blocks.map((block, index) => ({ ...block, id: `${copy.id}-b${index}` }));
+        page.sections.splice(op.after || op.before || op.position ? placeIndex(page, op) : page.sections.indexOf(target) + 1, 0, copy);
+        changes.push(op.summary || `Copied ${humanKind(target.kind)} on ${pageName(op.page, page)}`);
+      }
+      continue;
+    }
+
     if (op.action === "remove" || op.action === "hide" || op.action === "show") {
       if (!target || LOCKED_KINDS.has(target.kind)) continue;
       if (op.action === "remove") page.sections = page.sections.filter((section) => section !== target);
@@ -411,7 +470,7 @@ export function applyRexStudioPlan(draft: StoreEditorSnapshot, plan: RexStudioPl
         } else if (PLACEHOLDER_ITEM_KINDS.has(op.kind)) {
           section.items = [];
         }
-        page.sections.splice(insertIndex(page, op.position), 0, section);
+        page.sections.splice(placeIndex(page, op), 0, section);
         added = true;
       }
     }
@@ -423,6 +482,8 @@ export function applyRexStudioPlan(draft: StoreEditorSnapshot, plan: RexStudioPl
     }
     if (op.items && !DATA_KINDS.has(section.kind)) section.items = op.items.map((item) => ({ ...item }));
     if (op.imageUrl) setHeroImage(section, op.imageUrl);
+    if (op.fields && Object.keys(op.fields).length && !LOCKED_KINDS.has(section.kind)) context.applyFields?.(section, op.fields, snapshot.templateId);
+    if (section.kind === LAYOUT_ROW_KIND && (op.preset || op.columns)) writeLayoutRow(section, op.preset, op.columns);
     if (!added && JSON.stringify(section) === before) continue;
     changes.push(op.summary || (added ? `Added ${humanKind(section.kind)} to ${pageName(op.page, page)}` : `Rewrote ${humanKind(section.kind)} on ${pageName(op.page, page)}`));
   }
@@ -433,7 +494,7 @@ export function applyRexStudioPlan(draft: StoreEditorSnapshot, plan: RexStudioPl
 }
 
 /** The draft as Rex reads it: pages, then each section's id, kind and words (long text trimmed). */
-export function summariseDraftForRex(draft: StoreEditorSnapshot, boutique = false) {
+export function summariseDraftForRex(draft: StoreEditorSnapshot, boutique = false, describe?: (section: TemplateSectionNode) => Record<string, string>) {
   const tokens = draft.themeTokens;
   return {
     theme: draft.templateId,
@@ -461,6 +522,10 @@ export function summariseDraftForRex(draft: StoreEditorSnapshot, boutique = fals
             kind: section.kind,
             ...(section.visible === false ? { hidden: true } : {}),
             copy: words,
+            ...(section.kind === LAYOUT_ROW_KIND
+              ? { preset: normaliseLayoutRow(section).preset.id, columns: normaliseLayoutRow(section).cells.map((cell) => cell.elements.map((element) => Object.fromEntries(Object.entries(element).filter(([key]) => key !== "id").map(([key, value]) => [key, typeof value === "string" ? value.slice(0, 160) : value])))) }
+              : {}),
+            ...(describe ? { fields: describe(section) } : {}),
             ...(DATA_KINDS.has(section.kind) ? {} : section.items?.length ? { items: section.items.slice(0, 8).map((item) => Object.fromEntries(Object.entries(item).filter(([, value]) => typeof value === "string").map(([key, value]) => [key, (value as string).slice(0, 200)]))) } : {}),
           };
         }),

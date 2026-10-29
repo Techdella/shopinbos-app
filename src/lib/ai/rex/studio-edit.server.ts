@@ -7,6 +7,7 @@ import { applyRexStudioPlan, parseRexStudioPlan, summariseDraftForRex, type RexS
 import { pushRexVersion, recordDraftBeforeChange, summariseRexVersions, type RexVersionSummary } from "@/lib/ai/rex/studio-versions";
 import {
   allowedKindsFor,
+  describeSectionFields,
   loadHealthFacts,
   saveStudioDraft,
   settingsOf,
@@ -69,7 +70,7 @@ async function designerPrompt(store: StudioStore, draft: StoreEditorSnapshot, im
     themes: studioThemes(draft.templateId, await loadSellerThemeAccess(store.userId)),
     allowedKinds: allowedKindsFor(draft.templateId),
     boutique: isBoutiqueTheme(draft.templateId),
-    draft: summariseDraftForRex(draft, isBoutiqueTheme(draft.templateId)),
+    draft: summariseDraftForRex(draft, isBoutiqueTheme(draft.templateId), (section) => describeSectionFields(section, draft.templateId)),
     products: products.map((product) => ({ name: product.name, price: formatStoreMoney(product.retailPrice, product.currency), hasPhoto: product.images.some(Boolean) })),
     facts: [
       `${facts.products} published products`,
@@ -99,17 +100,22 @@ export async function applyStudioPlan(store: StudioStore, plan: RexStudioPlan, l
     return { reply: plan.reply || "I didn't change anything this time.", changes: [], draft: null, version: null, undoTo: null };
   }
   if (applied.themeChanged) applied.changes.push("Kept your products and prices");
+  return saveRexChange(store, draft, applied.snapshot, applied.changes, label, plan.reply || "Done. Have a look at the preview.");
+}
+
+/** Saves `next` as the store's draft, recorded as a new Rex version (undo goes back to `draft`). */
+export async function saveRexChange(store: StudioStore, draft: StoreEditorSnapshot, next: StoreEditorSnapshot, changes: string[], label: string, reply: string): Promise<StudioEditResult> {
   const before = recordDraftBeforeChange(versionsOf(store), draft);
   const undoTo = before.current;
-  const { state, version } = pushRexVersion(before, { label: label.slice(0, 200), snapshot: applied.snapshot });
-  await saveStudioDraft(store, applied.snapshot, state);
+  const { state, version } = pushRexVersion(before, { label: label.slice(0, 200), snapshot: next });
+  await saveStudioDraft(store, next, state);
   return {
-    reply: plan.reply || "Done. Have a look at the preview.",
-    changes: applied.changes,
-    draft: applied.snapshot,
+    reply,
+    changes,
+    draft: next,
     version: { id: version.id, n: version.n },
     undoTo,
-    versions: summariseRexVersions(state, applied.snapshot.updatedAt),
+    versions: summariseRexVersions(state, next.updatedAt),
   };
 }
 

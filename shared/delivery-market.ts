@@ -960,11 +960,11 @@ export const OFF_PLATFORM_WARNING =
 // ─── Pay on delivery (spec §8) ───────────────────────────────────────────────
 
 export const POD_DISCLAIMER =
-  "Pay on delivery is an arrangement between you and your logistics partner. Cash is collected by the partner, and settlement is between you and them. Shopinbos does not handle, hold or guarantee pay-on-delivery funds.";
+  "Pay on delivery is between you, your customer and your delivery partner. Your customer pays you or your rider when it arrives, by cash or transfer as you agree, or in the app from their order page; mark the order paid once you have the money. When you take card payments, the delivery fee can be paid at checkout. Shopinbos doesn't collect, hold or guarantee pay-on-delivery money.";
 
 /** The same arrangement as the partner sees it (coverage and connections pages). */
 export const POD_DISCLAIMER_PARTNER =
-  "Pay on delivery is an arrangement between you and the shop. Your rider collects the cash from the customer, and you settle it with the shop directly. Shopinbos does not handle, hold or guarantee pay-on-delivery funds.";
+  "Pay on delivery is between you and the shop. The customer pays your rider or the shop at the door, by cash or transfer as you and the shop agree, or in the app. Pass on any cash as you agreed with the shop. Shopinbos doesn't collect, hold or guarantee pay-on-delivery money.";
 
 // ─── Decline reasons ─────────────────────────────────────────────────────────
 

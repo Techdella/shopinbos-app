@@ -159,6 +159,7 @@ export async function connectChannel(store: { id: string; slug: string }, channe
   if (channel === "email") {
     if (!process.env.RESEND_API_KEY) return { ok: false, error: "Email isn't switched on yet. Tap Help and we'll sort it out." };
     const address = inboxAddress(store.slug);
+    if (!address) return { ok: false, error: "Connect your Gmail or your own domain so customers get replies from your address." };
     // The store's Shopinbos inbox address. A domain set up earlier stays in the settings, so it can be finished later.
     const current = await db.inboxChannel.findUnique({ where: { storeId_channel: { storeId: store.id, channel: "email" } }, select: { settings: true } });
     const { gmail: _gmail, ...kept } = (current?.settings as Record<string, unknown> | null) ?? {};

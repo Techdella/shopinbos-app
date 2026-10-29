@@ -7,7 +7,9 @@ import { sellerFrame } from "@/components/seller-core";
 import { requireRole } from "@/lib/server-auth";
 import { getSellerWorkspace } from "@/lib/workspace";
 import { db } from "@/lib/db/client";
-import { formatMoney, formatNumber } from "@shared/i18n";
+import { formatDate, formatMoney, formatNumber } from "@shared/i18n";
+import { preorderDay } from "@shared/preorder";
+import { storePreorders } from "@/lib/supplier-orders/preorders.server";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { productCampaignTimers } from "@/lib/store-campaigns/server";
 import { ProductCampaignBadge } from "@/components/campaigns/ProductCampaignBadge";
@@ -32,6 +34,7 @@ type ProductRow = {
   currentStock: number;
   lowStockThreshold: number;
   trackStock: boolean;
+  preorderEnabled: boolean;
 };
 
 const isLive = (p: ProductRow) => p.status === "active" || p.status === "published";
@@ -40,12 +43,14 @@ const isDropship = (p: ProductRow) => p.fulfillmentType === "dropship" || p.inve
 const isLow = (p: ProductRow) => !isDropship(p) && p.trackStock && p.currentStock <= p.lowStockThreshold;
 
 // Old links used ?status=active|draft|archived; they map onto the new chips.
-const FILTERS: Array<{ key: "all" | "live" | "draft" | "low_stock" | "dropship" | "archived"; test: (p: ProductRow) => boolean }> = [
+const FILTERS: Array<{ key: "all" | "live" | "draft" | "low_stock" | "dropship" | "preorder" | "archived"; test: (p: ProductRow) => boolean }> = [
   { key: "all", test: (p) => p.status !== "archived" },
   { key: "live", test: isLive },
   { key: "draft", test: (p) => p.status === "draft" },
   { key: "low_stock", test: (p) => p.status !== "archived" && isLow(p) },
   { key: "dropship", test: (p) => p.status !== "archived" && isDropship(p) },
+  // Taking pre-orders: each row shows the ship date, how many are taken and the open orders.
+  { key: "preorder", test: (p) => p.status !== "archived" && p.preorderEnabled },
   { key: "archived", test: (p) => p.status === "archived" },
 ];
 
@@ -106,6 +111,10 @@ export default async function ProductsPage({
       currentStock: true,
       lowStockThreshold: true,
       trackStock: true,
+      preorderEnabled: true,
+      preorderShipsAt: true,
+      preorderLimit: true,
+      preorderTaken: true,
       soldStock: true,
       supplierStock: true,
       variants: true,
@@ -116,7 +125,12 @@ export default async function ProductsPage({
   });
   // Live and upcoming seasonal campaigns that badge a product show a small timer on its row.
   const campaignNow = new Date();
-  const [campaignTimers, readiness] = await Promise.all([productCampaignTimers(storeId, all, campaignNow), paymentReadiness(storeId)]);
+  const [campaignTimers, readiness, preorderOrders] = await Promise.all([
+    productCampaignTimers(storeId, all, campaignNow),
+    paymentReadiness(storeId),
+    // Open pre-orders per product (who ordered lives on the pre-orders page), only when listing pre-order products.
+    filterKey === "preorder" ? storePreorders(storeId).then((view) => new Map(view.groups.map((group) => [group.productId, group]))) : Promise.resolve(new Map()),
+  ]);
 
   const needle = query.toLowerCase();
   const products = all.filter(
@@ -140,10 +154,10 @@ export default async function ProductsPage({
     return `/products${qs ? `?${qs}` : ""}`;
   };
 
-  const chips = FILTERS.filter((item) => item.key !== "archived" || filter.key === "archived" || all.some(item.test)).map((item) => ({
+  const chips = FILTERS.filter((item) => (item.key !== "archived" && item.key !== "preorder") || filter.key === item.key || all.some(item.test)).map((item) => ({
     label: t(`filter.${item.key}`),
     href: href({ filter: item.key }),
-    count: item.key === "all" ? all.filter(item.test).length : undefined,
+    count: item.key === "all" || item.key === "preorder" ? all.filter(item.test).length : undefined,
     active: item.key === filter.key,
   }));
 
@@ -167,6 +181,8 @@ export default async function ProductsPage({
           </a>
           {/* Many photos at once: Peggy names them, the seller prices them by chatting. */}
           <PillLink href="/products/bulk" icon="sparkle">{tBulk("entry.title")}</PillLink>
+          {/* Pre-orders: the products taking them, here in the list (orders and buyers: /home/preorders). */}
+          <PillLink href={href({ filter: "preorder" })} icon="clock" iconOnlyOnPhone>{t("list.preorders")}</PillLink>
           <PillLink href="/products/new" tone="accent" icon="plus" className="max-sm:px-3.5">{t("addProduct")}</PillLink>
         </>
       }
@@ -198,6 +214,16 @@ export default async function ProductsPage({
           </Link>
         ))}
       </nav>
+
+      {filter.key === "preorder" ? (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[18px] border border-app-line bg-white px-4 py-3">
+          <p className="m-0 min-w-0 text-[13.5px] text-app-ink-soft">{t("pre.bar")}</p>
+          <span className="flex flex-wrap gap-2">
+            <PillLink href="/home/preorders?view=shop" icon="users" size="sm">{t("pre.manage")}</PillLink>
+            <PillLink href="/home/preorders?view=shop#start" icon="plus" size="sm">{t("pre.start")}</PillLink>
+          </span>
+        </div>
+      ) : null}
 
       {all.length === 0 ? (
         <EmptyState
@@ -242,7 +268,8 @@ export default async function ProductsPage({
             return (
               <ListRow
                 key={p.id}
-                href={`/products/${p.id}`}
+                // From the pre-orders list, open straight on the product's Preorder settings.
+                href={filter.key === "preorder" ? `/products/${p.id}#preorder` : `/products/${p.id}`}
                 // Share to WhatsApp, and a payment link to send in a chat (published products only: the pay page shows
                 // public products).
                 aside={
@@ -268,6 +295,18 @@ export default async function ProductsPage({
                         {detail}
                         {p.visibility === "hidden" && isLive(p) ? ` · ${t("list.hiddenFromStore")}` : ""}
                       </div>
+                      {p.preorderEnabled ? (
+                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px]">
+                          <Pill tone="warning" dot>{t("pre.taking")}</Pill>
+                          <span className="text-app-ink-soft">
+                            {[
+                              preorderDay(p.preorderShipsAt) ? t("pre.ships", { date: formatDate(new Date(`${preorderDay(p.preorderShipsAt)}T12:00:00Z`), locale, { day: "numeric", month: "short", timeZone: "UTC" }) }) : t("pre.noDate"),
+                              p.preorderLimit ? t("pre.takenOf", { taken: p.preorderTaken, limit: p.preorderLimit }) : t("pre.taken", { count: p.preorderTaken }),
+                              filter.key === "preorder" ? t("pre.open", { count: preorderOrders.get(p.id)?.orders.length ?? 0 }) : null,
+                            ].filter(Boolean).join(" · ")}
+                          </span>
+                        </div>
+                      ) : null}
                     </div>
                     <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5 text-[13.5px] xl:contents">
                       <span>{statusPill}</span>

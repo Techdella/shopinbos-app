@@ -674,7 +674,7 @@ function ReportProblem({ theme, storeSlug, storeName, orderId, buyerName }: { th
     return (
       <Panel theme={theme} className="p-5" aria-live="polite">
         <h2 className="text-[18px] font-semibold" style={{ fontFamily: theme.heading }}>Problem reported: {kind ? CUSTOMER_ISSUE_WORDS[kind] : ""}</h2>
-        <p className="mt-1 text-[14.5px] leading-6" style={{ color: theme.muted }}>{storeName} will get back to you.{kind === "wrong_item" || kind === "damaged" || kind === "not_delivered" ? " Our team checks the packing and delivery photos and decides who puts it right: a refund or a replacement." : ""}</p>
+        <p className="mt-1 text-[14.5px] leading-6" style={{ color: theme.muted }}>{storeName} will get back to you.{kind === "wrong_item" || kind === "damaged" || kind === "not_delivered" ? " They can see the packing and delivery photos, and will tell you how they'll put it right." : ""}</p>
       </Panel>
     );
   }

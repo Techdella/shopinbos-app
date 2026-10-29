@@ -103,7 +103,9 @@ export async function resolveEmailSender(storeId: string, storeName: string): Pr
   const fromName = cleanFromName(settings.fromName, storeName);
   if (settings.provider === "gmail" && settings.gmail?.email) return { kind: "gmail", address: settings.gmail.email, fromName };
   if (settings.provider === "resend_domain" && settings.domain?.status === "verified" && settings.address) return { kind: "domain", address: settings.address, fromName };
-  return { kind: "platform" };
+  // The Shopinbos inbox address only exists with INBOX_EMAIL_DOMAIN; without it the store has no address of its own.
+  if (!settings.provider || settings.provider === "platform") return process.env.INBOX_EMAIL_DOMAIN?.trim() ? { kind: "platform" } : { kind: "none" };
+  return { kind: "none" };
 }
 
 // ─── What the setup page shows ───────────────────────────────────────────────
@@ -139,10 +141,11 @@ export interface EmailSetupView {
 export async function emailSetupView(store: { id: string; name: string; slug: string; customDomain: string | null }): Promise<EmailSetupView> {
   const [row, recommendation] = await Promise.all([emailRow(store.id), storeRecommendation(store)]);
   const settings = readEmailSettings(row?.settings);
-  const connected = row?.status === "connected";
-  const provider: EmailProvider | null = connected ? (settings.provider ?? "platform") : null;
   const inboundDomain = process.env.INBOX_EMAIL_DOMAIN?.trim().toLowerCase() || null;
   const platformAddress = inboundDomain ? `${store.slug}@${inboundDomain}` : null;
+  // A "platform" row with no inbox domain has no address to send from, so it counts as not set up.
+  const connected = row?.status === "connected" && ((settings.provider ?? "platform") !== "platform" || Boolean(platformAddress));
+  const provider: EmailProvider | null = connected ? (settings.provider ?? "platform") : null;
   const domain = settings.domain ? { name: settings.domain.name, prefix: settings.domain.prefix, records: settings.domain.records, status: settings.domain.status, auto: settings.domain.auto, receiving: settings.domain.receiving, dnsError: settings.domain.dnsError, checkedAt: settings.domain.checkedAt } : null;
   return {
     connected,

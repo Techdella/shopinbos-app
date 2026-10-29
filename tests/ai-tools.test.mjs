@@ -551,6 +551,10 @@ const PEGGY_VALID = {
 
 const REX_VALID = {
   store_health: {},
+  review_store_design: {},
+  fill_section_images: { page: null, max: 3, direction: null },
+  edit_menu: { instruction: "Add a Shop dropdown with my categories" },
+  start_store_build: { brief: "Phone accessories and headphones, bold and young", links: ["kemi.ng"], themeId: "plug" },
   list_products: { query: null, limit: null },
   list_themes: {},
   open_preview: { page: null },

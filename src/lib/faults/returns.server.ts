@@ -86,14 +86,18 @@ export async function decideReturn(store: { id: string; userId: string }, return
   return { ok: true };
 }
 
-/** The item is back (the seller says so, or the return trip was delivered): the refund follows the matrix, once. */
+/**
+ * The item is back: the seller says so (the refund follows the matrix, once), or the return trip was delivered (then
+ * it's only suggested: the seller checks the item and accepts the refund on the order page).
+ */
 export async function markReturnReceived(store: { id: string } | null, returnId: string, actorUserId?: string | null): Promise<Result<{ refundKobo: number }>> {
   const row = await db.returnRequest.findFirst({ where: { id: returnId, ...(store ? { storeId: store.id } : {}) } });
   if (!row) return { ok: false, error: "We couldn't find this return." };
   if (row.status === "refunded") return { ok: true, refundKobo: row.refundKobo };
   if (row.status !== "approved") return { ok: false, error: "Approve the return first." };
-  const applied = await applyFault({ key: `return:${row.id}`, source: "return", retailOrderId: row.retailOrderId, event: "changed_mind", returnPayer: row.returnPayer === "seller" ? "seller" : "customer", decidedByUserId: actorUserId ?? null });
+  const applied = await applyFault({ key: `return:${row.id}`, source: "return", retailOrderId: row.retailOrderId, event: "changed_mind", returnPayer: row.returnPayer === "seller" ? "seller" : "customer", decidedByUserId: actorUserId ?? null, propose: !store });
   if (!applied.ok) return { ok: false, error: applied.error };
+  if (applied.proposed) return { ok: true, refundKobo: applied.outcome.refundKobo };
   await db.returnRequest.update({ where: { id: row.id }, data: { status: "refunded", receivedAt: new Date(), refundKobo: applied.outcome.refundKobo, faultCaseId: applied.caseId } });
   return { ok: true, refundKobo: applied.outcome.refundKobo };
 }

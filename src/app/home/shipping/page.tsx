@@ -7,6 +7,7 @@ import { DeliveryTip } from "@/components/delivery-market/DeliveryTip";
 import { Icon } from "@/components/ui/Icon";
 import { getT } from "@/lib/i18n/server";
 import { ReturnsSettingCard } from "@/components/seller/ReturnsSettingCard";
+import { HandlingDaysCard } from "@/components/seller/HandlingDaysCard";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +34,7 @@ export default async function ShippingPage() {
   const store = workspace?.store;
   const currency = store?.currency ?? "NGN";
   // The returns switch (shared/fault-matrix.ts): who pays when a customer changes their mind.
-  const returnsSetting = store ? await db.store.findUnique({ where: { id: store.id }, select: { returnsAllowed: true, returnWindowDays: true, returnShippingPayer: true } }) : null;
+  const returnsSetting = store ? await db.store.findUnique({ where: { id: store.id }, select: { returnsAllowed: true, returnWindowDays: true, returnShippingPayer: true, handlingDays: true } }) : null;
 
   const [shippingZones, logisticsPartners] = await Promise.all([
     store
@@ -117,6 +118,9 @@ export default async function ShippingPage() {
             </ListCard>
           )}
         </section>
+
+        {/* How long the store takes to send its own stock: customers see an "Arrives …" date at checkout. */}
+        {returnsSetting ? <HandlingDaysCard initial={returnsSetting.handlingDays} /> : null}
 
         {returnsSetting ? <ReturnsSettingCard initial={returnsSetting} /> : null}
 

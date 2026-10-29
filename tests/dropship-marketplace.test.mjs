@@ -214,7 +214,7 @@ test("the Find filter is on the web and the phone", () => {
 
 test("trust lines show only what's true and never name the supplier", () => {
   const all = trust.storefrontTrust({ dropship: true, supplierVerificationStatus: "verified", partnerDelivery: true, onlinePayments: true });
-  assert.deepEqual(trust.trustLines(all).map((line) => line.title), ["Verified supplier", "Verified delivery", "Paid-at-checkout protection"]);
+  assert.deepEqual(trust.trustLines(all).map((line) => line.title), ["Verified supplier", "Verified delivery", "Secure checkout"]);
   const own = trust.storefrontTrust({ dropship: false, supplierVerificationStatus: "verified", partnerDelivery: false, onlinePayments: false });
   assert.equal(trust.hasTrustLines(own), false);
   assert.deepEqual(trust.trustLines(trust.storefrontTrust({ dropship: true, supplierVerificationStatus: "pending", partnerDelivery: false, onlinePayments: true })).map((line) => line.key), ["paidAtCheckout"]);

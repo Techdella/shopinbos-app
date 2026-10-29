@@ -279,7 +279,7 @@ export function DeliveryFields({
                 checked={(selectedOptionId ?? choice.options[0]?.id) === option.id}
                 onSelect={() => onSelectOption(option.id)}
                 title={option.name}
-                detail={[option.estimatedDays, option.pickup ? "You collect it" : null].filter(Boolean).join(" · ") || undefined}
+                detail={[option.arrival ?? option.estimatedDays, option.pickup ? "You collect it" : null].filter(Boolean).join(" · ") || undefined}
                 aside={option.price > 0 ? formatStoreMoney(option.price, currency) : "Free"}
               />
             ))}

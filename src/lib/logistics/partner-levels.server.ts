@@ -98,13 +98,12 @@ export async function partnerLevelView(partnerId: string) {
   };
 }
 
-/** Why this partner can't switch pay on delivery on, or null: they must be verified, and not owe cash from older jobs. */
+/** Why this partner can't switch pay on delivery on, or null: they must be verified. The rest is agreed with each shop. */
 export async function payOnDeliveryProblem(partnerId: string): Promise<string | null> {
   if (!PAY_ON_DELIVERY_ON) return PAY_ON_DELIVERY_OFF_MESSAGE;
   await refreshPartnerLevel(partnerId);
   const partner = await db.logisticsPartner.findUnique({ where: { id: partnerId }, select: { codPaused: true, verificationStatus: true } });
   if (!partner || partner.verificationStatus !== "verified") return POD_LOCKED_MESSAGE;
-  if (partner.codPaused) return "Pay on delivery is paused until the cash you collected on older jobs is paid in.";
   return null;
 }
 

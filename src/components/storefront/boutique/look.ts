@@ -2039,6 +2039,9 @@ export const BOUTIQUE_CSS = `
 .bq :where(a,button,input,select,textarea,summary,[tabindex]):focus-visible{outline:2px solid var(--bq-accent);outline-offset:3px}
 .bq-wrap{width:100%;max-width:var(--bq-wrap,1320px);margin:0 auto;padding-left:16px;padding-right:16px}
 .bq-h{font-family:var(--bq-heading);margin:0;line-height:1.1}
+/* A button that looks like plain content (links that open in the page). :where() keeps it at zero specificity, so
+   .bq-btn, cards and tiles keep their own padding and borders. */
+:where(.bq-plain){background:transparent;border:0;padding:0;color:inherit;cursor:pointer;text-align:inherit;font:inherit}
 .bq-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:0 22px;border-radius:var(--bq-button-radius);font-weight:600;font-size:14.5px;cursor:pointer;transition:opacity .15s,transform .15s;white-space:nowrap}
 .bq-btn:hover{opacity:.9}
 .bq-btn:disabled{opacity:.55;cursor:not-allowed}
@@ -2064,8 +2067,22 @@ export const BOUTIQUE_CSS = `
 .bq-cols-2{display:grid;gap:18px}
 .bq-shop-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 12px}
 .bq-page{padding-bottom:96px}
+/* Section rhythm. Many contained sections pad only their top and lean on the next section's top padding for the gap.
+   A section with its own background (a split story, a countdown, a tinted product rail) has none, so it gets one, and the
+   last section on a page closes its own bottom. */
+.bq-sec:has(> section.bq-wrap:not([class*="py-"]):not([class*="pb-"])) + .bq-sec > :first-child:is(:not(.bq-wrap),[style*="background"]){margin-top:40px}
+.bq-sec:last-child > section.bq-wrap:not([class*="py-"]):not([class*="pb-"]){padding-bottom:40px}
+/* A section's own spacing (Style tab, or Rex): tighter trims its padding; roomy adds space around it. */
+.bq-sec[data-spacing="compact"] > :is([class*="pt-"],[class*="py-"]){padding-top:20px}
+.bq-sec[data-spacing="compact"] > :is([class*="pb-"],[class*="py-"]){padding-bottom:20px}
+.bq-sec[data-spacing="roomy"]{padding-top:32px;padding-bottom:32px}
 @container bq (min-width: 760px){
   .bq-wrap{padding-left:36px;padding-right:36px}
+  .bq-sec:has(> section.bq-wrap:not([class*="py-"]):not([class*="pb-"])) + .bq-sec > :first-child:is(:not(.bq-wrap),[style*="background"]){margin-top:56px}
+  .bq-sec:last-child > section.bq-wrap:not([class*="py-"]):not([class*="pb-"]){padding-bottom:56px}
+  .bq-sec[data-spacing="compact"] > :is([class*="pt-"],[class*="py-"]){padding-top:28px}
+  .bq-sec[data-spacing="compact"] > :is([class*="pb-"],[class*="py-"]){padding-bottom:28px}
+  .bq-sec[data-spacing="roomy"]{padding-top:56px;padding-bottom:56px}
   .bq-nav-desktop{display:flex}
   .bq-only-narrow{display:none !important}
   .bq-only-wide{display:revert}

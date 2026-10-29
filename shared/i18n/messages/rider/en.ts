@@ -92,11 +92,11 @@ const en = {
   "me.whatsapp": "WhatsApp {name}",
   "me.linkNote": "This page is your private Riders link. Don't share it.",
   // Pay on delivery, paid in the app at the door (shared/pay-at-door.ts): no cash, no code, no drop.
-  "run.payInApp": "{count, plural, one {# pays in the app} other {# pay in the app}}",
-  "pay.pill": "Customer pays {amount} in the app",
+  "run.payInApp": "{count, plural, one {# pays at the door} other {# pay at the door}}",
+  "pay.pill": "Customer pays {amount} at the door",
   "pay.paid": "Paid in the app",
-  "pay.title": "Customer pays {amount} in the app. No cash",
-  "pay.body": "Let them check the parcel, then pay with the link we texted them or by scanning the QR code. Once the money is in, they get a 4-digit code. Type it to finish the drop.",
+  "pay.title": "Customer pays {amount} at the door",
+  "pay.body": "Collect it as you agreed with the shop (cash or transfer), or the customer can pay with the link we texted them or this QR code. Then type their delivery code to finish the drop.",
   "pay.qrAlt": "QR code to pay for this order",
   "pay.qrHint": "The customer scans this with their phone camera.",
   "pay.showQr": "Show QR code",
@@ -104,8 +104,8 @@ const en = {
   "pay.resend": "Text the link again",
   "pay.resent": "Sent. Ask them to check their SMS.",
   "pay.check": "Check payment",
-  "pay.wait": "No payment after {minutes} minutes, or they refuse? Take the parcel back: tap Couldn't deliver. You're still paid for the trip.",
-  "pay.codeLabel": "Code the customer got after paying",
+  "pay.wait": "They won't pay? Bring the parcel back as you agreed with the shop: tap Couldn't deliver.",
+  "pay.codeLabel": "The customer's delivery code",
   "pay.noJob": "This job isn't on the road with you any more. Refresh to check.",
 } satisfies Record<string, string>;
 

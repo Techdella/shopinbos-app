@@ -9,9 +9,9 @@ import { Icon } from "@/components/ui/Icon";
 import { selectClass } from "@/components/growth/kit";
 import { BankLinkingModal } from "@/components/payments/BankLinkingModal";
 import { PAYMENT_METHODS, type PaymentMethodKey } from "@shared/onboarding";
-import { TRANSFER_WINDOW_CHOICES } from "@shared/checkout-payments";
+import { COD_LIMIT_CHOICES, TRANSFER_WINDOW_CHOICES } from "@shared/checkout-payments";
 import type { PaymentMethodState } from "@shared/seller-payments";
-import { saveTransferWindow, savePaymentMethods } from "./actions";
+import { saveCodLimit, saveTransferWindow, savePaymentMethods } from "./actions";
 import { useT } from "@/components/i18n/I18nProvider";
 
 // Ways customers can pay, each saying whether it reaches checkout yet (shared/seller-payments.ts paymentMethodStates).
@@ -20,16 +20,19 @@ import { useT } from "@/components/i18n/I18nProvider";
 
 const NEEDS_BANK = new Set<PaymentMethodKey>(["card", "korapay", "transfer"]);
 
-export function PaymentMethods({ initial, states, transferWindow }: {
+export function PaymentMethods({ initial, states, transferWindow, codLimit: initialCodLimit = 50_000 }: {
   initial: Record<PaymentMethodKey, boolean>;
   states: Record<PaymentMethodKey, PaymentMethodState>;
   /** The seller's own time for bank-transfer orders (null: the default), and the default. */
   transferWindow: { hours: number | null; defaultHours: number };
+  /** The seller's own limit on pay on delivery (₦), or null for none. */
+  codLimit?: number | null;
 }) {
   const t = useT("payments", "home", "common");
   const router = useRouter();
   const hoursLabel = (hours: number) => (hours % 24 === 0 && hours >= 48 ? t("methods.days", { count: hours / 24 }) : t("methods.hours", { count: hours }));
   const [methods, setMethods] = useState(initial);
+  const [codLimit, setCodLimit] = useState<number | null>(initialCodLimit);
   const [windowHours, setWindowHours] = useState<number | null>(transferWindow.hours);
   const [error, setError] = useState<string | null>(null);
   const [bankOpen, setBankOpen] = useState(false);
@@ -47,6 +50,20 @@ export function PaymentMethods({ initial, states, transferWindow }: {
       const result = await saveTransferWindow(next);
       if (result.error) {
         setWindowHours(previous);
+        setError(result.error);
+      }
+    });
+  }
+
+  function changeCodLimit(value: string) {
+    const previous = codLimit;
+    const next = value === "none" ? null : Number(value);
+    setCodLimit(next);
+    setError(null);
+    startTransition(async () => {
+      const result = await saveCodLimit(next);
+      if (result.error) {
+        setCodLimit(previous);
         setError(result.error);
       }
     });
@@ -118,6 +135,19 @@ export function PaymentMethods({ initial, states, transferWindow }: {
               <option key={hours} value={hours}>{hoursLabel(hours)}</option>
             ))}
           </select>
+        </div>
+      )}
+      {methods.cod && (
+        <div className="mt-2 border-t border-app-line pt-3">
+          <label htmlFor="cod-limit" className="block text-[14.5px] font-bold">{t("methods.codLimit")}</label>
+          <select id="cod-limit" className={`${selectClass} mt-2`} value={codLimit === null ? "none" : String(codLimit)} onChange={(event) => changeCodLimit(event.target.value)} disabled={pending}>
+            <option value="none">{t("methods.codNoLimit")}</option>
+            {[...COD_LIMIT_CHOICES, ...(codLimit !== null && !(COD_LIMIT_CHOICES as readonly number[]).includes(codLimit) ? [codLimit] : [])].map((amount) => (
+              <option key={amount} value={amount}>{`₦${amount.toLocaleString("en-NG")}`}</option>
+            ))}
+          </select>
+          {/* The published terms (shared/delivery-market.ts POD_DISCLAIMER): it's the seller's arrangement, not Shopinbos's. */}
+          <p className="m-0 mt-2 text-[12.5px] leading-[1.45] text-app-ink-soft">{t("methods.codTerms")}</p>
         </div>
       )}
       <p className="m-0 mt-2 text-[12.5px] leading-[1.45] text-app-ink-soft">

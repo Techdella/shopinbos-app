@@ -265,3 +265,32 @@ export function templateText(template: TeamTemplate) {
     return placeholder ? `{{${placeholder.key}}}` : match;
   });
 }
+
+// ─── When WhatsApp won't deliver ──────────────────────────────────────────────
+
+/**
+ * Meta accepted the message, then refused to deliver it for its own reasons (its limit on business messages to
+ * someone who hasn't written to us, or a WhatsApp experiment). Nothing we can fix on WhatsApp, so the inbox sends
+ * the same words by SMS instead.
+ */
+export function metaRefusedDelivery(error: string | null | undefined) {
+  return /healthy ecosystem|part of an experiment|\b131049\b|\b130472\b/i.test(error ?? "");
+}
+
+/** What the inbox shows under a WhatsApp message that didn't arrive. */
+export function whatsappFailureText(error: string | null | undefined) {
+  if (/healthy ecosystem|\b131049\b/i.test(error ?? "")) return "Meta held this back: it limits business messages to people who haven't written to us, and they haven't. Don't resend on WhatsApp for now.";
+  if (/part of an experiment|\b130472\b/i.test(error ?? "")) return "Meta held this back: their number is in a WhatsApp experiment that blocks business messages.";
+  return error || "WhatsApp couldn't deliver it.";
+}
+
+/** The SMS copy of a team message: the WhatsApp-only "reply here" line goes, and it fits in three texts. */
+export function smsFallbackText(body: string) {
+  const text = body
+    .replace(/\n*Reply to this message[^\n]*$/i, "")
+    .replace(/\n*Reply here whenever[^\n]*$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const framed = /shopinbos/i.test(text) ? text : `Shopinbos: ${text}`;
+  return framed.length > 459 ? `${framed.slice(0, 458).trimEnd()}…` : framed;
+}

@@ -16,6 +16,7 @@ import {
   type StoreBrandSettingsLike,
 } from "@/lib/store-templates";
 import { fillMissingPageSeo } from "@/lib/store-templates/seo-defaults";
+import { announceStore } from "@/lib/seo/search-ping.server";
 
 export class StorePublishError extends Error {
   constructor(
@@ -65,7 +66,7 @@ export async function assertStoreDraftPublishable(where: { userId?: string; stor
 export async function publishStoreDraft(where: { userId?: string; storeId?: string }) {
   const store = await db.store.findFirst({
     where: where.storeId ? { id: where.storeId } : { userId: where.userId },
-    select: { id: true, name: true, brandSettings: true },
+    select: { id: true, slug: true, name: true, brandSettings: true },
   });
   if (!store) throw new StorePublishError("Store not found", "NOT_FOUND", 404);
 
@@ -130,6 +131,9 @@ export async function publishStoreDraft(where: { userId?: string; storeId?: stri
       },
     });
   }
+
+  // Live now: tell Google (sitemap) and IndexNow engines (every page) instead of waiting to be crawled.
+  announceStore(store.slug);
 
   return { storeId: store.id, envelope: buildEditorEnvelope(published.brandSettings, draft) };
 }

@@ -7,6 +7,7 @@ import {
   MAX_MENU_ITEMS,
   MENU_PAGE_LABELS,
   addMenuItems,
+  menuTargets,
   canIndentMenuItem,
   contentRefName,
   countMenuItems,
@@ -89,6 +90,11 @@ export function MenuField({ value, onChange, pageTypes, products, flat = false }
   };
 
   const options = source === "pages" ? pages : source === "categories" ? categories : source === "products" ? productOptions : [];
+  // What's already in the menu shows as added, so it can't be added twice (Select all skips it too).
+  const sourceKind = source === "pages" ? "page" : source === "categories" ? "category" : "product";
+  const inMenu = useMemo(() => menuTargets(value), [value]);
+  const added = (key: string) => inMenu.has(`${sourceKind}:${key}`);
+  const addable = options.filter((option) => !added(option.key));
   const sourceTabs: Array<{ id: Source; label: string }> = [
     { id: "pages", label: "Pages" },
     { id: "categories", label: "Categories" },
@@ -208,8 +214,9 @@ export function MenuField({ value, onChange, pageTypes, products, flat = false }
                           {options.map((option) => (
                             <li key={option.key}>
                               <label className="flex min-h-9 cursor-pointer items-center gap-2 rounded-[8px] px-1.5 text-[13px] text-app-ink hover:bg-app-canvas">
-                                <input type="checkbox" checked={ticked.includes(option.key)} onChange={() => pick(option.key)} />
-                                <span className="truncate">{tx(option.label)}</span>
+                                <input type="checkbox" checked={added(option.key) || ticked.includes(option.key)} disabled={added(option.key)} onChange={() => pick(option.key)} />
+                                <span className={cx("truncate", added(option.key) && "text-app-ink-soft")}>{tx(option.label)}</span>
+                                {added(option.key) ? <span className="ml-auto shrink-0 text-[11px] text-app-ink-soft">{tx("In menu")}</span> : null}
                               </label>
                             </li>
                           ))}
@@ -218,8 +225,8 @@ export function MenuField({ value, onChange, pageTypes, products, flat = false }
                         <p className="m-0 text-[12.5px] text-app-ink-soft">{tab.id === "categories" ? tx("Give your products categories first.") : tx("Nothing to add yet.")}</p>
                       )}
                       <div className="flex items-center justify-between gap-2">
-                        <button type="button" onClick={() => setTicked(ticked.length === options.length ? [] : options.map((option) => option.key))} className="text-[12px] font-semibold text-app-ink-soft underline-offset-2 hover:underline" disabled={!options.length}>
-                          {ticked.length && ticked.length === options.length ? tx("Clear") : tx("Select all")}
+                        <button type="button" onClick={() => setTicked(ticked.length === addable.length ? [] : addable.map((option) => option.key))} className="text-[12px] font-semibold text-app-ink-soft underline-offset-2 hover:underline" disabled={!addable.length}>
+                          {ticked.length && ticked.length === addable.length ? tx("Clear") : tx("Select all")}
                         </button>
                         <button type="button" disabled={!ticked.length || full} onClick={addTicked} className="rounded-full bg-app-ink px-4 py-2 text-[12.5px] font-semibold text-white disabled:opacity-50">{tx("Add to menu")}</button>
                       </div>

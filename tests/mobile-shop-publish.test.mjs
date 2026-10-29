@@ -45,24 +45,18 @@ test("onboarding asks where the seller sells, before payments", () => {
   assert.match(where, /canonicalState\(loaded\?\.settings\.originState/, "starts on the shop's own state");
   assert.match(where, /getForegroundPermissionsAsync/, "or the phone's, when location is already allowed");
   assert.doesNotMatch(where, /disabled=\{/, "Continue is never disabled");
-  assert.match(read("src/app/api/mobile/delivery/route.ts"), /sellAreaLimit\(user\.id\)/);
+  assert.doesNotMatch(where, /sellLimit|allowedSellChoice/, "every plan can sell anywhere");
 });
 
-test("a choice the plan doesn't include is swapped for an allowed one, never refused", () => {
-  // Free sells in one state: All of Nigeria keeps the home state, with the calm line.
-  assert.deepEqual(onboarding.allowedSellChoice({ area: "nationwide", states: [] }, 1, "Oyo"), { area: "one_state", states: ["Oyo"], note: "nationwide" });
-  // Starter's five states: a sixth is dropped.
-  const six = ["Lagos", "Ogun", "Oyo", "Osun", "Ondo", "Ekiti"];
-  assert.deepEqual(onboarding.allowedSellChoice({ area: "selected", states: six }, 5, "Lagos"), { area: "selected", states: six.slice(0, 5), note: "states" });
-  // Growth sells everywhere.
-  assert.deepEqual(onboarding.allowedSellChoice({ area: "nationwide", states: ["Lagos"] }, null, "Lagos"), { area: "nationwide", states: [], note: null });
-  // Continue always has something to save.
+test("where a shop sells is the seller's choice on every plan, and Continue always has something to save", () => {
+  assert.equal(onboarding.allowedSellChoice, undefined, "no plan limit on where a shop sells");
+  assert.deepEqual(onboarding.sellChoiceToSave({ area: "nationwide", states: ["Lagos"] }, "Lagos"), { area: "nationwide", states: [] });
   assert.deepEqual(onboarding.sellChoiceToSave({ area: "one_state", states: [] }, null), { area: "one_state", states: ["Lagos"] });
   assert.deepEqual(onboarding.sellChoiceToSave({ area: "one_state", states: [] }, "Kano"), { area: "one_state", states: ["Kano"] });
 });
 
-test("payments starts with delivery fees inside the plan, and its button never blocks", () => {
-  // One state: one zone, never the "everywhere else" catch-all that only Growth includes.
+test("payments starts with delivery fees for where the shop sells, and its button never blocks", () => {
+  // One state: one zone, no "everywhere else" catch-all.
   const one = onboarding.zonesForSellChoice({ area: "one_state", states: ["Oyo"] }, "Oyo");
   assert.deepEqual(one.map((zone) => zone.regions), [["Oyo"]]);
   const some = onboarding.zonesForSellChoice({ area: "selected", states: ["Lagos", "Ogun", "Oyo"] }, "Lagos");
@@ -71,14 +65,13 @@ test("payments starts with delivery fees inside the plan, and its button never b
   const all = onboarding.zonesForSellChoice({ area: "nationwide", states: [] }, "Lagos");
   assert.deepEqual(all.at(-1).regions, [], "only selling everywhere adds the catch-all, last");
   const payments = app("app/onboarding/payments.tsx");
-  assert.doesNotMatch(payments, /DEFAULT_DELIVERY_ZONES/, "the Lagos default zones (a catch-all) made Free and Starter sellers hit the plan wall");
+  assert.doesNotMatch(payments, /DEFAULT_DELIVERY_ZONES/, "fees follow the seller's own answer, not Lagos defaults");
   assert.match(payments, /zonesForSellChoice\(/);
   assert.match(payments, /router\.replace\(\{ pathname: "\/onboarding\/live"/, "always moves on, with the reason if it couldn't go live");
-  // The server keeps the payment choices and leaves the zones as they were instead of refusing the step.
+  // The server saves the delivery fees as chosen: no plan limit on where a shop sells.
   const route = read("src/app/api/app/onboarding/payments/route.ts");
-  assert.doesNotMatch(route, /apiError\("PLAN_LIMIT", planProblem/);
-  assert.match(route, /zonesNote: planProblem/);
-  assert.match(route, /\(planProblem \? \[\] : ordered\)/);
+  assert.doesNotMatch(route, /sellingStatesProblem|planProblem/);
+  assert.match(route, /\.\.\.ordered\.map\(/);
   // The live screen offers Publish when the shop isn't live.
   const live = app("app/onboarding/live.tsx");
   assert.match(live, /<PublishButton/);
