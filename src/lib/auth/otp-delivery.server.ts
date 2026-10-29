@@ -10,9 +10,7 @@ import {
   readWhatsAppSend,
   reportedChannel,
   metaWhatsAppRequest,
-  sendchampWhatsAppRequest,
   signInCodeSms,
-  termiiWhatsAppRequest,
   whatsappCodeConfig,
   type CodeChannel,
   type WhatsAppCodeConfig,
@@ -84,15 +82,10 @@ export async function channelUsedFor(phone: string): Promise<CodeChannel> {
   return reportedChannel(note?.used);
 }
 
-async function sendWhatsAppCode(config: WhatsAppCodeConfig, phone: string, otp: string, message?: string) {
-  const request =
-    config.provider === "termii"
-      ? termiiWhatsAppRequest(config, phone, otp, message)
-      : config.provider === "sendchamp"
-        ? sendchampWhatsAppRequest(config, phone, otp)
-        : metaWhatsAppRequest(config, phone, otp);
-  const headers: Record<string, string> = { "Content-Type": "application/json", Accept: "application/json" };
-  if (config.provider !== "termii") headers.Authorization = `Bearer ${config.apiKey}`;
+async function sendWhatsAppCode(config: WhatsAppCodeConfig, phone: string, otp: string) {
+  // WhatsApp Cloud sends the approved authentication template, which carries only the code.
+  const request = metaWhatsAppRequest(config, phone, otp);
+  const headers: Record<string, string> = { "Content-Type": "application/json", Accept: "application/json", Authorization: `Bearer ${config.apiKey}` };
   const res = await fetch(request.url, { method: "POST", headers, body: JSON.stringify(request.body), signal: AbortSignal.timeout(15_000) }).catch((error: Error) => error);
   if (res instanceof Error) return { ok: false as const, error: res.message || "network error" };
   const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
@@ -133,8 +126,8 @@ export async function deliverSignInCode(phone: string, otp: string, env: Record<
 
 /**
  * Other one-time codes (the checkout phone check, src/lib/commerce/phone-verify.server.ts): WhatsApp first when
- * WhatsApp codes are set up and SMS isn't asked for, then platform SMS, both with the caller's message (WhatsApp
- * templates on Sendchamp and Meta carry only the code). No channel note: there is no Supabase hook in between.
+ * WhatsApp codes are set up and SMS isn't asked for, then platform SMS with the caller's message (the WhatsApp
+ * Cloud template carries only the code). No channel note: there is no Supabase hook in between.
  */
 export async function deliverCode(
   input: { phone: string; otp: string; message: string; via?: CodeChannel },
@@ -144,7 +137,7 @@ export async function deliverCode(
   const errors: string[] = [];
   for (const channel of deliveryPlan(input.via === "sms" ? "sms" : "whatsapp", Boolean(whatsapp))) {
     if (channel === "whatsapp" && whatsapp) {
-      const sent = await sendWhatsAppCode(whatsapp, input.phone, input.otp, input.message);
+      const sent = await sendWhatsAppCode(whatsapp, input.phone, input.otp);
       if (sent.ok) return { ok: true, channel: "whatsapp" };
       errors.push(`whatsapp (${whatsapp.provider}): ${sent.error}`);
       console.warn("[otp] WhatsApp code failed, falling back to SMS", sent.error);

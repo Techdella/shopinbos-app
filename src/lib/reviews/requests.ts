@@ -3,7 +3,7 @@ import { db } from "@/lib/db/client";
 import { appBase, storeSender, SENDER_STORE_SELECT } from "@/lib/email/compliance.server";
 import { reviewRequestEmail } from "@/lib/email/store-emails";
 import { formatFromAddress, isEmailConfigured, sendEmail } from "@/lib/notifications/resend";
-import { sendSms, sendWhatsAppMessage } from "@/lib/notifications/service";
+import { platformWhatsAppReady, sendSms, sendWhatsAppMessage } from "@/lib/notifications/service";
 import { toE164 } from "@shared/phone";
 import { getChannel } from "@/lib/inbox/service";
 import { sendSmsReply } from "@/lib/inbox/channels/sms";
@@ -15,7 +15,7 @@ import { getReviewSettings, reviewUrls } from "./server";
 
 // Asking buyers for reviews. Each request gets a signed link to /s/[slug]/review/<token> where the buyer
 // reviews every item in the order. Email goes through Resend; SMS through the platform's SMS account
-// (SMS_PROVIDER: Termii / Africa's Talking / Sendchamp, with failover) and WhatsApp through SendChamp. "link" sends nothing: the seller gets a wa.me link to send the
+// (SMS_PROVIDER: Termii / Africa's Talking / Sendchamp, with failover) and WhatsApp through WhatsApp Cloud (our own number). "link" sends nothing: the seller gets a wa.me link to send the
 // message from their own WhatsApp. Used by the Reviews screen, Peggy, the reviews cron and marketing
 // automations (agent A's post-purchase flow can call requestReviews with trigger "automation").
 // When the store connected its own WhatsApp Cloud API number or SMS account in the inbox (agent E), requests
@@ -42,8 +42,8 @@ export function channelReadiness() {
   return {
     email: isEmailConfigured(),
     sms,
-    // The platform WhatsApp send goes through SendChamp only (Africa's Talking has no WhatsApp text here).
-    whatsapp: Boolean(process.env.SENDCHAMP_API_KEY),
+    // The platform WhatsApp send goes through WhatsApp Cloud (our own number) only.
+    whatsapp: platformWhatsAppReady(),
     link: true,
     links: Boolean(reviewLinkSecret()),
   };

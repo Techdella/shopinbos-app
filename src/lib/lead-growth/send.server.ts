@@ -2,7 +2,6 @@ import "server-only";
 
 import { appBase, platformLegal } from "@/lib/email/compliance.server";
 import { html, listUnsubscribeHeaders, platformEmail } from "@/lib/email/shell";
-import { sendWhatsAppMessage, sendWhatsAppTemplate } from "@/lib/notifications/service";
 import { sendEmail, type BatchEmail } from "@/lib/notifications/resend";
 import { sendPlatformSms } from "@/lib/sms";
 import {
@@ -96,11 +95,8 @@ export async function sendToLead(lead: LeadForMessage, content: LeadMessageConte
         : await sendMetaText(meta, { to, text: leadText(lead, content, context) });
       return sent.ok ? { status: "sent", to, providerId: sent.id } : { status: "failed", to, error: sent.error };
     }
-    // Templates get the first name as their first variable ({{1}}).
-    const result = content.waTemplate
-      ? await sendWhatsAppTemplate({ to: [to], templateName: content.waTemplate, language: content.waLanguage ?? "en", parameters: { "1": firstName(lead.name) || "there", first_name: firstName(lead.name) || "there" } })
-      : await sendWhatsAppMessage({ to: [to], message: leadText(lead, content, context) });
-    return result.success ? { status: "sent", to } : { status: "failed", to, error: result.message || "WhatsApp refused" };
+    // WhatsApp only goes through WhatsApp Cloud.
+    return { status: "failed", to, error: "WhatsApp Cloud isn't connected" };
   } catch (error) {
     return { status: "failed", to, error: error instanceof Error ? error.message : String(error) };
   }

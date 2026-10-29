@@ -1,6 +1,7 @@
 import "server-only";
 
 import { platformSmsProviders, sendPlatformSms } from "@/lib/sms";
+import { metaWhatsAppConfig, sendMetaTemplate, sendMetaText } from "@/lib/lead-growth/whatsapp-meta.server";
 import { createProvider } from "./factory";
 import type { NotificationProvider } from "./provider";
 import type {
@@ -47,9 +48,9 @@ function getEnvConfig(): {
   return null;
 }
 
-/** True when a WhatsApp-capable provider (Africa's Talking or Sendchamp) is set up for platform messages. */
+/** True when our own WhatsApp number is connected (WhatsApp Cloud API). WhatsApp goes nowhere else. */
 export function platformWhatsAppReady() {
-  return getEnvConfig() !== null;
+  return metaWhatsAppConfig() !== null;
 }
 
 function getProviderInstance(): NotificationProvider | null {
@@ -81,26 +82,35 @@ export async function sendVoice(options: VoiceOptions): Promise<SendResult> {
   return provider.sendVoice(options);
 }
 
+const NOT_CONNECTED = "WhatsApp Cloud isn't connected (WHATSAPP_LEADS_* or WHATSAPP_OTP_* keys)";
+
+/**
+ * Platform WhatsApp, always through WhatsApp Cloud (our own number on Meta's Cloud API), never Sendchamp or Africa's
+ * Talking. Free text only reaches people who messaged the number in the last 24 hours; use a template otherwise.
+ */
 export async function sendWhatsAppMessage(options: WhatsAppTextOptions): Promise<SendResult> {
-  const provider = getProviderInstance();
-  if (!provider) {
-    return { success: false, provider: "sendchamp", message: "No provider configured" };
-  }
-  if (!provider.sendWhatsAppText) {
-    return { success: false, provider: provider.name as ProviderName, message: "WhatsApp not supported by this provider" };
-  }
-  return provider.sendWhatsAppText(options);
+  const config = metaWhatsAppConfig();
+  if (!config) return { success: false, provider: "meta", message: NOT_CONNECTED };
+  const results = await Promise.all(options.to.map((to) => sendMetaText(config, { to, text: options.message })));
+  const failed = results.find((result) => !result.ok);
+  return failed && !failed.ok
+    ? { success: false, provider: "meta", message: failed.error, providerResponse: results }
+    : { success: true, provider: "meta", message: "WhatsApp message sent", providerResponse: results };
 }
 
+/** An approved template on WhatsApp Cloud. Numbered parameters ("1", "2", …) fill {{1}}, {{2}}, … in order. */
 export async function sendWhatsAppTemplate(options: WhatsAppTemplateOptions): Promise<SendResult> {
-  const provider = getProviderInstance();
-  if (!provider) {
-    return { success: false, provider: "sendchamp", message: "No provider configured" };
-  }
-  if (!provider.sendWhatsAppTemplate) {
-    return { success: false, provider: provider.name as ProviderName, message: "WhatsApp templates not supported by this provider" };
-  }
-  return provider.sendWhatsAppTemplate(options);
+  const config = metaWhatsAppConfig();
+  if (!config) return { success: false, provider: "meta", message: NOT_CONNECTED };
+  const params = Object.keys(options.parameters)
+    .filter((key) => /^\d+$/.test(key))
+    .sort((a, b) => Number(a) - Number(b))
+    .map((key) => options.parameters[key]);
+  const results = await Promise.all(options.to.map((to) => sendMetaTemplate(config, { to, template: options.templateName, language: options.language ?? "en", params })));
+  const failed = results.find((result) => !result.ok);
+  return failed && !failed.ok
+    ? { success: false, provider: "meta", message: failed.error, providerResponse: results }
+    : { success: true, provider: "meta", message: "WhatsApp template sent", providerResponse: results };
 }
 
 export async function sendOtp(options: OtpOptions): Promise<OtpResult> {
