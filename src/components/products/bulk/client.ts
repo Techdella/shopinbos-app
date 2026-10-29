@@ -66,6 +66,13 @@ export const bulkApi = {
   reply: (id: string, text: string) => call<{ usedAi: boolean; session: BulkSession | null }>(`/${id}/reply`, { method: "POST", json: { text } }),
   items: (id: string, body: unknown) => call<BulkSession | null>(`/${id}/items`, { method: "PATCH", json: body }),
   publish: (id: string, live: boolean, ids?: string[]) => call<PublishResult>(`/${id}/publish`, { method: "POST", json: { live, ...(ids ? { ids } : {}) } }),
+  /** One WhatsApp catalogue screenshot → its products, named and priced. Sent as taken: shrinking blurs the prices. */
+  catalogue: (id: string, file: File, clientKey: string) => {
+    const form = new FormData();
+    form.append("file", file, file.name || "catalogue.png");
+    form.append("clientKey", clientKey);
+    return call<{ added: number; full: boolean; session: BulkSession | null }>(`/${id}/catalogue`, { method: "POST", body: form });
+  },
 };
 
 // ─── Photos ───────────────────────────────────────────────────────────────────
