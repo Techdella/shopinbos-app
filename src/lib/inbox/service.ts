@@ -207,7 +207,7 @@ export interface ReplyInput {
   firstEmail?: boolean;
 }
 
-async function deliver(store: StoreRef, conversation: { id: string; channel: string; externalThreadId: string; contactEmail: string | null; contactPhone: string | null; subject: string | null; visitorSeenAt: Date | null; lastInboundAt: Date | null }, body: string, sellerEmail: string | null, interactive?: WhatsAppInteractive | null, firstEmail = false): Promise<SendResult & { via?: string }> {
+async function deliver(store: StoreRef, conversation: { id: string; channel: string; externalThreadId: string; contactEmail: string | null; contactPhone: string | null; subject: string | null; visitorSeenAt: Date | null; lastInboundAt: Date | null }, body: string, interactive?: WhatsAppInteractive | null, firstEmail = false): Promise<SendResult & { via?: string }> {
   const channel = conversation.channel as InboxChannelKey;
   const base = { body, store: { id: store.id, name: store.name, slug: store.slug } };
 
@@ -215,8 +215,9 @@ async function deliver(store: StoreRef, conversation: { id: string; channel: str
     // The widget polls for replies. If the shopper has left the page, also email the reply when we can.
     const away = !conversation.visitorSeenAt || Date.now() - conversation.visitorSeenAt.getTime() > LIVECHAT_EMAIL_AFTER_MS;
     if (away && conversation.contactEmail) {
-      const emailed = await sendInboxEmail({ ...base, to: conversation.contactEmail, subject: `Your chat with ${store.name}`, credentials: {}, replyTo: sellerEmail, conversationId: conversation.id });
-      return emailed.ok ? { ok: true, externalId: emailed.externalId, via: "livechat+email" } : { ok: true, externalId: null, via: "livechat" };
+      const emailed = await sendInboxEmail({ ...base, to: conversation.contactEmail, subject: `Your chat with ${store.name}`, credentials: {}, conversationId: conversation.id });
+      // No email set up: the reply still shows in the chat widget; the note tells the seller why it wasn't emailed.
+      return emailed.ok ? { ok: true, externalId: emailed.externalId, via: "livechat+email" } : { ok: true, externalId: null, via: "livechat", meta: { emailError: emailed.error } };
     }
     return { ok: true, externalId: null, via: "livechat" };
   }
@@ -224,7 +225,7 @@ async function deliver(store: StoreRef, conversation: { id: string; channel: str
   if (channel === "email" || channel === "form") {
     if (conversation.contactEmail) {
       const subject = conversation.subject ?? (channel === "form" ? `Your message to ${store.name}` : null);
-      return { ...(await sendInboxEmail({ ...base, to: conversation.contactEmail, subject, credentials: {}, replyTo: sellerEmail, exactSubject: firstEmail, conversationId: conversation.id })), via: "email" };
+      return { ...(await sendInboxEmail({ ...base, to: conversation.contactEmail, subject, credentials: {}, exactSubject: firstEmail, conversationId: conversation.id })), via: "email" };
     }
     if (channel === "form" && conversation.contactPhone) {
       const sms = await getChannel(store.id, "sms");
@@ -267,7 +268,7 @@ async function deliver(store: StoreRef, conversation: { id: string; channel: str
 
 /** Sends a reply on the conversation's own channel and records it (sent or failed, never pretend). */
 export async function sendReply(input: ReplyInput) {
-  return sendRecorded(input, ({ store, conversation, body, sellerEmail }) => deliver(store, conversation, body, sellerEmail, input.interactive, input.firstEmail));
+  return sendRecorded(input, ({ store, conversation, body }) => deliver(store, conversation, body, input.interactive, input.firstEmail));
 }
 
 type RecordedConversation = NonNullable<Awaited<ReturnType<typeof db.inboxConversation.findFirst>>>;
