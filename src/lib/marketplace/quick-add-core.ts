@@ -8,7 +8,7 @@
 //   gone / hidden supplier       → NOT_AVAILABLE
 //   out of stock                 → OUT_OF_STOCK (a listing taking preorders still adds)
 //   wholesale, unverified        → NOT_VERIFIED (buy stock only from verified suppliers)
-//   dropship, no agreement yet   → the agreement's own code (AGREEMENT_NEEDED, AGREEMENT_WAITING, TOO_FAR …)
+//   dropship, no agreement yet   → the agreement's own code (AGREEMENT_NEEDED, AGREEMENT_WAITING …; TOO_FAR is no longer sent)
 //   price below the supplier's lowest or at a loss, even raised a few steps → PRICE_PROBLEM
 //   over the plan's products (or dropship products) → PLAN_LIMIT, for this one and every later one
 // The price: the supplier's suggested retail price, else cost + the seller's markup, rounded to a nice price and

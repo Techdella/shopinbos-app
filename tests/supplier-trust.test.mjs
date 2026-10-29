@@ -1,4 +1,4 @@
-// Dropship safety: sellers only see suppliers near them for now, every supplier shows its verification and a risk
+// Dropship safety: suppliers near the seller show first (far ones marked), every supplier shows its verification and a risk
 // score with the reasons, and listing a supplier's products needs the call, the stock check and both sides'
 // Dropship agreement, on every way of adding a product.
 import test from "node:test";

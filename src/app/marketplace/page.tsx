@@ -63,7 +63,7 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
 
   const [rows, inStore, imports, state, packs] = await Promise.all([
     safeQuery(() => db.supplierProduct.findMany({
-      // Verified or not (sellers see which, and the risk score), near the seller only: src/lib/marketplace/agreements.server.ts.
+      // Verified or not (sellers see which, and the risk score), near the seller first: src/lib/marketplace/agreements.server.ts.
       where: { status: "published", supplier: { ...VISIBLE_SUPPLIER, country: { equals: country, mode: "insensitive" } } },
       include: {
         supplier: { select: { id: true, userId: true, slug: true, displayName: true, city: true, address: true, rating: true, ratingCount: true, verificationStatus: true } },

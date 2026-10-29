@@ -238,7 +238,7 @@ export default async function MarketplaceSuppliersPage({ searchParams }: PagePro
                         </div>
                       ) : null}
                       <div className="mt-auto grid gap-2 pt-1">
-                        <PillLink href={far ? `/suppliers/${s.slug}` : `/marketplace?supplier=${s.slug}`} size="sm" tone="ink" className="min-h-[42px] w-full whitespace-nowrap">
+                        <PillLink href={`/marketplace?supplier=${s.slug}`} size="sm" tone="ink" className="min-h-[42px] w-full whitespace-nowrap">
                           {t("sup.theirProducts")}{s._count.products > 0 ? ` · ${s._count.products}` : ""}
                         </PillLink>
                         <div className="grid grid-cols-2 gap-2">
