@@ -47,7 +47,7 @@ import { accountByContact } from "./people.server";
 
 /** The agent id Peggy's own auto-replies use (not a user). */
 export const PEGGY_ID = "peggy";
-import { isStopMessage, renderTeamTemplate, teamTemplateProblem, whatsappPhone, whatsappWindowOpen } from "./whatsapp-pure";
+import { isStopMessage, metaRefusedDelivery, renderTeamTemplate, smsFallbackText, teamTemplateProblem, whatsappPhone, whatsappWindowOpen } from "./whatsapp-pure";
 
 // Live support: tickets, threads, notifications and the admin desk's queries. Everything degrades when
 // docs/migrations/2026-10-12-support.sql hasn't run yet (supportReady() is false): see each caller.
@@ -1288,5 +1288,44 @@ export async function updateSupportDelivery(externalId: string, status: string, 
   if (!message) return;
   const rank = { sent: 1, delivered: 2, read: 3, failed: 4 } as Record<string, number>;
   if ((rank[message.deliveryStatus ?? ""] ?? 0) >= rank[status]! && status !== "failed") return;
+  // Only the first "failed" report sends the SMS copy (Meta can report a failure more than once).
+  const firstFailure = status === "failed" && message.deliveryStatus !== "failed";
   await db.supportMessage.update({ where: { id: message.id }, data: { deliveryStatus: status, deliveryError: status === "failed" ? (error || "WhatsApp couldn't deliver it.").slice(0, 300) : null } });
+  if (firstFailure && metaRefusedDelivery(error)) {
+    await sendSupportMessageBySms(message.id).catch((failure) => console.error("[support] SMS fallback failed", failure));
+  }
+}
+
+/**
+ * A team WhatsApp message that didn't arrive, sent again by SMS to the same person (automatically when Meta refuses
+ * it, or with "Send by SMS" in the inbox). Recorded in the thread as an SMS reply; never sent twice.
+ */
+export async function sendSupportMessageBySms(messageId: string, agent?: Viewer | null, ticketId?: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const message = await db.supportMessage.findUnique({
+    where: { id: messageId },
+    select: { id: true, body: true, authorType: true, authorId: true, authorName: true, channel: true, internal: true, createdAt: true, ticket: { select: { id: true, userId: true, phone: true } } },
+  });
+  if (!message || (ticketId && message.ticket.id !== ticketId) || message.internal || message.authorType === "user" || message.channel !== "whatsapp") return { ok: false, error: "Only a team WhatsApp message can go by SMS." };
+  const text = smsFallbackText(message.body);
+  if (!text) return { ok: false, error: "There's nothing to send." };
+  const copy = await db.supportMessage.findFirst({ where: { ticketId: message.ticket.id, channel: "sms", body: text, createdAt: { gte: message.createdAt } }, select: { id: true } });
+  if (copy) return { ok: false, error: "Already sent by SMS." };
+  const account = message.ticket.userId ? await db.user.findUnique({ where: { id: message.ticket.userId }, select: { phone: true } }).catch(() => null) : null;
+  const phone = message.ticket.phone ?? account?.phone ?? null;
+  if (!phone) return { ok: false, error: "There's no phone number for this person." };
+  const sent = await sendSms({ to: [phone], message: text }).catch((error: Error) => ({ success: false, message: error.message }));
+  await db.supportMessage.create({
+    data: {
+      ticketId: message.ticket.id,
+      authorType: "agent",
+      authorId: agent?.id ?? message.authorId,
+      authorName: agent?.name ?? message.authorName,
+      body: text,
+      channel: "sms",
+      deliveryStatus: sent.success ? "sent" : "failed",
+      deliveryError: sent.success ? null : (sent.message || "The SMS didn't go.").slice(0, 300),
+    },
+  });
+  await db.supportTicket.update({ where: { id: message.ticket.id }, data: { lastMessageAt: new Date(), lastAgentMessageAt: new Date() } }).catch(() => null);
+  return sent.success ? { ok: true } : { ok: false, error: sent.message || "The SMS didn't go." };
 }
