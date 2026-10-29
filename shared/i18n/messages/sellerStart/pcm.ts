@@ -47,6 +47,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
 
   "product.title": "Add your first product.",
   "product.snap": "Open camera",
+  "product.whatsappLater": "You get WhatsApp catalogue? When you don set up, add everything one time from screenshots: Products › Add plenty with Peggy › From my WhatsApp catalogue.",
   "product.gallery": "Choose from gallery",
   "product.uploading": "Your photo dey upload…",
   "product.photoReady": "Fine photo. Next na the name and price.",
