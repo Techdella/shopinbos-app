@@ -10,13 +10,14 @@ import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
-// A chat with one supplier or delivery partner (?name= is shown while the messages load).
+// A chat with one supplier or delivery partner (?name= is shown while the messages load; ?draft= starts the reply box
+// with a message to check and send, e.g. "Ask for a price" on a supplier's page).
 
 export default function PartnerChat() {
   const t = useT("m_chats", "m_ui");
-  const { id, name } = useLocalSearchParams<{ id: string; name?: string }>();
+  const { id, name, draft: startDraft } = useLocalSearchParams<{ id: string; name?: string; draft?: string }>();
   const messages = useLoad(() => fetchPartnerMessages(String(id)), String(id));
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft] = useState(typeof startDraft === "string" ? startDraft.slice(0, 1000) : "");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const title = name || t("partners.partner");

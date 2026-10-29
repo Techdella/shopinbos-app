@@ -324,8 +324,6 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "plans.f.seller.themes_all_seasonal": "Gbogbo theme + campaign àsìkò",
   "plans.f.seller.staff": "{count, plural, one {Account òṣìṣẹ́ #} other {Account òṣìṣẹ́ #}}",
   "plans.f.seller.credits": "{count, plural, one {AI credit # lóṣù} other {AI credits # lóṣù}}",
-  "plans.f.seller.states": "{count, plural, one {Tà ní ìpínlẹ̀ #} other {Tà ní ìpínlẹ̀ tó #}}",
-  "plans.f.seller.statesNationwide": "Tà káàkiri orílẹ̀-èdè",
   "plans.f.seller.partners": "{count, plural, one {Delivery partner # tí a so pọ̀} other {Delivery partner # tí a so pọ̀}}",
   "plans.f.seller.partnersUnlimited": "Delivery partner láìní òpin",
   "plans.f.seller.privateRates": "Rate card delivery àdáni (tí ẹ jọ dúnàádúrà)",

@@ -87,6 +87,8 @@ export interface FindProduct {
   images: string[];
   supplier: {
     id: string;
+    /** For the supplier's page (app/suppliers/[slug]). */
+    slug: string;
     name: string;
     city: string;
     rating: number | null;
@@ -143,6 +145,7 @@ function toFindProduct(row: RawProduct): FindProduct {
     images: (row.images ?? []).filter(Boolean),
     supplier: {
       id: row.supplier.id,
+      slug: row.supplier.slug,
       name: row.supplier.displayName,
       city: row.supplier.city,
       rating: rated ? row.supplier.rating : null,
@@ -181,9 +184,11 @@ function toFindProduct(row: RawProduct): FindProduct {
  * Up to 100 products, suppliers near the seller first (verified or not), most trending first. `hasPlace` false: the
  * store has no city yet, so every product shows without distances (the screen suggests adding one).
  */
-export async function fetchFindProducts(q?: string) {
+export async function fetchFindProducts(q?: string, options: { supplier?: string } = {}) {
   const params = new URLSearchParams();
   if (q?.trim()) params.set("q", q.trim().slice(0, 120));
+  // One supplier's products (their page: app/suppliers/[slug]), near or far.
+  if (options.supplier) params.set("supplier", options.supplier);
   const result = await api<{ hasPlace: boolean; city: string | null; state?: string | null; customers?: CustomerPlacesView | null; products: RawProduct[] }>(`/api/mobile/marketplace/products${params.toString() ? `?${params.toString()}` : ""}`);
   return { hasPlace: result.hasPlace, city: result.city, state: result.state ?? null, customers: result.customers ?? null, products: result.products.map(toFindProduct) };
 }

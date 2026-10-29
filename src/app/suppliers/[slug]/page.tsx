@@ -14,6 +14,8 @@ import { formatMoney, type Locale } from "@shared/i18n";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { PoweredByPill, PoweredByShopinbos } from "@/components/referrals/PoweredByShopinbos";
 import { referralCodeFor } from "@/lib/referrals/service.server";
+import { AskPriceButton } from "@/components/suppliers/AskPriceButton";
+import { cleanLink, linkLabel, supplierShowcase } from "@shared/supplier-showcase";
 
 // Public supplier page: sellers open it from the supplier marketplace (same look as the delivery partner page), and the
 // supplier shares it anywhere (with ?ref=CODE, from "Share your profile"). Guests and the supplier see the "Powered by
@@ -91,7 +93,15 @@ export default async function PublicSupplierProfilePage({ params }: PageProps) {
 
   const isVerified = supplier.verificationStatus === "verified";
   const initials = supplier.displayName.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase();
-  const quoteHref = `/login?intent=request_quote&supplierSlug=${supplier.slug}`;
+  // Sellers ask in a chat (the modal); guests sign in and come back with it open. Other roles can't ask.
+  const canAsk = isVerified && !isOwner && (!viewer || isSeller);
+  const loginHref = `/login?next=${encodeURIComponent(`/suppliers/${supplier.slug}?ask=price`)}`;
+  const askProducts = supplier.products.map((product) => ({ id: product.id, name: product.name, moq: product.moq }));
+  const ask = (props: { tone?: "accent" | "ink"; size?: "md" | "sm"; className?: string }) => (
+    <AskPriceButton supplierId={supplier.id} supplierName={supplier.displayName} products={askProducts} signedIn={isSeller} loginHref={loginHref} messagesHref={messagesHref("seller", { with: supplier.id })} label={props.size === "sm" ? t("pub.contact") : t("pub.quote")} {...props} />
+  );
+  const showcase = supplierShowcase(supplier.onboardingState);
+  const website = cleanLink(supplier.website);
 
   return (
     <div className="app-scope min-h-dvh w-full bg-app-canvas font-app text-app-ink">
@@ -102,7 +112,7 @@ export default async function PublicSupplierProfilePage({ params }: PageProps) {
         <nav className="flex items-center gap-2">
           {showBadge && <PoweredByPill />}
           {isSeller && <span className="hidden sm:block"><PillLink href="/marketplace/suppliers" size="sm">{t("pub.browse")}</PillLink></span>}
-          {isVerified && <PillLink href={quoteHref} size="sm" tone="ink">{t("pub.contact")}</PillLink>}
+          {canAsk && ask({ size: "sm", tone: "ink" })}
         </nav>
       </header>
 
@@ -149,8 +159,8 @@ export default async function PublicSupplierProfilePage({ params }: PageProps) {
             </div>
             {isVerified && (
               <div className="flex w-full flex-wrap gap-2 sm:w-auto">
-                <PillLink href={quoteHref} tone="accent" icon="send" className="flex-1 sm:flex-none">{t("pub.quote")}</PillLink>
-                <PillLink href={messagesHref("seller", { with: supplier.id })} icon="chat" className="flex-1 sm:flex-none">{t("pub.message")}</PillLink>
+                {canAsk && ask({ className: "flex-1 sm:flex-none" })}
+                {(!viewer || isSeller) && !isOwner && <PillLink href={messagesHref("seller", { with: supplier.id })} icon="chat" className="flex-1 sm:flex-none">{t("pub.message")}</PillLink>}
                 {viewer?.role === "seller" ? <FollowSupplierButton supplierId={supplier.id} following={following} /> : null}
               </div>
             )}
@@ -189,10 +199,38 @@ export default async function PublicSupplierProfilePage({ params }: PageProps) {
             <div className="mt-2 divide-y divide-app-line">
               <KeyValue label={t("pub.location")}>{supplier.city}</KeyValue>
               <KeyValue label={t("pub.businessType")}>{supplier.businessType.replace(/_/g, " ")}</KeyValue>
+              {showcase.storeUrl && (
+                <KeyValue label={t("pub.store")}>
+                  <a href={showcase.storeUrl} target="_blank" rel="noopener noreferrer nofollow" className="break-all font-bold text-app-ink underline underline-offset-2">{linkLabel(showcase.storeUrl)}</a>
+                </KeyValue>
+              )}
+              {website && (
+                <KeyValue label={t("pub.website")}>
+                  <a href={website} target="_blank" rel="noopener noreferrer nofollow" className="break-all font-bold text-app-ink underline underline-offset-2">{linkLabel(website)}</a>
+                </KeyValue>
+              )}
               {!isVerified && <KeyValue label={t("pub.status")}>{supplier.verificationStatus}</KeyValue>}
             </div>
           </Card>
         </div>
+
+        {showcase.team.length > 0 && (
+          <Card className="mb-5 p-5">
+            <CardHead title={t("pub.team")} sub={t("pub.teamSub", { name: supplier.displayName })} />
+            <ul className="m-0 mt-4 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6">
+              {showcase.team.map((member) => (
+                <li key={member.id} className="grid justify-items-center gap-2 rounded-[18px] border border-app-line px-3 py-4 text-center">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={member.photoUrl} alt={member.name} className="h-20 w-20 rounded-full object-cover" />
+                  <div className="min-w-0 max-w-full">
+                    <p className="m-0 truncate text-[15px] font-extrabold">{member.name}</p>
+                    {member.role && <p className="m-0 truncate text-[13px] text-app-ink-soft">{member.role}</p>}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
 
         {isVerified && (
           <Card className="p-5">

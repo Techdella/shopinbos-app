@@ -324,8 +324,6 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "plans.f.seller.themes_all_seasonal": "All themes + seasonal campaigns",
   "plans.f.seller.staff": "{count, plural, one {# staff account} other {# staff accounts}}",
   "plans.f.seller.credits": "{count, plural, one {# AI credit every month} other {# AI credits every month}}",
-  "plans.f.seller.states": "{count, plural, one {Sell for # state} other {Sell for up to # states}}",
-  "plans.f.seller.statesNationwide": "Sell everywhere for Nigeria",
   "plans.f.seller.partners": "{count, plural, one {# delivery partner wey you connect} other {# delivery partners wey you connect}}",
   "plans.f.seller.partnersUnlimited": "Delivery partners no get limit",
   "plans.f.seller.privateRates": "Private (negotiated) delivery rate cards",

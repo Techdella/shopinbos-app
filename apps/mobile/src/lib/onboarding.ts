@@ -77,7 +77,7 @@ export async function createProducts(drafts: ProductDraft[]) {
 }
 
 export const savePayments = (methods: Record<PaymentMethodKey, boolean>, zones: DeliveryZone[]) =>
-  api<{ zonesNote?: string | null }>("/api/app/onboarding/payments", { method: "PUT", json: { methods, zones } });
+  api<{ zones: unknown[] }>("/api/app/onboarding/payments", { method: "PUT", json: { methods, zones } });
 
 export const fetchPayoutBank = () =>
   api<{ banks: string[]; current: { bankName: string | null; accountName: string | null; accountNumberMask: string | null } | null }>("/api/app/payout-bank");

@@ -1,5 +1,4 @@
 import { NextRequest } from "next/server";
-import { sellingStatesProblem } from "@/lib/plans/gates.server";
 import { withSeller } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
 import { ok, apiError, noContent } from "@/lib/api/response";
@@ -32,12 +31,6 @@ export const PATCH = withSeller(async (
   const parsed = ShippingZoneUpdateSchema.safeParse(body);
   if (!parsed.success) {
     return apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Invalid input");
-  }
-
-  const next = { regions: parsed.data.regions ?? zone.regions, active: parsed.data.active ?? zone.active };
-  if (next.active) {
-    const planProblem = await sellingStatesProblem(user.id, zone.storeId, [next], [zone.id]);
-    if (planProblem) return apiError("PLAN_LIMIT", planProblem, 402);
   }
 
   const updated = await db.shippingZone.update({

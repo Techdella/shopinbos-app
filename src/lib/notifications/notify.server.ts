@@ -15,10 +15,12 @@ import {
   burstFlushDue,
   burstSummary,
   categoryForType,
+  channelAllowedFor,
   collapseByKey,
   eventInfo,
   isQuietTime,
   planDelivery,
+  preferenceEventKey,
   quietSummary,
   resolvePreferences,
   routeHref,
@@ -63,6 +65,11 @@ export interface NotifyInput {
   urgent?: boolean;
   /** The caller already texted or WhatsApped them about this: don't again. */
   phoneHandled?: boolean;
+  /**
+   * WhatsApp it too, unless they set this category's WhatsApp switch themselves (it's off by default for most
+   * categories): for the few alerts that matter enough, like a shop waiting for a supplier's products.
+   */
+  whatsapp?: boolean;
   /** Skip every channel except the bell (e.g. the person is looking at the screen already). */
   inAppOnly?: boolean;
   /** The language the title and description are written in: the email's frame and button follow it. */
@@ -209,7 +216,9 @@ async function deliver(input: NotifyInput & { priority: NotifyPriority; type: No
 
   // Same rule as before notify(): payouts and critical alerts are transactional (no opt-out), the rest follow the switch.
   const emailKind = input.email ? (input.email === "transactional" || input.type === "payout" || input.priority === "critical" ? "transactional" : "notification") : null;
-  const plan = planDelivery({ category, urgent, prefs: resolvePreferences(rows, user.role), quiet: isQuietTime(now, quietHours), email: emailKind, phoneHandled: input.phoneHandled });
+  const prefs = resolvePreferences(rows, user.role);
+  if (input.whatsapp && !rows.some((row) => row.eventKey === preferenceEventKey(category))) prefs[category] = { ...prefs[category], whatsapp: channelAllowedFor(category, "whatsapp") };
+  const plan = planDelivery({ category, urgent, prefs, quiet: isQuietTime(now, quietHours), email: emailKind, phoneHandled: input.phoneHandled });
   const target = input.actionUrl || input.link || null;
 
   const jobs: Array<Promise<unknown>> = [];
@@ -274,9 +283,13 @@ export async function sendAlertWhatsApp(args: {
   if (config) {
     const business = args.user.role === "logistics_partner"
       ? (await db.logisticsPartner.findUnique({ where: { userId: args.input.userId }, select: { displayName: true } }).catch(() => null))?.displayName
-      : null;
+      : args.user.role === "supplier"
+        ? (await db.supplier.findUnique({ where: { userId: args.input.userId }, select: { displayName: true } }).catch(() => null))?.displayName
+        : args.user.role === "seller"
+          ? (await db.store.findUnique({ where: { userId: args.input.userId }, select: { name: true } }).catch(() => null))?.name
+          : null;
     const status = typeof args.input.metadata?.status === "string" ? args.input.metadata.status : null;
-    const { template, params } = notifyWhatsAppTemplate({
+    const fill = (general: boolean) => notifyWhatsAppTemplate({
       event: args.input.event ?? "",
       category: args.category,
       status,
@@ -284,11 +297,19 @@ export async function sendAlertWhatsApp(args: {
       description: args.input.description,
       url: args.url,
       name: args.user.name,
-      business: business ?? args.user.name,
+      business: business || args.user.name,
+      general,
     });
-    const sent = await sendMetaTemplate(config, { to: args.to, template: template.name, language: template.language, params });
+    const own = fill(false);
+    let sent = await sendMetaTemplate(config, { to: args.to, template: own.template.name, language: own.template.language, params: own.params });
+    // The alert's own template not approved by Meta yet: the general update template, which is.
+    const general = fill(true);
+    if (!sent.ok && general.template.name !== own.template.name) {
+      console.warn(`[notify] WhatsApp template ${own.template.name} not sent, trying ${general.template.name}:`, sent.error);
+      sent = await sendMetaTemplate(config, { to: args.to, template: general.template.name, language: general.template.language, params: general.params });
+    }
     if (sent.ok) return { success: true, provider: "meta" };
-    console.warn(`[notify] WhatsApp template ${template.name} not sent, trying plain text:`, sent.error);
+    console.warn(`[notify] WhatsApp template ${general.template.name} not sent, trying plain text:`, sent.error);
   }
   const result = await sendWhatsAppMessage({ to: [args.to], message: args.text });
   return { success: result.success, provider: result.provider, message: result.message };
