@@ -140,6 +140,7 @@ const en = {
   "product.added": "{name} added. You can add more later.",
   "product.needPhoto": "Take a photo of the product.",
   "product.needName": "Type what it's called.",
+  "product.whatsappLater": "Have a WhatsApp catalogue? Once you're set up, add it all at once from screenshots: Products › Add many with Peggy › From my WhatsApp catalogue.",
   "product.needPrice": "Type the price in naira.",
 
   "review.title": "You're in review",
