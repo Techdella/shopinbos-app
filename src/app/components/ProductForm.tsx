@@ -802,7 +802,7 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
               </Section>
 
               {canTrack ? (
-                <Section title="Preorder" sub="Sell it before the stock arrives. Customers order now and you ship from the date you set.">
+                <Section id="preorder" title="Preorder" sub="Sell it before the stock arrives. Customers order now and you ship from the date you set.">
                   <div className="flex items-start justify-between gap-4 rounded-[16px] bg-app-canvas p-4">
                     <span className="min-w-0">
                       <span className="block text-[14px] font-bold">Take preorders</span>
@@ -1090,9 +1090,9 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
   );
 }
 
-function Section({ title, sub, action, children }: { title: string; sub?: string; action?: React.ReactNode; children: React.ReactNode }) {
+function Section({ id, title, sub, action, children }: { id?: string; title: string; sub?: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="grid gap-4 rounded-[22px] border border-app-line bg-white p-5 sm:p-6">
+    <section id={id} className="grid scroll-mt-24 gap-4 rounded-[22px] border border-app-line bg-white p-5 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="m-0 text-[17px] font-extrabold">{title}</h2>
