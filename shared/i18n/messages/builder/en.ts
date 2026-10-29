@@ -2351,6 +2351,7 @@ const en = {
   "ed.Rises from the bottom, easy to reach": "Rises from the bottom, easy to reach",
   "ed.Rounded buttons, the current page filled": "Rounded buttons, the current page filled",
   "ed.Search products": "Search products",
+  "ed.In menu": "In menu",
   "ed.Select all": "Select all",
   "ed.Side drawer": "Side drawer",
   "ed.Slides in from the left": "Slides in from the left",

@@ -193,7 +193,7 @@ function cleanItem(raw: unknown, depth: number): MenuItem | null {
 /** The menu saved on the header, or one made from the older page list. */
 export function readMenu(copy: Record<string, unknown> | null | undefined, fallbackPages: string[] = ["home", "products", "about", "contact"]): MenuItem[] {
   if (Array.isArray(copy?.menu)) {
-    return (copy.menu as unknown[]).map((entry) => cleanItem(entry, 0)).filter((entry): entry is MenuItem => Boolean(entry)).slice(0, MAX_MENU_ITEMS);
+    return withoutRepeats((copy.menu as unknown[]).map((entry) => cleanItem(entry, 0)).filter((entry): entry is MenuItem => Boolean(entry))).slice(0, MAX_MENU_ITEMS);
   }
   const pages = Array.isArray(copy?.navLinks) ? (copy.navLinks as unknown[]).map(String) : fallbackPages;
   return pages
@@ -235,9 +235,44 @@ function withChildren(item: MenuItem, children: MenuItem[]): MenuItem {
   return next;
 }
 
-export function addMenuItems(menu: MenuItem[], items: Array<Omit<MenuItem, "id">>): MenuItem[] {
+/** What an item points at ("page:home", "category:audio", "link:https://…"): two items with the same target are one. */
+export function menuTarget(item: Pick<MenuItem, "kind" | "ref" | "url">) {
+  return `${item.kind}:${item.kind === "link" ? item.url ?? "" : item.ref ?? ""}`;
+}
+
+/** The targets already in a menu, sub-items included (pickers show them as added). */
+export function menuTargets(menu: MenuItem[]): Set<string> {
+  return new Set(menu.flatMap((item) => [item, ...(item.children ?? [])]).map(menuTarget));
+}
+
+/**
+ * Adds items to the end of the menu, skipping any that are already in it (anywhere) or repeated in `items`.
+ * `allowRepeats`: a placeholder the seller re-points straight away (Navigation's "Add item").
+ */
+export function addMenuItems(menu: MenuItem[], items: Array<Omit<MenuItem, "id">>, options: { allowRepeats?: boolean } = {}): MenuItem[] {
   const room = Math.max(0, MAX_MENU_ITEMS - countMenuItems(menu));
-  return [...menu, ...items.slice(0, room).map((item) => ({ ...item, id: newMenuItemId() }))];
+  const have = menuTargets(menu);
+  const fresh = options.allowRepeats ? items : items.filter((item) => {
+    const target = menuTarget(item);
+    if (have.has(target)) return false;
+    have.add(target);
+    return true;
+  });
+  return [...menu, ...fresh.slice(0, room).map((item) => ({ ...item, id: newMenuItemId() }))];
+}
+
+/**
+ * A saved menu without exact repeats: a second item with the same target and the same (or no) name, and no
+ * sub-items of its own, is dropped. Menus saved before addMenuItems skipped repeats read clean (and save clean).
+ */
+export function withoutRepeats(menu: MenuItem[]): MenuItem[] {
+  const seen = new Set<string>();
+  return menu.filter((item) => {
+    const key = `${menuTarget(item)}|${item.label.trim().toLowerCase()}`;
+    if (seen.has(key) && !item.children?.length) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 export function updateMenuItem(menu: MenuItem[], id: string, patch: Partial<Omit<MenuItem, "id" | "children">>): MenuItem[] {

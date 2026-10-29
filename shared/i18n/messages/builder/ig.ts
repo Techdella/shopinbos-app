@@ -2347,6 +2347,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "ed.Rises from the bottom, easy to reach": "Ọ na-esi n'ala bilie, ọ dị mfe iru",
   "ed.Rounded buttons, the current page filled": "Bọtịnụ gbara gburugburu, peeji ugbu a jupụtara",
   "ed.Search products": "Chọọ ngwaahịa",
+  "ed.In menu": "Nọ na menu",
   "ed.Select all": "Họrọ ha niile",
   "ed.Side drawer": "Drọwa n'akụkụ",
   "ed.Slides in from the left": "Ọ na-amị abata site n'aka ekpe",

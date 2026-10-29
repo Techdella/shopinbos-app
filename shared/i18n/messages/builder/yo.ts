@@ -2347,6 +2347,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "ed.Rises from the bottom, easy to reach": "Ó ń dìde láti ìsàlẹ̀, ó rọrùn láti dé",
   "ed.Rounded buttons, the current page filled": "Bọ́tìnnì roboto, ojú-ìwé tí o wà ní àwọ̀ kíkún",
   "ed.Search products": "Wá ọjà",
+  "ed.In menu": "Wà nínú àkójọ",
   "ed.Select all": "Yan gbogbo",
   "ed.Side drawer": "Àpótí ẹ̀gbẹ́",
   "ed.Slides in from the left": "Ó ń yọ̀ wọlé láti òsì",
