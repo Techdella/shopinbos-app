@@ -82,11 +82,17 @@ export function lookFromTheme(theme: LookTheme): { look: BrandLook; palette: Bra
   };
 }
 
+/**
+ * The ids older phone builds saved for these looks before they pointed at library themes. They match no theme, so
+ * stores set up with them got the blank starter; the server reads them as the theme each look stands for.
+ */
+export const LEGACY_LOOK_THEME_IDS: Readonly<Record<string, string>> = { heritage: "adire", market: "stride", glow: "ile" };
+
 /** The first look screens (still used by the older phone set-up screens); new sign-ups pick from the theme library. */
 export const BRAND_LOOKS: BrandLook[] = [
-  { key: "adire", label: "Adire", background: "#F3EDE6", ink: "#2A2018", fontCss: "'Fraunces', serif", fontStyle: "fraunces", templateId: "heritage" },
-  { key: "stride", label: "Stride", background: "#FFE9DD", ink: "#3A1A08", fontCss: "'Plus Jakarta Sans', sans-serif", fontStyle: "grotesk", templateId: "market" },
-  { key: "ile", label: "Ilé", background: "#E8EFEA", ink: "#15322A", fontCss: "'Fraunces', serif", fontStyle: "fraunces", templateId: "glow" },
+  { key: "adire", label: "Adire", background: "#F3EDE6", ink: "#2A2018", fontCss: "'Fraunces', serif", fontStyle: "fraunces", templateId: "adire" },
+  { key: "stride", label: "Stride", background: "#FFE9DD", ink: "#3A1A08", fontCss: "'Plus Jakarta Sans', sans-serif", fontStyle: "grotesk", templateId: "stride" },
+  { key: "ile", label: "Ilé", background: "#E8EFEA", ink: "#15322A", fontCss: "'Fraunces', serif", fontStyle: "fraunces", templateId: "ile" },
 ];
 
 export type ProductDoor = "snap" | "ig" | "file" | "sup";

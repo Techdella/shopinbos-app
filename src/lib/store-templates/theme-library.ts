@@ -709,6 +709,22 @@ export function pickThemeByRules(input: ThemePickInput): ThemePick {
   };
 }
 
+/** The theme a store starts on when nobody picked one (Rex building straight from a brief, stores moved off the old blank starter). */
+export const STARTER_FALLBACK_THEME_ID: ThemeLibraryId = "breeze";
+
+/**
+ * A free theme that fits what the shop sells: the rules' pick when it is a basic theme, else a basic theme for the
+ * same kind of shop. When nothing tells us what they sell, `fallback` (Afẹ́fẹ́ unless the caller knows better).
+ * Basic so it works on every plan without a purchase.
+ */
+export function starterThemeId(input: ThemePickInput, fallback: ThemeLibraryId = STARTER_FALLBACK_THEME_ID): ThemeLibraryId {
+  const pick = pickThemeByRules(input);
+  if (!pick.industry) return fallback;
+  if (themeTier(pick.themeId) === "basic") return pick.themeId;
+  const sameKind = pick.category ? THEME_LIBRARY.find((theme) => theme.tier === "basic" && theme.category === pick.category) : null;
+  return sameKind?.id ?? STARTER_FALLBACK_THEME_ID;
+}
+
 /** The gallery chip to open on for an onboarding category ("Hair and wigs" → beauty), or "all". */
 export function chipForStoreCategory(value: string | null | undefined): ThemeChipId {
   if (!value || !value.trim()) return "all";
@@ -850,4 +866,28 @@ export function switchThemeDraft(previous: StoreEditorSnapshot | null | undefine
 
   next.updatedAt = new Date().toISOString();
   return { snapshot: next, carriedSections, keptPages };
+}
+
+/** The old setup-flow starter layout (createBlankEditorSnapshot): not a library theme, and it looks empty. */
+export const BLANK_TEMPLATE_ID = "blank";
+
+export function isBlankStarter(snapshot: { templateId?: string | null } | null | undefined) {
+  return snapshot?.templateId === BLANK_TEMPLATE_ID;
+}
+
+/**
+ * The blank starter's hero tiles are colour-only placeholders. Drops them before a theme switch so the new theme
+ * keeps its own hero pictures; a tile with a real image or caption (Rex's hero image) still comes across.
+ */
+export function withoutBlankPlaceholders(snapshot: StoreEditorSnapshot): StoreEditorSnapshot {
+  const next = clone(snapshot);
+  for (const page of next.pages) {
+    for (const section of page.sections) {
+      if (section.kind !== "hero-split" || !Array.isArray(section.items)) continue;
+      const real = section.items.filter((item) => meaningful(item.imageUrl) || meaningful(item.title) || meaningful(item.subtitle));
+      if (real.length) section.items = real;
+      else delete section.items;
+    }
+  }
+  return next;
 }
