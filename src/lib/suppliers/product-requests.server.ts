@@ -7,8 +7,9 @@ import { setFollowing } from "./follow.server";
 // "Notify me when they add products" on a supplier's products page (web /marketplace/suppliers/<slug>, the phone
 // app's suppliers/[slug]). Asking follows the supplier (SupplierFollow, the same follow as on their public page), and
 // the supplier hears that a named shop is waiting: in the app, by email and on WhatsApp (unless they switched
-// WhatsApp off for orders). When one of their products goes live (the team approves it), every follower hears, at
-// most once a day per supplier. Sellers stop with "Stop notifying me" (unfollow).
+// WhatsApp off for orders). When one of their products goes live (the team approves it), every follower hears (in
+// the app, by email and on WhatsApp the same way), at most once a day per supplier. Their WhatsApp templates:
+// shopinbos_products_wanted and shopinbos_supplier_new_products (src/lib/notifications/whatsapp-templates.ts). Sellers stop with "Stop notifying me" (unfollow).
 
 export class ProductRequestError extends Error {
   constructor(message: string, readonly status = 400) {
@@ -91,6 +92,7 @@ export async function notifyFollowersOfNewProduct(productId: string) {
       imageUrl: product.images[0] ?? null,
       dedupeKey: `supplier.new_products:${product.supplier.id}:${follower.userId}:${day}`,
       email: true,
+      whatsapp: true,
     }).catch(() => null);
   }
   return followers.length;

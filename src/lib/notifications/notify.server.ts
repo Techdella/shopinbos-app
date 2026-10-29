@@ -285,9 +285,11 @@ export async function sendAlertWhatsApp(args: {
       ? (await db.logisticsPartner.findUnique({ where: { userId: args.input.userId }, select: { displayName: true } }).catch(() => null))?.displayName
       : args.user.role === "supplier"
         ? (await db.supplier.findUnique({ where: { userId: args.input.userId }, select: { displayName: true } }).catch(() => null))?.displayName
-        : null;
+        : args.user.role === "seller"
+          ? (await db.store.findUnique({ where: { userId: args.input.userId }, select: { name: true } }).catch(() => null))?.name
+          : null;
     const status = typeof args.input.metadata?.status === "string" ? args.input.metadata.status : null;
-    const { template, params } = notifyWhatsAppTemplate({
+    const fill = (general: boolean) => notifyWhatsAppTemplate({
       event: args.input.event ?? "",
       category: args.category,
       status,
@@ -295,11 +297,19 @@ export async function sendAlertWhatsApp(args: {
       description: args.input.description,
       url: args.url,
       name: args.user.name,
-      business: business ?? args.user.name,
+      business: business || args.user.name,
+      general,
     });
-    const sent = await sendMetaTemplate(config, { to: args.to, template: template.name, language: template.language, params });
+    const own = fill(false);
+    let sent = await sendMetaTemplate(config, { to: args.to, template: own.template.name, language: own.template.language, params: own.params });
+    // The alert's own template not approved by Meta yet: the general update template, which is.
+    const general = fill(true);
+    if (!sent.ok && general.template.name !== own.template.name) {
+      console.warn(`[notify] WhatsApp template ${own.template.name} not sent, trying ${general.template.name}:`, sent.error);
+      sent = await sendMetaTemplate(config, { to: args.to, template: general.template.name, language: general.template.language, params: general.params });
+    }
     if (sent.ok) return { success: true, provider: "meta" };
-    console.warn(`[notify] WhatsApp template ${template.name} not sent, trying plain text:`, sent.error);
+    console.warn(`[notify] WhatsApp template ${general.template.name} not sent, trying plain text:`, sent.error);
   }
   const result = await sendWhatsAppMessage({ to: [args.to], message: args.text });
   return { success: result.success, provider: result.provider, message: result.message };

@@ -50,3 +50,16 @@ test("words in five languages", () => {
   assert.ok(keys.length >= 12);
   for (const lang of ["pcm", "yo", "ha", "ig"]) for (const key of keys) assert.ok(CATALOGS.marketplace[lang][key], `${lang} ${key}`);
 });
+
+test("their own WhatsApp templates, with the approved general one until Meta approves them; sellers get WhatsApp too", async () => {
+  const wt = await import("../src/lib/notifications/whatsapp-templates.ts");
+  const base = { title: "Kemi's Closet wants to sell your products.", description: "2 other shops are waiting too.", url: "https://app.shopinbos.com/supplier/products/bulk", name: "Ada Obi", business: "Ada Fabrics" };
+  const wanted = wt.notifyWhatsAppTemplate({ ...base, event: "supplier.products_wanted", category: "orders" });
+  assert.equal(wanted.template.name, "shopinbos_products_wanted");
+  assert.deepEqual(wanted.params.slice(0, 2), ["Ada", "Ada Fabrics"]);
+  assert.match(wanted.params[2], /Kemi's Closet wants to sell your products\. 2 other shops are waiting too\. https:/);
+  assert.equal(wt.notifyWhatsAppTemplate({ ...base, event: "supplier.new_products", category: "orders" }).template.name, "shopinbos_supplier_new_products");
+  assert.equal(wt.notifyWhatsAppTemplate({ ...base, event: "supplier.products_wanted", category: "orders", general: true }).template.name, "shopinbos_update");
+  assert.match(read("src/lib/notifications/notify.server.ts"), /general\.template\.name !== own\.template\.name/);
+  assert.match(read("src/lib/suppliers/product-requests.server.ts"), /dedupeKey: `supplier\.new_products:[^\n]+\n      email: true,\n      whatsapp: true,/);
+});
