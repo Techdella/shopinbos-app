@@ -4,15 +4,15 @@
   "sellers": {
    "label": "Sellers",
    "title": "Plans for sellers",
-   "lead": "Start free. Paid plans lower your fee on every sale and unlock your own domain, more products, staff and AI credits.",
+   "lead": "Start free and sell to customers anywhere in Nigeria on every plan. Paid plans lower your fee on every sale and unlock your own domain, more products, staff and AI credits.",
    "signup": "signup",
    "plans": [
     { "key": "free", "name": "Free", "for": "For trying it out and your first orders", "month": 0, "year": 0, "fee": "3% per sale", "cta": "Start free",
       "points": ["Store on yourname.mybos.store", "Up to 20 products", "Sell on WhatsApp, Instagram and TikTok", "Self-pickup and doorstep delivery at checkout", "20 AI credits a month"] },
     { "key": "starter", "name": "Starter", "for": "For new shops getting regular orders", "month": 6000, "year": 60000, "fee": "2% per sale", "cta": "Start with Starter",
-      "points": ["Everything in Free", "Your own domain", "Up to 200 products and all themes", "Sell in up to 5 states", "Branded tracking page", "150 AI credits a month"] },
+      "points": ["Everything in Free", "Your own domain", "Up to 200 products and all themes", "Branded tracking page", "150 AI credits a month"] },
     { "key": "growth", "name": "Growth", "for": "For shops selling every day", "month": 18000, "year": 180000, "fee": "1% per sale", "cta": "Start with Growth", "popular": true,
-      "points": ["Everything in Starter", "Unlimited products, sell nationwide", "Pay on delivery", "5 staff accounts", "200 delivery updates by SMS or WhatsApp a month", "500 AI credits a month"] },
+      "points": ["Everything in Starter", "Unlimited products", "Pay on delivery", "5 staff accounts", "200 delivery updates by SMS or WhatsApp a month", "500 AI credits a month"] },
     { "key": "pro", "name": "Pro", "for": "For brands with a team", "month": 40000, "year": 400000, "fee": "0.5% per sale", "cta": "Start with Pro",
       "points": ["Everything in Growth", "15 staff accounts", "Unlimited delivery partners", "1,000 delivery updates a month", "Priority support and priority imports", "1,500 AI credits a month"] }
    ],
@@ -27,7 +27,6 @@
     { "label": "Staff accounts", "values": ["1", "2", "5", "15"] },
     { "label": "AI credits a month", "values": ["20", "150", "500", "1,500"] },
     { "group": "Delivery" },
-    { "label": "Where you can sell", "values": ["1 state", "Up to 5 states", "Nationwide", "Nationwide"] },
     { "label": "Connected delivery partners", "values": ["1", "3", "10", "Unlimited"] },
     { "label": "Self-pickup at checkout", "values": [true, true, true, true] },
     { "label": "Doorstep and pickup-point delivery", "values": [true, true, true, true] },
