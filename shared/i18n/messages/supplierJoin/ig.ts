@@ -130,6 +130,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "product.added": "Etinyela {name}. Ị nwere ike itinye ndị ọzọ ma emechaa.",
   "product.needPhoto": "See foto ngwaahịa ahụ.",
   "product.needName": "Dee ihe a na-akpọ ya.",
+  "product.whatsappLater": "Ị nwere katalọg WhatsApp? Ozugbo i dozichara, tinye ha niile otu mgbe site na screenshot: Ngwaahịa › Tinye ọtụtụ na Peggy › Site na katalọg WhatsApp m.",
   "product.needPrice": "Dee ọnụahịa na naira.",
   "review.title": "Anyị na-enyocha gị",
   "review.sub": "Ọ na-ewe nkeji ole na ole. Anyị ga-ezitere gị ozi mgbe anyị nyochara gị, ndị na-ere ahịa ga-ahụkwa catalogue gị.",

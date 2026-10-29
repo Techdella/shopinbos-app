@@ -77,7 +77,7 @@ export function BaseScreen({ state, onState, onDone }: ScreenProps) {
       error={error}
       busy={busy === "base"}
       canContinue={address.trim().length >= 5}
-      onContinue={() => void run("base", () => kycCall("/base", jsonInit("POST", { address, state: baseState || undefined, ...(spot ?? {}), photo: photo ?? undefined })), onDone)}
+      onContinue={() => void run("base", () => kycCall("/base", jsonInit("POST", { address, state: baseState || undefined, ...(spot ?? {}), photo: photo ?? undefined }), { retry: true }), onDone)}
     >
       <button type="button" onClick={locate} disabled={locating} className={cx("inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full border-2 px-5 text-[16px] font-extrabold", spot ? "border-app-success bg-app-success-tint" : "border-app-ink bg-white")}>
         <Icon name={spot ? "check" : "pin"} size={18} /> {locating ? t("q.base.locating") : spot ? t("q.base.located") : t("q.base.locate")}
@@ -122,7 +122,7 @@ export function IdScreen({ state, onState, onDone, draft, onDraft }: ScreenProps
       error={error}
       busy={busy === "id"}
       canContinue={canContinue}
-      onContinue={() => (photo ? void run("id", () => kycCall("/id-document", jsonInit("POST", { idType, photo })), onDone) : onDone())}
+      onContinue={() => (photo ? void run("id", () => kycCall("/id-document", jsonInit("POST", { idType, photo }), { retry: true }), onDone) : onDone())}
     >
       {sent && !photo && <Notice tone="success">{t("q.id.sent")}</Notice>}
       <PhoneOrThisDevice purpose="id" createUrl="/api/logistics/kyc/handoff" arrived={phone.arrived} onArrived={phone.onArrived}>
@@ -171,7 +171,7 @@ export function SelfieScreen({ state, onState, onDone, draft, onDraft }: ScreenP
     if (!shot) return onDone();
     const call = byNin
       ? () => kycCall("/nin", jsonInit("POST", { ...draft, selfie: shot.dataUri, liveness: shot.liveness ?? undefined }))
-      : () => kycCall("/selfie", jsonInit("POST", { selfie: shot.dataUri, liveness: shot.liveness ?? undefined }));
+      : () => kycCall("/selfie", jsonInit("POST", { selfie: shot.dataUri, liveness: shot.liveness ?? undefined }), { retry: true });
     void run("selfie", call, () => { setShot(null); onDone(); });
   }
 

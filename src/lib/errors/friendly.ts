@@ -50,9 +50,23 @@ export function friendlyText(error: unknown, fallback = DEFAULT_FRIENDLY): { tex
   return { text: messageOf(error).trim() || fallback, kind: null };
 }
 
+/**
+ * A DOM Event someone rejected a promise with (a script, image or socket that failed to load) says nothing as text
+ * ("[object Event]"): name its type and what it came from instead, e.g. `Event "error" on <script src=…/x.js>`.
+ */
+function eventText(error: unknown): string | null {
+  if (!error || typeof error !== "object" || !("type" in error) || typeof error.type !== "string" || !("target" in error)) return null;
+  const name = (error as object).constructor?.name || "Event";
+  const target = (error as { target?: unknown }).target as { tagName?: unknown; src?: unknown; href?: unknown; url?: unknown } | null;
+  const tag = target && typeof target.tagName === "string" ? target.tagName.toLowerCase() : null;
+  const source = target ? [target.src, target.href, target.url].find((value): value is string => typeof value === "string" && value.length > 0) : undefined;
+  const on = tag ? ` on <${tag}${source ? ` src=${source.slice(0, 200)}` : ""}>` : source ? ` from ${source.slice(0, 200)}` : "";
+  return `${name} "${error.type}"${on}`;
+}
+
 /** The technical details kept for Admin › App errors. */
 export function errorDetails(error: unknown) {
-  const message = messageOf(error).trim() || String(error ?? "Unknown error");
+  const message = messageOf(error).trim() || eventText(error) || String(error ?? "Unknown error");
   const name = error instanceof Error ? error.name : typeof error;
   const stack = error instanceof Error ? error.stack ?? null : null;
   return { name: name.slice(0, 120), message: message.slice(0, 2000), stack: stack ? stack.slice(0, 6000) : null };

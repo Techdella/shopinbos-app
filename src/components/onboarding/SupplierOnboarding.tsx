@@ -500,6 +500,9 @@ export function SupplierOnboarding({ initialView }: { initialView: View }) {
             <TextInput inputMode="numeric" aria-label={t("product.price")} placeholder={t("product.price")} value={productPrice} onChange={(event) => setProductPrice(event.target.value.replace(/[^\d]/g, ""))} />
           </div>
         )}
+        <p className="m-0 flex items-start gap-2 text-[14px] text-app-ink-soft">
+          <Icon name="whatsapp" size={16} className="mt-0.5 shrink-0" /> {t("product.whatsappLater")}
+        </p>
       </div>
     );
     action = {

@@ -130,6 +130,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "product.added": "A ti fi {name} kún un. O lè fi púpọ̀ sí i nígbà míì.",
   "product.needPhoto": "Ya fọ́tò ọjà náà.",
   "product.needName": "Kọ orúkọ rẹ̀.",
+  "product.whatsappLater": "Ṣé o ní katalọ́ọ̀gì WhatsApp? Nígbà tí o bá ti ṣètò tán, fi gbogbo rẹ̀ kún un lẹ́ẹ̀kan láti inú screenshot: Àwọn ọjà › Fi ọ̀pọ̀ kún un pẹ̀lú Peggy › Láti inú katalọ́ọ̀gì WhatsApp mi.",
   "product.needPrice": "Kọ iye owó ní naira.",
   "review.title": "À ń ṣàyẹ̀wò rẹ",
   "review.sub": "Kì í ju ìṣẹ́jú díẹ̀ lọ. A máa fi ọ̀rọ̀ ránṣẹ́ sí ọ nígbà tí a bá jẹ́rìísí rẹ, àwọn olùtajà á sì rí catalogue rẹ.",

@@ -235,3 +235,12 @@ test("partner kyc: failed calls keep the HTTP status for App errors and show fri
   assert.match(kit, /setError\(friendlyError\(cause, t\("page\.failed"\)\)\)/);
   assert.match(read("src/app/api/logistics/kyc/nin/route.ts"), /export const maxDuration = 90;/);
 });
+
+test("partner kyc: photo steps retry once after a gateway timeout, the paid NIN check never does", () => {
+  const screens = read("src/components/logistics/verification/CheckScreens.tsx");
+  for (const path of ["/base", "/id-document", "/selfie"]) {
+    assert.match(screens, new RegExp(`kycCall\\("${path}", jsonInit\\([^\\n]*\\{ retry: true \\}\\)`), path);
+  }
+  assert.doesNotMatch(screens, /kycCall\("\/nin"[^\n]*retry/);
+  assert.match(read("src/components/logistics/verification/kit.tsx"), /GATEWAY_STATUSES = new Set\(\[502, 503, 504\]\)/);
+});

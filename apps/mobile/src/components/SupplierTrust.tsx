@@ -30,6 +30,7 @@ export function SupplierTrustBadges({ supplier }: { supplier: FindProduct["suppl
         <Badge label={supplier.verificationStatus === "pending" ? t("trust.pending") : t("trust.unverified")} bg={colors.dangerTint} fg={colors.danger} />
       )}
       {supplier.risk ? <Badge label={t.dynamic(`trust.risk.${supplier.risk.level}`, supplier.risk.level, { score: supplier.risk.score })} bg={LEVEL[supplier.risk.level].bg} fg={LEVEL[supplier.risk.level].fg} /> : null}
+      {supplier.far ? <Badge label={t("sup.farBadge")} bg="#FDF0D5" fg="#8A5A00" /> : null}
       {typeof supplier.km === "number" ? <Badge label={t("trust.km", { km: supplier.km < 1 ? "<1" : String(Math.round(supplier.km)) })} /> : null}
     </View>
   );
@@ -122,14 +123,14 @@ export function BeforeYouList({ product, listing, onSent }: { product: FindProdu
         <T weight="extrabold" style={{ fontSize: 16 }} accessibilityRole="header">{t("trust.beforeTitle", { name })}</T>
         <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{t("trust.beforeSub")}</T>
       </View>
-      {listing.step === "noPlace" ? (
+      {product.supplier.far ? <Notice tone="info">{t("sup.farFees")}</Notice> : null}
+      {listing.noCity ? (
         <>
           <Notice tone="info">{t("trust.addCity")}</Notice>
           <PillButton title={t("trust.addCityBtn")} tone="white" size="md" onPress={() => router.push("/settings")} />
         </>
-      ) : listing.step === "far" ? (
-        <Notice tone="info">{t("trust.tooFar", { name })}</Notice>
-      ) : listing.step === "waiting" || sent ? (
+      ) : null}
+      {listing.step === "waiting" || sent ? (
         <Notice tone="success">{sent ?? t("trust.waiting", { name })}</Notice>
       ) : (
         <>
