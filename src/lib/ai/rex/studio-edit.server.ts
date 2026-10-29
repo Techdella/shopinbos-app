@@ -7,6 +7,7 @@ import { applyRexStudioPlan, parseRexStudioPlan, summariseDraftForRex, type RexS
 import { pushRexVersion, recordDraftBeforeChange, summariseRexVersions, type RexVersionSummary } from "@/lib/ai/rex/studio-versions";
 import {
   allowedKindsFor,
+  describeSectionFields,
   loadHealthFacts,
   saveStudioDraft,
   settingsOf,
@@ -69,7 +70,7 @@ async function designerPrompt(store: StudioStore, draft: StoreEditorSnapshot, im
     themes: studioThemes(draft.templateId, await loadSellerThemeAccess(store.userId)),
     allowedKinds: allowedKindsFor(draft.templateId),
     boutique: isBoutiqueTheme(draft.templateId),
-    draft: summariseDraftForRex(draft, isBoutiqueTheme(draft.templateId)),
+    draft: summariseDraftForRex(draft, isBoutiqueTheme(draft.templateId), (section) => describeSectionFields(section, draft.templateId)),
     products: products.map((product) => ({ name: product.name, price: formatStoreMoney(product.retailPrice, product.currency), hasPhoto: product.images.some(Boolean) })),
     facts: [
       `${facts.products} published products`,

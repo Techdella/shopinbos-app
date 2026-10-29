@@ -2069,10 +2069,17 @@ export const BOUTIQUE_CSS = `
    last section on a page closes its own bottom. */
 .bq-sec:has(> section.bq-wrap:not([class*="py-"]):not([class*="pb-"])) + .bq-sec > :first-child:is(:not(.bq-wrap),[style*="background"]){margin-top:40px}
 .bq-sec:last-child > section.bq-wrap:not([class*="py-"]):not([class*="pb-"]){padding-bottom:40px}
+/* A section's own spacing (Style tab, or Rex): tighter trims its padding; roomy adds space around it. */
+.bq-sec[data-spacing="compact"] > :is([class*="pt-"],[class*="py-"]){padding-top:20px}
+.bq-sec[data-spacing="compact"] > :is([class*="pb-"],[class*="py-"]){padding-bottom:20px}
+.bq-sec[data-spacing="roomy"]{padding-top:32px;padding-bottom:32px}
 @container bq (min-width: 760px){
   .bq-wrap{padding-left:36px;padding-right:36px}
   .bq-sec:has(> section.bq-wrap:not([class*="py-"]):not([class*="pb-"])) + .bq-sec > :first-child:is(:not(.bq-wrap),[style*="background"]){margin-top:56px}
   .bq-sec:last-child > section.bq-wrap:not([class*="py-"]):not([class*="pb-"]){padding-bottom:56px}
+  .bq-sec[data-spacing="compact"] > :is([class*="pt-"],[class*="py-"]){padding-top:28px}
+  .bq-sec[data-spacing="compact"] > :is([class*="pb-"],[class*="py-"]){padding-bottom:28px}
+  .bq-sec[data-spacing="roomy"]{padding-top:56px;padding-bottom:56px}
   .bq-nav-desktop{display:flex}
   .bq-only-narrow{display:none !important}
   .bq-only-wide{display:revert}

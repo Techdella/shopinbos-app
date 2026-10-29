@@ -8,8 +8,8 @@ const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf
 
 test("every boutique section sits in a .bq-sec wrapper, live and in the builder", () => {
   const boutique = read("src/components/storefront/boutique/BoutiqueStorefront.tsx");
-  assert.match(boutique, /return <div key=\{section\.id\} className="bq-sec">\{node\}<\/div>;/);
-  assert.match(boutique, /key=\{section\.id\}\n\s+className="bq-sec"\n\s+data-section-id=\{section\.id\}/);
+  assert.match(boutique, /return <div key=\{section\.id\} className="bq-sec" data-spacing=\{spacing\}>\{node\}<\/div>;/);
+  assert.match(boutique, /key=\{section\.id\}\n\s+className="bq-sec"\n\s+data-spacing=\{spacing\}\n\s+data-section-id=\{section\.id\}/);
 });
 
 test("an open-ended section gets a gap before a section with its own background, and the last one closes", () => {

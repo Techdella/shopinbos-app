@@ -192,7 +192,7 @@ export const REX_TOOL_SPECS = {
   edit_store_section: {
     kind: "store",
     description:
-      "Change the store's DRAFT design: rewrite or restyle a section, add, hide or remove a section, add a page, change colours and fonts, or write search titles. Pass the seller's request as a clear instruction. Saved as a new draft version with undo; shoppers see nothing until Publish.",
+      "Change the store's DRAFT design, anything the builder's section panels can do: rewrite a section; change its layout variation, buttons, toggles, colours, pictures, slides, tiles and lists; add (including ready-made blocks like trust badges, product carousels, split heroes), hide, remove, move (reorder) or duplicate a section; tighten or open up the space around a section; change colours and fonts; add a page; write search titles. Pass the seller's request (or your own suggested fix) as a clear instruction, with any picture links to use. Saved as a new draft version with undo; shoppers see nothing until Publish.",
     schema: z
       .object({
         instruction: z.string().trim().min(3).max(1500).describe("What to change, in plain words, e.g. 'Rewrite the homepage banner in Pidgin, warmer'"),
