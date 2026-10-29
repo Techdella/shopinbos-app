@@ -140,11 +140,14 @@ test("the server keeps phone answers store-safe: Peggy and Rex, the credits note
   assert.match(peggy, /runPeggy\(\{ id: user\.id, phone: user\.phone \?\? null \}, parsed\.turns, \{ inApp: true \}\)/);
   assert.match(peggy, /\$\{IN_APP_PAYMENTS_RULE\}`/);
   assert.match(read("src/lib/ai/peggy/agent.ts"), /options\.inApp \? `\$\{base\}\\n\\n\$\{IN_APP_PAYMENTS_RULE\}`/);
-  assert.match(read("src/app/api/ai/rex/route.ts"), /\{ inApp: isPhoneAppRequest\(req\.headers\) \}/);
+  assert.match(read("src/app/api/ai/rex/route.ts"), /\{ inApp: isAppRequest\(req\.headers\) \}/);
+  assert.match(read("src/app/api/app/peggy/route.ts"), /parsed\.turns, \{ inApp: isAppRequest\(req\.headers\) \}\)/);
   assert.match(read("src/lib/ai/rex/agent.ts"), /options\.inApp \? `\$\{withPreferences\}\\n\\n\$\{IN_APP_PAYMENTS_RULE\}`/);
   assert.doesNotMatch(read("src/lib/ai/rex/tools.ts").match(/new RexCreditsError\([^;]+;/)?.[0] ?? "", /top up|buy/i);
   assert.doesNotMatch(code(read("src/app/api/mobile/credits/route.ts")), /top up|website/i);
-  assert.match(read("src/lib/ai/usage.ts"), /spendCredits\(userId, cost, \{ autoTopUp: !\(await fromPhoneApp\(\)\) \}\)/);
+  const usage = read("src/lib/ai/usage.ts");
+  assert.match(usage, /const inApp = await fromPhoneApp\(\);\s*const left = await spendCredits\(userId, cost, \{ autoTopUp: !inApp \}\)/);
+  assert.match(usage, /outOfCreditsMessage\(cost, balance, \{ inApp \}\), \.\.\.\(inApp \? \{\} : \{ buyUrl:/);
   assert.match(read("src/lib/ai/credits.server.ts"), /if \(left === null && options\.autoTopUp !== false\)/);
 });
 
@@ -197,4 +200,48 @@ test("card payments in the app are only for real things and money between busine
   assert.match(en("m_money", "owed.payOwed"), /owed/);
   assert.match(en("m_ads", "c.payFee"), /team's .* setup fee/);
   assert.match(read("docs/store-payments-audit.md"), /\| Path \| Category \| Decision \| File \| Policy \|/);
+});
+
+test("pages the phone app opens on the website sell nothing digital (Apple 3.1.3(f) companion app)", async () => {
+  // Flag, CSS and link guard.
+  const layout = read("src/app/layout.tsx");
+  assert.match(layout, /isAppSession\(\)/);
+  assert.match(layout, /inApp \? \{ "data-in-app": "1" \} : \{\}/);
+  assert.match(layout, /\{inApp \? <AppSessionGuard \/> : null\}/);
+  assert.match(read("src/app/globals.css"), /html\[data-in-app\] \[data-purchase\],[\s\S]*a\[href\^="\/home\/credits"\][\s\S]*\{ display: none !important; \}/);
+  const guard = read("src/components/AppSessionGuard.tsx");
+  assert.match(guard, /isDigitalPurchasePath\(link\.getAttribute\("href"\)/);
+  assert.match(guard, /MutationObserver/);
+  assert.match(guard, /event\.preventDefault\(\)/);
+
+  // Every endpoint that starts a digital purchase refuses app requests.
+  for (const path of ["src/app/api/app/credits/checkout/route.ts", "src/app/api/app/extras/checkout/route.ts", "src/app/api/app/wallet/topup/route.ts", "src/app/api/store/templates/purchase/route.ts"]) {
+    assert.match(read(path), /const refusal = appPurchaseRefusal\(req\);\s*if \(refusal\) return refusal;/, path);
+  }
+  for (const path of ["src/app/api/domains/purchase/route.ts", "src/app/api/domains/renew/route.ts"]) {
+    assert.match(read(path), /if \(isAppRequest\(req\.headers\)\) return failure\(NOT_IN_APP_CODE, NOT_IN_APP_MESSAGE, 403\);/, path);
+  }
+  const server = read("src/lib/app-session.server.ts");
+  assert.match(server, /isPhoneAppRequest\(headers\) \|\| hasAppSessionCookie\(/);
+  assert.match(server, /NOT_IN_APP_MESSAGE = "This isn't available in the Shopinbos app\."/);
+  assert.doesNotMatch(server.match(/NOT_IN_APP_MESSAGE = [^\n]+/)[0], rules.PURCHASE_CTA);
+
+  // Buttons that buy without a link.
+  const badge = read("src/components/credits/CreditsBadge.tsx");
+  assert.match(badge, /export function openTopUp\(\) \{\s*\/\/[^\n]*\n\s*if \(inAppSessionClient\(\)\) return true;/);
+  assert.match(badge, /onClick=\{\(\) => \{\s*if \(inAppSessionClient\(\)\) return;\s*setOpen\(true\);/);
+  assert.match(read("src/components/payments/PlanPicker.tsx"), /inApp \? <AppBillingNotice \/>/);
+  assert.match(read("src/components/plans/BuyExtraButton.tsx"), /if \(inApp\) return null;/);
+  assert.match(read("src/components/builder/ThemeLibrary.tsx"), /const buyPrice = \(theme: ThemeLibraryEntry \| null\) => \(!inApp &&/);
+  const domains = read("src/components/builder/DomainSetup.tsx");
+  assert.match(domains, /\.filter\(\(item\) => !inApp \|\| item\.id !== "buy"\)/);
+  assert.match(domains, /option === "buy" && !inApp &&/);
+  assert.match(read("src/components/domains/BoughtDomain.tsx"), /renewDue && !inApp \?/);
+  assert.match(read("src/components/wallet/WalletBalanceCard.tsx"), /if \(inApp\) return null;/);
+
+  // Out of credits on those pages: no "top up", no buy link.
+  const credits = await import("../shared/ai-credits.ts");
+  assert.doesNotMatch(credits.outOfCreditsMessage(5, 0, { inApp: true }), rules.PURCHASE_CTA);
+  assert.match(credits.outOfCreditsMessage(5, 0, { inApp: true }), /This needs 5 AI credits and you have 0\. Your plan's credits refill/);
+  assert.match(credits.outOfCreditsMessage(5, 0), /Top up/);
 });

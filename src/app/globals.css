@@ -217,6 +217,17 @@ html {
   font-feature-settings: 'ss01', 'cv11';
 }
 
+/* Pages the phone app opened: buy buttons for plans, credits, themes, domains and top-ups are hidden
+   (src/lib/app-session.ts). */
+html[data-in-app] [data-purchase],
+html[data-in-app] a[href^="/home/credits"],
+html[data-in-app] a[href^="/supplier/credits"],
+html[data-in-app] a[href^="/logistics/credits"],
+html[data-in-app] a[href^="/logistics/billing"],
+html[data-in-app] a[href^="/pricing"],
+html[data-in-app] a[href*="tab=Billing"],
+html[data-in-app] a[href*="tab=billing"] { display: none !important; }
+
 body {
   min-height: 100%;
   background: var(--color-paper);

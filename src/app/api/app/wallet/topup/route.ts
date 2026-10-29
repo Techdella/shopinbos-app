@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { appPurchaseRefusal } from "@/lib/app-session.server";
 import { withAuth } from "@/lib/auth/middleware";
 import { apiError, ok } from "@/lib/api/response";
 import { WalletBalanceError, startCardTopUp } from "@/lib/wallet/balance.server";
@@ -8,6 +9,8 @@ export const dynamic = "force-dynamic";
 
 // POST /api/app/wallet/topup { naira, returnTo } → { authorizationUrl }: top up by card or bank on Paystack.
 export const POST = withAuth(async (req: NextRequest, { user }) => {
+  const refusal = appPurchaseRefusal(req);
+  if (refusal) return refusal;
   const body = (await req.json().catch(() => ({}))) as { naira?: unknown; returnTo?: unknown };
   const returnTo = typeof body.returnTo === "string" && body.returnTo.startsWith("/") && !body.returnTo.startsWith("//") ? body.returnTo : "/home/wallet";
   try {

@@ -10,8 +10,10 @@ Shopinbos is a store builder for small businesses in Nigeria and other African c
 shop, add products from photos, answer customer chats, record orders and arrange delivery of physical goods.
 
 - Payments in the app are for physical goods and services that sellers sell to their own customers (Paystack, outside
-  the app), or for deliveries done by delivery companies. The app sells no digital goods or subscriptions: paid
-  plans and AI credits can't be bought or linked to from the iOS app.
+  the app), or for deliveries done by delivery companies (guideline 3.1.3(e)).
+- The app is a free stand-alone companion to Shopinbos, a paid web-based business tool (guideline 3.1.3(f)). It has
+  no purchasing inside the app and no calls to action to buy elsewhere: plans and AI credits can't be bought, priced
+  or linked to from the iOS app, including on the few website tools it opens.
 - Sign in with Apple is offered next to Google sign-in. Phone sign-in uses SMS codes.
 - Account deletion: the "My shop" tab › "Delete my account" (under "Log out"); suppliers and delivery partners have it
   under More.

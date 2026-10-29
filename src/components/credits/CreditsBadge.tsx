@@ -9,10 +9,12 @@ import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { formatNumber } from "@shared/i18n";
 import type { CreditPack } from "@shared/ai-credits";
 import { friendlyError } from "@/lib/errors/report-client";
+import { inAppSessionClient } from "@/lib/app-session";
 
 // The AI credits button in the top bar and Rex Studio: the balance at a glance, today's free allowance, and a
 // pack bought right here (Paystack brings the seller back to the same page). Anything that spends credits fires
 // CREDITS_CHANGED_EVENT so the number stays true; "Buy credits" buttons fire OPEN_TOP_UP_EVENT to open it.
+// On pages the phone app opened (src/lib/app-session.ts) it only shows the balance: no buy popup.
 
 export const CREDITS_CHANGED_EVENT = "shopinbos:credits-changed";
 export const OPEN_TOP_UP_EVENT = "shopinbos:open-top-up";
@@ -24,6 +26,8 @@ export function creditsChanged() {
 
 /** Opens the top-up panel when a badge is on the page; returns false when there is none (then link to /home/credits). */
 export function openTopUp() {
+  // Opened from the phone app: nothing to buy here, and nothing to link to either.
+  if (inAppSessionClient()) return true;
   if (typeof document === "undefined" || !document.documentElement.dataset.creditsBadge) return false;
   window.dispatchEvent(new Event(OPEN_TOP_UP_EVENT));
   return true;
@@ -87,6 +91,7 @@ export function CreditsBadge({
     root.dataset.creditsBadge = String(Number(root.dataset.creditsBadge ?? 0) + 1);
     const changed = () => void load();
     const openPanel = () => {
+      if (inAppSessionClient()) return;
       setOpenState(true);
       void load();
     };
@@ -274,7 +279,7 @@ export function CreditsBadge({
     </div>
   ) : null;
 
-  if (headless) return modal && typeof document !== "undefined" ? createPortal(modal, document.body) : null;
+  if (headless) return modal && typeof document !== "undefined" && !inAppSessionClient() ? createPortal(modal, document.body) : null;
 
   return (
     <div className={cx("relative shrink-0", className)}>
@@ -283,6 +288,7 @@ export function CreditsBadge({
         aria-haspopup="dialog"
         aria-label={balance === null ? t("credits.title") : t("credits.aria", { count: balance })}
         onClick={() => {
+          if (inAppSessionClient()) return;
           setOpen(true);
           void load();
         }}

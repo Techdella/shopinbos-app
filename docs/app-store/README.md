@@ -87,22 +87,29 @@ App Store Connect › the app › the version:
 | Category | Business (primary), Shopping (secondary) |
 | Age rating | 4+ (no objectionable content; the chats are between businesses and their customers) |
 | Copyright | 2026 <the company's registered name> |
-| Screenshots, 6.9" iPhone | `screenshots/iphone-6.9/` (1320×2868, in order). Apple scales them down for smaller iPhones. |
+| Screenshots, 6.9" iPhone | `screenshots/iphone-6.9/` (7 at 1320×2868, in order). Apple scales them down for smaller iPhones. |
 | App Review information | `review-notes.txt`: create the demo seller account first and put its email and password there. |
 | App Privacy | `app-privacy.md` |
 | Price | Free. No in-app purchases. |
 
-The screenshots are the Google Play ones (`docs/play-store/listing/screenshots`) made taller with
-`make-screenshots.py`. Their phone frame has a round front camera like an Android phone. Apple doesn't allow images of
-other platforms (guideline 2.3.10), so replace them with iPhone captures from TestFlight if review objects. The
-iPhone 16 Pro Max simulator saves 1320×2868 screenshots that fit the same frames.
+The screenshots are the Google Play ones (`docs/play-store/listing/screenshots`) made iPhone-ready by
+`make-screenshots.py`: the phone frame's round front camera becomes a Dynamic Island (Apple doesn't allow images of
+other platforms, guideline 2.3.10), and the dotted background is extended to the taller iPhone shape. The Play set's
+wallet screenshot is left out: it shows the prepaid balance's Top up and "Pays for AI credits", which store builds
+don't have (Apple 3.1.1). After changing the Play screenshots, run it again from the repo root:
+
+```bash
+python3 docs/app-store/make-screenshots.py docs/play-store/listing/screenshots docs/app-store/screenshots/iphone-6.9
+```
 
 ## 5. Before "Submit for Review"
 
 - Demo account in `review-notes.txt` works on the TestFlight build, with a published shop and a few orders.
 - Store builds don't set `EXPO_PUBLIC_PREPAID_BALANCE` or `EXPO_PUBLIC_WALLET_ACCOUNT_NUMBER` (`apps/mobile/.env.example`).
-- `docs/store-payments-audit.md` › "What the owner must decide": Apple 3.1.3(b) lets credits and plans bought on the
-  website work in the app only when they're also sold as in-app purchases. Decide before the first review.
+- Plans and AI credits: the app ships as a free companion to the paid web tool (Apple 3.1.3(f); decided, see
+  `docs/store-payments-audit.md` › "Decisions"). That holds only while the app and the website pages it opens show
+  no way to buy them. Open a few web tools from the TestFlight build (product import, video studio, shop preview)
+  and check there's no Buy credits, Upgrade, Billing or theme price anywhere.
 - Admin › App updates › iPhone app: leave it at 0 until the first version is live; then set the latest build to the
   build number App Store Connect shows in brackets.
 
@@ -111,7 +118,7 @@ iPhone 16 Pro Max simulator saves 1320×2868 screenshots that fit the same frame
 | File | What |
 | --- | --- |
 | `listing/` | Name, subtitle, keywords, promotional text, description |
-| `screenshots/iphone-6.9/` | 8 screenshots, 1320×2868 |
+| `screenshots/iphone-6.9/` | 7 screenshots, 1320×2868 |
 | `review-notes.txt` | App Review notes and demo account |
 | `app-privacy.md` | App Privacy answers |
 | `make-screenshots.py` | Makes the iPhone screenshots from the Play ones |

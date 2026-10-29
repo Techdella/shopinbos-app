@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { cx } from "@/components/app-ui/cx";
 import { Icon } from "@/components/ui/Icon";
+import { useAppSession } from "@/components/billing/useAppSession";
 import { BALANCE_LIMITS } from "@/lib/wallet/balance-rules";
 import { WalletAccountPanel, type WalletAccountView } from "./WalletAccountPanel";
 
@@ -23,6 +24,7 @@ const naira = (value: number) => `₦${value.toLocaleString("en-NG", { minimumFr
 const fieldClass = "min-h-[46px] w-full rounded-[14px] border border-app-line bg-white px-3.5 text-[15px] outline-none focus:border-app-ink";
 
 export function WalletBalanceCard({ returnTo, notice }: { returnTo: string; notice?: string | null }) {
+  const inApp = useAppSession();
   const [view, setView] = useState<View | null>(null);
   const [mode, setMode] = useState<"topup" | "withdraw" | null>(null);
   const [amount, setAmount] = useState("");
@@ -59,6 +61,9 @@ export function WalletBalanceCard({ returnTo, notice }: { returnTo: string; noti
       void load();
     });
 
+  // Opened from the phone app: a prepaid balance spent on Shopinbos services is a digital wallet (Apple 3.1.5,
+  // src/lib/app-session.ts), so the card doesn't show there.
+  if (inApp) return null;
   if (!view) return <section aria-busy="true" className="mb-5 h-[150px] animate-pulse rounded-[22px] border border-app-line bg-white" />;
 
   return (

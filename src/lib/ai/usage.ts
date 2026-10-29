@@ -5,7 +5,7 @@ import { checkRateLimitShared, rateLimitKey } from "@/lib/rate-limit";
 import { addCredits, creditBalance, liveCreditPrices, spendCredits } from "@/lib/ai/credits.server";
 import { creditCost, creditsUrlFor, outOfCreditsMessage, type CreditAction } from "@shared/ai-credits";
 import { aiSafetyTier, planKeyForMarker } from "@shared/plans";
-import { isPhoneAppRequest } from "@shared/store-payments";
+import { isAppRequest } from "@/lib/app-session.server";
 
 // Every AI request costs credits: the plan's monthly credits first, then bought credits (shared/ai-credits.ts,
 // src/lib/ai/credits.server.ts). On top, a daily safety cap per kind stops a loop, a bot or a runaway script from
@@ -76,11 +76,11 @@ export async function refundAi(userId: string, kind: AiKind, units: number, cred
   }
 }
 
-/** True inside a request from the phone app (its x-shopinbos-client header); false outside a request. */
+/** True inside a request from the phone app or a page it opened (src/lib/app-session.ts); false outside a request. */
 async function fromPhoneApp() {
   try {
     const { headers } = await import("next/headers");
-    return isPhoneAppRequest(await headers());
+    return isAppRequest(await headers());
   } catch {
     return false;
   }
@@ -110,14 +110,15 @@ async function meterOnce(userId: string, kind: AiKind, units: number, action: Cr
       return null;
     }
     const cost = creditCost(action ?? kind, units, (await liveCreditPrices()).costs);
-    const left = await spendCredits(userId, cost, { autoTopUp: !(await fromPhoneApp()) }).catch((error) => {
+    const inApp = await fromPhoneApp();
+    const left = await spendCredits(userId, cost, { autoTopUp: !inApp }).catch((error) => {
       console.error("[ai/usage] credit spend failed", error);
       return null;
     });
     if (left === null) {
       const balance = await creditBalance(userId);
       return NextResponse.json(
-        { error: { code: "AI_CREDITS_NEEDED", message: outOfCreditsMessage(cost, balance), buyUrl: creditsUrlFor(user?.role), cost, balance } },
+        { error: { code: "AI_CREDITS_NEEDED", message: outOfCreditsMessage(cost, balance, { inApp }), ...(inApp ? {} : { buyUrl: creditsUrlFor(user?.role) }), cost, balance } },
         { status: 402 },
       );
     }

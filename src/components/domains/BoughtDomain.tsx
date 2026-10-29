@@ -6,6 +6,7 @@ import { Notice, PillButton } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { SetupHelpRequest } from "@/components/support/SetupHelpRequest";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
+import { useAppSession } from "@/components/billing/useAppSession";
 import { formatDate } from "@shared/i18n";
 import { naira } from "@shared/onboarding";
 
@@ -142,6 +143,8 @@ type MoveState =
 export function BoughtDomainPanel({ domain }: { domain: string }) {
   const t = useT("domain");
   const locale = useLocale();
+  // Opened from the phone app: no paying to renew here (src/lib/app-session.ts).
+  const inApp = useAppSession();
   const [rows, setRows] = useState<PurchaseRow[] | null>(null);
   // The seller's annual plan pays for the domain now: it renews free (the cron checks the plan again, and that it
   // is paid past the domain's expiry, before renewing).
@@ -241,7 +244,7 @@ export function BoughtDomainPanel({ domain }: { domain: string }) {
         <Notice tone="info">{t("bought.renewing", { domain: current.domain })}</Notice>
       ) : planCovers ? (
         <p className="m-0 flex items-center gap-2 text-[14px] font-semibold text-app-success"><Icon name="checkCircle" size={16} />{t("free.renewsCard")}</p>
-      ) : renewDue ? (
+      ) : renewDue && !inApp ? (
         <div className="grid gap-2">
           <p className="m-0 text-[14px] font-semibold">{daysLeft !== null && daysLeft > 0 ? t("mine.endsIn", { count: daysLeft }) : t("mine.ended")}</p>
           <PillButton size="md" tone="accent" busy={renewing} onClick={() => void renew()} className="w-full sm:w-auto sm:justify-self-start">

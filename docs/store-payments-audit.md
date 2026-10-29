@@ -17,7 +17,7 @@ Scope: the phone app in `apps/mobile/src`, plus the server answers it shows word
 | Play Payments, "may not lead users" | Apps "may not lead users to a payment method other than Google Play's billing system", including through "in-app webviews, buttons, links, messaging … or other calls to action" and sign-up flows. | No "top up on the website", no "we'll email you how", no "See plans", no upgrade link, no price for credits or plans. |
 | Apple 3.1.1 | Unlocking features or functionality (subscriptions, in-app currencies, premium content) must use in-app purchase. | The same digital list as above. |
 | Apple 3.1.1(a) / 3.1.3 | Outside the US storefront, apps "may not include buttons, external links, or other calls to action that direct customers to purchasing mechanisms other than in-app purchase". Communication **outside** the app (email the person didn't ask for from the app) is allowed. | Removing the in-app "Top up" email button is required. Lifecycle emails sent on their own (for example "credits low") are fine. |
-| Apple 3.1.3(b) | Content or features bought on the website may be used in the app **if they are also offered as in-app purchases**. | See "What the owner must decide": credits and plans bought on the website still work in the app. |
+| Apple 3.1.3(b) | Content or features bought on the website may be used in the app **if they are also offered as in-app purchases**. | Decided: the app is a free companion to the web tool (3.1.3(f)), see "Decisions". |
 | Apple 3.1.3(d) | Real-time person-to-person services may use other payment methods. | Not relied on. |
 | Apple 3.1.3(e) | Physical goods or services consumed outside the app **must** use non-IAP payment. | Orders, delivery, wholesale, prints and the managed ads service. |
 | Apple 3.1.3(g) | Advertising-management apps may sell ad campaigns shown in other media without IAP. Boosts shown inside the same app must use IAP. | Meta and TikTok ad spend goes to Meta and TikTok. The ads-team setup fee is a human service performed outside the app. |
@@ -61,7 +61,7 @@ Categories:
 | Business registration (CAC) | Grey, decided physical | **Not in the app today.** It may be added with Paystack. See below. | n/a (web: `/register-business`) | Apple 3.1.3(e); Play §2 |
 | Rewards: swap points for credits, referral rewards (free months or credits, never cash) | Not a purchase | **Keep.** No money changes hands. | `app/rewards.tsx`, `components/familiar/ReferCard.tsx` | n/a |
 | Credit cost shown before an action ("Uses 10 credits") | Not a purchase | **Keep.** Shows usage only: no money price and no way to buy. | `app/video/studio.tsx` | n/a |
-| Video studio "Finish on the web" (final render) | Not a purchase | **Keep for now.** See "What the owner must decide". | `app/video/studio.tsx` | Play "may not lead users" (risk only if the web page shows Buy credits) |
+| Video studio "Finish on the web" (final render) | Not a purchase | **Keep.** The studio page hides credits and billing when opened from the app (see "Decisions" 2). | `app/video/studio.tsx` | Play "may not lead users" (risk only if the web page shows Buy credits) |
 | Seller fee on store sales (Shopinbos's commission) | Physical | **Keep.** A fee on physical sales, taken at checkout. | `app/wallet.tsx` | Play §2 |
 
 ## Grey areas
@@ -173,23 +173,29 @@ Decision:
 - If review asks about the website: business owners manage their account on the web, as with other business tools.
   The app doesn't link to purchase pages.
 
-## What the owner must decide
+## Decisions
 
-1. **Apple 3.1.3(b), multiplatform services.** Credits and plans bought on the website still work in the iOS app.
-   Apple allows that only "provided those items are also available as in-app purchases within the app". Many
-   business tools ship without IAP by keeping all purchase prompts out of the app, which this audit does, but a
-   reviewer can still ask for IAP. The options are:
-   - (a) Ship as is and answer with the review note above.
-   - (b) Add StoreKit and Play Billing products for credit packs and plans. Apple and Google take 15–30%.
-   - (c) Make the iOS app use only the free allowance.
-   Google has no such rule: content bought elsewhere may be used in a Play app as long as the app doesn't steer
-   people to buy it.
-2. **Web pages opened from the app** ("Finish on the web" in the video studio, product import, shop preview). They
-   open the signed-in website, whose menus include AI credits and Billing. A strict reviewer can call that a link to
-   another way to pay.
-   - Suggestion: an app mode for pages opened through `/auth/handoff` that hides credits, billing and upgrade
-     prompts.
-   - Or bring those tools into the app.
-3. **The ads setup fee** is kept as a physical service (above). If you'd rather take no risk on it, take it by
+1. **Apple 3.1.3(b), multiplatform services: decided (29 October 2026).** The iPhone app ships without in-app
+   purchase, as a free stand-alone companion to the paid web tool (Apple 3.1.3(f): "Free apps acting as a stand-alone
+   companion to a paid web based tool … do not need to use in-app purchase, provided there is no purchasing inside the
+   app, or calls to action for purchase outside of the app"). Credits and plans bought on the website keep working in
+   the app. The review notes say so. If review still asks for IAP, the fallbacks are StoreKit products for credit
+   packs and plans (Apple keeps 15–30%), or the iPhone app using only the free allowance.
+2. **Web pages opened from the app: done.** Pages opened through `/auth/handoff` carry the app-session cookie
+   (`src/lib/app-session.ts`), and in those sessions nothing sells a digital item:
+   - the root layout marks `<html data-in-app>`; `globals.css` hides `[data-purchase]` and links to the credits and
+     billing pages from the first paint, and `AppSessionGuard` hides and blocks every link `isDigitalPurchasePath`
+     recognises, including ones rendered later;
+   - credits and billing pages show "not available in the app"; the plan picker, add-on buttons, credits popup,
+     theme prices and Buy, domain buying and renewal, and the prepaid wallet card don't render;
+   - the endpoints that start a purchase (credit packs, add-ons, wallet top-up, themes, domain purchase and renewal)
+     answer 403 `NOT_IN_APP` (`appPurchaseRefusal`), and out of credits reads without "top up" or a buy link;
+   - Rex and Peggy get `IN_APP_PAYMENTS_RULE` there too (and Peggy now also when the phone app calls the web route).
+   Known gap: a few server errors written for the website still say "Upgrade to Pro…" (for example hiding the
+   "Built with Shopinbos" badge). They show only after the seller tries a Pro feature on a web page the app opened.
+
+## Still open
+
+1. **The ads setup fee** is kept as a physical service (above). If you'd rather take no risk on it, take it by
    transfer after the team's call instead.
-4. **Retire the old top-up email routes** once installed builds older than this change are gone.
+2. **Retire the old top-up email routes** once installed builds older than this change are gone.
