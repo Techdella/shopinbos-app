@@ -62,8 +62,9 @@ export function useStockSaver(setProducts: SetProducts, onError: (message: strin
   };
 }
 
-/** One product row: picture, name, price and stock words, the stepper under them; tap opens the product. */
-export function StockRow({ product, onStock }: { product: ProductItem; onStock: (product: ProductItem, next: number) => void }) {
+/** One product row: picture, name, price and stock words, the stepper under them; tap opens the product (at its
+ * Preorder settings when `section` is "preorder", from the pre-orders filter). */
+export function StockRow({ product, onStock, section }: { product: ProductItem; onStock: (product: ProductItem, next: number) => void; section?: "preorder" }) {
   const t = useT("m_products", "common");
   const tUi = useT("m_ui");
   const own = !product.inventoryType || product.inventoryType === "seller";
@@ -90,7 +91,7 @@ export function StockRow({ product, onStock }: { product: ProductItem; onStock: 
       // Share to WhatsApp (live products: the link opens their page).
       right={product.status === "published" && product.url ? <ShareProductIcon product={product} /> : undefined}
       accessibilityLabel={`${product.name}. ${product.shortCode ? `${product.shortCode}. ` : ""}${words}${preorder ? `. ${preorder}` : ""}`}
-      onPress={() => router.push({ pathname: "/product/[id]", params: { id: product.id } })}
+      onPress={() => router.push({ pathname: "/product/[id]", params: section ? { id: product.id, section } : { id: product.id } })}
     />
   );
 }

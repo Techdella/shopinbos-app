@@ -146,7 +146,7 @@ function ShopPreorders() {
               </T>
             ) : null}
             {/* Ship date, limit, deposit and promise are on the product (its Preorder section). */}
-            <PillButton size="sm" tone="white" accessibilityLabel={t("preorders.edit")} onPress={() => router.push({ pathname: "/product/[id]", params: { id: group.productId } })}>
+            <PillButton size="sm" tone="white" accessibilityLabel={t("preorders.edit")} onPress={() => router.push({ pathname: "/product/[id]", params: { id: group.productId, section: "preorder" } })}>
               <OneLine text={t("preorders.edit")} size={15} />
             </PillButton>
             {group.waiting > 0 || toAsk(group) > 0 ? (

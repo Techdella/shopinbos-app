@@ -27,3 +27,15 @@ test("pre-order links open the Preorder settings", () => {
   assert.match(read("src/app/products/page.tsx"), /filter\.key === "preorder" \? `\/products\/\$\{p\.id\}#preorder`/);
   assert.match(read("src/app/home/preorders/page.tsx"), /#preorder/);
 });
+
+test("phone app: pre-order taps open the product at its Preorder settings", () => {
+  const screen = read("apps/mobile/src/app/product/[id].tsx");
+  assert.match(screen, /useLocalSearchParams<\{ id: string; section\?: string \}>/);
+  assert.match(screen, /section !== "preorder"/);
+  assert.equal((screen.match(/<View onLayout=\{jumpTo\}>/g) ?? []).length, 2, "own and dropship preorder parts");
+  assert.match(screen, /scrollRef=\{scrollRef\}/);
+  assert.match(read("apps/mobile/src/components/Screen.tsx"), /ref=\{scrollRef\}/);
+  assert.match(read("apps/mobile/src/app/preorders.tsx"), /params: \{ id: group\.productId, section: "preorder" \}/);
+  assert.match(read("apps/mobile/src/app/(tabs)/products.tsx"), /section=\{query\.show === "preorder" \? "preorder" : undefined\}/);
+  assert.match(read("apps/mobile/src/components/seller/StockRows.tsx"), /params: section \? \{ id: product\.id, section \}/);
+});
