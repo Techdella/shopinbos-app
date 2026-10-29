@@ -37,6 +37,7 @@ import { uploadToFolder } from "@/components/media/media-client";
 import { checkShortCode } from "@shared/product-codes";
 import { PREORDER_DEPOSIT_CHOICES, PREORDER_NOTE_MAX, preorderDay, productDepositKobo, shipDateLabel } from "@shared/preorder";
 import { SharePreorder } from "@/components/products/SharePreorder";
+import type { ProductChannelView } from "@/lib/sales-channels/product-view.server";
 
 interface Category {
   id: string;
@@ -111,12 +112,16 @@ interface ProductFormProps {
   isEdit: boolean;
   /** For the SEO tab's previews: the storefront origin and store name. */
   storeOrigin?: string;
+  /** Sell everywhere platforms this store can use, for "Where it sells" (src/lib/sales-channels/product-view.server.ts). */
+  channels?: ProductChannelView[];
   storeName?: string;
   /** The store's other products, for "Customers also like". */
   storeProducts?: RelatedOption[];
 }
 
 const TABS = ["Details", "Visibility and channels", "Price and stock", "Description", "Product page", "SEO"];
+/** Section ids that can be linked to (#preorder), and the tab each is on. */
+const HASH_TABS: Record<string, number> = { channels: 1, preorder: 2 };
 
 const STATUS_OPTIONS = [
   { value: "draft", label: "Draft" },
@@ -139,13 +144,6 @@ const INVENTORY_TYPES = [
   { value: "digital", label: "Digital" },
 ];
 
-const SALES_CHANNELS = [
-  { value: "website", label: "Website" },
-  { value: "instagram", label: "Instagram" },
-  { value: "whatsapp", label: "WhatsApp" },
-  { value: "marketplace", label: "Marketplace" },
-];
-
 const FULFILLMENT_OPTIONS = [
   { value: "merchant_fulfilled", label: "I fulfil it" },
   { value: "dropship", label: "Dropship" },
@@ -163,7 +161,7 @@ function uid() {
   return Math.random().toString(36).slice(2, 9);
 }
 
-export function ProductForm({ product, categories, isEdit, storeOrigin = "", storeName = "Your store", storeProducts = [] }: ProductFormProps) {
+export function ProductForm({ product, categories, isEdit, storeOrigin = "", storeName = "Your store", storeProducts = [], channels = [] }: ProductFormProps) {
   const router = useRouter();
   const t = useT("productTypes");
   const tp = useT("products");
@@ -171,6 +169,19 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [activeTab, setActiveTab] = useState(0);
+  // Links to a part of the form (/products/<id>#preorder from the pre-orders list) open its tab and scroll to it.
+  useEffect(() => {
+    const open = () => {
+      const target = window.location.hash.slice(1);
+      const tab = target ? HASH_TABS[target] : undefined;
+      if (tab === undefined) return;
+      setActiveTab(tab);
+      window.setTimeout(() => document.getElementById(target)?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+    };
+    open();
+    window.addEventListener("hashchange", open);
+    return () => window.removeEventListener("hashchange", open);
+  }, []);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -187,7 +198,6 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
   // "active" is an older spelling of Live; storefronts only sell "published".
   const [status, setStatus] = useState(product?.status === "active" ? "published" : product?.status ?? "draft");
   const [visibility, setVisibility] = useState(product?.visibility ?? "hidden");
-  const [salesChannels, setSalesChannels] = useState<string[]>(product?.salesChannel ? [product.salesChannel] : ["website"]);
   const [featured, setFeatured] = useState(product?.featured ?? false);
   // Search title/description live on the product; the rest of the SEO tab (share card, canonical, noindex,
   // main phrase) is saved to /api/app/seo after the product itself.
@@ -365,10 +375,6 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
     setImages((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
-  const toggleSalesChannel = (ch: string) => {
-    setSalesChannels((prev) => prev.includes(ch) ? prev.filter((c) => c !== ch) : [...prev, ch]);
-  };
-
   /** "Use store settings" or "Choose for this product" for the parts of the page (starting from everything on). */
   const setCustomParts = (custom: boolean) => {
     setBuyBoxChoice(custom ? [...DEFAULT_BUY_BLOCKS] : null);
@@ -425,7 +431,8 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
       fulfillmentType,
       status,
       visibility,
-      salesChannel: salesChannels[0] ?? "website",
+      // Kept as saved: where a product sells comes from Sell everywhere (connected catalogs sync every live product).
+      salesChannel: product?.salesChannel ?? "website",
       inventoryType,
       categoryId: categoryId || undefined,
       tags,
@@ -664,20 +671,35 @@ export function ProductForm({ product, categories, isEdit, storeOrigin = "", sto
                   </Field>
                 </div>
 
-                <fieldset className="m-0 border-0 p-0">
-                  <legend className={field.label}>Sales channels</legend>
-                  <div className="flex flex-wrap gap-2">
-                    {SALES_CHANNELS.map((ch) => {
-                      const on = salesChannels.includes(ch.value);
-                      return (
-                        <label key={ch.value} className={cx("inline-flex min-h-[40px] cursor-pointer items-center gap-2 rounded-full border px-4 text-[14px] font-bold", on ? "border-app-ink bg-app-canvas" : "border-app-line bg-white")}>
-                          <input type="checkbox" checked={on} onChange={() => toggleSalesChannel(ch.value)} className={field.checkbox} />
-                          {ch.label}
-                        </label>
-                      );
-                    })}
-                  </div>
-                </fieldset>
+<div id="channels" className="scroll-mt-24">
+                  <div className={field.label}>Where it sells</div>
+                  <ul className="m-0 grid list-none gap-2 p-0 sm:grid-cols-2">
+                    <li className="flex min-h-[52px] items-center gap-3 rounded-[16px] border border-app-line bg-white px-4 py-2.5">
+                      <Icon name="check" size={15} className={status === "published" ? "shrink-0 text-app-success" : "shrink-0 text-app-ink-faint"} />
+                      <span className="min-w-0">
+                        <span className="block text-[14px] font-bold">Your website</span>
+                        <span className="block text-[12.5px] text-app-ink-soft">{status === "published" ? "Shows on your store" : "Shows once it's Live"}</span>
+                      </span>
+                    </li>
+                    {channels.map((channel) => (
+                      <li key={channel.platform} className="flex min-h-[52px] items-center gap-3 rounded-[16px] border border-app-line bg-white px-4 py-2.5">
+                        <Icon name={channel.connected ? "check" : "plus"} size={15} className={channel.connected && status === "published" ? "shrink-0 text-app-success" : "shrink-0 text-app-ink-faint"} />
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[14px] font-bold">{channel.name}</span>
+                          <span className="block text-[12.5px] text-app-ink-soft">
+                            {channel.connected ? (status === "published" ? "Synced with your other live products" : "Syncs once it's Live") : "Not connected"}
+                          </span>
+                        </span>
+                        {channel.connected ? null : (
+                          <a href="/channels" className="shrink-0 text-[13px] font-bold text-app-ink underline">Connect</a>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="m-0 mt-2 text-[12.5px] text-app-ink-soft">
+                    Connected channels get every live product automatically. Manage them in <a href="/channels" className="font-bold text-app-ink underline">Sell everywhere</a>.
+                  </p>
+                </div>
 
                 <label className="flex cursor-pointer items-start gap-3 rounded-[16px] bg-app-canvas p-4">
                   <input type="checkbox" checked={featured} onChange={(e) => setFeatured(e.target.checked)} className={cx(field.checkbox, "mt-0.5")} />

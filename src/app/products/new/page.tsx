@@ -5,6 +5,7 @@ import { AppPage, PillLink } from "@/components/app-kit";
 import { sellerFrame } from "@/components/seller-core";
 import { buildStorefrontOrigin } from "@/lib/domains/storefront";
 import { getT } from "@/lib/i18n/server";
+import { productChannels } from "@/lib/sales-channels/product-view.server";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,7 @@ export default async function NewProductPage() {
     db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true, customDomain: true } }),
   ]);
   // For "Customers also like".
+  const channels = store ? await productChannels(store.id) : [];
   const others = store
     ? await db.storeProduct.findMany({
         where: { storeId: store.id, status: { not: "archived" } },
@@ -40,6 +42,7 @@ export default async function NewProductPage() {
         product={null}
         categories={categories}
         isEdit={false}
+        channels={channels}
         storeOrigin={store ? buildStorefrontOrigin({ slug: store.slug, customDomain: store.customDomain }) : ""}
         storeName={store?.name}
         storeProducts={others.map((entry) => ({ id: entry.id, name: entry.name, image: entry.images[0] ?? null, price: entry.retailPrice }))}

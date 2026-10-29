@@ -125,7 +125,7 @@ export default async function SellerPreordersPage({ searchParams }: PageProps) {
                   <Thumb src={group.image} label={group.name} size={56} />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <Link href={`/products/${group.productId}`} className="text-[16px] font-extrabold text-app-ink no-underline hover:underline">{group.name}</Link>
+                      <Link href={`/products/${group.productId}#preorder`} className="text-[16px] font-extrabold text-app-ink no-underline hover:underline">{group.name}</Link>
                       {group.product && <Pill tone={group.product.on ? "warning" : "muted"} dot>{group.product.on ? t("preorders.taking") : t("preorders.stopped")}</Pill>}
                     </div>
                     <p className="m-0 mt-1 text-[13.5px] text-app-ink-soft">
