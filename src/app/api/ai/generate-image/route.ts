@@ -52,6 +52,8 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
       logo: Boolean(body.useLogo),
       colours: body.useBrand !== false,
       referenceUrls: references,
+      // Creative templates are finished ads with lettering: render them at full detail.
+      quality: creative ? "high" : undefined,
       path: `generated/${user.id}/${Date.now()}`,
     });
     const plan = await db.user.findUnique({ where: { id: user.id }, select: { aiCredits: true } });

@@ -9,6 +9,7 @@ import { FIELD_TYPES, TEMPLATE_IDS } from "../../cms/fields.ts";
 import { PRINT_KINDS, QR_TARGETS } from "../../../../shared/print-labels.ts";
 import { PACK_FORMATS, PACK_STYLES, PRODUCT_TYPES } from "../../../../shared/packaging.ts";
 import { CREATIVE_CONCEPTS, CREATIVE_PLACEMENTS } from "../../../../shared/creatives.ts";
+import { MAX_PACK_VARIANTS, PACK_CONCEPTS, PACK_SCENES, PACK_SHAPES } from "../../../../shared/pack-concepts.ts";
 import { LOGO_SIZES, LOGO_STYLES } from "../../../../shared/store-logo.ts";
 import { MUSIC_MOODS, REEL_TEMPLATE_IDS, VOICE_GENDERS } from "../../../../shared/video-style.ts";
 import { REX_BUTTON_SHAPES, REX_FONT_PAIRS, REX_LAYOUTS, REX_PAGE_WIDTHS, REX_PRODUCT_RATIOS } from "./studio-plan.ts";
@@ -187,7 +188,7 @@ export const REX_TOOL_SPECS = {
       .object({
         product: product("The product to make a reel for"),
         language: z.enum(REX_VIDEO_LANGUAGES).nullable().describe("Language for the captions and voiceover; null for Pidgin"),
-        template: z.enum(REEL_TEMPLATE_IDS).nullable().describe("float = product floating on a soft brand backdrop (premium), bold = giant word behind the product (food, fashion), pop = brand-colour cards with round wipes (fun), words = fast word punches between photos (sales, launches), grid = collage of photos (a range), classic = full-screen slideshow; null for Rex's pick"),
+        template: z.enum(REEL_TEMPLATE_IDS).nullable().describe("float = product floating on a soft brand backdrop (premium), bold = giant word behind the product (food, fashion), pop = brand-colour cards with round wipes (fun), words = fast word punches between photos (sales, launches), grid = collage of photos (a range), classic = full-screen slideshow, spotlight = dark stage with a sweeping spotlight and gold captions (luxury, perfume, jewellery), split = two-tone diagonal split with a big light headline (clean, premium), zoom = hard beat-synced zoom punches with word-by-word captions (TikTok, sales), magazine = each photo as a magazine cover with the store as masthead and a price sticker (fashion, beauty, hair), ticker = scrolling marquee bands around the product (flash sales, drops), polaroid = instant prints dropping and piling up with handwritten captions (warm, handmade); null for Rex's pick"),
         shots: z.enum(["original", "cutout", "studio", "brand"]).nullable().describe("original = use the photos as they are; cutout = remove backgrounds (best for float, bold, pop); studio = clean studio backdrop in the brand colour; brand = branded ad shots with the logo; null for original"),
         photos: z.array(z.string().trim().max(2000).regex(HTTPS_URL)).max(6).nullable().describe("Pictures to use instead of the product's own photos: ones you just made in this chat or the seller attached; null for the product's photos"),
         voice: z.enum(VOICE_GENDERS).nullable().describe("female or male voice (both Nigerian accent); null for female"),
@@ -445,10 +446,28 @@ export const REX_TOOL_SPECS = {
       })
       .strict(),
   },
+  make_packaging_mockup: {
+    kind: "image",
+    description:
+      "Render a premium, photo-real packaging design mockup of a finished pack (or a whole flavour range) like top brands post on Instagram and Behance, from the product photo and the store's logo and colours. Concepts: mascot (cartoon face with a die-cut window mouth showing the product), mood_range (one character and colour per flavour: happy, sad, angry, greedy), window (smart die-cut window), ingredient_fusion (half product, half hero ingredient, e.g. ice cream x blueberry), flavour_family (same design in candy colours), bold_type, illustrated, ankara, luxe (black and gold foil), retro_badge. For pitching, social posts and briefing a printer; for the print-ready file use design_packaging.",
+    schema: z
+      .object({
+        product: optionalProduct("The product the pack is for (null when it isn't in the store yet; then give name)"),
+        name: z.string().trim().max(80).nullable().describe("Product name to letter on the pack, short (e.g. 'Mixed Nuts'); null to use the product's name"),
+        concept: z.enum(PACK_CONCEPTS).describe("The packaging concept"),
+        shape: z.enum(PACK_SHAPES).nullable().describe("pouch, chip_bag (pillow snack bag), box, carton (gable top), spout_pouch, tub (ice-cream style), jar, bottle, can, tube, sachet or bag; null for the concept's usual pack"),
+        scene: z.enum(PACK_SCENES).nullable().describe("studio (grey mockup backdrop), colour_split (branded poster with the range below), grid (2x2 tiles, one variant each), floating, lifestyle; null to suit the concept"),
+        variants: z.array(z.string().trim().max(40)).max(MAX_PACK_VARIANTS).nullable().describe("Flavour or variant names to show as a range; null for one pack"),
+        tagline: z.string().trim().max(60).nullable().describe("A short line on the pack, e.g. 'Roasted & seasoned'; null for none"),
+        brief: z.string().trim().max(400).nullable().describe("Anything else about the look; null for none"),
+        logo: z.boolean().nullable().describe("Put the store's logo on it; null for yes"),
+      })
+      .strict(),
+  },
   make_creative: {
     kind: "image",
     description:
-      "Make an eye-catching marketing image (with the headline lettered on it) for social media, a story, a Facebook/Instagram ad, the store banner, an email header, a website popup or a campaign poster. Concepts: bold_headline (giant chunky words, products held up around), product_lineup (the range in a row on two-tone colour), witty_metaphor (a clever visual twist with a teasing line), model_with_products (a Nigerian model reacting, products held up), floating_hero, dark_premium, ingredient_splash, flat_lay, minimal_studio. Uses the products' photos as references and the brand colours (and logo when asked).",
+      "Make an eye-catching marketing image (with the headline lettered on it) for social media, a story, a Facebook/Instagram ad, the store banner, an email header, a website popup or a campaign poster. Concepts: bold_headline (giant chunky words, products held up around), product_lineup (the range in a row on two-tone colour), witty_metaphor (a clever visual twist with a teasing line), model_with_products (a Nigerian model reacting, products held up), floating_hero, dark_premium, ingredient_splash, flat_lay, minimal_studio, mascot_pack (the pack as a cartoon character with a window mouth), mood_grid (2x2 tiles, one mood per pack), ingredient_fusion (half product, half ingredient), flavour_family (the range piled in candy colours), render_3d (glossy pastel 3D scene). Uses the products' photos as references and the brand colours (and logo when asked).",
     schema: z
       .object({
         placement: z.enum(CREATIVE_PLACEMENTS).describe("Where it will be used"),

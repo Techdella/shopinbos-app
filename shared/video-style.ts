@@ -46,6 +46,48 @@ export const REEL_TEMPLATES = [
     pace: 2.6,
     cutout: false,
   },
+  {
+    id: "spotlight",
+    name: "Spotlight",
+    blurb: "A dark stage where a sweeping spotlight reveals each product, with gold captions. Luxury, perfume, jewellery, launches.",
+    pace: 2.8,
+    cutout: true,
+  },
+  {
+    id: "split",
+    name: "Split screen",
+    blurb: "A two-tone diagonal split in your brand colours; the product slides in under a big light headline. Clean and premium.",
+    pace: 2.4,
+    cutout: true,
+  },
+  {
+    id: "zoom",
+    name: "Zoom punch",
+    blurb: "Hard zoom-ins on the beat, flashes and captions that pop word by word. High energy for TikTok and sales.",
+    pace: 1.7,
+    cutout: false,
+  },
+  {
+    id: "magazine",
+    name: "Magazine cover",
+    blurb: "Every photo as a glossy magazine cover with your store as the masthead and a price sticker. Fashion, beauty and hair.",
+    pace: 2.6,
+    cutout: false,
+  },
+  {
+    id: "ticker",
+    name: "Sale ticker",
+    blurb: "Scrolling marquee bands of your words wrap around the product. Loud deals, flash sales and drops.",
+    pace: 2.2,
+    cutout: true,
+  },
+  {
+    id: "polaroid",
+    name: "Polaroid stack",
+    blurb: "Photos drop in as instant prints, develop and pile up with handwritten captions. Warm, personal, handmade brands.",
+    pace: 2.4,
+    cutout: false,
+  },
 ] as const;
 
 export type ReelTemplateId = (typeof REEL_TEMPLATES)[number]["id"];
@@ -125,7 +167,10 @@ export function isMusicMood(value: unknown): value is MusicMood {
 
 /** The music mood that suits a template, so a reel sounds right before the seller picks one. */
 export function defaultMood(template: ReelTemplateId): MusicMood {
-  return template === "float" || template === "classic" ? "chill" : template === "bold" || template === "words" ? "afrobeats" : template === "pop" ? "upbeat" : "amapiano";
+  if (template === "spotlight" || template === "magazine") return "luxury";
+  if (template === "float" || template === "classic" || template === "split" || template === "polaroid") return "chill";
+  if (template === "bold" || template === "words" || template === "zoom") return "afrobeats";
+  return template === "pop" ? "upbeat" : "amapiano";
 }
 
 /** Music level under a voice (ducked) and on its own, 0..1. */

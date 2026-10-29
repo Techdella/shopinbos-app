@@ -3542,6 +3542,10 @@ test("Reel styles: timing follows the voice, voices are Nigerian, brand colours 
   assert.ok(v.isReelTemplate("words") && !v.isReelTemplate("x"));
   assert.ok(v.MUSIC_MOODS.every((mood) => v.isMusicMood(mood.id)));
   assert.equal(v.defaultMood("bold"), "afrobeats");
+  assert.equal(v.defaultMood("spotlight"), "luxury");
+  assert.equal(v.defaultMood("zoom"), "afrobeats");
+  assert.ok(["spotlight", "split", "zoom", "magazine", "ticker", "polaroid"].every((id) => v.isReelTemplate(id)), "the new reel styles are templates");
+  assert.equal(new Set(v.REEL_TEMPLATES.map((tpl) => tpl.id)).size, v.REEL_TEMPLATES.length);
   const under = v.musicLevels(1, true);
   assert.ok(under.underVoice < under.base, "music dips under the voice");
   assert.match(v.reelShotPrompt("cutout", { product: "Ankara tote", colours: null }), /transparent.*Keep the product exactly the same/s);

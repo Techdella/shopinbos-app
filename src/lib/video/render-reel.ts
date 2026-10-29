@@ -542,9 +542,307 @@ function drawClassic(ctx: CanvasRenderingContext2D, scene: ReelScene, m: ShotMom
   }
 }
 
+const GOLD = "#E8C77A";
+const HAND_FONT = "\"Segoe Print\", \"Bradley Hand\", \"Marker Felt\", \"Comic Sans MS\", cursive";
+const SERIF_FONT = "Georgia, \"Times New Roman\", serif";
+
+/** How far through the shot's exit (0..1), over its last 0.3 s. */
+const exitOf = (m: ShotMoment) => easeInOut(clamp((m.s - (m.dur - 0.3)) / 0.3));
+
+function drawSpotlight(ctx: CanvasRenderingContext2D, scene: ReelScene, m: ShotMoment) {
+  const { brand } = scene;
+  ctx.fillStyle = mix(brand.secondary, "#000000", 0.78);
+  ctx.fillRect(0, 0, W, H);
+  // The light sweeps in from alternate sides and settles on the product.
+  const sweep = easeInOut(m.s / 0.9);
+  const lx = m.index % 2 === 0 ? W * (-0.1 + 0.6 * sweep) : W * (1.1 - 0.6 * sweep);
+  const glow = ctx.createRadialGradient(lx, H * 0.5, 20, lx, H * 0.5, W * 0.8);
+  glow.addColorStop(0, alpha(mix(brand.primary, "#FFFFFF", 0.65), 0.5));
+  glow.addColorStop(0.5, alpha(brand.primary, 0.12));
+  glow.addColorStop(1, alpha(brand.primary, 0));
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, W, H);
+  ctx.save();
+  ctx.globalAlpha = 0.14 * sweep;
+  const cone = ctx.createLinearGradient(0, 0, 0, H * 0.78);
+  cone.addColorStop(0, "#FFFFFF");
+  cone.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = cone;
+  ctx.beginPath();
+  ctx.moveTo(lx - 30, 0);
+  ctx.lineTo(lx + 30, 0);
+  ctx.lineTo(lx + W * 0.42, H * 0.78);
+  ctx.lineTo(lx - W * 0.42, H * 0.78);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+  ctx.fillStyle = alpha("#FFFFFF", 0.07 * sweep);
+  ctx.beginPath();
+  ctx.ellipse(W / 2, H * 0.76, 300, 42, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  const shot = scene.shots[m.index];
+  const reveal = easeOut((m.s - 0.25) / 0.7);
+  const exit = exitOf(m);
+  ctx.globalAlpha = reveal * (1 - exit);
+  drawContain(ctx, shot.image, W / 2, H * 0.5, W * 0.78, H * 0.5, { scale: 0.92 + 0.08 * reveal + 0.03 * m.p, shadow: true, radius: shot.cutout ? 0 : 24 });
+  ctx.globalAlpha = 1;
+  if (shot.caption) {
+    const show = easeOut((m.s - 0.6) / 0.5) * (1 - exit);
+    ctx.globalAlpha = show;
+    ctx.fillStyle = GOLD;
+    const { size, lines } = fit(ctx, shot.caption.toUpperCase(), (s) => `700 ${s}px ${scene.font}`, W - 160, 58, 30, 2);
+    ctx.font = `700 ${size}px ${scene.font}`;
+    const centre = H * 0.86;
+    centredLines(ctx, lines, W / 2, centre, size * 1.2);
+    ctx.fillRect(W / 2 - 60 * show, centre - ((lines.length - 1) * size * 1.2) / 2 - size * 1.15, 120 * show, 3);
+    ctx.globalAlpha = 1;
+  }
+  drawLogo(ctx, scene, W / 2, 100, 240, 60, "#FFFFFF", Boolean(scene.logo));
+}
+
+function drawSplit(ctx: CanvasRenderingContext2D, scene: ReelScene, m: ShotMoment) {
+  const { brand } = scene;
+  const deep = m.index % 2 === 0 ? brand.primary : brand.secondary;
+  const light = mix(deep, "#FFFFFF", 0.8);
+  ctx.fillStyle = light;
+  ctx.fillRect(0, 0, W, H);
+  const open = easeInOut(m.s / 0.5);
+  ctx.fillStyle = deep;
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(W, 0);
+  ctx.lineTo(W, H * (0.22 + 0.2 * open));
+  ctx.lineTo(0, H * (0.42 + 0.2 * open));
+  ctx.closePath();
+  ctx.fill();
+
+  const shot = scene.shots[m.index];
+  const exit = exitOf(m);
+  if (shot.caption) {
+    const show = easeOut((m.s - 0.15) / 0.45) * (1 - exit);
+    ctx.save();
+    ctx.globalAlpha = show;
+    ctx.fillStyle = textOn(deep);
+    const { size, lines } = fit(ctx, shot.caption, (s) => `300 ${s}px ${scene.font}`, W - 140, 112, 48, 2);
+    ctx.font = `300 ${size}px ${scene.font}`;
+    let y = 150 + size - (1 - show) * 40;
+    for (const line of lines) {
+      ctx.fillText(line, 70, y);
+      y += size * 1.04;
+    }
+    ctx.restore();
+  }
+  const slide = easeOut((m.s - 0.1) / 0.6);
+  const x = W / 2 + (1 - slide) * W * 0.8 - exit * W * 0.8;
+  drawContain(ctx, shot.image, x, H * 0.62, W * 0.8, H * 0.44, { scale: 1 + 0.04 * m.p, rotate: -0.04, shadow: true, radius: shot.cutout ? 0 : 26 });
+  drawLogo(ctx, scene, W / 2, H - 96, 220, 56, textOn(light));
+}
+
+function drawZoom(ctx: CanvasRenderingContext2D, scene: ReelScene, m: ShotMoment) {
+  const shot = scene.shots[m.index];
+  ctx.fillStyle = "#000000";
+  ctx.fillRect(0, 0, W, H);
+  // A hard punch in on the cut, a second smaller one halfway, and a slow creep between.
+  const punch = 1.32 - 0.27 * easeOut(m.s / 0.25);
+  const second = m.s > m.dur * 0.5 ? 0.12 * (1 - easeOut((m.s - m.dur * 0.5) / 0.25)) : 0;
+  const shake = m.s < 0.2 ? Math.sin(m.s * 90) * 12 * (1 - m.s / 0.2) : 0;
+  ctx.save();
+  ctx.translate(shake, 0);
+  drawCover(ctx, shot.image, 0, 0, W, H, punch + second + 0.05 * m.p);
+  ctx.restore();
+  const shade = ctx.createLinearGradient(0, H * 0.5, 0, H);
+  shade.addColorStop(0, "rgba(0,0,0,0)");
+  shade.addColorStop(1, "rgba(0,0,0,0.5)");
+  ctx.fillStyle = shade;
+  ctx.fillRect(0, H * 0.5, W, H * 0.5);
+  if (m.s < 0.1) {
+    ctx.fillStyle = alpha("#FFFFFF", 0.85 * (1 - m.s / 0.1));
+    ctx.fillRect(0, 0, W, H);
+  }
+  if (shot.caption) {
+    // Words pop in one at a time, the newest in the brand colour.
+    const words = shot.caption.toUpperCase().split(/\s+/).filter(Boolean);
+    const per = Math.max(0.22, (m.dur - 0.3) / Math.max(1, words.length));
+    const count = Math.min(words.length, Math.floor(m.s / per) + 1);
+    const { size, lines } = fit(ctx, words.slice(0, count).join(" "), (s) => `900 ${s}px ${scene.font}`, W - 120, 124, 52, 3);
+    ctx.font = `900 ${size}px ${scene.font}`;
+    const bounce = 1 + 0.18 * (1 - easeBack(((m.s - (count - 1) * per) / 0.18)));
+    ctx.save();
+    ctx.translate(W / 2, H * 0.74);
+    ctx.scale(bounce, bounce);
+    ctx.textAlign = "center";
+    ctx.lineJoin = "round";
+    ctx.lineWidth = Math.max(8, size * 0.12);
+    ctx.strokeStyle = "#000000";
+    let y = -((lines.length - 1) * size) / 2 + size * 0.35;
+    lines.forEach((line, i) => {
+      ctx.strokeText(line, 0, y);
+      ctx.fillStyle = i === lines.length - 1 ? scene.brand.primary : "#FFFFFF";
+      ctx.fillText(line, 0, y);
+      y += size;
+    });
+    ctx.restore();
+  }
+  ctx.fillStyle = scene.brand.primary;
+  ctx.fillRect(0, 0, W * m.p, 10);
+  drawLogo(ctx, scene, W - 130, 90, 180, 52, "#FFFFFF", true);
+}
+
+function drawMagazine(ctx: CanvasRenderingContext2D, scene: ReelScene, m: ShotMoment) {
+  const { brand } = scene;
+  const shot = scene.shots[m.index];
+  const enter = easeOut(m.s / 0.5);
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(0, 0, W, H);
+  drawCover(ctx, shot.image, 0, 0, W, H, 1.12 - 0.08 * enter + 0.04 * m.p);
+  const top = ctx.createLinearGradient(0, 0, 0, H * 0.32);
+  top.addColorStop(0, "rgba(0,0,0,0.45)");
+  top.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = top;
+  ctx.fillRect(0, 0, W, H * 0.32);
+  const bottom = ctx.createLinearGradient(0, H * 0.6, 0, H);
+  bottom.addColorStop(0, "rgba(0,0,0,0)");
+  bottom.addColorStop(1, "rgba(0,0,0,0.6)");
+  ctx.fillStyle = bottom;
+  ctx.fillRect(0, H * 0.6, W, H * 0.4);
+
+  // Masthead: the store name, huge, in a classic serif.
+  const mast = scene.storeName.toUpperCase();
+  const { size } = fit(ctx, mast, (s) => `900 ${s}px ${SERIF_FONT}`, W - 80, 200, 70, 1);
+  ctx.font = `900 ${size}px ${SERIF_FONT}`;
+  ctx.fillStyle = "#FFFFFF";
+  ctx.textAlign = "center";
+  ctx.fillText(mast, W / 2, 60 + size * 0.8 - (1 - enter) * 30);
+  ctx.font = `600 22px ${scene.font}`;
+  ctx.fillText(`${String(m.index + 1).padStart(2, "0")} / ${String(scene.shots.length).padStart(2, "0")}  ·  ${scene.storeHost}`, W / 2, 60 + size * 0.8 + 40);
+  ctx.textAlign = "start";
+
+  if (shot.caption) {
+    const show = easeOut((m.s - 0.3) / 0.5);
+    ctx.globalAlpha = show;
+    const fitted = fit(ctx, shot.caption, (s) => `italic 700 ${s}px ${SERIF_FONT}`, W - 140, 92, 44, 3);
+    ctx.font = `italic 700 ${fitted.size}px ${SERIF_FONT}`;
+    let y = H - 170 - (fitted.lines.length - 1) * fitted.size * 1.05 + (1 - show) * 30;
+    ctx.fillStyle = brand.primary;
+    ctx.fillRect(70, y - fitted.size * 1.15, 90 * show, 8);
+    ctx.fillStyle = "#FFFFFF";
+    for (const line of fitted.lines) {
+      ctx.fillText(line, 70, y);
+      y += fitted.size * 1.05;
+    }
+    ctx.globalAlpha = 1;
+  }
+  if (scene.price) {
+    const pop = easeBack((m.s - 0.5) / 0.45);
+    if (pop > 0.01) {
+      ctx.save();
+      ctx.translate(W - 170, H * 0.42);
+      ctx.rotate(0.18);
+      ctx.scale(pop, pop);
+      ctx.fillStyle = brand.primary;
+      ctx.beginPath();
+      ctx.arc(0, 0, 118, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = textOn(brand.primary);
+      ctx.textAlign = "center";
+      const price = fit(ctx, scene.price, (s) => `900 ${s}px ${scene.font}`, 190, 54, 26, 1);
+      ctx.font = `900 ${price.size}px ${scene.font}`;
+      ctx.fillText(scene.price, 0, price.size * 0.35);
+      ctx.restore();
+    }
+  }
+}
+
+function drawTickerBand(ctx: CanvasRenderingContext2D, scene: ReelScene, text: string, y: number, angle: number, colour: string, speed: number, t: number) {
+  ctx.save();
+  ctx.translate(W / 2, y);
+  ctx.rotate(angle);
+  const h = 120;
+  ctx.fillStyle = colour;
+  ctx.fillRect(-W, -h / 2, W * 2, h);
+  ctx.fillStyle = textOn(colour);
+  ctx.font = `900 64px ${scene.font}`;
+  const unit = Math.max(1, ctx.measureText(text).width);
+  const offset = (((t * speed) % unit) + unit) % unit;
+  for (let x = -W - unit + offset; x < W; x += unit) ctx.fillText(text, x, 23);
+  ctx.restore();
+}
+
+function drawTicker(ctx: CanvasRenderingContext2D, scene: ReelScene, m: ShotMoment) {
+  const { brand } = scene;
+  ctx.fillStyle = brand.background;
+  ctx.fillRect(0, 0, W, H);
+  const shot = scene.shots[m.index];
+  const text = `${(shot.caption || scene.storeName).toUpperCase()}  ✦  `;
+  // Continuous time, so the bands keep scrolling across cuts.
+  const t = m.index * m.dur + m.s;
+  drawTickerBand(ctx, scene, text, H * 0.5, -0.06, mix(brand.primary, "#FFFFFF", 0.55), -160, t);
+  const pop = easeBack((m.s - 0.1) / 0.45);
+  if (pop > 0.01) drawContain(ctx, shot.image, W / 2, H * 0.5, W * 0.72, H * 0.42, { scale: pop * (1 + Math.sin(m.s * 3) * 0.015), rotate: Math.sin(m.s * 1.4 + m.index) * 0.04, shadow: true, radius: shot.cutout ? 0 : 26 });
+  drawTickerBand(ctx, scene, text, H * 0.2, -0.09, brand.primary, 220, t);
+  drawTickerBand(ctx, scene, text, H * 0.8, 0.08, brand.secondary, -220, t);
+  drawLogo(ctx, scene, W / 2, 70, 200, 52, brand.ink);
+  if (scene.price) {
+    ctx.font = `900 56px ${scene.font}`;
+    ctx.fillStyle = brand.ink;
+    ctx.textAlign = "center";
+    ctx.fillText(scene.price, W / 2, H - 50);
+    ctx.textAlign = "start";
+  }
+}
+
+function drawPrint(ctx: CanvasRenderingContext2D, scene: ReelScene, i: number, opts: { scale: number; settle: number; develop: number; opacity: number }) {
+  const shot = scene.shots[i];
+  const pw = W * 0.74;
+  const ph = pw * 1.22;
+  const pad = 32;
+  const foot = 170;
+  ctx.save();
+  ctx.globalAlpha = opts.opacity;
+  ctx.translate(W / 2 + (((i * 53) % 7) - 3) * 24, H * 0.45 + (((i * 29) % 5) - 2) * 20);
+  ctx.rotate((((i * 37) % 11) - 5) * 0.024 * opts.settle);
+  ctx.scale(opts.scale, opts.scale);
+  ctx.shadowColor = "rgba(0,0,0,0.22)";
+  ctx.shadowBlur = 36;
+  ctx.shadowOffsetY = 16;
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(-pw / 2, -ph / 2, pw, ph);
+  ctx.shadowColor = "transparent";
+  drawCover(ctx, shot.image, -pw / 2 + pad, -ph / 2 + pad, pw - pad * 2, ph - pad - foot);
+  if (opts.develop < 1) {
+    ctx.fillStyle = alpha("#F4F1EA", 1 - opts.develop);
+    ctx.fillRect(-pw / 2 + pad, -ph / 2 + pad, pw - pad * 2, ph - pad - foot);
+  }
+  ctx.fillStyle = alpha(scene.brand.primary, 0.85);
+  ctx.save();
+  ctx.translate(0, -ph / 2);
+  ctx.rotate(-0.05);
+  ctx.fillRect(-90, -24, 180, 48);
+  ctx.restore();
+  if (shot.caption) {
+    ctx.fillStyle = "#2B2A33";
+    const { size, lines } = fit(ctx, shot.caption, (s) => `600 ${s}px ${HAND_FONT}`, pw - pad * 2, 54, 30, 2);
+    ctx.font = `600 ${size}px ${HAND_FONT}`;
+    centredLines(ctx, lines, 0, ph / 2 - foot / 2 + size * 0.3, size * 1.1);
+  }
+  ctx.restore();
+}
+
+function drawPolaroid(ctx: CanvasRenderingContext2D, scene: ReelScene, m: ShotMoment) {
+  const { brand } = scene;
+  ctx.fillStyle = mix(brand.background, "#000000", 0.05);
+  ctx.fillRect(0, 0, W, H);
+  // The last few prints stay on the pile underneath the new one.
+  for (let i = Math.max(0, m.index - 3); i < m.index; i++) drawPrint(ctx, scene, i, { scale: 1, settle: 1, develop: 1, opacity: 1 });
+  const drop = easeOut(m.s / 0.55);
+  drawPrint(ctx, scene, m.index, { scale: 1.35 - 0.35 * drop, settle: easeBack(m.s / 0.6), develop: clamp((m.s - 0.2) / 0.9), opacity: clamp(m.s / 0.18) });
+  drawLogo(ctx, scene, W / 2, H - 100, 220, 56, brand.ink);
+}
+
 function drawEndCard(ctx: CanvasRenderingContext2D, scene: ReelScene, s: number) {
   const { brand } = scene;
-  const bg = scene.template === "float" || scene.template === "grid" ? brand.secondary : brand.primary;
+  const bg = scene.template === "spotlight" ? mix(brand.secondary, "#000000", 0.78) : ["float", "grid", "split", "polaroid", "magazine"].includes(scene.template) ? brand.secondary : brand.primary;
   const ink = textOn(bg);
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
@@ -605,6 +903,12 @@ export function drawReelFrame(ctx: CanvasRenderingContext2D, scene: ReelScene, t
     else if (scene.template === "pop") drawPop(ctx, scene, m);
     else if (scene.template === "words") drawWords(ctx, scene, m);
     else if (scene.template === "grid") drawGridShot(ctx, scene, m);
+    else if (scene.template === "spotlight") drawSpotlight(ctx, scene, m);
+    else if (scene.template === "split") drawSplit(ctx, scene, m);
+    else if (scene.template === "zoom") drawZoom(ctx, scene, m);
+    else if (scene.template === "magazine") drawMagazine(ctx, scene, m);
+    else if (scene.template === "ticker") drawTicker(ctx, scene, m);
+    else if (scene.template === "polaroid") drawPolaroid(ctx, scene, m);
     else drawClassic(ctx, scene, m);
   } else drawEndCard(ctx, scene, Math.min(endCard, t - shotsEnd));
   ctx.restore();

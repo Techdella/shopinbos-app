@@ -9,6 +9,7 @@ import { useT } from "@/components/i18n/I18nProvider";
 import { useMediaLibrary } from "@/components/media/useMediaLibrary";
 import { BuyCreditsButton, creditsChanged, isCreditsError } from "@/components/credits/CreditsBadge";
 import { PackRender } from "@/components/packaging/PackRender";
+import { PackConceptStudio } from "./PackConceptStudio";
 import { downloadPng, downloadPrintPdf, downloadSvg, thumbnail } from "@/components/packaging/export";
 import { normaliseEan13 } from "@shared/barcodes";
 import { SAMPLE_PHOTOS, sampleDesign } from "@shared/packaging-samples";
@@ -299,6 +300,7 @@ export function PackagingStudio({
     return (
       <div className="grid gap-5">
         {media.dialog}
+        <PackConceptStudio brand={brand} product={chosen} type={type} aiReady={aiReady} />
         <section className="grid gap-4 rounded-[22px] border border-app-line bg-white p-5">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
