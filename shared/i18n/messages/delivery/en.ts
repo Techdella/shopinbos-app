@@ -3,10 +3,11 @@
 // (shared/delivery-market.ts, read through src/components/delivery-market/words.ts with t.dynamic). English is the
 // source of truth; every key must exist in pcm.ts, yo.ts, ha.ts and ig.ts.
 //
-// LEGAL REVIEW: "pod.disclaimer" is the pay-on-delivery disclaimer (POD_DISCLAIMER in shared/delivery-market.ts), and
-// "pod.disclaimerPartner" is the partner's side of it (POD_DISCLAIMER_PARTNER). Their wording is legal: every
-// translation must say exactly the same thing (an arrangement between the business and the partner; the partner
-// collects the cash; settlement is between them; Shopinbos does not handle, hold or guarantee the funds). The translations need legal review as well as native-speaker review before launch.
+// "pod.disclaimer" is the published pay-on-delivery terms (POD_DISCLAIMER in shared/delivery-market.ts), and
+// "pod.disclaimerPartner" the partner's side of them (POD_DISCLAIMER_PARTNER). Every translation must say exactly the
+// same thing: pay on delivery is between the shop, its customer and its delivery partner; the customer pays the shop
+// or its rider at the door as they agree (or in the app); the seller marks it paid; and Shopinbos does not collect,
+// hold or guarantee the money (shared/pay-at-door.ts).
 const en = {
   // ─── Rule words (shared/delivery-market.ts) ───────────────────────────────
   "service.doorstep": "Doorstep delivery",
@@ -44,13 +45,13 @@ const en = {
   "decline.badAddress": "The address is incomplete",
   "decline.other": "Other",
   "decline.none": "No reason given",
-  // Legal wording: needs legal review in every language (see the note at the top).
+  // The published pay-on-delivery terms (see the note at the top).
   "pod.disclaimer":
-    "Pay on delivery is an arrangement between you and your logistics partner. Cash is collected by the partner, and settlement is between you and them. Shopinbos does not handle, hold or guarantee pay-on-delivery funds.",
-  // Legal wording: needs legal review in every language (see the note at the top). The partner's side of
+    "Pay on delivery is between you, your customer and your delivery partner. Your customer pays you or your rider when it arrives, by cash or transfer as you agree, or in the app from their order page; mark the order paid once you have the money. When you take card payments, the delivery fee can be paid at checkout. Shopinbos doesn't collect, hold or guarantee pay-on-delivery money.",
+  // The partner's side of
   // "pod.disclaimer" (POD_DISCLAIMER_PARTNER in shared/delivery-market.ts).
   "pod.disclaimerPartner":
-    "Pay on delivery is an arrangement between you and the shop. Your rider collects the cash from the customer, and you settle it with the shop directly. Shopinbos does not handle, hold or guarantee pay-on-delivery funds.",
+    "Pay on delivery is between you and the shop. The customer pays your rider or the shop at the door, by cash or transfer as you and the shop agree, or in the app. Pass on any cash as you agreed with the shop. Shopinbos doesn't collect, hold or guarantee pay-on-delivery money.",
   "offPlatform.warning":
     "Keep jobs and payments in Shopinbos. In-app jobs are paid automatically, tracked, and count towards your rating. Payments arranged outside the app aren't protected by Shopinbos.",
   "time.sameDay": "Same day",

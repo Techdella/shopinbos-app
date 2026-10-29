@@ -23,8 +23,8 @@ test("pay on delivery is paid only once the money is in, or the seller marked it
   assert.equal(door.payAtDoorDue({ paymentMethod: "transfer", status: "pending" }), false);
 });
 
-test("no payment, no drop: a pay-on-delivery job can't be closed until it's paid; older cash jobs still can", () => {
-  assert.match(door.payAtDoorBlock(pod(), { codAmount: null }), /hasn't paid yet/);
+test("pay on delivery is between the shop, its customer and its rider: Shopinbos never holds a drop for payment", () => {
+  assert.equal(door.payAtDoorBlock(pod(), { codAmount: null }), null, "the rider collects as the shop agreed");
   assert.equal(door.payAtDoorBlock(pod({ paystackStatus: "success" }), { codAmount: null }), null);
   assert.equal(door.payAtDoorBlock(pod(), { codAmount: 12000 }), null, "a job from before carries cash: recorded the old way");
   assert.equal(door.payAtDoorBlock({ paymentMethod: "paystack", status: "paid", paystackStatus: "success" }, { codAmount: null }), null);
@@ -35,16 +35,16 @@ test("no payment, no drop: a pay-on-delivery job can't be closed until it's paid
   assert.match(jobs, /input\.to === "delivered" && job\.orderId[\s\S]{0,300}payAtDoorBlock\(order, job\)/);
 });
 
-test("the code is the customer's proof of payment: hidden until paid, on the page and in messages", () => {
-  assert.equal(door.codeVisible(pod()), false);
+test("the delivery code proves who got the parcel, not that it's paid: always shown, on the page and in messages", () => {
+  assert.equal(door.codeVisible(pod()), true);
   assert.equal(door.codeVisible(pod({ paystackStatus: "success" })), true);
   assert.equal(door.codeVisible({ paymentMethod: "paystack", status: "shipped" }), true);
   assert.match(read("src/app/s/[slug]/order/[orderId]/order-props.ts"), /deliveryCode: codeVisible\(order\)/);
   const messages = read("src/lib/notifications/customer-messages.ts");
-  assert.match(messages, /deliveryCode: unpaid \? null : job\.deliveryCode/);
-  assert.match(messages, /if \(unpaid && \(to === "out_for_delivery" \|\| to === "at_pickup_point"\)\) \{[\s\S]{0,160}sendPayAtDoorLink\(order\.id\)/);
-  // The rider's photo-instead-of-code shortcut is gone for pay on delivery on the phone (the server blocks it anyway).
-  assert.match(read("apps/mobile/src/app/rider/job.tsx"), /!ok && !drop\.payInApp \?/);
+  assert.match(messages, /deliveryCode: job\.deliveryCode,/);
+  assert.doesNotMatch(messages, /if \(unpaid && \(to === "out_for_delivery"/, "no in-app-only payment link instead of the usual messages");
+  // The rider's photo-instead-of-code option is there for every drop.
+  assert.match(read("apps/mobile/src/app/rider/job.tsx"), /\{!ok \? <TextLink title=\{say\("noCode\.link"\)\}/);
 });
 
 test("door payments: their own reference, verified with Paystack, split like a card order, recorded once", () => {

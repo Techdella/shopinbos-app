@@ -64,9 +64,9 @@ test("pay on delivery with a delivery partner needs the seller's own switch and 
   assert.match(pay.partnerPayOnDeliveryRules(settings, { ...within, total: 80_000 }, true), /up to ₦50,000/, "the seller's cap still applies");
   assert.equal(pay.partnerPayOnDeliveryRules({ ...settings, codLimit: null }, { ...within, total: 80_000 }, true), null);
   assert.equal(pay.payOnDeliveryOption().key, "pay_on_delivery");
-  assert.deepEqual(pay.checkoutPaymentOptions({ ...settings, methods: { cod: true }, zones: [] }), [], "switched off: never listed");
-  // Switched off everywhere for now: the public check says so whatever the settings.
-  assert.equal(pay.partnerPayOnDeliveryBlock(settings, within, true), pay.PAY_ON_DELIVERY_OFF_MESSAGE);
+  assert.deepEqual(pay.checkoutPaymentOptions({ ...settings, methods: { cod: true }, zones: [] }).map((option) => option.key), ["pay_on_delivery"], "the seller's own switch");
+  // On: the public check is the rules above.
+  assert.equal(pay.partnerPayOnDeliveryBlock(settings, within, true), null);
   // The checkout page (partnerPaymentOptions) and the checkout API both decide with it.
   assert.match(read("src/components/storefront/checkout/PartnerDelivery.tsx"), /partnerPayOnDeliveryBlock\(settings, context, option\.pod === true\)/);
   assert.doesNotMatch(read("src/components/storefront/checkout/PartnerDelivery.tsx"), /methods: \{ cod: true \}/);

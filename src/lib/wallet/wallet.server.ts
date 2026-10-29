@@ -329,8 +329,9 @@ export async function splitPlanForOrder(
     return price === undefined ? sum : sum + Math.round(price * 100) * Math.max(1, Math.floor(Number(line.quantity) || 1));
   }, 0);
   const commissionPctOf = new Map(suppliers.map((supplier) => [supplier.id, supplierCommissionPct(book, planKeyFor("supplier", supplier.user?.aiCredits))]));
-  // Overdue money owed by the seller or a supplier paid in this split goes to whoever it's owed to (src/lib/money-owed).
-  const debtors = new Map<string, string>([[store.userId, "seller"]]);
+  // Overdue money a supplier paid in this split owes a shop goes to that shop (src/lib/money-owed). Never the
+  // seller's own share: the shop is the seller's business, so what it owes is paid in the app, not taken from sales.
+  const debtors = new Map<string, string>();
   for (const supplier of suppliers) if (subaccountBySupplier.get(supplier.id)) debtors.set(supplier.userId, supplier.id);
   const deliveryPartners = delivery.length
     ? await db.logisticsPartner.findMany({ where: { id: { in: [...new Set(delivery.map((share) => share.partnerId))] } }, select: { id: true, userId: true } })

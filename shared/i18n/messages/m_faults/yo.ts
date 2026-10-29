@@ -37,6 +37,12 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "earn.problems": "Lẹ́yìn ìṣòro lórí order yìí",
   "earn.estimate": "A ṣírò rẹ̀ láti inú order: owó náà kò pín níbi checkout.",
   "problems.title": "Ìṣòro lórí order yìí",
+  "problems.yourCall": "Ìpinnu rẹ",
+  "problems.handling": "O ń bójú tó o",
+  "problems.suggested": "Ohun tí a dábàá: {line}",
+  "problems.customerWould": "A óò sọ fún oníbàárà rẹ pé: {line}",
+  "problems.accept": "Gbà á",
+  "problems.myself": "Èmi yóò bójú tó o fúnra mi",
 
   "returns.title": "Ìbéèrè ìdápadà",
   "returns.status.requested": "Ó ń dúró dè ọ́",

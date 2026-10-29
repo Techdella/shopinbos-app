@@ -6,15 +6,14 @@ import { requireRole } from "@/lib/server-auth";
 import { disputeView } from "@/lib/faults/disputes.server";
 import { isFaultEvent } from "@shared/fault-matrix";
 import { issueKindLabel } from "../issues.server";
-import { DisputeBody } from "./DisputeView";
+import { DisputeBody } from "@/components/faults/DisputeView";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Decide a problem" };
+export const metadata: Metadata = { title: "Problem report" };
 
-// One customer report ("Report a problem": wrong item, damaged, not received) for the team: every photo side by side
-// (the supplier's item in the open box and sealed parcel, the rider's pickup and handover photos, the customer's),
-// the outcome the evidence points to (shared/fault-matrix.ts suggestFault) pre-selected, and what the chosen outcome
-// means for the customer, the supplier, the shop and the delivery partner, in naira. Confirming applies it once.
+// One customer report ("Report a problem": wrong item, damaged, not received), read-only for the team: the evidence
+// and what the shop decided. The shop is the seller's business, so the seller decides on their customer's report
+// (src/app/home/orders/[id]/problems/[issueId]); the team referees only disputes between businesses (Money owed).
 
 export default async function DisputePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams?: Promise<{ event?: string; remedy?: string; part?: string }> }) {
   const user = await requireRole(["admin"], "/admin/login");

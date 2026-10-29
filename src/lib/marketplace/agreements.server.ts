@@ -97,6 +97,10 @@ export async function supplierContact(supplierId: string) {
   return { phone: row?.whatsappNumber || row?.user.phone || null, address: [row?.address, row?.city].filter(Boolean).join(", ") || null };
 }
 
+/** Days a supplier without a wallet can still be dropshipped after the first shop tries (warning, then block). */
+export const WALLET_GRACE_DAYS = 14;
+export const walletDeadline = (askedAt: Date) => new Date(askedAt.getTime() + WALLET_GRACE_DAYS * 86_400_000);
+
 export type GateResult = { ok: true } | { ok: false; code: "AGREEMENT_NEEDED" | "AGREEMENT_WAITING" | "AGREEMENT_DECLINED" | "TOO_FAR" | "NO_PLACE" | "PAUSED" | "NOT_AVAILABLE" | "NOT_PAYABLE"; message: string };
 
 /**
@@ -104,29 +108,47 @@ export type GateResult = { ok: true } | { ok: false; code: "AGREEMENT_NEEDED" | 
  * call, the stock check and both sides' agreement come before any listing.
  */
 export async function listingCheck(sellerId: string, supplierId: string): Promise<GateResult> {
-  const [supplier, agreement, sellerUser] = await Promise.all([
+  const [supplier, agreement] = await Promise.all([
     db.supplier.findFirst({ where: { id: supplierId, ...VISIBLE_SUPPLIER }, select: { displayName: true, userId: true } }),
     db.supplierAgreement.findUnique({ where: { sellerId_supplierId: { sellerId, supplierId } }, select: { status: true } }),
-    db.user.findUnique({ where: { id: sellerId }, select: { debtPausedAt: true } }),
   ]);
   if (!supplier) return { ok: false, code: "NOT_AVAILABLE", message: "This supplier isn't taking new shops right now." };
-  if (sellerUser?.debtPausedAt) return { ok: false, code: "PAUSED", message: "Pay what you owe in your Shopinbos Wallet before listing new supplier products." };
   // ₦0 capital: a dropshipped supplier is paid from the customer's own payment, which needs their Shopinbos Wallet
-  // (a Paystack split account). Without it the seller would pay the supplier from their own share, so no new listings
-  // until it's set up; the supplier is told a shop is waiting (once a week).
+  // (a Paystack split account); without it the seller pays the supplier from their own share. Warning, then block:
+  // the first time a shop tries, the supplier gets WALLET_GRACE_DAYS to set it up (shops can still list them, and are
+  // told); after that no new listings until it's ready.
   const wallet = await db.wallet.findFirst({ where: { userId: supplier.userId, status: "active", subaccountStatus: "active" }, select: { id: true } });
   if (!wallet) {
+    const now = new Date();
+    await db.supplier.updateMany({ where: { id: supplierId, walletAskedAt: null }, data: { walletAskedAt: now } });
+    const asked = (await db.supplier.findUnique({ where: { id: supplierId }, select: { walletAskedAt: true } }))?.walletAskedAt ?? now;
+    const deadline = walletDeadline(asked);
+    const blocked = now.getTime() >= deadline.getTime();
+    const day = deadline.toLocaleDateString("en-NG", { day: "numeric", month: "long", timeZone: "Africa/Lagos" });
     await createNotification({
       userId: supplier.userId,
       type: "dropshipping",
-      priority: "warning",
-      title: "A shop wants to dropship your products",
-      description: "Set up your Shopinbos Wallet so you're paid straight from each customer's payment. Shops can't list your products to dropship until it's ready.",
+      priority: blocked ? "critical" : "warning",
+      title: blocked ? "Shops can't dropship your products until your wallet is ready" : "A shop wants to dropship your products",
+      description: blocked
+        ? "Set up your Shopinbos Wallet so you're paid straight from each customer's payment. Shops can list your products to dropship again once it's ready."
+        : `Set up your Shopinbos Wallet by ${day} so you're paid straight from each customer's payment. After that, shops can't list your products to dropship until it's ready.`,
       link: "/supplier/wallet",
       event: "supplier.update",
-      dedupeKey: `supplier.wallet-needed:${supplierId}:${Math.floor(Date.now() / (7 * 86_400_000))}`,
+      dedupeKey: `supplier.wallet-needed:${supplierId}:${blocked ? "blocked" : "warned"}:${Math.floor(now.getTime() / (7 * 86_400_000))}`,
     }).catch(() => null);
-    return { ok: false, code: "NOT_PAYABLE", message: `${supplier.displayName} can't be paid automatically yet, so you'd have to pay them yourself. We've asked them to set up their wallet; try again once they have.` };
+    if (blocked) return { ok: false, code: "NOT_PAYABLE", message: `${supplier.displayName} can't be paid automatically yet, so you'd have to pay them yourself. We've asked them to set up their wallet; try again once they have.` };
+    // Still in the warning period: the shop can list, and is told what that means (once per supplier).
+    await createNotification({
+      userId: sellerId,
+      type: "dropshipping",
+      priority: "warning",
+      title: `${supplier.displayName} hasn't set up payouts yet`,
+      description: `Until they do, you pay ${supplier.displayName} yourself for orders of their products (it shows in your wallet). From ${day}, new listings from them wait until it's ready.`,
+      link: "/home/wallet",
+      event: "supplier.update",
+      dedupeKey: `seller.supplier-wallet:${sellerId}:${supplierId}`,
+    }).catch(() => null);
   }
   // Any distance, with or without a city in Settings (far suppliers are marked: delivery from them may cost more).
   if (agreement?.status === "active") return { ok: true };

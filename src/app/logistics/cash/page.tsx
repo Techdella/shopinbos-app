@@ -144,6 +144,8 @@ export default async function LogisticsCashPage({ searchParams }: { searchParams
 
       <StatGrid className="mb-5">
         <StatTile tone="card" label={t("cash.toPayIn")} value={naira(owed)} hint={owed > 0 ? `${late ? t("cash.lateNow") : t("today.payInWhen", { when: due.words })} · ${t("cash.jobs", { count: heldCash.length })}` : credit > 0 ? t("cash.extraKept", { amount: naira(credit) }) : t("cash.nothingOwed")} />
+        {/* The partner's one number: cash held against their limit (LogisticsPartner.codCashCap, shared/dropship-rules.ts podCashCap). */}
+        <StatTile tone="card" label={t("cash.holdingTitle")} value={naira(held)} hint={held > partner.codCashCap ? t("cash.overLimit", { cap: naira(partner.codCashCap) }) : t("cash.ofLimit", { cap: naira(partner.codCashCap), left: naira(partner.codCashCap - held) })} />
         <StatTile tone="card" label={t("cash.toCollectOpen")} value={naira(toCollect.reduce((total, job) => total + job.cash, 0))} hint={t("cash.jobs", { count: toCollect.length })} />
         <StatTile tone="card" label={t("cash.collectedToday")} value={naira(sum(collectedToday))} hint={t("cash.byTransfer", { count: collectedToday.filter((row) => row.codMethod === "transfer").length })} />
         <StatTile tone="card" label={t("cash.paidIn30")} value={naira(paidInMonth)} hint={t("cash.collectedInCash", { amount: naira(sum(collectedRecent.filter((row) => row.codMethod === "cash"))) })} />

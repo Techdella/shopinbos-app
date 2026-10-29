@@ -264,7 +264,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 
   // Pay on delivery: what's charged now (the delivery fee, in kobo; 0 when delivery is free). shared/pay-at-door.ts.
   // What the customer pays for delivery: the fee less any free-delivery discount.
-  const podFeeNow = paymentMethod === "pay_on_delivery" ? podFeeKobo(shippingFee - (priced.totals.deliveryDiscount ?? 0)) : 0;
+  // The delivery fee upfront only when the store takes card payments; otherwise it's all paid at the door, as the
+  // seller arranges (shared/pay-at-door.ts).
+  const podFeeNow = paymentMethod === "pay_on_delivery" && paymentSettings.paystackReady ? podFeeKobo(shippingFee - (priced.totals.deliveryDiscount ?? 0)) : 0;
 
   let order: Awaited<ReturnType<typeof db.retailOrder.create>>;
   try {
@@ -425,7 +427,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       paymentNote: deposit
         ? `Pre-order: pay ${money(deposit.payNowKobo / 100)} now by card. The rest, ${money(deposit.balanceKobo / 100)}, is due when it's ready to ship. We'll email you a link to pay it.`
         : podFeeNow > 0
-          ? `Pay the delivery fee, ${money(podFeeNow / 100)}, now to confirm your order. You pay the rest, ${money(total - podFeeNow / 100)}, in the app when it arrives, after you check it. No cash.`
+          ? `Pay the delivery fee, ${money(podFeeNow / 100)}, now to confirm your order. You pay the rest, ${money(total - podFeeNow / 100)}, when it arrives, as the store arranges.`
           : buyerPaymentText(paymentMethod),
       // Pay on delivery with free delivery is confirmed now; anything paid online is a summary until the money arrives.
       paid: paymentMethod === "pay_on_delivery" && podFeeNow === 0,

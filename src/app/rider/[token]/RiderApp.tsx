@@ -19,9 +19,9 @@ export interface RiderDrop {
   buyerName: string | null;
   /** E.164, e.g. +2348034127790. */
   buyerPhone: string | null;
-  /** Cash to collect: only older jobs. Pay on delivery is paid in the app at the door (payInApp). */
+  /** Cash to collect: only older jobs. Pay on delivery (payInApp) is paid as the shop agreed, or in the app. */
   collect: number;
-  /** Pay on delivery: the customer pays in the app and gets the code; `url` is their order page (the QR code). */
+  /** Pay on delivery: paid at the door as the shop agreed (cash or transfer), or in the app; `url` is their order page (the QR code). */
   payInApp?: { amount: number; paid: boolean; url: string } | null;
   item: string;
 }

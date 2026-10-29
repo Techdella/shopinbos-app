@@ -2,7 +2,7 @@ import { Card, CardHead, Pill } from "@/components/app-kit";
 import { Notice } from "@/components/app-ui";
 import { getT } from "@/lib/i18n/server";
 import type { RefundView } from "@/lib/commerce/order-refunds.server";
-import { markRefundSentAction } from "./refund-actions";
+import { markRefundSentAction, resendRefundAction } from "./refund-actions";
 
 // Refunds the seller sends from their own bank, guided (shared/order-refunds.ts): the customer's checked account,
 // "Refund sent", and whether the customer got it. Shopinbos never holds the money; who pays the seller back is decided
@@ -60,7 +60,14 @@ export async function RefundsCard({ orderId, refunds, money, flash }: {
                 </form>
               )}
               {refund.status === "sent" && <div className="text-[13px] text-app-ink-soft">{t("refunds.sentWaiting", { name: refund.accountName ?? refund.account })}</div>}
-              {refund.status === "disputed" && <div className="text-[13px] font-bold text-app-danger">{t("refunds.disputed")}</div>}
+              {refund.status === "disputed" && (
+                <form action={resendRefundAction} className="grid gap-2">
+                  <input type="hidden" name="orderId" value={orderId} />
+                  <input type="hidden" name="refundId" value={refund.id} />
+                  <div className="text-[13px] font-bold text-app-danger">{t("refunds.disputed")}</div>
+                  <button type="submit" className="min-h-[40px] justify-self-start rounded-full border border-app-line bg-white px-4 text-[13.5px] font-bold">{t("refunds.sendAgain")}</button>
+                </form>
+              )}
             </li>
           ))}
         </ul>

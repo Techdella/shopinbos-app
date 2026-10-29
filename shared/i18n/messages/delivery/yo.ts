@@ -1,5 +1,5 @@
 // Draft: needs native-speaker review
-// "pod.disclaimer" and "pod.disclaimerPartner" are legal wording: they also need legal review (see the note in en.ts).
+// "pod.disclaimer" and "pod.disclaimerPartner" are the published pay-on-delivery terms: they must say exactly what en.ts says.
 import type en from "./en.ts";
 
 const yo: Partial<Record<keyof typeof en, string>> = {
@@ -38,8 +38,10 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "decline.badAddress": "Àdírẹ́sì náà kò pé",
   "decline.other": "Ìdí mìíràn",
   "decline.none": "Wọn kò sọ ìdí",
-  "pod.disclaimer": "Pay on delivery jẹ́ àdéhùn láàrin ìwọ àti logistics partner rẹ. Partner ni ó ń gba cash náà, settlement sì wà láàrin ìwọ àti wọn. Shopinbos kì í fọwọ́ kan owó pay on delivery, kì í dì í mú, kì í sì í ṣe ìdánilójú rẹ̀.",
-  "pod.disclaimerPartner": "Pay on delivery jẹ́ àdéhùn láàrin ìwọ àti ṣọ́ọ̀bù náà. Rider rẹ ni ó ń gba cash náà lọ́wọ́ oníbàárà, ìwọ àti ṣọ́ọ̀bù náà ni ẹ sì máa ṣe settlement rẹ̀ tààrà. Shopinbos kì í fọwọ́ kan owó pay on delivery, kì í dì í mú, kì í sì í ṣe ìdánilójú rẹ̀.",
+  "pod.disclaimer":
+    "Pay on delivery wà láàrin ìwọ, oníbàárà rẹ àti delivery partner rẹ. Oníbàárà rẹ yóò san owó fún ọ tàbí rider rẹ nígbà tí ó bá dé, pẹ̀lú cash tàbí transfer bí ẹ ṣe fohùn ṣọ̀kan, tàbí nínú app láti ojú-ìwé order wọn; samisi order náà gẹ́gẹ́ bí èyí tí a ti san lẹ́yìn tí owó bá dé ọ̀dọ̀ rẹ. Tí o bá ń gba ìsanwó kaadi, oníbàárà lè san owó ìfijíṣẹ́ nígbà checkout. Shopinbos kì í gba, kì í dì mú, kì í sì í ṣe ìdánilójú owó pay on delivery.",
+  "pod.disclaimerPartner":
+    "Pay on delivery wà láàrin ìwọ àti ṣọ́ọ̀bù náà. Oníbàárà yóò san owó fún rider rẹ tàbí ṣọ́ọ̀bù ní ẹnu ọ̀nà, pẹ̀lú cash tàbí transfer bí ìwọ àti ṣọ́ọ̀bù ṣe fohùn ṣọ̀kan, tàbí nínú app. Fi cash èyíkéyìí lé wọn lọ́wọ́ bí ẹ ṣe fohùn ṣọ̀kan. Shopinbos kì í gba, kì í dì mú, kì í sì í ṣe ìdánilójú owó pay on delivery.",
   "offPlatform.warning": "Ẹ jẹ́ kí iṣẹ́ àti ìsanwó wà nínú Shopinbos. Ìsanwó fún iṣẹ́ inú app máa ń ṣẹlẹ̀ fúnra rẹ̀, a máa ń tọpinpin iṣẹ́ náà, ó sì máa ń kà kún rating rẹ. Shopinbos kò dáàbò bo ìsanwó tí ẹ bá ṣètò lóde app.",
   "time.sameDay": "Ọjọ́ kan náà",
   "time.days": "{count, plural, other {ọjọ́ #}}",

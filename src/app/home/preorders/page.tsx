@@ -11,7 +11,7 @@ import { formatDate, formatMoney } from "@shared/i18n";
 import type { PreorderStage, StorePreorderStage } from "@shared/preorder";
 import { sellerWholesaleRows, storePreorders } from "@/lib/supplier-orders/preorders.server";
 import { WHOLESALE_PAY_PREFIX, confirmWholesalePayment } from "@/lib/supplier-orders/wholesale-payments.server";
-import { storeBalancePaidAction, storeCancelUnpaidBalanceAction, storeEndPreordersAction, storeStockReadyAction } from "@/app/actions/preorders";
+import { storeBalancePaidAction, storeCancelUnpaidBalanceAction, storeEndPreordersAction, storeStartPreorderAction, storeStockReadyAction } from "@/app/actions/preorders";
 
 export const dynamic = "force-dynamic";
 
@@ -48,6 +48,32 @@ export default async function SellerPreordersPage({ searchParams }: PageProps) {
     sellerWholesaleRows(user.id, { onlyPreorders: true }),
   ]);
   const fromSuppliers = orders.filter((order) => order.preorder);
+  // "Take pre-orders": the store's own products not taking them yet (dropship ones follow their supplier).
+  const startable = store && view === "shop"
+    ? await db.storeProduct.findMany({ where: { storeId: store.id, preorderEnabled: false, status: { not: "archived" }, fulfillmentType: { not: "dropship" }, inventoryType: { not: "dropshipping" } }, orderBy: { name: "asc" }, take: 300, select: { id: true, name: true } })
+    : [];
+  const today = new Date().toISOString().slice(0, 10);
+  const startCard = startable.length ? (
+    <Card className="mb-4 p-4 sm:p-5">
+      <h2 className="m-0 text-[16px] font-extrabold">{t("preorders.start.title")}</h2>
+      <p className="m-0 mt-1 text-[13.5px] text-app-ink-soft">{t("preorders.start.sub")}</p>
+      <form action={storeStartPreorderAction} className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_200px_auto] sm:items-end">
+        <label className="grid min-w-0 gap-1 text-[13px] font-bold">
+          {t("preorders.start.product")}
+          <select name="productId" required defaultValue="" className="h-11 w-full min-w-0 rounded-full border border-app-line bg-white px-4 text-[14px] font-normal">
+            <option value="" disabled>{t("preorders.start.pick")}</option>
+            {startable.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
+          </select>
+        </label>
+        <label className="grid min-w-0 gap-1 text-[13px] font-bold">
+          {t("preorders.start.shipsAt")}
+          <input type="date" name="shipsAt" min={today} className="h-11 w-full min-w-0 rounded-full border border-app-line bg-white px-4 text-[14px] font-normal" />
+        </label>
+        <button type="submit" className="inline-flex min-h-[44px] items-center justify-center whitespace-nowrap rounded-full bg-app-ink px-5 text-[14px] font-extrabold text-white">{t("preorders.start.submit")}</button>
+      </form>
+      <p className="m-0 mt-2 text-[12.5px] text-app-ink-soft">{t("preorders.start.terms")}</p>
+    </Card>
+  ) : null;
 
   const notice = params.error
     ? { tone: "error" as const, text: params.error }
@@ -83,6 +109,8 @@ export default async function SellerPreordersPage({ searchParams }: PageProps) {
           <Notice tone={notice.tone}>{notice.text}</Notice>
         </div>
       )}
+
+      {view === "shop" ? startCard : null}
 
       {view === "shop" ? (
         shop.groups.length === 0 ? (

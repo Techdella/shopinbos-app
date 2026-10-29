@@ -175,7 +175,7 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
   const marketDelivery = liveMarket?.value ?? null;
   const deliveryChoice = partners
     ? { covered: marketDelivery?.covered ?? true, options: marketDelivery?.options ?? [] }
-    : deliveryOptionsFor(commerce.zones, commerce.flatRate, address, itemsTotal);
+    : deliveryOptionsFor(commerce.zones, commerce.flatRate, address, itemsTotal, commerce.handlingDays);
   const delivery = chooseDelivery(deliveryChoice, deliveryOptionId);
   const marketOption = partners ? marketDelivery?.options.find((option) => option.id === delivery.option?.id) ?? null : null;
   const marketProblem = partners && !preview ? partnerDeliveryProblem({ hasAddress, pending: marketPending, delivery: marketDelivery }) : null;

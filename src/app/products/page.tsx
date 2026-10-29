@@ -167,6 +167,8 @@ export default async function ProductsPage({
           </a>
           {/* Many photos at once: Peggy names them, the seller prices them by chatting. */}
           <PillLink href="/products/bulk" icon="sparkle">{tBulk("entry.title")}</PillLink>
+          {/* Pre-orders: sell before the stock arrives, switched on per product from one place (/home/preorders). */}
+          <PillLink href="/home/preorders?view=shop" icon="clock" iconOnlyOnPhone>{t("list.preorders")}</PillLink>
           <PillLink href="/products/new" tone="accent" icon="plus" className="max-sm:px-3.5">{t("addProduct")}</PillLink>
         </>
       }

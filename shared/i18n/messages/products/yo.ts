@@ -15,6 +15,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "vis.collection_only": "Collections nìkan",
   "vis.hidden": "Ó farapamọ́",
   "list.import": "Gbé wọlé",
+  "list.preorders": "Pre-order",
   "list.export": "Gbé jáde",
   addProduct: "Fi ọjà kún un",
   "list.search": "Wá orúkọ tàbí SKU",

@@ -717,19 +717,19 @@ export function canOfferPayOnDelivery(partner: { level?: string | null; codPause
 
 /** canOfferPayOnDelivery's rules, as they apply once pay on delivery is switched back on. */
 export function canOfferPayOnDeliveryRules(partner: { level?: string | null; codPaused?: boolean | null; verificationStatus?: string | null }): boolean {
-  if (partner.verificationStatus !== undefined && partner.verificationStatus !== "verified") return false;
-  return !partner.codPaused;
+  // Verified partners can offer it; the rest is between them and the shops they work with (no Shopinbos cash rules).
+  return partner.verificationStatus === undefined || partner.verificationStatus === "verified";
 }
 
 export const POD_LOCKED_MESSAGE =
-  "Pay on delivery opens once your company is verified (ID and selfie). Customers pay in the app at the door and give your rider a code, so riders never carry cash.";
+  "Pay on delivery opens once your company is verified (ID and selfie). How customers pay at the door is agreed between you and each shop.";
 
 /** Pay on delivery at the door, as partners and riders are told it (shared/pay-at-door.ts has the rules). */
 export const PAY_AT_DOOR_STEPS = [
-  "The customer pays the delivery fee when they order, so your trip is always paid.",
-  "At the door they check the parcel, then pay the rest in the app: transfer, card or USSD. Your rider never takes cash.",
-  "Once the money is in, the customer gets a 4-digit code. Your rider types it to finish the drop. No code, no drop.",
-  "No payment after 10 minutes, or they refuse? Bring the parcel back. You're still paid for the trip.",
+  "When the shop takes card payments, the customer pays the delivery fee when they order.",
+  "At the door they pay as you and the shop agreed: cash or transfer to your rider or the shop, or in the app.",
+  "The customer gives your rider the 4-digit delivery code to finish the drop.",
+  "Cash your rider collects goes to the shop as you agreed with them. Shopinbos doesn't hold it.",
 ] as const;
 
 export const INTERSTATE_LOCKED_MESSAGE =

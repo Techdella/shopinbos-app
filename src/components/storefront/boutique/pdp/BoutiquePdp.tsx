@@ -347,7 +347,7 @@ export function BoutiquePdp(props: Props) {
             ) : null}
           </div>
         ) : null}
-        {/* Verified supplier · Verified delivery · Paid-at-checkout protection, only when true, never naming the supplier. */}
+        {/* Verified supplier · Verified delivery · Secure checkout, only when true, never naming the supplier. */}
         {trustLines(seller?.trust).length ? (
           <ul className="grid gap-1.5 border-b pb-3" style={{ borderColor: t.border }} data-testid="pdp-trust">
             {trustLines(seller?.trust).map((line) => (

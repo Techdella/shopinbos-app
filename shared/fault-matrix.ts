@@ -19,6 +19,9 @@
 // | Pay on delivery refused           | Loses the fee paid upfront      | Gets item back                  | No margin                 | Paid for trip, no cash handled    |
 //
 // "The photo of the sealed parcel at handover is what decides most disputes": suggestFault reads the evidence.
+// The shop is the seller's business (like Shopify): every outcome here is a suggestion the seller accepts or not
+// (src/lib/faults: proposed cases, the seller's decision on a report). Shopinbos doesn't decide between a shop and
+// its customer; money between businesses follows the agreements they signed.
 
 export const FAULT_EVENTS = ["out_of_stock", "shipped_late", "wrong_item", "damaged_in_transit", "customer_unreachable", "changed_mind", "pod_refused"] as const;
 export type FaultEvent = (typeof FAULT_EVENTS)[number];
@@ -427,12 +430,12 @@ export function suggestFault(kind: ReportKind | string, evidence: FaultEvidence)
     if (evidence.pickedUp) return { event: "damaged_in_transit", why: evidence.delivered ? "Marked delivered without a handover photo: treated as lost after pickup." : "Picked up and never delivered: lost after pickup." };
     return { event: "shipped_late", why: "It never left the sender." };
   }
-  return { event: null, why: "A late delivery: the customer can cancel once the ship-by date passes." };
+  return { event: null, why: "A late delivery: once the ship-by date passes, the customer can ask you to cancel it." };
 }
 
 /**
  * A failed delivery the customer caused (the Riders app's reasons: not answering, not there, refused, wrong address,
- * couldn't pay), so it's resolved on its own when the parcel is back. Anything else waits for the team.
+ * couldn't pay), so an outcome is suggested to the seller when the parcel is back. Anything else the seller sorts out.
  */
 export function customerSideFailure(reason: string | null | undefined) {
   return /customer|address|refus|couldn't pay|could not pay|not at|unreachable|didn't pick/i.test(reason ?? "");

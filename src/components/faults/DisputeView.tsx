@@ -3,8 +3,11 @@ import { formatDate } from "@/components/admin/AdminKit";
 import { FAULT_LABELS, type FaultEvent, type FaultOutcome, type Party } from "@shared/fault-matrix";
 import { DisputeDecision } from "./DisputeDecision";
 
-// The body of the team's dispute page (src/app/admin/delivery-issues/[id]/page.tsx): every photo side by side, the
-// outcome the evidence points to, what the chosen outcome means for each party, and the decision. Data in, no queries.
+// A customer's report ("Report a problem": wrong item, damaged, not received) with every photo side by side (the
+// supplier's item in the open box and sealed parcel, the rider's pickup and handover photos, the customer's), the
+// outcome the evidence points to (shared/fault-matrix.ts suggestFault) pre-selected, and what the chosen outcome means
+// for the customer, the supplier, the shop and the delivery partner. The shop is the seller's business: the seller
+// decides (src/app/home/orders/[id]/problems/[issueId]); the team's admin page shows it read-only.
 
 export interface DisputeBodyProps {
   issue: { id: string; message: string | null; photos: string[]; status: string };
@@ -15,6 +18,8 @@ export interface DisputeBodyProps {
   part: string;
   preview: FaultOutcome | null;
   decided: { event: string; remedy: string; outcome: FaultOutcome; note: string | null; createdAt: string } | null;
+  /** Where the choices reload (?event=&remedy=&part=). Without it the page is read-only (the team's view). */
+  basePath?: string;
 }
 
 const naira = (kobo: number) => `₦${(kobo / 100).toLocaleString("en-NG", { maximumFractionDigits: 2 })}`;
@@ -60,7 +65,7 @@ export function OutcomeView({ outcome, names }: { outcome: FaultOutcome; names: 
       </div>
       <div className="grid gap-1.5 text-[13.5px]">
         <div className="flex justify-between gap-3"><span className="text-app-ink-soft">Refund to the customer</span><span className="font-extrabold">{naira(outcome.refundKobo)}</span></div>
-        {outcome.refundKobo > 0 ? <div className="flex justify-between gap-3"><span className="text-app-ink-soft">Sent by the shop (the split paid them) · by Shopinbos (its own take)</span><span className="shrink-0">{naira(outcome.refundFromSellerKobo)} · {naira(outcome.refundFromShopinbosKobo)}</span></div> : null}
+        {outcome.refundKobo > 0 ? <div className="flex justify-between gap-3"><span className="text-app-ink-soft">Sent by the shop · Shopinbos gives back its own fee</span><span className="shrink-0">{naira(outcome.refundFromSellerKobo)} · {naira(outcome.refundFromShopinbosKobo)}</span></div> : null}
         {outcome.debts.map((debt, index) => (
           <div key={index} className="flex justify-between gap-3">
             <span className="text-app-ink-soft">{partyName(debt.from, names)} → {partyName(debt.to, names)}{debt.fromDeposit ? " (deposit)" : ""}: {debt.kind.replace(/_/g, " ")}, from their next payments</span>
@@ -74,7 +79,7 @@ export function OutcomeView({ outcome, names }: { outcome: FaultOutcome; names: 
   );
 }
 
-export function DisputeBody({ issue, parts, events, selected, remedy, part, preview, decided }: DisputeBodyProps) {
+export function DisputeBody({ issue, parts, events, selected, remedy, part, preview, decided, basePath }: DisputeBodyProps) {
   const names = new Map(parts.map((row) => [row.partKey, row.partLabel.replace(/'s parcel$/, "")]));
   const replaceable = events.find((row) => row.event === selected)?.replaceable ?? false;
   const suggestedPart = parts.find((row) => row.suggested);
@@ -113,17 +118,20 @@ export function DisputeBody({ issue, parts, events, selected, remedy, part, prev
           {decided.note ? <p className="m-0 text-[14px]"><span className="font-bold">Reason: </span>{decided.note}</p> : null}
           <OutcomeView outcome={decided.outcome} names={names} />
         </Card>
+      ) : issue.status === "open" && !basePath ? (
+        <Card className="p-5 text-[14px]">Waiting for the shop to decide. It&apos;s their customer, so the shop chooses the outcome.</Card>
       ) : issue.status === "open" ? (
         <Card className="grid gap-4 p-5">
           <div>
             <h2 className="m-0 text-[17px] font-extrabold">Outcome</h2>
             <p className="m-0 mt-1 text-[13.5px] text-app-ink-soft">
-              {suggestedPart?.suggested ? `Pre-selected from the evidence: ${FAULT_LABELS[suggestedPart.suggested]}.` : "The evidence points to nobody owing anything."} Change it if the photos say otherwise.
+              {suggestedPart?.suggested ? `Pre-selected from the evidence: ${FAULT_LABELS[suggestedPart.suggested]}.` : "The evidence points to nobody owing anything."} Change it if the photos say otherwise: it's your call.
             </p>
           </div>
-          {preview ? <OutcomeView outcome={preview} names={names} /> : <p className="m-0 text-[14px]">Nobody owes anything: the report is closed with your reason, and no money moves.</p>}
+          {preview ? <OutcomeView outcome={preview} names={names} /> : <p className="m-0 text-[14px]">Nobody owes anything: the report is closed with your reason, and no money moves. You sort it out with your customer.</p>}
           <DisputeDecision
             issueId={issue.id}
+            basePath={basePath!}
             events={events.map((row) => ({ event: row.event, label: row.label }))}
             selected={selected}
             remedy={remedy}

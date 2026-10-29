@@ -84,6 +84,10 @@ export function readCodLimit(brandSettings: unknown): number | null {
   return limit > 0 ? limit : null;
 }
 
+/** The limits a seller can put on pay on delivery (₦), or none: it's their arrangement with their customers. */
+export const COD_LIMIT_CHOICES = [20_000, 50_000, 100_000, 200_000, 500_000] as const;
+export const isCodLimitChoice = (value: unknown): value is number | null => value === null || (COD_LIMIT_CHOICES as readonly number[]).includes(Number(value));
+
 /** How long a seller can give buyers to send a bank transfer before the order lets its items go (hours). */
 export const TRANSFER_WINDOW_CHOICES = [2, 6, 12, 24, 48, 72] as const;
 
@@ -140,12 +144,13 @@ export function matchZone<Z extends { regions: string[] }>(zones: Z[], city = ""
 }
 
 /**
- * Pay on delivery is switched off everywhere for now (owner's call, October 2026): Shopinbos never holds money, and
- * until "who pays when things go wrong" is settled, every order is paid upfront. Checkout, payment links, the seller's
- * and the partner's switches all go through this. Orders already placed that way still finish (shared/pay-at-door.ts).
- * Flip to true to bring it back.
+ * Pay on delivery is the seller's own arrangement with their customer and their delivery people (owner's call,
+ * October 2026: Shopinbos only provides the platform). The seller switches it on for their store and sets their own
+ * areas and limit; the customer pays the seller or their rider at the door (cash or transfer, as they agree) and the
+ * seller marks the order paid, or pays in the app if they like (shared/pay-at-door.ts). Shopinbos doesn't collect,
+ * hold or guarantee it. Checkout, payment links, the seller's and the partner's switches all go through this switch.
  */
-export const PAY_ON_DELIVERY_ON = false;
+export const PAY_ON_DELIVERY_ON = true;
 export const PAY_ON_DELIVERY_OFF_MESSAGE = "Pay on delivery isn't available right now. Pay by card, bank transfer or USSD.";
 
 /** Whether pay on delivery covers this address and total, with the reason when it does not. Off while switched off. */
@@ -155,8 +160,8 @@ export function payOnDeliveryBlock(settings: CheckoutPaymentSettings, context: C
 
 /** The pay on delivery rules themselves (the store, its zones and cap), as they apply once it's switched back on. */
 export function payOnDeliveryRules(settings: CheckoutPaymentSettings, context: CheckoutPaymentContext = {}): string | null {
-  // The customer pays in the app at the door (shared/pay-at-door.ts), so the store must take Paystack payments.
-  if (!settings.paystackReady) return "Pay on delivery isn't available at this store yet.";
+  // The seller's own rules (their delivery areas and limit). The customer pays them or their rider directly, so the
+  // store doesn't need card payments for it.
   if (settings.zones.length > 0 && (context.city || context.state)) {
     const zone = matchZone(settings.zones, context.city, context.state);
     if (!zone) return "Pay on delivery isn't available for this address.";
@@ -193,7 +198,7 @@ const OPTION_COPY: Record<CheckoutPaymentMethod, Omit<CheckoutPaymentOption, "ke
   paystack: { label: "Card, bank transfer or USSD", hint: "Pay securely with Paystack" },
   korapay: { label: "Card or bank", hint: "Card, transfer or your bank app" },
   transfer: { label: "Bank transfer", hint: "We show you the account after you place the order" },
-  pay_on_delivery: { label: "Pay when it arrives", hint: "Delivery fee now. Check your order at the door, then pay the rest in the app. No cash" },
+  pay_on_delivery: { label: "Pay when it arrives", hint: "Pay the store or its rider at the door, as the store arranges" },
 };
 
 /**
@@ -237,14 +242,14 @@ export function normalizeCheckoutMethod(value: string | undefined | null): Check
 /** How to pay, for the buyer (their order email and messages): what they can do, never what "they" are doing. */
 export function buyerPaymentText(method: CheckoutPaymentMethod) {
   if (method === "transfer") return "Pay by bank transfer to the account shown at checkout, with your order number as the reference. The store confirms your order once the money arrives.";
-  if (method === "pay_on_delivery") return "You'll pay in the app when it's delivered, then give the rider your code. No cash.";
+  if (method === "pay_on_delivery") return "You'll pay when it's delivered, as the store arranges: to the store or its rider, or in the app from your order page.";
   return "You can pay by card, bank transfer or USSD. If you didn't finish paying, open your order to pay.";
 }
 
 /** How the buyer chose to pay, for seller notifications. */
 export function paymentChoiceText(method: CheckoutPaymentMethod) {
   if (method === "transfer") return "They'll pay by bank transfer; check your account, then mark the order as paid.";
-  if (method === "pay_on_delivery") return "They'll pay in the app at the door; the rider hands it over for their code.";
+  if (method === "pay_on_delivery") return "They'll pay when it's delivered, as you arrange with them and your rider. Mark the order paid once you have the money.";
   if (method === "korapay") return "They're paying online by card or bank.";
   return "They're paying by card, bank or USSD through Paystack.";
 }

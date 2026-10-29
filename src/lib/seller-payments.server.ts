@@ -3,7 +3,7 @@ import { payOnDeliveryAllowed } from "@/lib/plans/gates.server";
 
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
-import { paystackSecretReady, readTransferAccount, readTransferWindowHours } from "@shared/checkout-payments";
+import { paystackSecretReady, readTransferAccount, readTransferWindowHours, isCodLimitChoice } from "@shared/checkout-payments";
 import { korapayCheckoutReady } from "@/lib/korapay";
 import type { PaymentMethodKey } from "@shared/onboarding";
 import {
@@ -67,6 +67,22 @@ export async function saveSellerTransferWindow(userId: string, hours: number | n
   await db.store.update({
     where: { id: store.id },
     data: { brandSettings: { ...store.settings, paymentConfig: hours === null ? rest : { ...rest, transferWindowHours: hours } } as Prisma.InputJsonValue },
+  });
+  return {};
+}
+
+/**
+ * The seller's own limit on pay on delivery (₦), or null for none. Their arrangement with their customers: Shopinbos
+ * suggests ₦50,000 until they choose (shared/checkout-payments.ts readCodLimit).
+ */
+export async function saveSellerCodLimit(userId: string, limit: number | null): Promise<{ error?: PaymentsSettingsError }> {
+  if (!isCodLimitChoice(limit)) return { error: "chooseTime" };
+  const store = await storeSettings(userId);
+  if (!store) return { error: "noStore" };
+  const paymentConfig = record(store.settings.paymentConfig);
+  await db.store.update({
+    where: { id: store.id },
+    data: { brandSettings: { ...store.settings, paymentConfig: { ...paymentConfig, codLimit: limit === null ? null : Number(limit) } } as Prisma.InputJsonValue },
   });
   return {};
 }

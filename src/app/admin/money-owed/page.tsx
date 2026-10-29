@@ -16,7 +16,7 @@ export const metadata: Metadata = { title: "Money owed" };
 // business disputed, or didn't answer within PAY_WITHIN_DAYS, wait here for a decision; overdue debts are being
 // paid off from the debtor's later sales, and 7 days overdue the debtor is paused from new business automatically
 // ("Give 7 more days" moves the due date and lifts it);
-// chargebacks Paystack took from Shopinbos's balance are recorded here against the business that sold.
+// nothing is owed to Shopinbos, and a shop's own debts are never taken from its sales (it pays in the app).
 
 const STATUS: Record<string, { label: string; tone: Tone }> = {
   claimed: { label: "Waiting for their answer", tone: "warning" },
@@ -68,7 +68,7 @@ export default async function AdminMoneyOwedPage({ searchParams }: { searchParam
   const orders = orderIds.length ? await db.retailOrder.findMany({ where: { id: { in: orderIds } }, select: { id: true, orderNumber: true } }) : [];
 
   return (
-    <AppPage frame={adminFrame(user)} title="Money owed" sub="What businesses owe each other when an order goes wrong. Shopinbos holds none of it: we keep the record and decide disputes.">
+    <AppPage frame={adminFrame(user)} title="Money owed" sub="What businesses owe each other under the agreements they signed. Shopinbos holds none of it: we keep the record and referee disputes between businesses.">
       <div className="mb-4 flex flex-wrap gap-2">
         {FILTERS.map((option) => (
           <Link key={option.id} href={withParams("/admin/money-owed", { show: option.id || undefined })} className={`rounded-full border px-3.5 py-1.5 text-[13px] font-bold no-underline ${show === option.id ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink"}`}>
@@ -135,7 +135,7 @@ export default async function AdminMoneyOwedPage({ searchParams }: { searchParam
         <div>
           <h2 className="m-0 text-[16px] font-extrabold">Record money owed</h2>
           <p className="m-0 mt-0.5 text-[13px] text-app-ink-soft">
-            For a decision made outside the app, or a card chargeback Paystack took from Shopinbos&apos;s balance (leave &quot;owed to&quot; empty: it&apos;s owed to Shopinbos). It&apos;s owed straight away and due in {PAY_WITHIN_DAYS} days; after that their later sales pay it off.
+            For a decision both businesses agreed outside the app. It&apos;s owed straight away and due in {PAY_WITHIN_DAYS} days. A supplier or delivery partner&apos;s later payments from that shop then pay it off; a shop pays in the app.
           </p>
         </div>
         <RecordDebtForm />

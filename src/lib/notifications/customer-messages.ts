@@ -11,7 +11,6 @@ import { normalizePhone } from "@/lib/marketing/segment-rules";
 import { CUSTOMER_EVENTS, customerEventFor, mayText, type CustomerEvent, type CustomerEventSetting, type OptOutLookup, type TextChannel, type VariableValues } from "@/lib/marketing/text-channels";
 import { refreshTemplateStatus, resolvePresetTemplate, resolveTemplate, sendTemplate } from "@/lib/marketing/whatsapp-templates.server";
 import { deliveryEventFor, deliveryMessage } from "./delivery-messages";
-import { payAtDoorDue } from "@shared/pay-at-door";
 
 // Order and cart messages to a store's customers by WhatsApp and/or SMS, as the seller switched on in
 // Marketing › Order messages (StoreMessagingSettings.transactional). Order code calls one function,
@@ -166,14 +165,8 @@ export async function notifyDeliveryStage(bookingId: string, to: string) {
     const order = await db.retailOrder.findUnique({ where: { id: job.orderId }, select: { id: true, storeId: true, orderNumber: true, buyerName: true, buyerPhone: true, status: true, paymentMethod: true, paystackStatus: true } });
     const phone = normalizePhone(order?.buyerPhone);
     if (!order || !phone || order.status === "cancelled") return [];
-    // Pay on delivery not paid yet (shared/pay-at-door.ts): the code is only for a customer who has paid. When the
-    // parcel goes out (or reaches the pickup point) they get the payment link instead, whatever the shop's settings.
-    const unpaid = payAtDoorDue(order);
-    if (unpaid && (to === "out_for_delivery" || to === "at_pickup_point")) {
-      const { sendPayAtDoorLink } = await import("@/lib/commerce/pay-at-door.server");
-      await sendPayAtDoorLink(order.id);
-      return [];
-    }
+    // Pay on delivery is between the shop, its customer and its rider (shared/pay-at-door.ts): the usual messages, with
+    // the delivery code, whatever how they pay. The customer can still pay in the app from their order page.
     const event = deliveryEventFor(to)!;
     const settings = await getMessagingSettings(order.storeId);
     const setting = settings.transactional[event];
@@ -192,7 +185,7 @@ export async function notifyDeliveryStage(bookingId: string, to: string) {
       bookingId: job.id,
       failedAttempts: job.failedAttempts,
       failedReason: job.failedReason,
-      deliveryCode: unpaid ? null : job.deliveryCode,
+      deliveryCode: job.deliveryCode,
       service: job.service,
       connection: connection ? { ...connection, partnerName: job.logisticsPartner.displayName } : null,
       point,
@@ -480,37 +473,6 @@ export async function notifyOrderCustomerPreorderPayment(orderId: string, kind: 
     return [{ channel: "sms" as const, ok: outcome.ok }];
   } catch (error) {
     console.error(`[customer messages] preorder ${kind} for order ${orderId} failed`, error);
-    return [];
-  }
-}
-
-/** The supplier missed the ship-by date: the customer may cancel that part for a full refund from their order page. */
-export const LATE_CANCEL_SMS = "{{store}}: part of your order {{order_number}} hasn't been sent in time. You can wait, or cancel it for a full refund here: {{order_url}}";
-
-/** The ship-by date passed (src/lib/faults/strikes.server.ts): one SMS per late parcel, in the shop's name. Never throws. */
-export async function textLateCancelOffer(orderId: string, supplierOrderId: string) {
-  try {
-    const order = await db.retailOrder.findUnique({ where: { id: orderId }, select: { id: true, storeId: true, orderNumber: true, buyerName: true, buyerPhone: true } });
-    const phone = normalizePhone(order?.buyerPhone);
-    if (!order || !phone) return [];
-    const store = await db.store.findUnique({ where: { id: order.storeId }, select: MARKETING_STORE_SELECT });
-    if (!store) return [];
-    const recipient = { event: "order_late_cancel" as CustomerEvent, refId: `${order.id}:${supplierOrderId}`, phone, name: order.buyerName, values: {}, smsVars: {} } satisfies Recipient;
-    const id = await claim(store.id, recipient, "sms");
-    if (!id) return [];
-    const allowed = mayText({ channel: "sms", phone, purpose: "transactional", consent: true, optOuts: await loadOptOuts(store.id) });
-    if (!allowed.ok) {
-      await finish(id, { ok: false, error: allowed.reason, skipped: true });
-      return [{ channel: "sms" as const, ok: false, error: allowed.reason }];
-    }
-    const settings = await getMessagingSettings(order.storeId);
-    const body = fillVariables(LATE_CANCEL_SMS, { store: store.name, order_number: order.orderNumber, order_url: storeUrl(store, `/order/${order.id}`) } as unknown as FlowVariables, "text").replace(/\s{2,}/g, " ").trim();
-    const send = await textSender(store, { senderId: settings.smsSenderId });
-    const outcome = await send.sms(phone, body).catch((error): SendOutcome => ({ ok: false, error: String(error) }));
-    await finish(id, outcome);
-    return [{ channel: "sms" as const, ok: outcome.ok }];
-  } catch (error) {
-    console.error(`[customer messages] late offer for order ${orderId} failed`, error);
     return [];
   }
 }

@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation";
 import { decideDisputeAction } from "@/app/actions/faults";
 import { buttonClass, fieldClass } from "@/components/admin/AdminKit";
 
-// The team picks the outcome from the matrix (the one the evidence points to comes pre-selected; the page above
-// shows what each choice means for everyone) and confirms with a reason both businesses see. "Nobody owes" closes
-// the report. Choosing an event or remedy reloads the preview (?event=&remedy=&part=).
+// The seller picks the outcome for their customer's report (the one the evidence points to comes pre-selected; the
+// page above shows what each choice means for everyone) and confirms with a reason the businesses see. "Nobody owes"
+// closes the report. Choosing an event or remedy reloads the preview (basePath?event=&remedy=&part=).
 
-export function DisputeDecision({ issueId, events, selected, remedy, replaceable, parts, part }: {
+export function DisputeDecision({ issueId, basePath, events, selected, remedy, replaceable, parts, part }: {
   issueId: string;
+  basePath: string;
   events: Array<{ event: string; label: string }>;
   selected: string;
   remedy: string;
@@ -24,7 +25,7 @@ export function DisputeDecision({ issueId, events, selected, remedy, replaceable
   const [pending, start] = useTransition();
   const go = (next: { event?: string; remedy?: string; part?: string }) => {
     const params = new URLSearchParams({ event: next.event ?? selected, remedy: next.remedy ?? remedy, part: next.part ?? part });
-    router.replace(`/admin/delivery-issues/${issueId}?${params.toString()}`, { scroll: false });
+    router.replace(`${basePath}?${params.toString()}`, { scroll: false });
   };
   function confirm() {
     setError(null);
@@ -56,10 +57,10 @@ export function DisputeDecision({ issueId, events, selected, remedy, replaceable
           </select>
         </label>
       </div>
-      <textarea className={`${fieldClass} min-h-[64px] py-2`} value={note} onChange={(event) => setNote(event.target.value)} placeholder="The reason for the decision (the shop, supplier and partner see it)" />
+      <textarea className={`${fieldClass} min-h-[64px] py-2`} value={note} onChange={(event) => setNote(event.target.value)} placeholder="Why (your supplier and delivery partner see it)" />
       {error ? <p role="alert" className="m-0 rounded-[12px] bg-app-danger-tint px-3 py-2 text-[13.5px] font-bold text-app-danger">{error}</p> : null}
       <div><button type="button" className={buttonClass("ink")} disabled={pending} onClick={confirm}>{pending ? "Applying…" : "Confirm this outcome"}</button></div>
-      <p className="m-0 text-[12.5px] text-app-ink-soft">Money moves only through the customer&apos;s refund and money owed, taken from the at-fault business&apos;s next payments.</p>
+      <p className="m-0 text-[12.5px] text-app-ink-soft">You send your customer&apos;s refund from your bank (guided on the order page). What a supplier or partner owes you comes back from their next payments from your shop, under the agreement you both signed.</p>
     </div>
   );
 }
