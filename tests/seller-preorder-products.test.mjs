@@ -35,3 +35,26 @@ test("pre-orders page: every product taking pre-orders, with Edit, limit, deposi
     for (const key of ["preorders.takenOf", "preorders.noLimit", "preorders.depositPct", "preorders.payInFull", "preorders.edit", "preorders.noOrdersYet", "preorders.orderedOn"]) assert.ok(words.includes(`"${key}":`), `${lang} ${key}`);
   }
 });
+
+test("phone app: a Pre-orders filter in Products, the tag on each row, and Edit, deposit and order dates on Pre-orders", async () => {
+  const filters = await import("../apps/mobile/src/lib/product-filters-pure.ts");
+  assert.ok(filters.PRODUCT_SHOWS.includes("preorder"));
+  assert.match(filters.productListPath({ show: "preorder", categoryId: "", sort: "newest" }), /preorder=true/);
+  assert.match(filters.productListPath({ show: "preorder", categoryId: "", sort: "newest" }), /status=%21archived/);
+  const route = read("src/app/api/store/products/route.ts");
+  assert.match(route, /if \(preorder\) where\.preorderEnabled = preorder === "true";/);
+  assert.match(route, /preorderEnabled: true,\n\s+preorderShipsAt: true,\n\s+preorderLimit: true,\n\s+preorderTaken: true,/);
+  assert.match(read("apps/mobile/src/components/seller/StockRows.tsx"), /preorderPillText\(/);
+  assert.match(read("apps/mobile/src/app/(tabs)/products.tsx"), /router\.push\("\/preorders"\)/);
+  const screen = read("apps/mobile/src/app/preorders.tsx");
+  assert.match(screen, /router\.push\(\{ pathname: "\/product\/\[id\]", params: \{ id: group\.productId \} \}\)/);
+  assert.match(screen, /t\("preorders\.noOrdersYet"\)/);
+  assert.match(screen, /t\("preorders\.orderedOn"/);
+  for (const lang of ["en", "pcm", "yo", "ha", "ig"]) {
+    const products = read(`shared/i18n/messages/m_products/${lang}.ts`);
+    for (const key of ["filters.show.preorder", "list.preorderTakenOf", "list.preorderTaken", "list.preorderBar", "list.preorderManage"]) assert.ok(products.includes(`"${key}":`), `${lang} ${key}`);
+    const ui = read(`shared/i18n/messages/m_ui/${lang}.ts`);
+    for (const key of ["preorders.takenOf", "preorders.noLimit", "preorders.payInFull", "preorders.edit", "preorders.noOrdersYet", "preorders.orderedOn"]) assert.ok(ui.includes(`"${key}":`), `${lang} ${key}`);
+    assert.equal((ui.match(/"preorders\.depositPct":/g) ?? []).length, 1, `${lang}: one deposit line`);
+  }
+});

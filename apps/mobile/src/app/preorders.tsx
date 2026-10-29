@@ -137,6 +137,18 @@ function ShopPreorders() {
             <T style={{ color: colors.inkSoft, fontSize: 14.5, lineHeight: 21 }}>
               {[group.shipsOn ? t("preorders.shipBy", { date: shipDayText(group.shipsOn, now, t) }) : t("preorders.noDate"), t("preorders.orders", { count: group.orders.length }), t("preorders.units", { count: group.units })].join(" · ")}
             </T>
+            {group.product?.on ? (
+              <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>
+                {[
+                  group.product.limit ? t("preorders.takenOf", { taken: group.product.taken, limit: group.product.limit }) : t("preorders.noLimit", { taken: group.product.taken }),
+                  group.product.depositPct ? t("preorders.depositPct", { pct: group.product.depositPct }) : t("preorders.payInFull"),
+                ].join(" · ")}
+              </T>
+            ) : null}
+            {/* Ship date, limit, deposit and promise are on the product (its Preorder section). */}
+            <PillButton size="sm" tone="white" accessibilityLabel={t("preorders.edit")} onPress={() => router.push({ pathname: "/product/[id]", params: { id: group.productId } })}>
+              <OneLine text={t("preorders.edit")} size={15} />
+            </PillButton>
             {group.waiting > 0 || toAsk(group) > 0 ? (
               <PillButton size="md" busy={busy === `ready:${group.productId}`} disabled={Boolean(busy)} accessibilityLabel={t("preorders.stockReady")} onPress={() => setAsking(group)}>
                 <OneLine text={t("preorders.stockReady")} color="#FFFFFF" size={16} />
@@ -148,6 +160,9 @@ function ShopPreorders() {
               </PillButton>
             ) : null}
           </Card>
+          {group.orders.length === 0 ? (
+            <T style={{ color: colors.inkSoft, fontSize: 14.5, lineHeight: 21, paddingHorizontal: 4 }}>{t("preorders.noOrdersYet")}</T>
+          ) : null}
           <List>
             {group.orders.map((order) => (
               <Row
@@ -155,7 +170,7 @@ function ShopPreorders() {
                 title={`#${order.orderNumber} · ${order.buyerName}`}
                 sub={
                   <View style={{ gap: 6 }}>
-                    <T style={{ fontSize: 14, color: colors.inkSoft }}>{t("preorders.units", { count: order.quantity })}</T>
+                    <T style={{ fontSize: 14, color: colors.inkSoft }}>{[t("preorders.units", { count: order.quantity }), t("preorders.orderedOn", { date: shipDayText(order.createdAt.slice(0, 10), now, t) })].join(" · ")}</T>
                     <Pill tone={STORE_TONE[order.stage]} label={storeStageText(order.stage, t)} />
                     {order.stage === "balance_due" ? (
                       <>
