@@ -2,12 +2,14 @@ import { useCallback, useEffect, useRef, type Dispatch, type SetStateAction } fr
 import { View } from "react-native";
 import { router } from "expo-router";
 import { naira } from "@shared/onboarding";
+import { preorderDay } from "@shared/preorder";
 import { Row, Stepper } from "@/components/design";
 import { Thumb } from "@/components/seller/bits";
 import { CodeBadge, ShareProductIcon } from "@/components/seller/ProductCode";
 import { T } from "@/components/ui";
 import type { ProductItem } from "@/lib/dashboard";
 import { saveProduct } from "@/lib/products";
+import { preorderPillText } from "@/lib/preorder-pure";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
@@ -63,7 +65,12 @@ export function useStockSaver(setProducts: SetProducts, onError: (message: strin
 /** One product row: picture, name, price and stock words, the stepper under them; tap opens the product. */
 export function StockRow({ product, onStock }: { product: ProductItem; onStock: (product: ProductItem, next: number) => void }) {
   const t = useT("m_products", "common");
+  const tUi = useT("m_ui");
   const own = !product.inventoryType || product.inventoryType === "seller";
+  // Taking preorders: "Preorder · 12 Dec · 4 of 20 taken".
+  const preorder = product.preorderEnabled
+    ? [preorderPillText({ shipsOn: preorderDay(product.preorderShipsAt ?? null) }, new Date(), tUi), product.preorderLimit ? t("list.preorderTakenOf", { taken: product.preorderTaken ?? 0, limit: product.preorderLimit }) : t("list.preorderTaken", { count: product.preorderTaken ?? 0 })].filter(Boolean).join(" · ")
+    : null;
   const low = product.currentStock <= (product.lowStockThreshold ?? 3);
   const stock = product.currentStock <= 0 ? t("list.soldOut") : low ? t("list.runningLow", { count: product.currentStock }) : t("drafts.inStock", { count: product.currentStock });
   const words = [naira(Number(product.retailPrice)), stock, product.status !== "published" ? t("status.draft") : null].filter(Boolean).join(" · ");
@@ -76,12 +83,13 @@ export function StockRow({ product, onStock }: { product: ProductItem; onStock: 
         <View style={{ gap: 8 }}>
           {product.shortCode ? <CodeBadge code={product.shortCode} /> : null}
           <T style={{ fontSize: 14, lineHeight: 19, color: low && own ? colors.accentInk : colors.inkSoft }}>{words}</T>
+          {preorder ? <T weight="bold" style={{ fontSize: 13.5, lineHeight: 18, color: "#8A5A00" }}>{preorder}</T> : null}
           {own ? <Stepper value={product.currentStock} label={product.name} onChange={(next) => onStock(product, next)} /> : null}
         </View>
       }
       // Share to WhatsApp (live products: the link opens their page).
       right={product.status === "published" && product.url ? <ShareProductIcon product={product} /> : undefined}
-      accessibilityLabel={`${product.name}. ${product.shortCode ? `${product.shortCode}. ` : ""}${words}`}
+      accessibilityLabel={`${product.name}. ${product.shortCode ? `${product.shortCode}. ` : ""}${words}${preorder ? `. ${preorder}` : ""}`}
       onPress={() => router.push({ pathname: "/product/[id]", params: { id: product.id } })}
     />
   );

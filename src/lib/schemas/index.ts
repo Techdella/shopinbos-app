@@ -511,6 +511,8 @@ export const StoreProductQuerySchema = z.object({
   code: z.string().max(40).optional(),
   featured: z.coerce.boolean().optional(),
   lowStock: z.coerce.boolean().optional(),
+  // Only products taking preorders ("true"; the phone's Pre-orders filter).
+  preorder: z.enum(["true", "false"]).optional(),
   sort: z.enum(["newest", "oldest", "price_low", "price_high", "name", "sales"]).default("newest"),
 });
 

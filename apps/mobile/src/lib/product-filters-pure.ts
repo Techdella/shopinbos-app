@@ -1,7 +1,7 @@
-// Products list filters (the web's /products chips: All, Live, Draft, Low stock, Dropship, Archived; plus category
+// Products list filters (the web's /products chips: All, Live, Draft, Low stock, Dropship, Pre-orders, Archived; plus category
 // and sort in the Filters sheet) as GET /api/store/products query strings. No imports, so tests load it in Node.
 
-export const PRODUCT_SHOWS = ["all", "live", "draft", "low", "dropship", "archived"] as const;
+export const PRODUCT_SHOWS = ["all", "live", "draft", "low", "dropship", "preorder", "archived"] as const;
 export type ProductShow = (typeof PRODUCT_SHOWS)[number];
 
 export const PRODUCT_SORTS = ["newest", "sales", "price_low", "price_high", "name"] as const;
@@ -27,6 +27,7 @@ export function productListPath(query: ProductListQuery, limit = 50) {
     params.set("inventoryType", "seller");
   }
   if (query.show === "dropship") params.set("inventoryType", "dropshipping");
+  if (query.show === "preorder") params.set("preorder", "true");
   if (query.categoryId) params.set("categoryId", query.categoryId);
   return `/api/store/products?${params.toString()}`;
 }
