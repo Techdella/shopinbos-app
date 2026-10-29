@@ -11,7 +11,8 @@ import { latestSupplierRatings } from "@/lib/marketplace/supplier-ratings.server
 export const dynamic = "force-dynamic";
 
 // GET → the product with its supplier's verification, risk score and distance, and `listing`: what the seller does
-// before dropshipping it (add a city / too far / call, check the stock and agree / waiting / declined / ready), with
+// before dropshipping it (add a city / call, check the stock and agree / waiting / declined / ready; "far" is no
+// longer sent: far suppliers are allowed, with `supplier.far` set as delivery may cost more), with
 // the supplier's phone and address only while the seller still has to call them. Newer: `shopsSelling`, `ratings`
 // (the latest shops' ratings of the supplier: [{ rating, text, at }]) and `sampleOffer` ({ price, ordered } or null:
 // one sample at the dropship price, shared/samples.ts).
@@ -28,7 +29,7 @@ export const GET = withSeller(async (_req: NextRequest, { user, params }) => {
     sampleOfferForSeller(user.id, row).catch(() => null),
   ]);
   const distance = nearness(place, row.supplier);
-  const step = !sellerHasPlace(place) ? "noPlace" : !distance.near ? "far" : listingStep(agreement);
+  const step = !sellerHasPlace(place) ? "noPlace" : listingStep(agreement);
   const contact = step === "agree" || step === "declined" ? await supplierContact(row.supplier.id) : { phone: null, address: null };
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { name: true, city: true } });
   const { address: _address, ...supplier } = row.supplier;
@@ -40,7 +41,7 @@ export const GET = withSeller(async (_req: NextRequest, { user, params }) => {
     shopsSelling: selling.get(row.id) ?? 0,
     ratings,
     sampleOffer,
-    supplier: { ...supplier, km: distance.km, area: distance.area, risk: trust.get(row.supplier.id)?.risk ?? null, agreed: agreement?.status === "active" },
+    supplier: { ...supplier, km: distance.km, area: distance.area, far: sellerHasPlace(place) && !distance.near, risk: trust.get(row.supplier.id)?.risk ?? null, agreed: agreement?.status === "active" },
     listing: { step, phone: contact.phone, address: contact.address, supplierNote: agreement?.supplierNote ?? null, shopName: store?.name ?? null, shopCity: store?.city ?? null },
   });
 });

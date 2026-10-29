@@ -6,7 +6,7 @@ import { useT } from "@/components/i18n/I18nProvider";
 import type { FindSupplier } from "@/lib/marketplace/find";
 
 // What a seller should know about a supplier before selling their products (shared/supplier-trust.ts): verified or
-// not, Shopinbos's risk score and how far away they are. Unverified suppliers show too, never hidden behind a tick.
+// not, Shopinbos's risk score and how far away they are ("Far from you": delivery may cost more). Unverified suppliers show too, never hidden behind a tick.
 
 const LEVEL_TONE = {
   low: "bg-app-success-tint text-app-success",
@@ -27,6 +27,7 @@ export function SupplierTrustBadges({ supplier, compact = false }: { supplier: F
       {supplier.risk ? (
         <span className={cx("rounded-full px-2 py-0.5 font-extrabold", LEVEL_TONE[supplier.risk.level])}>{t.dynamic(`trust.risk.${supplier.risk.level}`, supplier.risk.level, { score: supplier.risk.score })}</span>
       ) : null}
+      {supplier.far ? <span className="rounded-full bg-[#FDF0D5] px-2 py-0.5 font-extrabold text-[#8A5A00]">{t("sup.farBadge")}</span> : null}
       {typeof supplier.km === "number" ? <span className="font-bold text-app-ink-soft">{t("trust.km", { km: supplier.km < 1 ? "<1" : String(Math.round(supplier.km)) })}</span> : null}
     </div>
   );

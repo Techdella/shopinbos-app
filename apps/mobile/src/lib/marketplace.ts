@@ -52,6 +52,8 @@ interface RawProduct {
     returnPolicy?: string | null;
     risk?: SupplierRisk | null;
     km?: number | null;
+    /** Not near the seller: delivery may cost more (newer servers). */
+    far?: boolean;
     agreed?: boolean;
     /** Track record level: new | trusted | established (newer servers). */
     level?: string | null;
@@ -95,6 +97,8 @@ export interface FindProduct {
     returnPolicy: string | null;
     risk: SupplierRisk | null;
     km: number | null;
+    /** Not near the seller: delivery from them may cost more. */
+    far: boolean;
     /** The seller and the supplier both accepted the Dropship agreement. */
     agreed: boolean;
     /** new | trusted | established, and how many shops rated them ("Trusted supplier · ★ 4.7 from 18 shops"). */
@@ -148,6 +152,7 @@ function toFindProduct(row: RawProduct): FindProduct {
       returnPolicy: row.supplier.returnPolicy?.trim() || null,
       risk: row.supplier.risk ?? null,
       km: typeof row.supplier.km === "number" ? row.supplier.km : null,
+      far: row.supplier.far === true,
       agreed: row.supplier.agreed === true,
       level: row.supplier.level ?? null,
       ratingCount: row.supplier.ratingCount ?? 0,
@@ -187,7 +192,7 @@ export async function fetchFindProducts(q?: string) {
 export const oneTapPrice = (product: FindProduct, markup: Markup | null) => quickAddPrice({ cost: product.addCost, suggested: product.price, minRetail: product.floor, markup }).price;
 
 /** What the seller does before dropshipping a supplier's products (the web's "Before you sell" steps). */
-export type ListingStep = "agree" | "waiting" | "declined" | "ready" | "far" | "noPlace";
+export type ListingStep = "agree" | "waiting" | "declined" | "ready" | "noPlace";
 
 export interface Listing {
   step: ListingStep;

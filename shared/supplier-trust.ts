@@ -1,6 +1,6 @@
 // Can a seller trust a supplier with their customers' orders? Shared by the web app and the phone app. Pure (only
 // the delivery geography it builds on), unit-tested in tests/supplier-trust.test.mjs:
-//   - nearby: for now sellers only see suppliers close enough to visit, so they can check the stock themselves;
+//   - nearby: suppliers close enough to visit show first; far ones show too, marked, as delivery may cost more;
 //   - the risk score: what Shopinbos knows about a supplier (verification, track record, money owed), as a number,
 //     a level and the reasons, shown next to "Verified" / "Not verified yet";
 //   - the Dropship agreement: before a seller lists a supplier's products, the seller calls the supplier, checks
@@ -10,7 +10,7 @@ import { areaFromText, haversineMeters, normalizePlace, type LatLng } from "./de
 
 // ─── Nearby ───────────────────────────────────────────────────────────────────
 
-/** How far a supplier can be and still show to a seller: a trip a seller can make to see the stock. */
+/** How far a supplier can be and still count as near: a trip a seller can make to see the stock. Further is "far". */
 export const NEARBY_KM = 50;
 
 /** Where a business is, from its city and address ("Shop 12, Alaba, Ojo" → Ojo), or null when we don't know. */

@@ -35,6 +35,8 @@ export interface FindSupplier {
   risk?: { score: number; level: "low" | "medium" | "high"; reasons: string[] } | null;
   /** How far from the seller, and the supplier's area. */
   km?: number | null;
+  /** Not near the seller: delivery from them may cost more. */
+  far?: boolean;
   area?: string | null;
   /** The seller and this supplier both accepted the Dropship agreement, so its products can be listed. */
   agreed?: boolean;
