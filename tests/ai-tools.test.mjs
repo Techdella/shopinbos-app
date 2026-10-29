@@ -551,6 +551,8 @@ const PEGGY_VALID = {
 
 const REX_VALID = {
   store_health: {},
+  review_store_design: {},
+  fill_section_images: { page: null, max: 3, direction: null },
   list_products: { query: null, limit: null },
   list_themes: {},
   open_preview: { page: null },

@@ -93,6 +93,12 @@ export const REX_TOOL_SPECS = {
     description: "The store's health score out of 100 from real facts (products, photos, delivery, payments, pages, reviews) and the biggest gaps to fix first.",
     schema: z.object({}).strict(),
   },
+  review_store_design: {
+    kind: "read",
+    description:
+      "Look over the store's DRAFT like a designer: sections still showing the theme's sample photos or with no picture, missing or sample words, empty stories, doubled-up or hidden sections, a homepage that's too short or too long, hard-to-read colours. Returns each finding with the instruction to fix it (pass it to edit_store_section) and the picture spots fill_section_images can fill. Use it when the seller asks what to improve, after building or switching a theme, or when they say the store doesn't look right.",
+    schema: z.object({}).strict(),
+  },
   list_products: {
     kind: "read",
     description: "The seller's products with ids, prices, how many photos each has and a short description. Use it to find the product a seller means before editing its photos or copy.",
@@ -197,6 +203,18 @@ export const REX_TOOL_SPECS = {
       .object({
         instruction: z.string().trim().min(3).max(1500).describe("What to change, in plain words, e.g. 'Rewrite the homepage banner in Pidgin, warmer'"),
         page: z.enum(REX_SECTION_PAGES).nullable().describe("The page it is on; null when it is store-wide or unclear"),
+      })
+      .strict(),
+  },
+  fill_section_images: {
+    kind: "store",
+    description:
+      "Make on-brand pictures for the store's sections that have no picture or still show the theme's sample photo (banner, story, promo and similar), and put them in place on the DRAFT. Each picture costs one image from the allowance, then credits. Saved as a new draft version with undo. Use when the seller agrees to have pictures made for their store.",
+    schema: z
+      .object({
+        page: z.enum(REX_SECTION_PAGES).nullable().describe("Only this page's sections; null for every page"),
+        max: z.number().int().min(1).max(6).nullable().describe("How many pictures at most (1-6); null for 3"),
+        direction: z.string().trim().max(600).nullable().describe("The look the seller wants (e.g. 'bright studio shots', 'Lagos street style'); null to match the brand"),
       })
       .strict(),
   },
