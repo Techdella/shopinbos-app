@@ -26,14 +26,32 @@ export function useKycT() {
  * Calls a /api/logistics/kyc route; resolves with the page state it answers with, rejects with our readable message.
  * Without one (no connection, or a reply that isn't ours, like a timeout or a too-big request) it rejects with the
  * browser's error or the HTTP status, so friendlyError shows plain words and Admin › App errors sees what happened.
+ * `retry` sends it once more after a gateway timeout or a dropped connection: only for steps that are safe to repeat
+ * (saving a photo replaces the last one), never for a paid check like the NIN lookup. Partners on a weak signal hit
+ * 504s right after coming back from the camera, and sending again a moment later goes through.
  */
-export async function kycCall<T = KycState>(path: string, init?: RequestInit): Promise<T> {
+export async function kycCall<T = KycState>(path: string, init?: RequestInit, { retry = false }: { retry?: boolean } = {}): Promise<T> {
   const url = `/api/logistics/kyc${path}`;
-  const response = await fetch(url, init);
+  let response: Response;
+  try {
+    response = await fetch(url, init);
+  } catch (error) {
+    if (!retry) throw error;
+    await pause(RETRY_PAUSE_MS);
+    return kycCall<T>(path, init);
+  }
+  if (retry && GATEWAY_STATUSES.has(response.status)) {
+    await pause(RETRY_PAUSE_MS);
+    return kycCall<T>(path, init);
+  }
   const body = (await response.json().catch(() => null)) as { data?: T; error?: { message?: string } } | null;
   if (!response.ok || !body || body.data === undefined) throw new Error(body?.error?.message || `HTTP ${response.status} from ${init?.method ?? "GET"} ${url}`);
   return body.data;
 }
+
+const GATEWAY_STATUSES = new Set([502, 503, 504]);
+const RETRY_PAUSE_MS = 1500;
+const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export function jsonInit(method: string, body: unknown): RequestInit {
   return { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
