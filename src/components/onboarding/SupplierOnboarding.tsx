@@ -500,21 +500,6 @@ export function SupplierOnboarding({ initialView }: { initialView: View }) {
             <TextInput inputMode="numeric" aria-label={t("product.price")} placeholder={t("product.price")} value={productPrice} onChange={(event) => setProductPrice(event.target.value.replace(/[^\d]/g, ""))} />
           </div>
         )}
-        <button
-          type="button"
-          className="rounded-[16px] border border-dashed border-app-line bg-white p-4 text-left text-[15px] font-bold"
-          disabled={busy || view.catalogueRequested}
-          onClick={() =>
-            void run(async () => {
-              await call("/api/supplier/onboarding/catalogue", { method: "POST" });
-              setView(await call<View>("/api/supplier/onboarding", { method: "PATCH", json: { step: "review" } }));
-              setNote(t("product.whatsappDone"));
-              go("review");
-            })
-          }
-        >
-          <Icon name="whatsapp" size={18} /> {view.catalogueRequested ? t("product.whatsappDone") : t("product.whatsapp")}
-        </button>
       </div>
     );
     action = {

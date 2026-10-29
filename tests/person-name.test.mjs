@@ -5,6 +5,9 @@ import { readFileSync } from "node:fs";
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const names = await import("../shared/person-name.ts");
+const tipsEmail = await import("../src/lib/member-messaging/tips-email.ts");
+const { teamTemplateParams } = await import("../src/lib/support/whatsapp-pure.ts");
+const { fillMacro } = await import("../src/lib/support/pure.ts");
 
 test("person name: the stand-in and empty names read as no name", () => {
   assert.equal(names.isPlaceholderName("Shopinbos User"), true);
@@ -32,4 +35,17 @@ test("person name: the apps never greet with the stand-in", () => {
   const home = read("apps/mobile/src/app/(tabs)/home.tsx");
   assert.match(home, /realName\(data\?\.ownerName\)/);
   assert.match(home, /greeting\.addName/);
+});
+
+test("greetings use the person's first name, never the stand-in (\"Hi Shopinbos\")", () => {
+  const { greetingName } = names;
+  assert.equal(greetingName("ada okafor"), "Ada");
+  assert.equal(greetingName("  Emmanuel Olugbenro Akinremi "), "Emmanuel");
+  for (const none of ["Shopinbos User", "shopinbos user", "Shopinbos", "", null, undefined, "ada@example.com", "0803 123 4567", "A"]) assert.equal(greetingName(none), "there", String(none));
+  assert.equal(greetingName("Shopinbos User", ""), "");
+  const { firstNameOf } = tipsEmail;
+  assert.equal(firstNameOf("Shopinbos User"), "there");
+  assert.equal(firstNameOf("Kemi Adeyemi"), "Kemi");
+  assert.equal(teamTemplateParams({ name: "x", params: ["first_name"] }, { name: "Shopinbos User" })[0], "there");
+  assert.equal(fillMacro("Hi {{first_name}}", { name: "Shopinbos User" }), "Hi there");
 });

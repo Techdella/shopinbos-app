@@ -128,8 +128,6 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "product.price": "Farashin guda (₦)",
   "product.add": "Ƙara kaya",
   "product.added": "An ƙara {name}. Za ka iya ƙara wasu daga baya.",
-  "product.whatsapp": "Aiko mana da WhatsApp catalogue ɗinka, mu jera maka shi",
-  "product.whatsappDone": "Mun ji. Za mu aiko maka da saƙo a WhatsApp don catalogue ɗinka.",
   "product.needPhoto": "Ɗauki hoton kayan.",
   "product.needName": "Rubuta abin da ake kiransa.",
   "product.needPrice": "Rubuta farashin a naira.",

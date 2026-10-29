@@ -2,6 +2,7 @@
 // sign-up link with its UTM tags. Pure and browser-safe (the editors use it); signed opt-out links are in ./tokens.ts.
 import { z } from "zod";
 import { EMAIL_COLORS, escapeHtml, html, safeHref } from "../email/shell.ts";
+import { greetingName } from "../../../shared/person-name.ts";
 
 export const LEAD_CHANNELS = ["email", "sms", "whatsapp"] as const;
 export type LeadChannel = (typeof LEAD_CHANNELS)[number];
@@ -121,8 +122,7 @@ export function leadAddress(lead: Pick<LeadForMessage, "email" | "phone" | "opte
 }
 
 export function firstName(name: string | null | undefined) {
-  const first = String(name ?? "").trim().split(/\s+/)[0] ?? "";
-  return first.length > 1 && first.length <= 30 ? first.charAt(0).toUpperCase() + first.slice(1) : "";
+  return greetingName(name, "");
 }
 
 /**

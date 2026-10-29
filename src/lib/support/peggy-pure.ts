@@ -1,5 +1,6 @@
 // Peggy in the admin inbox: which channel a reply goes on, how it should read there, and when she may answer by
 // herself. Pure, unit-tested in tests/admin-team.test.mjs.
+import { greetingName } from "../../../shared/person-name.ts";
 
 export const PEGGY_AUTO_CHANNELS = ["whatsapp", "email", "web"] as const;
 export type PeggyAutoChannel = (typeof PEGGY_AUTO_CHANNELS)[number];
@@ -25,7 +26,7 @@ export function peggyChannel(source: string, hasEmail: boolean): ReplyChannel {
 }
 
 export function peggyFormat(channel: ReplyChannel, name: string) {
-  const first = name.trim().split(/\s+/)[0] || "there";
+  const first = greetingName(name);
   if (channel === "whatsapp") {
     return `FORMAT (WhatsApp): greet ${first} by first name. Short paragraphs, 40-150 words in all. Plain text, no Markdown, no headings; *bold* sparingly is fine, and a dash list only if it really helps. At most one emoji. Sign off "- Peggy, Shopinbos".`;
   }

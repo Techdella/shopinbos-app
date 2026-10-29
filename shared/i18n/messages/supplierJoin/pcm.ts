@@ -128,8 +128,6 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "product.price": "Price for one (₦)",
   "product.add": "Add product",
   "product.added": "{name} don enter. You fit add more later.",
-  "product.whatsapp": "Send us your WhatsApp catalogue, we go list am for you",
-  "product.whatsappDone": "We don hear. We go message you for WhatsApp for your catalogue.",
   "product.needPhoto": "Snap photo of the product.",
   "product.needName": "Type wetin dem dey call am.",
   "product.needPrice": "Type the price for naira.",
