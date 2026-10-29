@@ -324,8 +324,6 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "plans.f.seller.themes_all_seasonal": "Duk theme + campaigns na lokacin biki",
   "plans.f.seller.staff": "{count, plural, one {Asusun ma'aikaci #} other {Asusun ma'aikata #}}",
   "plans.f.seller.credits": "{count, plural, one {Kiredit na AI # a wata} other {Kiredit na AI # a wata}}",
-  "plans.f.seller.states": "{count, plural, one {Sayarwa a jiha #} other {Sayarwa a jihohi har #}}",
-  "plans.f.seller.statesNationwide": "Sayarwa a duk ƙasa",
   "plans.f.seller.partners": "{count, plural, one {Abokin isar da kaya # da aka haɗa} other {Abokan isar da kaya # da aka haɗa}}",
   "plans.f.seller.partnersUnlimited": "Abokan isar da kaya marasa iyaka",
   "plans.f.seller.privateRates": "Jerin farashin isarwa na musamman (da aka yi ciniki)",

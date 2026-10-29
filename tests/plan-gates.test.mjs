@@ -1,5 +1,5 @@
 // What each plan lets sellers, suppliers and delivery partners do (shared/plans.ts), and source checks that every
-// place a seller adds products, domains, themes, delivery areas, partners, pay on delivery or campaigns asks
+// place a seller adds products, domains, themes, partners, pay on delivery or campaigns asks
 // src/lib/plans/gates.server.ts first, and that paid plans come first in the marketplace's default order.
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -13,12 +13,13 @@ test("seller limits climb with the plan", () => {
   assert.equal(free.products, 20);
   assert.equal(free.customDomain, false);
   assert.equal(free.themes, "basic");
-  assert.equal(free.sellingStates, 1);
   assert.equal(free.payOnDelivery, false);
   assert.equal(free.chinaImport, "browse");
   assert.equal(plans.sellerLimits("seller_starter").customDomain, true);
   assert.equal(plans.sellerLimits("seller_growth").payOnDelivery, true);
-  assert.equal(plans.sellerLimits("seller_growth").sellingStates, null);
+  // Where a shop sells isn't a plan limit: a store's reach online is down to the seller, not Shopinbos.
+  for (const key of Object.keys(plans.SELLER_PLANS)) assert.ok(!("sellingStates" in plans.sellerLimits(key)), key);
+  assert.ok(!plans.planFeatureLines("seller_free").some((line) => /^states/.test(line.id)));
   assert.equal(plans.sellerLimits("seller_growth").themes, "all_seasonal");
   assert.equal(plans.cheapestPlanWhere("seller", (key) => plans.sellerLimits(key).payOnDelivery), "seller_growth");
   assert.equal(plans.cheapestPlanWhere("seller", (key) => plans.sellerLimits(key).customDomain), "seller_starter");
@@ -42,7 +43,6 @@ test("wiring: every place a seller adds something checks the plan", () => {
     productLimitProblem: ["src/app/api/store/products/route.ts", "src/app/api/app/store-products/route.ts", "src/app/actions/sourcing.ts", "src/app/actions/workspace.ts"],
     customDomainProblem: ["src/app/api/domains/connect/route.ts", "src/app/api/domains/purchase/route.ts"],
     themeProblem: ["src/app/api/store/templates/apply/route.ts", "src/lib/ai/rex/tools.ts", "src/lib/ai/rex/full-build.server.ts"],
-    sellingStatesProblem: ["src/app/api/store/shipping-zones/route.ts", "src/app/api/store/shipping-zones/[id]/route.ts", "src/app/api/app/onboarding/payments/route.ts", "src/lib/setup/server.ts"],
     payOnDeliveryAllowed: ["src/lib/seller-payments.server.ts", "src/app/api/app/onboarding/payments/route.ts", "src/lib/setup/server.ts"],
     deliveryPartnerProblem: ["src/app/api/app/logistics/bookings/route.ts", "src/app/api/app/logistics/quotes/route.ts", "src/app/api/app/logistics/preferred-partner/route.ts"],
     seasonalCampaignProblem: ["src/lib/store-campaigns/server.ts"],
@@ -51,8 +51,7 @@ test("wiring: every place a seller adds something checks the plan", () => {
   for (const [fn, paths] of Object.entries(checks)) for (const path of paths) assert.match(read(path), new RegExp(`\\b${fn}\\(`), `${path} → ${fn}`);
   // Things the seller already had keep working after a downgrade.
   const gates = read("src/lib/plans/gates.server.ts");
-  assert.match(gates, /after\.states > before\.states/);
-  assert.match(gates, /after\.everywhere && !before\.everywhere/);
+  assert.doesNotMatch(gates, /sellingStates/, "delivery areas are never limited by plan");
   assert.match(read("src/lib/seller-payments.server.ts"), /record\(paymentConfig\.methods\)\.cod !== true/);
   assert.match(read("src/lib/store-campaigns/server.ts"), /createCampaign[\s\S]{0,200}requireCampaignPlan/);
   assert.match(read("src/app/api/app/payments/route.ts"), /codNeedsPlan: \{ code: "PLAN_LIMIT"/);

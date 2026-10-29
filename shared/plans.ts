@@ -20,8 +20,6 @@ export interface SellerLimits {
   themes: "basic" | "premium" | "all" | "all_seasonal";
   staff: number;
   aiCreditsMonthly: number;
-  /** States the seller can sell and deliver to. */
-  sellingStates: number | null;
   logisticsPartners: number | null;
   privateRateCards: boolean;
   brandedTracking: boolean;
@@ -67,22 +65,22 @@ export interface LogisticsLimits {
 
 export const SELLER_PLANS: Record<SellerPlanKey, SellerLimits> = {
   seller_free: {
-    transactionFeePct: 3, products: 20, customDomain: false, themes: "basic", staff: 1, aiCreditsMonthly: 20, sellingStates: 1, logisticsPartners: 1,
+    transactionFeePct: 3, products: 20, customDomain: false, themes: "basic", staff: 1, aiCreditsMonthly: 20, logisticsPartners: 1,
     privateRateCards: false, brandedTracking: false, exceptionsInbox: false, payOnDelivery: false, messagesIncluded: 0, dropshipProducts: 5,
     chinaImport: "browse", prioritySupport: false, hideBadge: false,
   },
   seller_starter: {
-    transactionFeePct: 2, products: 200, customDomain: true, themes: "premium", staff: 2, aiCreditsMonthly: 150, sellingStates: 5, logisticsPartners: 3,
+    transactionFeePct: 2, products: 200, customDomain: true, themes: "premium", staff: 2, aiCreditsMonthly: 150, logisticsPartners: 3,
     privateRateCards: true, brandedTracking: true, exceptionsInbox: false, payOnDelivery: false, messagesIncluded: 0, dropshipProducts: 50,
     chinaImport: "full", prioritySupport: false, hideBadge: false,
   },
   seller_growth: {
-    transactionFeePct: 1, products: null, customDomain: true, themes: "all_seasonal", staff: 5, aiCreditsMonthly: 500, sellingStates: null, logisticsPartners: 10,
+    transactionFeePct: 1, products: null, customDomain: true, themes: "all_seasonal", staff: 5, aiCreditsMonthly: 500, logisticsPartners: 10,
     privateRateCards: true, brandedTracking: true, exceptionsInbox: true, payOnDelivery: true, messagesIncluded: 200, dropshipProducts: null,
     chinaImport: "full", prioritySupport: false, hideBadge: false,
   },
   seller_pro: {
-    transactionFeePct: 0.5, products: null, customDomain: true, themes: "all_seasonal", staff: 15, aiCreditsMonthly: 1500, sellingStates: null, logisticsPartners: null,
+    transactionFeePct: 0.5, products: null, customDomain: true, themes: "all_seasonal", staff: 15, aiCreditsMonthly: 1500, logisticsPartners: null,
     privateRateCards: true, brandedTracking: true, exceptionsInbox: true, payOnDelivery: true, messagesIncluded: 1000, dropshipProducts: null,
     chinaImport: "priority", prioritySupport: true, hideBadge: true,
   },
@@ -235,7 +233,6 @@ export function planFeatureLines(key: PlanKey): PlanFeatureLine[] {
       { id: `themes_${p.themes}`, included: true },
       { id: "staff", values: { count: p.staff }, included: true },
       { id: "credits", values: { count: p.aiCreditsMonthly }, included: true },
-      { id: p.sellingStates === null ? "statesNationwide" : "states", values: { count: unlimitedOr(p.sellingStates) }, included: true },
       { id: p.logisticsPartners === null ? "partnersUnlimited" : "partners", values: { count: unlimitedOr(p.logisticsPartners) }, included: true },
       { id: "privateRates", included: p.privateRateCards },
       { id: "tracking", included: p.brandedTracking },

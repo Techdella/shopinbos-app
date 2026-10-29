@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { payOnDeliveryAllowed, payOnDeliveryPlanName, sellingStatesProblem } from "@/lib/plans/gates.server";
+import { payOnDeliveryAllowed, payOnDeliveryPlanName } from "@/lib/plans/gates.server";
 import { z } from "zod";
 import { withSeller } from "@/lib/auth/middleware";
 import { apiError, ok } from "@/lib/api/response";
@@ -47,9 +47,6 @@ export const PUT = withSeller(async (req: NextRequest, { user }) => {
   const previousOnboardingZones = existing
     .filter((zone) => Array.isArray(zone.rates) && zone.rates.some((rate) => (rate as { source?: string } | null)?.source === ONBOARDING_SOURCE))
     .map((zone) => zone.id);
-  // Delivery fees beyond the plan's selling states never stop the step: the payment choices are saved, the shop's
-  // delivery areas stay as they were, and the answer says why (one calm line on the phone).
-  const planProblem = await sellingStatesProblem(user.id, store.id, zones, previousOnboardingZones);
   // Onboarding ticks pay on delivery by default; on plans without it, it's left off unless it's the only choice.
   if (methods.cod && !savedCod(paymentConfig) && !(await payOnDeliveryAllowed(user.id))) {
     if (!methods.transfer && !methods.card && !methods.wa) return apiError("PLAN_LIMIT", `Pay on delivery comes with the ${payOnDeliveryPlanName()} plan. Pick another way for customers to pay.`, 402);
@@ -64,8 +61,8 @@ export const PUT = withSeller(async (req: NextRequest, { user }) => {
       where: { id: store.id },
       data: { brandSettings: { ...settings, paymentConfig: { ...paymentConfig, methods: saved } } },
     }),
-    ...(planProblem ? [] : [db.shippingZone.deleteMany({ where: { id: { in: previousOnboardingZones } } })]),
-    ...(planProblem ? [] : ordered).map((zone, index) =>
+    db.shippingZone.deleteMany({ where: { id: { in: previousOnboardingZones } } }),
+    ...ordered.map((zone, index) =>
       db.shippingZone.create({
         data: {
           storeId: store.id,
@@ -80,5 +77,5 @@ export const PUT = withSeller(async (req: NextRequest, { user }) => {
     ),
   ]);
 
-  return ok({ methods: saved, zones: planProblem ? [] : zones, zonesNote: planProblem });
+  return ok({ methods: saved, zones });
 });

@@ -1,5 +1,5 @@
 import "server-only";
-import { payOnDeliveryAllowed, payOnDeliveryPlanName, sellingStatesProblem } from "@/lib/plans/gates.server";
+import { payOnDeliveryAllowed, payOnDeliveryPlanName } from "@/lib/plans/gates.server";
 
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
@@ -165,14 +165,6 @@ export async function setPaymentMethods(storeId: string, changes: Partial<Record
   return next;
 }
 
-/** The plan's selling states (src/lib/plans/gates.server.ts), as a SetupError the caller already shows. */
-async function checkSellingStates(storeId: string, areas: DeliveryAreaInput[], replacing: string[]) {
-  const store = await db.store.findUnique({ where: { id: storeId }, select: { userId: true } });
-  if (!store) throw new SetupError("Store not found.");
-  const problem = await sellingStatesProblem(store.userId, storeId, areas, replacing);
-  if (problem) throw new SetupError(problem);
-}
-
 export interface DeliveryAreaInput {
   name: string;
   fee: number;
@@ -197,7 +189,6 @@ export async function upsertDeliveryArea(storeId: string, input: DeliveryAreaInp
   const area = cleanArea(input);
   const existing = await db.shippingZone.findMany({ where: { storeId }, orderBy: { sortOrder: "asc" }, select: { id: true, name: true, regions: true, active: true } });
   const match = existing.find((zone) => zone.name.trim().toLowerCase() === area.name.toLowerCase());
-  await checkSellingStates(storeId, [area], match ? [match.id] : []);
   const rates = [{ name: "Standard delivery", minValue: 0, minWeight: 0, price: area.fee, source: SETUP_ZONE_SOURCE }];
 
   const saved = match
@@ -216,7 +207,6 @@ export async function replaceSetupDeliveryAreas(storeId: string, inputs: Deliver
   const ours = existing
     .filter((zone) => Array.isArray(zone.rates) && zone.rates.some((rate) => ["onboarding", SETUP_ZONE_SOURCE].includes(String(record(rate).source))))
     .map((zone) => zone.id);
-  await checkSellingStates(storeId, areas, ours);
   await db.$transaction([
     db.shippingZone.deleteMany({ where: { id: { in: ours } } }),
     ...areas.map((area, index) =>

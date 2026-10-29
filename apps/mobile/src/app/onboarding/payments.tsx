@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Modal, Pressable, ScrollView, TextInput, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { canonicalState } from "@shared/delivery-market";
-import { allowedSellChoice, DEFAULT_PAYMENT_METHODS, PAYMENT_METHODS, zonesForSellChoice, type DeliveryZone, type OnboardingSellArea, type PaymentMethodKey } from "@shared/onboarding";
+import { DEFAULT_PAYMENT_METHODS, PAYMENT_METHODS, zonesForSellChoice, type DeliveryZone, type OnboardingSellArea, type PaymentMethodKey } from "@shared/onboarding";
 import { Title } from "@/components/design";
 import { ButtonRow, Card, Field, Label, Notice, PillButton, T, Toggle } from "@/components/ui";
 import { OnboardingFrame } from "@/components/OnboardingFrame";
@@ -16,8 +16,7 @@ import { colors, fonts } from "@/theme";
 
 // "Getting paid and delivering": how customers pay, the payout bank (optional) and the delivery fees for where the
 // shop sells (the "Where do you sell?" step, else the saved delivery settings). The button always moves on once a
-// way to pay is on: fees beyond the plan's states are left as they were (the server says so, one calm line here),
-// and if the shop can't go live just now the next screen says why, with its own Publish button.
+// way to pay is on, and if the shop can't go live just now the next screen says why, with its own Publish button.
 
 const SELL_AREAS: OnboardingSellArea[] = ["one_state", "selected", "nationwide"];
 
@@ -50,7 +49,7 @@ export default function Payments() {
         if (!alive) return;
         const home = canonicalState(hub?.settings.originState ?? null) ?? canonicalState(hub?.city ?? null);
         const saved = { area: SELL_AREAS.find((entry) => entry === hub?.settings.sellArea) ?? "one_state", states: hub?.settings.sellStates ?? [] };
-        setZones(zonesForSellChoice(allowedSellChoice(saved, hub ? hub.sellLimit?.states ?? null : 1, home), home));
+        setZones(zonesForSellChoice(saved, home));
       });
     return () => {
       alive = false;
@@ -89,10 +88,8 @@ export default function Payments() {
     if (!Object.values(methods).some(Boolean)) return setError(t("pay.needMethod"));
     setBusy(true);
     setError(null);
-    let zonesKept = false;
     try {
-      const saved = await savePayments(methods, zones);
-      zonesKept = Boolean(saved?.zonesNote);
+      await savePayments(methods, zones);
     } catch (saveError) {
       // A choice on this page the server can't take (pay on delivery alone on a plan without it): say why and stay.
       if (saveError instanceof ApiError && saveError.status >= 400 && saveError.status < 500 && saveError.status !== 401) {
@@ -115,7 +112,7 @@ export default function Payments() {
     await refresh().catch(() => null);
     setBusy(false);
     setNote(null);
-    router.replace({ pathname: "/onboarding/live", params: { ...(publishError ? { publishError } : {}), ...(zonesKept ? { zonesKept: "1" } : {}) } });
+    router.replace({ pathname: "/onboarding/live", params: { ...(publishError ? { publishError } : {}) } });
   }
 
   return (

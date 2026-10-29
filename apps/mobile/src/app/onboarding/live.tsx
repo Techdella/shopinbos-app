@@ -23,7 +23,7 @@ export default function Live() {
   const t = useT("m_onboarding", "m_home");
   const { status, palette, refresh } = useOnboarding();
   // From payments: why the shop didn't go live there (shown until it does), and fees kept because of the plan.
-  const params = useLocalSearchParams<{ publishError?: string; zonesKept?: string }>();
+  const params = useLocalSearchParams<{ publishError?: string }>();
   const [toast, setToast] = useState<string | null>(null);
   const [qr, setQr] = useState(false);
   const [leaving, setLeaving] = useState(false);
@@ -99,7 +99,6 @@ export default function Live() {
           <AppIcon name="chevron" size={18} color={colors.inkSoft} />
         </Pressable>
         <View style={{ flex: 1 }} />
-        {params.zonesKept ? <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 19, textAlign: "center", marginBottom: 8 }}>{t("pay.zonesKept")}</T> : null}
         {live ? (
           <>
             <T style={{ color: colors.inkSoft, fontSize: 14.5, lineHeight: 20, textAlign: "center", marginBottom: 10 }}>{t("live.statusFirst")}</T>
