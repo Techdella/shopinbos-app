@@ -37,6 +37,7 @@ import type { RexCard } from "@/lib/ai/rex/cards";
 import { MarketingError, rexCreateAutomation, rexCreateCampaign, rexCreateSegment } from "@/lib/ai/rex/marketing.server";
 import { applyStudioPlan, loadStudioStore, runStudioEdit, type StudioEditResult } from "@/lib/ai/rex/studio-edit.server";
 import { parseRexStudioPlan } from "@/lib/ai/rex/studio-plan";
+import { reviewStoreDraft } from "@/lib/ai/rex/design-review";
 import { loadHealthFacts, studioDraft, themeNameFor } from "@/lib/ai/rex/studio.server";
 import type { RexVersionSummary } from "@/lib/ai/rex/studio-versions";
 import type { StoreEditorSnapshot } from "@/lib/store-templates";
@@ -383,6 +384,58 @@ async function rebuildSection(ctx: RexToolContext, input: RexToolInput<"rebuild_
   await meter(ctx, "text");
   const result = await runStudioEdit(store, { message: rebuildInstruction(input), history: ctx.history.slice(-8), imageUrls: ctx.newPhotos, label: `Rebuilt ${input.section} (${input.page})` });
   return storeOutput(ctx, result, input.page);
+}
+
+async function reviewStoreDesign(ctx: RexToolContext): Promise<RexToolOutput> {
+  const store = await studioStore(ctx);
+  const { draft } = studioDraft(store);
+  const review = reviewStoreDraft(draft, { boutique: isBoutiqueTheme(draft.templateId), storeName: store.name });
+  if (!review.findings.length) return { content: "The draft looks in good shape: every picture spot is filled, the words are the store's own and the colours read clearly. Nothing to fix." };
+  return {
+    content: JSON.stringify({
+      findings: review.findings.map((finding) => ({ area: finding.area, message: finding.message, fix: finding.fix ?? "fill_section_images" })),
+      pictureSpots: review.pictureSlots.map((slot) => ({ page: slot.page, section: slot.kind, showsSamplePhoto: slot.stock })),
+      howToFix: "Offer the seller to fix these in one go. Words, sections and colours: edit_store_section with the fix instructions. Pictures: fill_section_images (each picture costs an image). Ask before making pictures.",
+    }),
+  };
+}
+
+const SLOT_SHAPE: Record<string, "landscape" | "portrait" | "square"> = { "hero-split": "landscape", "split-hero": "portrait", "parallax-banner": "landscape", "video-hero": "landscape", "promo-banner": "landscape", "campaign-countdown-hero": "landscape" };
+
+async function fillSectionImages(ctx: RexToolContext, input: RexToolInput<"fill_section_images">): Promise<RexToolOutput> {
+  const store = await studioStore(ctx);
+  const { draft } = studioDraft(store);
+  const review = reviewStoreDraft(draft, { boutique: isBoutiqueTheme(draft.templateId), storeName: store.name });
+  const slots = review.pictureSlots.filter((slot) => !input.page || slot.page === input.page).slice(0, input.max ?? 3);
+  if (!slots.length) return { content: `No section${input.page ? ` on the ${input.page} page` : ""} is waiting for a picture; nothing was made.` };
+  const brand = await loadBrandContext(ctx.storeId);
+  const settings = (store.brandSettings && typeof store.brandSettings === "object" ? store.brandSettings : {}) as Record<string, unknown>;
+  const memory = (settings.onboardingMemory && typeof settings.onboardingMemory === "object" ? settings.onboardingMemory : {}) as Record<string, unknown>;
+  const sells = [memory.category, memory.businessDescription, store.description].filter((value): value is string => typeof value === "string" && value.trim().length > 0).join(". ").slice(0, 400);
+  const ops: Array<Record<string, unknown>> = [];
+  const failures: string[] = [];
+  for (const [index, slot] of slots.entries()) {
+    const giveBack = await meter(ctx, "image");
+    const prompt = [
+      `A ${slot.kind.includes("story") || slot.kind.includes("founder") ? "warm, real-life brand story photo" : "striking store banner photo"} for "${store.name}", an online store in ${store.city || store.country || "Nigeria"}${sells ? ` that sells: ${sells}` : ""}.`,
+      slot.context ? `It sits beside these words: ${slot.context}.` : "",
+      input.direction ? `Look: ${input.direction}.` : "Bright, clean, premium product photography with Nigerian people or settings where people or places appear.",
+      "Calm space for text on one side. No words, letters, prices or logos in the picture.",
+    ].filter(Boolean).join(" ");
+    try {
+      const made = await makeBrandImage({ brand, prompt, size: imageSizeFor(SLOT_SHAPE[slot.kind] ?? "landscape"), logo: false, colours: true, referenceUrls: [], path: `generated/${ctx.userId}/section-${Date.now()}-${index}` });
+      ops.push({ action: "update", page: slot.page, kind: slot.kind, sectionId: slot.sectionId, fields: { [slot.field]: slot.count > 1 || slot.field === "media" ? [made.url] : made.url }, summary: `Added a new picture to the ${slot.kind.replace(/-/g, " ")} on the ${slot.page === "home" ? "homepage" : `${slot.page} page`}` });
+    } catch (error) {
+      await giveBack();
+      failures.push(error instanceof Error ? error.message : "image service error");
+    }
+  }
+  if (!ops.length) throw new RexToolError(`The pictures couldn't be made (${failures[0] ?? "image service error"}). Nothing changed and nothing was charged.`);
+  const plan = parseRexStudioPlan({ reply: "", ops });
+  if (!plan) throw new RexToolError("The pictures were made but couldn't be placed.");
+  const result = await applyStudioPlan(store, plan, `New pictures for ${ops.length} section${ops.length === 1 ? "" : "s"}`);
+  const output = storeOutput(ctx, result, input.page ?? "home");
+  return failures.length ? { ...output, content: `${output.content} ${failures.length} picture(s) couldn't be made and weren't charged.` } : output;
 }
 
 async function switchThemeTool(ctx: RexToolContext, input: RexToolInput<"switch_theme">): Promise<RexToolOutput> {
@@ -738,6 +791,7 @@ type Runner<N extends RexToolName> = (ctx: RexToolContext, input: RexToolInput<N
 
 export const REX_TOOL_RUNNERS: { [N in RexToolName]: Runner<N> } = {
   store_health: storeHealth,
+  review_store_design: reviewStoreDesign,
   list_products: listProducts,
   list_themes: listThemes,
   open_preview: openPreview,
@@ -748,6 +802,7 @@ export const REX_TOOL_RUNNERS: { [N in RexToolName]: Runner<N> } = {
   generate_logo: generateLogo,
   make_product_video: makeProductVideo,
   edit_store_section: editStoreSection,
+  fill_section_images: fillSectionImages,
   rebuild_section: rebuildSection,
   switch_theme: switchThemeTool,
   set_theme_style: setThemeStyle,
