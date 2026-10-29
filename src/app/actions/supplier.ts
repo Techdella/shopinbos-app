@@ -1,5 +1,6 @@
 "use server";
 
+import { storeSafeMessage } from "@/lib/app-session.server";
 import { revalidatePath } from "next/cache";
 import { parseDepositPct, parsePreorderInput, preorderSaveData } from "@shared/preorder";
 import { redirect } from "next/navigation";
@@ -656,7 +657,7 @@ export async function importSupplierProductsCsv(csvText: string): Promise<Suppli
   let created = 0;
   for (const [index, { row, product }] of products.entries()) {
     if (index >= room) {
-      errors.push({ row, message: `Your plan includes ${limits.listings} listings. Upgrade to add more.` });
+      errors.push({ row, message: await storeSafeMessage(`Your plan includes ${limits.listings} listings. Upgrade to add more.`) });
       continue;
     }
     const valid = SupplierProductCreateSchema.safeParse({ ...product, status: "draft" });

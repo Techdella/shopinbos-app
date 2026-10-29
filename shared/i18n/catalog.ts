@@ -2,6 +2,7 @@
 // index.ts (copy any existing one), then add one import line and one entry below. See README.md.
 import { createT, LOCALES, type Catalog, type Locale, type TFunction } from "./index.ts";
 import { mergeLocale, type MergedMessages } from "./merged.ts";
+import { PURCHASE_CTA } from "../store-payments.ts";
 import common from "./messages/common/index.ts";
 import shell from "./messages/shell/index.ts";
 import tour from "./messages/tour/index.ts";
@@ -222,13 +223,68 @@ export function tFor<const NS extends readonly Namespace[]>(locale: Locale, ...n
   return createT<KeysOf<NS>>(locale, namespaces.map((namespace) => CATALOGS[namespace] as Catalog));
 }
 
+// ── Pages the phone app opened (src/lib/app-session.ts) ───────────────────────
+// App store rules: nothing there may say to upgrade, top up or buy credits. A message that is more than that ("You've
+// reached the free plan limit for products. Upgrade to Supplier Max to add more.") loses its purchase sentences, in
+// every language: the sentences dropped are the ones the English drops, by position. A message that is only a
+// purchase prompt ("Upgrade to Pro") is a button or link label, and those are hidden on those pages, so it stays.
+
+const SENTENCE_BREAK = /(?<=[.!?])\s+/;
+const ICU_BRANCHES = /\{[^{}]*,\s*(plural|select)\b/;
+
+/** One message for a page the phone app opened: `en` decides which sentences go, `text` is the language shown. */
+export function storeSafeText(en: string, text: string): string {
+  if (!PURCHASE_CTA.test(en) || ICU_BRANCHES.test(en)) return text;
+  const english = en.split(SENTENCE_BREAK);
+  const drop = english.map((sentence) => PURCHASE_CTA.test(sentence));
+  if (drop.every(Boolean)) return text;
+  const parts = text.split(SENTENCE_BREAK);
+  if (parts.length === english.length) return parts.filter((_, index) => !drop[index]).join(" ");
+  // The translation splits differently: its own purchase sentences if it has recognisable ones, else the English.
+  const own = parts.filter((sentence) => !PURCHASE_CTA.test(sentence));
+  return own.length && own.length < parts.length ? own.join(" ") : english.filter((_, index) => !drop[index]).join(" ");
+}
+
+const storeSafeCache = new WeakMap<Catalog, Catalog>();
+
+/** A namespace catalog with storeSafeText applied to every message, every language (computed once). */
+export function storeSafeCatalog(catalog: Catalog): Catalog {
+  const cached = storeSafeCache.get(catalog);
+  if (cached) return cached;
+  const out: Record<string, Record<string, string>> = {};
+  for (const locale of LOCALES) {
+    const messages = (catalog as Partial<Record<Locale, Readonly<Partial<Record<string, string>>>>>)[locale];
+    if (!messages) continue;
+    const next: Record<string, string> = {};
+    for (const [key, text] of Object.entries(messages)) {
+      if (typeof text !== "string") continue;
+      const en = catalog.en[key];
+      next[key] = typeof en === "string" ? storeSafeText(en, text) : text;
+    }
+    out[locale] = next;
+  }
+  const safe = out as unknown as Catalog;
+  storeSafeCache.set(catalog, safe);
+  return safe;
+}
+
+function catalogOf(namespace: Namespace, storeSafe: boolean): Catalog {
+  const catalog = CATALOGS[namespace] as Catalog;
+  return storeSafe ? storeSafeCatalog(catalog) : catalog;
+}
+
+/** tFor for a page the phone app opened (storeSafe) or any other page. */
+export function tForPage<const NS extends readonly Namespace[]>(locale: Locale, storeSafe: boolean, ...namespaces: NS): TFunction<KeysOf<NS>> {
+  return createT<KeysOf<NS>>(locale, namespaces.map((namespace) => catalogOf(namespace, storeSafe)));
+}
+
 export type { MergedMessages } from "./merged.ts";
 export { catalogsFromMerged } from "./merged.ts";
 
-export function mergedMessages(locale: Locale, namespaces: readonly Namespace[] = NAMESPACES): MergedMessages {
+export function mergedMessages(locale: Locale, namespaces: readonly Namespace[] = NAMESPACES, options: { storeSafe?: boolean } = {}): MergedMessages {
   const out: MergedMessages = {};
   for (const namespace of namespaces) {
-    const catalog = CATALOGS[namespace] as Catalog;
+    const catalog = catalogOf(namespace, options.storeSafe ?? false);
     out[namespace] = mergeLocale(catalog.en as Record<string, string>, locale === "en" ? null : (catalog[locale] as Record<string, string> | undefined));
   }
   return out;

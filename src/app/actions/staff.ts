@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/server-auth";
 import { StaffError, inviteStaff, leaveTeam, removeStaff } from "@/lib/staff/staff.server";
+import { storeSafeMessage } from "@/lib/app-session.server";
 
 // Settings › Team (src/lib/staff/staff.server.ts).
 
@@ -14,7 +15,7 @@ async function run(work: () => Promise<string | undefined>): Promise<Result> {
     revalidatePath("/home/settings");
     return { ok: true, message };
   } catch (error) {
-    if (error instanceof StaffError) return { ok: false, error: error.message };
+    if (error instanceof StaffError) return { ok: false, error: await storeSafeMessage(error.message) };
     console.error("[staff]", error);
     return { ok: false, error: "Something went wrong. Try again." };
   }

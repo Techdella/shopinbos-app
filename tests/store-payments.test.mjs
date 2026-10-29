@@ -245,3 +245,57 @@ test("pages the phone app opens on the website sell nothing digital (Apple 3.1.3
   assert.match(credits.outOfCreditsMessage(5, 0, { inApp: true }), /This needs 5 AI credits and you have 0\. Your plan's credits refill/);
   assert.match(credits.outOfCreditsMessage(5, 0), /Top up/);
 });
+
+test("pages the phone app opened: plan messages lose their purchase sentences, in every language", async () => {
+  // Server messages.
+  assert.equal(rules.withoutPurchasePrompt("Your plan includes up to 50 products and you have 50. Upgrade to Pro to add more."), "Your plan includes up to 50 products and you have 50.");
+  assert.equal(rules.withoutPurchasePrompt("Only the Pro plan can hide the Built with Shopinbos badge. Upgrade to Pro to turn it off."), "Only the Pro plan can hide the Built with Shopinbos badge.");
+  assert.equal(rules.withoutPurchasePrompt("Row 3: skipped, your plan's product limit is reached. Upgrade to import the rest."), "Row 3: skipped, your plan's product limit is reached.");
+  assert.equal(rules.withoutPurchasePrompt("Upgrade to Growth."), rules.NOT_ON_PLAN_MESSAGE);
+  assert.equal(rules.withoutPurchasePrompt("Add a product name."), "Add a product name.");
+  assert.doesNotMatch(rules.NOT_ON_PLAN_MESSAGE, rules.PURCHASE_CTA);
+  const server = read("src/lib/app-session.server.ts");
+  assert.match(server, /response\.status < 400 \|\| isPhoneAppRequest\(req\.headers\) \|\| !hasAppSessionCookie\(/);
+  assert.match(server, /const PURCHASE_LINK_FIELDS = \["buyUrl", "upgradeUrl", "plansUrl", "billingUrl"\]/);
+  assert.match(read("src/lib/auth/middleware.ts"), /return storeSafeResponse\(req, await handler\(req, \{ user: acting, params: \(await params\) \?\? \{\} \}\)\);/);
+  // Gates used by server actions too: every "Upgrade to …" goes through storeSafeMessage.
+  for (const path of ["src/lib/plans/gates.server.ts", "src/lib/plans/market.server.ts"]) {
+    for (const line of read(path).split("\n").filter((l) => /return [^\n]*(Upgrade to|\$\{upgrade\})/.test(l))) assert.match(line, /return storeSafeMessage\(`/, `${path}: ${line.trim()}`);
+  }
+  assert.match(read("src/app/actions/staff.ts"), /error: await storeSafeMessage\(error\.message\)/);
+  assert.match(read("src/app/actions/supplier.ts"), /message: await storeSafeMessage\(`Your plan includes \$\{limits\.listings\} listings\./);
+  assert.match(read("src/app/api/products/import/route.ts"), /errors: await Promise\.all\(errors\.map\(storeSafeMessage\)\)/);
+
+  // The web's own words: both loaders use the store-safe catalogs on those pages.
+  const i18n = read("src/lib/i18n/server.ts");
+  assert.match(i18n, /return tForPage\(locale, storeSafe, \.\.\.namespaces\);/);
+  assert.match(i18n, /\{ storeSafe \}\);/);
+  const catalog = await import("../shared/i18n/catalog.ts");
+  const split = (text) => text.split(/(?<=[.!?])\s+/);
+  let cleaned = 0;
+  for (const [namespace, messages] of Object.entries(catalog.CATALOGS)) {
+    if (namespace.startsWith("m_")) continue; // The phone app's own words have no purchase prompts at all (above).
+    const safe = catalog.storeSafeCatalog(messages);
+    for (const [key, en] of Object.entries(messages.en)) {
+      if (!rules.PURCHASE_CTA.test(en) || /\{[^{}]*,\s*(plural|select)\b/.test(en)) continue;
+      const sentences = split(en);
+      if (sentences.every((sentence) => rules.PURCHASE_CTA.test(sentence))) continue; // A label: hidden with its link.
+      cleaned++;
+      assert.doesNotMatch(safe.en[key], rules.PURCHASE_CTA, `${namespace}.${key}`);
+      for (const locale of ["pcm", "yo", "ha", "ig"]) {
+        const text = messages[locale]?.[key];
+        if (!text) continue;
+        // Sentences go by position, so translations must keep the English sentence count.
+        assert.equal(split(text).length, sentences.length, `${namespace}.${key} [${locale}] splits into a different number of sentences than the English`);
+        assert.ok(split(safe[locale][key]).length < sentences.length, `${namespace}.${key} [${locale}]`);
+      }
+    }
+  }
+  assert.ok(cleaned >= 15, `only ${cleaned} messages cleaned`);
+  assert.equal(catalog.storeSafeText("You've reached the free plan limit for products. Upgrade to Supplier Max to add more.", "O ti dé òpin free plan fún ọjà. Gòkè sí Supplier Max láti fi púpọ̀ sí i kún un."), "O ti dé òpin free plan fún ọjà.");
+  assert.equal(catalog.storeSafeText("Upgrade to Pro", "Upgrade to Pro"), "Upgrade to Pro");
+
+  // Labels that stay are on links the app-session guard hides.
+  assert.equal(rules.isDigitalPurchasePath("/supplier/profile?tab=Billing%20%26%20Plan"), true);
+  assert.equal(rules.isDigitalPurchasePath("/supplier/profile"), false);
+});

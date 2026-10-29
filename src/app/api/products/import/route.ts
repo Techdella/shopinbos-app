@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { storeSafeMessage } from "@/lib/app-session.server";
 import { productLimitProblem, productsLeft } from "@/lib/plans/gates.server";
 import Papa from "papaparse";
 import { z } from "zod";
@@ -152,5 +153,6 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
   }
 
   if (imported) await markCatalogDirty(store.id);
-  return ok({ imported, withImages, enhanced, errors, notices });
+  // Pages the phone app opened: the plan-limit lines lose "Upgrade to import the rest." (src/lib/app-session.ts).
+  return ok({ imported, withImages, enhanced, errors: await Promise.all(errors.map(storeSafeMessage)), notices });
 });

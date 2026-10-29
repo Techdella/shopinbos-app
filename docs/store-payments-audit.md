@@ -191,8 +191,11 @@ Decision:
    - the endpoints that start a purchase (credit packs, add-ons, wallet top-up, themes, domain purchase and renewal)
      answer 403 `NOT_IN_APP` (`appPurchaseRefusal`), and out of credits reads without "top up" or a buy link;
    - Rex and Peggy get `IN_APP_PAYMENTS_RULE` there too (and Peggy now also when the phone app calls the web route).
-   Known gap: a few server errors written for the website still say "Upgrade to Pro…" (for example hiding the
-   "Built with Shopinbos" badge). They show only after the seller tries a Pro feature on a web page the app opened.
+   - plan and credits messages lose their purchase sentences ("…and you have 50. Upgrade to Pro to add more." →
+     "…and you have 50."): API errors through `withAuth` (`storeSafeResponse`, which also drops `buyUrl`-style
+     fields), the plan gates used by server actions (`storeSafeMessage`), and the web's own words in every language
+     (`shared/i18n/catalog.ts` `storeSafeText`, applied by `getT` and the client messages). A message that is only a
+     prompt ("Upgrade", "See plans") is a link label, hidden with its link.
 
 ## Still open
 

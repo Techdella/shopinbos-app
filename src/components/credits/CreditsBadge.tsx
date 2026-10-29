@@ -286,7 +286,8 @@ export function CreditsBadge({
       <button
         type="button"
         aria-haspopup="dialog"
-        aria-label={balance === null ? t("credits.title") : t("credits.aria", { count: balance })}
+        // Opened from the phone app: just the number (credits.aria ends "Open to top up").
+        aria-label={balance === null || inAppSessionClient() ? t("credits.title") : t("credits.aria", { count: balance })}
         onClick={() => {
           if (inAppSessionClient()) return;
           setOpen(true);

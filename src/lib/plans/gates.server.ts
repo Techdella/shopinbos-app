@@ -1,4 +1,5 @@
 import "server-only";
+import { storeSafeMessage } from "@/lib/app-session.server";
 import { PAY_ON_DELIVERY_ON } from "@shared/checkout-payments";
 import { db } from "@/lib/db/client";
 import {
@@ -45,11 +46,11 @@ export async function productLimitProblem(userId: string, storeId: string, addin
   ]);
   if (limits.products !== null && products + adding > limits.products) {
     const plan = upgradeTo((next) => more(next.products, products + adding - 1));
-    return `Your plan includes up to ${limits.products} products and you have ${products}.${plan ? ` Upgrade to ${plan} to add more.` : ""}`;
+    return storeSafeMessage(`Your plan includes up to ${limits.products} products and you have ${products}.${plan ? ` Upgrade to ${plan} to add more.` : ""}`);
   }
   if (dropship && limits.dropshipProducts !== null && dropshipped + adding > limits.dropshipProducts) {
     const plan = upgradeTo((next) => more(next.dropshipProducts, dropshipped + adding - 1));
-    return `Your plan includes up to ${limits.dropshipProducts} dropship products and you have ${dropshipped}.${plan ? ` Upgrade to ${plan} to dropship more.` : ""}`;
+    return storeSafeMessage(`Your plan includes up to ${limits.dropshipProducts} dropship products and you have ${dropshipped}.${plan ? ` Upgrade to ${plan} to dropship more.` : ""}`);
   }
   return null;
 }
@@ -97,7 +98,7 @@ export async function sellingStatesProblem(userId: string, storeId: string, area
   const plan = upgradeTo((next) => (after.everywhere ? next.sellingStates === null : more(next.sellingStates, after.states - 1)));
   const upgrade = plan ? ` Upgrade to ${plan} to deliver to more.` : "";
   if (after.everywhere && !before.everywhere) return `Delivering everywhere comes with the ${plan ?? "Growth"} plan. Your plan lets you sell in ${limits.sellingStates} state${limits.sellingStates === 1 ? "" : "s"}.`;
-  if (after.states > limits.sellingStates && after.states > before.states) return `Your plan lets you sell in ${limits.sellingStates} state${limits.sellingStates === 1 ? "" : "s"}.${upgrade}`;
+  if (after.states > limits.sellingStates && after.states > before.states) return storeSafeMessage(`Your plan lets you sell in ${limits.sellingStates} state${limits.sellingStates === 1 ? "" : "s"}.${upgrade}`);
   return null;
 }
 
@@ -130,7 +131,7 @@ export async function deliveryPartnerProblem(userId: string, partnerId: string, 
   const ids = await connectedPartners(userId, !asPreferred);
   if (ids.has(partnerId) || ids.size < limits.logisticsPartners) return null;
   const plan = upgradeTo((next) => more(next.logisticsPartners, ids.size));
-  return `Your plan includes ${limits.logisticsPartners} delivery partner${limits.logisticsPartners === 1 ? "" : "s"} and you already work with ${ids.size}.${plan ? ` Upgrade to ${plan} to add more.` : ""}`;
+  return storeSafeMessage(`Your plan includes ${limits.logisticsPartners} delivery partner${limits.logisticsPartners === 1 ? "" : "s"} and you already work with ${ids.size}.${plan ? ` Upgrade to ${plan} to add more.` : ""}`);
 }
 
 export async function payOnDeliveryAllowed(userId: string) {
