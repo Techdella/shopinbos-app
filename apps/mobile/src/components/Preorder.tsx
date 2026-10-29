@@ -7,7 +7,7 @@ import { Card, Chip, Field, Label, PillButton, T, Toggle } from "@/components/ui
 import { monthGrid, shiftMonth } from "@/lib/campaigns-pure";
 import { useT } from "@/lib/i18n";
 import { PREORDER_DEPOSIT_CHOICES, PREORDER_NOTE_MAX, SHIP_CHOICES, dayFromNow, preorderLineText, preorderPillText, shipDayText, today, type PreorderForm, type PreorderState } from "@/lib/preorder-pure";
-import { colors, radii } from "@/theme";
+import { colors, currentScheme, radii } from "@/theme";
 
 // Preorders on the phone (rules in shared/preorder.ts, shaped by lib/preorder-pure.ts; words in m_ui "preorder.*"):
 //   <PreorderEditor>  the Preorders section of the seller's and the supplier's product forms (like the web's)
@@ -15,8 +15,8 @@ import { colors, radii } from "@/theme";
 //   <PreorderPill>    "Preorder · 12 Dec" on orders
 // Shopinbos never holds preorder money: buyers pay as for any order, and the promise is the seller's own words.
 
-const PREORDER_BG = colors.warnTint;
-const PREORDER_INK = "#5C3D00";
+// Deep brown on the butter box; the light warn ink in dark mode.
+const preorderInk = () => (currentScheme() === "dark" ? colors.warnInk : "#5C3D00");
 
 // Monday first, as m_ui day.short.<0-6> (0 = Sunday).
 const WEEK = [1, 2, 3, 4, 5, 6, 0];
@@ -63,7 +63,7 @@ function ShipDateSheet({ visible, value, onClose, onPick }: { visible: boolean; 
                   accessibilityLabel={shipDayText(iso, now, t)}
                   disabled={past}
                   onPress={() => setDay(iso)}
-                  style={{ width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: on ? colors.ink : "transparent", opacity: past ? 0.35 : 1 }}
+                  style={{ width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: on ? colors.inkFill : "transparent", opacity: past ? 0.35 : 1 }}
                 >
                   <T weight={on ? "extrabold" : "regular"} style={{ fontSize: 15, color: on ? "#FFFFFF" : colors.ink }}>{String(cell)}</T>
                 </Pressable>
@@ -161,16 +161,16 @@ export function PreorderBox({ state, deposit }: { state: PreorderState; /** "Pay
   const t = useT("m_ui");
   const line = preorderLineText(state, new Date(), t);
   return (
-    <View style={{ backgroundColor: PREORDER_BG, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 12, gap: 6 }} accessibilityLabel={[t("preorder.pill"), line, state.note, deposit].filter(Boolean).join(". ")}>
+    <View style={{ backgroundColor: colors.warnTint, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 12, gap: 6 }} accessibilityLabel={[t("preorder.pill"), line, state.note, deposit].filter(Boolean).join(". ")}>
       <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
         <View style={{ backgroundColor: "rgba(255,255,255,0.7)", borderRadius: radii.pill, paddingHorizontal: 9, paddingVertical: 2 }}>
-          <T weight="bold" style={{ fontSize: 12.5, color: PREORDER_INK }}>{t("preorder.pill")}</T>
+          <T weight="bold" style={{ fontSize: 12.5, color: preorderInk() }}>{t("preorder.pill")}</T>
         </View>
-        {line ? <T weight="bold" style={{ fontSize: 14, color: PREORDER_INK, flexShrink: 1 }}>{line}</T> : null}
+        {line ? <T weight="bold" style={{ fontSize: 14, color: preorderInk(), flexShrink: 1 }}>{line}</T> : null}
       </View>
-      {state.note ? <T style={{ fontSize: 14, lineHeight: 20, color: PREORDER_INK }}>{state.note}</T> : null}
-      {deposit ? <T weight="bold" style={{ fontSize: 14, lineHeight: 20, color: PREORDER_INK }}>{deposit}</T> : null}
-      <T style={{ fontSize: 13.5, lineHeight: 19, color: PREORDER_INK }}>{t("preorder.noEscrowBuyer")}</T>
+      {state.note ? <T style={{ fontSize: 14, lineHeight: 20, color: preorderInk() }}>{state.note}</T> : null}
+      {deposit ? <T weight="bold" style={{ fontSize: 14, lineHeight: 20, color: preorderInk() }}>{deposit}</T> : null}
+      <T style={{ fontSize: 13.5, lineHeight: 19, color: preorderInk() }}>{t("preorder.noEscrowBuyer")}</T>
     </View>
   );
 }

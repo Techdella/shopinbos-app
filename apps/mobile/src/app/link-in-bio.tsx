@@ -227,7 +227,7 @@ export default function LinkInBio() {
         <T style={{ fontSize: 15, lineHeight: 22, color: colors.inkSoft }}>{t("bio.removeBody")}</T>
         <PillButton
           title={t("bio.removeYes")}
-          style={{ backgroundColor: colors.danger }}
+          style={{ backgroundColor: colors.dangerFill }}
           onPress={() => {
             if (removing) change({ blocks: removeBlock(draft.blocks, removing.id) });
             setRemoving(null);

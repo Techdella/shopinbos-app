@@ -9,19 +9,19 @@ import { T } from "@/components/ui";
 import { signOut } from "@/lib/auth";
 import type { Tone } from "@/lib/partner-pure";
 import { useT } from "@/lib/i18n";
-import { colors, radii } from "@/theme";
+import { colors, radii, themed } from "@/theme";
 
 // Pieces shared by the supplier, delivery partner and rider screens, following the "Shopinbos Partners · mobile"
 // and "Shopinbos Riders app" prototypes: labelled pill tab bar, partner header, stat tiles, tone pills.
 
-export const TONES: Record<Tone, { bg: string; fg: string }> = {
+export const TONES: Record<Tone, { bg: string; fg: string }> = themed(() => ({
   accent: { bg: colors.peach, fg: colors.accentInk },
   success: { bg: colors.successTint, fg: colors.success },
   warning: { bg: "#FDF0D5", fg: "#8A5A00" },
   muted: { bg: colors.canvas, fg: colors.inkSoft },
   danger: { bg: colors.dangerTint, fg: colors.danger },
   info: { bg: "#E7EEFC", fg: "#2449A8" },
-};
+}));
 
 export function TonePill({ tone, label, style }: { tone: Tone; label: string; style?: StyleProp<ViewStyle> }) {
   return (
@@ -56,7 +56,7 @@ export function PartnerTabBar({ state, navigation, descriptors, items }: TabBarP
                 const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
                 if (!focused && !event.defaultPrevented) navigation.navigate(route.name);
               }}
-              style={{ flex: 1, height: 58, borderRadius: 29, alignItems: "center", justifyContent: "center", gap: 3, backgroundColor: focused ? colors.ink : "transparent" }}
+              style={{ flex: 1, height: 58, borderRadius: 29, alignItems: "center", justifyContent: "center", gap: 3, backgroundColor: focused ? colors.inkFill : "transparent" }}
             >
               <AppIcon name={meta.icon} size={20} color={focused ? "#FFFFFF" : colors.ink} />
               <T weight="bold" numberOfLines={1} style={{ fontSize: 10.5, color: focused ? "#FFFFFF" : colors.ink }}>{meta.label}</T>
@@ -93,7 +93,7 @@ export function PartnerHeader({ eyebrow, name, logoUrl, right }: { eyebrow: stri
       {logoUrl ? (
         <Image source={{ uri: logoUrl }} style={{ width: 46, height: 46, borderRadius: 14 }} contentFit="cover" accessibilityLabel={t("partner.logo", { name })} />
       ) : (
-        <View style={{ width: 46, height: 46, borderRadius: 14, backgroundColor: colors.ink, alignItems: "center", justifyContent: "center" }}>
+        <View style={{ width: 46, height: 46, borderRadius: 14, backgroundColor: colors.inkFill, alignItems: "center", justifyContent: "center" }}>
           <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 15 }}>{initials}</T>
         </View>
       )}

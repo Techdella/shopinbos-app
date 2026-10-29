@@ -146,7 +146,7 @@ export function VoiceInput({
       <View style={style}>
         {/* Next to a chat box there's no room for a line under the button: the message floats above it. */}
         {message && phase === "idle" ? (
-          <Pressable accessibilityRole="button" accessibilityLabel={t("voice.tapToClose", { message })} onPress={() => setMessage(null)} style={{ position: "absolute", bottom: 58, right: 0, width: 240, backgroundColor: colors.ink, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 9, zIndex: 10 }}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t("voice.tapToClose", { message })} onPress={() => setMessage(null)} style={{ position: "absolute", bottom: 58, right: 0, width: 240, backgroundColor: colors.inkFill, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 9, zIndex: 10 }}>
             <T accessibilityLiveRegion="polite" style={{ color: "#FFFFFF", fontSize: 13.5, lineHeight: 18 }}>{message}</T>
           </Pressable>
         ) : null}

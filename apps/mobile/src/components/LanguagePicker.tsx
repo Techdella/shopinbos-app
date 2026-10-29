@@ -47,7 +47,7 @@ export function LanguageSheet({ visible, onClose }: { visible: boolean; onClose:
                 <T weight="extrabold" style={{ fontSize: 17 }}>{language.nativeName}</T>
                 {language.name !== language.nativeName ? <T style={{ fontSize: 14, color: colors.inkSoft, marginTop: 1 }}>{language.name}</T> : null}
               </View>
-              <View style={{ width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: on ? colors.ink : "transparent", borderWidth: on ? 0 : 1, borderColor: colors.line }}>
+              <View style={{ width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: on ? colors.inkFill : "transparent", borderWidth: on ? 0 : 1, borderColor: colors.line }}>
                 {on ? <AppIcon name="check" size={16} color="#FFFFFF" strokeWidth={2.6} /> : null}
               </View>
             </Pressable>

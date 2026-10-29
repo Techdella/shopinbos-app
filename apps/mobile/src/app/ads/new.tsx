@@ -225,7 +225,7 @@ export default function NewAdCampaign() {
                   <T weight="bold" style={{ fontSize: 15 }} numberOfLines={2}>{product.name}</T>
                   <T style={{ color: colors.inkSoft, fontSize: 14 }}>{naira(product.price)}</T>
                 </View>
-                <View style={{ width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: on ? colors.ink : colors.lineStrong, backgroundColor: on ? colors.ink : colors.surface, alignItems: "center", justifyContent: "center" }}>
+                <View style={{ width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: on ? colors.ink : colors.lineStrong, backgroundColor: on ? colors.inkFill : colors.surface, alignItems: "center", justifyContent: "center" }}>
                   {on ? <AppIcon name="check" size={14} color="#FFFFFF" /> : null}
                 </View>
               </Pressable>

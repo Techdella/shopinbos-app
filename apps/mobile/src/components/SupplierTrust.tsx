@@ -7,18 +7,18 @@ import { Badge } from "@/components/kit";
 import { Card, Field, Notice, PillButton, T, Toggle } from "@/components/ui";
 import { sendAgreement, type FindProduct, type Listing } from "@/lib/marketplace";
 import { useT } from "@/lib/i18n";
-import { colors, radii } from "@/theme";
+import { colors, radii, themed } from "@/theme";
 
 // What a seller should know about a supplier before selling their products (the web's SupplierTrust and
 // BeforeYouList, shared/supplier-trust.ts): verified or not, the risk score and how far away; then, before
 // dropshipping, call the supplier, see the stock and accept the Dropship agreement, which the supplier accepts too.
 // Words: the shared "marketplace" namespace (trust.*), the same as the web.
 
-const LEVEL = {
+const LEVEL = themed(() => ({
   low: { bg: colors.successTint, fg: colors.success },
   medium: { bg: "#FDF0D5", fg: "#8A5A00" },
   high: { bg: colors.dangerTint, fg: colors.danger },
-} as const;
+} as const));
 
 /** Verified or not, the risk score and how far: on a product (FindProduct["supplier"]) or a supplier's own page. */
 export function SupplierTrustBadges({ supplier }: { supplier: { verificationStatus: string; risk: { level: keyof typeof LEVEL; score: number } | null; km: number | null } }) {
@@ -155,7 +155,7 @@ export function BeforeYouList({ product, listing, onSent }: { product: FindProdu
                 accessibilityRole="radio"
                 accessibilityState={{ selected: stockCheck === value }}
                 onPress={() => setStockCheck(value)}
-                style={{ minHeight: 46, borderRadius: radii.pill, borderWidth: 1, borderColor: stockCheck === value ? colors.ink : colors.line, backgroundColor: stockCheck === value ? colors.ink : colors.surface, justifyContent: "center", paddingHorizontal: 16 }}
+                style={{ minHeight: 46, borderRadius: radii.pill, borderWidth: 1, borderColor: stockCheck === value ? colors.ink : colors.line, backgroundColor: stockCheck === value ? colors.inkFill : colors.surface, justifyContent: "center", paddingHorizontal: 16 }}
               >
                 <T weight="bold" style={{ fontSize: 14, color: stockCheck === value ? "#FFFFFF" : colors.ink }}>{value === "visit" ? t("trust.visit") : t("trust.video")}</T>
               </Pressable>

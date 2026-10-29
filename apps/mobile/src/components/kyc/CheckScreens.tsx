@@ -208,7 +208,7 @@ export function SelfieScreen({ state, onState, onDone, draft, onDraft }: ScreenP
     <Question title={t("q.selfie.title")} sub={t("q.selfie.sub")} error={action.error} busy={action.busy === "selfie"} canContinue={Boolean(selfie) || sent} onContinue={send}>
       {state.tier1.selfie === "rejected" && selfieDoc?.rejectionReason ? <Notice>{selfieDoc.rejectionReason}</Notice> : null}
       {sent && !selfie ? <Notice tone="success">{state.tier1.selfie === "approved" ? t("selfie.matched") : t("selfie.waiting")}</Notice> : null}
-      <View style={{ alignItems: "center", gap: 10, borderRadius: 22, backgroundColor: colors.ink, padding: 22 }}>
+      <View style={{ alignItems: "center", gap: 10, borderRadius: 22, backgroundColor: colors.inkFill, padding: 22 }}>
         {selfie ? (
           <Image source={{ uri: selfie.uri }} style={{ width: 140, height: 180, borderRadius: 90 }} accessibilityLabel={t("selfie.taken")} />
         ) : (

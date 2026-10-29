@@ -498,7 +498,7 @@ export default function SellerQuestions() {
               <>
                 <Notice tone="info">{t("logo.unavailable")}</Notice>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: colors.surface, borderRadius: 20, padding: 14 }}>
-                  <View style={{ width: 64, height: 64, borderRadius: 14, backgroundColor: colors.ink, alignItems: "center", justifyContent: "center" }}>
+                  <View style={{ width: 64, height: 64, borderRadius: 14, backgroundColor: colors.inkFill, alignItems: "center", justifyContent: "center" }}>
                     <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 22 }}>{lettermark(displayName)}</T>
                   </View>
                   <T weight="bold" style={{ flex: 1, fontSize: 15 }}>{t("logo.useInitials")}</T>
@@ -702,7 +702,7 @@ export default function SellerQuestions() {
                     >
                       <MiniShop look={look} height={190} storeName={displayName} />
                       {selected ? (
-                        <View style={{ position: "absolute", left: 6, top: 30, flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3, backgroundColor: colors.ink }}>
+                        <View style={{ position: "absolute", left: 6, top: 30, flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3, backgroundColor: colors.inkFill }}>
                           <AppIcon name="check" size={11} color="#FFFFFF" strokeWidth={2.6} />
                           <T weight="bold" style={{ fontSize: 11, color: "#FFFFFF" }}>{t("look.selected")}</T>
                         </View>

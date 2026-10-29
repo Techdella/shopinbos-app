@@ -13,19 +13,19 @@ import { connectChannel, disconnectChannel, disconnectEmail, fetchChannels, fetc
 import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
-import { colors } from "@/theme";
+import { colors, themed } from "@/theme";
 
 // Sell everywhere (web /channels): one card per platform with one button. Facebook & Instagram, TikTok and Google
 // sign in through the web's own sign-in in an in-app browser that comes back here; WhatsApp sets up its catalog
 // in one tap once the number is connected (connecting the number itself runs on the web). Platforms not set up on
 // the server. Channels that can't be connected yet are left out (no "Coming soon"); posting is the Posts calendar.
 
-const MARK: Record<LivePlatform, { letter: string; bg: string }> = {
+const MARK: Record<LivePlatform, { letter: string; bg: string }> = themed(() => ({
   whatsapp: { letter: "W", bg: colors.whatsapp },
   meta: { letter: "f", bg: "#1877F2" },
   tiktok: { letter: "T", bg: "#111111" },
   google: { letter: "G", bg: "#4285F4" },
-};
+}));
 
 type Note = { tone: "success" | "error"; text: string };
 
@@ -212,7 +212,7 @@ function EmailCard({ email, onNote }: { email: ReturnType<typeof useLoad<EmailSe
   return (
     <Card style={{ gap: 12 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: colors.ink, alignItems: "center", justifyContent: "center" }}>
+        <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: colors.inkFill, alignItems: "center", justifyContent: "center" }}>
           <AppIcon name="mail" size={22} color="#FFFFFF" />
         </View>
         <View style={{ flex: 1 }}>

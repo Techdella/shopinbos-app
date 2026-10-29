@@ -85,12 +85,12 @@ function ProductCard({ product, added, width, selecting, picked, busy, price, on
             onPress={onAdd}
             disabled={busy}
             hitSlop={6}
-            style={({ pressed }) => ({ position: "absolute", top: 8, right: 8, width: 36, height: 36, borderRadius: 18, borderWidth: 2, borderColor: "#FFFFFF", backgroundColor: colors.ink, alignItems: "center", justifyContent: "center", opacity: busy ? 0.5 : pressed ? 0.8 : 1 })}
+            style={({ pressed }) => ({ position: "absolute", top: 8, right: 8, width: 36, height: 36, borderRadius: 18, borderWidth: 2, borderColor: "#FFFFFF", backgroundColor: colors.inkFill, alignItems: "center", justifyContent: "center", opacity: busy ? 0.5 : pressed ? 0.8 : 1 })}
           >
             <AppIcon name="plus" size={20} color="#FFFFFF" strokeWidth={2.6} />
           </Pressable>
         ) : added ? (
-          <View style={{ position: "absolute", top: 8, right: 8, width: 36, height: 36, borderRadius: 18, backgroundColor: colors.success, alignItems: "center", justifyContent: "center" }}>
+          <View style={{ position: "absolute", top: 8, right: 8, width: 36, height: 36, borderRadius: 18, backgroundColor: colors.successFill, alignItems: "center", justifyContent: "center" }}>
             <AppIcon name="check" size={18} color="#FFFFFF" strokeWidth={2.6} />
           </View>
         ) : null}
@@ -151,7 +151,7 @@ function SideButton({ icon, label, on, onPress }: { icon: AppIconName; label: st
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={on === undefined ? undefined : { selected: on }} onPress={onPress} style={({ pressed }) => ({ alignItems: "center", gap: 4, opacity: pressed ? 0.75 : 1 })}>
       <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: on ? colors.accent : "rgba(255,255,255,0.92)", alignItems: "center", justifyContent: "center" }}>
-        <AppIcon name={icon} size={22} color={colors.ink} />
+        <AppIcon name={icon} size={22} color={colors.onAccent} />
       </View>
       <T weight="bold" style={{ fontSize: 12, color: "#FFFFFF" }}>{label}</T>
     </Pressable>
@@ -163,7 +163,7 @@ function SwipeCard({ product, width, height, saved, added, position, sell, onSav
   const t = useT("m_find");
   const sale = saleBreakdown(sell, product.cost);
   return (
-    <View style={{ width, height, borderRadius: 28, overflow: "hidden", backgroundColor: colors.ink }}>
+    <View style={{ width, height, borderRadius: 28, overflow: "hidden", backgroundColor: colors.inkFill }}>
       {product.images[0] ? <Image source={{ uri: product.images[0] }} style={{ position: "absolute", inset: 0 }} contentFit="cover" transition={150} accessibilityLabel={product.name} /> : null}
       <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "62%", backgroundColor: "rgba(10,10,14,0.55)" }} />
       <View style={{ position: "absolute", right: 12, bottom: 150, gap: 14 }}>

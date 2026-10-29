@@ -91,7 +91,7 @@ export default function Brand() {
       <View style={{ flexDirection: "row", alignItems: "center", marginTop: 16, backgroundColor: colors.surface, borderWidth: 1.5, borderColor: colors.line, borderRadius: radii.pill, paddingLeft: 20, paddingRight: 6, paddingVertical: 6 }}>
         <TextInput value={tweak} onChangeText={setTweak} placeholder={t("brand.tweakPlaceholder")} placeholderTextColor={colors.inkFaint} accessibilityLabel={t("brand.tweakLabel")} style={{ flex: 1, fontSize: 15, fontFamily: fonts.regular, color: colors.ink, height: 40 }} />
         {/* The arrow sends the change with the shop: the same as "Looks good". */}
-        <Pressable accessibilityRole="button" accessibilityLabel={t("brand.tweakLabel")} disabled={busy} onPress={() => void confirm()} hitSlop={4} style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.forest, alignItems: "center", justifyContent: "center", opacity: pressed || busy ? 0.7 : 1 })}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t("brand.tweakLabel")} disabled={busy} onPress={() => void confirm()} hitSlop={4} style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.forestFill, alignItems: "center", justifyContent: "center", opacity: pressed || busy ? 0.7 : 1 })}>
           <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round"><Path d="M5 12h14M13 6l6 6-6 6" /></Svg>
         </Pressable>
       </View>

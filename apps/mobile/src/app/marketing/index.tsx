@@ -11,20 +11,20 @@ import { shareShop } from "@/lib/share";
 import { createDiscount, discountLabel, fetchMarketing, suggestCode, type CampaignRow, type QuickDiscount } from "@/lib/marketing";
 import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
-import { colors } from "@/theme";
+import { colors, themed } from "@/theme";
 
 // Marketing (web /home/marketing and /home/discounts): share the shop, an ad, a discount code, ask for reviews;
 // then the campaigns already sent and the codes; links to ads, automations, templates and subscribers in the app.
 // Writing email campaigns stays on the web.
 
 // Labels are m_marketing keys.
-const STATUS_TONE: Record<string, { bg: string; fg: string; label: "campaign.draft" | "campaign.scheduled" | "campaign.sending" | "campaign.sent" | "campaign.cancelled" }> = {
+const STATUS_TONE: Record<string, { bg: string; fg: string; label: "campaign.draft" | "campaign.scheduled" | "campaign.sending" | "campaign.sent" | "campaign.cancelled" }> = themed(() => ({
   draft: { bg: colors.canvas, fg: colors.inkSoft, label: "campaign.draft" },
   scheduled: { bg: "#FDF0D5", fg: "#8A5A00", label: "campaign.scheduled" },
   sending: { bg: colors.mintTint, fg: colors.forest, label: "campaign.sending" },
   sent: { bg: colors.successTint, fg: colors.success, label: "campaign.sent" },
   cancelled: { bg: colors.dangerTint, fg: colors.danger, label: "campaign.cancelled" },
-};
+}));
 
 const CHANNEL: Record<string, string> = { email: "Email", sms: "SMS", whatsapp: "WhatsApp" };
 

@@ -7,7 +7,7 @@ import { Sheet } from "@/components/Sheet";
 import { Chip, PillButton, T } from "@/components/ui";
 import { campaignTimer, clockText, countdownParts, fromWall, monthGrid, shiftMonth, TIME_CHOICES, toWall, type CampaignStatus, type CampaignTiming } from "@/lib/campaigns-pure";
 import { useT } from "@/lib/i18n";
-import { colors, radii } from "@/theme";
+import { colors, radii, themed } from "@/theme";
 
 // Pieces the campaign screens and the Home card share: the ticking server clock, the countdown pill, status
 // badges, dates in the campaign's time zone and the date-and-time sheet.
@@ -51,7 +51,7 @@ export function timerLine(campaign: CampaignTiming & { timezone?: string }, now:
   return t.dynamic("timer.noDates");
 }
 
-const STATUS_TONE: Record<CampaignStatus, { bg: string; fg: string }> = {
+const STATUS_TONE: Record<CampaignStatus, { bg: string; fg: string }> = themed(() => ({
   live: { bg: colors.successTint, fg: colors.success },
   ending_soon: { bg: "#FDF0D5", fg: "#8A5A00" },
   scheduled: { bg: colors.mintTint, fg: colors.forest },
@@ -59,7 +59,7 @@ const STATUS_TONE: Record<CampaignStatus, { bg: string; fg: string }> = {
   draft: { bg: colors.canvas, fg: colors.inkSoft },
   ended: { bg: colors.canvas, fg: colors.inkSoft },
   archived: { bg: colors.canvas, fg: colors.inkSoft },
-};
+}));
 
 export function StatusBadge({ status }: { status: CampaignStatus }) {
   const t = useT("m_campaigns");
@@ -142,7 +142,7 @@ export function DateTimeSheet({ visible, title, value, zone, now, onClose, onPic
                   accessibilityState={{ selected: on }}
                   accessibilityLabel={`${cell} ${t.dynamic(`day.month.${month.month - 1}`)} ${month.year}`}
                   onPress={() => setDay({ year: month.year, month: month.month, day: cell })}
-                  style={{ width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: on ? colors.ink : "transparent" }}
+                  style={{ width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: on ? colors.inkFill : "transparent" }}
                 >
                   <T weight={on ? "extrabold" : "regular"} style={{ fontSize: 15, color: on ? "#FFFFFF" : colors.ink }}>{String(cell)}</T>
                 </Pressable>

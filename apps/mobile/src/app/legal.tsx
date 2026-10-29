@@ -8,7 +8,7 @@ import { api } from "@/lib/api";
 import { useLoad } from "@/lib/useLoad";
 import { formatDate } from "@shared/i18n";
 import { useLocale, useT } from "@/lib/i18n";
-import { colors } from "@/theme";
+import { colors, themed } from "@/theme";
 
 // Legal pages (web /home/legal): returns, privacy, terms… with whether each is published. Each opens the app's
 // plain-text editor (app/legal/[key].tsx); "Add a page" names a page of your own (POST /api/app/legal) and opens it.
@@ -22,11 +22,11 @@ interface LegalPageRow {
 }
 
 // Labels are keys (common "status.*", m_shop "legal.*").
-const STATUS: Record<LegalPageRow["status"], { label: "status.live" | "status.draft" | "legal.notWritten"; bg: string; fg: string }> = {
+const STATUS: Record<LegalPageRow["status"], { label: "status.live" | "status.draft" | "legal.notWritten"; bg: string; fg: string }> = themed(() => ({
   published: { label: "status.live", bg: colors.successTint, fg: colors.success },
   draft: { label: "status.draft", bg: "#FDF0D5", fg: "#8A5A00" },
   empty: { label: "legal.notWritten", bg: colors.canvas, fg: colors.inkSoft },
-};
+}));
 
 export default function LegalPages() {
   const t = useT("m_shop", "common");

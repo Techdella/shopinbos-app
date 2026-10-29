@@ -107,7 +107,7 @@ export default function PartnerLevelScreen() {
       {level.error && !data ? <ErrorState message={level.error} onRetry={() => void level.reload()} /> : null}
       {data ? (
         <>
-          <View style={{ backgroundColor: colors.forest, borderRadius: 24, padding: 18, gap: 10 }}>
+          <View style={{ backgroundColor: colors.forestFill, borderRadius: 24, padding: 18, gap: 10 }}>
             <View style={{ flexDirection: "row", gap: 6 }} accessible accessibilityLabel={t("lvl.ladder", { name: t.dynamic(`lvl.tier.${key}`), at: at + 1 })}>
               {LEVEL_KEYS.map((step, index) => (
                 <View key={step} style={{ flex: 1, gap: 6 }}>

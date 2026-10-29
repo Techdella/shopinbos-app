@@ -223,7 +223,7 @@ function ProductView({ product, listing, context, terms, refreshing, onRefresh }
           </ScrollView>
           {product.images.length > 1 ? (
             <View style={{ flexDirection: "row", justifyContent: "center", gap: 6, marginTop: 8 }}>
-              {product.images.map((uri, index) => <View key={uri + index} style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: index === photo ? colors.ink : colors.toggleOff }} />)}
+              {product.images.map((uri, index) => <View key={uri + index} style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: index === photo ? colors.inkFill : colors.toggleOff }} />)}
             </View>
           ) : null}
         </View>

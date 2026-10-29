@@ -19,7 +19,7 @@ export function EmailPreview({ html, shopName }: { html: string; shopName?: stri
         part.kind === "image" ? (
           <Image key={index} source={{ uri: part.url }} style={{ width: "100%", aspectRatio: 1.6, borderRadius: 12 }} contentFit="cover" accessibilityIgnoresInvertColors />
         ) : part.kind === "button" ? (
-          <View key={index} style={{ alignSelf: "center", backgroundColor: colors.ink, borderRadius: 999, paddingHorizontal: 18, paddingVertical: 10 }}>
+          <View key={index} style={{ alignSelf: "center", backgroundColor: colors.inkFill, borderRadius: 999, paddingHorizontal: 18, paddingVertical: 10 }}>
             <T weight="bold" style={{ color: "#FFFFFF", fontSize: 15 }}>{part.text}</T>
           </View>
         ) : (

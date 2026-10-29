@@ -7,7 +7,7 @@ import { Small, Sub, Title } from "@/components/design";
 import { AppIcon } from "@/components/icons";
 import { T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
-import { colors } from "@/theme";
+import { colors, themed } from "@/theme";
 import { KeyboardShift } from "@/components/KeyboardShift";
 
 // Supplier-only pieces of the "Simple app, end to end" supplier prototype (E2E-Supplier) that the shared
@@ -53,7 +53,7 @@ export function DoneView({ title, sub, footer }: { title: string; sub?: string; 
   return (
     <FlowFrame footer={footer}>
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 14, paddingTop: 60 }}>
-        <View style={{ width: 88, height: 88, borderRadius: 44, backgroundColor: colors.success, alignItems: "center", justifyContent: "center" }}>
+        <View style={{ width: 88, height: 88, borderRadius: 44, backgroundColor: colors.successFill, alignItems: "center", justifyContent: "center" }}>
           <AppIcon name="check" size={44} color="#FFFFFF" strokeWidth={3} />
         </View>
         <Title style={{ textAlign: "center" }}>{title}</Title>
@@ -90,13 +90,13 @@ export function PlusMinus({ value, onChange, lessLabel, moreLabel }: { value: nu
   );
 }
 
-const NOTE = {
+const NOTE = themed(() => ({
   mint: { bg: colors.mintTint, title: colors.ink, body: colors.forest },
   peach: { bg: colors.peach, title: colors.ink, body: colors.accentInk },
   ok: { bg: colors.successTint, title: colors.success, body: colors.inkSoft },
   gray: { bg: colors.grayTint, title: colors.ink, body: colors.ink },
   warn: { bg: colors.warnTint, title: colors.ink, body: colors.warnInk },
-} as const;
+} as const));
 
 /** A tinted card with a bold line and a sentence ("Musa is coming to pick up", "On its way"). */
 export function NoteCard({ tone, title, children }: { tone: keyof typeof NOTE; title?: string; children?: ReactNode }) {

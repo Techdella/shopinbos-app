@@ -40,7 +40,7 @@ function TabButton({ item, focused, tint, onPress }: { item: TabItem; focused: b
         )}
         {item.badge ? (
           <View style={{ position: "absolute", top: -2, right: 10, minWidth: 16, height: 16, borderRadius: 8, paddingHorizontal: 4, backgroundColor: colors.accent, alignItems: "center", justifyContent: "center" }}>
-            <T weight="extrabold" style={{ fontSize: 10, color: colors.ink }}>{item.badge > 9 ? "9+" : String(item.badge)}</T>
+            <T weight="extrabold" style={{ fontSize: 10, color: colors.onAccent }}>{item.badge > 9 ? "9+" : String(item.badge)}</T>
           </View>
         ) : null}
       </View>
@@ -103,7 +103,7 @@ export function AppTabBar({
             onPress={plus.onPress}
             style={({ pressed }) => ({ width: 58, height: 58, borderRadius: 29, marginTop: -26, marginHorizontal: 4, backgroundColor: colors.accent, alignItems: "center", justifyContent: "center", borderWidth: 4, borderColor: colors.surface, shadowColor: colors.accent, shadowOpacity: 0.5, shadowRadius: 12, shadowOffset: { width: 0, height: 10 }, elevation: 8, opacity: pressed ? 0.85 : 1 })}
           >
-            <AppIcon name="plus" color={colors.ink} size={28} strokeWidth={2.6} />
+            <AppIcon name="plus" color={colors.onAccent} size={28} strokeWidth={2.6} />
           </Pressable>
         ) : null}
         {middle ? items.slice(half).map(button) : null}
@@ -116,7 +116,7 @@ export function AppTabBar({
           onPress={plus.onPress}
           style={({ pressed }) => ({ position: "absolute", right: 20, bottom: Math.max(insets.bottom, 12) + 84, width: 60, height: 60, borderRadius: 18, backgroundColor: colors.accent, alignItems: "center", justifyContent: "center", shadowColor: colors.ink, shadowOpacity: 0.3, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 9, opacity: pressed ? 0.85 : 1 })}
         >
-          <AppIcon name="plus" color={colors.ink} size={28} strokeWidth={2.6} />
+          <AppIcon name="plus" color={colors.onAccent} size={28} strokeWidth={2.6} />
         </Pressable>
       ) : null}
       {plus?.sheet}

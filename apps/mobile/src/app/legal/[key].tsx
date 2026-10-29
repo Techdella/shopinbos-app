@@ -10,17 +10,17 @@ import { canPublish, draftLegalText, fetchLegalText, saveLegalText, type LegalTe
 import { useLoad } from "@/lib/useLoad";
 import { formatDate } from "@shared/i18n";
 import { useLocale, useT } from "@/lib/i18n";
-import { colors } from "@/theme";
+import { colors, themed } from "@/theme";
 
 // One legal page (web /home/legal/[key]): read it, change its words in one big plain-text box (# for a heading,
 // - for a list), let Peggy write a draft, and Save draft / Publish / Save changes / Unpublish with the web's rules
 // (a name is needed, an empty page can't be published). Look, SEO and pages with videos or buttons stay on the web.
 
-const STATUS = {
+const STATUS = themed(() => ({
   published: { label: "status.published", bg: colors.successTint, fg: colors.success },
   draft: { label: "status.draft", bg: "#FDF0D5", fg: "#8A5A00" },
   empty: { label: "status.empty", bg: colors.canvas, fg: colors.inkSoft },
-} as const;
+} as const));
 
 type Note = { tone: "success" | "error" | "info"; text: string };
 

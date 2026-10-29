@@ -35,7 +35,7 @@ export function CallPeggyButton({ style, note = true, variant = "button" }: { st
 
   if (variant === "icon") {
     return (
-      <Pressable accessibilityRole="button" accessibilityLabel={onCall ? t("call.backTo") : t("call.label")} onPress={press} hitSlop={6} style={({ pressed }) => [{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.forest, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.85 : 1 }, style]}>
+      <Pressable accessibilityRole="button" accessibilityLabel={onCall ? t("call.backTo") : t("call.label")} onPress={press} hitSlop={6} style={({ pressed }) => [{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.forestFill, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.85 : 1 }, style]}>
         <AppIcon name="phone" size={19} color="#FFFFFF" />
       </Pressable>
     );

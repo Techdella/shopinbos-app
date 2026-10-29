@@ -36,7 +36,7 @@ export default function PayOnDeliveryScreen() {
       {level.error && !data ? <ErrorState message={level.error} onRetry={() => void level.reload()} /> : null}
       {data ? (
         <>
-          <View style={{ backgroundColor: colors.forest, borderRadius: 24, padding: 18, gap: 8, alignItems: "flex-start" }}>
+          <View style={{ backgroundColor: colors.forestFill, borderRadius: 24, padding: 18, gap: 8, alignItems: "flex-start" }}>
             <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(255,255,255,0.14)", alignItems: "center", justifyContent: "center" }}>
               <AppIcon name={data.podOpen ? "coin" : "lock"} size={22} color="#FFFFFF" />
             </View>

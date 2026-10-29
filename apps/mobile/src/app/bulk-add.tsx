@@ -317,7 +317,7 @@ export default function BulkAdd() {
                     style={{ flex: 1, height: 52, borderRadius: radii.pill, backgroundColor: colors.surface, paddingHorizontal: 18, fontSize: 15, fontFamily: fonts.regular, color: colors.ink }}
                   />
                   <VoiceInput variant="icon" value={draft} onChange={setDraft} context="product names and prices for Peggy" disabled={Boolean(sending)} />
-                  <Pressable accessibilityRole="button" accessibilityLabel={t("chat.send")} disabled={!draft.trim() || Boolean(sending)} onPress={() => void send()} style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: colors.ink, alignItems: "center", justifyContent: "center", opacity: !draft.trim() || sending ? 0.5 : 1 }}>
+                  <Pressable accessibilityRole="button" accessibilityLabel={t("chat.send")} disabled={!draft.trim() || Boolean(sending)} onPress={() => void send()} style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: colors.inkFill, alignItems: "center", justifyContent: "center", opacity: !draft.trim() || sending ? 0.5 : 1 }}>
                     <AppIcon name="send" size={20} color="#FFFFFF" />
                   </Pressable>
                 </View>
@@ -448,7 +448,7 @@ function Thumb({ uri, size }: { uri?: string; size: number }) {
 
 function Bubble({ text, mine }: { text: string; mine?: boolean }) {
   return mine ? (
-    <View style={{ alignSelf: "flex-end", marginLeft: 40, backgroundColor: colors.ink, borderRadius: 20, borderBottomRightRadius: 6, paddingHorizontal: 16, paddingVertical: 12 }}>
+    <View style={{ alignSelf: "flex-end", marginLeft: 40, backgroundColor: colors.inkFill, borderRadius: 20, borderBottomRightRadius: 6, paddingHorizontal: 16, paddingVertical: 12 }}>
       <T style={{ color: "#FFFFFF", fontSize: 15, lineHeight: 21 }}>{text}</T>
     </View>
   ) : (
@@ -498,7 +498,7 @@ function ItemRow({ item, t, selected, onPress, onLongPress }: { item: BulkItem; 
       <View>
         <Thumb uri={item.photos[0]} size={56} />
         {item.photos.length > 1 ? (
-          <View style={{ position: "absolute", right: -4, bottom: -4, backgroundColor: colors.ink, borderRadius: 10, paddingHorizontal: 6 }}>
+          <View style={{ position: "absolute", right: -4, bottom: -4, backgroundColor: colors.inkFill, borderRadius: 10, paddingHorizontal: 6 }}>
             <T weight="bold" style={{ color: "#FFFFFF", fontSize: 11 }}>{item.photos.length}</T>
           </View>
         ) : null}

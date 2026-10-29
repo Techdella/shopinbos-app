@@ -4,7 +4,7 @@ import Svg, { Path } from "react-native-svg";
 import { AppIcon, type AppIconName } from "@/components/icons";
 import { T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
-import { colors, fonts, radii } from "@/theme";
+import { colors, currentScheme, fonts, radii, themed } from "@/theme";
 
 // Building blocks of the "Simple app, end to end (iOS + Android)" prototype: big Bricolage titles, lists as rows in one
 // white card, tinted icon tiles, pills, radio choice cards, a number keypad with digit boxes, steppers and a timeline.
@@ -40,20 +40,21 @@ export function Eyebrow({ children, style }: { children: ReactNode; style?: Styl
 }
 
 export type TileTone = "peach" | "mint" | "warn" | "gray" | "blue" | "ok" | "ink" | "lime" | "butter" | "lilac" | "sky";
-export const TILE: Record<TileTone, { bg: string; fg: string }> = {
+export const TILE: Record<TileTone, { bg: string; fg: string }> = themed(() => ({
   peach: { bg: colors.peach, fg: colors.accentInk },
   mint: { bg: colors.mintTint, fg: colors.forest },
   warn: { bg: colors.warnTint, fg: colors.warnInk },
   gray: { bg: colors.grayTint, fg: colors.ink },
   blue: { bg: colors.blueTint, fg: colors.blueInk },
   ok: { bg: colors.successTint, fg: colors.success },
-  ink: { bg: colors.ink, fg: "#FFFFFF" },
-  // Quick-action tints ("Familiar app" prototype `.c-lime` / `.c-butter` / `.c-lilac` / `.c-sky`), ink icons on them.
-  lime: { bg: "#E2F5A0", fg: colors.ink },
-  butter: { bg: "#FFEBA3", fg: colors.ink },
-  lilac: { bg: "#E4DDFF", fg: colors.ink },
-  sky: { bg: "#CFE7F7", fg: colors.ink },
-};
+  ink: { bg: colors.inkFill, fg: "#FFFFFF" },
+  // Quick-action tints ("Familiar app" prototype `.c-lime` / `.c-butter` / `.c-lilac` / `.c-sky`), ink icons on them;
+  // deep tints with light icons in dark mode.
+  lime: currentScheme() === "dark" ? { bg: "#2A3912", fg: "#D2EE8A" } : { bg: "#E2F5A0", fg: colors.ink },
+  butter: currentScheme() === "dark" ? { bg: "#3A3114", fg: "#FFE07A" } : { bg: "#FFEBA3", fg: colors.ink },
+  lilac: currentScheme() === "dark" ? { bg: "#2A2452", fg: "#CDC3FF" } : { bg: "#E4DDFF", fg: colors.ink },
+  sky: currentScheme() === "dark" ? { bg: "#13334B", fg: "#A9D6F5" } : { bg: "#CFE7F7", fg: colors.ink },
+}));
 
 /** A tinted rounded square holding an icon (`.tile`, 44px, radius 14). */
 export function Tile({ icon, tone = "gray", size = 44 }: { icon: AppIconName; tone?: TileTone; size?: number }) {
@@ -135,13 +136,13 @@ export function Row({
 }
 
 export type PillTone = "ok" | "warn" | "teal" | "org" | "gray";
-const PILL: Record<PillTone, { bg: string; fg: string }> = {
+const PILL: Record<PillTone, { bg: string; fg: string }> = themed(() => ({
   ok: { bg: colors.successTint, fg: colors.success },
   warn: { bg: colors.warnTint, fg: colors.warnInk },
   teal: { bg: colors.mintTint, fg: colors.forest },
   org: { bg: colors.peach, fg: colors.accentInk },
   gray: { bg: colors.grayTint, fg: colors.grayInk },
-};
+}));
 
 /** A small status pill (`.pill`). */
 export function Pill({ label, tone = "gray", icon, style }: { label: string; tone?: PillTone; icon?: AppIconName; style?: StyleProp<ViewStyle> }) {
@@ -161,7 +162,7 @@ export function Seg({ label, on, onPress, count, accessibilityLabel }: { label: 
       accessibilityState={{ selected: on }}
       accessibilityLabel={accessibilityLabel ?? (count == null ? label : `${label}, ${count}`)}
       onPress={onPress}
-      style={({ pressed }) => ({ minHeight: 44, paddingHorizontal: 13, borderRadius: radii.pill, borderWidth: 1.5, borderColor: on ? colors.ink : colors.line, backgroundColor: on ? colors.ink : colors.surface, flexDirection: "row", alignItems: "center", gap: 6, opacity: pressed ? 0.85 : 1 })}
+      style={({ pressed }) => ({ minHeight: 44, paddingHorizontal: 13, borderRadius: radii.pill, borderWidth: 1.5, borderColor: on ? colors.ink : colors.line, backgroundColor: on ? colors.inkFill : colors.surface, flexDirection: "row", alignItems: "center", gap: 6, opacity: pressed ? 0.85 : 1 })}
     >
       <T weight="bold" numberOfLines={1} style={{ fontSize: 15, color: on ? "#FFFFFF" : colors.ink }}>{label}</T>
       {count == null ? null : <T weight="extrabold" style={{ fontSize: 13, color: on ? "#FFFFFF" : colors.inkSoft }}>{count}</T>}
@@ -184,7 +185,7 @@ export function Choice({ title, sub, on, onPress, lead, multi }: { title: string
         <T weight="bold" style={{ fontSize: 16 }}>{title}</T>
         {sub ? <T style={{ fontSize: 14, lineHeight: 19, color: colors.inkSoft }}>{sub}</T> : null}
       </View>
-      <View style={{ width: 24, height: 24, borderRadius: multi ? 7 : 12, borderWidth: 2, borderColor: on ? colors.ink : colors.lineStrong, backgroundColor: on ? colors.ink : "transparent", alignItems: "center", justifyContent: "center" }}>
+      <View style={{ width: 24, height: 24, borderRadius: multi ? 7 : 12, borderWidth: 2, borderColor: on ? colors.ink : colors.lineStrong, backgroundColor: on ? colors.inkFill : "transparent", alignItems: "center", justifyContent: "center" }}>
         {on ? <AppIcon name="check" size={14} color="#FFFFFF" strokeWidth={3} /> : null}
       </View>
     </Pressable>
@@ -271,10 +272,10 @@ export function Timeline({ steps }: { steps: TimelineStep[] }) {
       {steps.map((step, index) => (
         <View key={`${step.label}-${index}`} style={{ flexDirection: "row", gap: 14, minHeight: 52 }} accessible accessibilityLabel={`${step.label}${step.at ? `, ${step.at}` : ""}`}>
           <View style={{ alignItems: "center" }}>
-            <View style={{ width: 26, height: 26, borderRadius: 13, borderWidth: step.state === "now" ? 7 : 2, borderColor: step.state === "done" ? colors.success : step.state === "now" ? colors.accent : colors.lineStrong, backgroundColor: step.state === "done" ? colors.success : colors.surface, alignItems: "center", justifyContent: "center" }}>
+            <View style={{ width: 26, height: 26, borderRadius: 13, borderWidth: step.state === "now" ? 7 : 2, borderColor: step.state === "done" ? colors.success : step.state === "now" ? colors.accent : colors.lineStrong, backgroundColor: step.state === "done" ? colors.successFill : colors.surface, alignItems: "center", justifyContent: "center" }}>
               {step.state === "done" ? <AppIcon name="check" size={14} color="#FFFFFF" strokeWidth={3} /> : null}
             </View>
-            {index < steps.length - 1 ? <View style={{ width: 2, flex: 1, backgroundColor: step.state === "done" ? colors.success : colors.line }} /> : null}
+            {index < steps.length - 1 ? <View style={{ width: 2, flex: 1, backgroundColor: step.state === "done" ? colors.successFill : colors.line }} /> : null}
           </View>
           <View style={{ flex: 1, paddingTop: 2, paddingBottom: 14 }}>
             <T weight={step.state === "todo" ? "semibold" : "bold"} style={{ fontSize: 16, color: step.state === "todo" ? colors.inkSoft : colors.ink }}>{step.label}</T>
@@ -296,7 +297,7 @@ export function DarkCard({ eyebrow, amount, line, onPress, children }: { eyebrow
       {children}
     </View>
   );
-  const style: ViewStyle = { backgroundColor: colors.ink, borderRadius: 24, padding: 20 };
+  const style: ViewStyle = { backgroundColor: colors.inkFill, borderRadius: 24, padding: 20 };
   if (!onPress) return <View style={style}>{body}</View>;
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={`${eyebrow} ${amount}${line ? `. ${line}` : ""}`} onPress={onPress} style={({ pressed }) => [style, pressed && { opacity: 0.92 }]}>

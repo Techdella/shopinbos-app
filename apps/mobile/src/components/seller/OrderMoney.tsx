@@ -11,7 +11,7 @@ import { colors } from "@/theme";
 // on it and what each meant for them, and a customer's return to approve (books the trip back), decline or receive
 // (the refund follows the matrix, shared/fault-matrix.ts row 6). The web shows the same on /home/orders/[id].
 
-const card = { gap: 6, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20 } as const;
+const card = () => ({ gap: 6, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20 } as const);
 const fromKobo = (kobo: number) => naira(Math.round(kobo) / 100);
 
 function Line({ label, value, strong, minus }: { label: string; value: string; strong?: boolean; minus?: boolean }) {
@@ -27,7 +27,7 @@ export function EarningsCard({ money }: { money: OrderMoney }) {
   const t = useT("m_faults");
   const e = money.earnings;
   return (
-    <Card style={card}>
+    <Card style={card()}>
       <T weight="extrabold" style={{ fontSize: 18 }}>{t("earn.title")}</T>
       <Line label={t("earn.customerPaid")} value={fromKobo(e.customerPaidKobo)} />
       {e.suppliersKobo > 0 ? <Line label={t("earn.suppliers")} value={fromKobo(e.suppliersKobo)} minus /> : null}
@@ -65,7 +65,7 @@ export function ProblemsCard({ orderId, money: initial }: { orderId: string; mon
     }
   }
   return (
-    <Card style={card}>
+    <Card style={card()}>
       <T weight="extrabold" style={{ fontSize: 18 }}>{t("problems.title")}</T>
       {money.problems.map((row) => {
         const proposed = row.status === "proposed";
@@ -112,7 +112,7 @@ export function ReturnCard({ orderId, returns: initial }: { orderId: string; ret
     }
   }
   return (
-    <Card style={{ ...card, gap: 10 }}>
+    <Card style={{ ...card(), gap: 10 }}>
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
         <T weight="extrabold" style={{ fontSize: 18 }}>{t("returns.title")}</T>
         <View style={{ backgroundColor: current.status === "requested" ? colors.warnTint : colors.mintTint, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 }}>

@@ -2,6 +2,7 @@ import { Linking, Pressable, View } from "react-native";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { NATIONWIDE } from "@shared/delivery-market";
+import { AppearanceRow } from "@/components/AppearancePicker";
 import { List, Pill, Row, Small, Tile } from "@/components/design";
 import type { AppIconName } from "@/components/icons";
 import { CallPeggyButton } from "@/components/CallPeggyButton";
@@ -156,6 +157,7 @@ export default function LogisticsBusiness() {
 
       <Card style={{ paddingVertical: 2, borderRadius: 24, borderWidth: 1, borderColor: colors.line }}>
         <LanguageRow first />
+        <AppearanceRow />
         <TipsRow />
       </Card>
       <LinkButton title={t("logOut")} color={colors.danger} onPress={() => confirmSignOut()} />

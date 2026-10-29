@@ -218,7 +218,7 @@ function SetupSteps({ view, role, t }: { view: WalletData["view"]; role: WalletD
     <View style={{ gap: 8 }} accessibilityRole="list">
       {steps.map((step, index) => (
         <View key={step.key} style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-          <View style={{ width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: step.done ? colors.successTint : index === next ? colors.ink : colors.canvas }}>
+          <View style={{ width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: step.done ? colors.successTint : index === next ? colors.inkFill : colors.canvas }}>
             <T weight="extrabold" style={{ fontSize: 12.5, color: step.done ? colors.success : index === next ? "#FFFFFF" : colors.inkSoft }}>{step.done ? "✓" : String(index + 1)}</T>
           </View>
           <T weight={index === next ? "extrabold" : "semibold"} style={{ flex: 1, fontSize: 15, color: step.done || index === next ? colors.ink : colors.inkSoft }}>{step.label}</T>

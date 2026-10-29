@@ -102,7 +102,7 @@ export default function StartHere() {
               <T weight="bold" style={{ color: colors.inkSoft }}>{data.checklist.percent}%</T>
             </View>
             <View style={{ height: 8, borderRadius: 4, backgroundColor: colors.canvas, overflow: "hidden" }} accessibilityLabel={t("start.percent", { percent: data.checklist.percent })}>
-              <View style={{ height: 8, borderRadius: 4, backgroundColor: colors.success, width: `${data.checklist.percent}%` }} />
+              <View style={{ height: 8, borderRadius: 4, backgroundColor: colors.successFill, width: `${data.checklist.percent}%` }} />
             </View>
             {data.checklist.next ? <T style={{ color: colors.inkSoft }}>{t("start.next", { step: words(data.checklist.next).title })}</T> : null}
           </Card>
@@ -112,7 +112,7 @@ export default function StartHere() {
             return (
               <Card key={step.key} style={{ gap: 10, opacity: step.skipped ? 0.7 : 1 }}>
                 <View style={{ flexDirection: "row", gap: 12, alignItems: "flex-start" }}>
-                  <View style={{ width: 28, height: 28, borderRadius: 14, marginTop: 1, borderWidth: 2, borderColor: step.done ? colors.success : colors.toggleOff, backgroundColor: step.done ? colors.success : colors.surface, alignItems: "center", justifyContent: "center" }}>
+                  <View style={{ width: 28, height: 28, borderRadius: 14, marginTop: 1, borderWidth: 2, borderColor: step.done ? colors.success : colors.toggleOff, backgroundColor: step.done ? colors.successFill : colors.surface, alignItems: "center", justifyContent: "center" }}>
                     {step.done ? <AppIcon name="check" size={15} color="#FFFFFF" strokeWidth={3} /> : null}
                   </View>
                   <View style={{ flex: 1, gap: 4 }}>

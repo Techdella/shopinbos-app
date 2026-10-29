@@ -31,7 +31,7 @@ import { colors } from "@/theme";
 function Tag({ label, dark, icon }: { label: string; dark?: boolean; icon?: "lock" | "check" | "sparkle" }) {
   const fg = dark ? "#FFFFFF" : colors.ink;
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3, backgroundColor: dark ? colors.ink : "rgba(255,255,255,0.94)" }}>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3, backgroundColor: dark ? colors.inkFill : "rgba(255,255,255,0.94)" }}>
       {icon ? <AppIcon name={icon} size={11} color={fg} strokeWidth={2.6} /> : null}
       <T weight="bold" style={{ fontSize: 11, color: fg }}>{label}</T>
     </View>

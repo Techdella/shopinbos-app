@@ -38,7 +38,7 @@ export default function SupplierLevelScreen() {
       {level.error && !data ? <ErrorState message={level.error} onRetry={() => void level.reload()} /> : null}
       {data ? (
         <>
-          <View style={{ backgroundColor: colors.ink, borderRadius: 24, padding: 18, gap: 12 }}>
+          <View style={{ backgroundColor: colors.inkFill, borderRadius: 24, padding: 18, gap: 12 }}>
             <Ladder levels={SUPPLIER_LEVELS.map((key) => ({ key, label: words(`level.${key}`, SUPPLIER_LEVEL_LABELS[key]) }))} current={data.level} />
             <T style={{ fontFamily: fonts.display, fontSize: 26, lineHeight: 29, color: "#FFFFFF" }}>{words("level.youre", "You're {level}", { level: levelName(data.level, words) })}</T>
             <T style={{ fontSize: 14, lineHeight: 20, color: "#D9D6E2" }}>
