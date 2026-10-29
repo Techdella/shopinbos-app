@@ -130,6 +130,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "product.added": "An ƙara {name}. Za ka iya ƙara wasu daga baya.",
   "product.needPhoto": "Ɗauki hoton kayan.",
   "product.needName": "Rubuta abin da ake kiransa.",
+  "product.whatsappLater": "Kana da kundin WhatsApp? Idan ka gama saitawa, ƙara duka lokaci ɗaya daga screenshot: Kayayyaki › Ƙara da yawa tare da Peggy › Daga kundin WhatsApp ɗina.",
   "product.needPrice": "Rubuta farashin a naira.",
   "review.title": "Muna duba bayananka",
   "review.sub": "Yawanci mintuna kaɗan ne. Za mu aiko maka da saƙo idan an tabbatar da kai, kuma masu sayarwa za su ga catalogue ɗinka.",

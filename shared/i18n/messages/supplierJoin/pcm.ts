@@ -130,6 +130,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "product.added": "{name} don enter. You fit add more later.",
   "product.needPhoto": "Snap photo of the product.",
   "product.needName": "Type wetin dem dey call am.",
+  "product.whatsappLater": "You get WhatsApp catalogue? When you don set up, add everything one time from screenshots: Products › Add plenty with Peggy › From my WhatsApp catalogue.",
   "product.needPrice": "Type the price for naira.",
   "review.title": "We dey check your details",
   "review.sub": "E no dey pass few minutes. We go message you when we verify you, and sellers go see your catalogue.",
