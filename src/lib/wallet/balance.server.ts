@@ -480,6 +480,20 @@ export async function handleWalletAccountAssign(eventType: string, data: unknown
 
 // ─── Withdrawals ──────────────────────────────────────────────────────────────
 
+/**
+ * The Paystack transfer recipient for the wallet's checked bank, made (and saved) the first time it's needed. Changing
+ * the bank clears it (linkWalletBank), so a withdrawal always goes to the bank on the wallet now. Null when Paystack
+ * couldn't make one.
+ */
+async function withdrawalRecipient(wallet: { id: string; transferRecipient: string | null; bankName: string | null; bankCode: string | null; accountNumber: string | null; accountName: string | null }) {
+  if (wallet.transferRecipient) return wallet.transferRecipient;
+  if (!wallet.bankCode || !wallet.accountNumber || !wallet.accountName) return null;
+  const made = await createPaystackTransferRecipient({ bankName: wallet.bankName ?? "", bankCode: wallet.bankCode, accountNumber: wallet.accountNumber, accountName: wallet.accountName });
+  if (!made.recipientCode) return null;
+  await db.wallet.update({ where: { id: wallet.id }, data: { transferRecipient: made.recipientCode } });
+  return made.recipientCode;
+}
+
 /** Sends part of the balance to their checked bank. The money leaves the balance now; a failed transfer puts it back. */
 export async function withdrawToBank(userId: string, naira: number) {
   if (!walletPaymentsReady()) throw new WalletBalanceError("Withdrawals aren't switched on yet.");
@@ -490,15 +504,8 @@ export async function withdrawToBank(userId: string, naira: number) {
   if (!wallet.accountNumber || !wallet.bankCode || !wallet.accountName || wallet.subaccountStatus !== "active") {
     throw new WalletBalanceError("Add and check your bank account first, so we know where to send it.");
   }
-  let recipient = wallet.transferRecipient;
-  if (!recipient) {
-    const made = await createPaystackTransferRecipient({ bankName: wallet.bankName ?? "", bankCode: wallet.bankCode, accountNumber: wallet.accountNumber, accountName: wallet.accountName });
-    if (!made.recipientCode) throw new WalletBalanceError("We couldn't set up your bank for withdrawals just now. Try again in a few minutes.");
-    recipient = made.recipientCode;
-    await db.wallet.update({ where: { id: wallet.id }, data: { transferRecipient: recipient } });
-  }
-  if (!recipient) throw new WalletBalanceError("We couldn't set up your bank for withdrawals just now. Try again in a few minutes.");
-  const to = recipient;
+  const to = await withdrawalRecipient(wallet);
+  if (!to) throw new WalletBalanceError("We couldn't set up your bank for withdrawals just now. Try again in a few minutes.");
   const amountKobo = Math.round(naira * 100);
   const reference = `${WALLET_REFERENCE.withdrawal}${randomUUID().replace(/-/g, "")}`;
   const description = `Withdrawal to ${wallet.bankName ?? "your bank"} ••${wallet.accountNumber.slice(-4)}`;
@@ -573,19 +580,21 @@ export async function sendQueuedWithdrawals(limit = 20) {
     where: { kind: "withdrawal", status: "queued" },
     orderBy: { createdAt: "asc" },
     take: limit,
-    select: { reference: true, amountKobo: true, wallet: { select: { transferRecipient: true } } },
+    select: { reference: true, amountKobo: true, wallet: { select: { id: true, transferRecipient: true, bankName: true, bankCode: true, accountNumber: true, accountName: true, subaccountStatus: true } } },
   });
   let available = queued.length ? await paystackBalanceKobo() : null;
   let sent = 0;
   for (const row of queued) {
     const amountKobo = -row.amountKobo;
     if (available === null || available < amountKobo) break;
-    if (!row.wallet.transferRecipient) {
+    // Paid to the bank on the wallet when it goes out, even if they changed it while the withdrawal waited.
+    const to = row.wallet.subaccountStatus === "active" ? await withdrawalRecipient(row.wallet).catch(() => null) : null;
+    if (!to) {
       await db.walletTransaction.updateMany({ where: { reference: row.reference, status: "queued" }, data: { status: "pending" } });
       await refundWithdrawal(row.reference, "No bank set up for withdrawals.");
       continue;
     }
-    const outcome = await sendWithdrawal(row.reference, row.wallet.transferRecipient, amountKobo, false).catch(() => "queued" as const);
+    const outcome = await sendWithdrawal(row.reference, to, amountKobo, false).catch(() => "queued" as const);
     if (outcome === "queued") break;
     available -= amountKobo;
     sent += 1;

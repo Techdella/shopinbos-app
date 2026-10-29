@@ -167,3 +167,12 @@ test("the seller's fee follows their plan and skips delivery and dropship lines"
   const delivery = readFileSync(new URL("../src/lib/logistics/delivery-fee-payments.server.ts", import.meta.url), "utf8");
   assert.match(delivery, /jobFee\.effectiveRate/, "the job fee is 0 until switched on");
 });
+
+test("withdrawals go to the bank on the wallet now, not the one it had when the first withdrawal was made", () => {
+  // Changing the bank drops the old Paystack transfer recipient, so the next withdrawal makes one for the new bank.
+  assert.match(read("src/lib/wallet/wallet.server.ts"), /accountName: resolved\.accountName, nameCheck: null, transferRecipient: null/);
+  const balance = read("src/lib/wallet/balance.server.ts");
+  assert.match(balance, /const to = await withdrawalRecipient\(wallet\)/);
+  // A queued withdrawal is paid to the current bank too (its recipient is made again if the bank changed meanwhile).
+  assert.match(balance, /await withdrawalRecipient\(row\.wallet\)/);
+});
