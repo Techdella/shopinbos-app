@@ -1472,6 +1472,7 @@ const en = {
   "rex.hi.fixes": "I looked over your draft and spotted {count} things I can fix, like empty or sample words and sections that could sit better. Let me help you fix them?",
   "rex.offer.Make pictures for my store": "Make pictures for my store",
   "rex.offer.Fix those for me": "Fix those for me",
+  "rex.cd.openBuild": "Open the build setup",
   "rex.offer.Build my store": "Build my store",
   "rex.offer.Show me my store": "Show me my store",
   "rex.offer.Write the search titles and descriptions for every page": "Write the search titles and descriptions for every page",

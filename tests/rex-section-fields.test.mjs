@@ -99,7 +99,7 @@ test("add a ready-made block after a section and set it up in one step; update f
 test("wiring: Rex's context, prompt and the 2026 renderer all use it", () => {
   const studio = read("src/lib/ai/rex/studio.server.ts");
   assert.match(studio, /applyFields: \(section, fields, themeId\) => applyRexFieldChanges\(/);
-  assert.match(studio, /\[\.\.\.BOUTIQUE_SECTION_KINDS, \.\.\.STORE_BLOCK_KINDS\]/);
+  assert.match(studio, /\[\.\.\.BOUTIQUE_SECTION_KINDS, \.\.\.STORE_BLOCK_KINDS, LAYOUT_ROW_KIND\]/);
   assert.match(read("src/lib/ai/rex/studio-edit.server.ts"), /describeSectionFields\(section, draft\.templateId\)/);
   const prompt = read("src/lib/ai/rex/prompts.ts");
   assert.match(prompt, /"move"\|"duplicate"/);

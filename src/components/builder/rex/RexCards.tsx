@@ -411,6 +411,15 @@ function PreviewCard({ card, onOpenPreview }: { card: Extract<RexCard, { type: "
   );
 }
 
+function BuildCard({ onAsk, busy }: { card: Extract<RexCard, { type: "build" }> } & RexCardHandlers) {
+  const t = useT("builder", "common");
+  return (
+    <button type="button" className={secondary} disabled={busy} onClick={() => onAsk("Build my store")}>
+      <Icon name="sparkle" size={15} /> {t("rex.cd.openBuild")}
+    </button>
+  );
+}
+
 export function RexCardView({ card, ...handlers }: { card: RexCard } & RexCardHandlers): ReactNode {
   switch (card.type) {
     case "image":
@@ -433,5 +442,7 @@ export function RexCardView({ card, ...handlers }: { card: RexCard } & RexCardHa
       return <HealthCard card={card} {...handlers} />;
     case "preview":
       return <PreviewCard card={card} {...handlers} />;
+    case "build":
+      return <BuildCard card={card} {...handlers} />;
   }
 }

@@ -1467,6 +1467,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "rex.hi.fixes": "Elelere m draft gị wee hụ ihe {count} m nwere ike idozi, dị ka okwu efu ma ọ bụ okwu ihe atụ na ngalaba ndị nwere ike ịnọdụ nke ọma. Ka m nyere gị aka dozie ha?",
   "rex.offer.Make pictures for my store": "Mee foto maka ụlọ ahịa m",
   "rex.offer.Fix those for me": "Dozie ha maka m",
+  "rex.cd.openBuild": "Mepee ntọala iwu",
   "rex.offer.Build my store": "Wuo ụlọ ahịa m",
   "rex.offer.Show me my store": "Gosi m ụlọ ahịa m",
   "rex.offer.Write the search titles and descriptions for every page": "Dee aha nchọta na nkọwa maka peeji ọ bụla",

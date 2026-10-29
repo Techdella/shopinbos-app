@@ -43,7 +43,9 @@ export type RexCard =
     }
   | { type: "marketing"; kind: "campaign" | "automation" | "segment" | "content" | "template"; id: string; title: string; summary: string; href: string; canActivate: boolean }
   | { type: "health"; score: number; missing: Array<{ label: string; rexPrompt: string | null; href: string | null }> }
-  | { type: "preview"; page: string | null };
+  | { type: "preview"; page: string | null }
+  /** Opens Rex Studio's build setup with what the seller asked for (the build itself runs from there). */
+  | { type: "build"; brief: string; links: string[]; themeId: string | null };
 
 export interface RexReply {
   text: string;
@@ -84,5 +86,7 @@ export function cardNote(card: RexCard): string {
       return `[Store health ${card.score}/100]`;
     case "preview":
       return "[Opened the preview]";
+    case "build":
+      return `[Opened the build setup${card.brief ? `: ${card.brief.slice(0, 200)}` : ""}]`;
   }
 }

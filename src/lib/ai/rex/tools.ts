@@ -35,7 +35,10 @@ import { drawLogoOptions, LOGO_STYLES } from "@/lib/ai/rex/logo";
 import { describeSegmentRules, imageSizeFor, pickSourcePhoto, rebuildInstruction, type RexToolInput, type RexToolName } from "@/lib/ai/rex/agent-pure";
 import type { RexCard } from "@/lib/ai/rex/cards";
 import { MarketingError, rexCreateAutomation, rexCreateCampaign, rexCreateSegment } from "@/lib/ai/rex/marketing.server";
-import { applyStudioPlan, loadStudioStore, runStudioEdit, type StudioEditResult } from "@/lib/ai/rex/studio-edit.server";
+import { applyStudioPlan, loadStudioStore, runStudioEdit, saveRexChange, type StudioEditResult } from "@/lib/ai/rex/studio-edit.server";
+import { designStoreMenu } from "@/lib/ai/rex/menu-design.server";
+import { withMenuDesign } from "@/lib/storefront/menu-design";
+import { navigationOf } from "@/lib/store-navigation.server";
 import { parseRexStudioPlan } from "@/lib/ai/rex/studio-plan";
 import { reviewStoreDraft } from "@/lib/ai/rex/design-review";
 import { loadHealthFacts, studioDraft, themeNameFor } from "@/lib/ai/rex/studio.server";
@@ -398,6 +401,29 @@ async function reviewStoreDesign(ctx: RexToolContext): Promise<RexToolOutput> {
       howToFix: "Offer the seller to fix these in one go. Words, sections and colours: edit_store_section with the fix instructions. Pictures: fill_section_images (each picture costs an image). Ask before making pictures.",
     }),
   };
+}
+
+async function startStoreBuild(_ctx: RexToolContext, input: RexToolInput<"start_store_build">): Promise<RexToolOutput> {
+  const links = (input.links ?? []).filter((link) => /^(https?:\/\/)?[a-z0-9.-]+\.[a-z]{2,}(\/\S*)?$/i.test(link)).slice(0, 3);
+  return {
+    content: "The build setup is open for the seller with their brief. They check it, pick how much you do (quick or full) and press Build; nothing is built until they do. Tell them that in one line.",
+    card: { type: "build", brief: input.brief, links, themeId: input.themeId ?? null },
+  };
+}
+
+async function editMenu(ctx: RexToolContext, input: RexToolInput<"edit_menu">): Promise<RexToolOutput> {
+  const store = await studioStore(ctx);
+  await meter(ctx, "text");
+  const turns = ctx.history.slice(-6).map((turn) => ({ role: turn.role === "user" ? ("user" as const) : ("rex" as const), text: turn.content.slice(0, 1500) }));
+  const designed = await designStoreMenu(store, { messages: [...turns, { role: "user", text: input.instruction }] });
+  if ("error" in designed) throw new RexToolError(designed.error === "AI_FAILED" ? "The menu designer didn't answer. Nothing was changed; the seller can try again." : "The menu came back unusable. Nothing was changed; try describing it another way.");
+  const { draft } = studioDraft(store);
+  const next = { ...withMenuDesign(draft, designed.design, navigationOf(draft)), updatedAt: new Date().toISOString() };
+  if (JSON.stringify(next.pages) === JSON.stringify(draft.pages)) return { content: `The menus already look like that; nothing changed. Designer's note: ${designed.reply}` };
+  const top = designed.design.main.map((item) => item.label || item.ref || item.kind).filter(Boolean).slice(0, 7).join(", ");
+  const changes = [`Redesigned the header menu${top ? ` (${top})` : ""}`, ...(designed.design.footer ? ["Updated the footer links"] : [])];
+  const result = await saveRexChange(store, draft, next, changes, `Menu: ${input.instruction}`, designed.reply);
+  return storeOutput(ctx, result, "home");
 }
 
 const SLOT_SHAPE: Record<string, "landscape" | "portrait" | "square"> = { "hero-split": "landscape", "split-hero": "portrait", "parallax-banner": "landscape", "video-hero": "landscape", "promo-banner": "landscape", "campaign-countdown-hero": "landscape" };
@@ -802,6 +828,8 @@ export const REX_TOOL_RUNNERS: { [N in RexToolName]: Runner<N> } = {
   generate_logo: generateLogo,
   make_product_video: makeProductVideo,
   edit_store_section: editStoreSection,
+  edit_menu: editMenu,
+  start_store_build: startStoreBuild,
   fill_section_images: fillSectionImages,
   rebuild_section: rebuildSection,
   switch_theme: switchThemeTool,

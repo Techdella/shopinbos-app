@@ -23,6 +23,7 @@ import { draftHealthFacts, type StoreHealthFacts } from "@/lib/store-health";
 import { BOUTIQUE_SECTION_KINDS, CLASSIC_SECTION_KINDS, type ApplyContext } from "@/lib/ai/rex/studio-plan";
 import { applyRexFieldChanges, describeRexFields } from "@/lib/ai/rex/section-fields";
 import { STORE_BLOCK_KINDS, isStoreBlock, newStoreBlockSection } from "@/components/storefront/boutique/blocks/block-catalog";
+import { LAYOUT_ROW_KIND, newLayoutRowSection } from "@/components/storefront/boutique/blocks/layout-logic";
 import { boundRexVersions, readRexVersions, type RexVersionState } from "@/lib/ai/rex/studio-versions";
 import { rexVersionLimitFor } from "@shared/rex-preferences";
 import { isLiveStatus } from "@/lib/ai/rex/build-store";
@@ -68,12 +69,14 @@ export function themeNameFor(themeId: string | null | undefined, fallback?: stri
 
 export function allowedKindsFor(themeId: string) {
   // The 2026 themes also take the ready-made blocks (split hero, product carousel, trust badges, …).
-  return isBoutiqueTheme(themeId) ? [...BOUTIQUE_SECTION_KINDS, ...STORE_BLOCK_KINDS] : CLASSIC_SECTION_KINDS;
+  return isBoutiqueTheme(themeId) ? [...BOUTIQUE_SECTION_KINDS, ...STORE_BLOCK_KINDS, LAYOUT_ROW_KIND] : CLASSIC_SECTION_KINDS;
 }
 
 /** A new section of `kind`: a ready-made block with its starter content, else the template library's. */
 export function rexNewSection(kind: string): TemplateSectionNode {
-  return (isStoreBlock(kind) ? newStoreBlockSection(kind, `${kind}-${Math.random().toString(36).slice(2, 8)}`) : null) ?? createSectionFromLibrary(kind);
+  const id = `${kind}-${Math.random().toString(36).slice(2, 8)}`;
+  if (kind === LAYOUT_ROW_KIND) return newLayoutRowSection(id);
+  return (isStoreBlock(kind) ? newStoreBlockSection(kind, id) : null) ?? createSectionFromLibrary(kind);
 }
 
 /** The inspector fields Rex may set on a section, with what each takes (for the designer's prompt). */

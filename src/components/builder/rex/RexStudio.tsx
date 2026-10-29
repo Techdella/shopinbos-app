@@ -96,7 +96,7 @@ export function RexStudio(props: RexStudioProps) {
   const [toast, setToast] = useState<{ text: string; href?: string } | null>(null);
   const [isPhone, setIsPhone] = useState(false);
   /** The "Build my store" setup (null: closed); `screenshots` are photos sent with a typed build request. */
-  const [setup, setSetup] = useState<{ screenshots: string[]; links: string[]; note: string } | null>(null);
+  const [setup, setSetup] = useState<{ screenshots: string[]; links: string[]; note: string; themeId?: string | null } | null>(null);
   const [buildSteps, setBuildSteps] = useState<BuildStep[] | null>(null);
   const router = useRouter();
   const toolsRef = useRef<HTMLDivElement>(null);
@@ -246,6 +246,9 @@ export function RexStudio(props: RexStudioProps) {
       const result = await askRex({ messages: messagesForRex, imageUrls });
       if (result.draft) takeDraft(result.draft, result.versions);
       rexSays({ text: result.text, cards: result.cards, ...(result.creditsNeeded ? { buyCredits: true } : {}) });
+      // Rex was asked to build the whole store: the build setup opens with what the seller said.
+      const buildCard = result.cards.find((card) => card.type === "build");
+      if (buildCard && buildCard.type === "build") setSetup({ screenshots: photos, links: buildCard.links, note: buildCard.brief, themeId: buildCard.themeId });
       // Rex changed the store or was asked to show it: open the preview on the page he worked on.
       const storeCard = [...result.cards].reverse().find((card) => card.type === "store" || card.type === "preview");
       if (result.draft || storeCard) showPreview(storeCard && "page" in storeCard ? storeCard.page : null);
@@ -669,6 +672,7 @@ export function RexStudio(props: RexStudioProps) {
           initialScreenshots={setup.screenshots}
           initialLinks={setup.links}
           initialNote={setup.note}
+          initialThemeId={setup.themeId ?? null}
           currentThemeId={draftSaved ? draft.templateId : null}
           rebuilding={draftSaved}
           onStart={(choice) => void runBuild(choice)}

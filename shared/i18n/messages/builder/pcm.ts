@@ -1467,6 +1467,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "rex.hi.fixes": "I don look your draft, I see {count} things wey I fit fix, like empty or sample words and sections wey fit sit better. Make I help you fix am?",
   "rex.offer.Make pictures for my store": "Make pictures for my store",
   "rex.offer.Fix those for me": "Fix dem for me",
+  "rex.cd.openBuild": "Open the build setup",
   "rex.offer.Build my store": "Build my store",
   "rex.offer.Show me my store": "Show me my store",
   "rex.offer.Write the search titles and descriptions for every page": "Write the search titles and descriptions for every page",
