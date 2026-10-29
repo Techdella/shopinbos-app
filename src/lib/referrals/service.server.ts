@@ -39,6 +39,7 @@ import {
 import { sendReferralWhatsApp } from "./whatsapp.server";
 import { rewardTextIn, ruleIn, welcomeTextIn } from "./words";
 import { mailT, memberLocale } from "@/lib/member-messaging/i18n";
+import { greetingName } from "@shared/person-name";
 
 // Refer & earn (shared/referrals.ts has the offers and rules). The flow:
 //  1. /r/CODE sets the sib_ref cookie and shows the invite page. A supplier's or delivery partner's public profile
@@ -52,9 +53,7 @@ import { mailT, memberLocale } from "@/lib/member-messaging/i18n";
 
 const DAY = 86_400_000;
 
-function firstName(name: string | null | undefined) {
-  return (name ?? "").trim().split(/\s+/)[0] || "there";
-}
+const firstName = (name: string | null | undefined) => greetingName(name);
 
 /** Business name to show: the shop, supplier or partner name, else the person's name. */
 /** Each person's business name and logo (store, supplier or delivery logo, else their profile photo). */
