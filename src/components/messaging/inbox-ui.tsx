@@ -49,6 +49,10 @@ export function ChannelMark({ channel, size = 22, className }: { channel: ListCh
   );
 }
 
+/**
+ * Short time for lists ("now", "5m", "14:05", "Tue", "3 Nov"), in Lagos time so the server's render (UTC) and the
+ * browser's agree; the relative ones can still tick over between the two, so their elements suppressHydrationWarning.
+ */
 export function formatWhen(iso: string, locale: Locale = "en") {
   const d = new Date(iso);
   const diff = Date.now() - d.getTime();
@@ -61,13 +65,13 @@ export function formatWhen(iso: string, locale: Locale = "en") {
   }
   if (diff < 60_000) return "now";
   if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m`;
-  if (diff < 86_400_000) return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-  if (diff < 604_800_000) return d.toLocaleDateString("en-GB", { weekday: "short" });
-  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  if (diff < 86_400_000) return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: APP_TIME_ZONE });
+  if (diff < 604_800_000) return d.toLocaleDateString("en-GB", { weekday: "short", timeZone: APP_TIME_ZONE });
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: APP_TIME_ZONE });
 }
 
 export function formatStamp(iso: string, locale: Locale = "en") {
-  return new Date(iso).toLocaleString(locale === "en" ? "en-GB" : intlLocale(locale), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  return new Date(iso).toLocaleString(locale === "en" ? "en-GB" : intlLocale(locale), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: APP_TIME_ZONE });
 }
 
 /** fetch → the `data` of our API envelope, or an Error with the API's message. */

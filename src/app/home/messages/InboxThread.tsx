@@ -116,7 +116,7 @@ function MessageBubble({ message }: { message: InboxThreadMessage }) {
         <Attachments message={message} />
         <div className={cx("mt-1 flex justify-end gap-1.5 text-[11px]", mine && message.status !== "failed" ? "text-white/60" : "text-app-ink-faint")}>
           {mine && message.authorName && <span>{message.authorName} ·</span>}
-          <span>{formatWhen(message.createdAt, locale)}</span>
+          <span suppressHydrationWarning>{formatWhen(message.createdAt, locale)}</span>
           {mine && STATUS_LABEL[message.status] ? <span>· {t(STATUS_LABEL[message.status] as MessageKey<"inbox">)}</span> : null}
         </div>
         {message.status === "failed" && message.error && <div className="mt-1 text-[12.5px] font-semibold text-app-danger">{message.error}</div>}
@@ -201,7 +201,7 @@ function CustomerPanel({ data, onOpen, onSaveTags }: { data: ThreadData; onOpen:
                 <button type="button" onClick={() => onOpen(r.id)} className="flex w-full items-center gap-2 rounded-[12px] border border-app-line px-3 py-2 text-left text-[13px] hover:bg-app-canvas">
                   <ChannelMark channel={r.channel as InboxChannelKey} size={20} />
                   <span className="min-w-0 flex-1 truncate">{r.preview || channelLabel(r.channel as InboxChannelKey)}</span>
-                  <span className="shrink-0 text-[12px] text-app-ink-soft">{formatWhen(r.at, locale)}</span>
+                  <span suppressHydrationWarning className="shrink-0 text-[12px] text-app-ink-soft">{formatWhen(r.at, locale)}</span>
                 </button>
               </li>
             ))}
