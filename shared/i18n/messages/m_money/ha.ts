@@ -182,7 +182,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "w.last30Line": "Kwanaki 30 da suka wuce: {amount}",
   "w.recent": "Na baya-bayan nan",
   "bal.title": "Kuɗin cikin Wallet",
-  "bal.sub": "Ma'aunin kuɗinka na Shopinbos. Kuɗin sayarwa har yanzu suna zuwa kai tsaye bankinka.",
+  "bal.sub": "Kuɗinka na Shopinbos, don AI credits da sauran ayyukan Shopinbos. Ba za a iya cire shi ba; kuɗin sayarwa suna zuwa kai tsaye bankinka.",
   "bal.pending": "yana kan hanya",
   "bal.didntGo": "bai yi nasara ba",
   "pay.paid": "An biya. Kuɗin ya tafi kai tsaye zuwa bankinsu.",

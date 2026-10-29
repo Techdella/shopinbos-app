@@ -640,8 +640,8 @@ export const templates: Record<string, TemplateText> = {
     button: "Kwado azụmahịa m",
     examples: ["Ada", "Ada Fabrics", "sellers", "CAC certificate"],
   },
-  shopinbos_wallet_ready: {
-    body: "Ndewo {{1}}, Shopinbos Wallet gị adịla njikere! 🎉\n\nNọmba akaụntụ nke gị bụ {{2}} na {{3}}, n'aha {{4}}. Zipu ego na ya site na ngwa ụlọ akụ ọ bụla, ego ahụ ga-abanye na wallet gị n'ime nkeji otu ma ọ bụ abụọ.\n\nJiri ego dị na wallet gị maka AI credits na ọrụ Shopinbos ndị ọzọ, ma wepụ ya gaa n'ụlọ akụ gị mgbe ọ bụla ịchọrọ.",
+  shopinbos_wallet_ready_v2: {
+    body: "Ndewo {{1}}, Shopinbos Wallet gị adịla njikere! 🎉\n\nNọmba akaụntụ nke gị bụ {{2}} na {{3}}, n'aha {{4}}. Nye ya onye ọ bụla chọrọ ịkwụ gị ụgwọ, site na ngwa ụlọ akụ ọ bụla.\n\nTinye ụlọ akụ gị na peeji wallet gị, ego ha zitere ga-aga ozugbo n'ụlọ akụ gị. Tinye ego na wallet gị iji kwụọ ụgwọ AI credits na ọrụ Shopinbos ndị ọzọ.",
     button: "Mepee wallet m",
     examples: ["Ada", "9912345678", "Wema Bank", "SHOPINBOS/ADA FABRICS"],
   },

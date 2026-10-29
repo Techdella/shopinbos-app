@@ -156,7 +156,6 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "step.Choose a company": "Họrọ ụlọ ọrụ",
   "step.Add your payout bank": "Tinye bank payout gị",
   "step.Your bank account is linked for payouts.": "Ejikọọla akaụntụ bank gị maka payouts.",
-  "step.Money waits safely in your balance until you do.": "Ego ga-eche n'udo na balance gị ruo mgbe ị mere ya.",
   "step.Add bank": "Tinye bank",
   "step.Put your shop live": "Tinye ụlọ ahịa gị live",
   "step.Your shop is open to shoppers.": "Ụlọ ahịa gị emeghere ndị na-azụ ahịa.",

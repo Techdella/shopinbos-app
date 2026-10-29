@@ -182,7 +182,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "w.last30Line": "Ụbọchị 30 gara aga: {amount}",
   "w.recent": "Ndị ọhụrụ",
   "bal.title": "Ego dị na Wallet",
-  "bal.sub": "Ego Shopinbos gị fọdụrụ. Ego ire ka na-aga ozugbo n'ụlọ akụ gị.",
+  "bal.sub": "Ego Shopinbos gị, maka AI credits na ọrụ Shopinbos ndị ọzọ. A pụghị iwepụ ya; ego ire na-aga ozugbo n'ụlọ akụ gị.",
   "bal.pending": "ọ na-abịa",
   "bal.didntGo": "ọ gaghị",
   "pay.paid": "Akwụọla ya. Ego ahụ gara ozugbo n'ụlọ akụ ha.",

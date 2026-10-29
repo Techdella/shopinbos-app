@@ -36,7 +36,7 @@ $does = [
 	[ 'layers', '#E7E1FF', '#5B3FD6', 'Manage your store', 'Products, prices, stock and orders from every channel in one place, on your phone.' ],
 	[ 'truck', '#FDF0D5', '#8A5A08', 'Run your store', 'Card, transfer and pay on delivery, riders booked from the order, and receipts that go out on their own.' ],
 	[ 'chat', '#E2F6F1', '#0C4A44', 'Speak with your customers', 'Peggy helps you reply in your chats, follow up and send offers, in English or Pidgin.' ],
-	[ 'naira', '#E2F5EA', '#16794A', 'Earn money', 'Payouts to your bank every Friday, and the numbers that show what is selling.' ],
+	[ 'naira', '#E2F5EA', '#16794A', 'Earn money', 'Payments straight to your bank, and the numbers that show what is selling.' ],
 ];
 echo sib_block_group_open( 'sec', 'section' ) . sib_block_group_open( 'wrap col-32' )
 	. sib_block_group_open( 'col center mw-720' ) . sib_block_p( 'What Shopinbos does', 'pill-label' ) . sib_block_h( 2, 'Everything you need to sell online, in one app', 'disp h2 center' ) . sib_block_group_close()

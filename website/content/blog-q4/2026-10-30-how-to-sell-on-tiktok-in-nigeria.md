@@ -140,7 +140,7 @@ Trust is the biggest barrier when someone finds you on TikTok. They do not know 
 
 ### Payment options
 
-With Shopinbos, buyers can [pay by card, bank transfer or USSD](/features/payments/) through Paystack. The fee is 1.5% + ₦100 (the ₦100 is waived under ₦2,500), capped at ₦2,000. Your balance is paid to your bank every Friday, and you can withdraw early any time.
+With Shopinbos, buyers can [pay by card, bank transfer or USSD](/features/payments/) through Paystack. The fee is 1.5% + ₦100 (the ₦100 is waived under ₦2,500), capped at ₦2,000. The money settles straight to your bank, usually the next working day.
 
 For buyers who want to see the item first, pay on delivery is available for orders up to ₦50,000 in Lagos, Abuja, Ibadan and Port Harcourt. The customer gives the rider a 4-digit code, and riders pay the cash in by 6pm the same day.
 

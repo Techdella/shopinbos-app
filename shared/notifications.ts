@@ -99,7 +99,7 @@ export const NOTIFY_EVENTS = {
   "pricing.promotion": { category: "marketing" },
   "payout.sent": { category: "money" },
   // Shopinbos Wallet (src/lib/wallet/balance.server.ts): money in (a transfer to their own account number, or a card
-  // top-up), and withdrawals sent or bounced back.
+  // top-up), and withdrawals from before the balance went spend-only, finished or put back.
   "wallet.received": { category: "money", urgent: true },
   "wallet.withdrawal": { category: "money" },
   "payout.failed": { category: "money" },

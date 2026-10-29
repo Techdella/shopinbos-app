@@ -76,14 +76,14 @@ If you accept direct transfers, protect yourself:
 A better approach is to let customers choose "bank transfer" inside the checkout link. They still pay by transfer, which they're comfortable with, but the payment is confirmed against the order automatically, so you're not checking alerts by hand.
 
 :::warn Fake alert rule
-If a buyer is rushing you to dispatch "because I've paid already", slow down. Check your balance. A real customer will wait two minutes.
+If a buyer is rushing you to dispatch "because I've paid already", slow down. Check the order in your app. A real customer will wait two minutes.
 :::
 
 ## Option 3: USSD for customers without data
 
 USSD lets a customer pay by dialling a short code from their bank on any phone, even without internet. This matters for buyers outside big cities, older customers, and anyone whose data has just finished.
 
-When USSD is available at checkout, the customer picks their bank and follows the prompts on their phone. For you, it arrives the same way as a card or transfer payment: matched to the order and added to your balance.
+When USSD is available at checkout, the customer picks their bank and follows the prompts on their phone. For you, it arrives the same way as a card or transfer payment: matched to the order and settled straight to your bank.
 
 You don't need to set up USSD separately with each bank. It comes with the checkout.
 
@@ -120,12 +120,12 @@ If you don't have a store yet, Rex, the Shopinbos AI store builder, can build on
 
 Getting paid is only half the job. You also need to know when you can spend it, so you can restock.
 
-On Shopinbos, your **balance is paid to your bank every Friday**. If you need money sooner, for example to buy stock at Balogun on a Wednesday, you can **withdraw early any time**.
+On Shopinbos, **each payment settles straight to your bank**, usually the next working day. Money a customer pays on Tuesday can buy stock at Balogun on Wednesday.
 
 Plan around it:
 
-- **Use the Friday payout for regular costs** like restocking, packaging and data.
-- **Withdraw early when a good deal on stock comes up**, rather than borrowing.
+- **Set aside part of each payment for regular costs** like restocking, packaging and data.
+- **Keep a restock fund in your bank for good deals on stock**, rather than borrowing.
 - **Keep a small float** in your account so one slow week doesn't stop you buying stock.
 
 ## Accepting payments on WhatsApp, Instagram and TikTok

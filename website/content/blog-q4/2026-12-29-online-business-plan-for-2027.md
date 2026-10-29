@@ -195,7 +195,7 @@ More orders with the same messy process means more stress, more mistakes and mor
 
 ### Forgetting cash flow
 
-Growth often needs cash before it pays back: more stock, more packaging, maybe ads. Plan when money comes in and goes out. On Shopinbos, your balance is paid to your bank every Friday, and you can withdraw early any time, which helps you plan restocks.
+Growth often needs cash before it pays back: more stock, more packaging, maybe ads. Plan when money comes in and goes out. On Shopinbos, each payment settles straight to your bank, usually the next working day, which helps you plan restocks.
 
 ### Never writing it down
 

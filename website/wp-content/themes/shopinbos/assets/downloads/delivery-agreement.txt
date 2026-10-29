@@ -47,4 +47,4 @@ Guarantor (for individual riders): [name, phone, address]
 Signed for the shop: ____________________  Name: ____________  Date: ________
 Signed by the rider/company: _____________  Name: ____________  Date: ________
 
-Booking riders on Shopinbos? Pay on delivery codes, live tracking and cash paid in the same evening are built in.
+Booking riders on Shopinbos? Pay on delivery codes, live tracking and cash paid to you by 6pm the same day are built in.

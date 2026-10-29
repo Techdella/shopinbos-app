@@ -25,7 +25,7 @@ foreach ( [ [ 'Your store', 'Live', 'tag-ok' ], [ 'WhatsApp catalogue', 'Synced'
 }
 $channels .= '</div>';
 $paid = '<div class="mock-white"><div class="row between"><b>Order SB-1047</b><span class="tag tag-ok">Delivered</span></div>' . $tick( 'Kemi paid ₦21,000 by transfer' ) . $tick( 'Rider picked it up at 11:40' ) . $tick( 'Delivered with code 4 8 2 1' )
-	. '<div style="background:#F6F5F9;border-radius:16px;padding:12px 14px"><div style="font-size:12.5px;color:#6B6779;font-weight:600">Paying to your bank on Friday</div><div class="disp" style="font-size:30px">₦146,200</div></div></div>';
+	. '<div style="background:#F6F5F9;border-radius:16px;padding:12px 14px"><div style="font-size:12.5px;color:#6B6779;font-weight:600">Reaching your bank tomorrow</div><div class="disp" style="font-size:30px">₦146,200</div></div></div>';
 
 echo sib_block_group_open( 'fold bg-mist', 'section' ) . sib_block_group_open( 'wrap fold-in' );
 echo sib_block_group_open( 'col mw-720', 'div' ) . sib_block_p( 'How it works', 'eyebrow' ) . sib_block_h( 2, 'From “I want to sell” to your first order, in one evening' ) . sib_block_group_close();
@@ -33,6 +33,6 @@ echo '<!-- wp:group {"className":"stack","style":{"spacing":{"margin":{"top":"40
 echo $card( '01', 'Tell Rex about your shop', 'Say what you sell in a sentence. Rex makes your logo, colours and store, and shows you before anything goes live.', 'white', 'ink', $logo_opts );
 echo $card( '02', 'Add products from a photo', 'Snap a photo. Rex cleans the background, writes the name and description and suggests a price. Or import from Instagram.', 'mint-soft', 'forest', $product );
 echo $card( '03', 'Sell where your customers are', 'One product list for your store, WhatsApp, Instagram, Facebook, TikTok Shop and Google. Peggy answers the chats.', 'forest', 'white', $channels );
-echo $card( '04', 'Deliver and get paid', 'Book a rider in one tap. Buyers pay by card, transfer or cash on delivery. Your money lands every Friday.', 'peach', 'ink', $paid );
+echo $card( '04', 'Deliver and get paid', 'Book a rider in one tap. Buyers pay by card, transfer or cash on delivery. Your money goes straight to your bank.', 'peach', 'ink', $paid );
 echo sib_block_group_close();
 echo sib_block_group_close() . sib_block_group_close( 'section' );
