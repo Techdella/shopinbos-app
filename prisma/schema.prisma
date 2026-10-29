@@ -274,6 +274,9 @@ model Store {
   /// trip back (customer | seller). Wrong or damaged items are always "Report a problem".
   returnsAllowed             Boolean  @default(false)
   returnWindowDays           Int      @default(7)
+  /// Days the store takes to send an order of its own stock (0 = same day, up to 5): with each zone rate's days it
+  /// gives the "Arrives …" date at checkout (shared/cart-checkout.ts ownArrival).
+  handlingDays               Int      @default(1)
   returnShippingPayer        String   @default("customer")
   createdAt                  DateTime @default(now())
   updatedAt                  DateTime @updatedAt
@@ -636,6 +639,9 @@ model Supplier {
   /// Three strikes in 90 days (SupplierStrike): flagged for the team to review. Never an automatic suspension.
   reviewFlaggedAt    DateTime?
   reviewNote         String?
+  /// The first time a shop tried to dropship them without a Shopinbos Wallet: they can still be listed for 14 days
+  /// (src/lib/marketplace/agreements.server.ts WALLET_GRACE_DAYS), then not until the wallet is ready.
+  walletAskedAt      DateTime?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 

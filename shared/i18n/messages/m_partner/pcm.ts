@@ -670,7 +670,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "lvl.unlock.ranking": "Higher place for shops' rider lists",
   "lvl.unlock.highValue": "High-value parcels (phones, laptops, gold)",
   "lvl.unlock.featured": "Apply to be featured",
-  "lvl.unlock.fasterPayouts": "Faster payouts",
+  "lvl.unlock.fasterPayouts": "Pay even when trip fail",
   "lvl.comingSoon": "E dey come soon",
   "lvl.needs.verified": "ID and selfie don pass",
   "lvl.needs.trusted": "50 delivered · rating 4.3+ · under 2% failed drops · base address verified",

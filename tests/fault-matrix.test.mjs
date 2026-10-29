@@ -312,3 +312,21 @@ test("C10: the seller's margin on one order, from the split or estimated", () =>
   const estimate = pay.orderEarnings({ totalKobo: 1_000_000, plans: [null], supplierCostKobo: 600_000, partnerFeesKobo: 150_000 });
   assert.deepEqual([estimate.basis, estimate.earnKobo], ["estimate", 250_000]);
 });
+
+test("Top partners are paid even on failed trips: the seller covers what the customer's refund can't", () => {
+  const top = { ...SUP, partner: { ...SUP.partner, paidFailedTrips: true } };
+  // Goods worth less than the trip back: the customer's refund covers ₦1,000, the seller the other ₦1,500.
+  const cheap = { ...top, goodsKobo: 100_000, supplierPaidKobo: 70_000 };
+  const out = m.resolveFault({ event: "customer_unreachable", order: order({ parts: [cheap, OWN] }), ...supplierOnly });
+  assert.equal(m.partyNets(out)["logistics:p1"], 250_000, "the whole failed attempt and trip back");
+  const plain = m.resolveFault({ event: "customer_unreachable", order: order({ parts: [{ ...cheap, partner: SUP.partner }, OWN] }), ...supplierOnly });
+  assert.equal(m.partyNets(plain)["logistics:p1"], 100_000, "other partners get only what the refund covers");
+
+  // Pay on delivery the customer wouldn't pay: nothing was paid, so the seller pays a Top partner's trip back.
+  const pod = m.resolveFault({ event: "pod_refused", order: order({ goodsPaid: false, parts: [top, OWN] }), ...supplierOnly });
+  assert.equal(m.partyNets(pod)["logistics:p1"], 250_000);
+  assert.deepEqual(pod.trips, [{ partKey: "supplier:sup_a", partnerId: "p1", kind: "return", feeKobo: 250_000, paidBy: "seller" }]);
+  assert.match(pod.lines.logistics, /₦2,500 for the failed attempt and the trip back/);
+  const podPlain = m.resolveFault({ event: "pod_refused", order: order({ goodsPaid: false }), ...supplierOnly });
+  assert.equal(podPlain.debts.length, 0, "other partners: nobody owes anything");
+});

@@ -1,5 +1,5 @@
 // Draft: needs native-speaker review
-// "pod.disclaimer" and "pod.disclaimerPartner" are legal wording: they also need legal review (see the note in en.ts).
+// "pod.disclaimer" and "pod.disclaimerPartner" are the published pay-on-delivery terms: they must say exactly what en.ts says.
 import type en from "./en.ts";
 
 const ha: Partial<Record<keyof typeof en, string>> = {
@@ -38,8 +38,10 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "decline.badAddress": "Adireshin bai cika ba",
   "decline.other": "Wani dalili",
   "decline.none": "Ba a ba da dalili ba",
-  "pod.disclaimer": "Biya bayan isarwa yarjejeniya ce tsakaninka da abokin isar da kayanka. Abokin isar da kaya ne ke karɓar kuɗin hannu, kuma daidaitawa tsakaninka da su ne. Shopinbos ba ya sarrafa, ba ya riƙewa, kuma ba ya ba da tabbacin kuɗin biya bayan isarwa.",
-  "pod.disclaimerPartner": "Biya bayan isarwa yarjejeniya ce tsakaninka da shagon. Rider ɗinka ne ke karɓar kuɗin hannu daga abokin ciniki, kuma kai ne za ka daidaita da shagon kai tsaye. Shopinbos ba ya sarrafa, ba ya riƙewa, kuma ba ya ba da tabbacin kuɗin biya bayan isarwa.",
+  "pod.disclaimer":
+    "Da biya bayan isarwa, abokin cinikinka zai biya kuɗin isarwa a lokacin checkout, sauran kuma a cikin app idan kayan sun iso, ta kati, tura kuɗi ta banki ko USSD ta hanyar Paystack. Kuɗin suna shiga bankinka da na abokin isarwarka kai tsaye: rider ba ya karɓar kuɗin hannu. Rider zai ba da kayan ne kawai bayan abokin ciniki ya biya kuma ya ba da lambarsa; idan bai biya ba, za a dawo maka da shi. Shopinbos ba ya riƙe waɗannan kuɗaɗe.",
+  "pod.disclaimerPartner":
+    "Da biya bayan isarwa, abokin ciniki zai biya a cikin app idan rider ɗinka ya iso, ba da kuɗin hannu ba. Kuɗin isarwarka yana shiga bankinka kai tsaye ta hanyar Paystack. Ka ba da kayan ne kawai bayan abokin ciniki ya biya kuma ya ba ka lambarsa; idan bai biya ba, ka mayar da shi shagon. Shopinbos ba ya riƙe waɗannan kuɗaɗe.",
   "offPlatform.warning": "Ku riƙe ayyuka da biyan kuɗi a cikin Shopinbos. Ana biyan ayyukan cikin app kai tsaye, ana bin diddiginsu, kuma suna ƙirguwa a rating ɗinka. Shopinbos ba ya kare biyan kuɗin da aka shirya a wajen app.",
   "time.sameDay": "Rana ɗaya",
   "time.days": "{count, plural, one {kwana #} other {kwanaki #}}",

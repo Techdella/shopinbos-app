@@ -132,6 +132,13 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "lg.tip": "Ị dị ọhụrụ na delivery? Malite na Delivery settings: kwuo ebe i si ezipụ ngwugwu na ebe ị na-ebuga. Mgbe ahụ ndị ahịa ga-ahụ ego delivery mgbe ha na-azụ.",
   "tip.list": "Malite na ebe ị na-ebugakarị, dịka obodo gị. Wee tinye otu ebe na-enweghị obodo n'ime ya maka “ebe ọ bụla ọzọ”, ka onye ahịa ọ bụla nweta ego. Ị nwere ike itinye ndị ọzọ emesịa.",
   "tip.form": "Mee ya mfe: otu aha, obodo ole na ole, otu ego. Tinye 0 ma ọ bụrụ na delivery bụ n'efu.",
+  "handling.title": "Ngwa ngwa ị na-eziga order",
+  "handling.sub": "Ụbọchị ole ị na-ewe iji ziga order nke ngwa ahịa gị. Ndị ahịa ga-ahụ ụbọchị ọ ga-erute na checkout: nke a gbakwunyere ụbọchị mpaghara nnyefe ọ bụla.",
+  "handling.label": "Ana m eziga order n'ime",
+  "handling.sameDay": "Otu ụbọchị ahụ",
+  "handling.days": "{count, plural, one {ụbọchị #} other {ụbọchị #}}",
+  "handling.saved": "Echekwala ya. Checkout ga-egosi ụbọchị ọhụrụ.",
+  "handling.error": "Echekwaghị ya. Nwaa ọzọ.",
 };
 
 export default ig;

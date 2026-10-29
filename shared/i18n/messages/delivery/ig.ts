@@ -1,5 +1,5 @@
 // Draft: needs native-speaker review
-// "pod.disclaimer" and "pod.disclaimerPartner" are legal wording: they also need legal review (see the note in en.ts).
+// "pod.disclaimer" and "pod.disclaimerPartner" are the published pay-on-delivery terms: they must say exactly what en.ts says.
 import type en from "./en.ts";
 
 const ig: Partial<Record<keyof typeof en, string>> = {
@@ -39,9 +39,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "decline.other": "Ihe ọzọ",
   "decline.none": "Ha ekwughị ihe kpatara ya",
   "pod.disclaimer":
-    "Pay on delivery bụ nkwekọrịta n'etiti gị na logistics partner gị. Ọ bụ partner na-anara cash ahụ, settlement dịkwa n'etiti gị na ha. Shopinbos anaghị emetụ ego pay on delivery aka, anaghị ejide ya, anaghịkwa ekwe nkwa maka ya.",
+    "Na pay on delivery, onye ahịa gị na-akwụ ụgwọ nnyefe n'oge checkout, ma kwụọ ndị fọdụrụ n'ime app mgbe parcel ahụ rutere, site na kaadị, bank transfer ma ọ bụ USSD site na Paystack. Ego ahụ na-aga ozugbo n'ụlọ akụ gị na nke onye na-ebuga gị ngwa: rider anaghị anara cash. Rider ga-enye parcel ahụ naanị mgbe onye ahịa kwụchara ụgwọ ma nye koodu ya; ọ bụrụ na ọ kwụghị, a ga-eweghachi ya gị. Shopinbos anaghị ejide ego ndị a.",
   "pod.disclaimerPartner":
-    "Pay on delivery bụ nkwekọrịta n'etiti gị na ụlọ ahịa ahụ. Ọ bụ rider gị na-anara cash ahụ n'aka onye ahịa, ọ bụkwa gị na ụlọ ahịa ahụ ga-eme settlement ya ozugbo. Shopinbos anaghị emetụ ego pay on delivery aka, anaghị ejide ya, anaghịkwa ekwe nkwa maka ya.",
+    "Na pay on delivery, onye ahịa na-akwụ ụgwọ n'ime app mgbe rider gị rutere, ọ bụghị cash. Ụgwọ nnyefe gị na-aga ozugbo n'ụlọ akụ gị site na Paystack. Nye parcel ahụ naanị mgbe onye ahịa kwụchara ụgwọ ma nye gị koodu ya; ọ bụrụ na ọ kwụghị, weghachi ya n'ụlọ ahịa ahụ. Shopinbos anaghị ejide ego ndị a.",
   "offPlatform.warning":
     "Debe ọrụ na ịkwụ ụgwọ n'ime Shopinbos. A na-akwụ ụgwọ ọrụ dị n'ime app n'onwe ya, a na-esochi ha, ha na-agụkwa na rating gị. Shopinbos anaghị echebe ịkwụ ụgwọ unu hazịrị n'èzí app.",
   "time.sameDay": "N'otu ụbọchị",

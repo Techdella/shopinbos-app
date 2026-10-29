@@ -17,7 +17,7 @@ import { colors, fonts, radii } from "@/theme";
 // Your level (the web's /logistics/level): the partner's reach tier, Tier 1 Verified → Tier 2 Trusted → Tier 3 Top
 // partner (shared/partner-reach.ts). Tiers control reach, not cash: the forest card says where they are, then what's
 // left to the next tier (meters), "Apply to be featured" for Top partners, why interstate jobs don't come yet below
-// Trusted, and what each tier unlocks (faster payouts: coming soon). No cash cap here. GET /api/mobile/logistics/level,
+// Trusted, and what each tier unlocks (Top partners: paid even on failed trips). No cash cap here. GET /api/mobile/logistics/level,
 // POST …/level/featured. Opened from More, Services and the Jobs tab.
 
 function FeaturedBox({ data, onApplied }: { data: PartnerLevelView; onApplied: () => void }) {

@@ -207,7 +207,7 @@ export const ROUTE_NAMESPACES: ReadonlyArray<readonly [string, readonly string[]
   ["/home/reviews/sources", ["auth","common","glossary","help","introTitles","learn","nav","notifications","reviews","rex","settings","shell","support","tour","ui","verification"]],
   ["/home/seo", ["auth","common","glossary","help","introTitles","learn","media","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/home/settings", ["account","auth","common","glossary","help","introTitles","learn","nav","notifications","payments","rex","settings","shell","support","tour","ui","verification"]],
-  ["/home/shipping", ["auth","common","faults","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
+  ["/home/shipping", ["auth","common","faults","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","shipping","support","tour","ui","verification"]],
   ["/home/shipping/[id]", ["auth","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","shipping","support","tour","ui","verification"]],
   ["/home/shipping/new", ["auth","common","glossary","help","introTitles","learn","nav","notifications","rex","settings","shell","shipping","support","tour","ui","verification"]],
   ["/home/social", ["common","nav","ui"]],

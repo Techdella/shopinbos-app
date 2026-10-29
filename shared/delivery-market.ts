@@ -960,11 +960,11 @@ export const OFF_PLATFORM_WARNING =
 // ─── Pay on delivery (spec §8) ───────────────────────────────────────────────
 
 export const POD_DISCLAIMER =
-  "Pay on delivery is an arrangement between you and your logistics partner. Cash is collected by the partner, and settlement is between you and them. Shopinbos does not handle, hold or guarantee pay-on-delivery funds.";
+  "With pay on delivery, your customer pays the delivery fee at checkout and the rest in the app when the parcel arrives, by card, bank transfer or USSD through Paystack. The money settles straight to your bank and your delivery partner's: riders never collect cash. The rider hands over the parcel only after the customer has paid and given their code; if they won't pay, it comes back to you. Shopinbos does not hold these funds.";
 
 /** The same arrangement as the partner sees it (coverage and connections pages). */
 export const POD_DISCLAIMER_PARTNER =
-  "Pay on delivery is an arrangement between you and the shop. Your rider collects the cash from the customer, and you settle it with the shop directly. Shopinbos does not handle, hold or guarantee pay-on-delivery funds.";
+  "With pay on delivery, the customer pays in the app when your rider arrives, never in cash. Your delivery fee settles straight to your bank through Paystack. Hand over the parcel only after the customer has paid and given their code; if they won't pay, bring it back to the shop. Shopinbos does not hold these funds.";
 
 // ─── Decline reasons ─────────────────────────────────────────────────────────
 

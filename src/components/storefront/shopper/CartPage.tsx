@@ -134,7 +134,7 @@ export function CartPage({ store, basePath, commerce, preview = false }: { store
   // doesn't guess (the store's zones would show the wrong price); checkout quotes them for the address.
   const partners = commerce.deliveryMode === "partners";
   const placeKnown = Boolean(place.state || place.city);
-  const choice = deliveryOptionsFor(commerce.zones, commerce.flatRate, place, cart.subtotal);
+  const choice = deliveryOptionsFor(commerce.zones, commerce.flatRate, place, cart.subtotal, commerce.handlingDays);
   const delivery = partners ? null : !hasZones || placeKnown ? chooseDelivery(choice) : null;
   const summarised = useMemo(() => summariseDeliveryZones(commerce.zones.map((zone) => ({ name: zone.name ?? "", regions: zone.regions, rates: zone.rates }))), [commerce.zones]);
   const zoneHere = placeKnown ? matchZone(summarised, place.city, place.state) : null;

@@ -130,6 +130,13 @@ const en = {
   "lg.tip": "New to delivery? Start with Delivery settings: say where you send parcels from and where you deliver to. Then customers see a delivery price when they buy.",
   "tip.list": "Start with the place you deliver to most, like your own city. Then add one place with no towns in it for “everywhere else”, so every customer gets a price. You can add more later.",
   "tip.form": "Keep it simple: one name, a few towns, one price. Put 0 if delivery is free.",
+  "handling.title": "How fast you send orders",
+  "handling.sub": "Days you take to send an order of your own stock. Customers see the date it arrives at checkout: this plus each delivery zone's days.",
+  "handling.label": "I send orders within",
+  "handling.sameDay": "The same day",
+  "handling.days": "{count, plural, one {# day} other {# days}}",
+  "handling.saved": "Saved. Checkout shows the new dates.",
+  "handling.error": "That didn't save. Try again.",
 } satisfies Record<string, string>;
 
 export default en;

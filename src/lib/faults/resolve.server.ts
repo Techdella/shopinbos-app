@@ -1,4 +1,5 @@
 import "server-only";
+import { levelPerks } from "@shared/partner-reach";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { createNotification } from "@/lib/notifications/create";
@@ -104,6 +105,9 @@ export async function loadFaultFacts(retailOrderId: string) {
     where: { OR: [{ id: { in: bookings.flatMap((row) => (row.rateCardId ? [row.rateCardId] : [])) } }, { logisticsPartnerId: { in: bookings.map((row) => row.logisticsPartnerId) } }] },
     select: { id: true, logisticsPartnerId: true, failedAttemptFee: true, returnFee: true },
   }).catch(() => []);
+  // Top partners are paid in full for failed trips the customer caused (shared/partner-reach.ts levelPerks).
+  const partnerLevels = await db.logisticsPartner.findMany({ where: { id: { in: [...new Set([...bookings.map((row) => row.logisticsPartnerId), ...(delivery?.shipments ?? []).flatMap((part) => (part.partnerId ? [part.partnerId] : []))])] } }, select: { id: true, level: true } }).catch(() => []);
+  const paidFailedTrips = (partnerId: string) => levelPerks(partnerLevels.find((row) => row.id === partnerId)?.level).fasterPayouts;
 
   const keys = [...new Set([...originals.map((row) => `supplier:${row.supplierId}`), ...(goodsBy.has("own") ? ["own"] : [])])];
   const parts: FaultPart[] = keys.map((key) => {
@@ -121,7 +125,7 @@ export async function loadFaultFacts(retailOrderId: string) {
       platformKobo: supplierId ? share.commission : ownFee,
       deliveryChargeKobo: shipment ? kobo(shipment.charge ?? shipment.price) : keys.length === 1 ? kobo(order.shippingFee) : 0,
       partner: partnerId && shipment?.service !== "supplier_self"
-        ? { partnerId, paidKobo: partnerShare(plan, key, partnerId) || partnerShare(balance, key, partnerId), failedAttemptFeeKobo: kobo(card?.failedAttemptFee), returnFeeKobo: kobo(card?.returnFee) }
+        ? { partnerId, paidKobo: partnerShare(plan, key, partnerId) || partnerShare(balance, key, partnerId), failedAttemptFeeKobo: kobo(card?.failedAttemptFee), returnFeeKobo: kobo(card?.returnFee), paidFailedTrips: paidFailedTrips(partnerId) }
         : null,
     };
   });

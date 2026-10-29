@@ -301,7 +301,9 @@ test("chat guardrails: phone numbers, bank accounts, emails and 'pay me directly
   assert.deepEqual(m.offPlatformSignals("Can you do ₦2,000 for 50 parcels a week from Yaba?"), []);
   assert.deepEqual(m.offPlatformSignals("Order 1234567890 is ready"), [], "ten digits without bank words is an order number");
   assert.match(m.OFF_PLATFORM_WARNING, /Keep jobs and payments in Shopinbos/);
-  assert.match(m.POD_DISCLAIMER, /does not handle, hold or guarantee/);
+  assert.match(m.POD_DISCLAIMER, /does not hold these funds/);
+  assert.match(m.POD_DISCLAIMER, /riders never collect cash/);
+  assert.match(m.POD_DISCLAIMER_PARTNER, /never in cash/);
 });
 
 test("wiring: the migration adds every new column and table, and the schema has the new statuses", () => {

@@ -1,5 +1,5 @@
 // Draft: needs native-speaker review
-// "pod.disclaimer" and "pod.disclaimerPartner" are legal wording: they also need legal review (see the note in en.ts).
+// "pod.disclaimer" and "pod.disclaimerPartner" are the published pay-on-delivery terms: they must say exactly what en.ts says.
 import type en from "./en.ts";
 
 const pcm: Partial<Record<keyof typeof en, string>> = {
@@ -39,9 +39,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "decline.other": "Another reason",
   "decline.none": "Dem no talk why",
   "pod.disclaimer":
-    "Pay on delivery na arrangement between you and your logistics partner. Na the partner dey collect the cash, and settlement na between you and dem. Shopinbos no dey handle, hold or guarantee pay-on-delivery money.",
+    "For pay on delivery, your customer go pay delivery fee for checkout, then pay the rest inside the app when the parcel reach, with card, bank transfer or USSD through Paystack. The money go enter your bank and your delivery partner bank straight: rider no dey collect cash. Rider go give the parcel only after the customer don pay and give their code; if dem no pay, e go come back to you. Shopinbos no dey hold this money.",
   "pod.disclaimerPartner":
-    "Pay on delivery na arrangement between you and the shop. Na your rider dey collect the cash from the customer, and na you go settle am with the shop direct. Shopinbos no dey handle, hold or guarantee pay-on-delivery money.",
+    "For pay on delivery, customer go pay inside the app when your rider reach, no be cash. Your delivery fee go enter your bank straight through Paystack. Give the parcel only after the customer don pay and give their code; if dem no pay, carry am back to the shop. Shopinbos no dey hold this money.",
   "offPlatform.warning":
     "Keep jobs and payments inside Shopinbos. Payment for jobs inside the app dey happen automatically, we dey track dem, and dem dey count for your rating. Shopinbos no dey protect payment wey una arrange outside the app.",
   "time.sameDay": "Same day",
