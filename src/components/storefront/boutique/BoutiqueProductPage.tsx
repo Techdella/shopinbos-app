@@ -19,7 +19,7 @@ import { ShopperBottomNav, type ShopperSheet } from "../shopper/ShopperBottomNav
 import { resolveMenu, type MenuContext } from "../StoreMenu";
 import { menuStyleOf, readMenuColors, mobileMenuStyleOf, readMenu } from "@/lib/storefront/menu";
 import { readFooterMenu, readMobileMenu } from "@/lib/storefront/store-navigation";
-import { AnnouncementBar, BoutiqueFooter, chromeLinksFromMenu, BoutiqueHeader, marketHeaderOf, type ChromeLink } from "./BoutiqueChrome";
+import { AnnouncementBar, announcementHref, BoutiqueFooter, chromeLinksFromMenu, BoutiqueHeader, marketHeaderOf, type ChromeLink } from "./BoutiqueChrome";
 import { legalLinks, legalPagePath } from "@/lib/legal/pages";
 import { BoutiqueProductView, type AddToBagInput, type BoutiqueProductDetail, type ProductReviewEntry } from "./BoutiqueProductView";
 import { BOUTIQUE_FONT_CLASS } from "./fonts";
@@ -82,6 +82,7 @@ export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews
   const pageTypes = new Set(snapshot.pages.map((page) => page.pageType as string));
 
   const pageHref = (page: string, params?: URLSearchParams) => storefrontPageHref(storeBasePath, page, params) ?? getPublicStorefrontPath(storeBasePath, "/");
+  const announcementLink = announcementHref(announcementSection?.settings, { basePath: storeBasePath, name: store.name, whatsappNumber: shopper.whatsappNumber, pageHref });
   const go = (page: string) => router.push(pageHref(page));
   const defaultFooterLinks: ChromeLink[] = ["products", "faq", "about", "contact"]
     .filter((key) => pageTypes.has(key))
@@ -133,7 +134,7 @@ export function BoutiqueProductPage({ themeId, snapshot, store, product, reviews
     <div className={`bq ${BOUTIQUE_FONT_CLASS}`} data-floating-nav="" data-pdp={pdpLayout(look, snapshot)} style={{ ...lookVars(look), minHeight: "100vh" }}>
       <style>{BOUTIQUE_CSS}</style>
       <a href="#bq-main" className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-full focus:bg-white focus:px-4 focus:py-2 focus:text-black">Skip to product</a>
-      <AnnouncementBar text={announcement} look={look} />
+      <AnnouncementBar text={announcement} look={look} settings={announcementSection?.settings} href={announcementLink} />
       <BoutiqueHeader
         store={store}
         logoText={logoText}

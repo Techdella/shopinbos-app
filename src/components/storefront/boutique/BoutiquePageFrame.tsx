@@ -20,7 +20,7 @@ import { ShopperBottomNav, type ShopperSheet } from "../shopper/ShopperBottomNav
 import { resolveMenu, type MenuContext } from "../StoreMenu";
 import { menuStyleOf, readMenuColors, mobileMenuStyleOf, readMenu } from "@/lib/storefront/menu";
 import { readFooterMenu, readMobileMenu } from "@/lib/storefront/store-navigation";
-import { AnnouncementBar, BoutiqueFooter, chromeLinksFromMenu, BoutiqueHeader, marketHeaderOf, type ChromeLink } from "./BoutiqueChrome";
+import { AnnouncementBar, announcementHref, BoutiqueFooter, chromeLinksFromMenu, BoutiqueHeader, marketHeaderOf, type ChromeLink } from "./BoutiqueChrome";
 import { BOUTIQUE_FONT_CLASS } from "./fonts";
 import { shopperCopy } from "@shared/placeholder-copy";
 import { BOUTIQUE_CSS, boutiqueLook, lookVars, navColors } from "./look";
@@ -70,6 +70,7 @@ export function BoutiquePageFrame({ themeId, snapshot, store, catalog, shopper, 
   const pageTypes = new Set(snapshot.pages.map((page) => page.pageType as string));
 
   const pageHref = (page: string, params?: URLSearchParams) => storefrontPageHref(storeBasePath, page, params) ?? getPublicStorefrontPath(storeBasePath, "/");
+  const announcementLink = announcementHref(announcementSection?.settings, { basePath: storeBasePath, name: store.name, whatsappNumber: shopper.whatsappNumber, pageHref });
   const go = (page: string) => router.push(pageHref(page));
   const defaultFooterLinks: ChromeLink[] = ["products", "faq", "about", "contact"]
     .filter((key) => pageTypes.has(key))
@@ -108,7 +109,7 @@ export function BoutiquePageFrame({ themeId, snapshot, store, catalog, shopper, 
       <style>{BOUTIQUE_CSS}</style>
       <a href="#bq-main" className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-full focus:bg-white focus:px-4 focus:py-2 focus:text-black">Skip to content</a>
       <div className={headerLayout === "sidebar" ? "bq-shell" : "contents"}>
-      {headerLayout === "sidebar" ? null : <AnnouncementBar text={announcement} look={look} />}
+      {headerLayout === "sidebar" ? null : <AnnouncementBar text={announcement} look={look} settings={announcementSection?.settings} href={announcementLink} />}
       <div className={headerLayout === "sidebar" ? "bq-shell-side" : "contents"}>
       <BoutiqueHeader
         store={store}
@@ -134,7 +135,7 @@ export function BoutiquePageFrame({ themeId, snapshot, store, catalog, shopper, 
       />
       </div>
       <div className={headerLayout === "sidebar" ? "bq-shell-main" : "contents"}>
-      {headerLayout === "sidebar" ? <AnnouncementBar text={announcement} look={look} /> : null}
+      {headerLayout === "sidebar" ? <AnnouncementBar text={announcement} look={look} settings={announcementSection?.settings} href={announcementLink} /> : null}
       <main id="bq-main" className="bq-page" tabIndex={-1}>
         {children}
       </main>

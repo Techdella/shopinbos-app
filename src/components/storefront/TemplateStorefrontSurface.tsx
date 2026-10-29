@@ -23,6 +23,7 @@ import { isGameSectionKind } from "@/lib/gamification/logic";
 import { HeroSlider, slideAlign } from "@/components/storefront/HeroSlider";
 import { itemMediaUrl, readCountdownEnd, readHeroSlides, readOptionalProductLimit, readProductLimit, readSlideTiming, youTubeEmbedUrl, youTubeId, type HeroSlide } from "@/lib/store-templates/section-content";
 import { findStorefrontPage, storefrontPageHref } from "@shared/storefront-pages";
+import { bannerLinkHref, readableText, readBarColor, readBarLink } from "@shared/store-banner";
 import type { BoutiqueProductDetail } from "@/components/storefront/boutique/BoutiqueProductView";
 import { ClassicPdp } from "@/components/storefront/boutique/pdp/ClassicPdp";
 import { classicLook } from "@/components/storefront/boutique/pdp/classic-look";
@@ -1421,7 +1422,15 @@ function ClassicTemplateSurface({
       return;
     }
     if (nextAction === "whatsapp") {
-      if (mode === "live") window.open(`https://wa.me/?text=${encodeURIComponent(`Hello, I want to order from ${store.name}`)}`, "_blank", "noopener,noreferrer");
+      const number = readShopperInfo(store.shopper).whatsappNumber ?? "";
+      if (mode === "live") window.open(`https://wa.me/${number}?text=${encodeURIComponent(`Hello, I want to order from ${store.name}`)}`, "_blank", "noopener,noreferrer");
+      return;
+    }
+    // A product or collection the seller picked on the phone (externalUrl is its id here).
+    if (nextAction === "product" || nextAction === "collection") {
+      const id = typeof externalUrl === "string" ? externalUrl.trim() : "";
+      if (nextAction === "product" && id) openProductPage(id);
+      else navigate("products");
       return;
     }
     if (nextAction === "email") {
@@ -1527,6 +1536,8 @@ function ClassicTemplateSurface({
       const primaryButtonVariant = String(kindSection.settings?.primaryButtonVariant ?? "primary");
       const secondaryButtonVariant = String(kindSection.settings?.secondaryButtonVariant ?? "outline");
       const primaryButtonAction = kindSection.settings?.primaryButtonAction ?? "products";
+      // A product or collection picked on the phone (shared/store-banner.ts) keeps its id in primaryButtonTarget.
+      const primaryButtonLink = primaryButtonAction === "product" || primaryButtonAction === "collection" ? kindSection.settings?.primaryButtonTarget : kindSection.settings?.primaryButtonUrl;
       const secondaryButtonAction = kindSection.settings?.secondaryButtonAction ?? "about";
       const primaryButtonShape = String(kindSection.settings?.buttonShape ?? "pill");
       const primaryButtonSize = String(kindSection.settings?.buttonSize ?? "lg");
@@ -1605,7 +1616,7 @@ function ClassicTemplateSurface({
               <h1 className="mt-5 max-w-[860px] text-[clamp(52px,8vw,110px)] font-semibold leading-[0.9] tracking-[-0.05em]" style={{ color: theme.heroText, fontFamily: theme.headingFont }}>{editableCopy(kindSection.id, "title", copy.title, `Welcome to ${store.name}`)}</h1>
               <p className="mt-6 max-w-[560px] text-[17px] leading-8" style={{ color: rgba(theme.heroText, 0.78) }}>{editableCopy(kindSection.id, "body", copy.body, store.description ?? "Discover the store.")}</p>
               <div className="mt-9 flex flex-wrap gap-3">
-                <CommerceButton label={editableCopy(kindSection.id, "primaryCta", copy.primaryCta, "Shop now")} theme={theme} variant={primaryButtonVariant} size={primaryButtonSize} shape={primaryButtonShape} icon="cart" onClick={() => runCommerceAction(primaryButtonAction, kindSection.settings?.primaryButtonUrl)} />
+                <CommerceButton label={editableCopy(kindSection.id, "primaryCta", copy.primaryCta, "Shop now")} theme={theme} variant={primaryButtonVariant} size={primaryButtonSize} shape={primaryButtonShape} icon="cart" onClick={() => runCommerceAction(primaryButtonAction, primaryButtonLink)} />
                 <CommerceButton label={editableCopy(kindSection.id, "secondaryCta", copy.secondaryCta, "View categories")} theme={theme} variant={secondaryButtonVariant} size={primaryButtonSize} shape={primaryButtonShape} onDark onClick={() => runCommerceAction(secondaryButtonAction, kindSection.settings?.secondaryButtonUrl)} />
               </div>
             </div>
@@ -1620,7 +1631,7 @@ function ClassicTemplateSurface({
               <h1 className="mt-5 max-w-[660px] text-[clamp(42px,6vw,86px)] font-semibold leading-[0.95]" style={{ color: theme.ink, fontFamily: theme.headingFont }}>{editableCopy(kindSection.id, "title", copy.title, `Welcome to ${store.name}`)}</h1>
               <p className="mt-5 max-w-[520px] text-[16px] leading-8" style={{ color: theme.muted }}>{editableCopy(kindSection.id, "body", copy.body, store.description ?? "Discover the store.")}</p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <CommerceButton label={editableCopy(kindSection.id, "primaryCta", copy.primaryCta, "Shop now")} theme={theme} variant={primaryButtonVariant} size={primaryButtonSize} shape={primaryButtonShape} icon="cart" onClick={() => runCommerceAction(primaryButtonAction, kindSection.settings?.primaryButtonUrl)} />
+                <CommerceButton label={editableCopy(kindSection.id, "primaryCta", copy.primaryCta, "Shop now")} theme={theme} variant={primaryButtonVariant} size={primaryButtonSize} shape={primaryButtonShape} icon="cart" onClick={() => runCommerceAction(primaryButtonAction, primaryButtonLink)} />
                 <CommerceButton label={editableCopy(kindSection.id, "secondaryCta", copy.secondaryCta, "Contact")} theme={theme} variant={secondaryButtonVariant} size={primaryButtonSize} shape={primaryButtonShape} onClick={() => runCommerceAction(secondaryButtonAction, kindSection.settings?.secondaryButtonUrl)} />
               </div>
             </div>
@@ -1640,7 +1651,7 @@ function ClassicTemplateSurface({
               <h1 className="mt-5 text-[clamp(46px,8vw,104px)] font-semibold leading-[0.94]" style={{ color: theme.ink, fontFamily: theme.headingFont }}>{editableCopy(kindSection.id, "title", copy.title, `Welcome to ${store.name}`)}</h1>
               <p className="mx-auto mt-6 max-w-[620px] text-[17px] leading-8" style={{ color: theme.muted }}>{editableCopy(kindSection.id, "body", copy.body, store.description ?? "Discover the store.")}</p>
               <div className="mt-9 flex justify-center gap-3">
-                <CommerceButton label={editableCopy(kindSection.id, "primaryCta", copy.primaryCta, "Shop now")} theme={theme} variant={primaryButtonVariant} size={primaryButtonSize} shape={primaryButtonShape} icon="cart" onClick={() => runCommerceAction(primaryButtonAction, kindSection.settings?.primaryButtonUrl)} />
+                <CommerceButton label={editableCopy(kindSection.id, "primaryCta", copy.primaryCta, "Shop now")} theme={theme} variant={primaryButtonVariant} size={primaryButtonSize} shape={primaryButtonShape} icon="cart" onClick={() => runCommerceAction(primaryButtonAction, primaryButtonLink)} />
               </div>
             </div>
           </section>
@@ -1683,7 +1694,7 @@ function ClassicTemplateSurface({
                 <p className="mt-5 text-[16px] leading-8" style={{ color: theme.muted }}>{editableCopy(kindSection.id, "body", copy.body, product?.subtitle ?? store.description ?? "Discover the store.")}</p>
                 <div className="mt-6 text-[24px] font-semibold" style={{ color: theme.ink }}>{product?.priceLabel ?? ""}</div>
                 <div className="mt-8 flex flex-wrap gap-3">
-                  <CommerceButton label={editableCopy(kindSection.id, "primaryCta", copy.primaryCta, "Add to cart")} theme={theme} variant={primaryButtonVariant} size={primaryButtonSize} shape={primaryButtonShape} icon="cart" onClick={() => product?.purchasable ? onAddToCart?.(product.mappedStoreProductId ?? product.id) : runCommerceAction(primaryButtonAction, kindSection.settings?.primaryButtonUrl)} />
+                  <CommerceButton label={editableCopy(kindSection.id, "primaryCta", copy.primaryCta, "Add to cart")} theme={theme} variant={primaryButtonVariant} size={primaryButtonSize} shape={primaryButtonShape} icon="cart" onClick={() => product?.purchasable ? onAddToCart?.(product.mappedStoreProductId ?? product.id) : runCommerceAction(primaryButtonAction, primaryButtonLink)} />
                   <CommerceButton label={editableCopy(kindSection.id, "secondaryCta", copy.secondaryCta, "View products")} theme={theme} variant={secondaryButtonVariant} size={primaryButtonSize} shape={primaryButtonShape} onClick={() => runCommerceAction(secondaryButtonAction, kindSection.settings?.secondaryButtonUrl)} />
                 </div>
               </div>
@@ -1706,7 +1717,7 @@ function ClassicTemplateSurface({
                 {editableCopy(kindSection.id, "body", copy.body, store.description ?? "Discover the store.")}
               </p>
               <div className="mt-9 flex flex-wrap gap-3">
-                <CommerceButton label={editableCopy(kindSection.id, "primaryCta", copy.primaryCta, "Shop now")} theme={theme} variant={primaryButtonVariant} size={primaryButtonSize} shape={primaryButtonShape} icon="cart" onClick={() => runCommerceAction(primaryButtonAction, kindSection.settings?.primaryButtonUrl)} />
+                <CommerceButton label={editableCopy(kindSection.id, "primaryCta", copy.primaryCta, "Shop now")} theme={theme} variant={primaryButtonVariant} size={primaryButtonSize} shape={primaryButtonShape} icon="cart" onClick={() => runCommerceAction(primaryButtonAction, primaryButtonLink)} />
                 <CommerceButton label={editableCopy(kindSection.id, "secondaryCta", copy.secondaryCta, "Learn more")} theme={theme} variant={secondaryButtonVariant} size={primaryButtonSize} shape={primaryButtonShape} onClick={() => runCommerceAction(secondaryButtonAction, kindSection.settings?.secondaryButtonUrl)} />
               </div>
               <div className="mt-9 flex flex-wrap gap-5 border-t pt-7 text-[12px] font-medium" style={{ borderColor: rgba(theme.accent, 0.24), color: theme.muted }}>
@@ -1764,7 +1775,7 @@ function ClassicTemplateSurface({
                   {editableCopy(kindSection.id, "body", copy.body, store.description ?? "Discover the store.")}
                 </p>
                 <div className="mt-8 flex flex-wrap gap-3">
-                  <CommerceButton label={editableCopy(kindSection.id, "primaryCta", copy.primaryCta, "Shop now")} theme={theme} variant={primaryButtonVariant} size="lg" shape="rounded" icon="cart" onClick={() => runCommerceAction(primaryButtonAction, kindSection.settings?.primaryButtonUrl)} />
+                  <CommerceButton label={editableCopy(kindSection.id, "primaryCta", copy.primaryCta, "Shop now")} theme={theme} variant={primaryButtonVariant} size="lg" shape="rounded" icon="cart" onClick={() => runCommerceAction(primaryButtonAction, primaryButtonLink)} />
                   <CommerceButton label={editableCopy(kindSection.id, "secondaryCta", copy.secondaryCta, "Our story")} theme={theme} variant={secondaryButtonVariant} size="lg" shape="rounded" onClick={() => runCommerceAction(secondaryButtonAction, kindSection.settings?.secondaryButtonUrl)} />
                 </div>
               </div>
@@ -1844,7 +1855,7 @@ function ClassicTemplateSurface({
                 {editableCopy(kindSection.id, "body", copy.body, store.description ?? "Discover the store.")}
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <CommerceButton label={editableCopy(kindSection.id, "primaryCta", copy.primaryCta, "Shop now")} theme={theme} variant={primaryButtonVariant} size={primaryButtonSize} shape={primaryButtonShape} icon="cart" onClick={() => runCommerceAction(primaryButtonAction, kindSection.settings?.primaryButtonUrl)} />
+                <CommerceButton label={editableCopy(kindSection.id, "primaryCta", copy.primaryCta, "Shop now")} theme={theme} variant={primaryButtonVariant} size={primaryButtonSize} shape={primaryButtonShape} icon="cart" onClick={() => runCommerceAction(primaryButtonAction, primaryButtonLink)} />
                 <CommerceButton label={editableCopy(kindSection.id, "secondaryCta", copy.secondaryCta, "View story")} theme={theme} variant={secondaryButtonVariant} size={primaryButtonSize} shape={primaryButtonShape} onDark onClick={() => runCommerceAction(secondaryButtonAction, kindSection.settings?.secondaryButtonUrl)} />
               </div>
             </div>
@@ -1869,7 +1880,7 @@ function ClassicTemplateSurface({
                 {editableCopy(kindSection.id, "body", copy.body, store.description ?? "Discover the store.")}
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <CommerceButton label={editableCopy(kindSection.id, "primaryCta", copy.primaryCta, "Shop now")} theme={theme} variant={primaryButtonVariant} size={primaryButtonSize} shape={primaryButtonShape} icon="cart" onClick={() => runCommerceAction(primaryButtonAction, kindSection.settings?.primaryButtonUrl)} />
+                <CommerceButton label={editableCopy(kindSection.id, "primaryCta", copy.primaryCta, "Shop now")} theme={theme} variant={primaryButtonVariant} size={primaryButtonSize} shape={primaryButtonShape} icon="cart" onClick={() => runCommerceAction(primaryButtonAction, primaryButtonLink)} />
                 <CommerceButton label={editableCopy(kindSection.id, "secondaryCta", copy.secondaryCta, "View story")} theme={theme} variant={secondaryButtonVariant} size={primaryButtonSize} shape={primaryButtonShape} onDark={!heroIsLight} onClick={() => runCommerceAction(secondaryButtonAction, kindSection.settings?.secondaryButtonUrl)} />
               </div>
             </div>
@@ -3514,6 +3525,17 @@ function ClassicTemplateSurface({
   const announcementText = mode === "live" && writtenAnnouncement && (writtenAnnouncement === seededAnnouncement || isPlaceholderCopy(writtenAnnouncement, store.name))
     ? readShopperInfo(store.shopper).announcement ?? ""
     : writtenAnnouncement;
+  // The bar's colour and optional link, as the phone's banner editor saves them (shared/store-banner.ts).
+  const barColor = readBarColor(announcement?.settings);
+  const barLink = mode === "live" ? readBarLink(announcement?.settings) : null;
+  const barHref = barLink
+    ? bannerLinkHref(barLink, {
+        page: (key, params) => storefrontPageHref(storeBasePath ?? "", key, params) ?? getPublicStorefrontPath(storeBasePath ?? "", "/"),
+        product: (id) => getPublicStorefrontPath(storeBasePath ?? "", `/product/${encodeURIComponent(id)}`),
+        whatsapp: readShopperInfo(store.shopper).whatsappNumber ?? null,
+        name: store.name,
+      })
+    : null;
   const footerCopy = footer?.blocks.find((entry) => entry.type === "copy")?.content ?? {};
   // Null in the builder (no storefront layout around it).
   const storeBadges = useStoreFooterBadges();
@@ -3556,9 +3578,9 @@ function ClassicTemplateSurface({
 
         {announcementText ? sectionWrap(
           announcement!.id,
-          <div style={{ background: "#121212", color: "rgba(255,255,255,0.82)" }}>
+          <div style={barColor ? { background: barColor, color: readableText(barColor) } : { background: "#121212", color: "rgba(255,255,255,0.82)" }}>
             <div className="mx-auto flex max-w-[1240px] flex-wrap justify-center gap-4 px-5 py-2 text-[11px] uppercase tracking-[0.14em] sm:px-8">
-              <span>{announcementText}</span>
+              {barHref ? <a href={barHref} target={/^https?:\/\//i.test(barHref) ? "_blank" : undefined} rel="noopener noreferrer" style={{ color: "inherit", textDecoration: "underline", textUnderlineOffset: 3 }}>{announcementText}</a> : <span>{announcementText}</span>}
             </div>
           </div>,
           "announcement",
