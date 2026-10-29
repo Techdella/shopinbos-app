@@ -2064,8 +2064,15 @@ export const BOUTIQUE_CSS = `
 .bq-cols-2{display:grid;gap:18px}
 .bq-shop-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 12px}
 .bq-page{padding-bottom:96px}
+/* Section rhythm. Many contained sections pad only their top and lean on the next section's top padding for the gap.
+   A section with its own background (a split story, a countdown, a tinted product rail) has none, so it gets one, and the
+   last section on a page closes its own bottom. */
+.bq-sec:has(> section.bq-wrap:not([class*="py-"]):not([class*="pb-"])) + .bq-sec > :first-child:is(:not(.bq-wrap),[style*="background"]){margin-top:40px}
+.bq-sec:last-child > section.bq-wrap:not([class*="py-"]):not([class*="pb-"]){padding-bottom:40px}
 @container bq (min-width: 760px){
   .bq-wrap{padding-left:36px;padding-right:36px}
+  .bq-sec:has(> section.bq-wrap:not([class*="py-"]):not([class*="pb-"])) + .bq-sec > :first-child:is(:not(.bq-wrap),[style*="background"]){margin-top:56px}
+  .bq-sec:last-child > section.bq-wrap:not([class*="py-"]):not([class*="pb-"]){padding-bottom:56px}
   .bq-nav-desktop{display:flex}
   .bq-only-narrow{display:none !important}
   .bq-only-wide{display:revert}
