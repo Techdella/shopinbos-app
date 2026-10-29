@@ -31,14 +31,17 @@ export type EditorOp =
   | { op: "reorder-section"; pageType: "home"; fromIndex: number; toIndex: number }
   | { op: "update-section"; pageType: "home"; sectionId: string; changes: Record<string, unknown> }
   | { op: "toggle-section"; pageType: "home"; sectionId: string; visible: boolean }
-  | { op: "update-block-content"; pageType: "home"; sectionId: string; blockId: string; content: Record<string, unknown> };
+  | { op: "update-block-content"; pageType: "home"; sectionId: string; blockId: string; content: Record<string, unknown> }
+  | { op: "add-section"; pageType: "home"; index: number; section: EditorSection };
 
 /** The announcement bar, header and footer are the same on every page (the builder's "chrome"): not in the list. */
 export const CHROME_KINDS = ["announcement-bar", "header", "footer"] as const;
 
 export interface ShopEdit {
-  announcement: { sectionId: string; blockId: string; text: string } | null;
-  hero: { sectionId: string; blockId: string; title: string; body: string; cta: string; imageUrl: string } | null;
+  /** The strip across the top: its words, whether it shows, and its settings (link and colour, shared/store-banner.ts). */
+  announcement: { sectionId: string; blockId: string; text: string; visible: boolean; settings: Record<string, unknown> } | null;
+  /** The banner: its words and picture, and its settings (where the button goes, shared/store-banner.ts). */
+  hero: { sectionId: string; blockId: string; title: string; body: string; cta: string; imageUrl: string; settings: Record<string, unknown> } | null;
   featured: { sectionId: string; productIds: string[] } | null;
   /** The homepage's own sections, in order, to show, hide and move. */
   sections: Array<{ id: string; kind: string; name: string; visible: boolean }>;
@@ -68,10 +71,10 @@ export function readShopEdit(draft: EditorDraft | null | undefined): ShopEdit {
   const featured = sections.find((section) => section.kind === "featured-products");
   const accent = str(draft?.themeTokens?.accent) || null;
   return {
-    announcement: bar && barCopy ? { sectionId: bar.id, blockId: barCopy.id, text: str(barCopy.content?.text) } : null,
+    announcement: bar && barCopy ? { sectionId: bar.id, blockId: barCopy.id, text: str(barCopy.content?.text), visible: bar.visible !== false, settings: { ...(bar.settings ?? {}) } } : null,
     hero:
       hero && heroCopy
-        ? { sectionId: hero.id, blockId: heroCopy.id, title: str(heroCopy.content?.title), body: str(heroCopy.content?.body), cta: str(heroCopy.content?.primaryCta), imageUrl: itemImage(hero.items?.[0]) }
+        ? { sectionId: hero.id, blockId: heroCopy.id, title: str(heroCopy.content?.title), body: str(heroCopy.content?.body), cta: str(heroCopy.content?.primaryCta), imageUrl: itemImage(hero.items?.[0]), settings: { ...(hero.settings ?? {}) } }
         : null,
     featured: featured
       ? { sectionId: featured.id, productIds: (featured.items ?? []).map((item) => str(item.mappedStoreProductId)).filter(Boolean) }
@@ -89,6 +92,34 @@ export function announcementOp(edit: ShopEdit, text: string): EditorOp | null {
 export function heroCopyOp(edit: ShopEdit, copy: { title: string; body: string; cta: string }): EditorOp | null {
   if (!edit.hero) return null;
   return { op: "update-block-content", pageType: "home", sectionId: edit.hero.sectionId, blockId: edit.hero.blockId, content: { title: copy.title.trim(), body: copy.body.trim(), primaryCta: copy.cta.trim() } };
+}
+
+/** The banner's settings, whole (update-section replaces them: build them with shared/store-banner.ts heroLinkSettings). */
+export function heroSettingsOp(edit: ShopEdit, settings: Record<string, unknown>): EditorOp | null {
+  if (!edit.hero) return null;
+  return { op: "update-section", pageType: "home", sectionId: edit.hero.sectionId, changes: { settings } };
+}
+
+/** Shows or hides the announcement bar (on every page: the bar is shared). */
+export function announcementVisibleOp(edit: ShopEdit, visible: boolean): EditorOp | null {
+  if (!edit.announcement) return null;
+  return toggleOp(edit.announcement.sectionId, visible);
+}
+
+/** The bar's settings, whole (its link and colour: shared/store-banner.ts barSettings). */
+export function announcementSettingsOp(edit: ShopEdit, settings: Record<string, unknown>): EditorOp | null {
+  if (!edit.announcement) return null;
+  return { op: "update-section", pageType: "home", sectionId: edit.announcement.sectionId, changes: { settings } };
+}
+
+/** A look saved without an announcement bar gets one at the top (shaped like the builder's own blank bar). */
+export function addAnnouncementOp(text: string, id = `announcement-${Date.now().toString(36)}`): EditorOp {
+  return {
+    op: "add-section",
+    pageType: "home",
+    index: 0,
+    section: { id, kind: "announcement-bar", name: "Announcement Bar", visible: true, blocks: [{ id: `${id}-copy`, type: "copy", content: { text: text.trim() } }] },
+  };
 }
 
 /** The banner picture: the hero's first item, as the builder's media field stores it (mediaItemFields). */
