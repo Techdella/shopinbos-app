@@ -47,7 +47,7 @@ test("phone app: a Pre-orders filter in Products, the tag on each row, and Edit,
   assert.match(read("apps/mobile/src/components/seller/StockRows.tsx"), /preorderPillText\(/);
   assert.match(read("apps/mobile/src/app/(tabs)/products.tsx"), /router\.push\("\/preorders"\)/);
   const screen = read("apps/mobile/src/app/preorders.tsx");
-  assert.match(screen, /router\.push\(\{ pathname: "\/product\/\[id\]", params: \{ id: group\.productId \} \}\)/);
+  assert.match(screen, /router\.push\(\{ pathname: "\/product\/\[id\]", params: \{ id: group\.productId, section: "preorder" \} \}\)/);
   assert.match(screen, /t\("preorders\.noOrdersYet"\)/);
   assert.match(screen, /t\("preorders\.orderedOn"/);
   for (const lang of ["en", "pcm", "yo", "ha", "ig"]) {
