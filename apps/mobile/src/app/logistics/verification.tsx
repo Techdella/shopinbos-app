@@ -20,7 +20,7 @@ import { colors } from "@/theme";
 // owner's "Shopinbos Onboarding — Simplified"): business name → CAC (any answer continues) → state → areas → what
 // they deliver with → other states → how they charge → where they're based → photo of their ID → selfie (Korapay's
 // liveness check first when it's on) → review and send ("You're in review"). No BVN, no bank, no email code, no vehicle
-// papers: the bank account is asked at the first withdrawal. Each screen saves on Continue, so the flow reopens on the
+// papers: the bank account is added in their Wallet to get paid. Each screen saves on Continue, so the flow reopens on the
 // first unanswered one (state.flow.first); ?step=<screen> opens one directly ("Add CAC" on the tier card). Help is in
 // the top corner (WhatsApp). After a Peggy call it reloads and opens the next open screen.
 

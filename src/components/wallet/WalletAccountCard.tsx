@@ -105,7 +105,7 @@ export function WalletMini({ variant }: { variant: "sidebar" | "home" }) {
             <CopyButton value={summary.account.number} className="min-h-[28px] px-2.5 text-[11.5px]" />
           </span>
         ) : (
-          <Link href={summary.href} className="mt-1 block text-[11.5px] text-white/60 no-underline">Top up, spend, withdraw</Link>
+          <Link href={summary.href} className="mt-1 block text-[11.5px] text-white/60 no-underline">Top up and spend</Link>
         )}
         {summary.active === false ? <Link href={summary.href} className="mt-1.5 block text-[11px] font-bold text-[#FFC48A] no-underline">Activates when you&apos;re verified</Link> : null}
       </div>
@@ -130,7 +130,7 @@ export function WalletMini({ variant }: { variant: "sidebar" | "home" }) {
           <CopyButton value={summary.account.number} />
         </span>
       ) : (
-        <span className="mt-2 block text-[13px] text-white/70">Top up by transfer or card, spend on AI credits, withdraw to your bank.</span>
+        <span className="mt-2 block text-[13px] text-white/70">Top up by transfer or card and spend on AI credits.</span>
       )}
     </div>
   );

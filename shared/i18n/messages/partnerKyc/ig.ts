@@ -102,7 +102,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "q.extra.base": "Tinye foto ọdụ gị",
   "q.extra.baseSub": "Ọ na-enweta akara Address Verified.",
   "q.extra.bank": "Payout ready",
-  "q.extra.bankSub": "Tinye akaụntụ ụlọ akụ gị mgbe mbụ ị na-ewepụ ego, na Wallet gị.",
+  "q.extra.bankSub": "Tinye akaụntụ ụlọ akụ gị na Wallet gị ka a kwụọ gị ụgwọ.",
   "item.idDocument": "Foto NJ gị",
   "item.base": "Ebe ọdụ gị dị",
   "state.unverified": "Anyị ekwenyebeghị gị",

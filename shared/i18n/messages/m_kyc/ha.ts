@@ -98,7 +98,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "q.extra.base": "Ƙara hoton sansaninka",
   "q.extra.baseSub": "Yana kawo alamar Address Verified.",
   "q.extra.bank": "Payout ready",
-  "q.extra.bankSub": "Ƙara asusun bankinka lokacin da ka fara cire kuɗi, a Wallet ɗinka.",
+  "q.extra.bankSub": "Ƙara asusun bankinka a Wallet ɗinka don a biya ka.",
   "q.base.inState": "A {state}",
   "item.approved": "An amince",
   "item.pending": "Ana dubawa",

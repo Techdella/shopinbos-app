@@ -125,7 +125,7 @@ test("badges", () => {
   assert.deepEqual(t.partnerBadges(snapshot()), ["verified_individual"]);
   assert.deepEqual(t.partnerBadges(snapshot({ docs: {} })), [], "no badges before Tier 1");
   assert.deepEqual(t.partnerBadges(snapshot({ docs: { selfie: "approved", "courier-licence": "approved" } })), ["verified_individual", "licensed_courier"]);
-  // Payout ready: a bank account checked by name (at the first withdrawal, or the older sign-up).
+  // Payout ready: a bank account checked by name (added in their Wallet, or the older sign-up).
   assert.deepEqual(t.partnerBadges(snapshot({ payoutAccount: { verified: true, accountName: "ADA OBI" } })), ["verified_individual", "payout_ready"]);
   assert.deepEqual(t.partnerBadges(snapshot({ identity: { ...approvedIdentity, payout: { method: "bank", last4: "1", status: "approved", nameMatched: true, checkedAt: "x" } } })), ["verified_individual", "payout_ready"]);
   // Address Verified: the base and its photo, approved by the team.

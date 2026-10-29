@@ -168,13 +168,15 @@ test("the seller's fee follows their plan and skips delivery and dropship lines"
   assert.match(delivery, /jobFee\.effectiveRate/, "the job fee is 0 until switched on");
 });
 
-test("withdrawals go to the bank on the wallet now, not the one it had when the first withdrawal was made", () => {
-  // Changing the bank drops the old Paystack transfer recipient, so the next withdrawal makes one for the new bank.
-  assert.match(read("src/lib/wallet/wallet.server.ts"), /accountName: resolved\.accountName, nameCheck: null, transferRecipient: null/);
+test("the prepaid balance is spend-only: no withdrawals, and any still in line go back on the balance", () => {
   const balance = read("src/lib/wallet/balance.server.ts");
-  assert.match(balance, /const to = await withdrawalRecipient\(wallet\)/);
-  // A queued withdrawal is paid to the current bank too (its recipient is made again if the bank changed meanwhile).
-  assert.match(balance, /await withdrawalRecipient\(row\.wallet\)/);
+  assert.doesNotMatch(balance, /withdrawToBank|"\/transfer"|createPaystackTransferRecipient/, "nothing pays the balance out");
+  assert.match(balance, /canWithdraw: false,/);
+  assert.match(balance, /export async function returnQueuedWithdrawals/);
+  assert.match(read("src/app/api/cron/lifecycle/route.ts"), /returnQueuedWithdrawals\(\)/);
+  const route = read("src/app/api/app/wallet/withdraw/route.ts");
+  assert.match(route, /apiError\("BAD_REQUEST", "Your Shopinbos balance is for AI credits/);
+  assert.doesNotMatch(read("src/components/wallet/WalletBalanceCard.tsx"), /wallet\/withdraw|> Withdraw/);
 });
 
 test("Paystack money is recognisably from Shopinbos and always told in the app and by email", async () => {
