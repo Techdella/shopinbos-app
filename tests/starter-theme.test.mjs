@@ -56,8 +56,11 @@ test("no store path falls back to the blank starter any more", () => {
   // Rex moves a blank draft onto a theme when it builds the store.
   assert.match(read("src/lib/ai/rex/build-store.ts"), /moveOffBlankStarter\(current/);
   // The move keeps live stores' looks until the seller publishes, and tells them once.
-  const move = read("src/lib/themes/apply.server.ts");
-  assert.match(move, /settingsWithThemeDraft/);
-  assert.match(move, /dedupeKey: `blank-starter-move:\$\{store\.id\}`/);
+  const move = read("src/lib/themes/apply.ts");
+  assert.match(move, /settingsWithThemeDraft\(settings, manifest/);
+  assert.match(move, /dedupeKey: `blank-starter-move:\$\{storeId\}`/);
+  // Both runners make the same move: Prisma (with email and push) and Supabase REST (bell only).
+  assert.match(read("src/lib/themes/apply.server.ts"), /planBlankStarterMove\(store\)/);
+  assert.match(read("scripts/move-blank-starter-stores-rest.ts"), /planBlankStarterMove\(/);
   assert.match(read("scripts/move-blank-starter-stores.ts"), /--dry-run/);
 });
