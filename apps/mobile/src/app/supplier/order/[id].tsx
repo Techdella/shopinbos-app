@@ -376,7 +376,7 @@ export default function SupplierOrderScreen() {
                   style={{ flexDirection: "row", alignItems: "center", gap: 14, minHeight: 64, paddingHorizontal: 16, borderRadius: 20, borderWidth: on ? 2.5 : 1.5, borderColor: on ? colors.ink : colors.line, backgroundColor: colors.surface }}
                 >
                   <T weight="bold" style={{ fontSize: 16, flex: 1 }}>{option.label}</T>
-                  <View style={{ width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: on ? colors.ink : colors.lineStrong, backgroundColor: on ? colors.ink : "transparent", alignItems: "center", justifyContent: "center" }}>
+                  <View style={{ width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: on ? colors.ink : colors.lineStrong, backgroundColor: on ? colors.inkFill : "transparent", alignItems: "center", justifyContent: "center" }}>
                     {on ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#FFFFFF" }} /> : null}
                   </View>
                 </Pressable>

@@ -15,7 +15,7 @@ import { Question, useStepAction, type ScreenProps } from "./KycKit";
 // verification/QuestionScreens.tsx): business name, CAC, state, areas, what they deliver with, other states, how they
 // charge. Each saves through /api/logistics/kyc/answers and moves on with onDone.
 
-const bigInput = { minHeight: 56, borderRadius: 16, borderWidth: 1.5, borderColor: colors.line, backgroundColor: "#FFFFFF", paddingHorizontal: 16, fontSize: 18, fontFamily: fonts.regular, color: colors.ink } as const;
+const bigInput = () => ({ minHeight: 56, borderRadius: 16, borderWidth: 1.5, borderColor: colors.line, backgroundColor: colors.surface, paddingHorizontal: 16, fontSize: 18, fontFamily: fonts.regular, color: colors.ink } as const);
 
 /** A tap-to-pick chip (states, areas). */
 function Chip({ label, on, onPress, disabled = false }: { label: string; on: boolean; onPress: () => void; disabled?: boolean }) {
@@ -25,7 +25,7 @@ function Chip({ label, on, onPress, disabled = false }: { label: string; on: boo
       accessibilityState={{ selected: on, disabled }}
       disabled={disabled}
       onPress={onPress}
-      style={{ minHeight: 44, borderRadius: 999, paddingHorizontal: 16, justifyContent: "center", borderWidth: 1.5, borderColor: on ? colors.ink : colors.line, backgroundColor: on ? colors.ink : "#FFFFFF", opacity: disabled ? 0.4 : 1 }}
+      style={{ minHeight: 44, borderRadius: 999, paddingHorizontal: 16, justifyContent: "center", borderWidth: 1.5, borderColor: on ? colors.ink : colors.line, backgroundColor: on ? colors.inkFill : colors.surface, opacity: disabled ? 0.4 : 1 }}
     >
       <T weight="bold" style={{ fontSize: 15, color: on ? "#FFFFFF" : colors.ink }}>{label}</T>
     </Pressable>
@@ -39,7 +39,7 @@ export function NameScreen({ state, onState, onDone, accountName }: ScreenProps 
   const save = (companyName: string) => void action.run("name", () => saveAnswer("name", { companyName }), onDone);
   return (
     <Question title={t("q.name.title")} sub={t("q.name.sub")} error={action.error} busy={action.busy === "name"} canContinue={name.trim().length >= 2} onContinue={() => save(name)}>
-      <TextInput value={name} onChangeText={setName} autoFocus autoCapitalize="words" placeholder={t("q.name.placeholder")} placeholderTextColor={colors.inkSoft} accessibilityLabel={t("q.name.title")} style={bigInput} />
+      <TextInput value={name} onChangeText={setName} autoFocus autoCapitalize="words" placeholder={t("q.name.placeholder")} placeholderTextColor={colors.inkSoft} accessibilityLabel={t("q.name.title")} style={bigInput()} />
       {accountName.trim().length >= 2 ? (
         <Pressable accessibilityRole="button" onPress={() => save(accountName)} disabled={Boolean(action.busy)}>
           <T weight="bold" style={{ fontSize: 16, textDecorationLine: "underline" }}>{t("q.name.useMine", { name: accountName })}</T>
@@ -96,7 +96,7 @@ export function CacScreen({ state, onState, onDone }: ScreenProps) {
   if (found) {
     return (
       <Question title={t("q.cac.confirm")} error={action.error}>
-        <View style={{ borderRadius: 18, borderWidth: 2, borderColor: colors.ink, backgroundColor: "#FFFFFF", padding: 18, gap: 4 }}>
+        <View style={{ borderRadius: 18, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, padding: 18, gap: 4 }}>
           <T weight="extrabold" style={{ fontSize: 20 }}>{found}</T>
           <T style={{ color: colors.inkSoft }}>{`${type} ${digits}`}</T>
         </View>
@@ -108,7 +108,7 @@ export function CacScreen({ state, onState, onDone }: ScreenProps) {
 
   return (
     <Question title={t("q.cac.number")} sub={t("q.cac.numberHint")} error={failed ? null : action.error} busy={action.busy === "lookup"} canContinue={Boolean(digits && type)} continueLabel={t("q.cac.lookUp")} onContinue={lookUp}>
-      <TextInput value={number} onChangeText={(text) => { setNumber(text.toUpperCase()); setFailed(null); }} autoFocus autoCapitalize="characters" placeholder="RC 1234567" placeholderTextColor={colors.inkSoft} accessibilityLabel={t("q.cac.number")} style={bigInput} />
+      <TextInput value={number} onChangeText={(text) => { setNumber(text.toUpperCase()); setFailed(null); }} autoFocus autoCapitalize="characters" placeholder="RC 1234567" placeholderTextColor={colors.inkSoft} accessibilityLabel={t("q.cac.number")} style={bigInput()} />
       {digits && !match?.[1] ? (
         <View style={{ gap: 10 }}>
           <Choice title={t("q.cac.typeRc")} on={kind === "RC"} onPress={() => setKind("RC")} />
@@ -116,7 +116,7 @@ export function CacScreen({ state, onState, onDone }: ScreenProps) {
         </View>
       ) : null}
       {failed ? (
-        <View style={{ gap: 10, borderRadius: 18, borderWidth: 1, borderColor: colors.line, backgroundColor: "#FFFFFF", padding: 16 }}>
+        <View style={{ gap: 10, borderRadius: 18, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, padding: 16 }}>
           <T style={{ color: colors.inkSoft }}>{failed}</T>
           <Pressable accessibilityRole="button" disabled={!digits || !type || Boolean(action.busy)} onPress={() => keep(companyName)}>
             <T weight="bold" style={{ fontSize: 16, textDecorationLine: "underline" }}>{t("q.cac.continueAnyway")}</T>
@@ -189,7 +189,7 @@ export function VehiclesScreen({ state, onState, onDone }: ScreenProps) {
               accessibilityRole="checkbox"
               accessibilityState={{ checked: on }}
               onPress={() => toggle(method)}
-              style={{ width: "47%", minHeight: 112, borderRadius: 18, borderWidth: 2, borderColor: on ? colors.ink : colors.line, backgroundColor: on ? colors.ink : "#FFFFFF", alignItems: "center", justifyContent: "center", gap: 6 }}
+              style={{ width: "47%", minHeight: 112, borderRadius: 18, borderWidth: 2, borderColor: on ? colors.ink : colors.line, backgroundColor: on ? colors.inkFill : colors.surface, alignItems: "center", justifyContent: "center", gap: 6 }}
             >
               <T style={{ fontSize: 36 }}>{VEHICLE_ICONS[method]}</T>
               <T weight="extrabold" style={{ fontSize: 16, color: on ? "#FFFFFF" : colors.ink }}>{t(`method.${method}`)}</T>

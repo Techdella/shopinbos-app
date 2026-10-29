@@ -58,7 +58,7 @@ export default function Checklist() {
                 disabled={!item.manual}
                 hitSlop={8}
                 onPress={() => void tickChecklist(item.key, !item.done).then(setStatus).catch(() => null)}
-                style={{ width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: item.done ? colors.success : colors.lineStrong, backgroundColor: item.done ? colors.success : colors.surface, alignItems: "center", justifyContent: "center" }}
+                style={{ width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: item.done ? colors.success : colors.lineStrong, backgroundColor: item.done ? colors.successFill : colors.surface, alignItems: "center", justifyContent: "center" }}
               >
                 {item.done && <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 14 }}>✓</T>}
               </Pressable>

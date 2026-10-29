@@ -99,7 +99,7 @@ export default function Peggy() {
           )}
           {turns.map((turn, index) =>
             turn.from === "me" ? (
-              <View key={index} style={{ alignSelf: "flex-end", marginLeft: 40, backgroundColor: colors.ink, borderRadius: 20, borderBottomRightRadius: 6, paddingHorizontal: 16, paddingVertical: 12 }}>
+              <View key={index} style={{ alignSelf: "flex-end", marginLeft: 40, backgroundColor: colors.inkFill, borderRadius: 20, borderBottomRightRadius: 6, paddingHorizontal: 16, paddingVertical: 12 }}>
                 <T style={{ color: "#FFFFFF", fontSize: 15, lineHeight: 21 }}>{turn.text}</T>
               </View>
             ) : (
@@ -140,7 +140,7 @@ export default function Peggy() {
             style={{ flex: 1, height: 54, borderRadius: radii.pill, backgroundColor: colors.surface, paddingHorizontal: 20, fontSize: 16, fontFamily: fonts.regular, color: colors.ink }}
           />
           <VoiceInput variant="icon" value={draft} onChange={setDraft} context="a question for Peggy" disabled={thinking} />
-          <Pressable accessibilityRole="button" accessibilityLabel={t("send")} disabled={!draft.trim() || thinking} onPress={() => void ask()} style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: colors.ink, alignItems: "center", justifyContent: "center", opacity: !draft.trim() || thinking ? 0.5 : 1 }}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t("send")} disabled={!draft.trim() || thinking} onPress={() => void ask()} style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: colors.inkFill, alignItems: "center", justifyContent: "center", opacity: !draft.trim() || thinking ? 0.5 : 1 }}>
             <AppIcon name="chevron" size={22} color="#FFFFFF" strokeWidth={2.4} />
           </Pressable>
         </View>

@@ -105,7 +105,7 @@ export default function NewStatus() {
     return (
       <Screen title={t("sn.title")} help={false} onBack={leave} footer={<PillButton title={t("sn.done")} onPress={leave} />}>
         <View style={{ alignItems: "center", gap: 14, paddingTop: 48 }} accessibilityLiveRegion="polite">
-          <View style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: colors.success, alignItems: "center", justifyContent: "center" }}>
+          <View style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: colors.successFill, alignItems: "center", justifyContent: "center" }}>
             <AppIcon name="check" size={40} color="#FFFFFF" strokeWidth={3} />
           </View>
           <Title style={{ textAlign: "center" }}>{t("sn.live")}</Title>
@@ -152,7 +152,7 @@ export default function NewStatus() {
                   </View>
                   {on ? (
                     <View style={{ position: "absolute", top: 8, right: 8, width: 28, height: 28, borderRadius: 14, backgroundColor: colors.accent, alignItems: "center", justifyContent: "center" }}>
-                      <AppIcon name="check" size={15} color={colors.ink} strokeWidth={3} />
+                      <AppIcon name="check" size={15} color={colors.onAccent} strokeWidth={3} />
                     </View>
                   ) : null}
                 </Pressable>

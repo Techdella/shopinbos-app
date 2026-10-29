@@ -62,7 +62,7 @@ export function BoardChip({ label, on, onPress, small, disabled }: { label: stri
       accessibilityState={{ checked: on, disabled: Boolean(disabled) }}
       onPress={onPress}
       disabled={disabled}
-      style={({ pressed }) => ({ height: small ? 36 : 42, paddingHorizontal: small ? 12 : 14, borderRadius: 999, borderWidth: 2, borderColor: on ? colors.ink : colors.line, backgroundColor: on ? colors.ink : colors.surface, justifyContent: "center", maxWidth: "100%", opacity: disabled ? 0.45 : pressed ? 0.85 : 1 })}
+      style={({ pressed }) => ({ height: small ? 36 : 42, paddingHorizontal: small ? 12 : 14, borderRadius: 999, borderWidth: 2, borderColor: on ? colors.ink : colors.line, backgroundColor: on ? colors.inkFill : colors.surface, justifyContent: "center", maxWidth: "100%", opacity: disabled ? 0.45 : pressed ? 0.85 : 1 })}
     >
       <T weight="bold" numberOfLines={1} style={{ fontSize: small ? 13 : 14, color: on ? "#FFFFFF" : colors.ink }}>{label}</T>
     </Pressable>

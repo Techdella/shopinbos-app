@@ -58,7 +58,7 @@ export function LaunchView() {
   const insets = useSafeAreaInsets();
   const t = useT("m_home");
   return (
-    <View style={{ flex: 1, backgroundColor: colors.forest, alignItems: "center", justifyContent: "center" }} accessible accessibilityLabel={t("loading.starting")} accessibilityState={{ busy: true }}>
+    <View style={{ flex: 1, backgroundColor: colors.forestFill, alignItems: "center", justifyContent: "center" }} accessible accessibilityLabel={t("loading.starting")} accessibilityState={{ busy: true }}>
       <StatusBar style="light" />
       <Image source={images.markWhite} style={{ width: 76, height: 76 * MARK_RATIO }} contentFit="contain" />
       <View style={{ position: "absolute", bottom: Math.max(64, insets.bottom + 32), opacity: 0.85 }}>
@@ -108,7 +108,7 @@ export function OpeningShop({ storeName }: { storeName?: string | null }) {
   const BAR = TRACK * 0.4;
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.forest, alignItems: "center" }}>
+    <View style={{ flex: 1, backgroundColor: colors.forestFill, alignItems: "center" }}>
       <StatusBar style="light" />
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 30, paddingTop: 40, paddingHorizontal: 16, width: "100%" }}>
         <View style={{ width: 132, height: 132, alignItems: "center", justifyContent: "center" }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
@@ -370,7 +370,7 @@ export function SlowNetwork({
           accessibilityHint={!attempting && waitSeconds ? t("offline.retryHint", { count: waitSeconds }) : undefined}
           accessibilityState={{ busy: attempting }}
           onPress={attempting ? undefined : onRetry}
-          style={({ pressed }) => ({ minHeight: 52, borderRadius: radii.pill, backgroundColor: colors.ink, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, opacity: pressed ? 0.85 : 1 })}
+          style={({ pressed }) => ({ minHeight: 52, borderRadius: radii.pill, backgroundColor: colors.inkFill, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, opacity: pressed ? 0.85 : 1 })}
         >
           {attempting && <ActivityIndicator size="small" color="#FFFFFF" />}
           <T weight="bold" numberOfLines={1} style={{ flexShrink: 1, fontSize: 16, color: "#FFFFFF" }}>

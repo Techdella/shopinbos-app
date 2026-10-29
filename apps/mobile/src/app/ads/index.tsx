@@ -116,7 +116,7 @@ export default function Ads() {
   return (
     <Screen title={t("title")} sub={t("sub")} refreshing={data.refreshing} onRefresh={() => void data.refresh()}>
       {note ? <Notice tone={note.tone}>{note.text}</Notice> : null}
-      <Card style={{ gap: 10, backgroundColor: colors.ink }}>
+      <Card style={{ gap: 10, backgroundColor: colors.inkFill }}>
         <T weight="extrabold" style={{ fontSize: 18, color: "#FFFFFF" }}>{t("c.startTitle")}</T>
         <T style={{ fontSize: 14.5, lineHeight: 21, color: "rgba(255,255,255,0.8)" }}>{t("c.startHint")}</T>
         <PillButton title={t("c.start")} tone="white" size="md" onPress={() => router.push("/ads/new")} />

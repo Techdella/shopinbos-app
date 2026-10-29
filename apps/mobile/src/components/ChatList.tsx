@@ -82,7 +82,7 @@ function ChatRow({ chat }: { chat: ChatRowData }) {
           <T style={{ flex: 1, fontSize: 14.5, color: unread ? colors.ink : colors.inkSoft }} numberOfLines={1}>{chat.preview || t("chats.sayHello")}</T>
           {unread ? (
             <View style={{ minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, backgroundColor: colors.accent, alignItems: "center", justifyContent: "center" }}>
-              <T weight="extrabold" style={{ color: colors.ink, fontSize: 12.5 }}>{chat.unread > 9 ? "9+" : String(chat.unread)}</T>
+              <T weight="extrabold" style={{ color: colors.onAccent, fontSize: 12.5 }}>{chat.unread > 9 ? "9+" : String(chat.unread)}</T>
             </View>
           ) : null}
         </View>

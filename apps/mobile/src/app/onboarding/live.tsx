@@ -114,7 +114,7 @@ export default function Live() {
         <LinkButton title={leaving ? t("live.opening") : t("live.goToShop")} style={{ marginTop: 4, marginBottom: 6 }} onPress={() => void goToShop()} />
       </SafeAreaView>
       {toast && (
-        <View style={{ position: "absolute", bottom: 120, alignSelf: "center", backgroundColor: colors.ink, borderRadius: radii.pill, paddingHorizontal: 18, paddingVertical: 12 }}>
+        <View style={{ position: "absolute", bottom: 120, alignSelf: "center", backgroundColor: colors.inkFill, borderRadius: radii.pill, paddingHorizontal: 18, paddingVertical: 12 }}>
           <T weight="bold" style={{ color: "#FFFFFF" }}>{toast}</T>
         </View>
       )}
@@ -123,7 +123,7 @@ export default function Live() {
           <View style={{ backgroundColor: colors.surface, borderRadius: 28, padding: 24, alignItems: "center", width: "100%", maxWidth: 360 }}>
             <T weight="semibold" style={{ fontSize: 24, fontStyle: "italic" }}>{status.store.name}</T>
             <T style={{ color: colors.inkSoft, marginTop: 4, marginBottom: 16 }}>{t("live.scan")}</T>
-            <QRCode value={url} size={240} color={colors.ink} backgroundColor="#FFFFFF" />
+            <QRCode value={url} size={240} color="#16141F" quietZone={8} backgroundColor="#FFFFFF" />
             <T style={{ color: colors.inkSoft, fontSize: 13.5, marginTop: 14, textAlign: "center" }}>{t("live.print")}</T>
           </View>
         </Pressable>

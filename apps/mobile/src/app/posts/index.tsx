@@ -13,14 +13,14 @@ import { PLATFORM_KEY, useConnectPage } from "@/components/familiar/ScheduleShee
 import { formatDate } from "@shared/i18n";
 import { useLoad } from "@/lib/useLoad";
 import { useLocale, useT } from "@/lib/i18n";
-import { colors, radii } from "@/theme";
+import { colors, radii, themed } from "@/theme";
 
 // The posts calendar ("Familiar app" prototype `calendar`): this week as a strip of days with dots, the picked
 // day's posts (Posted, Scheduled, Draft, Your turn, Didn't go out), the accounts and "Make a new post".
 // GET /api/mobile/posts?from&to. Each account says in one line whether it posts by itself (a seller's connected
 // Facebook and Instagram) or we remind you; a seller's Facebook or Instagram that isn't connected has Connect.
 
-const DOT = { posted: colors.success, scheduled: colors.accent, draft: colors.inkFaint, attention: colors.warnInk, yourTurn: colors.accentInk } as const;
+const DOT = themed(() => ({ posted: colors.success, scheduled: colors.accent, draft: colors.inkFaint, attention: colors.warnInk, yourTurn: colors.accentInk } as const));
 
 function dayParam(value: unknown): Date | null {
   if (typeof value !== "string") return null;
@@ -108,7 +108,7 @@ export default function Posts() {
                   accessibilityState={{ selected: on }}
                   accessibilityLabel={t("posts.dayLabel", { day: formatDate(date, locale, { weekday: "long", day: "numeric", month: "long", timeZone: undefined }), count: list.length })}
                   onPress={() => setDay(date)}
-                  style={{ flex: 1, minHeight: 66, borderRadius: 18, backgroundColor: on ? colors.ink : colors.surface, borderWidth: 1, borderColor: on ? colors.ink : colors.line, alignItems: "center", justifyContent: "center", gap: 3 }}
+                  style={{ flex: 1, minHeight: 66, borderRadius: 18, backgroundColor: on ? colors.inkFill : colors.surface, borderWidth: 1, borderColor: on ? colors.ink : colors.line, alignItems: "center", justifyContent: "center", gap: 3 }}
                 >
                   <T weight="semibold" style={{ fontSize: 12, color: on ? "rgba(255,255,255,0.75)" : colors.inkSoft }}>{formatDate(date, locale, { weekday: "narrow", timeZone: undefined })}</T>
                   <T weight="extrabold" style={{ fontSize: 17, color: on ? "#FFFFFF" : colors.ink }}>{date.getDate()}</T>

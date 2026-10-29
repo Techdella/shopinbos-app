@@ -37,7 +37,7 @@ function OrderRow({ order, channel, on, onToggle, now }: { order: AskableOrder; 
       onPress={onToggle}
       style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 64, paddingVertical: 8, opacity: !reachable ? 0.5 : pressed ? 0.85 : 1 })}
     >
-      <View style={{ width: 28, height: 28, borderRadius: 8, borderWidth: 2, borderColor: on ? colors.ink : colors.lineStrong, backgroundColor: on ? colors.ink : colors.surface, alignItems: "center", justifyContent: "center" }}>
+      <View style={{ width: 28, height: 28, borderRadius: 8, borderWidth: 2, borderColor: on ? colors.ink : colors.lineStrong, backgroundColor: on ? colors.inkFill : colors.surface, alignItems: "center", justifyContent: "center" }}>
         {on ? <AppIcon name="check" size={16} color="#FFFFFF" /> : null}
       </View>
       <View style={{ flex: 1 }}>

@@ -16,8 +16,8 @@ import {
 import { Image } from "expo-image";
 import Svg, { Defs, Path, RadialGradient, Rect, Stop } from "react-native-svg";
 import { OTP_LENGTH, type DialCountry } from "@shared/phone";
-import { washStops } from "@shared/tokens";
-import { colors, fonts, radii } from "@/theme";
+import { darkWashStops, washStops as lightWashStops } from "@shared/tokens";
+import { colors, currentScheme, fonts, radii, themed } from "@/theme";
 import { AppIcon, type AppIconName } from "@/components/icons";
 import { Mascot as SharedMascot, type MascotMood, type MascotWho } from "@/components/Mascot";
 import { useT } from "@/lib/i18n";
@@ -40,6 +40,7 @@ export function T({ style, weight = "regular", children, ...props }: { style?: S
 
 /** The pastel wash behind the welcome and "shop is live" screens. */
 export function Wash() {
+  const washStops = currentScheme() === "dark" ? darkWashStops : lightWashStops;
   return (
     <Svg style={StyleSheet.absoluteFill} preserveAspectRatio="none" viewBox="0 0 100 100">
       <Defs>
@@ -64,7 +65,8 @@ export function Wash() {
   );
 }
 
-export function Wordmark({ height = 18, light = false }: { height?: number; light?: boolean }) {
+/** `light`: the cream wordmark for dark backgrounds (the default in dark mode). */
+export function Wordmark({ height = 18, light = currentScheme() === "dark" }: { height?: number; light?: boolean }) {
   return <Image source={light ? images.wordmarkLight : images.wordmark} style={{ height, width: height * (660 / 63) }} contentFit="contain" accessibilityLabel="Shopinbos" />;
 }
 
@@ -88,7 +90,7 @@ const BUTTON_ICON: Record<PillSize, number> = { lg: 20, md: 18, sm: 16 };
 
 /** The ink or white a label takes on a button of this tone (orange buttons carry ink text: white on orange fails contrast). */
 export function buttonInk(tone: Tone = "ink") {
-  return tone === "white" || tone === "accent" ? colors.ink : "#FFFFFF";
+  return tone === "white" ? colors.ink : tone === "accent" ? colors.onAccent : "#FFFFFF";
 }
 
 /** A one-line button label: bold, shrinks a little instead of wrapping on small phones, then ends in "…". */
@@ -112,7 +114,7 @@ export function PillButton({
   children,
   ...props
 }: { title?: string; icon?: AppIconName; tone?: Tone; size?: PillSize; busy?: boolean; style?: StyleProp<ViewStyle>; children?: ReactNode } & Omit<PressableProps, "style" | "children">) {
-  const bg = tone === "ink" ? colors.ink : tone === "accent" ? colors.accent : tone === "forest" ? colors.forest : colors.surface;
+  const bg = tone === "ink" ? colors.inkFill : tone === "accent" ? colors.accent : tone === "forest" ? colors.forestFill : colors.surface;
   const fg = buttonInk(tone);
   const off = disabled || busy;
   return (
@@ -206,7 +208,7 @@ export function Segmented<V extends string>({ options, value, onChange }: { opti
             accessibilityRole="tab"
             accessibilityState={{ selected: on }}
             onPress={() => onChange(option.value)}
-            style={{ flex: 1, minHeight: 42, borderRadius: radii.pill, backgroundColor: on ? colors.ink : "transparent", alignItems: "center", justifyContent: "center" }}
+            style={{ flex: 1, minHeight: 42, borderRadius: radii.pill, backgroundColor: on ? colors.inkFill : "transparent", alignItems: "center", justifyContent: "center" }}
           >
             <T weight="bold" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ color: on ? "#FFFFFF" : colors.ink, paddingHorizontal: 8 }}>{option.label}</T>
           </Pressable>
@@ -223,7 +225,7 @@ export function Chip({ label, on, onPress, disabled }: { label: string; on: bool
       accessibilityState={{ selected: on, disabled: !!disabled }}
       onPress={onPress}
       disabled={disabled}
-      style={{ maxWidth: "100%", borderRadius: radii.pill, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: on ? colors.ink : colors.surface, borderWidth: 1, borderColor: on ? colors.ink : colors.line, borderStyle: disabled ? "dashed" : "solid", opacity: disabled ? 0.45 : 1 }}
+      style={{ maxWidth: "100%", borderRadius: radii.pill, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: on ? colors.inkFill : colors.surface, borderWidth: 1, borderColor: on ? colors.ink : colors.line, borderStyle: disabled ? "dashed" : "solid", opacity: disabled ? 0.45 : 1 }}
     >
       <T weight="bold" numberOfLines={1} style={{ color: on ? "#FFFFFF" : colors.ink, fontSize: 15 }}>{label}</T>
     </Pressable>
@@ -282,7 +284,7 @@ export function Notice({ tone = "error", children }: { tone?: "error" | "info" |
 /** An on/off switch. `tone="accent"`: orange when on, like the 2026 rules boards (P-Dropship, P-Branding). */
 export function Toggle({ on, onChange, label, tone = "success" }: { on: boolean; onChange: (on: boolean) => void; label: string; tone?: "success" | "accent" }) {
   return (
-    <Pressable accessibilityRole="switch" accessibilityLabel={label} accessibilityState={{ checked: on }} onPress={() => onChange(!on)} hitSlop={6} style={{ width: 52, height: 32, borderRadius: 16, backgroundColor: on ? (tone === "accent" ? colors.accent : colors.success) : colors.toggleOff, justifyContent: "center" }}>
+    <Pressable accessibilityRole="switch" accessibilityLabel={label} accessibilityState={{ checked: on }} onPress={() => onChange(!on)} hitSlop={6} style={{ width: 52, height: 32, borderRadius: 16, backgroundColor: on ? (tone === "accent" ? colors.accent : colors.successFill) : colors.toggleOff, justifyContent: "center" }}>
       <View style={{ position: "absolute", left: on ? 23 : 3, width: 26, height: 26, borderRadius: 13, backgroundColor: "#FFFFFF" }} />
     </Pressable>
   );
@@ -293,7 +295,7 @@ export function ProgressBars({ total, current }: { total: number; current: numbe
   return (
     <View style={{ flex: 1, flexDirection: "row", gap: 6 }} accessibilityLabel={t("progress.step", { current: current + 1, total })}>
       {Array.from({ length: total }, (_, index) => (
-        <View key={index} style={{ flex: 1, height: 5, borderRadius: 3, backgroundColor: index <= current ? colors.ink : colors.track }} />
+        <View key={index} style={{ flex: 1, height: 5, borderRadius: 3, backgroundColor: index <= current ? colors.inkFill : colors.track }} />
       ))}
     </View>
   );
@@ -303,8 +305,9 @@ export function Card({ children, style }: { children: ReactNode; style?: StylePr
   return <View style={[{ backgroundColor: colors.surface, borderRadius: radii.card, padding: 16 }, style]}>{children}</View>;
 }
 
-const styles = StyleSheet.create({
+// Built again after a scheme change (Settings > Appearance), so not StyleSheet.create (built once).
+const styles = themed(() => ({
   round: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center" },
   field: { height: 54, borderRadius: radii.field, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, paddingHorizontal: 16, fontSize: 16, fontFamily: fonts.regular, color: colors.ink },
   codeBox: { flex: 1, maxWidth: 56, height: 64, borderRadius: radii.field, borderWidth: 1, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center" },
-});
+}) as const);

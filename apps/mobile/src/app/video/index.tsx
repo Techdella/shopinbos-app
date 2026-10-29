@@ -89,7 +89,7 @@ export default function VideoHub() {
             <View key={row.id} style={{ width: "47.5%", flexGrow: 1, maxWidth: "50%" }}>
               <Card style={{ padding: 0, overflow: "hidden", gap: 0 }}>
                 <Pressable accessibilityRole="button" accessibilityLabel={t("hub.openVideo", { title: row.title })} onPress={() => open(row)} style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}>
-                  <View style={{ aspectRatio: 3 / 4, backgroundColor: colors.ink }}>
+                  <View style={{ aspectRatio: 3 / 4, backgroundColor: colors.inkFill }}>
                     {cover ? <Image source={{ uri: cover }} style={{ width: "100%", height: "100%" }} contentFit="cover" /> : (
                       <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
                         <AppIcon name="image" size={28} color="#FFFFFF" />
@@ -128,7 +128,7 @@ export default function VideoHub() {
 
       <Sheet visible={Boolean(removing)} onClose={() => setRemoving(null)} title={t("delete.title")}>
         <T style={{ fontSize: 15, lineHeight: 22, color: colors.inkSoft }}>{t("delete.body", { title: removing?.title ?? "" })}</T>
-        <PillButton title={t("delete.yes")} busy={busy} style={{ backgroundColor: colors.danger }} onPress={() => void remove()} />
+        <PillButton title={t("delete.yes")} busy={busy} style={{ backgroundColor: colors.dangerFill }} onPress={() => void remove()} />
         <LinkButton title={t("delete.keep")} onPress={() => setRemoving(null)} />
       </Sheet>
     </Screen>

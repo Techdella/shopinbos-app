@@ -66,7 +66,7 @@ export function ChatScreen({
 }
 
 export function Bubble({ mine, note, children, meta, failed }: { mine: boolean; note?: boolean; children: ReactNode; meta?: string; failed?: boolean }) {
-  const bg = note ? "#FDF0D5" : mine ? colors.ink : colors.surface;
+  const bg = note ? "#FDF0D5" : mine ? colors.inkFill : colors.surface;
   const fg = note ? "#5C3D00" : mine ? "#FFFFFF" : colors.ink;
   return (
     <View style={{ alignSelf: mine || note ? "flex-end" : "flex-start", maxWidth: "86%", gap: 3 }}>
@@ -122,7 +122,7 @@ export function Composer({
           style={{ flex: 1, minHeight: 50, maxHeight: 140, borderRadius: radii.field + 8, backgroundColor: colors.surface, paddingHorizontal: 18, paddingTop: 14, paddingBottom: 14, fontSize: 16, fontFamily: fonts.regular, color: colors.ink }}
         />
         {voice ? <VoiceInput variant="icon" value={value} onChange={onChange} context="a chat message" disabled={disabled} /> : null}
-        <Pressable accessibilityRole="button" accessibilityLabel={t("send")} accessibilityState={{ disabled: off, busy }} disabled={off} onPress={onSend} style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: colors.ink, alignItems: "center", justifyContent: "center", opacity: off ? 0.5 : 1 }}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t("send")} accessibilityState={{ disabled: off, busy }} disabled={off} onPress={onSend} style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: colors.inkFill, alignItems: "center", justifyContent: "center", opacity: off ? 0.5 : 1 }}>
           <AppIcon name="send" size={20} color="#FFFFFF" strokeWidth={2.1} />
         </Pressable>
       </View>

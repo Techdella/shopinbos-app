@@ -53,7 +53,7 @@ export default function SupplierTrack() {
             </View>
             <T weight="extrabold" style={{ fontSize: 19, lineHeight: 24 }}>{data.title}</T>
             <View accessible accessibilityLabel={t("track.fromTo", { from: data.from, to: data.to })} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colors.success }} />
+              <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colors.successFill }} />
               <T weight="semibold" style={{ fontSize: 15, flexShrink: 1 }} numberOfLines={1}>{data.from}</T>
               <View style={{ flex: 1, minWidth: 16, height: 2, backgroundColor: colors.line }} />
               <T weight="semibold" style={{ fontSize: 15, flexShrink: 1 }} numberOfLines={1}>{data.to}</T>

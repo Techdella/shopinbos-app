@@ -182,7 +182,7 @@ export function RouteCard({ shop, who, fee, from, to, sub, label, onPress }: { s
         <T weight="extrabold" style={{ fontSize: 16 }}>{fee}</T>
       </View>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-        <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colors.forest }} />
+        <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colors.forestFill }} />
         {/* Places wrap to two lines ("Victoria Island") instead of being cut off. */}
         <T numberOfLines={2} style={{ fontFamily: fonts.display, fontSize: 19, lineHeight: 22, maxWidth: "42%" }}>{from}</T>
         {/* iOS only dashes a border drawn on every side: a 2px-tall dashed box reads as one dashed line. */}

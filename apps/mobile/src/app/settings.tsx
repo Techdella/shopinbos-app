@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import * as WebBrowser from "expo-web-browser";
 import type { IdentityImageKind } from "@shared/identity-images";
+import { AppearanceRow } from "@/components/AppearancePicker";
 import { LanguageRow } from "@/components/LanguagePicker";
 import { TipsRow } from "@/components/learn/TipsRow";
 import { ErrorState, LinkRow, LoadingBlock, Picture, SectionTitle } from "@/components/kit";
@@ -216,6 +217,7 @@ function SettingsForm({ initial, identity }: { initial: SellerProfile; identity:
 
       <Card style={{ paddingVertical: 2 }}>
         <LanguageRow first />
+        <AppearanceRow />
         <TipsRow />
         <LinkRow icon="bell" label={t("set.notifications")} hint={t("set.notificationsHint")} onPress={() => router.push("/notifications/settings")} />
         {/* The markup added to supplier prices when the seller adds their products (app/find/markup.tsx). */}

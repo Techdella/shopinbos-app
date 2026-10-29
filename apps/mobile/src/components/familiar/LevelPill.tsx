@@ -25,7 +25,7 @@ export function LevelPill({ level, progress, uri, name, onPress, size = 50 }: { 
         <Picture uri={uri} name={name} size={size - 10} />
       </View>
       {level ? (
-        <View style={{ position: "absolute", bottom: -6, alignSelf: "center", backgroundColor: colors.ink, borderRadius: 999, paddingHorizontal: 6, paddingVertical: 1 }}>
+        <View style={{ position: "absolute", bottom: -6, alignSelf: "center", backgroundColor: colors.inkFill, borderRadius: 999, paddingHorizontal: 6, paddingVertical: 1 }}>
           <T weight="extrabold" style={{ color: "#E2F5A0", fontSize: 10 }}>{t("level.short", { level })}</T>
         </View>
       ) : null}

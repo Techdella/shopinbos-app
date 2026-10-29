@@ -65,7 +65,7 @@ export function StatusRow({
             <Picture uri={myPicture} name={myName} size={RING - 13} />
           </Ring>
           <Pressable accessibilityRole="button" accessibilityLabel={t("status.add")} onPress={onNew} hitSlop={6} style={{ position: "absolute", right: -2, bottom: -2, width: 24, height: 24, borderRadius: 12, backgroundColor: colors.accent, borderWidth: 2, borderColor: colors.canvas, alignItems: "center", justifyContent: "center" }}>
-            <AppIcon name="plus" size={13} color={colors.ink} strokeWidth={3} />
+            <AppIcon name="plus" size={13} color={colors.onAccent} strokeWidth={3} />
           </Pressable>
         </View>
         <T weight="semibold" numberOfLines={1} style={{ fontSize: 12, color: colors.inkSoft }}>{t("status.yours")}</T>

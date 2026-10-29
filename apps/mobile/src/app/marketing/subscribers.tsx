@@ -7,7 +7,7 @@ import { addSubscriber, fetchSubscribers, type NewSubscriber, type SubscriberRow
 import { useLoad } from "@/lib/useLoad";
 import { formatDate } from "@shared/i18n";
 import { useLocale, useT } from "@/lib/i18n";
-import { colors } from "@/theme";
+import { colors, themed } from "@/theme";
 
 // Subscribers (web /home/marketing/subscribers): the people who agreed to get the shop's emails and texts, with
 // the counts, a filter by status, search, and "Add a person" (with how they agreed, the same as the web). Importing
@@ -24,12 +24,12 @@ const FILTERS: { value: Filter; label: "subs.all" | "subs.active" | "subs.unsubs
   { value: "bounced", label: "subs.bounced" },
 ];
 
-const STATUS_BADGE: Record<SubscriberStatus, { label: "subs.active" | "subs.unsubscribed" | "subs.bounced" | "subs.spam"; bg: string; fg: string }> = {
+const STATUS_BADGE: Record<SubscriberStatus, { label: "subs.active" | "subs.unsubscribed" | "subs.bounced" | "subs.spam"; bg: string; fg: string }> = themed(() => ({
   active: { label: "subs.active", bg: colors.successTint, fg: colors.success },
   unsubscribed: { label: "subs.unsubscribed", bg: colors.canvas, fg: colors.inkSoft },
   bounced: { label: "subs.bounced", bg: colors.dangerTint, fg: colors.danger },
   spam: { label: "subs.spam", bg: colors.dangerTint, fg: colors.danger },
-};
+}));
 
 const EMPTY_FORM: NewSubscriber = { email: "", name: "", phone: "", birthday: "", tags: "", emailOk: false, textOk: false, note: "", welcome: true };
 

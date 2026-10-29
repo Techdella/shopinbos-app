@@ -525,7 +525,7 @@ export function SupplierJoinFlow() {
             <T weight="bold">{t("review.badges")}</T>
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
               {badges.map((badge) => (
-                <View key={badge} style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.ink, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 }}>
+                <View key={badge} style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.inkFill, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 }}>
                   <AppIcon name="check" size={15} color="#FFFFFF" />
                   <T weight="bold" style={{ color: "#FFFFFF", fontSize: 14 }}>{t.dynamic(`badge.${badge}`, badge)}</T>
                 </View>
@@ -596,7 +596,7 @@ function ModeChoice({ title, sub, on, onPress }: { title: string; sub?: string; 
         {sub ? <T style={{ fontSize: 13, lineHeight: 19, color: colors.inkSoft }}>{sub}</T> : null}
       </View>
       <View style={{ width: 28, height: 28, borderRadius: 8, borderWidth: on ? 0 : 2, borderColor: colors.lineStrong, backgroundColor: on ? colors.accent : colors.surface, alignItems: "center", justifyContent: "center" }}>
-        {on ? <AppIcon name="check" size={15} color={colors.ink} strokeWidth={3} /> : null}
+        {on ? <AppIcon name="check" size={15} color={colors.onAccent} strokeWidth={3} /> : null}
       </View>
     </Pressable>
   );

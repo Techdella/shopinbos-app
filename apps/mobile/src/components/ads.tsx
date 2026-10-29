@@ -3,7 +3,7 @@ import { naira } from "@shared/onboarding";
 import { Badge } from "@/components/kit";
 import { T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
-import { colors } from "@/theme";
+import { colors, themed } from "@/theme";
 
 // Pieces the Ads screens share (app/ads): money in the campaign's currency, the status badge and the numbers.
 
@@ -11,12 +11,12 @@ export function adMoney(value: number, currency = "NGN") {
   return currency === "NGN" ? naira(Math.round(value)) : `${Math.round(value * 100) / 100} ${currency}`;
 }
 
-const STATUS_TONE: Record<string, { bg: string; fg: string }> = {
+const STATUS_TONE: Record<string, { bg: string; fg: string }> = themed(() => ({
   running: { bg: colors.successTint, fg: colors.success },
   paused: { bg: "#FDF0D5", fg: "#8A5A00" },
   draft: { bg: colors.canvas, fg: colors.inkSoft },
   ended: { bg: colors.canvas, fg: colors.inkSoft },
-};
+}));
 
 export function AdStatusBadge({ status }: { status: string }) {
   const t = useT("ads");

@@ -66,7 +66,7 @@ function TakingBlockLine({ block, strong }: { block: TakingBlock; strong: boolea
           hitSlop={6}
           style={({ pressed }) => ({ alignSelf: "flex-start", minHeight: 40, justifyContent: "center", paddingHorizontal: 14, borderRadius: 999, backgroundColor: "#FFFFFF", opacity: pressed ? 0.85 : 1 })}
         >
-          <T weight="extrabold" numberOfLines={1} style={{ flexShrink: 1, fontSize: 14, color: colors.forest }}>{t.dynamic(action.key)}</T>
+          <T weight="extrabold" numberOfLines={1} style={{ flexShrink: 1, fontSize: 14, color: colors.forestFill }}>{t.dynamic(action.key)}</T>
         </Pressable>
       ) : null}
     </View>
@@ -224,7 +224,7 @@ export default function LogisticsJobs() {
       {data?.partner.verificationStatus === "verified" ? <TierCard /> : null}
 
       {data ? (
-        <View style={{ backgroundColor: colors.forest, borderRadius: 26, padding: 20, gap: 16 }}>
+        <View style={{ backgroundColor: colors.forestFill, borderRadius: 26, padding: 20, gap: 16 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 44 }}>
             <T weight="bold" style={{ flex: 1, fontSize: 14, color: "#BFE6DD" }}>{taking ? t("jobs.taking") : t("jobs.paused")}</T>
             <View style={{ opacity: block || switching ? 0.6 : 1 }}>

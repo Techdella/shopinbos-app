@@ -112,7 +112,7 @@ export function GettingStartedCard() {
                   <AppIcon name={video ? "play" : "sparkle"} size={15} color={colors.ink} />
                 </View>
                 {watched ? (
-                  <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: colors.ink, alignItems: "center", justifyContent: "center" }} accessibilityLabel={t("start.done")}>
+                  <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: colors.inkFill, alignItems: "center", justifyContent: "center" }} accessibilityLabel={t("start.done")}>
                     <AppIcon name="check" size={13} color="#FFFFFF" strokeWidth={3} />
                   </View>
                 ) : null}

@@ -188,7 +188,7 @@ export default function PackScreen() {
               onPress={() => (photo ? void snap(contents ? "contents" : "photo") : void tick(step.id))}
               style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 58, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 16, backgroundColor: colors.surface, opacity: pressed ? 0.85 : 1 })}
             >
-              <View style={{ width: 26, height: 26, borderRadius: 8, borderWidth: 2, borderColor: done ? colors.success : "#D9D6E2", backgroundColor: done ? colors.success : colors.surface, alignItems: "center", justifyContent: "center" }}>
+              <View style={{ width: 26, height: 26, borderRadius: 8, borderWidth: 2, borderColor: done ? colors.success : "#D9D6E2", backgroundColor: done ? colors.successFill : colors.surface, alignItems: "center", justifyContent: "center" }}>
                 {done ? <AppIcon name="check" size={15} color="#FFFFFF" strokeWidth={3} /> : null}
               </View>
               <View style={{ flex: 1, gap: 2 }}>
@@ -199,7 +199,7 @@ export default function PackScreen() {
                 shot ? (
                   <Image source={{ uri: shot }} style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: colors.grayTint }} contentFit="cover" accessibilityLabel={contents ? f("pack.contentsPhoto") : words("pack.photo", "Photo of the sealed parcel")} />
                 ) : (
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.ink, borderRadius: 999, paddingHorizontal: 12, height: 34 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.inkFill, borderRadius: 999, paddingHorizontal: 12, height: 34 }}>
                     <AppIcon name="camera" size={15} color="#FFFFFF" />
                     <T weight="extrabold" style={{ fontSize: 12, color: "#FFFFFF" }}>{busy === step.id ? words("pack.uploading", "Uploading…") : words("pack.snap", "Snap")}</T>
                   </View>
