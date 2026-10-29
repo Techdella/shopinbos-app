@@ -25,7 +25,7 @@ ob_start();
 	<div class="tile bg-ink" style="min-height:300px">
 		<span class="tag tag-glass" style="align-self:flex-start">Riders</span>
 		<p class="tt" style="font-size:22px">Ride with Shopinbos</p>
-		<p class="ts">Jobs near you, cash collected with a code, paid weekly.</p>
+		<p class="ts">Jobs near you, cash collected with a code, paid straight to your bank.</p>
 		<a class="btn btn-ghost btn-s" href="<?php echo esc_url( home_url( '/delivery/#riders' ) ); ?>" style="align-self:flex-start;margin-top:auto">Get the Riders app</a>
 	</div>
 </div>

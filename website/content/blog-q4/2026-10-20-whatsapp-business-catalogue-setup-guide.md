@@ -138,7 +138,7 @@ Doing this by hand for five orders a day is fine. At thirty orders a day, mistak
 
 The catalogue cannot take money, so most sellers share an account number. That works, but you then have to match bank alerts to chats and watch for fake alerts.
 
-A cleaner option is to send a payment link. With Shopinbos, buyers can pay by card, bank transfer or USSD through Paystack. The fee is 1.5% + ₦100 (the ₦100 is waived under ₦2,500), capped at ₦2,000, and your balance is paid to your bank every Friday, or you can withdraw early any time.
+A cleaner option is to send a payment link. With Shopinbos, buyers can pay by card, bank transfer or USSD through Paystack. The fee is 1.5% + ₦100 (the ₦100 is waived under ₦2,500), capped at ₦2,000, and the money settles straight to your bank, usually the next working day.
 
 For buyers who prefer to pay when the item arrives, Shopinbos [pay on delivery](/features/pay-on-delivery/) covers orders up to ₦50,000 in Lagos, Abuja, Ibadan and Port Harcourt. The customer gives the rider a 4-digit code and riders pay the cash in by 6pm the same day.
 

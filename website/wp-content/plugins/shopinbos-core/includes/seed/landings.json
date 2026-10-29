@@ -52,12 +52,12 @@
     "social"
    ],
    [
-    "Get paid on Friday",
-    "Every payment lands in your Shopinbos balance and goes to your bank every Friday.",
+    "Paid straight to your bank",
+    "Every payment settles straight to your own bank, usually the next working day.",
     [
      "No minimum payout",
      "See exactly what each order made",
-     "Withdraw early any time"
+     "Shopinbos never holds your money"
     ],
     "pay"
    ]
@@ -313,7 +313,7 @@
   "title": "Payments",
   "eyebrow": "Payments",
   "h1": "Get paid by card, transfer, USSD or pay on delivery",
-  "sub": "Every way Nigerians like to pay, in naira, with your money sent to your bank every Friday.",
+  "sub": "Every way Nigerians like to pay, in naira, with your money settled straight to your bank.",
   "img": "tote-bag.webp",
   "bg": "#FDF0D5",
   "fit": "cover",
@@ -330,11 +330,11 @@
    ],
    [
     "Money you can follow",
-    "Every payment lands in your Shopinbos balance with the order beside it."
+    "Every payment shows in the app with the order beside it."
    ],
    [
-    "Paid every Friday",
-    "Your balance goes to your bank every Friday, or withdraw any time."
+    "Paid straight to your bank",
+    "Each payment settles to your bank, usually the next working day."
    ]
   ],
   "rows": [
@@ -350,7 +350,7 @@
    ],
    [
     "Pay on delivery with codes",
-    "Customers pay the rider when the parcel arrives. A 4-digit code proves it was delivered, and the cash reaches your balance the same evening.",
+    "Customers pay the rider when the parcel arrives. A 4-digit code proves it was delivered, and the rider pays the cash to you by 6pm the same day.",
     [
      "4-digit delivery code",
      "Cash or transfer to the rider",
@@ -366,7 +366,7 @@
    ],
    [
     "When do I get paid?",
-    "Every Friday, to your bank account. You can also withdraw any time."
+    "Straight to your bank account, usually the next working day."
    ],
    [
     "Do I need my own Paystack account?",
@@ -375,7 +375,7 @@
   ],
   "seo": [
    "Customers in Nigeria pay in many ways: card, bank transfer, USSD and cash on delivery. A shop that accepts all of them sells more, but checking transfers and chasing cash by hand takes time.",
-   "Shopinbos confirms every payment for you, matches it to the order and pays your balance to your bank every Friday."
+   "Shopinbos confirms every payment for you, matches it to the order, and Paystack settles it straight to your bank."
   ],
   "rel": [
    [
@@ -395,7 +395,7 @@
     "/pricing/"
    ]
   ],
-  "excerpt": "Every way Nigerians like to pay, in naira, with your money sent to your bank every Friday."
+  "excerpt": "Every way Nigerians like to pay, in naira, with your money settled straight to your bank."
  },
  {
   "type": "sib_feature",
@@ -692,10 +692,10 @@
   "type": "sib_feature",
   "slug": "pay-on-delivery",
   "title": "Pay on delivery",
-  "excerpt": "Customers pay the rider when the parcel arrives. A 4-digit code proves it was delivered, and the cash reaches your balance the same evening.",
+  "excerpt": "Customers pay the rider when the parcel arrives. A 4-digit code proves it was delivered, and the rider pays the cash to you by 6pm the same day.",
   "eyebrow": "Pay on delivery",
   "h1": "Pay on delivery for your online store, without the wahala",
-  "sub": "Customers pay the rider when the parcel arrives. A 4-digit code proves it was delivered, and the cash reaches your balance the same evening.",
+  "sub": "Customers pay the rider when the parcel arrives. A 4-digit code proves it was delivered, and the rider pays the cash to you by 6pm the same day.",
   "img": "person-food.webp",
   "bg": "#FDF0D5",
   "fit": "cover",
@@ -716,7 +716,7 @@
    ],
    [
     "Cash comes back the same day",
-    "Riders pay in by 6pm, and it shows in your balance that evening."
+    "Riders pay the cash to you directly by 6pm."
    ]
   ],
   "rows": [
@@ -835,8 +835,8 @@
     "store"
    ],
    [
-    "Get paid after delivery",
-    "Your share is held for 48 hours after delivery in case of returns, then paid out on Friday.",
+    "Your share, straight to your bank",
+    "Your share is split off when the buyer pays and settles straight to your bank, usually the next working day.",
     [
      "Returns go back to the supplier",
      "Clear statement for every order",

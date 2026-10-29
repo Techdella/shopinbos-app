@@ -36,7 +36,7 @@ class Sib_CLI {
 
 		$home  = $this->refresh_page( 'home', 'Home', $this->pattern( 'shopinbos/page-home' ), 'page-canvas' );
 		$blog  = $this->page( 'blog', 'Blog', '' );
-		$this->refresh_page( 'for-suppliers', 'For suppliers', $this->pattern( 'shopinbos/page-for-suppliers' ), 'page-canvas', 'Sell your products through hundreds of Nigerian online shops. List once, ship with their label, get paid after delivery.' );
+		$this->refresh_page( 'for-suppliers', 'For suppliers', $this->pattern( 'shopinbos/page-for-suppliers' ), 'page-canvas', 'Sell your products through hundreds of Nigerian online shops. List once, ship with their label, get paid straight to your bank.' );
 		$this->refresh_page( 'delivery', 'For delivery companies and riders', $this->pattern( 'shopinbos/page-delivery' ), 'page-canvas', 'Get delivery jobs from Shopinbos shops every day. Use the Partners app or connect your system. Cash on delivery confirmed with a code.' );
 		$cs = $this->refresh_page( 'coming-soon', 'Coming soon', "<!-- wp:shopinbos/coming-soon /-->\n\n<!-- wp:shopinbos/gist-rail /-->\n", 'page-canvas', 'Shopinbos is almost here. Join the waitlist and we’ll tell you the moment your shop can go live.' );
 		update_post_meta( $cs, 'sib_noindex', 1 );
@@ -776,7 +776,7 @@ class Sib_CLI {
 		// Feature: Pay on delivery, built from the same sections as the feature template.
 		$feature = sib_block_group_open( 'bg-mist', 'section' ) . sib_block_group_open( 'wrap split', 'div', [ 'top' => '56px', 'bottom' => '72px' ] )
 			. sib_block_group_open( 'col-22' ) . $p( 'Pay on delivery', 'eyebrow' ) . $hd( 1, 'Take pay on delivery without the fake orders', 'disp h1 h1-58' )
-			. $p( 'Your customer pays the rider in cash or by transfer, and only hands over a 4-digit code when the parcel is in their hands. The rider pays the cash in the same evening.', 'lead' )
+			. $p( 'Your customer pays the rider in cash or by transfer, and only hands over a 4-digit code when the parcel is in their hands. The rider pays the cash to you by 6pm the same day.', 'lead' )
 			. sib_block_buttons( [ [ 'Start your shop', sib_go_url(), 'accent' ], [ 'See pricing', home_url( '/pricing/' ), 'ghost' ] ] ) . sib_block_group_close()
 			. sib_block_html( '<div class="tile" style="background:#FFEDE4;color:#5B3A2A"><p class="tt" style="color:#16141F">Delivery code</p><div class="row" style="gap:6px"><span class="digit">4</span><span class="digit">8</span><span class="digit">2</span><span class="digit">1</span></div><p class="ts">Code checked by the rider. Cash paid in by 6pm.</p></div>' )
 			. sib_block_group_close() . sib_block_group_close( 'section' )
@@ -784,17 +784,17 @@ class Sib_CLI {
 			. sib_block_group_open( 'g3' )
 			. sib_block_group_open( 'card benefit' ) . $hd( 3, 'No more “I’m not around”', 'tt' ) . $p( 'Customers confirm their order on WhatsApp before a rider leaves, so fewer wasted trips.', 'p' ) . sib_block_group_close()
 			. sib_block_group_open( 'card benefit' ) . $hd( 3, 'A code, not an argument', 'tt' ) . $p( 'The parcel is only marked delivered when the customer gives the rider their code.', 'p' ) . sib_block_group_close()
-			. sib_block_group_open( 'card benefit' ) . $hd( 3, 'Money the same evening', 'tt' ) . $p( 'Riders pay cash in by 6pm and it shows in your balance. Paid out every Friday.', 'p' ) . sib_block_group_close()
+			. sib_block_group_open( 'card benefit' ) . $hd( 3, 'Cash the same day', 'tt' ) . $p( 'Riders pay the cash to you directly by 6pm. It never passes through Shopinbos.', 'p' ) . sib_block_group_close()
 			. sib_block_group_close() . sib_block_group_close() . sib_block_group_close( 'section' )
 			. '<!-- wp:pattern {"slug":"shopinbos/faq"} /-->';
-		$this->cpt( 'sib_feature', 'pay-on-delivery', 'Pay on delivery', $feature, 'Take cash and transfer on delivery, confirmed with a 4-digit code. Riders pay in the same evening.', [ 'sib_reviewed' => gmdate( 'Y-m-d' ) ] );
+		$this->cpt( 'sib_feature', 'pay-on-delivery', 'Pay on delivery', $feature, 'Take cash and transfer on delivery, confirmed with a 4-digit code. Riders pay you the cash by 6pm.', [ 'sib_reviewed' => gmdate( 'Y-m-d' ) ] );
 
 		$this->cpt( 'sib_integration', 'paystack', 'Paystack', $this->text_page( 'Card, bank transfer and USSD payments at checkout and on payment links. Built in: nothing to set up.' ), 'Cards, bank transfer and USSD at checkout', [ 'sib_integration_status' => 'live' ] );
 		$this->cpt( 'sib_integration', 'whatsapp', 'WhatsApp Business', $this->text_page( 'Your catalogue, chats, payment links and order updates, in WhatsApp.' ), 'Catalogue, chats, payment links and order updates', [ 'sib_integration_status' => 'live' ] );
 		$this->cpt( 'sib_integration', 'tiktok-shop', 'TikTok Shop', $this->text_page( 'Sell in videos and lives. Apply from the app.' ), 'Sell in videos and lives', [ 'sib_integration_status' => 'apply' ] );
 
-		$steps = "<!-- wp:list {\"ordered\":true} -->\n<ol class=\"wp-block-list\"><!-- wp:list-item -->\n<li>Card and transfer payments go into your Shopinbos balance straight away.</li>\n<!-- /wp:list-item -->\n\n<!-- wp:list-item -->\n<li>Every Friday we pay your balance to your bank account.</li>\n<!-- /wp:list-item -->\n\n<!-- wp:list-item -->\n<li>Need it sooner? Tap Withdraw in the app any time.</li>\n<!-- /wp:list-item -->\n\n<!-- wp:list-item -->\n<li>For dropship orders, your share is held for 48 hours after delivery in case of returns.</li>\n<!-- /wp:list-item --></ol>\n<!-- /wp:list -->\n\n";
-		$this->cpt( 'sib_help', 'when-do-i-get-paid', 'When do I get paid?', $this->text_page( 'Every Friday, to your bank account. You can also withdraw any time.' ) . $steps, 'Every Friday, to your bank. You can also withdraw any time.', [ 'sib_reviewed' => gmdate( 'Y-m-d' ), 'sib_help_area' => 'Money > Payouts' ], '', 0, [ 'sib_help_category' => [ 'payments-and-payouts' ] ] );
+		$steps = "<!-- wp:list {\"ordered\":true} -->\n<ol class=\"wp-block-list\"><!-- wp:list-item -->\n<li>Card, transfer and USSD payments are split by Paystack when the buyer pays.</li>\n<!-- /wp:list-item -->\n\n<!-- wp:list-item -->\n<li>Your share settles straight to your bank account, usually the next working day.</li>\n<!-- /wp:list-item -->\n\n<!-- wp:list-item -->\n<li>Shopinbos never holds your money, so there is nothing to withdraw.</li>\n<!-- /wp:list-item -->\n\n<!-- wp:list-item -->\n<li>For dropship orders, the supplier’s price goes straight to the supplier’s bank in the same payment.</li>\n<!-- /wp:list-item --></ol>\n<!-- /wp:list -->\n\n";
+		$this->cpt( 'sib_help', 'when-do-i-get-paid', 'When do I get paid?', $this->text_page( 'Straight to your bank account, usually the next working day.' ) . $steps, 'Straight to your bank, usually the next working day.', [ 'sib_reviewed' => gmdate( 'Y-m-d' ), 'sib_help_area' => 'Money > Payouts' ], '', 0, [ 'sib_help_category' => [ 'payments-and-payouts' ] ] );
 
 		$this->cpt( 'sib_resource', 'whatsapp-selling-playbook', 'The WhatsApp selling playbook', "<!-- wp:heading -->\n<h2 class=\"wp-block-heading\">What’s inside</h2>\n<!-- /wp:heading -->\n\n<!-- wp:list -->\n<ul class=\"wp-block-list\"><!-- wp:list-item -->\n<li>How to set up your WhatsApp Business catalogue</li>\n<!-- /wp:list-item -->\n\n<!-- wp:list-item -->\n<li>Status posts that sell, with 10 examples</li>\n<!-- /wp:list-item -->\n\n<!-- wp:list-item -->\n<li>Replies for price, delivery and “is it original?”</li>\n<!-- /wp:list-item --></ul>\n<!-- /wp:list -->\n\n", 'Set up your catalogue, post Status that sells and answer every buyer question. Free PDF.', [ 'sib_gated' => true, 'sib_list_tag' => 'whatsapp-playbook' ], 'peggy-wave.webp' );
 	}

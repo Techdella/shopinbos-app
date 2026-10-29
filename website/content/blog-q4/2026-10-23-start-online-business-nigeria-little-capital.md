@@ -148,7 +148,7 @@ With small capital, a single unpaid delivery or a fake alert can wipe out a week
 
 - Confirm money is in your account or dashboard before you dispatch. Never rely on screenshots.
 - Use payment links so you are not matching bank alerts to chats.
-- If you offer pay on delivery, use a system that protects you. Shopinbos pay on delivery covers orders up to ₦50,000 in Lagos, Abuja, Ibadan and Port Harcourt, with a 4-digit code the customer gives the rider, and riders pay cash in by 6pm the same day.
+- If you offer pay on delivery, use a system that protects you. Shopinbos pay on delivery covers orders up to ₦50,000 in Lagos, Abuja, Ibadan and Port Harcourt, with a 4-digit code the customer gives the rider, and riders pay the cash to you by 6pm the same day.
 
 ### Delivery
 

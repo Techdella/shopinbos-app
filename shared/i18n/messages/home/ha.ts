@@ -156,7 +156,6 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "step.Choose a company": "Zaɓi kamfani",
   "step.Add your payout bank": "Saka bankin payout ɗinka",
   "step.Your bank account is linked for payouts.": "An haɗa asusun bankinka don payouts.",
-  "step.Money waits safely in your balance until you do.": "Kuɗi zai jira lafiya a balance ɗinka har sai ka yi.",
   "step.Add bank": "Saka banki",
   "step.Put your shop live": "Sa shagonka ya fara aiki",
   "step.Your shop is open to shoppers.": "Shagonka a buɗe yake ga masu saye.",

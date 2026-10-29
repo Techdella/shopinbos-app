@@ -637,8 +637,8 @@ export const templates: Record<string, TemplateText> = {
     button: "Fìdí iṣẹ́ mi múlẹ̀",
     examples: ["Ada", "Ada Fabrics", "sellers", "CAC certificate"],
   },
-  shopinbos_wallet_ready: {
-    body: "Báwo ni {{1}}, Shopinbos Wallet rẹ ti ṣetán! 🎉\n\nNọ́mbà àkáǹtì tìrẹ ni {{2}} ní {{3}}, ní orúkọ {{4}}. Fi owó ránṣẹ́ sí i láti app báǹkì èyíkéyìí, owó náà á wọ wallet rẹ láàárín ìṣẹ́jú kan tàbí méjì.\n\nLo owó inú wallet rẹ fún AI credits àti àwọn iṣẹ́ Shopinbos mìíràn, kí o sì gbé e lọ sí báǹkì rẹ nígbàkígbà.",
+  shopinbos_wallet_ready_v2: {
+    body: "Báwo ni {{1}}, Shopinbos Wallet rẹ ti ṣetán! 🎉\n\nNọ́mbà àkáǹtì tìrẹ ni {{2}} ní {{3}}, ní orúkọ {{4}}. Fún ẹnikẹ́ni tó fẹ́ sanwó fún ọ, láti app báǹkì èyíkéyìí.\n\nFi báǹkì rẹ kún un lójú ewé wallet rẹ, owó tí wọ́n bá fi ránṣẹ́ á lọ tààrà sí báǹkì rẹ. Fi owó sínú wallet rẹ láti sanwó fún AI credits àti àwọn iṣẹ́ Shopinbos mìíràn.",
     button: "Ṣí wallet mi",
     examples: ["Ada", "9912345678", "Wema Bank", "SHOPINBOS/ADA FABRICS"],
   },

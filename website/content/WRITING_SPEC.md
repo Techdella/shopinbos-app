@@ -11,7 +11,7 @@ Facts you may use (do not invent others):
 - Payments through Paystack: card, bank transfer, USSD. Fee 1.5% + ₦100 (₦100 waived under ₦2,500), capped at ₦2,000.
 - Pay on delivery: orders up to ₦50,000 in Lagos, Abuja, Ibadan and Port Harcourt. Each order has a 4-digit code the customer
   gives the rider. Riders pay cash in by 6pm the same day.
-- Balance paid to your bank every Friday; withdraw early any time.
+- Payments settle straight to the seller’s own bank, usually the next working day. Shopinbos never holds sales money: no balance of sales, no payout day, no withdraw. Cash on delivery is paid to the seller directly. The prepaid wallet balance is spend-only (AI credits and other Shopinbos services).
 - Riders bookable from the order; delivery price shown at checkout; interstate via delivery partner companies.
 - Find stock: checked Nigerian suppliers; dropship (supplier ships with your shop's label) or buy wholesale; you are paid after delivery.
 - Store at yourname.shopinbos.com free; connect your own domain on paid plans.

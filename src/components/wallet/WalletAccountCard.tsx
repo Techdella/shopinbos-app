@@ -61,7 +61,7 @@ export function WalletAccountCard({ account, aside, footer, goesTo }: { account:
         <span className="text-[14.5px] font-bold">{account.name}</span>
       </div>
       <p className="relative mb-0 mt-3 text-[12.5px] leading-[1.5] text-white/70">
-        {goesTo ? `Transfer from any bank app. It goes straight to your bank, ${goesTo}, usually the next working day.` : "Transfer from any bank app. It lands in your wallet balance within a minute or two."}
+        {goesTo ? `Transfer from any bank app. It goes straight to your bank, ${goesTo}, usually the next working day.` : "Transfer from any bank app to top up your balance for AI credits and other Shopinbos services. Add your bank to get paid straight to it."}
       </p>
       {footer ? <div className="relative mt-3">{footer}</div> : null}
     </div>

@@ -11,7 +11,7 @@ function sib_seed_help_topics(): array {
 	return [
 		[ 'Getting started', 'getting-started', 'Create your shop, add products, go live' ],
 		[ 'Orders', 'orders', 'New orders, invoices, cancellations' ],
-		[ 'Payments and payouts', 'payments-and-payouts', 'Paystack, transfers, Friday payouts' ],
+		[ 'Payments and payouts', 'payments-and-payouts', 'Paystack, transfers, payouts to your bank' ],
 		[ 'Delivery and pay on delivery', 'delivery-and-pay-on-delivery', 'Riders, codes, cash, returns' ],
 		[ 'Your store and design', 'store-and-design', 'Templates, logo, domain' ],
 		[ 'WhatsApp and social', 'whatsapp-and-social', 'Catalogue, Instagram, TikTok, ads' ],
@@ -34,7 +34,7 @@ function sib_seed_help_articles(): array {
 			. $h( 'What happens on delivery day' )
 			. $b( 'checklist', [ 'title' => 'The rider will', 'items' => "Call the customer before arriving\nLet the customer check the item\nAsk for the 4-digit code\nCollect cash or a transfer, then confirm in the app" ] )
 			. $b( 'callout', [ 'kind' => 'warn', 'title' => 'Never share the code yourself', 'text' => 'Only the customer should give the code to the rider. If you share it, the order can be marked delivered before the customer has the item.' ] )
-			. $b( 'faq', [ 'title' => 'Common questions', 'items' => "When does the cash reach my balance? | Riders pay cash in by 6pm the same day. It shows in your balance that evening and is paid out on Friday.\nWhat if the customer refuses the parcel? | The rider brings it back to you. You only pay the return delivery fee, and the order is marked “Refused”." ] ) ],
+			. $b( 'faq', [ 'title' => 'Common questions', 'items' => "When does the cash reach me? | Riders pay the cash to you directly by 6pm the same day, by transfer in the app or by hand.\nWhat if the customer refuses the parcel? | The rider brings it back to you. You only pay the return delivery fee, and the order is marked “Refused”." ] ) ],
 
 		[ 'create-your-shop', 'Create your shop in 5 minutes', 'getting-started', 'Sign up with your phone, tell Rex what you sell and share your link.',
 			$p( 'You can have a working shop, with payments and delivery, in about five minutes from your phone.' )
@@ -46,11 +46,11 @@ function sib_seed_help_articles(): array {
 			. $b( 'steps', [ 'title' => 'In the Shopinbos app', 'items' => "Open Orders | Tap the order.\nTap More, then Cancel or Refund | Choose a full or part refund.\nAdd a reason | The customer gets a message with the reason and the amount." ] )
 			. $b( 'callout', [ 'kind' => 'note', 'title' => 'Where the money goes', 'text' => 'Card, transfer and USSD refunds go back the way the customer paid, usually within 3 to 5 working days. Pay on delivery orders that were not paid have nothing to refund.' ] ) ],
 
-		[ 'when-will-i-get-my-money', 'When will I get my money?', 'payments-and-payouts', 'Every Friday, to your bank account. You can also withdraw early.',
-			$p( 'Every payment, whether by card, transfer, USSD or pay on delivery, lands in your Shopinbos balance. Your balance is paid to your bank account every Friday.' )
-			. $b( 'steps', [ 'title' => 'How money moves', 'items' => "Customer pays | By card, transfer or USSD at checkout, or cash to the rider.\nIt shows in your balance | Online payments straight away; pay on delivery cash the same evening.\nFriday payout | Your balance goes to your bank account every Friday." ] )
-			. $b( 'callout', [ 'kind' => 'tip', 'title' => 'Need it sooner?', 'text' => 'Tap Withdraw on the Money screen to send your balance to your bank any day.' ] )
-			. $b( 'faq', [ 'title' => 'Common questions', 'items' => "Is there a minimum payout? | No. Whatever is in your balance on Friday is paid out.\nWhere do I change my bank account? | Settings, then Payouts. For your safety, we confirm the change with a code." ] ) ],
+		[ 'when-will-i-get-my-money', 'When will I get my money?', 'payments-and-payouts', 'Straight to your bank account, usually the next working day.',
+			$p( 'Card, transfer and USSD payments are split by Paystack when the buyer pays and settle straight to your own bank account, usually the next working day. Pay on delivery cash is paid to you directly by the delivery partner.' )
+			. $b( 'steps', [ 'title' => 'How money moves', 'items' => "Customer pays | By card, transfer or USSD at checkout, or cash to the rider.\nYou see it in the app | Each payment shows beside its order straight away.\nIt reaches your bank | Online payments settle the next working day; the rider pays cash to you by 6pm." ] )
+			. $b( 'callout', [ 'kind' => 'tip', 'title' => 'Shopinbos never holds it', 'text' => 'Your money goes from Paystack straight to your bank. There is nothing to withdraw.' ] )
+			. $b( 'faq', [ 'title' => 'Common questions', 'items' => "Is there a minimum payout? | No. Every payment settles to your bank, whatever the amount.\nWhere do I change my bank account? | Settings, then Payouts. For your safety, we confirm the change with a code." ] ) ],
 
 		[ 'connect-your-own-domain', 'Connect your own domain name', 'store-and-design', 'Use a domain you own, like yourshop.com, with free SSL.',
 			$p( 'Your store works at yourname.shopinbos.com for free. On a paid plan you can also use a domain you own, like yourshop.com.ng.' )
@@ -80,6 +80,6 @@ function sib_seed_help_articles(): array {
 		[ 'request-a-quote-from-a-supplier', 'Request a quote from a supplier', 'sourcing-and-dropshipping', 'Ask a supplier for a wholesale price on a larger order.',
 			$p( 'For larger orders, ask the supplier for a quote. You agree the price in the app before you pay.' )
 			. $b( 'steps', [ 'title' => 'In the Shopinbos app', 'items' => "Open Find stock | Find the product you want.\nTap Buy wholesale, then Ask for a quote | Add how many you want and when you need them.\nCompare and accept | The supplier replies in the app, usually within a day." ] )
-			. $b( 'callout', [ 'kind' => 'note', 'title' => 'Paid safely', 'text' => 'Your money is held until the goods are delivered, then the supplier is paid.' ] ) ],
+			. $b( 'callout', [ 'kind' => 'note', 'title' => 'Paid safely', 'text' => 'You pay in the app once the supplier accepts, straight to their bank. Shopinbos never holds the money.' ] ) ],
 	];
 }

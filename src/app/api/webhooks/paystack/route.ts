@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
     return new NextResponse("OK", { status: 200 });
   }
 
-  // ── Prepaid wallet: card top-ups and withdrawals to the bank (src/lib/wallet/balance.server.ts) ──
+  // ── Prepaid wallet: card top-ups, and withdrawals made before the balance went spend-only (src/lib/wallet/balance.server.ts) ──
   // Both idempotent on the reference, so a 500 is safe for Paystack to retry.
   if (eventType === "charge.success" && typeof event.data?.reference === "string" && event.data.reference.startsWith(WALLET_REFERENCE.topUp)) {
     const result = await confirmCardTopUp(event.data.reference).catch((error) => {
