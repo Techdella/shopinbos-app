@@ -15,7 +15,7 @@ test("the phone's wallet card never starts a payment, shows the account number o
   assert.doesNotMatch(card, /emailWalletTopUp|bal\.topUp/);
   assert.doesNotMatch(lib, /emailWalletTopUp|topup-email/);
   assert.match(card, /\{WALLET_ACCOUNT_IN_APP \? <WalletAccountNumber view=\{view\} \/> : null\}/);
-  assert.match(lib, /WALLET_ACCOUNT_IN_APP = process\.env\.EXPO_PUBLIC_WALLET_ACCOUNT_NUMBER === "true"/);
+  assert.match(lib, /WALLET_ACCOUNT_IN_APP = !STORE_BUILD && process\.env\.EXPO_PUBLIC_WALLET_ACCOUNT_NUMBER === "true"/);
   assert.doesNotMatch(read("apps/mobile/eas.json"), /EXPO_PUBLIC_WALLET_ACCOUNT_NUMBER/);
   assert.doesNotMatch(read("apps/mobile/src/components/WalletAccountNumber.tsx"), /openBrowserAsync|topUpWallet|>[A-Z][a-z]+ [a-z]+[^<{]*</);
   assert.doesNotMatch(card + lib, /withdrawFromWallet|wallet\/withdraw/, "the balance is spend-only");
@@ -41,10 +41,18 @@ test("Call Peggy is hidden when calls aren't set up, never a coming-soon message
   assert.doesNotMatch(read("shared/i18n/messages/m_help/en.ts"), /"call\.soon"/);
 });
 
-test("the prepaid balance is off in store builds unless EXPO_PUBLIC_PREPAID_BALANCE=true (Play: digital wallets need an organization account)", () => {
+test("the prepaid balance is never in App Store or Play builds, iPhone and Android alike (digital wallets need an organization account)", () => {
   const lib = read("apps/mobile/src/lib/wallet.ts");
   const screen = read("apps/mobile/src/app/wallet.tsx");
-  assert.match(lib, /PREPAID_BALANCE_IN_APP = process\.env\.EXPO_PUBLIC_PREPAID_BALANCE === "true"/);
+  // Store builds are the EAS "production" profile; app.config.js marks them and the app checks the mark, so no
+  // EXPO_PUBLIC_* setting on expo.dev can turn the balance on in a store build.
+  const config = read("apps/mobile/app.config.js");
+  assert.match(config, /const storeBuild = process\.env\.EAS_BUILD_PROFILE === "production";/);
+  assert.match(config, /extra: \{ \.\.\.config\.extra, storeBuild \}/);
+  assert.match(JSON.parse(read("apps/mobile/eas.json")).build.production ? "production" : "", /production/);
+  assert.match(lib, /STORE_BUILD = \(Constants\.expoConfig\?\.extra as \{ storeBuild\?: boolean \} \| undefined\)\?\.storeBuild === true;/);
+  assert.match(lib, /PREPAID_BALANCE_IN_APP = !STORE_BUILD && process\.env\.EXPO_PUBLIC_PREPAID_BALANCE === "true"/);
+  assert.doesNotMatch(lib, /Platform\.OS/, "the rule is the same on both platforms");
   assert.match(screen, /\{PREPAID_BALANCE_IN_APP \? <WalletBalanceCard \/> : null\}/);
   assert.doesNotMatch(read("apps/mobile/eas.json"), /EXPO_PUBLIC_PREPAID_BALANCE/);
 });

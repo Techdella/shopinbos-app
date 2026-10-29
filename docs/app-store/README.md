@@ -4,6 +4,17 @@ Everything needed to put the Expo app (`apps/mobile`) on the App Store. The app 
 `com.shopinbos.app`, Sign in with Apple, permission texts, push, account deletion, no in-app digital sales
 (`docs/store-payments-audit.md`), and EAS build profiles. What's left is the Apple side, in this order.
 
+## 0. Apple Developer Program
+
+Enroll at developer.apple.com/programs/enroll (yearly fee). An **organization** account shows the company as the
+seller and is what Apple expects for apps handling payments (guideline 5.1.1(ix)): it needs the company's D-U-N-S
+number (free from Dun & Bradstreet). An **individual** account works for building and TestFlight and can be
+converted to an organization later through Apple Developer Support, keeping the app, Team ID and keys; convert before
+submitting for review.
+
+The prepaid wallet balance never ships in store builds (`src/lib/wallet.ts` `STORE_BUILD`), on iPhone as on Android,
+so the app has no digital wallet for Apple's 3.1.5 organization-only rule to apply to.
+
 ## 1. App Store Connect app record
 
 App Store Connect › Apps › + › New App:
@@ -105,7 +116,8 @@ python3 docs/app-store/make-screenshots.py docs/play-store/listing/screenshots d
 ## 5. Before "Submit for Review"
 
 - Demo account in `review-notes.txt` works on the TestFlight build, with a published shop and a few orders.
-- Store builds don't set `EXPO_PUBLIC_PREPAID_BALANCE` or `EXPO_PUBLIC_WALLET_ACCOUNT_NUMBER` (`apps/mobile/.env.example`).
+- Build with the `production` profile: that's what keeps the prepaid balance and the wallet account number out
+  (`STORE_BUILD`), whatever the `EXPO_PUBLIC_*` settings on expo.dev say.
 - Plans and AI credits: the app ships as a free companion to the paid web tool (Apple 3.1.3(f); decided, see
   `docs/store-payments-audit.md` › "Decisions"). That holds only while the app and the website pages it opens show
   no way to buy them. Open a few web tools from the TestFlight build (product import, video studio, shop preview)
