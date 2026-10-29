@@ -2,8 +2,8 @@
 import type en from "./en.ts";
 
 const ig: Partial<Record<keyof typeof en, string>> = {
-  title: "Ree ebe niile",
-  sub: "Jikọọ accounts gị, ngwaahịa gị ga-apụta ebe ahụ. Ọnụahịa na stock ga na-emelite onwe ha.",
+  title: "Jikọọ akaụntụ",
+  sub: "Jikọọ WhatsApp, Facebook & Instagram na Google ebe a. Chat gị ga-abata na Chats, ngwaahịa gị ga-apụtakwa ebe ahụ.",
   cantSave: "Ngwaahịa gị ka na-apụta ebe ejikọrọ ha, mana anyị enweghị ike ichekwa mgbanwe ebe a ugbu a. Pịa Help, anyị ga-edozi ya.",
   "p.whatsapp": "Ndị ahịa ga-ahụ ngwaahịa gị n'ime WhatsApp.",
   "p.meta": "Ngwaahịa gị na Facebook Shop gị na posts Instagram gị.",
@@ -36,11 +36,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "soon.title": "Ọ na-abịa n'oge na-adịghị anya",
   "soon.notify": "Gwa m mgbe ọ dị njikere",
   "soon.noted": "Anyị ga-agwa gị",
-  "wa.title": "Buru ụzọ jikọọ nọmba WhatsApp gị",
-  "wa.body": "WhatsApp chọrọ ka e jikọọ nọmba azụmahịa gị na ụlọ ahịa gị. Anyị ga-emepe ya na browser gị. Mgbe ị mechara, laghachi ma pịa Jikọọ ọzọ.",
-  "wa.open": "Mepee",
   "post.title": "Dee post ma kesaa",
-  "post.sub": "Dee post gbasara ngwaahịa gị ma kesaa ya ebe niile. Ọ na-emepe na browser gị",
+  "post.sub": "Dee post gbasara ngwaahịa gị ma kesaa ya ebe niile.",
   openFailed: "Anyị enweghị ike imepe sign-in. Lelee network gị ma nwaa ọzọ.",
   "email.title": "Email n'Inbox gị",
   "email.name": "Email",
@@ -59,6 +56,12 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "email.domainTitle": "Hazie email domain gị na ihuenyo buru ibu",
   "email.domainBody": "Email dị ka hello@yourshop.com: họrọ adreesị ahụ ma pịa Jikọọ. Ọ dị mfe na kọmputa, mana ị nwekwara ike imepe ya n'ekwentị a.",
   "email.askUs": "Rịọ anyị ka anyị hazie ya",
+  "acc.whatsapp": "WhatsApp: {name}",
+  "acc.facebook": "Facebook Page: {name}",
+  "acc.instagram": "Instagram: {name}",
+  "acc.noInstagramApp": "Etinyebeghị Instagram. N'app Instagram, gbanwee ya ka ọ bụrụ business account ma jikọọ ya na Facebook Page gị, wee jikọọ ọzọ.",
+  "card.confirmMeta": "Kwụsịkọọ {name}? Ozi ọhụrụ na mmelite ngwaahịa ga-akwụsị ebe ahụ. Mkparịta ụka gị ochie ga-anọgide.",
+  "card.confirmWhatsapp": "Wepụ {name}? Ozi WhatsApp ọhụrụ agaghị abata n'inbox gị ọzọ, ngwaahịa gị agaghịkwa emelite ebe ahụ. Chat ochie gị ga-anọgide.",
 };
 
 export default ig;

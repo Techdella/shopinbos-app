@@ -124,6 +124,17 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "create.popupSub": "Ìfilọ̀ lórí ṣọ́ọ̀bù rẹ tó ń gba ímeèlì àti nọ́mbà WhatsApp",
   "needs.allOrders": "Gbogbo ọ̀rọ̀ àṣẹ",
   "fromPeggy": "Láti ọ̀dọ̀ Peggy",
+  "linkBio.title": "Link in bio",
+  "linkBio.edit": "Ṣàtúnṣe",
+  "linkBio.setupTitle": "Ṣe link in bio rẹ",
+  "linkBio.setupSub": "Link kan fún bio Instagram àti TikTok rẹ: ṣọ́ọ̀bù rẹ, WhatsApp àti àwọn social rẹ.",
+  "linkBio.setup": "Ṣètò rẹ̀",
+  "linkBio.live": "Ó wà láàyè · fi sínú bio rẹ",
+  "linkBio.off": "Ó farapamọ́ · tàn án nínú Ṣàtúnṣe",
+  "linkBio.copy": "Daakọ",
+  "linkBio.copied": "A ti daakọ",
+  "linkBio.share": "Pín",
+  "linkBio.shareMessage": "Ra nǹkan lọ́dọ̀ {name}: {url}",
 };
 
 export default yo;

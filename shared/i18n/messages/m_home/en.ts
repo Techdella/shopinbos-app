@@ -126,6 +126,17 @@ const en = {
   "create.popupSub": "An offer on your shop that collects emails and WhatsApp numbers",
   "needs.allOrders": "All orders",
   "fromPeggy": "From Peggy",
+  "linkBio.title": "Link in bio",
+  "linkBio.edit": "Edit",
+  "linkBio.setupTitle": "Make your link in bio",
+  "linkBio.setupSub": "One link for your Instagram and TikTok bio: your shop, WhatsApp and socials.",
+  "linkBio.setup": "Set it up",
+  "linkBio.live": "Live · put it in your bio",
+  "linkBio.off": "Hidden · turn it on in Edit",
+  "linkBio.copy": "Copy",
+  "linkBio.copied": "Copied",
+  "linkBio.share": "Share",
+  "linkBio.shareMessage": "Shop with {name}: {url}",
 } satisfies Record<string, string>;
 
 export default en;
