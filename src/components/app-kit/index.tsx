@@ -91,8 +91,8 @@ export function PageHead({ title, sub, actions, learn }: { title: ReactNode; sub
   );
 }
 
-export function Card({ className, children, as: Tag = "section" }: { className?: string; children: ReactNode; as?: "section" | "div" | "article" | "aside" }) {
-  return <Tag className={cx("rounded-[22px] border border-app-line bg-white", className)}>{children}</Tag>;
+export function Card({ id, className, children, as: Tag = "section" }: { id?: string; className?: string; children: ReactNode; as?: "section" | "div" | "article" | "aside" }) {
+  return <Tag id={id} className={cx("rounded-[22px] border border-app-line bg-white", className)}>{children}</Tag>;
 }
 
 /** Card title row: heading on the left, a link or action on the right. */

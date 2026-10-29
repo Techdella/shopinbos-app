@@ -270,23 +270,32 @@ async function openStorePreorderRows(storeId: string) {
   });
 }
 
+/**
+ * The store's preorders by product: every product taking preorders now (even before its first order), and any
+ * product with open preorder orders (also after it stopped taking them). Products taking them come first.
+ */
 export async function storePreorders(storeId: string): Promise<StorePreordersView> {
   const rows = await openStorePreorderRows(storeId);
   const groups = groupStorePreorders(rows);
-  const products = groups.length
-    ? await db.storeProduct.findMany({ where: { storeId, id: { in: groups.map((group) => group.productId) } }, select: { id: true, images: true, preorderEnabled: true, preorderShipsAt: true, preorderLimit: true, preorderTaken: true, preorderDepositPct: true } })
-    : [];
+  const products = await db.storeProduct.findMany({
+    where: { storeId, OR: [{ preorderEnabled: true, status: { not: "archived" } }, ...(groups.length ? [{ id: { in: groups.map((group) => group.productId) } }] : [])] },
+    select: { id: true, name: true, images: true, preorderEnabled: true, preorderShipsAt: true, preorderLimit: true, preorderTaken: true, preorderDepositPct: true },
+  });
   const byId = new Map(products.map((product) => [product.id, product]));
-  return {
-    groups: groups.map((group) => {
-      const product = byId.get(group.productId);
-      return {
-        ...group,
-        image: group.image ?? (Array.isArray(product?.images) ? ((product.images as unknown[]).find((value): value is string => typeof value === "string") ?? null) : null),
-        product: product ? { on: product.preorderEnabled, shipsOn: preorderDay(product.preorderShipsAt), limit: product.preorderLimit, taken: product.preorderTaken, depositPct: product.preorderDepositPct } : null,
-      };
-    }),
-  };
+  const firstImage = (images: unknown) => (Array.isArray(images) ? ((images as unknown[]).find((value): value is string => typeof value === "string") ?? null) : null);
+  // Taking preorders but no open orders yet: still listed, so the seller can see and manage it.
+  const empty = products
+    .filter((product) => product.preorderEnabled && !groups.some((group) => group.productId === product.id))
+    .map((product): StorePreorderGroup => ({ productId: product.id, name: product.name, image: firstImage(product.images), shipsOn: preorderDay(product.preorderShipsAt), units: 0, waiting: 0, unpaid: 0, balanceDue: 0, orders: [] }));
+  const all = [...groups, ...empty].map((group) => {
+    const product = byId.get(group.productId);
+    return {
+      ...group,
+      image: group.image ?? firstImage(product?.images),
+      product: product ? { on: product.preorderEnabled, shipsOn: preorderDay(product.preorderShipsAt), limit: product.preorderLimit, taken: product.preorderTaken, depositPct: product.preorderDepositPct } : null,
+    };
+  });
+  return { groups: all.sort((a, b) => Number(Boolean(b.product?.on)) - Number(Boolean(a.product?.on))) };
 }
 
 /**
