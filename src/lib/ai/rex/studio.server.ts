@@ -16,10 +16,13 @@ import {
   type StoreBrandSettingsLike,
   type ThemeTier,
   type StoreEditorSnapshot,
+  type TemplateSectionNode,
 } from "@/lib/store-templates";
 import { readPaymentChoices } from "@/lib/storefront/shopper-info";
 import { draftHealthFacts, type StoreHealthFacts } from "@/lib/store-health";
 import { BOUTIQUE_SECTION_KINDS, CLASSIC_SECTION_KINDS, type ApplyContext } from "@/lib/ai/rex/studio-plan";
+import { applyRexFieldChanges, describeRexFields } from "@/lib/ai/rex/section-fields";
+import { STORE_BLOCK_KINDS, isStoreBlock, newStoreBlockSection } from "@/components/storefront/boutique/blocks/block-catalog";
 import { boundRexVersions, readRexVersions, type RexVersionState } from "@/lib/ai/rex/studio-versions";
 import { rexVersionLimitFor } from "@shared/rex-preferences";
 import { isLiveStatus } from "@/lib/ai/rex/build-store";
@@ -64,7 +67,18 @@ export function themeNameFor(themeId: string | null | undefined, fallback?: stri
 }
 
 export function allowedKindsFor(themeId: string) {
-  return isBoutiqueTheme(themeId) ? BOUTIQUE_SECTION_KINDS : CLASSIC_SECTION_KINDS;
+  // The 2026 themes also take the ready-made blocks (split hero, product carousel, trust badges, …).
+  return isBoutiqueTheme(themeId) ? [...BOUTIQUE_SECTION_KINDS, ...STORE_BLOCK_KINDS] : CLASSIC_SECTION_KINDS;
+}
+
+/** A new section of `kind`: a ready-made block with its starter content, else the template library's. */
+export function rexNewSection(kind: string): TemplateSectionNode {
+  return (isStoreBlock(kind) ? newStoreBlockSection(kind, `${kind}-${Math.random().toString(36).slice(2, 8)}`) : null) ?? createSectionFromLibrary(kind);
+}
+
+/** The inspector fields Rex may set on a section, with what each takes (for the designer's prompt). */
+export function describeSectionFields(section: TemplateSectionNode, themeId: string) {
+  return describeRexFields(section, isBoutiqueTheme(themeId) ? "boutique" : "classic", themeId);
 }
 
 /** The themes Rex may offer: those the seller's plan includes (`tier`), plus the one the draft already uses. */
@@ -100,8 +114,9 @@ export async function studioApplyContext(store: StudioStore): Promise<ApplyConte
       const oldManifest = getTemplateManifest(current.templateId);
       return switchThemeDraft(current, seed, oldManifest ? createSnapshotFromTemplate(oldManifest) : null).snapshot;
     },
-    createSection: createSectionFromLibrary,
+    createSection: rexNewSection,
     allowedKinds: allowedKindsFor,
+    applyFields: (section, fields, themeId) => applyRexFieldChanges(section, fields, isBoutiqueTheme(themeId) ? "boutique" : "classic", themeId),
     reviewItems: await approvedReviewItems(store.id),
     isBoutique: isBoutiqueTheme,
   };

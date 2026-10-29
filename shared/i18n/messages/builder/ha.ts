@@ -2062,6 +2062,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "ed.Page colour": "Launin shafi",
   "ed.Card colour": "Launin kati",
   "ed.Accent tint": "Ɗan launin ado",
+  "ed.Tighter": "Matse",
+  "ed.Roomy": "Fili mai yawa",
   "ed.Space above and below": "Fili a sama da ƙasa",
   "ed.Add element": "Ƙara abu",
   "ed.Fewer columns keep every element: they move into the last column.": "Rage ginshiƙai ba ya cire kowane abu: suna komawa ginshiƙin ƙarshe.",

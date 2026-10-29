@@ -2050,6 +2050,8 @@ const en = {
   "ed.Page colour": "Page colour",
   "ed.Card colour": "Card colour",
   "ed.Accent tint": "Accent tint",
+  "ed.Tighter": "Tighter",
+  "ed.Roomy": "Roomy",
   "ed.Space above and below": "Space above and below",
   "ed.Add element": "Add element",
   "ed.Fewer columns keep every element: they move into the last column.": "Fewer columns keep every element: they move into the last column.",

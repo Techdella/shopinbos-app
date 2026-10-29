@@ -347,7 +347,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
 
   function wrap(section: TemplateSectionNode, node: React.ReactNode) {
     if (!node) return null;
-    if (live || props.demo) return <div key={section.id} className="bq-sec">{node}</div>;
+    const spacing = typeof section.settings?.spacing === "string" && section.settings.spacing !== "normal" ? section.settings.spacing : undefined;
+    if (live || props.demo) return <div key={section.id} className="bq-sec" data-spacing={spacing}>{node}</div>;
     const selected = props.selectedSectionId === section.id;
     const editCopy = props.onUpdateSectionCopy;
     // Words open for typing on a click; inside a button or link (which still works as one) on a double-click.
@@ -364,6 +365,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       <div
         key={section.id}
         className="bq-sec"
+        data-spacing={spacing}
         data-section-id={section.id}
         onClick={(event) => {
           event.stopPropagation();

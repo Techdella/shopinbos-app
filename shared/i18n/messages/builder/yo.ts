@@ -2062,6 +2062,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "ed.Page colour": "Àwọ̀ ojú-ìwé",
   "ed.Card colour": "Àwọ̀ káàdì",
   "ed.Accent tint": "Àwọ̀ àfihàn fẹ́ẹ́rẹ́",
+  "ed.Tighter": "Súnmọ́ra",
+  "ed.Roomy": "Àyè tó gbòòrò",
   "ed.Space above and below": "Àyè lókè àti nísàlẹ̀",
   "ed.Add element": "Fi èròjà kún un",
   "ed.Fewer columns keep every element: they move into the last column.": "Dídín òpó kù kò ní pa èròjà kankan rẹ́: wọn yóò lọ sínú òpó tó kẹ́yìn.",

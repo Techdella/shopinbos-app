@@ -2062,6 +2062,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "ed.Page colour": "Agba peeji",
   "ed.Card colour": "Agba kaadị",
   "ed.Accent tint": "Agba ntụpọ dị nro",
+  "ed.Tighter": "Mechie anya",
+  "ed.Roomy": "Ohere buru ibu",
   "ed.Space above and below": "Ohere n'elu na n'okpuru",
   "ed.Add element": "Tinye ihe",
   "ed.Fewer columns keep every element: they move into the last column.": "Ọ bụrụ na ibelata kọlụm, ihe niile ka ga-adị: ha ga-akwaga na kọlụm ikpeazụ.",

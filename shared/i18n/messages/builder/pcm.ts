@@ -2062,6 +2062,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "ed.Page colour": "Page colour",
   "ed.Card colour": "Card colour",
   "ed.Accent tint": "Accent tint",
+  "ed.Tighter": "Close-close",
+  "ed.Roomy": "Wide space",
   "ed.Space above and below": "Space for top and bottom",
   "ed.Add element": "Add element",
   "ed.Fewer columns keep every element: they move into the last column.": "Fewer columns go keep every element: dem go move enter the last column.",

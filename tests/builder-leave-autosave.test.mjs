@@ -61,7 +61,7 @@ test("inline text editing in the 2026 themes: builder only, a box over the words
   const boutique = read("src/components/storefront/boutique/BoutiqueStorefront.tsx");
   const inline = read("src/components/storefront/boutique/InlineTextEditor.tsx");
   // Never on a live store: wrap() returns before any editing for live and demo pages.
-  assert.match(boutique, /if \(live \|\| props\.demo\) return <div key=\{section\.id\} className="bq-sec">\{node\}<\/div>;\s*const selected/);
+  assert.match(boutique, /if \(live \|\| props\.demo\) return <div key=\{section\.id\} className="bq-sec" data-spacing=\{spacing\}>\{node\}<\/div>;\s*const selected/);
   assert.match(boutique, /<InlineTextEditor/);
   assert.match(read("src/components/storefront/TemplateStorefrontSurface.tsx"), /onUpdateSectionCopy=\{props\.onUpdateSectionCopy\}/);
   assert.match(inline, /event\.key === "Escape"[\s\S]*?finish\(false\)/);
