@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
       console.error("[cron lifecycle] queued withdrawals failed", error instanceof Error ? error.message : "unknown");
       return { sent: 0, waiting: 0 };
     });
-    // Paystack's settlements to each business's bank: on their statement, and "₦X is in your bank".
+    // Paystack's settlements to each business's bank: on their statement, and "Shopinbos paid ₦X into your bank".
     const settlements = await recordSettlements().catch((error) => {
       console.error("[cron lifecycle] settlements failed", error instanceof Error ? error.message : "unknown");
       return { checked: 0, recorded: 0 };
