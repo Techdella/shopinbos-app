@@ -2039,6 +2039,9 @@ export const BOUTIQUE_CSS = `
 .bq :where(a,button,input,select,textarea,summary,[tabindex]):focus-visible{outline:2px solid var(--bq-accent);outline-offset:3px}
 .bq-wrap{width:100%;max-width:var(--bq-wrap,1320px);margin:0 auto;padding-left:16px;padding-right:16px}
 .bq-h{font-family:var(--bq-heading);margin:0;line-height:1.1}
+/* A button that looks like plain content (links that open in the page). :where() keeps it at zero specificity, so
+   .bq-btn, cards and tiles keep their own padding and borders. */
+:where(.bq-plain){background:transparent;border:0;padding:0;color:inherit;cursor:pointer;text-align:inherit;font:inherit}
 .bq-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:0 22px;border-radius:var(--bq-button-radius);font-weight:600;font-size:14.5px;cursor:pointer;transition:opacity .15s,transform .15s;white-space:nowrap}
 .bq-btn:hover{opacity:.9}
 .bq-btn:disabled{opacity:.55;cursor:not-allowed}
