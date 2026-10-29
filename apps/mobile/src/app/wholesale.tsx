@@ -101,7 +101,7 @@ export default function WholesaleOrders() {
   }
 
   return (
-    <Screen title={t("ws.title")} sub={t("ws.sub")} refreshing={refreshing} onRefresh={() => { void quotes.reload(); return refresh(); }}>
+    <Screen title={t("ws.title")} sub={t("ws.subShort")} tip={t("ws.sub")} refreshing={refreshing} onRefresh={() => { void quotes.reload(); return refresh(); }}>
       {notice ? <Notice tone={notice.tone}>{notice.text}</Notice> : null}
       {/* Preorders (deposits, Pay balance once the stock is ready) have their own list. */}
       {data?.some((order) => order.preorder) ? (
@@ -140,7 +140,7 @@ export default function WholesaleOrders() {
       {data && !data.length ? (
         <View style={{ gap: 12, alignItems: "flex-start" }}>
           <T weight="bold" style={{ fontSize: 18 }}>{t("ws.empty")}</T>
-          <T style={{ color: colors.inkSoft, lineHeight: 21 }}>{t("ws.emptySub")}</T>
+          <T style={{ color: colors.inkSoft, lineHeight: 21 }}>{t("ws.emptySubShort")}</T>
           <PillButton title={t("ws.findProducts")} size="md" onPress={() => router.push("/find")} />
         </View>
       ) : null}

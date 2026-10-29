@@ -133,6 +133,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "other.csvSub": "Ṣé o ti ní àkójọ? Gbé fáìlì CSV tàbí Excel sókè. Fọ́tò tí o gbé síbí á bá orúkọ fáìlì mu.",
   "other.one": "Fi ọjà kan kún un",
   "grid.photo": "Fọ́tò",
+  "pick.subShort": "Tó 300 lẹ́ẹ̀kan. Fọ́tò kan, ọjà kan.",
+  "other.csvSubShort": "Ṣé o ní àkójọ? Gbé fáìlì CSV tàbí Excel sókè.",
 } satisfies Record<string, string>;
 
 export default yo;

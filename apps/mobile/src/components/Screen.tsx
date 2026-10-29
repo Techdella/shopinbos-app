@@ -5,7 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { HelpButton } from "@/components/Help";
 import { Sub, Title } from "@/components/design";
-import { T } from "@/components/ui";
+import { InfoTip, T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
 import { colors, fonts } from "@/theme";
 import { KeyboardShift } from "@/components/KeyboardShift";
@@ -63,6 +63,7 @@ export function Screen({
   title,
   heading,
   sub,
+  tip,
   footer,
   children,
   refreshing,
@@ -78,6 +79,8 @@ export function Screen({
   /** A big title at the top of the body (flows and set-up steps). */
   heading?: string;
   sub?: string;
+  /** The longer explanation behind an ⓘ after the heading (or after `sub` when there's no heading). */
+  tip?: string;
   footer?: ReactNode;
   children: ReactNode;
   refreshing?: boolean;
@@ -103,8 +106,26 @@ export function Screen({
         >
           {heading || sub ? (
             <View style={{ gap: 8 }}>
-              {heading ? <Title>{heading}</Title> : null}
-              {sub ? <Sub>{sub}</Sub> : null}
+              {heading ? (
+                tip ? (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                    <Title style={{ flexShrink: 1 }}>{heading}</Title>
+                    <InfoTip title={heading} text={tip} size={20} />
+                  </View>
+                ) : (
+                  <Title>{heading}</Title>
+                )
+              ) : null}
+              {sub ? (
+                tip && !heading ? (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
+                    <Sub style={{ flexShrink: 1 }}>{sub}</Sub>
+                    <InfoTip title={title} text={tip} />
+                  </View>
+                ) : (
+                  <Sub>{sub}</Sub>
+                )
+              ) : null}
             </View>
           ) : null}
           {children}

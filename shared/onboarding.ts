@@ -211,29 +211,14 @@ export function suggestShopNames(personName: string, description: string): strin
 // ─── "Where do you sell?" (the phone's onboarding step before payments) ─────────
 // The same choices as the delivery settings' "Where I sell" (shared/delivery-market.ts SELL_AREAS, saved with
 // PUT /api/mobile/delivery/settings like the web's SellAreaPicker): just my state, some states, or all of Nigeria.
-// A plan sells in a number of states (shared/plans.ts sellingStates; null = all of Nigeria). The step never blocks:
-// a choice the plan doesn't include is swapped for the nearest one it does, with one calm line saying so.
+// Where a shop sells isn't a plan limit: every plan can sell anywhere, and how far a store reaches online is down to
+// the seller (search, ads, social), not Shopinbos.
 
 export type OnboardingSellArea = "one_state" | "selected" | "nationwide";
 
 export interface SellChoice {
   area: OnboardingSellArea;
   states: string[];
-}
-
-/**
- * The choice to keep for a plan that sells in `limit` states (null: everywhere). `note` says what was changed:
- * "nationwide" (All of Nigeria needs a bigger plan) or "states" (more states than the plan covers).
- */
-export function allowedSellChoice(choice: SellChoice, limit: number | null, homeState: string | null): SellChoice & { note: "nationwide" | "states" | null } {
-  const states = [...new Set(choice.states.filter(Boolean))];
-  if (limit === null) return { area: choice.area, states: choice.area === "nationwide" ? [] : states, note: null };
-  if (choice.area === "nationwide") {
-    const home = homeState ?? states[0] ?? null;
-    return { area: "one_state", states: home ? [home] : [], note: "nationwide" };
-  }
-  if (states.length > limit) return { area: limit === 1 ? "one_state" : choice.area, states: states.slice(0, limit), note: "states" };
-  return { area: choice.area, states, note: null };
 }
 
 /** What Continue saves (it is never blocked): a choice with no state yet takes the home state, else Lagos. */
@@ -244,9 +229,8 @@ export function sellChoiceToSave(choice: SellChoice, homeState: string | null): 
 }
 
 /**
- * The flat delivery fees the payments step starts with, from where the shop sells. Each zone is one set of places,
- * so it stays inside the plan's selling states (src/lib/plans/gates.server.ts sellingStatesProblem): the home state,
- * the other chosen states together, and "everywhere else" only when the shop sells across Nigeria.
+ * The flat delivery fees the payments step starts with, from where the shop sells: the home state, the other chosen
+ * states together, and "everywhere else" only when the shop sells across Nigeria.
  */
 export function zonesForSellChoice(choice: SellChoice, homeState: string | null): DeliveryZone[] {
   const home = (choice.area === "nationwide" ? homeState : homeState && choice.states.includes(homeState) ? homeState : choice.states[0]) ?? null;

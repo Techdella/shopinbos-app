@@ -324,8 +324,6 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "plans.f.seller.themes_all_seasonal": "Theme niile + campaign oge ememe",
   "plans.f.seller.staff": "{count, plural, other {Akaụntụ ndị ọrụ #}}",
   "plans.f.seller.credits": "{count, plural, other {AI credits # kwa ọnwa}}",
-  "plans.f.seller.states": "{count, plural, one {Ree na steeti #} other {Ree na steeti ruo #}}",
-  "plans.f.seller.statesNationwide": "Ree na mba niile",
   "plans.f.seller.partners": "{count, plural, other {Ndị delivery partner # ejikọrọ}}",
   "plans.f.seller.partnersUnlimited": "Ndị delivery partner na-enweghị oke",
   "plans.f.seller.privateRates": "Rate card delivery nzuzo (nke unu kparịtara)",

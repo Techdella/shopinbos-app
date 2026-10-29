@@ -239,7 +239,7 @@ function statusColor(status: string) {
 }
 
 export function StoreBuilderStandalone({ storeName, storeDomain }: PortalProps) {
-  const domain = storeDomain ?? "yourstore.shopinbos.com";
+  const domain = storeDomain ?? "yourstore.mybos.store";
   return (
     <Shell>
       <main style={{ padding: "28px 32px", maxWidth: 1300, margin: "0 auto" }}>
@@ -340,7 +340,7 @@ export function RexBuilderStandalone({ storeName, storeDomain }: PortalProps) {
           <div style={{ fontSize: 11, color: T.faint, textAlign: "center", marginTop: 8 }}>Rex edits the live preview. Nothing publishes until you hit Publish.</div>
         </aside>
         <main style={{ padding: 22, overflow: "auto" }}>
-          <PageHead title="Live store preview" sub={`${storeDomain ?? "yourstore.shopinbos.com"} - draft changes`}>
+          <PageHead title="Live store preview" sub={`${storeDomain ?? "yourstore.mybos.store"} - draft changes`}>
             <Button href="/builder/editor" variant="ghost" icon="undo">Undo</Button>
             <Button href="/builder/editor" icon="check">Publish</Button>
           </PageHead>

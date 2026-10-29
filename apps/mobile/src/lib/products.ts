@@ -4,6 +4,7 @@ import type { ProductVariant, VariantOption } from "@shared/product-variants";
 import type { MoreSource } from "./product-more-pure";
 import type { PreorderState } from "./preorder-pure";
 import { api } from "./api";
+import { uploadOnePhoto, type PhotoInput } from "./upload-photo";
 import type { CategoryLite, StoreCategory } from "./categories-pure";
 import type { ProductItem } from "./dashboard";
 import { productListPath, type ProductListQuery } from "./product-filters-pure";
@@ -85,13 +86,9 @@ export const saveProduct = (id: string, patch: Record<string, unknown>) =>
 
 export const archiveProduct = (id: string) => api<unknown>(`/api/store/products/${encodeURIComponent(id)}`, { method: "DELETE" });
 
-export async function uploadProductPhoto(photo: { uri: string; mimeType?: string | null; fileName?: string | null }) {
-  const form = new FormData();
-  const type = photo.mimeType ?? "image/jpeg";
-  // React Native's FormData takes { uri, name, type } file parts.
-  form.append("file", { uri: photo.uri, name: photo.fileName ?? `product.${type.split("/")[1] ?? "jpg"}`, type } as unknown as Blob);
-  form.append("folder", "products");
-  const data = await api<{ publicUrl: string }>("/api/upload", { method: "POST", body: form });
+/** A product photo (camera or gallery), shrunk on the phone first (lib/upload-photo.ts); its public https address. */
+export async function uploadProductPhoto(photo: PhotoInput) {
+  const data = await uploadOnePhoto<{ publicUrl: string }>("/api/upload", photo, { folder: "products" }, { base: "product" });
   return data.publicUrl;
 }
 

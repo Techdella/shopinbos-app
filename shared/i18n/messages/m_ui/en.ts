@@ -265,6 +265,8 @@ const en = {
   "update.help": "Need help? Contact us",
   "update.storeFailed": "We couldn't open Google Play. Open the Play Store app and search for Shopinbos.",
   "update.storeFailedIos": "We couldn't open the App Store. Open the App Store app and search for Shopinbos.",
+  "tip.more": "More info",
+  "tip.learnMore": "Learn more",
 } satisfies Record<string, string>;
 
 export default en;

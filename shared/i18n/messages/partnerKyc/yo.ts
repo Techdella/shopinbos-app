@@ -102,7 +102,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "q.extra.base": "Fi fọ́tò ibùdó rẹ kún un",
   "q.extra.baseSub": "Yóò mú àmì Address Verified wá.",
   "q.extra.bank": "Payout ready",
-  "q.extra.bankSub": "Fi àkáǹtì báńkì rẹ kún un nígbà àkọ́kọ́ tí o bá fẹ́ gba owó, nínú Wallet rẹ.",
+  "q.extra.bankSub": "Fi àkáǹtì báńkì rẹ kún un nínú Wallet rẹ kí o lè gba owó rẹ.",
   "item.idDocument": "Fọ́tò ìdánimọ̀ rẹ",
   "item.base": "Ibi tí ibùdó rẹ wà",
   "state.unverified": "A kò tíì verify rẹ",

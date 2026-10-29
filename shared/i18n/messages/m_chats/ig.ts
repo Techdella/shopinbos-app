@@ -178,6 +178,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "bot.faqRemove": "Wepụ",
   "chats.riders": "Ndị na-ebuga",
   "chats.suppliers": "Ndị na-ebunye ngwaahịa",
+  "auto.peggyHintShort": "Peggy na-aza maka ngwaahịa, ọnụahịa na delivery gị.",
+  "auto.subShort": "Zaa ndị ahịa mgbe ị na-arụ ọrụ ma ọ bụ mechiri.",
 };
 
 export default ig;

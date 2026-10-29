@@ -252,6 +252,9 @@ const en = {
   "mine.emptyTitle": "No supplier products yet",
   "mine.emptyBody": "Products you add from suppliers show here, so you can change many prices at once.",
   "mine.find": "Find products",
+  "markup.roundingTitle": "How prices round",
+  "product.dropshipTitle": "How dropship works",
+  "product.dropshipShort": "You buy nothing now. {name} sends it when a customer pays.",
 } satisfies Record<string, string>;
 
 export default en;

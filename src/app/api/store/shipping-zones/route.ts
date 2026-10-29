@@ -1,5 +1,4 @@
 import { NextRequest } from "next/server";
-import { sellingStatesProblem } from "@/lib/plans/gates.server";
 import { withSeller } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
 import { ok, okList, apiError } from "@/lib/api/response";
@@ -36,11 +35,6 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
   const parsed = ShippingZoneCreateSchema.safeParse(body);
   if (!parsed.success) {
     return apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Invalid input");
-  }
-
-  if (parsed.data.active) {
-    const planProblem = await sellingStatesProblem(user.id, store.id, [parsed.data]);
-    if (planProblem) return apiError("PLAN_LIMIT", planProblem, 402);
   }
 
   const zone = await db.shippingZone.create({

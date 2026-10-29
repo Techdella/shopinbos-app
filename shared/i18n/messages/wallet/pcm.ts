@@ -154,6 +154,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "claim.none": "No recent order from supplier or delivery partner wey you fit claim on. You fit claim inside {days} days after delivery.",
   "claim.sent": "Claim don go.",
   "setup.neverCommission": "Shopinbos no dey hold your money. When {who} pay with card for your products, your share go land straight for dis bank, usually the next working day. Shopinbos commission of {pct}% of the wholesale value go comot from every marketplace order for your plan, plus your share of Paystack fee.",
+  "claim.promptShort": "Wrong, damaged or lost goods? Claim am within {days} days.",
 };
 
 export default pcm;

@@ -1,6 +1,7 @@
 import { Linking, View } from "react-native";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
+import { AppearanceRow } from "@/components/AppearancePicker";
 import type { AppIconName } from "@/components/icons";
 import { LinkRow } from "@/components/kit";
 import { LanguageRow } from "@/components/LanguagePicker";
@@ -63,6 +64,7 @@ export function PartnerMore({ sections }: { sections: Array<{ title: string; lin
       ))}
       <Card style={{ paddingVertical: 2, marginBottom: 14 }}>
         <LanguageRow first />
+        <AppearanceRow />
       </Card>
       <LinkButton title={t("logOut")} color={colors.danger} onPress={() => confirmSignOut()} />
       <DeleteAccountButton />

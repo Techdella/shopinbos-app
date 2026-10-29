@@ -72,6 +72,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "shots.undo": "Yi amfani da hotunana na asali",
   "shots.cost": "Kowane hoto yana amfani da hoto ɗaya daga na yau, sannan kiredit {credits}.",
   "style": "2. Salo",
+  "styleFeel": "Rukunin salo",
+  "styleAll": "Duka ({count})",
   "tpl.float": "Float",
   "tpl.floatBlurb": "Kayanka yana shawagi a kan bayan launin alama mai laushi da kalma ɗaya. Natsuwa da daraja.",
   "tpl.bold": "Big type",
@@ -167,6 +169,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "savedVersion": "Bidiyonka da aka ajiye",
   "downloadSaved": "Sauke bidiyon da aka ajiye",
   "hub.pages": "Shafukan bidiyo",
+  "hub.subShort": "Yi reels don talla, kayayyaki da social media.",
 };
 
 export default ha;

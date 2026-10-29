@@ -79,6 +79,8 @@ export const NOTIFY_EVENTS = {
   "supplier.expired": { category: "orders" },
   "supplier.switched": { category: "orders" },
   "supplier.update": { category: "orders" },
+  // A supplier a seller asked about ("Notify me when they add products") put a product live.
+  "supplier.new_products": { category: "orders" },
   "quote.received": { category: "orders" },
   "delivery.update": { category: "deliveries", collapse: { key: "delivery.update", one: "delivery update", many: "delivery updates" } },
   "delivery.quote": { category: "deliveries" },
@@ -97,7 +99,7 @@ export const NOTIFY_EVENTS = {
   "pricing.promotion": { category: "marketing" },
   "payout.sent": { category: "money" },
   // Shopinbos Wallet (src/lib/wallet/balance.server.ts): money in (a transfer to their own account number, or a card
-  // top-up), and withdrawals sent or bounced back.
+  // top-up), and withdrawals from before the balance went spend-only, finished or put back.
   "wallet.received": { category: "money", urgent: true },
   "wallet.withdrawal": { category: "money" },
   "payout.failed": { category: "money" },
@@ -107,6 +109,8 @@ export const NOTIFY_EVENTS = {
   "supplier_order.expired": { category: "orders" },
   "supplier_order.cancelled": { category: "orders" },
   "quote.request": { category: "orders", collapse: { key: "quote.request", one: "new quote request", many: "new quote requests" } },
+  // A shop asked to be told when the supplier adds products (src/lib/suppliers/product-requests.server.ts).
+  "supplier.products_wanted": { category: "orders", collapse: { key: "supplier.products_wanted", one: "shop waiting for your products", many: "shops waiting for your products" } },
   // China imports (src/lib/imports): a quote is ready, the order moved a step, or it was cancelled.
   "import.update": { category: "orders" },
   "pickup.update": { category: "deliveries" },
@@ -420,6 +424,7 @@ const SIMPLE_SCREENS: Array<[RegExp, string]> = [
   [/^\/products(\/.*)?$/, "/products"],
   [/^\/marketplace\/wholesale$/, "/wholesale"],
   [/^\/marketplace\/mine$/, "/find/mine"],
+  [/^\/marketplace\/suppliers$/, "/suppliers"],
   [/^\/supplier\/preorders$/, "/supplier/preorders"],
   [/^\/marketplace(\/.*)?$/, "/find"],
   [/^\/home\/notifications(\/.*)?$/, "/notifications"],
@@ -482,6 +487,7 @@ export function appRouteFor(link: string | null | undefined): AppRoute | null {
 
   if ((match = /^\/home\/orders\/([\w-]+)$/.exec(pathname)) && match[1] !== "new") return { pathname: "/order/[id]", params: { id: match[1] } };
   if ((match = /^\/products\/([\w-]+)$/.exec(pathname)) && match[1] !== "new") return { pathname: "/product/[id]", params: { id: match[1] } };
+  if ((match = /^\/marketplace\/suppliers\/([\w-]+)$/.exec(pathname))) return { pathname: "/suppliers/[slug]", params: { slug: match[1] } };
   if ((match = /^\/home\/legal\/([\w-]+)$/.exec(pathname))) return { pathname: "/legal/[key]", params: { key: match[1] } };
   if (pathname === "/home/reviews/request") return { pathname: "/reviews/ask" };
   const conversation = queryParam(query, "c");

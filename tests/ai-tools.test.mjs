@@ -582,6 +582,7 @@ const REX_VALID = {
   make_print_labels: { kind: "tag", products: ["pa1"], headline: "Handmade in Lagos", note: null, qr: "product", copies: 2 },
   design_packaging: { product: "pa1", name: null, productType: null, format: "bag", style: "ankara", brief: null },
   make_creative: { placement: "story", concept: "bold_headline", products: ["pa1"], headline: "Tough choice.", subline: null, cta: "Shop now", brand: null, extra: null },
+  make_packaging_mockup: { product: "pa1", name: null, concept: "mascot", shape: "carton", scene: null, variants: ["Chocolate chip", "Vanilla"], tagline: null, brief: null, logo: null },
 };
 
 test("every Peggy and Rex tool has a runner, a valid example, and refuses smuggled ids", () => {

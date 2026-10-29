@@ -124,6 +124,17 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "create.popupSub": "Onyinye n'ụlọ ahịa gị na-anakọta email na nọmba WhatsApp",
   "needs.allOrders": "Ọda niile",
   "fromPeggy": "Site n'aka Peggy",
+  "linkBio.title": "Link in bio",
+  "linkBio.edit": "Dezie",
+  "linkBio.setupTitle": "Mepụta link in bio gị",
+  "linkBio.setupSub": "Otu link maka bio Instagram na TikTok gị: ụlọ ahịa gị, WhatsApp na social gị.",
+  "linkBio.setup": "Hazie ya",
+  "linkBio.live": "Ọ na-arụ ọrụ · tinye ya na bio gị",
+  "linkBio.off": "Ezoro ya · gbanye ya na Dezie",
+  "linkBio.copy": "Detuo",
+  "linkBio.copied": "Edetuola",
+  "linkBio.share": "Kesaa",
+  "linkBio.shareMessage": "Zụta ihe n'aka {name}: {url}",
 };
 
 export default ig;

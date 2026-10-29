@@ -180,3 +180,31 @@ test("print orders are priced on the server from the saved design and paid throu
   const webhook = readFileSync(new URL("../src/app/api/webhooks/paystack/route.ts", import.meta.url), "utf8");
   assert.match(webhook, /PRINT_ORDER_REFERENCE_PREFIX/);
 });
+
+test("premium packaging renders: concept, pack, scene, exact words and the range", async () => {
+  const pc = await import("../shared/pack-concepts.ts");
+  for (const concept of pc.PACK_CONCEPTS) {
+    assert.ok(pc.PACK_CONCEPT_INFO[concept].shapes.every((shape) => pc.isPackShape(shape)), `${concept} shapes are real packs`);
+    assert.ok(pc.PACK_CONCEPT_PHOTO[concept].url.startsWith("https://images.unsplash.com/"), `${concept} has a card photo`);
+    assert.match(pc.packConceptPrompt({ concept, productName: "Mixed Nuts" }), /"Mixed Nuts"/);
+  }
+  const mascot = pc.packConceptPrompt({ concept: "mascot", shape: "carton", brandName: 'Strikers "Co"', productName: "Cookie", hasLogo: true, hasProductPhoto: true, accent: "#ff6a2b" });
+  assert.match(mascot, /die-cut transparent window/);
+  assert.match(mascot, /gable-top/);
+  assert.match(mascot, /the brand "Strikers 'Co'"/, "quotes are cleaned so the lettering stays exact");
+  assert.match(mascot, /#FF6A2B/);
+  assert.match(mascot, /logo from the reference image exactly/);
+  const moods = pc.packConceptPrompt({ concept: "mood_range", productName: "Puffs" });
+  assert.match(moods, /Show 4 packs, one per mood/);
+  assert.match(moods, /2 × 2 grid/, "the mood range is a grid by default");
+  const range = pc.packConceptPrompt({ concept: "flavour_family", productName: "Juice", variants: ["Mango", "mango", "Mango", "Guava", "", "Zobo", "Tiger nut", "Extra"] });
+  assert.equal(pc.packVariants(["Mango", "Mango", "", "Guava"]).length, 2);
+  assert.match(range, /range of 4 packs/, "variants are de-duplicated and capped at four");
+  assert.doesNotMatch(range, /Extra/);
+  assert.equal(pc.packConceptShape("grid", 4), "portrait");
+  assert.equal(pc.packConceptShape("studio", 3), "landscape");
+  assert.equal(pc.packConceptShape("studio", 1), "portrait");
+  assert.equal(pc.defaultPackShape("ingredient_fusion"), "tub");
+  const tools = await import("node:fs").then((fs) => fs.readFileSync(new URL("../src/lib/ai/rex/tools.ts", import.meta.url), "utf8"));
+  assert.match(tools, /make_packaging_mockup: makePackagingMockup/);
+});

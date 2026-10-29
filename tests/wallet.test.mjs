@@ -167,3 +167,31 @@ test("the seller's fee follows their plan and skips delivery and dropship lines"
   const delivery = readFileSync(new URL("../src/lib/logistics/delivery-fee-payments.server.ts", import.meta.url), "utf8");
   assert.match(delivery, /jobFee\.effectiveRate/, "the job fee is 0 until switched on");
 });
+
+test("the prepaid balance is spend-only: no withdrawals, and any still in line go back on the balance", () => {
+  const balance = read("src/lib/wallet/balance.server.ts");
+  assert.doesNotMatch(balance, /withdrawToBank|"\/transfer"|createPaystackTransferRecipient/, "nothing pays the balance out");
+  assert.match(balance, /canWithdraw: false,/);
+  assert.match(balance, /export async function returnQueuedWithdrawals/);
+  assert.match(read("src/app/api/cron/lifecycle/route.ts"), /returnQueuedWithdrawals\(\)/);
+  const route = read("src/app/api/app/wallet/withdraw/route.ts");
+  assert.match(route, /apiError\("BAD_REQUEST", "Your Shopinbos balance is for AI credits/);
+  assert.doesNotMatch(read("src/components/wallet/WalletBalanceCard.tsx"), /wallet\/withdraw|> Withdraw/);
+});
+
+test("Paystack money is recognisably from Shopinbos and always told in the app and by email", async () => {
+  const paystack = await import("../src/lib/paystack.ts").catch(() => null);
+  const source = read("src/lib/paystack.ts");
+  // Subaccounts carry "Shopinbos - <business>", once (never "Shopinbos - Shopinbos - …").
+  assert.match(source, /business_name: shopinbosSubaccountName\(input\.businessName\)/);
+  if (paystack?.shopinbosSubaccountName) {
+    assert.equal(paystack.shopinbosSubaccountName("Tofs Variety Store"), "Shopinbos - Tofs Variety Store");
+    assert.equal(paystack.shopinbosSubaccountName("Shopinbos - Tofs"), "Shopinbos - Tofs");
+  }
+  // Settlements are looked up by the subaccount's numeric id (the ACCT_ code matches nothing).
+  assert.match(source, /settlement\?subaccount=\$\{encodeURIComponent\(id\)\}/);
+  // A paid order is emailed to the seller too, whatever their settings.
+  const events = read("src/lib/notifications/events.server.ts");
+  assert.match(events.slice(events.indexOf("export function notifyOrderPaid")), /email: "transactional"/);
+  assert.match(read("src/lib/wallet/settlements.server.ts"), /email: "transactional"/);
+});

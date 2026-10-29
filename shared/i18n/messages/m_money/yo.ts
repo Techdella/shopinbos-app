@@ -182,18 +182,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "w.last30Line": "Ọjọ́ 30 sẹ́yìn: {amount}",
   "w.recent": "Èyí tó ṣẹ̀ṣẹ̀ wáyé",
   "bal.title": "Owó inú Wallet",
-  "bal.sub": "Iye owó Shopinbos rẹ. Owó títà ṣì ń lọ tààrà sí báńkì rẹ.",
-  "bal.withdraw": "Gba owó jáde",
-  "bal.amountTo": "Iye owó tí o fẹ́ fi ránṣẹ́ sí {bank}",
-  "bal.amountToYours": "Iye owó tí o fẹ́ fi ránṣẹ́ sí bánkì rẹ",
-  "bal.amount": "Iye owó",
-  "bal.orMore": "{amount} tàbí jù bẹ́ẹ̀ lọ",
-  "bal.sent": "A ti fi ránṣẹ́ sí bánkì rẹ.",
-  "bal.onItsWay": "Ó ń lọ sí bánkì rẹ. Ó máa ń dé láàárín ìṣẹ́jú díẹ̀.",
-  "bal.needBank": "Láti gba owó jáde, kọ́kọ́ fi àkáǹtì bánkì rẹ kún un kí o sì jẹ́rìísí rẹ̀.",
+  "bal.sub": "Owó Shopinbos rẹ, fún AI credits àti àwọn iṣẹ́ Shopinbos mìíràn. O ò lè gbà á jáde; owó títà ń lọ tààrà sí báńkì rẹ.",
   "bal.pending": "ó ń bọ̀",
   "bal.didntGo": "kò lọ",
-  "bal.failed": "Kò ṣiṣẹ́. Gbìyànjú lẹ́ẹ̀kan sí i.",
   "pay.paid": "A ti san án. Owó náà lọ tààrà sí báǹkì wọn.",
   "pay.pending": "Ìsanwó rẹ ń bọ̀. Yóò yí padà ní kété tí Paystack bá fìdí rẹ̀ múlẹ̀.",
   "pay.cancelled": "Ìsanwó náà kò parí, nítorí náà a kò gba nǹkankan. Gbìyànjú lẹ́ẹ̀kan sí i nígbà tí o bá ṣetán.",
@@ -209,6 +200,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "bal.accountSettingUp": "À ń ṣẹ̀dá nọ́mbà àkáǹtì wallet rẹ. Yóò hàn níbí láàárín ìṣẹ́jú díẹ̀.",
   "bal.copy": "Daakọ",
   "bal.copied": "A ti daakọ",
+  "inv.subShort": "Àwọn invoice fún àwọn order rẹ, tí o fi ránṣẹ́ àti tí o gbà.",
 };
 
 export default yo;

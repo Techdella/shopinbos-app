@@ -252,6 +252,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "mine.emptyTitle": "Babu kayan supplier tukuna",
   "mine.emptyBody": "Kayan da ka ƙara daga supplier za su bayyana a nan, don ka canza farashi da yawa lokaci ɗaya.",
   "mine.find": "Nemo kaya",
+  "markup.roundingTitle": "Yadda ake zagaye farashi",
+  "product.dropshipTitle": "Yadda dropship ke aiki",
+  "product.dropshipShort": "Ba ka saya komai yanzu. {name} zai aika idan abokin ciniki ya biya.",
 };
 
 export default ha;

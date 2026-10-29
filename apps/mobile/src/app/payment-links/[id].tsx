@@ -104,7 +104,7 @@ export default function PaymentLink() {
 
       <Sheet visible={confirm} onClose={() => setConfirm(false)} title={t("cancel.title")}>
         <T style={{ fontSize: 15, lineHeight: 22, color: colors.inkSoft }}>{t("cancel.body")}</T>
-        <PillButton title={t("cancel.yes")} busy={busy} style={{ backgroundColor: colors.danger }} onPress={() => void cancel()} />
+        <PillButton title={t("cancel.yes")} busy={busy} style={{ backgroundColor: colors.dangerFill }} onPress={() => void cancel()} />
         <LinkButton title={t("cancel.keep")} onPress={() => setConfirm(false)} />
       </Sheet>
     </Screen>

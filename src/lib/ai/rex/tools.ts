@@ -12,6 +12,8 @@ import { bookToThemeTokens } from "@shared/brand-book";
 import { PRINT_SPECS } from "@shared/print-labels";
 import { PACK_FORMAT_INFO, PACK_STYLE_INFO, PRODUCT_TYPE_INFO, guessProductType, newDesign } from "@shared/packaging";
 import { CREATIVE_CONCEPT_INFO, CREATIVE_PLACEMENT_INFO, creativePrompt } from "@shared/creatives";
+import { PACK_CONCEPT_INFO, PACK_SHAPE_INFO, defaultPackShape } from "@shared/pack-concepts";
+import { makePackConcept } from "@/lib/packaging/concept.server";
 import { normaliseEan13 } from "@shared/barcodes";
 import { aiConfigured } from "@/lib/ai/client";
 import { fallbackPackCopy, writePackCopy } from "@/lib/packaging/copy.server";
@@ -787,6 +789,36 @@ async function designPackaging(ctx: RexToolContext, input: RexToolInput<"design_
   };
 }
 
+async function makePackagingMockup(ctx: RexToolContext, input: RexToolInput<"make_packaging_mockup">): Promise<RexToolOutput> {
+  const product = input.product ? await findProduct(ctx, input.product) : null;
+  const name = (input.name ?? product?.name ?? "").replace(/\s*[-–(].*$/, "").split(/\s+/).slice(0, 4).join(" ").trim();
+  if (!name) throw new RexToolError("Say which product the pack is for (use list_products), or give its name.");
+  const brand = await loadBrandContext(ctx.storeId);
+  const photos = [...(product?.images ?? []), ...ctx.attachments].filter(Boolean);
+  const productType = guessProductType(`${name} ${product?.description?.slice(0, 200) ?? ""}`);
+  const giveBack = await meter(ctx, "image");
+  let result: Awaited<ReturnType<typeof makePackConcept>>;
+  try {
+    result = await makePackConcept({
+      brand,
+      userId: ctx.userId,
+      logo: input.logo !== false,
+      productPhotos: photos,
+      input: { concept: input.concept, shape: input.shape, scene: input.scene, productName: name, productKind: PRODUCT_TYPE_INFO[productType].name, variants: input.variants, tagline: input.tagline, extra: input.brief },
+    });
+  } catch (error) {
+    await giveBack();
+    imageFailure(error);
+  }
+  const concept = PACK_CONCEPT_INFO[input.concept];
+  const shape = PACK_SHAPE_INFO[input.shape ?? defaultPackShape(input.concept)];
+  const title = `${concept.name} · ${shape.name}`;
+  return {
+    content: `Rendered a premium "${concept.name}" ${shape.name.toLowerCase()} mockup for ${name}${input.variants?.length ? ` in ${input.variants.length} variants (${input.variants.join(", ")})` : ""}: ${result.url}.${result.logoProblem === "no_logo" && input.logo !== false ? " The store has no logo yet, so the brand name is lettered instead; suggest adding one in Brand kit." : ""} It's saved in their media library. Ask the seller to check the spelling on the pack. It's a concept render, not a print file: when they like it, design_packaging (or the branding team at /home/labels/request) makes the print-ready version.`,
+    card: { type: "image", tool: "generate_product_image", title, before: null, after: result.url, product: product ? { id: product.id, name: product.name } : null, sourceIndex: null },
+  };
+}
+
 async function makeCreative(ctx: RexToolContext, input: RexToolInput<"make_creative">): Promise<RexToolOutput> {
   const products: Awaited<ReturnType<typeof findProduct>>[] = [];
   for (const query of input.products ?? []) {
@@ -801,7 +833,7 @@ async function makeCreative(ctx: RexToolContext, input: RexToolInput<"make_creat
   const mode = input.brand ?? "colours";
   let result: Awaited<ReturnType<typeof makeBrandImage>>;
   try {
-    result = await makeBrandImage({ brand, prompt, size: imageSizeFor(place.shape), logo: mode === "logo", colours: mode !== "none", referenceUrls: references, path: `generated/${ctx.userId}/${Date.now()}` });
+    result = await makeBrandImage({ brand, prompt, size: imageSizeFor(place.shape), quality: "high", logo: mode === "logo", colours: mode !== "none", referenceUrls: references, path: `generated/${ctx.userId}/${Date.now()}` });
   } catch (error) {
     await giveBack();
     imageFailure(error);
@@ -848,6 +880,7 @@ export const REX_TOOL_RUNNERS: { [N in RexToolName]: Runner<N> } = {
   make_print_labels: makePrintLabels,
   design_packaging: designPackaging,
   make_creative: makeCreative,
+  make_packaging_mockup: makePackagingMockup,
 };
 
 export { MarketingError };

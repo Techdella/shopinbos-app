@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { Pressable, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
+import { AppearanceRow } from "@/components/AppearancePicker";
 import { Eyebrow, List, Row, Tile, Title, type TileTone } from "@/components/design";
 import { HelpButton } from "@/components/Help";
 import { LanguageRow } from "@/components/LanguagePicker";
@@ -301,6 +302,7 @@ export default function Menu() {
                 <Row key={link.id} lead={<Tile icon={link.icon} tone={link.tone ?? "gray"} />} title={t.dynamic(`link.${link.id}.label`, link.label)} onPress={() => go(link.path)} />
               ))}
             {group.key === "you" ? <LanguageRow tile /> : null}
+            {group.key === "you" ? <AppearanceRow tile /> : null}
           </List>
         </Section>
       ))}

@@ -12,7 +12,7 @@ import {
 } from "@shared/plans";
 
 // The October 2026 plan limits on the logistics marketplace (src/lib/delivery-market/manage.server.ts): how many
-// delivery partners a seller or supplier connects, where a seller sells, pay on delivery, private rate cards and a
+// delivery partners a seller or supplier connects, pay on delivery, private rate cards and a
 // partner's pickup points. Each returns null when allowed, or the words to show. What someone already has keeps
 // working after a downgrade; only adding more is stopped.
 
@@ -37,38 +37,6 @@ export async function connectionLimitProblem(ownerUserId: string, partnerId: str
     return more === null || more > active.length;
   });
   return storeSafeMessage(`Your plan includes ${plural(limit, "delivery partner")} and you have ${active.length}.${next ? ` Upgrade to ${PLAN_NAMES[next]} to add more, or remove one first.` : " Remove one first."}`);
-}
-
-/** Where a seller sells (Free 1 state · Starter 5 · Growth and Pro nationwide). Suppliers aren't limited. */
-export async function sellAreaProblem(userId: string, next: { sellArea: string; states: number }, current: { sellArea: string; states: number }): Promise<string | null> {
-  const { role, key } = await userPlan(userId);
-  if (role !== "seller") return null;
-  const limit = sellerLimits(key).sellingStates;
-  if (limit === null) return null;
-  const nationwideNow = current.sellArea === "nationwide";
-  if (next.sellArea === "nationwide") {
-    if (nationwideNow) return null;
-    const plan = cheapestPlanWhere("seller", (plan) => sellerLimits(plan).sellingStates === null);
-    return `Selling nationwide comes with the ${plan ? PLAN_NAMES[plan] : "Growth"} plan. Your plan lets you sell in ${plural(limit, "state")}.`;
-  }
-  if (next.states <= limit || (!nationwideNow && next.states <= current.states)) return null;
-  const plan = cheapestPlanWhere("seller", (plan) => {
-    const more = sellerLimits(plan).sellingStates;
-    return more === null || more >= next.states;
-  });
-  return storeSafeMessage(`Your plan lets you sell in ${plural(limit, "state")}.${plan ? ` Upgrade to ${PLAN_NAMES[plan]} to sell in more.` : ""}`);
-}
-
-/**
- * How many states a seller's plan sells in (null: all of Nigeria) and the plan that sells everywhere, for the phone's
- * "Where do you sell?" step, which keeps an allowed choice instead of refusing. Suppliers aren't limited.
- */
-export async function sellAreaLimit(userId: string): Promise<{ states: number | null; nationwidePlan: string | null }> {
-  const { role, key } = await userPlan(userId);
-  if (role !== "seller") return { states: null, nationwidePlan: null };
-  const states = sellerLimits(key).sellingStates;
-  const plan = states === null ? null : cheapestPlanWhere("seller", (next) => sellerLimits(next).sellingStates === null);
-  return { states, nationwidePlan: plan ? PLAN_NAMES[plan] : null };
 }
 
 /** Switching on pay on delivery for a connection (sellers: Growth and up). */

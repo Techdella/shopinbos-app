@@ -2,6 +2,7 @@ import type { VerificationDoc } from "@shared/verification-docs";
 import type { PickupSlot } from "@shared/supplier-pickup";
 import type { ContractDocument } from "@shared/contracts";
 import { api, apiBody } from "./api";
+import { uploadOnePhoto, type PhotoInput } from "./upload-photo";
 import type { PreorderBody } from "./preorder-pure";
 import type { BrandingChoice, BrandingOffer, LevelGoal, RateSource, SupplierLevel, SupplierPerks, ZoneRates } from "@shared/dropship-rules";
 
@@ -193,12 +194,9 @@ export async function fetchCategories() {
   return body.data ?? [];
 }
 
-export function uploadSupplierPhoto(photo: { uri: string; mimeType?: string | null; fileName?: string | null }) {
-  const form = new FormData();
-  const type = photo.mimeType ?? "image/jpeg";
-  // React Native's FormData takes { uri, name, type } file parts.
-  form.append("file", { uri: photo.uri, name: photo.fileName ?? `product.${type.split("/")[1] ?? "jpg"}`, type } as unknown as Blob);
-  return api<{ url: string }>("/api/mobile/supplier/upload", { method: "POST", body: form });
+/** A product photo or logo, shrunk on the phone first (lib/upload-photo.ts; a PNG logo stays see-through). */
+export function uploadSupplierPhoto(photo: PhotoInput) {
+  return uploadOnePhoto<{ url: string }>("/api/mobile/supplier/upload", photo, {}, { base: "product", keepTransparency: true });
 }
 
 export interface QuoteRequest {
@@ -536,12 +534,7 @@ export const savePack = (id: string, input: { steps?: string[]; photoUrl?: strin
   api<PackView>(packPath(id, kind), { method: "POST", json: input });
 
 /** Uploads a photo to the signed-in person's media library (POST /api/app/media) and returns its web address. */
-export async function uploadMediaPhoto(photo: { uri: string; mimeType?: string | null; fileName?: string | null }) {
-  const form = new FormData();
-  const type = photo.mimeType ?? "image/jpeg";
-  // React Native's FormData takes { uri, name, type } file parts.
-  form.append("file", { uri: photo.uri, name: photo.fileName ?? `parcel.${type.split("/")[1] ?? "jpg"}`, type } as unknown as Blob);
-  form.append("only", "image");
-  const asset = await api<{ url: string }>("/api/app/media", { method: "POST", body: form });
+export async function uploadMediaPhoto(photo: PhotoInput) {
+  const asset = await uploadOnePhoto<{ url: string }>("/api/app/media", photo, { only: "image" }, { base: "parcel" });
   return asset.url;
 }

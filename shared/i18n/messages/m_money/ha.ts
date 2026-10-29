@@ -182,18 +182,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "w.last30Line": "Kwanaki 30 da suka wuce: {amount}",
   "w.recent": "Na baya-bayan nan",
   "bal.title": "Kuɗin cikin Wallet",
-  "bal.sub": "Ma'aunin kuɗinka na Shopinbos. Kuɗin sayarwa har yanzu suna zuwa kai tsaye bankinka.",
-  "bal.withdraw": "Cire kuɗi",
-  "bal.amountTo": "Adadin da za a aika zuwa {bank}",
-  "bal.amountToYours": "Adadin da za a aika zuwa bankinka",
-  "bal.amount": "Adadi",
-  "bal.orMore": "{amount} ko fiye da haka",
-  "bal.sent": "An aika zuwa bankinka.",
-  "bal.onItsWay": "Yana kan hanyar zuwa bankinka. Yawanci yana isa cikin ƴan mintuna.",
-  "bal.needBank": "Don cire kuɗi, fara ƙara asusun bankinka kuma a tabbatar da shi.",
+  "bal.sub": "Kuɗinka na Shopinbos, don AI credits da sauran ayyukan Shopinbos. Ba za a iya cire shi ba; kuɗin sayarwa suna zuwa kai tsaye bankinka.",
   "bal.pending": "yana kan hanya",
   "bal.didntGo": "bai yi nasara ba",
-  "bal.failed": "Bai yi aiki ba. Sake gwadawa.",
   "pay.paid": "An biya. Kuɗin ya tafi kai tsaye zuwa bankinsu.",
   "pay.pending": "Biyan kuɗinka yana kan hanya. Zai sabunta da zarar Paystack ya tabbatar.",
   "pay.cancelled": "Ba a kammala biyan ba, don haka ba a cire komai ba. Sake gwadawa idan ka shirya.",
@@ -209,6 +200,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "bal.accountSettingUp": "Ana ƙirƙirar lambar asusun walat ɗinka. Za ta bayyana a nan cikin ƴan mintuna.",
   "bal.copy": "Kwafa",
   "bal.copied": "An kwafa",
+  "inv.subShort": "Invoices na odarka, waɗanda ka aika da waɗanda ka karɓa.",
 };
 
 export default ha;

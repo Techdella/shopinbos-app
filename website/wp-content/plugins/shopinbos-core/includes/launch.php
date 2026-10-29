@@ -109,7 +109,7 @@ function sib_render_coming_soon(): string {
 		. '<button class="btn btn-acc" type="submit">' . esc_html__( 'Join the waitlist', 'shopinbos' ) . sib_icon( 'arrow', 16 ) . '</button>'
 		. '<span class="meta">' . esc_html__( 'We’ll message you once when your spot is ready. No spam.', 'shopinbos' ) . '</span>'
 		. '<input type="hidden" name="action" value="sib_lead"><input type="hidden" name="kind" value="waitlist"><input type="hidden" name="intent" value="' . esc_attr( $intent ) . '"><input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px"></form>';
-	$perks = [ __( 'Your store built with Rex in 5 minutes', 'shopinbos' ), __( 'Sell on WhatsApp, Instagram, TikTok and your own site', 'shopinbos' ), __( 'Pay on delivery, riders and Friday payouts', 'shopinbos' ), __( 'Early sellers get help setting up, free', 'shopinbos' ) ];
+	$perks = [ __( 'Your store built with Rex in 5 minutes', 'shopinbos' ), __( 'Sell on WhatsApp, Instagram, TikTok and your own site', 'shopinbos' ), __( 'Pay on delivery, riders and money straight to your bank', 'shopinbos' ), __( 'Early sellers get help setting up, free', 'shopinbos' ) ];
 	$list  = '<ul class="cs-perks">' . implode( '', array_map( fn( $p ) => '<li>' . sib_icon( 'tick', 18, '#16794A' ) . esc_html( $p ) . '</li>', $perks ) ) . '</ul>';
 	return sib_launch_css( true ) . '<section class="ahero cv cs">'
 		. '<span class="cs-blob"></span><div class="wrap split" style="gap:56px;position:relative">'

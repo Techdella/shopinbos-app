@@ -157,7 +157,6 @@ const en = {
   "step.Choose a company": "Choose a company",
   "step.Add your payout bank": "Add your payout bank",
   "step.Your bank account is linked for payouts.": "Your bank account is linked for payouts.",
-  "step.Money waits safely in your balance until you do.": "Money waits safely in your balance until you do.",
   "step.Add bank": "Add bank",
   "step.Put your shop live": "Put your shop live",
   "step.Your shop is open to shoppers.": "Your shop is open to shoppers.",

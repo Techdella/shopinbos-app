@@ -10,7 +10,7 @@ import { channelLabel } from "@/lib/inbox-pure";
 import { fetchPartnerContacts } from "@/lib/partners";
 import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
-import { colors } from "@/theme";
+import { colors, themed } from "@/theme";
 
 // Chats ("Familiar app" prototype `on.chats`): only the conversations. Customers on every channel (WhatsApp,
 // Instagram, Facebook, email, the shop's live chat…) and the seller's supplier and delivery-partner chats
@@ -26,15 +26,15 @@ const FILTER_LABEL: Record<SellerChatFilter, "filter.all" | "chats.customers" | 
   unread: "view.unread",
 };
 
-const TONE = {
+const TONE = themed(() => ({
   customer: { bg: colors.peach, fg: colors.accentInk },
   supplier: { bg: colors.blueTint, fg: colors.blueInk },
   logistics_partner: { bg: colors.mintTint, fg: colors.forest },
-};
+}));
 
 /** The source badge on each row: the customer's channel, or the partner's kind. */
-const GRAY = { bg: colors.grayTint, fg: colors.grayInk };
-const CHANNEL_TONE: Record<string, { bg: string; fg: string }> = {
+const GRAY = themed(() => ({ bg: colors.grayTint, fg: colors.grayInk }));
+const CHANNEL_TONE: Record<string, { bg: string; fg: string }> = themed(() => ({
   whatsapp: { bg: colors.successTint, fg: colors.success },
   instagram: { bg: "#FCE4EC", fg: "#A0204F" },
   messenger: { bg: colors.blueTint, fg: colors.blueInk },
@@ -42,7 +42,7 @@ const CHANNEL_TONE: Record<string, { bg: string; fg: string }> = {
   email: { bg: colors.warnTint, fg: colors.warnInk },
   form: { bg: colors.warnTint, fg: colors.warnInk },
   livechat: { bg: colors.peach, fg: colors.accentInk },
-};
+}));
 
 function open(chat: MergedChat) {
   if (chat.kind === "partner") router.push({ pathname: "/partners/[id]", params: { id: chat.id, name: chat.name } });

@@ -8,7 +8,7 @@
 //                                based. Works with order limits. No BVN, no email code, no bank, no vehicle papers.
 //   Tier 2  Registered Business  Tier 1 plus CAC (business name, BN/RC type, number; the registry lookup or a
 //                                certificate). No limits.
-// Badges on top: Payout ready (a bank account checked by name, asked at the first withdrawal), Address Verified
+// Badges on top: Payout ready (a bank account checked by name, added in their Wallet to get paid), Address Verified
 // (base pin plus a photo the team approved), and the older Licensed Courier and Verified Payout.
 //
 // How it sits on the older fields: LogisticsPartner.verificationStatus "verified" still means "can take jobs" (every
@@ -440,7 +440,7 @@ export const BADGE_LABELS: Record<PartnerBadge, string> = {
   verified_payout: "Verified Payout",
 };
 
-/** A bank account in the partner's name was checked (at the first withdrawal, or in the older sign-up). */
+/** A bank account in the partner's name was checked (added in their Wallet, or in the older sign-up). */
 export function payoutReady(s: TierSnapshot) {
   return Boolean(s.payoutAccount?.verified) || s.identity.payout?.status === "approved";
 }

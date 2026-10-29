@@ -82,7 +82,7 @@ export default function Orders() {
       {orders?.length ? <PushPromptCard who="seller" /> : null}
       {orders && !orders.length ? (
         <EmptyState icon="bag" title={t("list.emptyTitle")} action={<PillButton title={t("list.recordSale")} size="md" onPress={() => router.push("/record-sale")} />}>
-          {t("list.emptyBody")}
+          {t("list.emptyBodyShort")}
         </EmptyState>
       ) : null}
       {orders?.length && !shown.length ? (

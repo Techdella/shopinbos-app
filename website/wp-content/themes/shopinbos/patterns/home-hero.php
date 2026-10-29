@@ -18,7 +18,7 @@ $go = sib_theme_go( '', [ 'place' => 'hero' ] );
 <!-- /wp:heading -->
 
 <!-- wp:paragraph {"className":"lead mw-640"} -->
-<p class="lead mw-640">Your store, WhatsApp, Instagram, TikTok and Google, with pay on delivery, riders, ads and Friday payouts. Built for Nigerian shops, run from your phone.</p>
+<p class="lead mw-640">Your store, WhatsApp, Instagram, TikTok and Google, with pay on delivery, riders, ads and money straight to your bank. Built for Nigerian shops, run from your phone.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:html -->

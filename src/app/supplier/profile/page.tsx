@@ -1,4 +1,6 @@
-import { updateSupplierProfile } from "@/app/actions/supplier";
+import { removeSupplierShowcaseMember, updateSupplierProfile } from "@/app/actions/supplier";
+import { SHOWCASE_TEAM_MAX, supplierShowcase } from "@shared/supplier-showcase";
+import { ShowcaseMemberForm } from "@/components/supplier/ShowcaseMemberForm";
 import { BoostsCard } from "@/components/plans/BoostsCard";
 import { creditBalance } from "@/lib/ai/credits.server";
 import { billingEmail } from "@/lib/auth/billing-email";
@@ -56,6 +58,7 @@ export default async function SupplierProfilePage({ searchParams }: PageProps) {
   const t = await getT("supplier", "common");
   const billing = activeTab === BILLING_TAB;
   const photos = workshopPhotos(supplier.onboardingState);
+  const showcase = supplierShowcase(supplier.onboardingState);
   const place = [supplier.city, supplier.country].filter(Boolean).join(", ");
   const share = billing ? null : await profileShareStats(user.id).catch(() => null);
 
@@ -198,7 +201,13 @@ export default async function SupplierProfilePage({ searchParams }: PageProps) {
                       </div>
                       <div>
                         <label htmlFor="website" className={labelClass}>{t("profile.website")}</label>
-                        <input id="website" className={fieldClass} name="website" type="url" defaultValue={supplier.website ?? ""} placeholder="https://example.com" />
+                        <input id="website" className={fieldClass} name="website" inputMode="url" defaultValue={supplier.website ?? ""} placeholder="example.com" />
+                        <div className={hintClass}>{t("profile.websiteHint")}</div>
+                      </div>
+                      <div>
+                        <label htmlFor="storeUrl" className={labelClass}>{t("profile.storeUrl")}</label>
+                        <input id="storeUrl" className={fieldClass} name="storeUrl" inputMode="url" defaultValue={showcase.storeUrl ?? ""} placeholder="yourshop.mybos.store" />
+                        <div className={hintClass}>{t("profile.storeUrlHint")}</div>
                       </div>
                     </div>
                   </Card>
@@ -207,6 +216,37 @@ export default async function SupplierProfilePage({ searchParams }: PageProps) {
                     <button type="submit" className={buttonClass.accent}>{t("profile.saveChanges")}</button>
                   </div>
                 </form>
+
+                <div id="team" className="scroll-mt-24">
+                <Card className="p-5 sm:p-6">
+                  <CardHead title={t("profile.team")} sub={t("profile.teamSub")} />
+                  {showcase.team.length ? (
+                    <ul className="m-0 mt-4 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-3 2xl:grid-cols-4">
+                      {showcase.team.map((member) => (
+                        <li key={member.id} className="grid gap-2 rounded-[16px] border border-app-line p-3 text-center">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={member.photoUrl} alt={member.name} className="mx-auto h-20 w-20 rounded-full object-cover" />
+                          <div className="min-w-0">
+                            <p className="m-0 truncate text-[14.5px] font-extrabold">{member.name}</p>
+                            {member.role && <p className="m-0 truncate text-[13px] text-app-ink-soft">{member.role}</p>}
+                          </div>
+                          <form action={removeSupplierShowcaseMember}>
+                            <input type="hidden" name="id" value={member.id} />
+                            <button type="submit" className="text-[13px] font-bold text-app-danger underline underline-offset-2">{t("profile.teamRemove")}</button>
+                          </form>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mb-0 mt-4 rounded-[16px] bg-app-canvas px-4 py-6 text-center text-[13.5px] text-app-ink-soft">{t("profile.teamEmpty")}</p>
+                  )}
+                  {showcase.team.length < SHOWCASE_TEAM_MAX ? (
+                    <ShowcaseMemberForm />
+                  ) : (
+                    <p className="mb-0 mt-4 text-[13.5px] text-app-ink-soft">{t("profile.teamFull", { max: SHOWCASE_TEAM_MAX })}</p>
+                  )}
+                </Card>
+                </div>
               </>
             }
             side={

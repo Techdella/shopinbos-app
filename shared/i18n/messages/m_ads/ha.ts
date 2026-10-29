@@ -46,6 +46,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "requestPaid": "An biya. Ƙungiyar za ta kira ka cikin ranar aiki ɗaya.",
   "requestUnpaid": "An ajiye buƙatarka, amma ba a biya kuɗin saitawa ba, don haka ƙungiyar ba ta fara ba.",
   "c.payFee": "Biya kuɗin saitin ƙungiyar {fee}",
+  subShort: "Yi talla a Facebook da Instagram.",
 };
 
 export default ha;

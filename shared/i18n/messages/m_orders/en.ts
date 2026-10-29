@@ -176,6 +176,7 @@ const en = {
   "sale.codeFind": "Find by code",
   "sale.codePlaceholder": "Code, e.g. BAG2",
   "sale.codeNone": "No product has the code {code}.",
+  "list.emptyBodyShort": "Orders show here. Sold on WhatsApp or in person? Record it.",
 } satisfies Record<string, string>;
 
 export default en;

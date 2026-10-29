@@ -167,7 +167,7 @@ test("partners are never asked for a BVN: bank account only, on the web, the pho
     for (const locale of ["en", "pcm", "yo", "ha", "ig"]) assert.doesNotMatch(read(`shared/i18n/messages/${ns}/${locale}.ts`), /BVN/, `${ns}/${locale} mentions BVN`);
   }
   assert.doesNotMatch(read("shared/i18n/messages/m_partner/en.ts"), /"kyc\.need\.bank": "[^"]*BVN/);
-  // The bank account isn't part of sign-up at all: it's asked at the first withdrawal (the Payout ready badge).
+  // The bank account isn't part of sign-up at all: it's added in their Wallet to get paid (the Payout ready badge).
   for (const path of screens) assert.doesNotMatch(read(path), /\/payout"|kyc\/payout/, path);
   assert.match(read("shared/partner-tiers.ts"), /payout_ready: "Payout ready"/);
 });

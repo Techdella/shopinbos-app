@@ -315,7 +315,7 @@ export default function Rex() {
                     {photos.map((url) => (
                       <View key={url}>
                         <Image source={{ uri: url }} style={{ width: 56, height: 56, borderRadius: 12, backgroundColor: colors.lilac }} contentFit="cover" accessibilityLabel={t("photos.attached")} />
-                        <Pressable accessibilityRole="button" accessibilityLabel={t("photos.remove")} hitSlop={8} onPress={() => setPhotos((current) => current.filter((entry) => entry !== url))} style={{ position: "absolute", top: -6, right: -6, width: 22, height: 22, borderRadius: 11, backgroundColor: colors.ink, alignItems: "center", justifyContent: "center" }}>
+                        <Pressable accessibilityRole="button" accessibilityLabel={t("photos.remove")} hitSlop={8} onPress={() => setPhotos((current) => current.filter((entry) => entry !== url))} style={{ position: "absolute", top: -6, right: -6, width: 22, height: 22, borderRadius: 11, backgroundColor: colors.inkFill, alignItems: "center", justifyContent: "center" }}>
                           <AppIcon name="x" size={12} color="#FFFFFF" strokeWidth={2.6} />
                         </Pressable>
                       </View>

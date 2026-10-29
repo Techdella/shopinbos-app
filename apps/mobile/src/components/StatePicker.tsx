@@ -104,7 +104,7 @@ export function StatePicker({
                 style={({ pressed }) => ({ minHeight: 48, flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 4, borderBottomWidth: 1, borderBottomColor: colors.line, opacity: pressed ? 0.7 : 1 })}
               >
                 <T weight={on ? "bold" : "regular"} style={{ flex: 1, fontSize: 16 }}>{item.label}</T>
-                <View style={{ width: 24, height: 24, borderRadius: single ? 12 : 7, borderWidth: 2, borderColor: on ? colors.ink : colors.line, backgroundColor: on ? colors.ink : "transparent", alignItems: "center", justifyContent: "center" }}>
+                <View style={{ width: 24, height: 24, borderRadius: single ? 12 : 7, borderWidth: 2, borderColor: on ? colors.ink : colors.line, backgroundColor: on ? colors.inkFill : "transparent", alignItems: "center", justifyContent: "center" }}>
                   {on ? <AppIcon name="check" size={14} color="#FFFFFF" strokeWidth={3} /> : null}
                 </View>
               </Pressable>

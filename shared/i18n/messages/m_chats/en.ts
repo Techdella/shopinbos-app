@@ -182,6 +182,8 @@ const en = {
   "bot.faqRemove": "Remove",
   "chats.riders": "Riders",
   "chats.suppliers": "Suppliers",
+  "auto.peggyHintShort": "Peggy answers about your products, prices and delivery.",
+  "auto.subShort": "Answer customers while you're busy or closed.",
 } satisfies Record<string, string>;
 
 export default en;

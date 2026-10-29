@@ -118,7 +118,7 @@ export function verifyNudgeEmail(input: NudgeInput): { subject: string; heading:
   const lead =
     input.index === 0
       ? input.wallet
-        ? `We set up your Shopinbos Wallet. It switches on as soon as ${input.businessName} is verified: then you can top up, get paid into it and withdraw to your bank.`
+        ? `We set up your Shopinbos Wallet. It switches on as soon as ${input.businessName} is verified: then you can get paid into it and top up for AI credits and other Shopinbos services.`
         : `You set up ${input.businessName} on Shopinbos. One step left: verify your business so ${who} can find you and order.`
       : input.index === 1
         ? `${input.businessName} still isn't verified, so ${who} can't see you yet${input.wallet ? " and your wallet is waiting" : ""}. If anything is in the way, Peggy can talk you through it on a free call.`

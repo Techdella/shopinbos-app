@@ -697,6 +697,17 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "lvl.dayShort.4": "Ọjọ́bọ̀",
   "lvl.dayShort.5": "Ẹtì",
   "lvl.dayShort.6": "Àbámẹ́ta",
+  "moneyCard.noteTitle": "Bí wọ́n ṣe ń sanwó fún ọ",
+  "moneyCard.noteShort": "Owó delivery ń lọ tààrà sí bánkì rẹ.",
+  "lvl.interstateTitle": "Iṣẹ́ láàárín ìpínlẹ̀",
+  "lvl.interstateShort": "Iṣẹ́ láàárín ìpínlẹ̀ ń ṣí ní Ìpele 2 · Olùgbẹ́kẹ̀lé.",
+  "lvl.safetyTitle": "Ààlà ààbò",
+  "lvl.safetyShort": "Àwọn alábàáṣiṣẹ́ tuntun tún ní ààlà ààbò.",
+  "cashScreen.subShort": "Láàrin ìwọ àti olùtajà kọ̀ọ̀kan. Shopinbos kì í gbà á.",
+  "connect.subShort": "Ẹgbẹ́ wa lè so sọ́fítíwià delivery rẹ pọ̀ fún ọ.",
+  "conn.subShort": "Àwọn olùtajà àti olùpèsè lè so pọ̀ mọ́ ọ lẹ́sẹ̀kẹsẹ̀.",
+  "today.finishHintShort": "Fọ́tò ID rẹ àti selfie. Kò sí ìwé tàbí àlàyé bánkì.",
+  "riders.noneBodyShort": "Fi ọlọ́kadà kún un pẹ̀lú orúkọ àti nọ́ńbà WhatsApp rẹ̀.",
 };
 
 export default yo;

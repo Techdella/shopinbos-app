@@ -539,6 +539,19 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "profile.returns": "Your return policy",
   "profile.returnsHint": "Sellers go see this before dem list your products. Talk wetin you dey collect back, inside how many days, and who go pay to send am back. You must always collect back wrong, damaged or not-as-described items.",
   "profile.returnsPlaceholder": "e.g. Wrong or damaged items: send dem back inside 7 days after delivery and we go refund you. Unused items wey still dey their packaging fit exchange inside 3 days; the shop go pay the return delivery.",
+  "profile.websiteHint": "Your own website, if you get one. E go show for your public page.",
+  "profile.storeUrl": "Your Shopinbos store",
+  "profile.storeUrlHint": "You get shop for Shopinbos too? Paste the link make sellers fit visit am from your page.",
+  "profile.team": "Meet the team",
+  "profile.teamSub": "Add the people wey sellers dey deal with, like your account managers. Their photo, name and work go show for your public page.",
+  "profile.teamName": "Name",
+  "profile.teamRole": "Wetin dem dey do",
+  "profile.teamRolePlaceholder": "Like Account manager",
+  "profile.teamPhoto": "Photo",
+  "profile.teamAdd": "Add to team",
+  "profile.teamRemove": "Remove",
+  "profile.teamEmpty": "You never add anybody.",
+  "profile.teamFull": "Na the most be that ({max}). Remove person to add another one.",
   "profile.website": "Website",
   "profile.productsLive": "{count, plural, one {# product dey live} other {# products dey live}}",
   "profile.trustScore": "Trust score",
@@ -679,6 +692,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "preorders.qty": "{count} pieces",
   "preorders.noOrders": "No order yet.",
   "orders.sampleTag": "Sample",
+  "agr.subShort": "Shops wey wan sell your products.",
+  "agr.noneSubShort": "When shop wan sell your products, e go show here.",
 };
 
 export default pcm;

@@ -6,6 +6,10 @@ The app lives at **https://app.shopinbos.com** (sellers, suppliers, delivery par
 `/s/<slug>`). Use it in docs, scripts, cron jobs, webhook and OAuth callback URLs, emails, and when testing.
 Never use the old `shopinbos-app.vercel.app` domain; `*.vercel.app` hosts are only Vercel preview deployments.
 
+Stores live at **`<slug>.mybos.store`** (or the seller's own domain). Use `.mybos.store` for store addresses in
+placeholders, samples, demos, previews and copy (e.g. `yourshop.mybos.store`), never `<slug>.shopinbos.com`. In code,
+build a real store's address with `buildStorefrontUrl` rather than hard-coding a host.
+
 ## Role
 
 You are building the authenticated Shopinbos application, backend, portals, marketplace database, and shared API.

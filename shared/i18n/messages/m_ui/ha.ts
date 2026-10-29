@@ -261,6 +261,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "update.help": "Kana buƙatar taimako? Tuntuɓe mu",
   "update.storeFailed": "Ba mu iya buɗe Google Play ba. Buɗe manhajar Play Store ka nemi Shopinbos.",
   "update.storeFailedIos": "Ba mu iya buɗe App Store ba. Buɗe manhajar App Store ka nemi Shopinbos.",
+  "tip.more": "Ƙarin bayani",
+  "tip.learnMore": "Ƙara koyo",
 };
 
 export default ha;

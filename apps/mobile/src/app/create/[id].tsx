@@ -179,7 +179,7 @@ export default function CreateResult() {
                   <Image source={{ uri: item.imageUrl }} style={{ width: "100%", aspectRatio: job.format === "post" ? 1 : 9 / 14, backgroundColor: colors.grayTint }} contentFit="cover" accessibilityIgnoresInvertColors />
                   {on ? (
                     <View style={{ position: "absolute", top: 10, right: 10, width: 30, height: 30, borderRadius: 15, backgroundColor: colors.accent, alignItems: "center", justifyContent: "center" }}>
-                      <AppIcon name="check" size={16} color={colors.ink} strokeWidth={3} />
+                      <AppIcon name="check" size={16} color={colors.onAccent} strokeWidth={3} />
                     </View>
                   ) : null}
                   {job.format === "reel" ? (

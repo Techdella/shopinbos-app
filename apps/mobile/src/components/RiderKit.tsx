@@ -35,7 +35,7 @@ export function MapBox({ address, label, height = 150, children }: { address?: s
       {/* Two faint roads, so the panel reads as a map. */}
       <View style={{ position: "absolute", left: -20, right: -20, top: 64, height: 14, backgroundColor: "#FFFFFF", opacity: 0.7, transform: [{ rotate: "-8deg" }] }} />
       <View style={{ position: "absolute", top: -20, bottom: -20, left: "58%", width: 12, backgroundColor: "#FFFFFF", opacity: 0.7, transform: [{ rotate: "12deg" }] }} />
-      <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.forest, alignItems: "center", justifyContent: "center" }}>
+      <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.forestFill, alignItems: "center", justifyContent: "center" }}>
         <AppIcon name="pin" size={22} color="#FFFFFF" />
       </View>
       {children}
@@ -51,12 +51,12 @@ export function MapPin({ kind }: { kind: "pickup" | "drop" | "me" }) {
   if (kind === "me") {
     return (
       <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: "rgba(12,74,68,0.15)", alignItems: "center", justifyContent: "center" }}>
-        <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: colors.forest, borderWidth: 3, borderColor: "#FFFFFF" }} />
+        <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: colors.forestFill, borderWidth: 3, borderColor: "#FFFFFF" }} />
       </View>
     );
   }
   const pickup = kind === "pickup";
-  return <View style={{ width: pickup ? 24 : 20, height: pickup ? 24 : 20, borderRadius: 12, backgroundColor: pickup ? colors.accent : colors.forest, borderWidth: pickup ? 3 : 2, borderColor: "#FFFFFF" }} />;
+  return <View style={{ width: pickup ? 24 : 20, height: pickup ? 24 : 20, borderRadius: 12, backgroundColor: pickup ? colors.accent : colors.forestFill, borderWidth: pickup ? 3 : 2, borderColor: "#FFFFFF" }} />;
 }
 
 /** A big tinted square with an icon, centred above a title (`.tile` 104px on Payment). */

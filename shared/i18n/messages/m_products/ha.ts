@@ -96,6 +96,10 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "add.tip2": "Rex zai rubuta suna, farashi da bayani",
   "add.tip2Sub": "Kai za ka duba su kafin su shiga shagonka.",
   "add.recent": "Waɗanda ka ƙara kwanan nan",
+  "list.preorderBarShort": "Kayayyakin da ke karɓar odar gaba.",
+  "list.stockHintShort": "Taɓa + ko − idan ka sayar ko ka ƙara kaya.",
+  "list.stockTipTitle": "Daidaita yawan kaya",
+  "dropship.subShort": "Ba ka saya waɗannan ba. Mai kawowa ne ke aika su.",
 };
 
 export default ha;

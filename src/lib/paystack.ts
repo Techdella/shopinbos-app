@@ -172,6 +172,15 @@ export interface PaystackSubaccount {
   active: boolean;
 }
 
+/**
+ * The business name a subaccount carries on Paystack, led by "Shopinbos" so the money each business gets from
+ * Paystack is recognisably from Shopinbos ("Shopinbos - Tofs Variety Store").
+ */
+export function shopinbosSubaccountName(name: string) {
+  const trimmed = name.trim() || "Shopinbos business";
+  return (/^shopinbos\b/i.test(trimmed) ? trimmed : `Shopinbos - ${trimmed}`).slice(0, 100);
+}
+
 function readSubaccount(data: Record<string, unknown> | undefined): PaystackSubaccount | null {
   const code = typeof data?.subaccount_code === "string" ? data.subaccount_code : "";
   if (!code) return null;
@@ -188,7 +197,7 @@ export async function createPaystackSubaccount(input: { businessName: string; ba
     method: "POST",
     headers: { Authorization: `Bearer ${secretKey()}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      business_name: input.businessName.slice(0, 100),
+      business_name: shopinbosSubaccountName(input.businessName),
       settlement_bank: input.bankCode,
       account_number: input.accountNumber,
       percentage_charge: 0,
@@ -213,7 +222,7 @@ export async function updatePaystackSubaccount(code: string, change: { bankCode?
     method: "PUT",
     headers: { Authorization: `Bearer ${secretKey()}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      ...(change.businessName ? { business_name: change.businessName.slice(0, 100) } : {}),
+      ...(change.businessName ? { business_name: shopinbosSubaccountName(change.businessName) } : {}),
       ...(change.bankCode ? { settlement_bank: change.bankCode } : {}),
       ...(change.accountNumber ? { account_number: change.accountNumber } : {}),
       ...(change.active === undefined ? {} : { active: change.active }),
@@ -260,10 +269,33 @@ export interface PaystackSettlement {
   settlementDate: string | null;
 }
 
-/** Recent settlements Paystack made to a subaccount's bank (GET /settlement?subaccount=…). Empty when Paystack can't say. */
-export async function listPaystackSettlements(subaccountCode: string, perPage = 10): Promise<PaystackSettlement[]> {
+/** A subaccount's numeric id and business name (GET /subaccount/:code). Null when Paystack can't say. */
+export async function fetchPaystackSubaccount(code: string): Promise<{ id: string; businessName: string } | null> {
   try {
-    const response = await fetch(`${PAYSTACK_BASE}/settlement?subaccount=${encodeURIComponent(subaccountCode)}&perPage=${perPage}`, {
+    const response = await fetch(`${PAYSTACK_BASE}/subaccount/${encodeURIComponent(code)}`, {
+      headers: { Authorization: `Bearer ${secretKey()}` },
+      cache: "no-store",
+      signal: AbortSignal.timeout(10_000),
+    });
+    const json = (await response.json().catch(() => null)) as { status?: boolean; data?: Record<string, unknown> } | null;
+    const id = json?.data?.id;
+    if (!response.ok || !json?.status || (typeof id !== "number" && typeof id !== "string")) return null;
+    return { id: String(id), businessName: typeof json.data?.business_name === "string" ? json.data.business_name : "" };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Recent settlements Paystack made to a subaccount's bank (GET /settlement?subaccount=…). Paystack filters by the
+ * subaccount's numeric id, not its ACCT_ code (the code matches nothing), so the id is looked up first. Pass it as
+ * `subaccountId` when it's already known. Empty when Paystack can't say.
+ */
+export async function listPaystackSettlements(subaccountCode: string, perPage = 10, subaccountId?: string): Promise<PaystackSettlement[]> {
+  try {
+    const id = subaccountId ?? (await fetchPaystackSubaccount(subaccountCode))?.id;
+    if (!id) return [];
+    const response = await fetch(`${PAYSTACK_BASE}/settlement?subaccount=${encodeURIComponent(id)}&perPage=${perPage}`, {
       headers: { Authorization: `Bearer ${secretKey()}` },
       cache: "no-store",
       signal: AbortSignal.timeout(10_000),

@@ -140,6 +140,8 @@ const en = {
   "other.csvSub": "Have a list already? Upload a CSV or Excel file. Photos you uploaded here are matched by file name.",
   "other.one": "Add one product",
   "grid.photo": "Photo",
+  "pick.subShort": "Up to 300 at once. One photo, one product.",
+  "other.csvSubShort": "Have a list? Upload a CSV or Excel file.",
 } satisfies Record<string, string>;
 
 export default en;

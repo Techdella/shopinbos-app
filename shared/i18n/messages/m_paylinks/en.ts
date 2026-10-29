@@ -162,6 +162,8 @@ const en = {
   "block.track": "Track my order",
   "block.trackSub": "Customers find their order",
   "block.other": "Block",
+  subShort: "Send a link on WhatsApp. Your customer pays.",
+  "bio.subShort": "One page with your products and links.",
 } satisfies Record<string, string>;
 
 export default en;

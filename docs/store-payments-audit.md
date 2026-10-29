@@ -44,7 +44,7 @@ Categories:
 | Print and packaging orders | Physical | **Keep.** The button now reads "Pay ₦X for prints". | `app/packaging.tsx`, `lib/packaging.ts` `orderPrints` | Play §2; Apple 3.1.3(e) |
 | Ads: the Shopinbos team sets up and runs Meta or TikTok ads (setup fee) | Grey, decided physical | **Keep.** The button now reads "Pay the team's ₦X setup fee". See below. | `app/ads/new.tsx`, `lib/ads.ts` `sendAdRequest` | Apple 3.1.3(e), 3.1.3(g); Play §2 |
 | Ads: "Boost it yourself" on Meta | Not a Shopinbos sale | **Keep.** Meta charges the seller's own ad account. Shopinbos charges nothing. | `app/ads/new.tsx` | Apple 3.1.3(g) |
-| Withdraw to a bank, bank and settlement setup, payouts | Not a purchase | **Keep.** | `app/wallet.tsx`, `app/payouts.tsx`, `components/WalletBalanceCard.tsx` | n/a |
+| Bank and settlement setup, payouts | Not a purchase | **Keep.** | `app/wallet.tsx`, `app/payouts.tsx`, `components/WalletBalanceCard.tsx` | n/a |
 | Paystack return and confirmation (`shopinbos://paid`) | Physical / B2B only | **Keep.** Used only by the callers above. A test fails if a new `payInApp(` caller appears. | `lib/pay.ts`, `app/paid.tsx` | n/a |
 | AI credits "Top up" button (email with the website steps): Rex, Create, Ask Peggy, Packaging, supplier Account, partner Business | Digital | **Removed.** Shows "N credits" and "Your plan's credits refill each month." No button, price, website or email. | `components/familiar/Credits.tsx`, `app/rex.tsx`, `app/supplier/account.tsx`, `app/logistics/(tabs)/more.tsx` | Play "may not lead users"; Apple 3.1.1, 3.1.3 |
 | Out of AI credits during an action (`AI_CREDITS_NEEDED`) | Digital | **Calm line only:** "You're out of AI credits for now. Your plan's credits refill each month." | `lib/api.ts` `phoneMessage`, `shared/store-payments.ts` | Same |
@@ -54,7 +54,7 @@ Categories:
 | Plan gates from the server (`PLAN_LIMIT`, `UPGRADE_REQUIRED`, any 402, any "Upgrade to X" line) | Digital | **Neutral:** "That isn't on your plan." No plan name, price or link. | `lib/api.ts` | Same |
 | Shop looks (themes) locked to a plan, with "See plans on the website" | Digital | **Removed.** `ALL_THEMES_FREE` is on, so nothing is locked. If it's turned off, a lock only says "Not on your plan". No plan filter chips. | `app/templates.tsx` | Same |
 | Onboarding "All of Nigeria: comes with the Growth plan" | Digital | **Neutral:** "Not on your plan" (no plan name). | `app/onboarding/where.tsx` | Same |
-| Wallet balance "Top up" (email with the website steps) | Digital (grey: see below) | **Removed.** The card is off in store builds anyway (`EXPO_PUBLIC_PREPAID_BALANCE`). When on, it shows the balance and Withdraw only. | `components/WalletBalanceCard.tsx`, `lib/wallet.ts` | Play §1; Apple 3.1.1, 3.1.5(i) |
+| Wallet balance "Top up" (email with the website steps) | Digital (grey: see below) | **Removed.** The card is off in store builds anyway (`EXPO_PUBLIC_PREPAID_BALANCE`). When on, it shows the balance and past transactions only (the balance is spend-only: no Withdraw). | `components/WalletBalanceCard.tsx`, `lib/wallet.ts` | Play §1; Apple 3.1.1, 3.1.5(i) |
 | Links from the server to purchase pages (`/home/credits`, `/logistics/billing`, `settings?tab=Billing`, `/pricing`) in notifications, Rex cards and home items | Digital | **Never open.** `openPath` and `openWeb` do nothing for them, with no "Open the website?" prompt either. | `lib/web.ts`, `shared/store-payments.ts` `isDigitalPurchasePath` | Play "may not lead users" |
 | Bell items that sell credits ("Running low… Top up credits") | Digital | **Hidden in the app's bell.** They stay on the website's bell and in email. | `lib/notifications.ts` | Same; Apple 3.1.3 (communication outside the app is allowed) |
 | Domain purchase ("Buy a new domain on the website", with the website badge) | Grey, decided digital | **Removed.** "Connect a domain you already own" stays. See below. | `app/domain.tsx` | Play §1 ("cloud software and services"); Apple 3.1.1 |
@@ -111,8 +111,8 @@ currency).
 Decision:
 
 - The balance card stays off in store builds (`EXPO_PUBLIC_PREPAID_BALANCE` unset).
-- When it's on, it shows only the balance, past transactions and Withdraw to the person's own bank. There is no Top
-  up, no email and no account number to transfer to.
+- When it's on, it shows only the balance and past transactions. There is no Top up, no Withdraw (the balance is
+  spend-only), no email and no account number to transfer to.
 - Sales never touch this balance: Paystack splits them straight to the bank.
 
 ## What changed in code
@@ -144,8 +144,8 @@ Decision:
 ### Play Console: financial features declaration (App content › Financial features)
 
 - Choose what the app actually does. Shopinbos lets businesses take card payments for their own sales (orders,
-  payment links and invoices), pay other businesses (wholesale stock, delivery fees, cash handovers, money owed) and
-  withdraw to their bank. A licensed third-party processor (Paystack) handles all of it.
+  payment links and invoices), pay other businesses (wholesale stock, delivery fees, cash handovers, money owed),
+  all settled straight to their own bank. A licensed third-party processor (Paystack) handles all of it.
 - The closest options are the payments ones: mobile payments and transfers. Name Paystack as the processor wherever
   the form asks how payments are processed. Shopinbos doesn't lend, doesn't trade crypto and doesn't hold customer
   money in store builds.

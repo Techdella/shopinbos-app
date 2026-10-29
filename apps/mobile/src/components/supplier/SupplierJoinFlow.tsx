@@ -24,10 +24,11 @@ import { CallPeggyButton } from "@/components/CallPeggyButton";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { FlowFrame, NoteCard } from "@/components/SupplierKit";
 import { StatePicker } from "@/components/StatePicker";
-import { Field, LinkButton, Notice, PillButton, T } from "@/components/ui";
+import { Field, LinkButton, Notice, PillButton, T, WithTip } from "@/components/ui";
 import { LIVENESS_ON, useKoraLiveness, type LivenessPass } from "@/components/kyc/KoraLiveness";
 import { useT } from "@/lib/i18n";
 import { birthDate, selfieDataUri } from "@/lib/kyc-pure";
+import { shrunkBase64 } from "@/lib/upload-photo";
 import { openSupportWhatsApp } from "@/lib/support";
 import {
   addFirstSupplierProduct,
@@ -64,7 +65,8 @@ async function takePhoto(front: boolean): Promise<Picked | "denied" | "big" | nu
   const result = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], cameraType: front ? ImagePicker.CameraType.front : ImagePicker.CameraType.back, allowsEditing: front, ...(front ? { aspect: [1, 1] as [number, number] } : {}), quality: front ? 0.35 : 0.45, base64: true });
   if (result.canceled || !result.assets?.[0]) return null;
   const asset = result.assets[0];
-  const dataUri = selfieDataUri(asset.base64, asset.mimeType);
+  // Too big as taken (a high-resolution camera): shrink it on the phone and try again.
+  const dataUri = selfieDataUri(asset.base64, asset.mimeType) ?? selfieDataUri(await shrunkBase64(asset), "image/jpeg");
   return dataUri ? { uri: asset.uri, dataUri } : "big";
 }
 
@@ -476,7 +478,9 @@ export function SupplierJoinFlow() {
             <Field value={productPrice} onChangeText={(text) => setProductPrice(text.replace(/\D/g, ""))} keyboardType="number-pad" placeholder={t("product.price")} accessibilityLabel={t("product.price")} />
           </>
         ) : null}
-        <T style={{ color: colors.inkSoft, fontSize: 13.5, lineHeight: 19 }}>{t("product.whatsappLater")}</T>
+        <WithTip title={t("product.whatsappLaterTitle")} tip={{ text: t("product.whatsappLater") }}>
+          <T style={{ color: colors.inkSoft, fontSize: 13.5, lineHeight: 19 }}>{t("product.whatsappLaterShort")}</T>
+        </WithTip>
       </View>
     );
     action = {
@@ -525,7 +529,7 @@ export function SupplierJoinFlow() {
             <T weight="bold">{t("review.badges")}</T>
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
               {badges.map((badge) => (
-                <View key={badge} style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.ink, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 }}>
+                <View key={badge} style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.inkFill, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 }}>
                   <AppIcon name="check" size={15} color="#FFFFFF" />
                   <T weight="bold" style={{ color: "#FFFFFF", fontSize: 14 }}>{t.dynamic(`badge.${badge}`, badge)}</T>
                 </View>
@@ -596,7 +600,7 @@ function ModeChoice({ title, sub, on, onPress }: { title: string; sub?: string; 
         {sub ? <T style={{ fontSize: 13, lineHeight: 19, color: colors.inkSoft }}>{sub}</T> : null}
       </View>
       <View style={{ width: 28, height: 28, borderRadius: 8, borderWidth: on ? 0 : 2, borderColor: colors.lineStrong, backgroundColor: on ? colors.accent : colors.surface, alignItems: "center", justifyContent: "center" }}>
-        {on ? <AppIcon name="check" size={15} color={colors.ink} strokeWidth={3} /> : null}
+        {on ? <AppIcon name="check" size={15} color={colors.onAccent} strokeWidth={3} /> : null}
       </View>
     </Pressable>
   );

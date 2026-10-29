@@ -154,6 +154,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "claim.none": "Babu order na kwanan nan daga supplier ko delivery partner da za ka iya kai ƙorafi a kai. Ana iya kai ƙorafi cikin kwana {days} bayan delivery.",
   "claim.sent": "An aika ƙorafin.",
   "setup.neverCommission": "Shopinbos ba ya riƙe kuɗinka. Idan {who} suka biya da kati don kayanka, kasonka yana zuwa wannan bankin kai tsaye, yawanci ranar aiki ta gaba. Kwamishan Shopinbos na {pct}% na darajar jumla yana fitowa daga kowane odar kasuwa a tsarinka, tare da kasonka na kuɗin Paystack.",
+  "claim.promptShort": "Kaya mara kyau, lalace ko ɓatattu? Yi claim cikin kwanaki {days}.",
 };
 
 export default ha;

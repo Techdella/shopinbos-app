@@ -111,6 +111,15 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "live.sub": "Google free listings dey work today: connect once and your products go show for Google Search and Shopping.",
   "moved": "To post for Instagram, Facebook, WhatsApp and TikTok now get im own page, with calendar, queue and one-tap posts.",
   "moved.link": "Open Social posts",
+  "appBack.title": "Go back to Shopinbos",
+  "appBack.body": "We dey carry you go back to the app. If nothing happen, tap the button.",
+  "appBack.button": "Go back to the app",
+  "appWa.title": "Connect WhatsApp",
+  "appWa.body": "Link your WhatsApp Business number to your shop. Customers' messages go enter Chats and your products go show inside WhatsApp.",
+  "appWa.step1": "Tap Continue with Facebook and sign in.",
+  "appWa.step2": "Pick your business and your WhatsApp number, or add one.",
+  "appWa.step3": "Confirm am, and you don come back to the app.",
+  "appWa.continue": "Continue with Facebook",
 };
 
 export default pcm;

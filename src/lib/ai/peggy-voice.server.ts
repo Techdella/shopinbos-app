@@ -5,7 +5,7 @@ import { db } from "@/lib/db/client";
 import { setupStatus, setupText } from "@/lib/onboarding/setup-status.server";
 import { PEGGY_FACTS } from "@/lib/support/peggy-knowledge";
 import { actionsFor } from "@/lib/onboarding/setup-peggy-pure";
-import { elevenLabsBuiltInTools, elevenLabsTools } from "@/lib/onboarding/peggy-call-tools";
+import { clientEventsWithToolResponse, elevenLabsBuiltInTools, elevenLabsTools } from "@/lib/onboarding/peggy-call-tools";
 import { peggyDashboard } from "./peggy-dashboard.server";
 import { screenList } from "@shared/peggy-screens";
 import { canonicalState } from "@shared/delivery-market";
@@ -78,6 +78,23 @@ async function eleven(path: string, init: { method?: string; body?: unknown } = 
   return json ?? {};
 }
 
+/**
+ * Makes sure the agent sends agent_tool_response events to the app, so when Peggy calls end_call the app closes the
+ * call at once and shows the summary (ElevenLabs' SDK ends the session on that event). The agent's own list is read
+ * first and only added to, never replaced: the other events (audio, transcripts, client tool calls) must stay.
+ */
+async function ensureToolEvents(id: string) {
+  try {
+    const agent = await eleven(`/convai/agents/${encodeURIComponent(id)}`);
+    const conversation = ((agent.conversation_config as Record<string, unknown> | undefined)?.conversation ?? {}) as Record<string, unknown>;
+    const next = clientEventsWithToolResponse(conversation.client_events);
+    if (next) await eleven(`/convai/agents/${encodeURIComponent(id)}`, { method: "PATCH", body: { conversation_config: { conversation: { client_events: next } } } });
+  } catch (error) {
+    // The app still hangs up after her goodbye by itself (shared/peggy-goodbye.ts).
+    console.error("[peggy-voice] could not turn on agent_tool_response events", error);
+  }
+}
+
 /** Peggy's agent id: the env one, else the one the server made (re-synced when her prompt or voice changes). */
 async function agentId() {
   const fixed = process.env.ELEVENLABS_PEGGY_AGENT_ID?.trim();
@@ -90,11 +107,25 @@ async function agentId() {
     if (saved.version !== version) {
       // Only remembered once ElevenLabs took it, so a failed update (prompt, voice or tools) is tried again next call.
       const path = `/convai/agents/${encodeURIComponent(id)}`;
-      const synced = await eleven(path, { method: "PATCH", body: config }).then(() => true, (error) => (console.error("[peggy-voice] agent update failed", error), false));
+      let failure = "";
+      const synced = await eleven(path, { method: "PATCH", body: config }).then(
+        () => true,
+        (error) => {
+          console.error("[peggy-voice] agent update failed", error);
+          failure = error instanceof Error ? error.message : String(error);
+          return false;
+        },
+      );
+      if (synced) await ensureToolEvents(id);
       if (synced) await db.platformSetting.upsert({ where: { key: SETTING }, create: { key: SETTING, value: { agentId: id, version } }, update: { value: { agentId: id, version } } });
       // Rejected (perhaps the system tools): her new prompt and tools still go out without them; the version isn't
-      // saved, so the full config is tried again on the next call.
-      else await eleven(path, { method: "PATCH", body: agentConfig({ withSystemTools: false }) }).catch((error) => console.error("[peggy-voice] agent update without system tools failed", error));
+      // saved, so the full config is tried again on the next call. Why it was rejected is kept in the setting
+      // (lastSyncError) so it can be read without the server logs.
+      else {
+        await eleven(path, { method: "PATCH", body: agentConfig({ withSystemTools: false }) }).catch((error) => console.error("[peggy-voice] agent update without system tools failed", error));
+        const value = { ...saved, agentId: id, lastSyncError: failure.slice(0, 300), lastSyncAt: new Date().toISOString() };
+        await db.platformSetting.upsert({ where: { key: SETTING }, create: { key: SETTING, value }, update: { value } }).catch(() => null);
+      }
     }
     return id;
   }
@@ -108,6 +139,7 @@ async function agentId() {
   });
   const newId = typeof created.agent_id === "string" ? created.agent_id : null;
   if (!newId) throw new PeggyVoiceError("ElevenLabs didn't return an agent.");
+  await ensureToolEvents(newId);
   await db.platformSetting.upsert({ where: { key: SETTING }, create: { key: SETTING, value: { agentId: newId, version: saveAs } }, update: { value: { agentId: newId, version: saveAs } } });
   return newId;
 }

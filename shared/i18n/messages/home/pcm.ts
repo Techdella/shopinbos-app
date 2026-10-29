@@ -156,7 +156,6 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "step.Choose a company": "Choose company",
   "step.Add your payout bank": "Add your payout bank",
   "step.Your bank account is linked for payouts.": "Your bank account don connect for payouts.",
-  "step.Money waits safely in your balance until you do.": "Money go dey safe for your balance until you do am.",
   "step.Add bank": "Add bank",
   "step.Put your shop live": "Put your shop live",
   "step.Your shop is open to shoppers.": "Your shop don open for buyers.",

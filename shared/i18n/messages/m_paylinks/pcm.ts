@@ -159,6 +159,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "block.track": "Track my order",
   "block.trackSub": "Customers fit find their order",
   "block.other": "Block",
+  subShort: "Send link for WhatsApp. Your customer go pay.",
+  "bio.subShort": "One page wey get your products and links.",
 };
 
 export default pcm;

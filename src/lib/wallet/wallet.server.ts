@@ -152,7 +152,7 @@ export async function linkWalletBank(user: { id: string; role: WalletRole }, inp
 
   const saved = await db.wallet.update({
     where: { id: wallet.id },
-    data: { bankCode, bankName: input.bankName, accountNumber, accountName: resolved.accountName, nameCheck: null },
+    data: { bankCode, bankName: input.bankName, accountNumber, accountName: resolved.accountName, nameCheck: null, transferRecipient: null },
   });
   return openSubaccount(saved, (await accountIsTheirs(saved, resolved.accountName)) ? "auto" : null);
 }

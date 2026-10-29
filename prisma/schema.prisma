@@ -277,6 +277,10 @@ model Store {
   /// Days the store takes to send an order of its own stock (0 = same day, up to 5): with each zone rate's days it
   /// gives the "Arrives …" date at checkout (shared/cart-checkout.ts ownArrival).
   handlingDays               Int      @default(1)
+  // When the seller pays their creators and affiliates (shared/affiliates.ts): "weekly" on a weekday (0-6),
+  // "monthly" on a date (1-28) or "agreed" with each creator. The seller's choice; Shopinbos never pays them.
+  affiliatePaySchedule       String   @default("weekly")
+  affiliatePayDay            Int      @default(5)
   returnShippingPayer        String   @default("customer")
   createdAt                  DateTime @default(now())
   updatedAt                  DateTime @updatedAt
@@ -5042,6 +5046,13 @@ model StatusPost {
   caption   String?
   /// A photo uploaded through /api/mobile/status/upload (public bucket, status/<authorId>/).
   imageUrl  String?
+  /// A short video (up to 30 s, 25 MB) the phone uploaded straight to Storage with a signed URL from
+  /// /api/mobile/status/upload-url (public bucket, status/<authorId>/; rules in shared/status-video.ts).
+  videoUrl  String?
+  /// The video's still frame (same folder), shown while it loads.
+  posterUrl String?
+  /// The video's length in milliseconds, as the phone measured it.
+  durationMs Int?
   /// peach | mint | blue | warn | ink
   tone      String   @default("peach")
   /// The product the post is about, by the author's role: a supplier's own SupplierProduct (what "Add to my shop"

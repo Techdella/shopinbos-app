@@ -10,17 +10,17 @@ import { CUSTOMER_FILTERS, CUSTOMER_SORTS, fetchCustomers, hasMore, joinPages, m
 import { friendlyDay } from "@/lib/friendly";
 import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
-import { colors } from "@/theme";
+import { colors, themed } from "@/theme";
 
 // Customers (web /home/customers): everyone who has ordered, grouped like the web (by email, else phone, else
 // name), with search, the web's filter chips in one sideways row (the order in the Filters sheet), and "Show more"
 // paging. A tap opens the customer.
 
-const BADGE_COLORS = {
+const BADGE_COLORS = themed(() => ({
   vip: { bg: "#FDF0D5", fg: "#8A5A00" },
   repeat: { bg: colors.successTint, fg: colors.success },
   new: { bg: colors.mintTint, fg: colors.forest },
-} as const;
+} as const));
 
 function CustomerCard({ customer, currency }: { customer: CustomerRow; currency: string }) {
   const t = useT("m_customers", "customers", "m_ui");

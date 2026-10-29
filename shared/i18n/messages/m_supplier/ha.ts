@@ -570,6 +570,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "home.agreements": "{count, plural, one {Shago # yana son sayar da kayanka} other {Shaguna # suna son sayar da kayanka}}",
   "home.agreementsSub": "Karanta yarjejeniyar ka sa hannu",
   "kind.sample": "Samfuri",
+  "money.howItMovesShort": "Rabonka na zuwa kai tsaye bankinka.",
+  "products.noneBodyShort": "Ƙara hoto, farashi da yawan kaya. Shaguna za su sayar maka.",
 };
 
 export default ha;

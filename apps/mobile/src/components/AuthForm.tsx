@@ -20,7 +20,7 @@ import { useT } from "@/lib/i18n";
 import { PRIVACY_URL, TERMS_URL } from "@/lib/support";
 import { KeyboardShift } from "@/components/KeyboardShift";
 
-const legalLink = { color: colors.ink, textDecorationLine: "underline" } as const;
+const legalLink = () => ({ color: colors.ink, textDecorationLine: "underline" } as const);
 
 type Mode = "signup" | "login";
 type Method = "phone" | "email";
@@ -48,7 +48,7 @@ export function SignupProgress({ step, total }: { step: number; total: number })
   return (
     <View accessible accessibilityLabel={label} style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 10 }}>
       <View style={{ flex: 1, height: 6, borderRadius: 3, backgroundColor: colors.line, overflow: "hidden" }}>
-        <View style={{ width: `${(step / total) * 100}%`, height: 6, borderRadius: 3, backgroundColor: colors.ink }} />
+        <View style={{ width: `${(step / total) * 100}%`, height: 6, borderRadius: 3, backgroundColor: colors.inkFill }} />
       </View>
       <T weight="bold" style={{ fontSize: 12, color: colors.inkSoft }}>{label}</T>
     </View>
@@ -359,9 +359,9 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = null, pr
           {mode === "signup" && step === "contact" && (
             <T style={{ fontSize: 12, color: colors.inkSoft, lineHeight: 18 }}>
               {tLegal("terms.before")}{" "}
-              <T style={legalLink} onPress={() => void WebBrowser.openBrowserAsync(TERMS_URL)}>{tLegal("terms.terms")}</T>{" "}
+              <T style={legalLink()} onPress={() => void WebBrowser.openBrowserAsync(TERMS_URL)}>{tLegal("terms.terms")}</T>{" "}
               {tLegal("terms.and")}{" "}
-              <T style={legalLink} onPress={() => void WebBrowser.openBrowserAsync(PRIVACY_URL)}>{tLegal("terms.privacy")}</T>
+              <T style={legalLink()} onPress={() => void WebBrowser.openBrowserAsync(PRIVACY_URL)}>{tLegal("terms.privacy")}</T>
               {tLegal("terms.after")}
             </T>
           )}

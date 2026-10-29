@@ -17,7 +17,7 @@ export function Sheet({ visible, onClose, title, children, testID }: { visible: 
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
       {/* A field in the sheet stays above the keyboard. */}
       <KeyboardShift style={{ justifyContent: "flex-end" }}>
-        <Pressable accessibilityRole="button" accessibilityLabel={t("close")} onPress={onClose} style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0, backgroundColor: "rgba(22,20,31,0.38)" }} />
+        <Pressable accessibilityRole="button" accessibilityLabel={t("close")} onPress={onClose} style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0, backgroundColor: colors.scrim }} />
         <View testID={testID} accessibilityViewIsModal style={{ backgroundColor: colors.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 20, paddingTop: 12, paddingBottom: Math.max(insets.bottom, 16) + 16, gap: 10 }}>
           <View style={{ width: 40, height: 5, borderRadius: 3, backgroundColor: colors.grab, alignSelf: "center", marginBottom: 6 }} />
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 4 }}>

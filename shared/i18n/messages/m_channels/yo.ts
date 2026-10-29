@@ -2,8 +2,8 @@
 import type en from "./en.ts";
 
 const yo: Partial<Record<keyof typeof en, string>> = {
-  title: "Tà níbi gbogbo",
-  sub: "So àwọn account rẹ pọ̀, àwọn ọjà rẹ á sì hàn níbẹ̀. Iye owó àti stock á máa yí padà fúnra wọn níbẹ̀.",
+  title: "So account pọ̀",
+  sub: "So WhatsApp, Facebook & Instagram àti Google pọ̀ níbí. Àwọn chat rẹ á wá sínú Chats, àwọn ọjà rẹ á sì hàn níbẹ̀.",
   cantSave: "Àwọn ọjà rẹ ṣì ń hàn níbi tí wọ́n ti so pọ̀, ṣùgbọ́n a kò lè fi àyípadà pamọ́ níbí báyìí. Tẹ Help, a ó sì yanjú rẹ̀.",
   "p.whatsapp": "Àwọn oníbàárà á rí ọjà rẹ nínú WhatsApp gan-an.",
   "p.meta": "Àwọn ọjà rẹ lórí Facebook Shop àti àwọn post Instagram rẹ.",
@@ -36,11 +36,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "soon.title": "Ó ń bọ̀ láìpẹ́",
   "soon.notify": "Sọ fún mi tí ó bá ṣetán",
   "soon.noted": "A ó jẹ́ kí o mọ̀",
-  "wa.title": "Kọ́kọ́ so nọ́ńbà WhatsApp rẹ pọ̀",
-  "wa.body": "WhatsApp nílò kí nọ́ńbà business rẹ so mọ́ ṣọ́ọ̀bù rẹ. A ó ṣí i nínú browser rẹ. Tí o bá parí, padà wá kí o tẹ So pọ̀ lẹ́ẹ̀kan sí i.",
-  "wa.open": "Ṣí i",
   "post.title": "Post kí o sì pín in",
-  "post.sub": "Kọ post nípa àwọn ọjà rẹ kí o pín in káàkiri. Yóò ṣí nínú browser rẹ",
+  "post.sub": "Kọ post nípa àwọn ọjà rẹ kí o pín in káàkiri.",
   openFailed: "A kò lè ṣí sign-in. Ṣàyẹ̀wò network rẹ kí o tún gbìyànjú.",
   "email.title": "Email nínú Inbox rẹ",
   "email.name": "Email",
@@ -59,6 +56,13 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "email.domainTitle": "Ṣètò email domain rẹ lórí ojú ìbòjú tó tóbi",
   "email.domainBody": "Email bí hello@yourshop.com: yan àdírẹ́sì náà kí o sì tẹ So pọ̀. Ó rọrùn lórí kọ̀ǹpútà, ṣùgbọ́n o lè ṣí i lórí fóònù yìí náà.",
   "email.askUs": "Ní kí a bá ọ ṣètò rẹ̀",
+  "acc.whatsapp": "WhatsApp: {name}",
+  "acc.facebook": "Facebook Page: {name}",
+  "acc.instagram": "Instagram: {name}",
+  "acc.noInstagramApp": "A kò tíì fi Instagram kún un. Nínú app Instagram, yí i padà sí business account kí o sì so ó mọ́ Facebook Page rẹ, lẹ́yìn náà so pọ̀ lẹ́ẹ̀kan sí i.",
+  "card.confirmMeta": "Ṣé kí o yọ {name} kúrò? Ìfiránṣẹ́ tuntun àti ìmúdójúìwọ̀n ọjà á dúró níbẹ̀. Àwọn chat àtijọ́ rẹ á wà síbẹ̀.",
+  "card.confirmWhatsapp": "Yọ {name} kúrò? Àwọn message WhatsApp tuntun kò ní wá sínú inbox rẹ mọ́, àwọn ọjà rẹ kò sì ní ṣe àtúnṣe níbẹ̀ mọ́. Àwọn chat àtijọ́ rẹ yóò wà.",
+  subShort: "So WhatsApp, Facebook & Instagram àti Google pọ̀.",
 };
 
 export default yo;

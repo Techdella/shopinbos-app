@@ -159,6 +159,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "block.track": "Tọpinpin order mi",
   "block.trackSub": "Àwọn oníbàárà lè rí order wọn",
   "block.other": "Block",
+  subShort: "Fi link ránṣẹ́ lórí WhatsApp. Oníbàárà rẹ á sanwó.",
+  "bio.subShort": "Ojú-ìwé kan pẹ̀lú àwọn ọjà àti link rẹ.",
 };
 
 export default yo;

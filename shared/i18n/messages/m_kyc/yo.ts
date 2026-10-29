@@ -98,7 +98,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "q.extra.base": "Fi fọ́tò ibùdó rẹ kún un",
   "q.extra.baseSub": "Yóò mú àmì Address Verified wá.",
   "q.extra.bank": "Payout ready",
-  "q.extra.bankSub": "Fi àkáǹtì báńkì rẹ kún un nígbà àkọ́kọ́ tí o bá fẹ́ gba owó, nínú Wallet rẹ.",
+  "q.extra.bankSub": "Fi àkáǹtì báńkì rẹ kún un nínú Wallet rẹ kí o lè gba owó rẹ.",
   "q.base.inState": "Ní {state}",
   "item.approved": "A ti fọwọ́ sí i",
   "item.pending": "À ń ṣàyẹ̀wò rẹ̀",

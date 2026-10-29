@@ -15,7 +15,7 @@ import { checkThemeSwitch } from "@/lib/theme-access";
 import { loadSellerThemeAccess } from "@/lib/theme-access.server";
 
 // What a seller's plan lets them do (shared/plans.ts), checked where they do it: adding products, dropship, custom
-// domains, themes, the states they sell in, delivery partners, pay on delivery, seasonal campaigns and imports.
+// domains, themes, delivery partners, pay on delivery, seasonal campaigns and imports.
 // Each check returns null when allowed, or the words to show (with the plan that unlocks it). Things the seller
 // already has keep working after a downgrade; only adding more is stopped.
 
@@ -76,30 +76,6 @@ export async function customDomainProblem(userId: string): Promise<string | null
 export async function themeProblem(userId: string, themeId: string, currentThemeId?: string | null): Promise<string | null> {
   const access = await loadSellerThemeAccess(userId);
   return checkThemeSwitch(themeId, access.tier, currentThemeId, access.owned).message;
-}
-
-/**
- * Delivery areas after a change: the store's active areas minus `replacing`, plus `areas`. Each area with places
- * counts as one state (an area is a state or a city in one, e.g. "Abuja, FCT"); an "everywhere else" area (no places)
- * is nationwide. A change that doesn't add states beyond what the store already had is always fine, so a seller who
- * downgraded can still edit fees.
- */
-export async function sellingStatesProblem(userId: string, storeId: string, areas: ReadonlyArray<{ regions: readonly string[] }>, replacing: readonly string[] = []): Promise<string | null> {
-  const { limits } = await sellerPlan(userId);
-  if (limits.sellingStates === null) return null;
-  const zones = await db.shippingZone.findMany({ where: { storeId, active: true }, select: { id: true, regions: true } });
-  const kept = zones.filter((zone) => !replacing.includes(zone.id));
-  const count = (list: ReadonlyArray<{ regions: readonly string[] }>) => {
-    const named = list.filter((area) => area.regions.length > 0);
-    return { states: new Set(named.map((area) => area.regions.map((region) => region.trim().toLowerCase()).sort().join("|"))).size, everywhere: named.length < list.length };
-  };
-  const before = count(zones);
-  const after = count([...kept, ...areas]);
-  const plan = upgradeTo((next) => (after.everywhere ? next.sellingStates === null : more(next.sellingStates, after.states - 1)));
-  const upgrade = plan ? ` Upgrade to ${plan} to deliver to more.` : "";
-  if (after.everywhere && !before.everywhere) return `Delivering everywhere comes with the ${plan ?? "Growth"} plan. Your plan lets you sell in ${limits.sellingStates} state${limits.sellingStates === 1 ? "" : "s"}.`;
-  if (after.states > limits.sellingStates && after.states > before.states) return storeSafeMessage(`Your plan lets you sell in ${limits.sellingStates} state${limits.sellingStates === 1 ? "" : "s"}.${upgrade}`);
-  return null;
 }
 
 /**

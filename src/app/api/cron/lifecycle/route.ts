@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cronDenied } from "@/lib/auth/cron-request";
 import { sendLifecycleEmails } from "@/lib/setup/lifecycle.server";
-import { provisionPendingWallets, sendQueuedWithdrawals } from "@/lib/wallet/balance.server";
+import { provisionPendingWallets, returnQueuedWithdrawals } from "@/lib/wallet/balance.server";
 import { recordSettlements } from "@/lib/wallet/settlements.server";
 
 export const dynamic = "force-dynamic";
@@ -18,12 +18,12 @@ export async function GET(req: NextRequest) {
       console.error("[cron lifecycle] wallets failed", error instanceof Error ? error.message : "unknown");
       return { checked: 0 };
     });
-    // Wallet withdrawals waiting for the Paystack balance go out once it covers them.
-    const withdrawals = await sendQueuedWithdrawals().catch((error) => {
-      console.error("[cron lifecycle] queued withdrawals failed", error instanceof Error ? error.message : "unknown");
-      return { sent: 0, waiting: 0 };
+    // Withdrawals have stopped (the balance is spend-only): any still in line go back on the balance.
+    const withdrawals = await returnQueuedWithdrawals().catch((error) => {
+      console.error("[cron lifecycle] returning queued withdrawals failed", error instanceof Error ? error.message : "unknown");
+      return { returned: 0 };
     });
-    // Paystack's settlements to each business's bank: on their statement, and "₦X is in your bank".
+    // Paystack's settlements to each business's bank: on their statement, and "Shopinbos paid ₦X into your bank".
     const settlements = await recordSettlements().catch((error) => {
       console.error("[cron lifecycle] settlements failed", error instanceof Error ? error.message : "unknown");
       return { checked: 0, recorded: 0 };

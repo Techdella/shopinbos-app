@@ -166,6 +166,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "review.state.needed": "A nílò rẹ̀",
   "review.once": "Nígbà tí a bá ti fìdí rẹ múlẹ̀, àwọn olùtajà lè rí ọjà rẹ, ṣe dropship wọn tàbí rà wọ́n ní ọ̀pọ̀.",
   "review.lookAround": "Wo àyíká nígbà tí o bá ń dúró",
+  "product.whatsappLaterTitle": "Láti inú àkójọ WhatsApp rẹ",
+  "product.whatsappLaterShort": "Ṣé o ní àkójọ WhatsApp? Fi gbogbo rẹ̀ kún un lẹ́ẹ̀kan nígbà míì.",
 };
 
 export default yo;

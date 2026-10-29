@@ -159,7 +159,7 @@ Adding a delivery charge after the customer has agreed to a price feels like a t
 
 Juggling calls and WhatsApp voice notes with riders gets messy fast. Once you have more than a few orders a day, it helps to book delivery from the same place you manage orders.
 
-On Shopinbos, you can **book riders straight from the order**, and the **delivery price is shown at checkout** so the customer knows the total before paying. For orders outside your city, **interstate delivery goes through delivery partner companies**. If you offer pay on delivery, each order has a 4-digit code the customer gives the rider, and riders pay cash in by 6pm the same day. Read more on the [logistics feature page](/features/logistics/).
+On Shopinbos, you can **book riders straight from the order**, and the **delivery price is shown at checkout** so the customer knows the total before paying. For orders outside your city, **interstate delivery goes through delivery partner companies**. If you offer pay on delivery, each order has a 4-digit code the customer gives the rider, and riders pay the cash to you by 6pm the same day. Read more on the [logistics feature page](/features/logistics/).
 
 ### Build a good relationship
 

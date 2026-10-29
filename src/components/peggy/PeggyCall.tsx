@@ -1,11 +1,12 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ConversationProvider, useConversation } from "@elevenlabs/react";
 import { cx, Mascot } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { openScreenOnWeb, screenRoleFromWords, type ScreenRole } from "@shared/peggy-screens";
+import { HANG_UP_AFTER_MS, HANG_UP_FALLBACK_MS, shouldHangUp } from "@shared/peggy-goodbye";
 
 // "Call Peggy": a free voice call with Peggy (ElevenLabs) for setup help. Signed in on the web it asks
 // /api/app/peggy-call; from the mobile app's link (/call-peggy?t=…) it uses the token instead. Peggy's tools (she
@@ -59,14 +60,45 @@ function Call({ token, size = "lg", className, persistent = false }: { token?: s
   const [opened, setOpened] = useState<string | null>(null);
   const [endedByPeggy, setEndedByPeggy] = useState(false);
   const role = useRef<ScreenRole | null>(null);
+  // Peggy hangs up with end_call; as a safety net the page also hangs up once they've said they're done and she has
+  // said goodbye and finished speaking (shared/peggy-goodbye.ts, the same as the phone app).
+  const bye = useRef<{ lastUser: string; pending: boolean; byPeggy: boolean; timer: ReturnType<typeof setTimeout> | null }>({ lastUser: "", pending: false, byPeggy: false, timer: null });
+  const endRef = useRef<() => void>(() => {});
+  const hangUpAfter = (ms: number) => {
+    if (bye.current.timer) clearTimeout(bye.current.timer);
+    bye.current.timer = setTimeout(() => {
+      if (!bye.current.pending) return;
+      bye.current.byPeggy = true;
+      endRef.current();
+    }, ms);
+  };
   const conversation = useConversation({
     onError: (message: unknown) => setError(typeof message === "string" ? message : "The call dropped. Try again."),
     onDisconnect: (details?: { reason?: string }) => {
       setConnecting(false);
       setOpened(null);
       setEndedByPeggy(details?.reason === "agent");
+      if (bye.current.byPeggy) setEndedByPeggy(true);
+      if (bye.current.timer) clearTimeout(bye.current.timer);
+      bye.current = { lastUser: "", pending: false, byPeggy: false, timer: null };
     },
     onConnect: () => setConnecting(false),
+    onMessage: ({ message, source }: { message: string; source: "user" | "ai" }) => {
+      if (source === "user") {
+        bye.current.lastUser = message;
+        bye.current.pending = false;
+        if (bye.current.timer) clearTimeout(bye.current.timer);
+      } else if (shouldHangUp(bye.current.lastUser, message)) {
+        bye.current.pending = true;
+        hangUpAfter(HANG_UP_FALLBACK_MS);
+      }
+    },
+    onModeChange: ({ mode }: { mode: "speaking" | "listening" }) => {
+      if (bye.current.pending) hangUpAfter(mode === "listening" ? HANG_UP_AFTER_MS : HANG_UP_FALLBACK_MS);
+    },
+  });
+  useEffect(() => {
+    endRef.current = () => void conversation.endSession();
   });
   const live = conversation.status === "connected";
 

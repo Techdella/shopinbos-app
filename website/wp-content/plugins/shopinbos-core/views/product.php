@@ -101,7 +101,7 @@ $default_mode = $p['dropship'] ? 'drop' : 'ws';
 						</div>
 					<?php endif; ?>
 					<a class="btn btn-ink btn-block" href="<?php echo esc_url( sib_go_url( 'request_quote', [ 'productSlug' => $p['slug'] ] ) ); ?>"><?php esc_html_e( 'Request a quote', 'shopinbos' ); ?><?php echo sib_icon( 'arrow', 16 ); // phpcs:ignore ?></a>
-					<div style="font-size:12.5px;color:#6B6779;text-align:center"><?php esc_html_e( 'Your payment is held until the goods arrive.', 'shopinbos' ); ?></div>
+					<div style="font-size:12.5px;color:#6B6779;text-align:center"><?php esc_html_e( 'You pay once the supplier accepts, straight to their bank.', 'shopinbos' ); ?></div>
 				</div>
 				<?php endif; ?>
 			</div>

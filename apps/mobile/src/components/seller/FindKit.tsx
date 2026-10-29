@@ -39,7 +39,7 @@ export function ListScreen<I>({ title, headerRight, footer, refreshing, onRefres
 export function Tick({ on, size = 28 }: { on: boolean; size?: number }) {
   return (
     // A white ring both ways, so the tick shows on a dark photo too.
-    <View style={{ width: size, height: size, borderRadius: size / 2, borderWidth: 2, borderColor: "#FFFFFF", backgroundColor: on ? colors.ink : "rgba(22,20,31,0.28)", alignItems: "center", justifyContent: "center" }}>
+    <View style={{ width: size, height: size, borderRadius: size / 2, borderWidth: 2, borderColor: "#FFFFFF", backgroundColor: on ? colors.inkFill : "rgba(22,20,31,0.28)", alignItems: "center", justifyContent: "center" }}>
       {on ? <AppIcon name="check" size={size * 0.55} color="#FFFFFF" strokeWidth={3} /> : null}
     </View>
   );

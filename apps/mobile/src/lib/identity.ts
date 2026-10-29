@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
 import type { IdentityImageKind } from "@shared/identity-images";
 import { api } from "./api";
+import { uploadOnePhoto, type PhotoInput } from "./upload-photo";
 
 // The person's photo and their shop logo: the same API as the web's uploader (/api/app/me/images), so a picture
 // changed on the phone shows on the web and the other way round. A change made in Settings is broadcast here so
@@ -16,13 +17,9 @@ export interface Identity {
 
 export const fetchIdentity = () => api<Identity>("/api/app/me/images");
 
-export function uploadIdentityImage(kind: IdentityImageKind, photo: { uri: string; mimeType?: string | null; fileName?: string | null }) {
-  const form = new FormData();
-  const type = photo.mimeType ?? "image/jpeg";
-  form.append("kind", kind);
-  // React Native's FormData takes { uri, name, type } file parts.
-  form.append("file", { uri: photo.uri, name: photo.fileName ?? `${kind}.${type.split("/")[1] ?? "jpg"}`, type } as unknown as Blob);
-  return api<Identity>("/api/app/me/images", { method: "POST", body: form }).then(remember);
+/** The logo (kept see-through when it's a PNG) or the person's photo, shrunk on the phone first (lib/upload-photo.ts). */
+export function uploadIdentityImage(kind: IdentityImageKind, photo: PhotoInput) {
+  return uploadOnePhoto<Identity>("/api/app/me/images", photo, { kind }, { base: kind, keepTransparency: kind === "logo" }).then(remember);
 }
 
 export const removeIdentityImage = (kind: IdentityImageKind) => api<Identity>(`/api/app/me/images?kind=${kind}`, { method: "DELETE" }).then(remember);

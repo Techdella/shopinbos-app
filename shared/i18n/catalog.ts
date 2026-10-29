@@ -34,6 +34,7 @@ import m_orders from "./messages/m_orders/index.ts";
 import m_products from "./messages/m_products/index.ts";
 import m_find from "./messages/m_find/index.ts";
 import m_shop from "./messages/m_shop/index.ts";
+import m_banner from "./messages/m_banner/index.ts";
 import m_looks from "./messages/m_looks/index.ts";
 import m_marketing from "./messages/m_marketing/index.ts";
 import m_chats from "./messages/m_chats/index.ts";
@@ -138,6 +139,7 @@ export const CATALOGS = {
   m_products,
   m_find,
   m_shop,
+  m_banner,
   m_looks,
   m_marketing,
   m_chats,

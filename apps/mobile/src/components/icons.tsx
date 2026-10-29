@@ -3,7 +3,7 @@ import { colors } from "@/theme";
 
 // Line icons for the app chrome (tab bar, quick actions, Peggy tasks). 24px grid, 1.9 stroke.
 
-export type AppIconName = "home" | "box" | "chat" | "bag" | "grid" | "plus" | "search" | "bell" | "mic" | "receipt" | "play" | "megaphone" | "sparkle" | "truck" | "mail" | "coin" | "chevron" | "store" | "user" | "printer" | "tag" | "wifiOff" | "star" | "check" | "clock" | "share" | "doc" | "send" | "settings" | "image" | "bot" | "phone" | "pin" | "camera" | "shield" | "users" | "help" | "wallet" | "logout" | "x" | "globe" | "link" | "route" | "filter" | "lock" | "copy" | "chart" | "zap" | "popup";
+export type AppIconName = "home" | "box" | "chat" | "bag" | "grid" | "plus" | "search" | "bell" | "mic" | "receipt" | "play" | "megaphone" | "sparkle" | "truck" | "mail" | "coin" | "chevron" | "store" | "user" | "printer" | "tag" | "wifiOff" | "star" | "check" | "clock" | "share" | "doc" | "send" | "settings" | "image" | "bot" | "phone" | "pin" | "camera" | "shield" | "users" | "help" | "wallet" | "logout" | "x" | "globe" | "link" | "route" | "filter" | "lock" | "copy" | "chart" | "zap" | "popup" | "sun" | "moon" | "contrast" | "info" | "volume" | "volumeOff" | "video";
 
 const PATHS: Record<AppIconName, (color: string) => React.ReactNode> = {
   home: () => <Path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />,
@@ -33,7 +33,12 @@ const PATHS: Record<AppIconName, (color: string) => React.ReactNode> = {
   share: () => <><Path d="M12 15V4M8 8l4-4 4 4" /><Path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7" /></>,
   doc: () => <><Path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" /><Path d="M14 3v5h5M9 13h6M9 17h6" /></>,
   send: () => <Path d="M4 12l16-8-6 16-2.5-6.5L4 12z" />,
-  settings: () => <><Circle cx="12" cy="12" r="3" /><Path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1" /></>,
+  // A cog: Settings (and other "settings" rows). The sun, moon and half circle are only for Appearance.
+  settings: () => <><Path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><Circle cx="12" cy="12" r="3" /></>,
+  sun: () => <><Circle cx="12" cy="12" r="4" /><Path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4" /></>,
+  moon: () => <Path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" />,
+  // Auto (follow the phone): a circle half light, half dark.
+  contrast: (color) => <><Circle cx="12" cy="12" r="8.5" /><Path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill={color} /></>,
   image: () => <><Rect x="3.5" y="4.5" width="17" height="15" rx="2" /><Circle cx="9" cy="10" r="1.8" /><Path d="M4 17l5-4.5 4 3.5 3-2.5 4 3.5" /></>,
   bot: () => <><Rect x="4.5" y="8" width="15" height="11" rx="3" /><Path d="M12 4v4M9 13h.01M15 13h.01" /></>,
   phone: () => <Path d="M5 4h3.5l1.7 4.3-2.2 1.4a11 11 0 0 0 6.3 6.3l1.4-2.2L20 15.5V19a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1z" />,
@@ -56,6 +61,12 @@ const PATHS: Record<AppIconName, (color: string) => React.ReactNode> = {
   chart: () => <Path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />,
   zap: () => <Path d="M13 3L5 14h6l-1 7 8-11h-6z" />,
   popup: () => <><Rect x="3" y="3" width="18" height="18" rx="3" /><Rect x="7" y="8" width="10" height="8" rx="2" /></>,
+  // ⓘ: the "More info" button next to a title (InfoTip in ui.tsx).
+  info: () => <><Circle cx="12" cy="12" r="8.5" /><Path d="M12 11v5.5M12 7.6h.01" /></>,
+  // Status videos: sound on / off, and a video camera (the composer's Video choice).
+  volume: () => <><Path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" /><Path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" /></>,
+  volumeOff: () => <><Path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" /><Path d="M16 9.5l5 5M21 9.5l-5 5" /></>,
+  video: () => <><Rect x="3" y="6.5" width="12.5" height="11" rx="2" /><Path d="M15.5 10.5l5-3v9l-5-3z" /></>,
 };
 
 export function AppIcon({ name, size = 22, color = colors.ink, strokeWidth = 1.9 }: { name: AppIconName; size?: number; color?: string; strokeWidth?: number }) {

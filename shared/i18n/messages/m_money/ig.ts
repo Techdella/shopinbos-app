@@ -182,18 +182,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "w.last30Line": "Ụbọchị 30 gara aga: {amount}",
   "w.recent": "Ndị ọhụrụ",
   "bal.title": "Ego dị na Wallet",
-  "bal.sub": "Ego Shopinbos gị fọdụrụ. Ego ire ka na-aga ozugbo n'ụlọ akụ gị.",
-  "bal.withdraw": "Wepụ ego",
-  "bal.amountTo": "Ego ole a ga-eziga na {bank}",
-  "bal.amountToYours": "Ego ole a ga-eziga n'akaụntụ ụlọ akụ gị",
-  "bal.amount": "Ego ole",
-  "bal.orMore": "{amount} ma ọ bụ karịa",
-  "bal.sent": "E zigala ya n'akaụntụ ụlọ akụ gị.",
-  "bal.onItsWay": "Ọ na-aga n'akaụntụ ụlọ akụ gị. Ọ na-erukarị n'ime nkeji ole na ole.",
-  "bal.needBank": "Iji wepụ ego, buru ụzọ tinye akaụntụ ụlọ akụ gị ma nyochaa ya.",
+  "bal.sub": "Ego Shopinbos gị, maka AI credits na ọrụ Shopinbos ndị ọzọ. A pụghị iwepụ ya; ego ire na-aga ozugbo n'ụlọ akụ gị.",
   "bal.pending": "ọ na-abịa",
   "bal.didntGo": "ọ gaghị",
-  "bal.failed": "Ọ rụghị ọrụ. Nwaa ọzọ.",
   "pay.paid": "Akwụọla ya. Ego ahụ gara ozugbo n'ụlọ akụ ha.",
   "pay.pending": "Ịkwụ ụgwọ gị na-abịa. Ọ ga-emelite ozugbo Paystack kwadoro ya.",
   "pay.cancelled": "Ịkwụ ụgwọ ahụ emechaghị, ya mere ewepụghị ihe ọ bụla. Nwaa ọzọ mgbe ị dị njikere.",
@@ -209,6 +200,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "bal.accountSettingUp": "A na-emepụta nọmba akaụntụ wallet gị. Ọ ga-apụta ebe a n'ime nkeji ole na ole.",
   "bal.copy": "Detuo",
   "bal.copied": "E detuola",
+  "inv.subShort": "Invoices maka orders gị, ndị i zitere na ndị ị natara.",
 };
 
 export default ig;

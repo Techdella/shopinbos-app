@@ -124,6 +124,17 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "create.popupSub": "Offer for your shop wey dey collect emails and WhatsApp numbers",
   "needs.allOrders": "All orders",
   "fromPeggy": "From Peggy",
+  "linkBio.title": "Link in bio",
+  "linkBio.edit": "Edit",
+  "linkBio.setupTitle": "Make your link in bio",
+  "linkBio.setupSub": "One link for your Instagram and TikTok bio: your shop, WhatsApp and socials.",
+  "linkBio.setup": "Set am up",
+  "linkBio.live": "E dey live · put am for your bio",
+  "linkBio.off": "E hide · on am for Edit",
+  "linkBio.copy": "Copy",
+  "linkBio.copied": "E don copy",
+  "linkBio.share": "Share",
+  "linkBio.shareMessage": "Shop with {name}: {url}",
 };
 
 export default pcm;

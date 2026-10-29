@@ -5,7 +5,7 @@ import { Eyebrow } from "@/components/design";
 import { AppIcon, type AppIconName } from "@/components/icons";
 import { Initials } from "@/components/kit";
 import { T } from "@/components/ui";
-import { colors } from "@/theme";
+import { colors, themed } from "@/theme";
 
 // Small seller-side pieces of the 2026 "Seller app" prototype that the shared design kit doesn't have: the round
 // white icon button (`.iconb`), a partner's logo or initials, a product thumbnail (`.thumb`) and a section
@@ -27,13 +27,13 @@ export function IconButton({ icon, label, onPress, testID }: { icon: AppIconName
   );
 }
 
-const MARKS = [
+const MARKS = themed(() => ([
   { bg: colors.mintTint, fg: colors.forest },
   { bg: colors.peach, fg: colors.accentInk },
   { bg: colors.blueTint, fg: colors.blueInk },
   { bg: colors.successTint, fg: colors.success },
   { bg: "#FCE4EC", fg: "#A0204F" },
-];
+]));
 
 /** The same tint for the same name every time. */
 function markFor(name: string) {

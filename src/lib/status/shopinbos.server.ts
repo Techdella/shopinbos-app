@@ -6,7 +6,7 @@ import { isLocale, negotiateLocale, type Locale } from "@shared/i18n";
 import { tFor } from "@shared/i18n/catalog";
 import { pickHelpVideo, type HelpVideoRole } from "@shared/help-videos";
 import { parsePreferences, withShopinbos, type AppPreferences } from "@shared/preferences";
-import { SHOPINBOS_AUTHOR_ID, SHOPINBOS_NAME, shopinbosMessageKeys, shopinbosPostId, shopinbosPosts } from "@shared/shopinbos-status";
+import { SHOPINBOS_AUTHOR_ID, SHOPINBOS_NAME, clipPaths, shopinbosMessageKeys, shopinbosPostId, shopinbosPosts } from "@shared/shopinbos-status";
 import { isStatusRole, STATUS_TTL_MS, type StatusRole } from "@shared/status";
 import type { StatusAuthorView, StatusPostView } from "./status.server";
 
@@ -39,8 +39,23 @@ export async function readPreferences(userId: string) {
   return { prefs: parsePreferences(row?.preferences), joinedAt: row?.createdAt ?? new Date() };
 }
 
+/**
+ * The site that serves the clips in public/status-videos: the request's own origin (production, a preview, or a
+ * dev server on the local network, which all have the files), else app.shopinbos.com.
+ */
+export function clipOrigin(origin: string | null | undefined) {
+  const fallback = (process.env.NEXT_PUBLIC_APP_URL ?? "https://app.shopinbos.com").replace(/\/+$/, "");
+  if (!origin) return fallback;
+  try {
+    const url = new URL(origin);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.origin : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 /** All of the role's Shopinbos posts with each one's seen flag (the Status row, the Home card and Help use them). */
-export async function shopinbosAuthor(role: StatusRole, prefs: AppPreferences, locale: Locale, joinedAt: Date, now = new Date()): Promise<ShopinbosAuthorView | null> {
+export async function shopinbosAuthor(role: StatusRole, prefs: AppPreferences, locale: Locale, joinedAt: Date, now = new Date(), origin?: string | null): Promise<ShopinbosAuthorView | null> {
   const defs = shopinbosPosts(role);
   if (!defs.length) return null;
   const t = tFor(locale, "m_familiar");
@@ -55,7 +70,12 @@ export async function shopinbosAuthor(role: StatusRole, prefs: AppPreferences, l
     const id = shopinbosPostId(role, def.key);
     const keys = shopinbosMessageKeys(role, def.key);
     const help = def.helpTopic ? pickHelpVideo(videos, def.helpTopic, locale, role as HelpVideoRole) : null;
-    const video = def.intro || help
+    // A clip made for the post ("Post a video status") plays straight away, from the app's own static files.
+    const clip = clipPaths(def);
+    const site = clip ? clipOrigin(origin) : "";
+    const video = clip
+      ? { intro: null, url: `${site}${clip.video}`, watchUrl: null, posterUrl: `${site}${clip.poster}`, durationSeconds: clip.durationSeconds }
+      : def.intro || help
       ? {
           intro: def.intro ?? null,
           url: help?.source.kind === "file" ? help.source.url : null,
@@ -102,14 +122,14 @@ export async function shopinbosAuthor(role: StatusRole, prefs: AppPreferences, l
 }
 
 /** GET /api/mobile/status/shopinbos: every post (also after "Don't show again", for Help), and what's switched off. */
-export async function shopinbosState(viewer: { id: string; role: string }, options: { lang?: string | null; acceptLanguage?: string | null } = {}): Promise<ShopinbosState> {
+export async function shopinbosState(viewer: { id: string; role: string }, options: { lang?: string | null; acceptLanguage?: string | null; origin?: string | null } = {}): Promise<ShopinbosState> {
   const { prefs, joinedAt } = await readPreferences(viewer.id);
-  const author = isStatusRole(viewer.role) ? await shopinbosAuthor(viewer.role, prefs, viewerLocale(options.lang, prefs, options.acceptLanguage), joinedAt) : null;
+  const author = isStatusRole(viewer.role) ? await shopinbosAuthor(viewer.role, prefs, viewerLocale(options.lang, prefs, options.acceptLanguage), joinedAt, new Date(), options.origin) : null;
   return { author, statusOff: Boolean(prefs.shopinbosStatusOff), startOff: Boolean(prefs.gettingStartedOff) };
 }
 
 /** Shopinbos's ring for the Status row, or null once they chose "Don't show again". Never fails the feed. */
-export async function shopinbosFeedAuthor(viewer: { id: string; role: string }, options: { lang?: string | null; acceptLanguage?: string | null } = {}) {
+export async function shopinbosFeedAuthor(viewer: { id: string; role: string }, options: { lang?: string | null; acceptLanguage?: string | null; origin?: string | null } = {}) {
   try {
     const state = await shopinbosState(viewer, options);
     return state.statusOff ? null : state.author;

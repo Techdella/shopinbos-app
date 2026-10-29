@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db/client";
 import { notify, notifyAdmins, notifyRider } from "./notify.server";
+import { notifyFollowersOfNewProduct } from "@/lib/suppliers/product-requests.server";
 
 // The notifications each role needs that weren't sent before notify(): written once here and called from where the
 // thing happens (checkout, the Paystack webhook, delivery jobs, quotes, reviews, campaigns, admin decisions).
@@ -61,11 +62,13 @@ export function notifyOrderPaid(orderId: string) {
       title: deposit ? `Pre-order deposit paid: ${order.orderNumber}` : `Payment received for ${order.orderNumber}`,
       description: deposit
         ? `${short(order.buyerName) || "Your customer"} paid a deposit of ${naira(order.depositKobo / 100, order.currency)} by card. They pay the rest (${naira(order.balanceKobo / 100, order.currency)}) when you say the stock is ready in My shop › Preorders.`
-        : `${short(order.buyerName) || "Your customer"} paid ${naira(order.total, order.currency)} by card. Get the order ready.`,
+        : `${short(order.buyerName) || "Your customer"} paid ${naira(order.total, order.currency)} by card through Shopinbos. It goes straight to your bank (Paystack settles it for Shopinbos). Get the order ready.`,
       link: `/home/orders/${order.id}`,
       actionLabel: "Open the order",
       metadata: { orderId: order.id },
       dedupeKey: `order.paid:${order.id}`,
+      // Money in: always in the app and by email, whatever their notification settings.
+      email: "transactional",
     });
   });
 }
@@ -348,6 +351,8 @@ export function notifyProductDecision(productId: string, status: string) {
       dedupeKey: `product.${status}:${product.id}:${new Date().toISOString().slice(0, 13)}`,
       email: true,
     });
+    // Shops waiting for this supplier's products ("Notify me when they add products").
+    if (approved) await notifyFollowersOfNewProduct(product.id);
   });
 }
 

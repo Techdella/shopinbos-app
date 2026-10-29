@@ -4,11 +4,12 @@ import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import * as WebBrowser from "expo-web-browser";
 import type { IdentityImageKind } from "@shared/identity-images";
+import { AppearanceRow } from "@/components/AppearancePicker";
 import { LanguageRow } from "@/components/LanguagePicker";
 import { TipsRow } from "@/components/learn/TipsRow";
 import { ErrorState, LinkRow, LoadingBlock, Picture, SectionTitle } from "@/components/kit";
 import { Screen } from "@/components/Screen";
-import { Card, Field, Label, LinkButton, Notice, PillButton, T } from "@/components/ui";
+import { Card, Field, Label, LinkButton, Notice, PillButton, T, WithTip } from "@/components/ui";
 import { fetchIdentity, removeIdentityImage, uploadIdentityImage, type Identity } from "@/lib/identity";
 import { fetchProfile, saveProfile, type MeFields, type SellerProfile, type ShopFields } from "@/lib/seller-settings";
 import { changedFields } from "@/lib/settings-pure";
@@ -143,8 +144,9 @@ function SettingsForm({ initial, identity }: { initial: SellerProfile; identity:
               <Picture uri={logoUrl} name={shop.name || saved.shop.name} size={72} shape="square" />
             </Pressable>
             <View style={{ flex: 1, gap: 8 }}>
-              <T weight="extrabold" style={{ fontSize: 16 }}>{t("set.logo")}</T>
-              <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 19 }}>{t("set.logoHint")}</T>
+              <WithTip title={t("set.logo")} tip={{ text: t("set.logoHint") }}>
+                <T weight="extrabold" style={{ fontSize: 16 }}>{t("set.logo")}</T>
+              </WithTip>
               <PillButton title={logoUrl ? t("set.changeLogo") : t("set.addLogo")} tone="white" size="sm" busy={uploading === "logo"} disabled={uploading !== null} onPress={() => void pickImage("logo")} />
             </View>
           </Card>
@@ -216,6 +218,7 @@ function SettingsForm({ initial, identity }: { initial: SellerProfile; identity:
 
       <Card style={{ paddingVertical: 2 }}>
         <LanguageRow first />
+        <AppearanceRow />
         <TipsRow />
         <LinkRow icon="bell" label={t("set.notifications")} hint={t("set.notificationsHint")} onPress={() => router.push("/notifications/settings")} />
         {/* The markup added to supplier prices when the seller adds their products (app/find/markup.tsx). */}

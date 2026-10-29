@@ -124,13 +124,6 @@ export async function syncPaystackMode(mode: "live" | "test"): Promise<PaystackM
   // Ones that failed on the other mode (or before a fix) get a fresh try.
   result.topUpAccounts += (await db.wallet.updateMany({ where: { topUpStatus: { in: ["failed", "unavailable"] } }, data: { topUpStatus: "none", topUpError: null } })).count;
 
-  // Withdrawal recipients made on the other mode: made again (same bank) on the next withdrawal.
-  const recipients = await db.wallet.findMany({ where: { transferRecipient: { not: null } }, select: { id: true, transferRecipient: true } });
-  for (const wallet of recipients) {
-    if ((await exists("transferrecipient", wallet.transferRecipient!)) !== false) continue;
-    await db.wallet.update({ where: { id: wallet.id }, data: { transferRecipient: null } });
-  }
-
   const payIns = await db.partnerPayInAccount.findMany({ where: { customerCode: { not: null } }, select: { id: true, customerCode: true } });
   for (const account of payIns) {
     if ((await exists("customer", account.customerCode!)) !== false) continue;

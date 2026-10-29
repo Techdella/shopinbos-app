@@ -3,10 +3,10 @@
 import { confirmDialog } from "@/components/ui/dialogs";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { FieldLabel, Notice, PillButton, TextInput, Toggle } from "@/components/app-ui";
+import { FieldLabel, Notice, PillButton, Segmented, TextInput, Toggle } from "@/components/app-ui";
 import { cx } from "@/components/app-ui/cx";
 import { naira } from "@shared/onboarding";
-import { DEFAULT_COMMISSION_RATE } from "@shared/affiliates";
+import { DEFAULT_COMMISSION_RATE, type AffiliatePayday, type AffiliatePaySchedule } from "@shared/affiliates";
 import { useT } from "@/components/i18n/I18nProvider";
 import { friendlyError } from "@/lib/errors/report-client";
 
@@ -81,7 +81,7 @@ function AddCreator({ onAdded }: { onAdded: () => void }) {
   );
 }
 
-function CreatorCard({ affiliate, storeName, payday, onChange }: { affiliate: Affiliate; storeName: string; payday: string; onChange: () => void }) {
+function CreatorCard({ affiliate, storeName, payday, when, onChange }: { affiliate: Affiliate; storeName: string; payday: string | null; when: string; onChange: () => void }) {
   const t = useT("affiliates", "common");
   const [busy, setBusy] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -110,7 +110,7 @@ function CreatorCard({ affiliate, storeName, payday, onChange }: { affiliate: Af
     }
   }
 
-  const invite = t("invite", { name: affiliate.name.split(" ")[0], store: storeName, link: affiliate.link, rate: String(affiliate.commissionRate) });
+  const invite = t("invite", { name: affiliate.name.split(" ")[0], store: storeName, link: affiliate.link, rate: String(affiliate.commissionRate), when });
   const { totals } = affiliate;
 
   return (
@@ -157,7 +157,7 @@ function CreatorCard({ affiliate, storeName, payday, onChange }: { affiliate: Af
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-[16px] bg-app-peach px-4 py-3">
           <div>
             <div className="text-[15px] font-extrabold">{t("youOwe", { amount: naira(totals.owed) })}</div>
-            <div className="text-[12.5px] text-app-ink-soft">{t("payBy", { name: affiliate.name.split(" ")[0], date: payday })}</div>
+            <div className="text-[12.5px] text-app-ink-soft">{payday ? t("payBy", { name: affiliate.name.split(" ")[0], date: payday }) : t("payByAgreed", { name: affiliate.name.split(" ")[0] })}</div>
           </div>
           <PillButton size="sm" busy={busy === "paid"} onClick={() => void act("paid", { markPaid: true })}>{t("markPaid")}</PillButton>
         </div>
@@ -192,19 +192,90 @@ function CreatorCard({ affiliate, storeName, payday, onChange }: { affiliate: Af
   );
 }
 
-export function AffiliatesManager({ affiliates, storeName, payday }: { affiliates: Affiliate[]; storeName: string; payday: string }) {
+const selectClass = "h-[46px] rounded-[14px] border border-app-line bg-white px-3 text-[15px] text-app-ink outline-none focus:border-app-ink";
+
+/** When the seller pays their creators: their own weekday, date each month, or as agreed with each creator. */
+function PaydayCard({ settings, weekdays, onSaved }: { settings: AffiliatePayday; weekdays: Array<{ day: number; label: string }>; onSaved: () => void }) {
+  const t = useT("affiliates");
+  const [schedule, setSchedule] = useState<AffiliatePaySchedule>(settings.schedule);
+  const [weekday, setWeekday] = useState(settings.schedule === "weekly" ? settings.day : 5);
+  const [date, setDate] = useState(settings.schedule === "monthly" ? settings.day : 25);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
+  const changed = schedule !== settings.schedule || (schedule === "weekly" && weekday !== settings.day) || (schedule === "monthly" && date !== settings.day);
+
+  async function save() {
+    setBusy(true);
+    setMessage(null);
+    try {
+      await send("/api/app/affiliates", "PATCH", { schedule, day: schedule === "weekly" ? weekday : schedule === "monthly" ? date : 0 });
+      setMessage({ tone: "success", text: t("payday.saved") });
+      onSaved();
+    } catch (saveError) {
+      setMessage({ tone: "error", text: saveError instanceof Error ? friendlyError(saveError) : t("err.payday") });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="rounded-[22px] border border-app-line bg-white p-5">
+      <h2 className="m-0 text-[17px] font-extrabold">{t("payday.title")}</h2>
+      <p className="mb-3 mt-1 text-[13.5px] text-app-ink-soft">{t("payday.sub")}</p>
+      <Segmented
+        value={schedule}
+        onChange={setSchedule}
+        options={[
+          { value: "weekly", label: t("payday.weekly") },
+          { value: "monthly", label: t("payday.monthly") },
+          { value: "agreed", label: t("payday.agreed") },
+        ]}
+      />
+      <div className="mt-3 flex flex-wrap items-end gap-3">
+        {schedule === "weekly" && (
+          <label className="grid gap-1.5 text-[13.5px] font-bold">
+            {t("payday.on")}
+            <select className={selectClass} value={weekday} onChange={(event) => setWeekday(Number(event.target.value))}>
+              {weekdays.map((option) => <option key={option.day} value={option.day}>{option.label}</option>)}
+            </select>
+          </label>
+        )}
+        {schedule === "monthly" && (
+          <label className="grid gap-1.5 text-[13.5px] font-bold">
+            {t("payday.date")}
+            <select className={selectClass} value={date} onChange={(event) => setDate(Number(event.target.value))}>
+              {Array.from({ length: 28 }, (_, index) => index + 1).map((day) => <option key={day} value={day}>{day}</option>)}
+            </select>
+          </label>
+        )}
+        <PillButton size="sm" busy={busy} disabled={!changed} onClick={() => void save()}>{t("payday.save")}</PillButton>
+      </div>
+      {message && <div className="mt-3"><Notice tone={message.tone}>{message.text}</Notice></div>}
+    </section>
+  );
+}
+
+export function AffiliatesManager({ affiliates, storeName, payday, paySettings, weekdays }: { affiliates: Affiliate[]; storeName: string; payday: string | null; paySettings: AffiliatePayday; weekdays: Array<{ day: number; label: string }> }) {
   const router = useRouter();
   const t = useT("affiliates");
   const refresh = () => router.refresh();
   const owed = affiliates.reduce((sum, affiliate) => sum + affiliate.totals.owed, 0);
+  // The payday line in each creator's invite, in the seller's own terms.
+  const when =
+    paySettings.schedule === "weekly"
+      ? t("when.weekly", { day: weekdays.find((option) => option.day === paySettings.day)?.label ?? "" })
+      : paySettings.schedule === "monthly"
+        ? t("when.monthly", { day: String(paySettings.day) })
+        : t("when.agreed");
 
   return (
     <div className="grid gap-4">
       <AddCreator onAdded={refresh} />
-      {owed > 0 && <Notice tone="info">{t("owedTotal", { amount: naira(owed), date: payday })}</Notice>}
+      <PaydayCard settings={paySettings} weekdays={weekdays} onSaved={refresh} />
+      {owed > 0 && <Notice tone="info">{payday ? t("owedTotal", { amount: naira(owed), date: payday }) : t("owedTotalAgreed", { amount: naira(owed) })}</Notice>}
       {affiliates.length ? (
         <div className="grid gap-4 lg:grid-cols-2">
-          {affiliates.map((affiliate) => <CreatorCard key={affiliate.id} affiliate={affiliate} storeName={storeName} payday={payday} onChange={refresh} />)}
+          {affiliates.map((affiliate) => <CreatorCard key={affiliate.id} affiliate={affiliate} storeName={storeName} payday={payday} when={when} onChange={refresh} />)}
         </div>
       ) : (
         <section className="rounded-[22px] border border-dashed border-app-line-strong bg-white px-6 py-10 text-center">

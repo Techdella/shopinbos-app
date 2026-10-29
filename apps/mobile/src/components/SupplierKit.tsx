@@ -5,9 +5,9 @@ import { Image } from "expo-image";
 import Svg, { Path } from "react-native-svg";
 import { Small, Sub, Title } from "@/components/design";
 import { AppIcon } from "@/components/icons";
-import { T } from "@/components/ui";
+import { InfoTip, T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
-import { colors } from "@/theme";
+import { colors, themed } from "@/theme";
 import { KeyboardShift } from "@/components/KeyboardShift";
 
 // Supplier-only pieces of the "Simple app, end to end" supplier prototype (E2E-Supplier) that the shared
@@ -15,7 +15,8 @@ import { KeyboardShift } from "@/components/KeyboardShift";
 // round −/+ buttons on a product row, and the tinted note cards on an order.
 
 /** A set-up step (`.scr.flow` with `.hdr`): a round back button and "1 of 4", a big title, the body, a pinned footer. */
-export function FlowFrame({ step, onBack, title, sub, children, footer, aside }: { step?: string; onBack?: () => void; title?: string; sub?: string; children?: ReactNode; footer?: ReactNode; aside?: ReactNode }) {
+/** `tip`: the longer explanation behind an ⓘ after the title, so `sub` stays one short line (or goes). */
+export function FlowFrame({ step, onBack, title, sub, tip, children, footer, aside }: { step?: string; onBack?: () => void; title?: string; sub?: string; tip?: string; children?: ReactNode; footer?: ReactNode; aside?: ReactNode }) {
   const t = useT("common");
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
@@ -36,7 +37,16 @@ export function FlowFrame({ step, onBack, title, sub, children, footer, aside }:
           ) : null}
           {title || sub ? (
             <View style={{ gap: 8 }}>
-              {title ? <Title>{title}</Title> : null}
+              {title ? (
+                tip ? (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                    <Title style={{ flexShrink: 1 }}>{title}</Title>
+                    <InfoTip title={title} text={tip} size={20} />
+                  </View>
+                ) : (
+                  <Title>{title}</Title>
+                )
+              ) : null}
               {sub ? <Sub>{sub}</Sub> : null}
             </View>
           ) : null}
@@ -53,7 +63,7 @@ export function DoneView({ title, sub, footer }: { title: string; sub?: string; 
   return (
     <FlowFrame footer={footer}>
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 14, paddingTop: 60 }}>
-        <View style={{ width: 88, height: 88, borderRadius: 44, backgroundColor: colors.success, alignItems: "center", justifyContent: "center" }}>
+        <View style={{ width: 88, height: 88, borderRadius: 44, backgroundColor: colors.successFill, alignItems: "center", justifyContent: "center" }}>
           <AppIcon name="check" size={44} color="#FFFFFF" strokeWidth={3} />
         </View>
         <Title style={{ textAlign: "center" }}>{title}</Title>
@@ -90,13 +100,13 @@ export function PlusMinus({ value, onChange, lessLabel, moreLabel }: { value: nu
   );
 }
 
-const NOTE = {
+const NOTE = themed(() => ({
   mint: { bg: colors.mintTint, title: colors.ink, body: colors.forest },
   peach: { bg: colors.peach, title: colors.ink, body: colors.accentInk },
   ok: { bg: colors.successTint, title: colors.success, body: colors.inkSoft },
   gray: { bg: colors.grayTint, title: colors.ink, body: colors.ink },
   warn: { bg: colors.warnTint, title: colors.ink, body: colors.warnInk },
-} as const;
+} as const));
 
 /** A tinted card with a bold line and a sentence ("Musa is coming to pick up", "On its way"). */
 export function NoteCard({ tone, title, children }: { tone: keyof typeof NOTE; title?: string; children?: ReactNode }) {

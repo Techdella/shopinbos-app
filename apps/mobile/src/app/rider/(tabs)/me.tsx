@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Alert, Linking } from "react-native";
 import { router } from "expo-router";
+import { AppearanceRow } from "@/components/AppearancePicker";
 import { List, Row, Tile } from "@/components/design";
 import { HelpSheet } from "@/components/Help";
 import { ErrorState, LoadingBlock } from "@/components/kit";
@@ -38,6 +39,7 @@ export default function RiderMe() {
         <List>
           <Row lead={<RiderBadge label={initials(data.rider.name)} />} title={data.rider.name} sub={say("me.riderFor", { company })} />
           <Row lead={<Tile icon="globe" />} title={t.language} sub={language} onPress={() => router.push({ pathname: "/rider/language", params: { id: data.rider.id ?? "" } })} />
+          <AppearanceRow tile />
           <Row lead={<Tile icon="truck" />} title={say("me.bike")} sub={data.rider.plate || say("me.noPlate", { company })} />
         </List>
       ) : null}

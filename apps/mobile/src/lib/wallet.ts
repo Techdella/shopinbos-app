@@ -139,7 +139,7 @@ export const nairaFromKobo = (kobo: number) => `₦${(kobo / 100).toLocaleString
 // ─── Prepaid wallet balance (GET /api/app/wallet; src/lib/wallet/balance.server.ts on the server) ───
 
 /**
- * The prepaid balance (Top up, Withdraw) shows in the app only when EXPO_PUBLIC_PREPAID_BALANCE=true. Google Play
+ * The prepaid balance (spend-only: never withdrawn) shows in the app only when EXPO_PUBLIC_PREPAID_BALANCE=true. Google Play
  * counts a stored balance as a digital wallet, a financial feature only organization developer accounts may ship,
  * so store builds leave it off until the app moves to one. The balance stays on the web app (/home/wallet).
  */
@@ -169,6 +169,3 @@ export const fetchWalletBalance = () => api<WalletBalance>("/api/app/wallet");
 // Nothing adds money to the balance from the app, not even an email with the website steps: the balance pays for
 // Shopinbos services (digital goods), and an in-app button that emails how to pay elsewhere still steers people to
 // another way to pay (Google Play Payments; Apple 3.1.1 and 3.1.3). docs/store-payments-audit.md.
-
-/** Send part of the balance to the checked bank. */
-export const withdrawFromWallet = (naira: number) => api<{ reference: string; status: "done" | "pending" }>("/api/app/wallet/withdraw", { method: "POST", json: { naira } });

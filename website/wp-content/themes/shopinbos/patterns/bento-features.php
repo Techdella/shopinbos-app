@@ -38,9 +38,9 @@ ob_start();
 		<p class="ts">Code checked by the rider. Cash paid in by 6pm.</p>
 	</div>
 	<div class="tile bg-mist">
-		<p class="tt">Paid every Friday</p>
+		<p class="tt">Paid straight to your bank</p>
 		<div class="disp" style="font-size:44px;margin-top:auto">₦146,200</div>
-		<p class="ts">Going to your bank on Friday. Withdraw any time.</p>
+		<p class="ts">Usually in your bank the next working day.</p>
 	</div>
 	<div class="tile c2 bg-mist">
 		<div class="row between wrapflex" style="gap:8px"><p class="tt">Sell without stock</p><a class="lnk arrow" href="<?php echo esc_url( home_url( '/marketplace/' ) ); ?>">Find stock</a></div>

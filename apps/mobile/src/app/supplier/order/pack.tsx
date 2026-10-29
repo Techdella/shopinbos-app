@@ -8,7 +8,7 @@ import { AppIcon } from "@/components/icons";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { BoardScreen } from "@/components/Screen";
 import { useWords } from "@/components/supplier/DropshipKit";
-import { Notice, PillButton, T } from "@/components/ui";
+import { InfoTip, Notice, PillButton, T } from "@/components/ui";
 import { orderItems } from "@/components/SupplierOrderRow";
 import { packButton, sellerInitials, toggleStep } from "@/lib/dropship-pure";
 import { fetchPack, fetchSupplierOrder, savePack, uploadMediaPhoto, type DropshipOrder, type PackView } from "@/lib/supplier";
@@ -79,7 +79,7 @@ export default function PackScreen() {
     setBusy(which);
     setError(null);
     try {
-      const url = await uploadMediaPhoto({ uri: asset.uri, mimeType: asset.mimeType, fileName: asset.fileName });
+      const url = await uploadMediaPhoto({ uri: asset.uri, mimeType: asset.mimeType, fileName: asset.fileName, width: asset.width, height: asset.height, fileSize: asset.fileSize });
       setPack(await savePack(view.orderId, which === "contents" ? { contentsPhotoUrl: url } : { photoUrl: url }, kind));
     } catch (photoError) {
       setError(photoError instanceof Error ? photoError.message : words("pack.photoFailed", "The photo didn't upload. Try again."));
@@ -172,7 +172,11 @@ export default function PackScreen() {
       </>)}
 
       <View style={{ gap: 8 }}>
-        <T style={{ fontFamily: fonts.display, fontSize: 17, marginTop: 6 }}>{wholesale ? f("pack.photosTitle") : words("pack.way", "Pack it {seller}'s way", { seller })}</T>
+        {/* Why the two photos matter: in the tip next to the heading. */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 2, marginTop: 6 }}>
+          <T style={{ flexShrink: 1, fontFamily: fonts.display, fontSize: 17 }}>{wholesale ? f("pack.photosTitle") : words("pack.way", "Pack it {seller}'s way", { seller })}</T>
+          <InfoTip title={f("pack.photosTitle")} text={f("pack.why")} />
+        </View>
         {view.steps.map((step) => {
           const contents = step.id === "contents";
           const photo = step.id === "photo" || contents;
@@ -188,7 +192,7 @@ export default function PackScreen() {
               onPress={() => (photo ? void snap(contents ? "contents" : "photo") : void tick(step.id))}
               style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 58, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 16, backgroundColor: colors.surface, opacity: pressed ? 0.85 : 1 })}
             >
-              <View style={{ width: 26, height: 26, borderRadius: 8, borderWidth: 2, borderColor: done ? colors.success : "#D9D6E2", backgroundColor: done ? colors.success : colors.surface, alignItems: "center", justifyContent: "center" }}>
+              <View style={{ width: 26, height: 26, borderRadius: 8, borderWidth: 2, borderColor: done ? colors.success : "#D9D6E2", backgroundColor: done ? colors.successFill : colors.surface, alignItems: "center", justifyContent: "center" }}>
                 {done ? <AppIcon name="check" size={15} color="#FFFFFF" strokeWidth={3} /> : null}
               </View>
               <View style={{ flex: 1, gap: 2 }}>
@@ -199,7 +203,7 @@ export default function PackScreen() {
                 shot ? (
                   <Image source={{ uri: shot }} style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: colors.grayTint }} contentFit="cover" accessibilityLabel={contents ? f("pack.contentsPhoto") : words("pack.photo", "Photo of the sealed parcel")} />
                 ) : (
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.ink, borderRadius: 999, paddingHorizontal: 12, height: 34 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.inkFill, borderRadius: 999, paddingHorizontal: 12, height: 34 }}>
                     <AppIcon name="camera" size={15} color="#FFFFFF" />
                     <T weight="extrabold" style={{ fontSize: 12, color: "#FFFFFF" }}>{busy === step.id ? words("pack.uploading", "Uploading…") : words("pack.snap", "Snap")}</T>
                   </View>
@@ -209,7 +213,6 @@ export default function PackScreen() {
           );
         })}
         {view.photoUrl && !view.packed ? <T accessibilityRole="button" weight="bold" onPress={() => void snap("photo")} style={{ fontSize: 14, color: colors.accentInk, alignSelf: "flex-start", paddingVertical: 4 }}>{words("pack.retake", "Take the photo again")}</T> : null}
-        <T style={{ fontSize: 12.5, color: colors.inkSoft, lineHeight: 18 }}>{f("pack.why")}</T>
       </View>
     </BoardScreen>
   );

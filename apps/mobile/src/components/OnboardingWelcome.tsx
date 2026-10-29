@@ -71,7 +71,7 @@ export function OnboardingWelcome({ name, onDone }: { name?: string | null; onDo
               height: 6,
               width: "100%",
               borderRadius: 3,
-              backgroundColor: colors.ink,
+              backgroundColor: colors.inkFill,
               transformOrigin: "left",
               transform: [{ scaleX: progress }],
             }}

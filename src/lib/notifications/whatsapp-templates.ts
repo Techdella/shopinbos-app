@@ -37,7 +37,33 @@ export const NOTIFY_TEMPLATES: TeamTemplate[] = [
     params: ["first_name", "business", "note"],
     sample: ["Ada", "Ada's Logistics", "Delivery fees paid: 18,500 naira for 7 deliveries is on its way to your bank. https://app.shopinbos.com/logistics/earnings"],
   },
+  {
+    // A shop asked to be told when this supplier adds products (src/lib/suppliers/product-requests.server.ts).
+    name: "shopinbos_products_wanted",
+    purpose: "Alert: shops are waiting for a supplier's products",
+    category: "UTILITY",
+    language: "en",
+    body: "Hi {{1}}, shops on Shopinbos want to sell products from {{2}}. 🛍️ {{3}}\n\nAdd your products on Shopinbos so these shops can start selling them and sending you orders.",
+    params: ["first_name", "business", "note"],
+    sample: ["Ada", "Ada Fabrics", "Kemi's Closet in Lagos asked to be told when you add products. 2 other shops are waiting too. https://app.shopinbos.com/supplier/products/bulk"],
+  },
+  {
+    // A supplier the seller follows ("Notify me when they add products") put a product live.
+    name: "shopinbos_supplier_new_products",
+    purpose: "Alert: a supplier a shop follows added products",
+    category: "UTILITY",
+    language: "en",
+    body: "Hi {{1}}, a supplier {{2}} follows just added products on Shopinbos. {{3}}\n\nOpen Shopinbos to add them to your shop or ask for a price.",
+    params: ["first_name", "business", "note"],
+    sample: ["Ada", "Kemi's Closet", "Ada Fabrics added Ankara fabric, 6 yards. https://app.shopinbos.com/marketplace/suppliers/ada-fabrics"],
+  },
 ];
+
+/** Each alert's own template, when it has one (else the general ones below). */
+const EVENT_TEMPLATES: Record<string, string> = {
+  "supplier.products_wanted": "shopinbos_products_wanted",
+  "supplier.new_products": "shopinbos_supplier_new_products",
+};
 
 const notifyTemplate = (name: string) => NOTIFY_TEMPLATES.find((template) => template.name === name) ?? teamTemplate(name);
 
@@ -54,10 +80,14 @@ export function notifyWhatsAppTemplate(input: {
   url?: string | null;
   name?: string | null;
   business?: string | null;
+  /** The general template instead of the alert's own one (that one isn't approved by Meta yet). */
+  general?: boolean;
 }): { template: TeamTemplate; params: string[] } {
   const verified = input.event === "verification.update" && input.status === "verified";
+  const own = input.general ? undefined : EVENT_TEMPLATES[input.event];
   const name =
-    input.event === "verification.update" ? (verified ? "shopinbos_account_approved" : "shopinbos_account_update")
+    own ? own
+    : input.event === "verification.update" ? (verified ? "shopinbos_account_approved" : "shopinbos_account_update")
     : input.event === "job.new" ? "shopinbos_new_job"
     : input.category === "messages" ? "shopinbos_new_message"
     : "shopinbos_update";

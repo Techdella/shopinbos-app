@@ -25,7 +25,7 @@ import { ShopperBottomNav, type ShopperSheet } from "../shopper/ShopperBottomNav
 import { resolveMenu, type MenuContext } from "../StoreMenu";
 import { menuStyleOf, readMenuColors, mobileMenuStyleOf, readMenu } from "@/lib/storefront/menu";
 import { readFooterMenu, readMobileMenu } from "@/lib/storefront/store-navigation";
-import { AnnouncementBar, BoutiqueFooter, chromeLinksFromMenu, BoutiqueHeader, marketHeaderOf, SectionTitle, type ChromeHref, type ChromeLink } from "./BoutiqueChrome";
+import { AnnouncementBar, announcementHref, BoutiqueFooter, chromeLinksFromMenu, BoutiqueHeader, marketHeaderOf, SectionTitle, type ChromeHref, type ChromeLink } from "./BoutiqueChrome";
 import { BoutiqueProductView, type BoutiqueProductDetail } from "./BoutiqueProductView";
 import { pdpSettingsForSnapshot } from "./pdp/pdp-logic";
 import { samplePdpProduct } from "./pdp/sample-product";
@@ -416,6 +416,23 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     const body = text(copy.body) || (layout === "plain-slides" ? "" : text(store.description));
     const cta = text(copy.primaryCta) || "Shop now";
     const action = text(section.settings?.primaryButtonAction) || "products";
+    // The phone's banner editor can also send the button to one product, one collection or a WhatsApp chat
+    // (primaryButtonTarget holds the id; shared/store-banner.ts).
+    const target = text(section.settings?.primaryButtonTarget);
+    const goHero = () => {
+      if (action === "product" && target) {
+        if (live) window.location.assign(getPublicStorefrontPath(basePath, `/product/${encodeURIComponent(target)}`));
+        else openProduct(target);
+        return;
+      }
+      if (action === "collection" && target) return shopCollection(target);
+      if (action === "whatsapp") {
+        if (live && shopper.whatsappNumber) window.open(whatsappLink(shopper.whatsappNumber, `Hi ${store.name}, I'd like to order`), "_blank", "noopener,noreferrer");
+        else if (live) go("contact");
+        return;
+      }
+      go(action === "product" || action === "collection" ? "products" : action);
+    };
     const headingId = `${uid}-hero`;
 
     const img = image ? <img src={image} alt="" width={1600} height={900} loading="eager" fetchPriority="high" decoding="async" /> : null;
@@ -425,7 +442,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     // ─── Industry theme heroes (Ẹwà, Ṣùkú, Aṣọ Ẹbí, Agbada, Ìlẹ̀kẹ̀, Oúnjẹ, Chin Chin, Ọjà, Ọmọ, Ìwé, Owambe, Danfo, Turare, Oko) ──
     const eyebrowEl = (color: string, extra?: React.CSSProperties) =>
       eyebrow ? <p className="text-[12px] font-semibold uppercase" style={{ fontFamily: look.eyebrowFont, letterSpacing: "0.18em", color, ...extra }}>{eyebrow}</p> : null;
-    const ctaButton = (style: React.CSSProperties = look.primaryButton) => <button type="button" className="bq-btn" style={style} onClick={() => go(action)}>{cta}</button>;
+    const ctaButton = (style: React.CSSProperties = look.primaryButton) => <button type="button" className="bq-btn" style={style} onClick={() => goHero()}>{cta}</button>;
     const searchForm = (placeholder: string, dark: boolean) => (
       <form
         role="search"
@@ -748,7 +765,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               {eyebrow ? <p className="text-[13px]" style={{ letterSpacing: "0.08em" }}>{eyebrow}</p> : null}
               <h1 id={headingId} className="bq-h max-w-[16ch]" style={{ ...look.headingStyle, fontSize: "clamp(34px, 5.5cqi, 64px)", lineHeight: 1.08 }}>{title}</h1>
               {body ? <p className="max-w-[520px] text-[15.5px] opacity-90">{body}</p> : null}
-              <button type="button" className="bq-btn mt-1" style={{ background: "#fff", color: "#121212", border: "1px solid #fff", borderRadius: look.buttonRadius }} onClick={() => go(action)}>{cta}</button>
+              <button type="button" className="bq-btn mt-1" style={{ background: "#fff", color: "#121212", border: "1px solid #fff", borderRadius: look.buttonRadius }} onClick={() => goHero()}>{cta}</button>
             </div>
           </div>
         </section>
@@ -788,7 +805,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               {eyebrow ? <p className="text-[11.5px] uppercase" style={{ fontFamily: look.eyebrowFont, letterSpacing: "0.3em" }}>{eyebrow}</p> : null}
               <h1 id={headingId} className="bq-h max-w-[18ch]" style={{ ...look.headingStyle, fontSize: "clamp(38px, 6.6cqi, 92px)", lineHeight: 1.02 }}>{title}</h1>
               {body ? <p className="max-w-[520px] text-[15px] leading-7 opacity-90">{body}</p> : null}
-              <button type="button" className="mt-2 cursor-pointer border-0 border-b bg-transparent px-0 pb-1.5 text-[12px] font-semibold uppercase" style={{ color: "inherit", borderColor: "currentColor", letterSpacing: "0.22em" }} onClick={() => go(action)}>{cta}</button>
+              <button type="button" className="mt-2 cursor-pointer border-0 border-b bg-transparent px-0 pb-1.5 text-[12px] font-semibold uppercase" style={{ color: "inherit", borderColor: "currentColor", letterSpacing: "0.22em" }} onClick={() => goHero()}>{cta}</button>
             </div>
           </div>
         </section>
@@ -824,7 +841,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       return href ? (
         <Link key={product.id} href={href} prefetch={false} className={className} style={style}>{children}</Link>
       ) : (
-        <button key={product.id} type="button" className={className} style={{ background: "transparent", border: 0, padding: 0, textAlign: "left", color: "inherit", cursor: "pointer", ...style }} onClick={live ? undefined : () => openProduct(product.id)}>{children}</button>
+        <button key={product.id} type="button" className={className ? `bq-plain ${className}` : "bq-plain"} style={{ textAlign: "left", ...style }} onClick={live ? undefined : () => openProduct(product.id)}>{children}</button>
       );
     };
 
@@ -873,7 +890,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               {eyebrow ? <p className="-skew-x-12 px-3 py-1 text-[12px] font-extrabold uppercase" style={{ background: t.accent, color: t.ink, letterSpacing: "0.12em" }}>{eyebrow}</p> : null}
               <h1 id={headingId} className="bq-h max-w-[11ch]" style={{ ...look.headingStyle, fontSize: "clamp(46px, 8cqi, 116px)", lineHeight: 0.9 }}>{title}</h1>
               {body ? <p className="max-w-[440px] text-[15.5px] opacity-80">{body}</p> : null}
-              <button type="button" className="bq-btn" style={look.primaryButton} onClick={() => go(action)}>{cta} <span aria-hidden>→</span></button>
+              <button type="button" className="bq-btn" style={look.primaryButton} onClick={() => goHero()}>{cta} <span aria-hidden>→</span></button>
             </div>
             <div className="bq-media aspect-[4/3] @3xl:aspect-auto @3xl:min-h-[560px] [clip-path:polygon(0_8%,100%_0,100%_100%,0_100%)] @3xl:[clip-path:polygon(18%_0,100%_0,100%_100%,0_100%)]" style={{ background: image ? look.placeholder : "#1F1F1F" }}>
               {img}
@@ -894,7 +911,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               {eyebrow ? <p className="flex items-center gap-2 text-[12px] uppercase" style={{ color: t.muted, letterSpacing: "0.18em" }}><span aria-hidden className="h-2 w-2 rounded-full" style={{ background: t.accent }} />{eyebrow}</p> : null}
               <h1 id={headingId} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(34px, 4.2cqi, 54px)", lineHeight: 1.08 }}>{title}</h1>
               {body ? <p className="max-w-[360px] text-[15px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
-              <button type="button" className="mt-1 cursor-pointer border-0 border-b bg-transparent px-0 pb-1 text-[14px]" style={{ color: t.ink, borderColor: t.ink }} onClick={() => go(action)}>{cta} →</button>
+              <button type="button" className="mt-1 cursor-pointer border-0 border-b bg-transparent px-0 pb-1 text-[14px]" style={{ color: t.ink, borderColor: t.ink }} onClick={() => goHero()}>{cta} →</button>
             </div>
             <div className="flex snap-x gap-5 overflow-x-auto pb-2 @3xl:grid @3xl:grid-cols-3 @3xl:items-end @3xl:gap-8 @3xl:overflow-visible" style={{ scrollbarWidth: "none" }}>
               {works.map((work, i) => (
@@ -1357,7 +1374,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               {eyebrow ? <p className="m-0 text-[13px] uppercase" style={{ letterSpacing: "0.14em", color: t.accent }}>{eyebrow}</p> : null}
               <h1 id={headingId} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(40px, 5cqi, 64px)", lineHeight: 1.04 }}>{title}</h1>
               {body ? <p className="m-0 text-[15px]" style={{ color: t.muted }}>{body}</p> : null}
-              <button type="button" onClick={() => go(action)} className="w-max cursor-pointer border-0 border-b-2 bg-transparent px-0 pb-1 text-[13px] font-bold uppercase" style={{ color: t.ink, borderColor: t.accent, letterSpacing: "0.08em" }}>{cta}</button>
+              <button type="button" onClick={() => goHero()} className="w-max cursor-pointer border-0 border-b-2 bg-transparent px-0 pb-1 text-[13px] font-bold uppercase" style={{ color: t.ink, borderColor: t.accent, letterSpacing: "0.08em" }}>{cta}</button>
             </div>
           </div>
           {tiles.length ? (
@@ -1474,7 +1491,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               {eyebrow ? <p className="m-0 text-[12px] uppercase" style={{ letterSpacing: "0.2em", color: t.muted }}>{eyebrow}</p> : null}
               <h1 id={headingId} className="bq-h max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(40px, 5.4cqi, 72px)", lineHeight: 1.12 }}>{first} <span style={{ color: t.accent }}>{rest.join(" ")}</span></h1>
               {body ? <p className="m-0 max-w-[420px] text-[15px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
-              <button type="button" onClick={() => go(action)} className="bq-btn" style={look.primaryButton}>{cta} <span aria-hidden>→</span></button>
+              <button type="button" onClick={() => goHero()} className="bq-btn" style={look.primaryButton}>{cta} <span aria-hidden>→</span></button>
             </div>
             <div className="mx-auto w-[min(72%,340px)]">
               <div className="bq-media aspect-[2/3]" style={{ boxShadow: "inset 10px 0 12px -8px rgba(0,0,0,.35), 0 24px 50px rgba(0,0,0,.18)" }}>{picture(covers[at], true)}</div>
@@ -1713,7 +1730,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
                 {eyebrow ? <p className="m-0 text-[17px]" style={{ color: t.accent, fontFamily: BQ_SERIF }}>{eyebrow}</p> : null}
                 <h1 id={headingId} className="bq-h m-0 max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(32px, 4cqi, 52px)", lineHeight: 1.1 }}>{title}</h1>
                 {body ? <p className="m-0 max-w-[360px] text-[14.5px] leading-6" style={{ color: t.muted }}>{body}</p> : null}
-                <button type="button" className="bq-btn mt-1" style={{ background: "transparent", color: t.ink, border: `1.5px solid ${t.ink}` }} onClick={() => go(action)}>{cta}</button>
+                <button type="button" className="bq-btn mt-1" style={{ background: "transparent", color: t.ink, border: `1.5px solid ${t.ink}` }} onClick={() => goHero()}>{cta}</button>
               </div>
               <div className="bq-media h-full min-h-[260px]" style={{ background: "transparent", borderRadius: 0 }}>{img}</div>
             </div>
@@ -1931,7 +1948,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
                 {eyebrow ? <p className="m-0 text-[13px] font-semibold uppercase" style={{ letterSpacing: "0.16em" }}>{eyebrow}</p> : null}
                 <h1 id={headingId} className="bq-h m-0 max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(34px, 4.4cqi, 56px)", lineHeight: 1.06 }}>{title}</h1>
                 {body ? <p className="m-0 max-w-[380px] text-[15px] italic opacity-90">{body}</p> : null}
-                <button type="button" className="bq-btn" style={{ background: "transparent", color: "#FFFFFF", border: "1.5px solid #FFFFFF" }} onClick={() => go(action)}>{cta}</button>
+                <button type="button" className="bq-btn" style={{ background: "transparent", color: "#FFFFFF", border: "1.5px solid #FFFFFF" }} onClick={() => goHero()}>{cta}</button>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -1965,7 +1982,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             {eyebrow ? <p className="m-0 text-[12px] font-semibold" style={{ letterSpacing: "0.04em" }}>* {eyebrow}</p> : null}
             <h1 id={headingId} className="bq-h m-0 max-w-[14ch] uppercase" style={{ ...look.headingStyle, fontWeight: 800, fontSize: "clamp(40px, 6.4cqi, 88px)", lineHeight: 0.98 }}>{title}</h1>
             {body ? <p className="m-0 max-w-[460px] text-[15px] opacity-90">{body}</p> : null}
-            <button type="button" className="bq-btn mt-1" style={{ background: "transparent", color: "#FFFFFF", border: "2px solid #FFFFFF", textTransform: "uppercase", fontSize: 12.5, fontWeight: 700 }} onClick={() => go(action)}>{cta}</button>
+            <button type="button" className="bq-btn mt-1" style={{ background: "transparent", color: "#FFFFFF", border: "2px solid #FFFFFF", textTransform: "uppercase", fontSize: 12.5, fontWeight: 700 }} onClick={() => goHero()}>{cta}</button>
           </div>
           {shots.length > 1 ? (
             <div className="absolute right-4 top-1/2 flex -translate-y-1/2 flex-col gap-2 @3xl:left-4 @3xl:right-auto">
@@ -1986,7 +2003,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               {eyebrow ? <p className="m-0 text-[13px] font-bold uppercase" style={{ color: t.accent, letterSpacing: "0.12em" }}>{eyebrow}</p> : null}
               <h1 id={headingId} className="bq-h m-0 max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 4.8cqi, 62px)", lineHeight: 1.06 }}>{title}</h1>
               {body ? <p className="m-0 max-w-[420px] text-[15px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
-              <button type="button" onClick={() => go(action)} className="mt-1 inline-flex cursor-pointer items-center gap-3 border-0 bg-transparent p-0 text-[13px] font-bold uppercase" style={{ color: t.ink, letterSpacing: "0.06em" }}>
+              <button type="button" onClick={() => goHero()} className="mt-1 inline-flex cursor-pointer items-center gap-3 border-0 bg-transparent p-0 text-[13px] font-bold uppercase" style={{ color: t.ink, letterSpacing: "0.06em" }}>
                 <span aria-hidden className="grid h-11 w-11 place-items-center rounded-full" style={{ background: t.accent, color: t.ctaText }}><Icon name="chevRight" size={18} /></span>
                 {cta}
               </button>
@@ -2004,7 +2021,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       const half = (src: string | undefined, i: number) => {
         const category = labels[i];
         return (
-          <button key={i} type="button" onClick={() => (category ? shopCategory(category.slug) : go(action))} className="group relative block aspect-[4/5] cursor-pointer overflow-hidden border-0 p-0 @3xl:aspect-[5/6]" style={{ background: look.placeholder }}>
+          <button key={i} type="button" onClick={() => (category ? shopCategory(category.slug) : goHero())} className="group relative block aspect-[4/5] cursor-pointer overflow-hidden border-0 p-0 @3xl:aspect-[5/6]" style={{ background: look.placeholder }}>
             <span className="bq-media inset-0 block" style={{ position: "absolute", borderRadius: 0 }}>{src ? <img src={src} alt="" width={800} height={960} loading="eager" className="transition duration-700 group-hover:scale-[1.04]" /> : null}</span>
             <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 px-7 py-2.5 text-[13px] font-semibold" style={{ background: "#FFFFFF", color: "#222" }}>{category?.name ?? cta}</span>
           </button>
@@ -2030,7 +2047,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               {eyebrow ? <p className="m-0 text-[12.5px] font-bold uppercase" style={{ color: t.accent, letterSpacing: "0.18em" }}>{eyebrow}</p> : null}
               <h1 id={headingId} className="bq-h m-0 max-w-[13ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 4.6cqi, 58px)", lineHeight: 1.1 }}>{title}</h1>
               {body ? <p className="m-0 max-w-[400px] text-[15px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
-              <button type="button" className="bq-btn mt-2" style={{ ...look.primaryButton, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 12.5, fontWeight: 700 }} onClick={() => go(action)}>{cta} <span aria-hidden className="ml-2">→</span></button>
+              <button type="button" className="bq-btn mt-2" style={{ ...look.primaryButton, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 12.5, fontWeight: 700 }} onClick={() => goHero()}>{cta} <span aria-hidden className="ml-2">→</span></button>
             </div>
             <div className="relative mx-auto w-full max-w-[520px] self-end">
               <div aria-hidden className="absolute left-[8%] top-[6%] aspect-square w-[78%] rounded-full" style={{ background: "#F6D9D2" }} />
@@ -2093,7 +2110,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
                 {rest.length ? <span className="block font-light">{rest.join(" ")}.</span> : null}
               </h1>
               {body ? <p className="m-0 max-w-[460px] text-[15px] opacity-90">{body}</p> : null}
-              <button type="button" className="bq-btn mt-2" style={{ background: "transparent", color: "#FFFFFF", border: "2px solid #FFFFFF", textTransform: "uppercase", fontSize: 12, letterSpacing: "0.12em" }} onClick={() => go(action)}>{cta}</button>
+              <button type="button" className="bq-btn mt-2" style={{ background: "transparent", color: "#FFFFFF", border: "2px solid #FFFFFF", textTransform: "uppercase", fontSize: 12, letterSpacing: "0.12em" }} onClick={() => goHero()}>{cta}</button>
             </div>
           </div>
           {sideArrows(shots.length, "#FFFFFF")}
@@ -2118,7 +2135,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
                 {lead} {tail ? <span style={{ color: t.accent }}>{tail}</span> : null}
               </h1>
               {body ? <p className="m-0 max-w-[420px] text-[15px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
-              <button type="button" className="bq-btn mt-1" style={{ background: "transparent", color: t.ink, border: `1.5px solid ${t.ink}`, textTransform: "uppercase", fontSize: 12.5, letterSpacing: "0.08em" }} onClick={() => go(action)}>{cta} <span aria-hidden className="ml-2">→</span></button>
+              <button type="button" className="bq-btn mt-1" style={{ background: "transparent", color: t.ink, border: `1.5px solid ${t.ink}`, textTransform: "uppercase", fontSize: 12.5, letterSpacing: "0.08em" }} onClick={() => goHero()}>{cta} <span aria-hidden className="ml-2">→</span></button>
             </div>
           </div>
         </section>
@@ -2156,7 +2173,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             {label ? (big
               ? <h1 id={headingId} className="m-0 px-5 py-3 uppercase" style={{ background: "rgba(42,37,34,.82)", color: "#FFFFFF", fontFamily: look.headingFont, fontWeight: 400, letterSpacing: "0.04em", fontSize: "clamp(28px, 3.6cqi, 46px)" }}>{label}</h1>
               : <p className="m-0 px-5 py-3 uppercase" style={{ background: "rgba(42,37,34,.82)", color: "#FFFFFF", fontFamily: look.headingFont, letterSpacing: "0.04em", fontSize: "clamp(22px, 2.6cqi, 34px)" }}>{label}</p>) : null}
-            {big ? <button type="button" className="bq-btn" style={{ background: "#FFFFFF", color: t.ink, border: "1.5px solid #FFFFFF", textTransform: "uppercase", fontSize: 12, letterSpacing: "0.12em" }} onClick={() => go(action)}>{cta}</button> : null}
+            {big ? <button type="button" className="bq-btn" style={{ background: "#FFFFFF", color: t.ink, border: "1.5px solid #FFFFFF", textTransform: "uppercase", fontSize: 12, letterSpacing: "0.12em" }} onClick={() => goHero()}>{cta}</button> : null}
           </div>
         </div>
       );
@@ -2185,7 +2202,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               {eyebrow ? <p className="m-0 text-[13px] font-semibold uppercase" style={{ letterSpacing: "0.14em", color: t.muted }}>{eyebrow}</p> : null}
               <h1 id={headingId} className="m-0 max-w-[9ch]" style={{ fontFamily: look.headingFont, fontWeight: 800, fontSize: "clamp(44px, 6.4cqi, 88px)", lineHeight: 0.98, letterSpacing: "-0.03em" }}>{title}</h1>
               {body ? <p className="m-0 max-w-[400px] text-[15px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
-              <button type="button" className="bq-btn mt-2" style={{ background: "#FFFFFF", color: t.ink, border: "1.5px solid #FFFFFF", textTransform: "uppercase", fontSize: 12.5, fontWeight: 700, letterSpacing: "0.06em" }} onClick={() => go(action)}>{cta} <span aria-hidden className="ml-2">→</span></button>
+              <button type="button" className="bq-btn mt-2" style={{ background: "#FFFFFF", color: t.ink, border: "1.5px solid #FFFFFF", textTransform: "uppercase", fontSize: 12.5, fontWeight: 700, letterSpacing: "0.06em" }} onClick={() => goHero()}>{cta} <span aria-hidden className="ml-2">→</span></button>
             </div>
           </div>
           {sideArrows(shots.length, t.ink)}
@@ -2203,7 +2220,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               {eyebrow ? <p className="text-[12px] uppercase" style={{ letterSpacing: "0.22em" }}>{eyebrow}</p> : null}
               <h1 id={headingId} className="bq-h max-w-[980px]" style={{ ...look.headingStyle, fontWeight: 500, fontSize: "clamp(34px, 6cqi, 72px)", lineHeight: 1.04 }}>{title}</h1>
               {body ? <p className="max-w-[560px] text-[15px] opacity-90">{body}</p> : null}
-              <button type="button" className="bq-btn mt-1" style={{ background: "transparent", color: "#fff", border: "1.5px solid #fff", borderRadius: 999 }} onClick={() => go(action)}>{cta}</button>
+              <button type="button" className="bq-btn mt-1" style={{ background: "transparent", color: "#fff", border: "1.5px solid #fff", borderRadius: 999 }} onClick={() => goHero()}>{cta}</button>
             </div>
           </div>
         </section>
@@ -2219,7 +2236,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               <h1 id={headingId} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(38px, 6.5cqi, 76px)", lineHeight: 0.98 }}>{title}</h1>
               {body ? <p className="max-w-[460px] text-[16px] opacity-90">{body}</p> : null}
               <div>
-                <button type="button" className="bq-btn" style={look.secondaryButton} onClick={() => go(action)}>{cta}</button>
+                <button type="button" className="bq-btn" style={look.secondaryButton} onClick={() => goHero()}>{cta}</button>
               </div>
             </div>
             <div className="bq-media" style={{ aspectRatio: "4 / 3", minHeight: "100%" }}>{img}</div>
@@ -2238,7 +2255,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             </div>
             <div className="flex flex-col items-start gap-4">
               {body ? <p className="max-w-[440px] text-[15.5px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
-              <button type="button" className="bq-btn" style={look.secondaryButton} onClick={() => go(action)}>{cta}</button>
+              <button type="button" className="bq-btn" style={look.secondaryButton} onClick={() => goHero()}>{cta}</button>
             </div>
           </div>
           <div className="bq-media mt-10" style={{ aspectRatio: "16 / 9", borderRadius: look.cardRadius }}>{img}</div>
@@ -2255,7 +2272,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               <h1 id={headingId} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(36px, 5.5cqi, 66px)", lineHeight: 1.02 }}>{title}</h1>
               {body ? <p className="max-w-[480px] text-[15.5px]" style={{ color: t.muted }}>{body}</p> : null}
               <div className="flex flex-wrap gap-3">
-                <button type="button" className="bq-btn" style={look.primaryButton} onClick={() => go(action)}>{cta}</button>
+                <button type="button" className="bq-btn" style={look.primaryButton} onClick={() => goHero()}>{cta}</button>
               </div>
             </div>
             <div className="relative grid place-items-center" style={{ aspectRatio: "1 / 1", borderRadius: look.cardRadius, background: `radial-gradient(circle at 50% 45%, ${t.accent}40, transparent 62%), ${t.cardBg}`, border: `1px solid ${t.border}` }}>
@@ -2276,7 +2293,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               {eyebrow ? <p className="px-3 py-1 text-[12px] font-extrabold uppercase" style={{ background: image ? t.accent : t.ink, letterSpacing: "0.14em" }}>{eyebrow}</p> : null}
               <h1 id={headingId} className="bq-h max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(46px, 10cqi, 140px)", lineHeight: 0.9 }}>{title}</h1>
               {body ? <p className="max-w-[480px] text-[15.5px] font-medium opacity-90">{body}</p> : null}
-              <button type="button" className="bq-btn" style={{ background: "#fff", color: t.ink, border: "1.5px solid #fff", borderRadius: 999, textTransform: "uppercase", fontWeight: 800 }} onClick={() => go(action)}>{cta}</button>
+              <button type="button" className="bq-btn" style={{ background: "#fff", color: t.ink, border: "1.5px solid #fff", borderRadius: 999, textTransform: "uppercase", fontWeight: 800 }} onClick={() => goHero()}>{cta}</button>
             </div>
           </div>
         </section>
@@ -2293,7 +2310,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               {text(copy.eyebrow) ? <p className="text-[11.5px] font-bold uppercase" style={{ color: t.accent, letterSpacing: "0.22em" }}>{text(copy.eyebrow)}</p> : null}
               <h1 id={headingId} className="bq-h max-w-[900px]" style={{ ...look.headingStyle, fontSize: "clamp(30px, 6cqi, 60px)" }}>{title}</h1>
               {body ? <p className="max-w-[560px] text-[15px] opacity-90">{body}</p> : null}
-              <button type="button" className="bq-btn" style={look.primaryButton} onClick={() => go(action)}>{cta}</button>
+              <button type="button" className="bq-btn" style={look.primaryButton} onClick={() => goHero()}>{cta}</button>
             </div>
           </div>
         </section>
@@ -2369,7 +2386,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="bq-wrap absolute inset-x-0 bottom-0 flex flex-col items-start gap-3 py-6 text-white">
             <h1 id={headingId} className="bq-h max-w-[760px]" style={{ fontWeight: 700, letterSpacing: "-0.03em", fontSize: "clamp(32px, 6cqi, 68px)", lineHeight: 1.02 }}>{title}</h1>
             {body ? <p className="max-w-[520px] text-[15px] opacity-90">{body}</p> : null}
-            <button type="button" className="bq-btn" style={{ ...look.primaryButton, borderRadius: 999 }} onClick={() => go(action)}>{cta}</button>
+            <button type="button" className="bq-btn" style={{ ...look.primaryButton, borderRadius: 999 }} onClick={() => goHero()}>{cta}</button>
           </div>
         </div>
       </section>
@@ -3071,7 +3088,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       return href ? (
         <Link key={product.id} href={href} prefetch={false} className={className} style={style}>{children}</Link>
       ) : (
-        <button key={product.id} type="button" className={className} style={{ background: "transparent", border: 0, padding: 0, textAlign: "left", color: "inherit", cursor: "pointer", ...style }} onClick={live ? undefined : () => openProduct(product.id)}>{children}</button>
+        <button key={product.id} type="button" className={className ? `bq-plain ${className}` : "bq-plain"} style={{ textAlign: "left", ...style }} onClick={live ? undefined : () => openProduct(product.id)}>{children}</button>
       );
     };
     if (layout === "feature") {
@@ -4334,7 +4351,10 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
   const editorStyle: React.CSSProperties = live ? {} : { minHeight: "100%" };
   // "Sidebar" header (Àga): on wide screens the header is a column on the left and the rest of the page sits beside it.
   const sidebarHeader = headerLayout === "sidebar";
-  const announcementNode = announcementSection ? wrap(announcementSection, announcementText ? <AnnouncementBar text={announcementText} look={look} /> : live || props.demo ? null : (
+  const announcementLink = live
+    ? announcementHref(announcementSection?.settings, { basePath, name: store.name, whatsappNumber: shopper.whatsappNumber, pageHref: (key, params) => storefrontPageHref(basePath, key, params) ?? getPublicStorefrontPath(basePath, "/") })
+    : null;
+  const announcementNode = announcementSection ? wrap(announcementSection, announcementText ? <AnnouncementBar text={announcementText} look={look} settings={announcementSection.settings} href={announcementLink} /> : live || props.demo ? null : (
     <div className="px-4 py-2 text-center text-[12px]" style={{ ...look.announcement, opacity: 0.55 }}>{say("Announcement shows your free-delivery and pay-on-delivery settings (none set yet)")}</div>
   )) : null;
 

@@ -256,6 +256,54 @@ test("end_call: ElevenLabs' system tool in the agent config, and a rejected sync
   assert.match(read("src/components/peggy/PeggyCall.tsx"), /setEndedByPeggy\(details\?\.reason === "agent"\)/);
 });
 
+test("end_call: she hangs up in the same turn as her goodbye, and the app is told when she does", () => {
+  const description = tools.elevenLabsBuiltInTools().end_call.description;
+  assert.match(description, /same turn/);
+  assert.match(description, /never wait/);
+  assert.match(description, /na im be that/);
+  const text = prompt.peggyVoicePrompt({ facts: "F", cities: "C" });
+  assert.match(text, /You hang up the call yourself/);
+  assert.match(text, /I no get anything again/);
+  assert.match(text, /in the same turn as your goodbye/);
+  // After the summary (the last thing before goodbye) she's told to hang up.
+  assert.match(tools.toolReply("save_call_summary", { text: "x" }, "seller", ["Note saved"]), /^Summary saved\. .*end_call/);
+  assert.match(tools.toolReply("save_call_summary", {}, "seller", []), /end_call/);
+  // agent_tool_response is added to the agent's own client events (never replacing them), so the SDK ends the call.
+  assert.deepEqual(tools.clientEventsWithToolResponse(["audio", "interruption", "user_transcript", "agent_response"]), ["audio", "interruption", "user_transcript", "agent_response", "agent_tool_response"]);
+  assert.equal(tools.clientEventsWithToolResponse(["audio", "agent_tool_response"]), null);
+  assert.equal(tools.clientEventsWithToolResponse(undefined), null);
+  assert.equal(tools.clientEventsWithToolResponse([]), null);
+  const server = read("src/lib/ai/peggy-voice.server.ts");
+  assert.match(server, /if \(synced\) await ensureToolEvents\(id\)/);
+  assert.match(server, /await ensureToolEvents\(newId\)/);
+  assert.match(server, /lastSyncError/);
+});
+
+test("goodbye: the app hangs up after Peggy's goodbye when they've said they're done (English and Pidgin)", async () => {
+  const bye = await import("../shared/peggy-goodbye.ts");
+  for (const said of ["Bye", "Okay bye bye", "Thank you, that’s all.", "I don't have anything again", "I no get anything again o", "Na im be that", "No, nothing else. Thanks", "That is all for today", "I'm done, thanks", "You can hang up now", "Alright, talk to you later", "No more questions", "E don do", "Odabo"]) {
+    assert.equal(bye.userIsDone(said), true, said);
+  }
+  for (const said of ["Thank you", "Is that all?", "Wait, one more thing", "Okay", "Yes, save it", "Don't hang up", "I want to add delivery areas", "How do I add products?"]) {
+    assert.equal(bye.userIsDone(said), false, said);
+  }
+  for (const line of ["Alright, bye! Take care.", "Okay o, waka well!", "It was nice talking to you. Have a great day!", "Goodbye, Ada."]) assert.equal(bye.peggySaysGoodbye(line), true, line);
+  for (const line of ["Is there anything else before I go?", "Great, take care of your pickup address next.", "Saved. What else can I help with?"]) assert.equal(bye.peggySaysGoodbye(line), false, line);
+  assert.equal(bye.shouldHangUp("thank you that is all", "Thank you o. Waka well!"), true);
+  assert.equal(bye.shouldHangUp("thank you", "Have a great day!"), false); // a "thank you" mid-call isn't goodbye
+  assert.equal(bye.shouldHangUp("", "Bye bye!"), true); // she only says bye when it's over
+  assert.equal(bye.shouldHangUp("na im be that", "Anything else before I go?"), false);
+  assert.ok(bye.HANG_UP_AFTER_MS < bye.HANG_UP_FALLBACK_MS);
+  // The phone and the web both listen, hang up once she's finished speaking, and say Peggy ended the call.
+  const engine = read("apps/mobile/src/components/peggy/PeggyCallEngine.tsx");
+  assert.match(engine, /shouldHangUp\(lastUserLine\.current, message\)/);
+  assert.match(engine, /mode === "listening" \? setTimeout\(hangUpForPeggy, HANG_UP_AFTER_MS\)/);
+  assert.match(engine, /const endedBy = peggyEnded \? "agent"/);
+  const web = read("src/components/peggy/PeggyCall.tsx");
+  assert.match(web, /shouldHangUp\(bye\.current\.lastUser, message\)/);
+  assert.match(web, /if \(bye\.current\.byPeggy\) setEndedByPeggy\(true\)/);
+});
+
 test("published store: what publishing writes counts as live (no launch payment needed)", () => {
   // src/lib/store-publishing.ts publishStoreDraft: status "active", onboardingState "LIVE", editor.published = the draft.
   const published = { status: "active", onboardingState: "LIVE", brandSettings: { editor: { draft: { pages: [] }, published: { pages: [] } } }, paidLaunches: 0 };

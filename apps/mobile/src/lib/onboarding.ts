@@ -1,6 +1,8 @@
 import type { BrandLook, BrandPalette, DeliveryZone, PaymentMethodKey, ProductPath, SellerQuestion } from "@shared/onboarding";
 import { api, ApiError, API_URL } from "./api";
 import { supabase } from "./supabase";
+import { filePart, preparePhoto, sendPhotoForm, type PhotoInput, type ReadyPhoto } from "./upload-photo";
+import { batchBySize } from "./upload-photo-pure";
 
 // Seller onboarding calls for the app; same endpoints as the web onboarding (src/components/onboarding/seller/api.ts).
 
@@ -47,15 +49,37 @@ export async function askRex(message: string, memory: Partial<OnboardingMemory> 
   return api<{ reply?: string; memoryPatch?: Partial<OnboardingMemory> }>("/api/ai/onboarding-rex", { method: "POST", json: { message, memory } });
 }
 
-export async function draftProducts(photos: Array<{ uri: string; mimeType?: string | null; fileName?: string | null }>) {
-  const form = new FormData();
-  photos.forEach((photo, index) => {
-    const type = photo.mimeType ?? "image/jpeg";
-    // React Native's FormData takes { uri, name, type } file parts.
-    form.append("files", { uri: photo.uri, name: photo.fileName ?? `product-${index + 1}.${type.split("/")[1] ?? "jpg"}`, type } as unknown as Blob);
-  });
-  const data = await api<{ drafts: Omit<ProductDraft, "stock">[]; drafted: boolean }>("/api/ai/product-drafts", { method: "POST", body: form });
-  return { drafted: data.drafted, drafts: data.drafts.map((draft) => ({ ...draft, stock: 10 })) };
+/**
+ * "Snap photos": Rex names and prices up to 6 photos. Each is shrunk on the phone first, and they're sent in as few
+ * requests as fit under the upload limit (6 camera photos together were far over it). When a later request fails,
+ * the drafts already made are kept and `error` says why the rest didn't come back.
+ */
+export async function draftProducts(photos: PhotoInput[]): Promise<{ drafted: boolean; drafts: ProductDraft[]; error?: string }> {
+  const ready: ReadyPhoto[] = [];
+  for (const [index, photo] of photos.entries()) ready.push(await preparePhoto(photo, { base: `product-${index + 1}` }));
+  const drafts: ProductDraft[] = [];
+  let drafted = true;
+  for (const batch of batchBySize(ready.map((photo) => photo.bytes))) {
+    const files = batch.map((index) => ready[index]);
+    const bytes = files.reduce((sum, file) => sum + (file.bytes ?? 0), 0) || null;
+    try {
+      const data = await sendPhotoForm<{ drafts: Omit<ProductDraft, "stock">[]; drafted: boolean }>(
+        "/api/ai/product-drafts",
+        () => {
+          const form = new FormData();
+          for (const file of files) form.append("files", filePart(file));
+          return form;
+        },
+        bytes,
+      );
+      drafted = drafted && data.drafted;
+      drafts.push(...data.drafts.map((draft) => ({ ...draft, stock: 10 })));
+    } catch (error) {
+      if (!drafts.length) throw error;
+      return { drafted, drafts, error: error instanceof Error ? error.message : String(error) };
+    }
+  }
+  return { drafted, drafts };
 }
 
 export async function createProducts(drafts: ProductDraft[]) {
@@ -77,7 +101,7 @@ export async function createProducts(drafts: ProductDraft[]) {
 }
 
 export const savePayments = (methods: Record<PaymentMethodKey, boolean>, zones: DeliveryZone[]) =>
-  api<{ zonesNote?: string | null }>("/api/app/onboarding/payments", { method: "PUT", json: { methods, zones } });
+  api<{ zones: unknown[] }>("/api/app/onboarding/payments", { method: "PUT", json: { methods, zones } });
 
 export const fetchPayoutBank = () =>
   api<{ banks: string[]; current: { bankName: string | null; accountName: string | null; accountNumberMask: string | null } | null }>("/api/app/payout-bank");

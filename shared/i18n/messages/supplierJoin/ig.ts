@@ -166,6 +166,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "review.state.needed": "Achọrọ ya",
   "review.once": "Ozugbo e nyochachara gị, ndị na-ere ahịa nwere ike ịchọta ngwaahịa gị, mee dropship ha ma ọ bụ zụta n'ọtụtụ.",
   "review.lookAround": "Lelee anya ka ị na-echere",
+  "product.whatsappLaterTitle": "Site na katalọg WhatsApp gị",
+  "product.whatsappLaterShort": "Ị nwere katalọg WhatsApp? Tinye ya niile n'otu oge ma emechaa.",
 };
 
 export default ig;

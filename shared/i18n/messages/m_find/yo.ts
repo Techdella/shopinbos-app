@@ -252,6 +252,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "mine.emptyTitle": "Kò tíì sí ọjà supplier",
   "mine.emptyBody": "Àwọn ọjà tí o fi kún láti ọ̀dọ̀ supplier yóò hàn níbí, kí o lè yí owó púpọ̀ padà lẹ́ẹ̀kan.",
   "mine.find": "Wá ọjà",
+  "markup.roundingTitle": "Bí iye owó ṣe ń yíká",
+  "product.dropshipTitle": "Bí dropship ṣe ń ṣiṣẹ́",
+  "product.dropshipShort": "O kò ra nǹkan kan báyìí. {name} á fi ránṣẹ́ tí oníbàárà bá sanwó.",
 };
 
 export default yo;

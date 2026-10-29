@@ -61,7 +61,7 @@ export default function Delivery() {
 
       {data ? (
         <>
-          <SectionTitle>{t("del.areas")}</SectionTitle>
+          <SectionTitle tip={{ text: t("del.orderNote") }}>{t("del.areas")}</SectionTitle>
           {data.zones.length ? (
             data.zones.map((zone) => (
               <Card key={zone.id} style={{ gap: 8, opacity: zone.active ? 1 : 0.75 }}>
@@ -85,7 +85,6 @@ export default function Delivery() {
             <EmptyState icon="pin" title={t("del.empty")}>{t("del.emptySub")}</EmptyState>
           )}
           <PillButton title={t("del.add")} tone={data.zones.length ? "white" : "ink"} size="md" onPress={() => setEditing("new")} />
-          <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{t("del.orderNote")}</T>
 
           <SectionTitle>{t("del.deliveries")}</SectionTitle>
           {data.bookings === null ? (
@@ -250,8 +249,7 @@ function ZoneEditor({ zone, onClose, onDone }: { zone: Zone | "new" | null; onCl
             </View>
 
             <View>
-              <Label>{t("del.places")}</Label>
-              <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 19, marginBottom: 8 }}>{t("del.placesHint")}</T>
+              <Label tip={{ text: t("del.placesHint") }}>{t("del.places")}</Label>
               <View style={{ flexDirection: "row", gap: 8 }}>
                 <Field
                   style={{ flex: 1 }}

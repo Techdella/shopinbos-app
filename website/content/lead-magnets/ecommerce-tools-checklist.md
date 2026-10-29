@@ -10,7 +10,7 @@ First, you need a shop on the internet. This is where you list your products and
 
 Your top priority is an online store builder. This is one service that lets you build your website, add products and collect payments.
 
-- Shopinbos: Built for Nigerian sellers. Rex, the AI store builder, creates your store for you. Customers can pay with Paystack, Flutterwave, bank transfer, USSD or pay on delivery, and you get payouts to your Nigerian bank account every Friday. It is free to start; see [shopinbos.com/pricing](https://shopinbos.com/pricing).
+- Shopinbos: Built for Nigerian sellers. Rex, the AI store builder, creates your store for you. Customers can pay with Paystack, Flutterwave, bank transfer, USSD or pay on delivery, and payments settle straight to your Nigerian bank account. It is free to start; see [shopinbos.com/pricing](https://shopinbos.com/pricing).
 - Shopify: A popular store builder with an easy drag-and-drop editor. It has a [free trial](https://www.shopify.com/ng/pricing), then a monthly plan billed in US dollars, so you will need a card that works for dollar payments.
 - WooCommerce: A free plugin that turns a WordPress website into a store. It is powerful and flexible, but you need a WordPress site first, which means paying for web hosting and doing more setup yourself.
 - Selling on social media: Many Nigerian sellers start on WhatsApp Business, Instagram, TikTok or Facebook, and on marketplaces like Jiji, Jumia and Konga. These are great for reaching people, but a store of your own gives you one link where customers can see everything and pay safely.

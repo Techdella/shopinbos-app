@@ -8,6 +8,8 @@ import { TonePill } from "@/components/partner";
 import { Screen } from "@/components/Screen";
 import { Card, Notice, PillButton, T } from "@/components/ui";
 import { apiBody } from "@/lib/api";
+import { uploadOnePhoto } from "@/lib/upload-photo";
+import { DOC_MAX_SIDE } from "@/lib/upload-photo-pure";
 import { verificationStage, type Tone } from "@/lib/partner-pure";
 import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
@@ -56,15 +58,11 @@ export function useVerificationDocs(role: Role, load: VerificationLoad) {
     const picked = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.7 });
     if (picked.canceled) return;
     const asset = picked.assets[0];
-    const type = asset.mimeType ?? "image/jpeg";
-    const ext = type.split("/")[1] === "jpeg" ? "jpg" : (type.split("/")[1] ?? "jpg");
-    const form = new FormData();
-    form.append("docType", docType);
-    form.append("file", { uri: asset.uri, name: asset.fileName ?? `${docType}.${ext}`, type } as unknown as Blob);
     setBusy(docType);
     setNote(null);
     try {
-      const result = await apiBody<{ success?: boolean; error?: string }>(`${base}/upload`, { method: "POST", body: form });
+      // Shrunk on the phone first, less than product photos so the writing stays readable (lib/upload-photo.ts).
+      const result = await uploadOnePhoto<{ success?: boolean; error?: string }>(`${base}/upload`, asset, { docType }, { base: docType, maxSide: DOC_MAX_SIDE, envelope: "body" });
       if (result.success === false) throw new Error(result.error || t("verify.uploadFailed"));
       await data.reload();
     } catch (error) {

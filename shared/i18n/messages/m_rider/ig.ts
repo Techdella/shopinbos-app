@@ -198,6 +198,10 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   // Reach tiers (shared/partner-reach.ts)
   "earn.weekLine": "Ihe ị kpatara n'izu a: {amount}",
   "earn.paidBy": "{company} na-akwụ gị ụgwọ",
+  "link.subShort": "Mado link nzuzo ụlọ ọrụ gị zitere gị.",
+  "link.privateShort": "Edebe link a naanị gị.",
+  "signIn.linkHintShort": "Jiri nọmba ụlọ ọrụ gị ji tinye gị.",
+  "welcome.subShort": "Ị ga-enweta ọrụ delivery ebe a.",
 };
 
 export default ig;

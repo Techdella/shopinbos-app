@@ -72,6 +72,8 @@ const en = {
   "shots.undo": "Use my original photos",
   "shots.cost": "Each shot uses one picture from today's allowance, then {credits} credits.",
   "style": "2. Style",
+  "styleFeel": "Style group",
+  "styleAll": "All ({count})",
   "tpl.float": "Float",
   "tpl.floatBlurb": "Your product floats on a soft brand-colour backdrop with one-word captions. Calm and premium.",
   "tpl.bold": "Big type",
@@ -167,6 +169,7 @@ const en = {
   "savedVersion": "Your saved video",
   "downloadSaved": "Download the saved video",
   "hub.pages": "Video pages",
+  "hub.subShort": "Make reels for ads, products and social media.",
 } satisfies Record<string, string>;
 
 export default en;

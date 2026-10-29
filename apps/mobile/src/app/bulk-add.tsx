@@ -12,7 +12,7 @@ import { AppIcon } from "@/components/icons";
 import { KeyboardShift, useScrollToEndOnKeyboard } from "@/components/KeyboardShift";
 import { ShareProductIcon } from "@/components/seller/ProductCode";
 import { Sheet } from "@/components/Sheet";
-import { BackButton, ButtonRow, Field, Mascot, Notice, PillButton, T, Toggle } from "@/components/ui";
+import { BackButton, ButtonRow, Field, Mascot, Notice, PillButton, T, Toggle, WithTip } from "@/components/ui";
 import { VoiceInput } from "@/components/VoiceInput";
 import { WebBadge } from "@/components/WebBadge";
 import { addPhotos, bulkApi, queueFor, type BulkSession, type PublishResult } from "@/lib/bulk-add";
@@ -265,14 +265,16 @@ export default function BulkAdd() {
             <View style={{ alignItems: "center", gap: 12, paddingTop: 8 }}>
               <Tile icon="image" tone="peach" size={88} />
               <Title size={28} style={{ textAlign: "center" }}>{t("pick.title")}</Title>
-              <Sub style={{ textAlign: "center" }}>{t("pick.sub")}</Sub>
+              <WithTip title={t("pick.title")} tip={{ text: t("pick.sub") }} style={{ justifyContent: "center" }}>
+                <Sub style={{ textAlign: "center" }}>{t("pick.subShort")}</Sub>
+              </WithTip>
             </View>
             <PillButton testID="bulk-choose" tone="accent" icon="image" title={t("pick.choose")} busy={loading} onPress={() => void pick("library")} />
             <PillButton tone="white" icon="camera" title={t("pick.camera")} disabled={loading} onPress={() => void pick("camera")} />
             <View style={{ gap: 8 }}>
               <Small>{t("other.title")}</Small>
               <List>
-                {role === "seller" ? <Row lead={<Tile icon="doc" tone="blue" />} title={t("other.csv")} sub={t("other.csvSub")} right={<WebBadge />} onPress={() => void openWeb("/products/import")} /> : null}
+                {role === "seller" ? <Row lead={<Tile icon="doc" tone="blue" />} title={t("other.csv")} sub={t("other.csvSubShort")} right={<WebBadge />} onPress={() => void openWeb("/products/import")} /> : null}
                 <Row lead={<Tile icon="camera" tone="butter" />} title={t("other.one")} onPress={() => router.push((role === "supplier" ? "/supplier/product/new" : "/add-products") as never)} chevron />
               </List>
             </View>
@@ -317,7 +319,7 @@ export default function BulkAdd() {
                     style={{ flex: 1, height: 52, borderRadius: radii.pill, backgroundColor: colors.surface, paddingHorizontal: 18, fontSize: 15, fontFamily: fonts.regular, color: colors.ink }}
                   />
                   <VoiceInput variant="icon" value={draft} onChange={setDraft} context="product names and prices for Peggy" disabled={Boolean(sending)} />
-                  <Pressable accessibilityRole="button" accessibilityLabel={t("chat.send")} disabled={!draft.trim() || Boolean(sending)} onPress={() => void send()} style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: colors.ink, alignItems: "center", justifyContent: "center", opacity: !draft.trim() || sending ? 0.5 : 1 }}>
+                  <Pressable accessibilityRole="button" accessibilityLabel={t("chat.send")} disabled={!draft.trim() || Boolean(sending)} onPress={() => void send()} style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: colors.inkFill, alignItems: "center", justifyContent: "center", opacity: !draft.trim() || sending ? 0.5 : 1 }}>
                     <AppIcon name="send" size={20} color="#FFFFFF" />
                   </Pressable>
                 </View>
@@ -448,7 +450,7 @@ function Thumb({ uri, size }: { uri?: string; size: number }) {
 
 function Bubble({ text, mine }: { text: string; mine?: boolean }) {
   return mine ? (
-    <View style={{ alignSelf: "flex-end", marginLeft: 40, backgroundColor: colors.ink, borderRadius: 20, borderBottomRightRadius: 6, paddingHorizontal: 16, paddingVertical: 12 }}>
+    <View style={{ alignSelf: "flex-end", marginLeft: 40, backgroundColor: colors.inkFill, borderRadius: 20, borderBottomRightRadius: 6, paddingHorizontal: 16, paddingVertical: 12 }}>
       <T style={{ color: "#FFFFFF", fontSize: 15, lineHeight: 21 }}>{text}</T>
     </View>
   ) : (
@@ -498,7 +500,7 @@ function ItemRow({ item, t, selected, onPress, onLongPress }: { item: BulkItem; 
       <View>
         <Thumb uri={item.photos[0]} size={56} />
         {item.photos.length > 1 ? (
-          <View style={{ position: "absolute", right: -4, bottom: -4, backgroundColor: colors.ink, borderRadius: 10, paddingHorizontal: 6 }}>
+          <View style={{ position: "absolute", right: -4, bottom: -4, backgroundColor: colors.inkFill, borderRadius: 10, paddingHorizontal: 6 }}>
             <T weight="bold" style={{ color: "#FFFFFF", fontSize: 11 }}>{item.photos.length}</T>
           </View>
         ) : null}

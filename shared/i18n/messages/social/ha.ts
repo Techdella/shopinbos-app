@@ -111,6 +111,15 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "live.sub": "Google free listings suna aiki yau: haɗa sau ɗaya kuma kayayyakinka za su bayyana a Google Search da Shopping.",
   "moved": "Yin post zuwa Instagram, Facebook, WhatsApp da TikTok yanzu yana da shafinsa, tare da kalanda, queue da post da taɓawa ɗaya.",
   "moved.link": "Buɗe Social posts",
+  "appBack.title": "Koma Shopinbos",
+  "appBack.body": "Muna mayar da kai cikin app. Idan babu abin da ya faru, taɓa maɓallin.",
+  "appBack.button": "Koma cikin app",
+  "appWa.title": "Haɗa WhatsApp",
+  "appWa.body": "Haɗa lambar WhatsApp Business ɗinka da shagonka. Saƙonnin abokan ciniki za su shigo Chats, kayayyakinka kuma za su bayyana a cikin WhatsApp.",
+  "appWa.step1": "Taɓa Continue with Facebook ka shiga.",
+  "appWa.step2": "Zaɓi kasuwancinka da lambar WhatsApp ɗinka, ko ka ƙara ɗaya.",
+  "appWa.step3": "Tabbatar, sai ka dawo cikin app.",
+  "appWa.continue": "Ci gaba da Facebook",
 };
 
 export default ha;

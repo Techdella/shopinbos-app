@@ -639,8 +639,8 @@ export const templates: Record<string, TemplateText> = {
     button: "Verify my business",
     examples: ["Ada", "Ada Fabrics", "sellers", "CAC certificate"],
   },
-  shopinbos_wallet_ready: {
-    body: "Hi {{1}}, your Shopinbos Wallet don ready! 🎉\n\nYour own account number na {{2}} for {{3}}, for the name {{4}}. Send money enter am from any bank app and e go land your wallet balance in one or two minutes.\n\nUse your balance for AI credits and other Shopinbos services, and withdraw go your bank anytime you want.",
+  shopinbos_wallet_ready_v2: {
+    body: "Hi {{1}}, your Shopinbos Wallet don ready! 🎉\n\nYour own account number na {{2}} for {{3}}, for the name {{4}}. Give am to anybody wey wan pay you, from any bank app.\n\nAdd your bank for your wallet page and the money wey dem send go go straight to your bank. Top up to pay for AI credits and other Shopinbos services.",
     button: "Open my wallet",
     examples: ["Ada", "9912345678", "Wema Bank", "SHOPINBOS/ADA FABRICS"],
   },

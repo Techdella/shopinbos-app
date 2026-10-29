@@ -11,7 +11,7 @@ import { EMAIL_TABS, emailTab, openedShare, percent, type EmailTab } from "@/lib
 import { fetchMarketing, type CampaignRow } from "@/lib/marketing";
 import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
-import { colors } from "@/theme";
+import { colors, themed } from "@/theme";
 
 // Email (canvas board M-Email; the web's /home/marketing/campaigns): subscribers, the average opened and the sales the
 // emails brought; Sent / Scheduled / Drafts; and "+ New email", where Rex writes it (marketing/email/new.tsx). The list
@@ -19,13 +19,13 @@ import { colors } from "@/theme";
 
 const TAB_LABEL: Record<EmailTab, "email.sent" | "email.scheduled" | "email.drafts"> = { sent: "email.sent", scheduled: "email.scheduled", drafts: "email.drafts" };
 
-const TAG: Record<string, { bg: string; fg: string; label: "email.tag.sent" | "email.tag.sending" | "email.tag.scheduled" | "email.tag.draft" | "email.tag.cancelled" }> = {
+const TAG: Record<string, { bg: string; fg: string; label: "email.tag.sent" | "email.tag.sending" | "email.tag.scheduled" | "email.tag.draft" | "email.tag.cancelled" }> = themed(() => ({
   sent: { bg: colors.successTint, fg: colors.success, label: "email.tag.sent" },
   sending: { bg: colors.mintTint, fg: colors.forest, label: "email.tag.sending" },
   scheduled: { bg: colors.warnTint, fg: colors.warnInk, label: "email.tag.scheduled" },
   draft: { bg: colors.canvas, fg: colors.inkSoft, label: "email.tag.draft" },
   cancelled: { bg: colors.canvas, fg: colors.inkSoft, label: "email.tag.cancelled" },
-};
+}));
 
 export default function EmailCampaigns() {
   const t = useT("m_grow", "m_ui");

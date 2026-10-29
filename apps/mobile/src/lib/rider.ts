@@ -1,5 +1,6 @@
 import "expo-sqlite/localStorage/install";
 import { ApiError, API_URL } from "./api";
+import { filePart, preparePhoto, type PhotoInput } from "./upload-photo";
 
 // The Riders app inside the mobile app. Riders don't have a Shopinbos account: their dispatcher shares a private
 // link (…/rider/<token>) and that token is the key, kept on this phone and sent as X-Rider-Token to
@@ -171,13 +172,13 @@ export const riderAction = (body: RiderAction) =>
   riderFetch<{ done: true }>("", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 
 /** A photo of the sealed parcel: "handover" (every drop) or "pickup" (shop and supplier parcels, before "Got the parcel"). */
-export function uploadRiderProof(jobId: string, photo: { uri: string; mimeType?: string | null; fileName?: string | null }, kind: "handover" | "pickup" = "handover") {
+export async function uploadRiderProof(jobId: string, photo: PhotoInput, kind: "handover" | "pickup" = "handover") {
+  // Shrunk on the phone first (a camera photo can be over the ~4.5 MB upload limit).
+  const ready = await preparePhoto(photo, { base: "proof" });
   const form = new FormData();
-  const type = photo.mimeType ?? "image/jpeg";
   form.append("jobId", jobId);
   form.append("kind", kind);
-  // React Native's FormData takes { uri, name, type } file parts.
-  form.append("file", { uri: photo.uri, name: photo.fileName ?? `proof.${type.split("/")[1] ?? "jpg"}`, type } as unknown as Blob);
+  form.append("file", filePart(ready));
   return riderFetch<{ proofUrl: string }>("/proof", { method: "POST", body: form });
 }
 

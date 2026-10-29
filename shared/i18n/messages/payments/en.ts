@@ -322,8 +322,6 @@ const en = {
   "plans.f.seller.themes_all_seasonal": "All themes + seasonal campaigns",
   "plans.f.seller.staff": "{count, plural, one {# staff account} other {# staff accounts}}",
   "plans.f.seller.credits": "{count, plural, one {# AI credit a month} other {# AI credits a month}}",
-  "plans.f.seller.states": "{count, plural, one {Sell in # state} other {Sell in up to # states}}",
-  "plans.f.seller.statesNationwide": "Sell nationwide",
   "plans.f.seller.partners": "{count, plural, one {# connected delivery partner} other {# connected delivery partners}}",
   "plans.f.seller.partnersUnlimited": "Unlimited delivery partners",
   "plans.f.seller.privateRates": "Private (negotiated) delivery rate cards",

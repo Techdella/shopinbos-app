@@ -261,6 +261,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "update.help": "You need help? Talk to us",
   "update.storeFailed": "We no fit open Google Play. Open the Play Store app and search for Shopinbos.",
   "update.storeFailedIos": "We no fit open App Store. Open the App Store app and search for Shopinbos.",
+  "tip.more": "More info",
+  "tip.learnMore": "Learn more",
 };
 
 export default pcm;

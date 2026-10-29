@@ -178,6 +178,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "bot.faqRemove": "Yọ ọ́ kúrò",
   "chats.riders": "Àwọn agbéjíṣẹ́",
   "chats.suppliers": "Àwọn olùpèsè",
+  "auto.peggyHintShort": "Peggy á dáhùn nípa ọjà, iye owó àti delivery rẹ.",
+  "auto.subShort": "Dá àwọn oníbàárà lóhùn nígbà tí ọwọ́ rẹ dí tàbí o ti tì.",
 };
 
 export default yo;

@@ -3,12 +3,13 @@ import { withSeller } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
 import { appResultUrl, appReturnCookieName, appReturnUrl, isOAuthPlatform, nonceCookieName, returnCookieName, safeReturnPath, STATE_MAX_AGE_MS } from "@/lib/sales-channels/pure";
 import { startConnect } from "@/lib/sales-channels/server";
+import { appConnectedDeepLink, appConnectedPagePath, isConnectedReturn } from "@shared/app-connect";
 
 export const dynamic = "force-dynamic";
 
 // GET: the "Connect" button on /channels. Sends the seller to the platform's sign-in with a signed state, and puts
 // the state's nonce in an httpOnly cookie so the callback only finishes in the browser that started it.
-// From the phone app (?app=shopinbos://channels) the callback returns to the app instead of /channels; from Inbox →
+// From the phone app (?app=shopinbos://connected) the callback returns to the app instead of /channels; from Inbox →
 // Channels or Start here (?next=/home/inbox/channels) it returns to that page.
 export const GET = withSeller(async (req: NextRequest, { user, params }) => {
   const next = safeReturnPath(req.nextUrl.searchParams.get("next"));
@@ -19,7 +20,7 @@ export const GET = withSeller(async (req: NextRequest, { user, params }) => {
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true } });
   if (!store) return NextResponse.redirect(new URL("/onboarding", req.url));
   const started = startConnect(store.id, platform);
-  if (!started) return NextResponse.redirect(app ? appResultUrl(app, platform, "problem") : back);
+  if (!started) return NextResponse.redirect(app ? new URL(appConnectedPagePath(isConnectedReturn(app) ? appConnectedDeepLink(app, platform, "problem") : appResultUrl(app, platform, "problem")), req.url) : back);
   const response = NextResponse.redirect(started.url);
   const path = `/api/app/sales-channels/${platform}`;
   const secure = req.nextUrl.protocol === "https:";

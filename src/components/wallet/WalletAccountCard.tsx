@@ -61,7 +61,7 @@ export function WalletAccountCard({ account, aside, footer, goesTo }: { account:
         <span className="text-[14.5px] font-bold">{account.name}</span>
       </div>
       <p className="relative mb-0 mt-3 text-[12.5px] leading-[1.5] text-white/70">
-        {goesTo ? `Transfer from any bank app. It goes straight to your bank, ${goesTo}, usually the next working day.` : "Transfer from any bank app. It lands in your wallet balance within a minute or two."}
+        {goesTo ? `Transfer from any bank app. It goes straight to your bank, ${goesTo}, usually the next working day.` : "Transfer from any bank app to top up your balance for AI credits and other Shopinbos services. Add your bank to get paid straight to it."}
       </p>
       {footer ? <div className="relative mt-3">{footer}</div> : null}
     </div>
@@ -105,7 +105,7 @@ export function WalletMini({ variant }: { variant: "sidebar" | "home" }) {
             <CopyButton value={summary.account.number} className="min-h-[28px] px-2.5 text-[11.5px]" />
           </span>
         ) : (
-          <Link href={summary.href} className="mt-1 block text-[11.5px] text-white/60 no-underline">Top up, spend, withdraw</Link>
+          <Link href={summary.href} className="mt-1 block text-[11.5px] text-white/60 no-underline">Top up and spend</Link>
         )}
         {summary.active === false ? <Link href={summary.href} className="mt-1.5 block text-[11px] font-bold text-[#FFC48A] no-underline">Activates when you&apos;re verified</Link> : null}
       </div>
@@ -130,7 +130,7 @@ export function WalletMini({ variant }: { variant: "sidebar" | "home" }) {
           <CopyButton value={summary.account.number} />
         </span>
       ) : (
-        <span className="mt-2 block text-[13px] text-white/70">Top up by transfer or card, spend on AI credits, withdraw to your bank.</span>
+        <span className="mt-2 block text-[13px] text-white/70">Top up by transfer or card and spend on AI credits.</span>
       )}
     </div>
   );

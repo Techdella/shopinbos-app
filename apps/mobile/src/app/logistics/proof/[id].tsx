@@ -48,7 +48,7 @@ export default function ProofScreen() {
     setBusy("photo");
     setError(null);
     try {
-      const { proofUrl } = await uploadJobProof(current.id, { uri: asset.uri, mimeType: asset.mimeType, fileName: asset.fileName });
+      const { proofUrl } = await uploadJobProof(current.id, { uri: asset.uri, mimeType: asset.mimeType, fileName: asset.fileName, width: asset.width, height: asset.height, fileSize: asset.fileSize });
       job.setData({ ...job.data, job: { ...current, proofUrl } });
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : t("job.photoFailed"));

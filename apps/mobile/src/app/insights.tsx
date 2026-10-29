@@ -85,7 +85,7 @@ export default function InsightsScreen() {
                   <View key={source.key} testID={`insights-source-${source.key}`} style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                     <T weight="semibold" style={{ width: 128, fontSize: 13.5 }} numberOfLines={1}>{source.key === "other" ? t("insights.other") : source.label}</T>
                     <View style={{ flex: 1, height: 8, borderRadius: 4, backgroundColor: colors.line, overflow: "hidden" }}>
-                      <View style={{ width: `${Math.max(2, Math.round(source.share * 100))}%`, height: 8, borderRadius: 4, backgroundColor: colors.ink }} />
+                      <View style={{ width: `${Math.max(2, Math.round(source.share * 100))}%`, height: 8, borderRadius: 4, backgroundColor: colors.inkFill }} />
                     </View>
                     <T weight="bold" style={{ width: 44, textAlign: "right", fontSize: 14 }}>{percent(source.share)}</T>
                   </View>

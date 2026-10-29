@@ -9,6 +9,7 @@ import { AppIcon } from "@/components/icons";
 import { LinkButton, PillButton, T } from "@/components/ui";
 import { TILE } from "@/components/design";
 import { WebButtonLabel } from "@/components/WebBadge";
+import { API_URL } from "@/lib/api";
 import { likeStatus, markStatusSeen, type StatusAuthor, type StatusPost } from "@/lib/familiar";
 import { useT } from "@/lib/i18n";
 import { useIntroAudioStop } from "@/lib/intro-audio";
@@ -17,15 +18,20 @@ import { hideShopinbosStatus, markShopinbosSeen, runShopinbosCta, watchOutside }
 import { colors, fonts } from "@/theme";
 import { Mascot } from "@/components/Mascot";
 import { ShopinbosMark } from "./ShopinbosMark";
+import { storyDurationMs, storyProgress, storyTimeUp } from "@shared/status-video";
 
 // Full-screen Status viewer ("Familiar app" prototype `storyView`): progress bars, who posted and when, tap the left
 // or right half to go back or on, the headline and caption over a dark shade, a like and the post's one action
-// ("Add to my shop", "Chat with them", "Offer to deliver"…). Each post moves on by itself after a few seconds.
-// Shopinbos's own posts (author.official): the brand logo, no like, their video plays here (expo-video) and moves on
-// when it ends, or "Watch" opens the 60-second intro; their buttons open a screen of the app or share the shop;
-// "Don't show again" hides them for good.
+// ("Add to my shop", "Chat with them", "Offer to deliver"…). A photo or text post moves on by itself after a few
+// seconds; a video post (a person's video status, or one of Shopinbos's) plays here with expo-video, muted until the
+// sound button is tapped, its bar filling with the video's own time, and moves on when it ends (no loop). Holding a
+// finger down pauses either. The poster shows while the video loads; only the post on screen has a player, so the
+// next video isn't fetched before it's shown. Timing rules: shared/status-video.ts.
+// Shopinbos's own posts (author.official): the brand logo, no like, "Watch" opens a 60-second intro when there's no
+// video to play here; their buttons open a screen of the app or share the shop; "Don't show again" hides them.
 
-const SHOW_MS = 6000;
+/** Fills the viewer (explicit edges and size: the web build sizes a video by its own pixels otherwise). */
+const FILL = { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, width: "100%", height: "100%" } as const;
 const ROLE_KEY = { seller: "role.seller", supplier: "role.supplier", logistics_partner: "role.partner" } as const;
 
 function ago(iso: string, t: ReturnType<typeof useT<["m_familiar"]>>) {
@@ -41,10 +47,40 @@ export function storyByline(author: Pick<StatusAuthor, "name" | "roleLabel">, ro
   return label ? `${label} · ${time}` : time;
 }
 
-/** A post's video, full screen behind the words; `onEnd` moves on. */
-function StoryVideo({ url, onEnd }: { url: string; onEnd: () => void }) {
+/** A video URL the player can open: Shopinbos's clips may come as a path on the app's own site. */
+export function playableUrl(url: string | null | undefined) {
+  if (!url) return null;
+  return url.startsWith("/") ? `${API_URL}${url}` : url;
+}
+
+/**
+ * A post's video, full screen behind the words: muted until the sound button, paused while held, its progress
+ * (0..1) reported as it plays, the poster on top until the first frame. `onEnd` moves on.
+ */
+function StoryVideo({
+  url,
+  poster,
+  fit,
+  muted,
+  paused,
+  onEnd,
+  onProgress,
+}: {
+  url: string;
+  poster: string | null;
+  /** "cover" for a short vertical status video, "contain" for a longer help video (often landscape). */
+  fit: "cover" | "contain";
+  muted: boolean;
+  paused: boolean;
+  onEnd: () => void;
+  onProgress: (fraction: number) => void;
+}) {
+  const [started, setStarted] = useState(false);
   const player = useVideoPlayer(url, (created) => {
     created.staysActiveInBackground = false;
+    created.loop = false;
+    created.muted = muted;
+    created.timeUpdateEventInterval = 0.2;
     created.play();
   });
   // The app going to the background or a Peggy call starting pauses it (lib/intro-audio.ts); closing frees it.
@@ -56,19 +92,66 @@ function StoryVideo({ url, onEnd }: { url: string; onEnd: () => void }) {
     }
   });
   const end = useRef(onEnd);
+  const progress = useRef(onProgress);
+  const held = useRef(paused);
   useEffect(() => {
     end.current = onEnd;
+    progress.current = onProgress;
+    held.current = paused;
   });
   useEffect(() => {
-    const subscription = player.addListener("playToEnd", () => end.current());
-    // The web build only starts once the view is on screen; native starts from the setup above.
-    const timer = setTimeout(() => player.play(), 300);
-    return () => {
-      subscription.remove();
-      clearTimeout(timer);
+    let ended = false;
+    let failed: ReturnType<typeof setTimeout> | null = null;
+    const finish = () => {
+      if (ended) return;
+      ended = true;
+      progress.current(1);
+      end.current();
     };
-  }, [player]);
-  return <VideoView testID="story-video" player={player} nativeControls={false} contentFit="contain" style={{ position: "absolute", inset: 0 }} />;
+    const subscriptions = [
+      player.addListener("playToEnd", finish),
+      player.addListener("timeUpdate", ({ currentTime }) => {
+        if (currentTime > 0.05) setStarted(true);
+        const total = storyDurationMs({ video: { url } }, player.duration);
+        progress.current(storyProgress(currentTime * 1000, total));
+      }),
+      // A video that can't play moves on after the usual few seconds instead of hanging.
+      player.addListener("statusChange", ({ status }) => {
+        if (status === "error" && !failed) failed = setTimeout(finish, 3000);
+      }),
+    ];
+    // The web build only starts once the view is on screen; native starts from the setup above.
+    const timer = setTimeout(() => {
+      if (!held.current) player.play();
+    }, 300);
+    return () => {
+      ended = true;
+      for (const subscription of subscriptions) subscription.remove();
+      clearTimeout(timer);
+      if (failed) clearTimeout(failed);
+    };
+  }, [player, url]);
+  useEffect(() => {
+    try {
+      player.muted = muted;
+    } catch {
+      // Released.
+    }
+  }, [player, muted]);
+  useEffect(() => {
+    try {
+      if (paused) player.pause();
+      else player.play();
+    } catch {
+      // Released.
+    }
+  }, [player, paused]);
+  return (
+    <>
+      <VideoView testID="story-video" player={player} nativeControls={false} contentFit={fit} style={FILL} />
+      {poster && !started ? <Image testID="story-poster" source={{ uri: poster }} style={FILL} contentFit={fit} accessibilityIgnoresInvertColors /> : null}
+    </>
+  );
 }
 
 export function StoryViewer({
@@ -96,7 +179,11 @@ export function StoryViewer({
   const [authorIndex, setAuthorIndex] = useState(start);
   const [postIndex, setPostIndex] = useState(startPost);
   const [likes, setLikes] = useState<Record<string, { likes: number; liked: boolean }>>({});
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Videos start muted; the choice holds for the rest of this viewing. A finger held down pauses.
+  const [muted, setMuted] = useState(true);
+  const [held, setHeld] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const elapsed = useRef(0);
   const [opened, setOpened] = useState(visible);
   if (opened !== visible) {
     setOpened(visible);
@@ -119,7 +206,7 @@ export function StoryViewer({
   const author = authors[authorIndex];
   const post = author?.posts[postIndex];
   const official = Boolean(author?.official);
-  const videoUrl = official ? post?.video?.url ?? null : null;
+  const videoUrl = playableUrl(post?.video?.url);
 
   const next = () => {
     if (!author) return onClose();
@@ -139,16 +226,33 @@ export function StoryViewer({
 
   useEffect(() => {
     if (!visible || !post) return;
+    elapsed.current = 0;
+    setProgress(0);
     if (official) markShopinbosSeen(post.id);
     else if (!own) void markStatusSeen(post.id);
-    // A video moves on when it ends instead.
-    if (!videoUrl) timer.current = setTimeout(next, SHOW_MS);
-    return () => {
-      if (timer.current) clearTimeout(timer.current);
-    };
-    // The timer restarts for each post shown.
+    // A new post was seen once per opening.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, post?.id]);
+
+  // A photo or text post's clock: its bar fills over a few seconds (stopped while held), then the next post shows.
+  // A video's bar follows the video instead, and it moves on when it ends.
+  const nextRef = useRef(next);
+  useEffect(() => {
+    nextRef.current = next;
+  });
+  useEffect(() => {
+    if (!visible || !post || videoUrl || held) return;
+    const total = storyDurationMs(post);
+    const tick = setInterval(() => {
+      elapsed.current += 100;
+      setProgress(storyProgress(elapsed.current, total));
+      if (storyTimeUp(elapsed.current, total)) {
+        clearInterval(tick);
+        nextRef.current();
+      }
+    }, 100);
+    return () => clearInterval(tick);
+  }, [visible, post, videoUrl, held]);
 
   if (!author || !post) return null;
   const like = likes[post.id] ?? { likes: post.likes, liked: post.liked };
@@ -182,7 +286,9 @@ export function StoryViewer({
       <StatusBar barStyle={photo ? "light-content" : "dark-content"} />
       <View style={{ flex: 1, backgroundColor: photo ? "#000" : tone.bg }}>
         {post.imageUrl ? <Image source={{ uri: post.imageUrl }} style={{ position: "absolute", inset: 0 }} contentFit="cover" accessibilityIgnoresInvertColors /> : null}
-        {videoUrl ? <StoryVideo key={post.id} url={videoUrl} onEnd={next} /> : null}
+        {videoUrl ? (
+          <StoryVideo key={post.id} url={videoUrl} poster={playableUrl(post.video?.posterUrl)} fit={(post.video?.durationSeconds ?? 0) > 31 ? "contain" : "cover"} muted={muted} paused={held} onEnd={next} onProgress={setProgress} />
+        ) : null}
         {/* Soft shades keep the white words readable on a photo; a text-only post uses its own ink colour instead. */}
         {photo ? (
           <>
@@ -194,7 +300,9 @@ export function StoryViewer({
         <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 12, gap: 12 }}>
           <View style={{ flexDirection: "row", gap: 4 }}>
             {author.posts.map((entry, index) => (
-              <View key={entry.id} style={{ flex: 1, height: 3, borderRadius: 2, backgroundColor: index <= postIndex ? ink : photo ? "rgba(255,255,255,0.35)" : "rgba(22,20,31,0.18)" }} />
+              <View key={entry.id} style={{ flex: 1, height: 3, borderRadius: 2, overflow: "hidden", backgroundColor: index < postIndex ? ink : photo ? "rgba(255,255,255,0.35)" : "rgba(22,20,31,0.18)" }}>
+                {index === postIndex ? <View testID="story-progress" style={{ width: `${Math.round(progress * 1000) / 10}%`, height: "100%", backgroundColor: ink }} /> : null}
+              </View>
             ))}
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
@@ -203,6 +311,19 @@ export function StoryViewer({
               <T weight="bold" numberOfLines={1} style={{ color: ink, fontSize: 15 }}>{author.name}</T>
               <T numberOfLines={1} style={{ color: ink, opacity: 0.85, fontSize: 13 }}>{storyByline(author, official ? author.roleLabel ?? t("role.shopinbos") : t(ROLE_KEY[author.role]), ago(post.createdAt, t))}</T>
             </View>
+            {videoUrl ? (
+              <Pressable
+                testID="story-sound"
+                accessibilityRole="button"
+                accessibilityLabel={muted ? t("story.unmute") : t("story.mute")}
+                accessibilityState={{ checked: !muted }}
+                onPress={() => setMuted(!muted)}
+                hitSlop={8}
+                style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(0,0,0,0.28)", alignItems: "center", justifyContent: "center" }}
+              >
+                <AppIcon name={muted ? "volumeOff" : "volume"} size={22} color="#FFFFFF" />
+              </Pressable>
+            ) : null}
             <Pressable accessibilityRole="button" accessibilityLabel={t("close")} onPress={onClose} hitSlop={8} style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
               <AppIcon name="x" size={26} color={ink} />
             </Pressable>
@@ -213,9 +334,15 @@ export function StoryViewer({
             mark, the headline large and centred, the words under it. */}
         <View style={{ flex: 1 }}>
           <View style={{ flex: 1, flexDirection: "row" }}>
-            <Pressable accessibilityRole="button" accessibilityLabel={t("previous")} onPress={back} style={{ flex: 1 }} />
-            <Pressable accessibilityRole="button" accessibilityLabel={t("next")} onPress={next} style={{ flex: 2 }} />
+            {/* Hold anywhere to pause; letting go carries on (a long press doesn't also move on). */}
+            <Pressable accessibilityRole="button" accessibilityLabel={t("previous")} onPress={back} onLongPress={() => setHeld(true)} onPressOut={() => setHeld(false)} delayLongPress={220} style={{ flex: 1 }} />
+            <Pressable accessibilityRole="button" accessibilityLabel={t("next")} onPress={next} onLongPress={() => setHeld(true)} onPressOut={() => setHeld(false)} delayLongPress={220} style={{ flex: 2 }} />
           </View>
+          {held ? (
+            <View pointerEvents="none" style={{ position: "absolute", top: 12, alignSelf: "center", backgroundColor: "rgba(0,0,0,0.55)", borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7 }}>
+              <T weight="semibold" style={{ color: "#FFFFFF", fontSize: 13 }}>{t("story.paused")}</T>
+            </View>
+          ) : null}
           {!photo ? (
             <View testID="story-text-card" pointerEvents="none" style={{ position: "absolute", inset: 0, alignItems: "center", justifyContent: "center", paddingHorizontal: 28, gap: 18 }}>
               {official ? (

@@ -133,6 +133,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "other.csvSub": "You get list before? Upload CSV or Excel file. Photos wey you upload here go match by file name.",
   "other.one": "Add one product",
   "grid.photo": "Photo",
+  "pick.subShort": "Reach 300 at once. One photo, one product.",
+  "other.csvSubShort": "You get list? Upload CSV or Excel file.",
 } satisfies Record<string, string>;
 
 export default pcm;

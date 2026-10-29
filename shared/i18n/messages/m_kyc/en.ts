@@ -102,7 +102,7 @@ const en = {
   "q.extra.base": "Add a photo of your base",
   "q.extra.baseSub": "Earns the Address Verified badge.",
   "q.extra.bank": "Payout ready",
-  "q.extra.bankSub": "Add your bank account when you first withdraw, in your Wallet.",
+  "q.extra.bankSub": "Add your bank account in your Wallet to get paid.",
   "q.base.inState": "In {state}",
 
   // Items

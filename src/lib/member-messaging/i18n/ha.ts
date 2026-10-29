@@ -640,8 +640,8 @@ export const templates: Record<string, TemplateText> = {
     button: "Tabbatar da kasuwancina",
     examples: ["Ada", "Ada Fabrics", "sellers", "CAC certificate"],
   },
-  shopinbos_wallet_ready: {
-    body: "Sannu {{1}}, Shopinbos Wallet ɗinka ya shirya! 🎉\n\nLambar asusunka ta kanka ita ce {{2}} a {{3}}, da sunan {{4}}. Tura kuɗi zuwa gare ta daga kowace manhajar banki, kuɗin zai shiga walat ɗinka cikin minti ɗaya ko biyu.\n\nYi amfani da kuɗin walat ɗinka don AI credits da sauran ayyukan Shopinbos, kuma ka cire zuwa bankinka a duk lokacin da kake so.",
+  shopinbos_wallet_ready_v2: {
+    body: "Sannu {{1}}, Shopinbos Wallet ɗinka ya shirya! 🎉\n\nLambar asusunka ta kanka ita ce {{2}} a {{3}}, da sunan {{4}}. Ba da ita ga duk wanda zai biya ka, daga kowace manhajar banki.\n\nƘara bankinka a shafin walat ɗinka, kuɗin da aka turo zai tafi kai tsaye bankinka. Ka cika walat ɗinka don biyan AI credits da sauran ayyukan Shopinbos.",
     button: "Buɗe walat ɗina",
     examples: ["Ada", "9912345678", "Wema Bank", "SHOPINBOS/ADA FABRICS"],
   },

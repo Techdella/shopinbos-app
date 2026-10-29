@@ -13,7 +13,7 @@ import { fetchChatContacts, ROLE_LABEL } from "@/lib/partner-chat";
 import { fetchPartnerMessages, sendPartnerMessage } from "@/lib/partners";
 import { useT } from "@/lib/i18n";
 import { useLoad } from "@/lib/useLoad";
-import { colors } from "@/theme";
+import { colors, themed } from "@/theme";
 
 // Chats for the supplier and delivery partner apps ("Familiar app" prototype `chats` and `thread`): only the
 // conversations with the shops, suppliers and delivery partners they work with (/api/conversations), newest first,
@@ -24,11 +24,11 @@ import { colors } from "@/theme";
 
 type Base = "/supplier" | "/logistics";
 
-const AVATAR: Record<string, { bg: string; fg: string }> = {
+const AVATAR: Record<string, { bg: string; fg: string }> = themed(() => ({
   seller: { bg: colors.peach, fg: colors.accentInk },
   supplier: { bg: colors.blueTint, fg: colors.blueInk },
   logistics_partner: { bg: colors.mintTint, fg: colors.forest },
-};
+}));
 
 const FILTER_WORD: Record<RoleChatFilter, "chats.filter.all" | "chats.filter.seller" | "chats.filter.supplier" | "chats.filter.logistics_partner" | "chats.filter.unread"> = {
   all: "chats.filter.all",

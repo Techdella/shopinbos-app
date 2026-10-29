@@ -159,6 +159,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "block.track": "Bibiyar odata",
   "block.trackSub": "Abokan ciniki za su sami odarsu",
   "block.other": "Sashe",
+  subShort: "Aika link a WhatsApp. Abokin cinikinka zai biya.",
+  "bio.subShort": "Shafi ɗaya mai kayayyakinka da links.",
 };
 
 export default ha;

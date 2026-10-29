@@ -33,13 +33,14 @@ test("My shop: no Sell everywhere and nothing that opens the web app", () => {
     const tab = new URL(`../apps/mobile/src/app/(tabs)${path}`, import.meta.url).pathname;
     assert.ok(existsSync(`${base}.tsx`) || existsSync(`${base}/index.tsx`) || existsSync(`${tab}.tsx`), `${path} has a screen`);
   }
-  // No seller screen in this round's list links to Sell everywhere.
-  for (const file of ["app/customers/[key].tsx", "app/start.tsx", "lib/web.ts"]) assert.doesNotMatch(app(file), /router\.push\("\/channels"\)|: "\/channels"/, file);
+  // No seller screen in this round's list links to Sell everywhere. (Web links to the connect pages open the app's
+  // own Connect accounts screen, app/channels.tsx: tests/mobile-connect-bio.test.mjs.)
+  for (const file of ["app/customers/[key].tsx", "app/start.tsx"]) assert.doesNotMatch(app(file), /router\.push\("\/channels"\)|: "\/channels"/, file);
 });
 
 test("web paths open the app's own screens; customer chats always open Chats or the chat", () => {
   const web = app("lib/web.ts");
-  for (const [from, to] of [["/home/messages", "/chats"], ["/home/inbox", "/chats"], ["/home/domain", "/domain"], ["/home/labels/packaging", "/packaging"], ["/home/labels", "/packaging"], ["/channels", "/chats"], ["/home/messages/partners", "/partners"], ["/home/notifications", "/notifications"], ["/home/store", "/settings"]]) {
+  for (const [from, to] of [["/home/messages", "/chats"], ["/home/inbox", "/chats"], ["/home/domain", "/domain"], ["/home/labels/packaging", "/packaging"], ["/home/labels", "/packaging"], ["/channels", "/channels"], ["/home/messages/partners", "/partners"], ["/home/notifications", "/notifications"], ["/home/store", "/settings"]]) {
     if (to) assert.ok(web.includes(`"${from}": "${to}"`), `${from} → ${to}`);
   }
   // ?c= (and ?p= for partner chats) on /home/messages or /home/inbox open that conversation.

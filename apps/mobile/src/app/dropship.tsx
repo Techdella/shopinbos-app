@@ -87,7 +87,7 @@ export default function DropshipScreen() {
   }
 
   return (
-    <Screen title={t("dropship.title")} sub={t("dropship.sub")} refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
+    <Screen title={t("dropship.title")} sub={t("dropship.subShort")} tip={t("dropship.sub")} refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
       {loaded.loading ? <LoadingBlock /> : null}
       {loaded.error && !loaded.data ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} /> : null}
       {error ? <Notice>{error}</Notice> : null}

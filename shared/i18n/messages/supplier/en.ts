@@ -556,6 +556,19 @@ const en = {
   "profile.returns": "Your return policy",
   "profile.returnsHint": "Sellers see this before they list your products. Say what you take back, within how many days, and who pays to send it back. You always take back wrong, damaged or not-as-described items.",
   "profile.returnsPlaceholder": "e.g. Wrong or damaged items: send them back within 7 days of delivery and we refund you. Unused items in their packaging can be exchanged within 3 days; the shop pays the return delivery.",
+  "profile.websiteHint": "Your own website, if you have one. It shows on your public page.",
+  "profile.storeUrl": "Your Shopinbos store",
+  "profile.storeUrlHint": "Have a shop on Shopinbos too? Paste its link and sellers can visit it from your page.",
+  "profile.team": "Meet the team",
+  "profile.teamSub": "Add the people sellers deal with, like your account managers. Their photos, names and roles show on your public page.",
+  "profile.teamName": "Name",
+  "profile.teamRole": "What they do",
+  "profile.teamRolePlaceholder": "For example, Account manager",
+  "profile.teamPhoto": "Photo",
+  "profile.teamAdd": "Add to team",
+  "profile.teamRemove": "Remove",
+  "profile.teamEmpty": "No one added yet.",
+  "profile.teamFull": "That's the most ({max}). Remove someone to add another.",
   "profile.website": "Website",
   "profile.productsLive": "{count, plural, one {# product live} other {# products live}}",
   "profile.trustScore": "Trust score",
@@ -697,6 +710,8 @@ const en = {
   "preorders.qty": "{count} units",
   "preorders.noOrders": "No orders yet.",
   "orders.sampleTag": "Sample",
+  "agr.subShort": "Shops that want to sell your products.",
+  "agr.noneSubShort": "When a shop wants to sell your products, it shows here.",
 } satisfies Record<string, string>;
 
 export default en;

@@ -2,8 +2,8 @@
 import type en from "./en.ts";
 
 const pcm: Partial<Record<keyof typeof en, string>> = {
-  title: "Sell everywhere",
-  sub: "Connect your accounts and your products go show there. Price and stock go dey update by themselves.",
+  title: "Connect accounts",
+  sub: "Connect WhatsApp, Facebook & Instagram and Google right here. Your chats go enter Chats and your products go show there.",
   cantSave: "Your products still dey show where dem connect, but we no fit save changes here now. Tap Help and we go sort am.",
   "p.whatsapp": "Customers go see your products inside WhatsApp.",
   "p.meta": "Your products for your Facebook Shop and Instagram posts.",
@@ -36,11 +36,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "soon.title": "E dey come soon",
   "soon.notify": "Tell me when e ready",
   "soon.noted": "We go let you know",
-  "wa.title": "Connect your WhatsApp number first",
-  "wa.body": "WhatsApp need make your business number link to your shop. We go open am for your browser. When you finish, come back and tap Connect again.",
-  "wa.open": "Open",
   "post.title": "Post & share",
-  "post.sub": "Write post about your products and share am everywhere. E go open for your browser",
+  "post.sub": "Write post about your products and share am everywhere.",
   openFailed: "We no fit open the sign-in. Check your network, then try again.",
   "email.title": "Email for your Inbox",
   "email.name": "Email",
@@ -59,6 +56,13 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "email.domainTitle": "Set up your domain email for bigger screen",
   "email.domainBody": "Email like hello@yourshop.com: pick the address and tap Connect. E easier for computer, but you fit open am for this phone too.",
   "email.askUs": "Ask us make we set am up",
+  "acc.whatsapp": "WhatsApp: {name}",
+  "acc.facebook": "Facebook Page: {name}",
+  "acc.instagram": "Instagram: {name}",
+  "acc.noInstagramApp": "Instagram never join yet. For Instagram app, change am to business account and link am to your Facebook Page, then connect again.",
+  "card.confirmMeta": "Disconnect {name}? New messages and product updates go stop for there. Your old chats go still dey.",
+  "card.confirmWhatsapp": "Disconnect {name}? New WhatsApp messages go stop to dey enter your inbox and your products go stop to update there. Your old chats go still dey.",
+  subShort: "Connect WhatsApp, Facebook & Instagram and Google.",
 };
 
 export default pcm;

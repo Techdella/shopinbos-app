@@ -3,10 +3,10 @@ import { Pressable, View } from "react-native";
 import { router } from "expo-router";
 import { naira } from "@shared/onboarding";
 import { AppIcon } from "@/components/icons";
-import { DarkCard, List, Row as ListRow, Small, Tile } from "@/components/design";
+import { DarkCard, List, Row as ListRow, Tile } from "@/components/design";
 import { Badge, ErrorState, LoadingBlock, SectionTitle } from "@/components/kit";
 import { Screen } from "@/components/Screen";
-import { Card, Chip, Field, Label, Notice, PillButton, Segmented, T, Toggle } from "@/components/ui";
+import { Card, Chip, Field, InfoTip, Label, Notice, PillButton, Segmented, T, Toggle } from "@/components/ui";
 import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
 import { upcomingPayout } from "@/lib/delivery-pure";
@@ -104,7 +104,11 @@ function WalletBody({ data, t, reload }: { data: WalletData; t: TFn; reload: () 
 
       <Card style={{ gap: 14 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-          <T weight="extrabold" style={{ flex: 1, fontSize: 17 }} accessibilityRole="header">{t("w.getPaid")}</T>
+          <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 2 }}>
+            <T weight="extrabold" style={{ flexShrink: 1, fontSize: 17 }} accessibilityRole="header">{t("w.getPaid")}</T>
+            {/* How card money flows (never held, the fee): in the tip, so the card stays short. */}
+            <InfoTip testID="wallet-tip" title={t("w.getPaid")} text={view.fee ? t("w.fee", { fee: feeText(view.fee) }) : t("w.never")} />
+          </View>
           {statusBadge(view, t)}
         </View>
         {view.settlement.frozen ? <Notice>{view.settlement.frozenReason ? t("w.pausedWhy", { reason: view.settlement.frozenReason }) : t("w.pausedSupport")}</Notice> : null}
@@ -139,8 +143,6 @@ function WalletBody({ data, t, reload }: { data: WalletData; t: TFn; reload: () 
             ) : null}
           </View>
         ) : null}
-
-        <T style={{ color: colors.inkSoft, fontSize: 13.5, lineHeight: 19, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 12 }}>{view.fee ? t("w.fee", { fee: feeText(view.fee) }) : t("w.never")}</T>
       </Card>
 
       {view.owed ? (
@@ -158,8 +160,10 @@ function WalletBody({ data, t, reload }: { data: WalletData; t: TFn; reload: () 
 
       {view.sellerSettles.length ? (
         <Card style={{ gap: 8 }}>
-          <T weight="extrabold" style={{ fontSize: 16 }}>{t("w.paySuppliers")}</T>
-          <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{t("w.paySuppliersSub")}</T>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
+            <T weight="extrabold" style={{ flexShrink: 1, fontSize: 16 }}>{t("w.paySuppliers")}</T>
+            <InfoTip title={t("w.paySuppliers")} text={t("w.paySuppliersSub")} />
+          </View>
           {view.sellerSettles.map((row) => (
             <Row key={row.orderId} label={t("w.order", { number: row.orderNumber })} amount={nairaFromKobo(row.amountKobo)} onPress={() => router.push({ pathname: "/order/[id]", params: { id: row.orderId } })} />
           ))}
@@ -196,8 +200,6 @@ function WalletBody({ data, t, reload }: { data: WalletData; t: TFn; reload: () 
           </Card>
         </>
       ) : null}
-
-      <Small>{t("w.sub")}</Small>
     </View>
   );
 }
@@ -218,7 +220,7 @@ function SetupSteps({ view, role, t }: { view: WalletData["view"]; role: WalletD
     <View style={{ gap: 8 }} accessibilityRole="list">
       {steps.map((step, index) => (
         <View key={step.key} style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-          <View style={{ width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: step.done ? colors.successTint : index === next ? colors.ink : colors.canvas }}>
+          <View style={{ width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: step.done ? colors.successTint : index === next ? colors.inkFill : colors.canvas }}>
             <T weight="extrabold" style={{ fontSize: 12.5, color: step.done ? colors.success : index === next ? "#FFFFFF" : colors.inkSoft }}>{step.done ? "✓" : String(index + 1)}</T>
           </View>
           <T weight={index === next ? "extrabold" : "semibold"} style={{ flex: 1, fontSize: 15, color: step.done || index === next ? colors.ink : colors.inkSoft }}>{step.label}</T>
@@ -339,8 +341,10 @@ function CashToReceiveCard({ rows, t, onDone }: { rows: WalletData["cashToReceiv
 
   return (
     <Card style={{ gap: 10 }}>
-      <T weight="extrabold" style={{ fontSize: 16 }}>{t("w.cashTitle")}</T>
-      <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{t("w.cashSub")}</T>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
+        <T weight="extrabold" style={{ flexShrink: 1, fontSize: 16 }}>{t("w.cashTitle")}</T>
+        <InfoTip title={t("w.cashTitle")} text={t("w.cashSub")} />
+      </View>
       {rows.map((row) => (
         <View key={row.partnerId} style={{ gap: 8, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 10 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>

@@ -539,6 +539,19 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "profile.returns": "Ìlànà ìdápadà rẹ",
   "profile.returnsHint": "Àwọn olùtajà á rí èyí kí wọ́n tó fi ọjà rẹ sí ṣọ́ọ̀bù wọn. Sọ ohun tí o máa ń gbà padà, láàrin ọjọ́ mélòó, àti ẹni tí yóò san owó delivery ìdápadà. O gbọ́dọ̀ máa gba ọjà tí kò tọ́, tó bàjẹ́ tàbí tí kò rí bí o ṣe ṣàpèjúwe rẹ̀ padà.",
   "profile.returnsPlaceholder": "àpẹẹrẹ: Ọjà tí kò tọ́ tàbí tó bàjẹ́: dá a padà láàrin ọjọ́ 7 lẹ́yìn delivery, a ó sì dá owó rẹ padà. Ọjà tí a kò lò tó wà nínú àpò rẹ̀ ṣeé pààrọ̀ láàrin ọjọ́ 3; ṣọ́ọ̀bù ni yóò san owó delivery ìdápadà.",
+  "profile.websiteHint": "Ojú òpó wẹ́ẹ̀bù tìrẹ, tí o bá ní. Yóò hàn lórí ojú ìwé rẹ.",
+  "profile.storeUrl": "Ilé ìtajà Shopinbos rẹ",
+  "profile.storeUrlHint": "Ṣé o ní ṣọ́ọ̀bù lórí Shopinbos pẹ̀lú? Fi ìjápọ̀ rẹ̀ síbí kí àwọn olùtajà lè ṣàbẹ̀wò rẹ̀ láti ojú ìwé rẹ.",
+  "profile.team": "Pàdé àwọn òṣìṣẹ́",
+  "profile.teamSub": "Fi àwọn tí àwọn olùtajà ń bá ṣiṣẹ́ kún un, bí àwọn alákòóso àkáǹtì rẹ. Fọ́tò, orúkọ àti iṣẹ́ wọn yóò hàn lórí ojú ìwé rẹ.",
+  "profile.teamName": "Orúkọ",
+  "profile.teamRole": "Iṣẹ́ wọn",
+  "profile.teamRolePlaceholder": "Fún àpẹẹrẹ, Alákòóso àkáǹtì",
+  "profile.teamPhoto": "Fọ́tò",
+  "profile.teamAdd": "Fi kún àwọn òṣìṣẹ́",
+  "profile.teamRemove": "Yọ kúrò",
+  "profile.teamEmpty": "O kò tíì fi ẹnikẹ́ni kún un.",
+  "profile.teamFull": "Èyí ni èyí tó pọ̀ jù ({max}). Yọ ẹnìkan kúrò láti fi ẹlòmíràn kún un.",
   "profile.website": "Website",
   "profile.productsLive": "{count, plural, one {Ọjà # ń hàn} other {Ọjà # ń hàn}}",
   "profile.trustScore": "Àmì ìgbẹ́kẹ̀lé",
@@ -679,6 +692,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "preorders.qty": "Ẹyọ {count}",
   "preorders.noOrders": "Kò sí àṣẹ síbẹ̀.",
   "orders.sampleTag": "Àpẹẹrẹ",
+  "agr.subShort": "Àwọn ṣọ́ọ̀bù tó fẹ́ ta ọjà rẹ.",
+  "agr.noneSubShort": "Tí ṣọ́ọ̀bù kan bá fẹ́ ta ọjà rẹ, ó máa hàn níbí.",
 };
 
 export default yo;
