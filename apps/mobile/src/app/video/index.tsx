@@ -53,7 +53,7 @@ export default function VideoHub() {
   }
 
   return (
-    <Screen title={t("title")} sub={t("hub.sub")} refreshing={videos.refreshing} onRefresh={() => void videos.refresh()}>
+    <Screen title={t("title")} sub={t("hub.subShort")} tip={t("hub.sub")} refreshing={videos.refreshing} onRefresh={() => void videos.refresh()}>
       <SectionTitle>{t("hub.create")}</SectionTitle>
       <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21, marginTop: -6 }}>{t("hub.createHint")}</T>
       {VIDEO_PURPOSES.map((purpose) => (

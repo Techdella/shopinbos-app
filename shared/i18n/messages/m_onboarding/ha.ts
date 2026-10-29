@@ -186,6 +186,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "bio.shareMessage": "Yi siyayya a {name}: {url}",
   "bio.where": "Instagram: Edit profile, sannan Links. TikTok: Edit profile, sannan Website. WhatsApp Business: Business profile, sannan Website.",
   "bio.done": "Je shagona",
+  "pay.bankLaterShort": "Za ka iya ƙara bankinka daga baya.",
 };
 
 export default ha;

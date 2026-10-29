@@ -25,7 +25,7 @@ export default function PaymentLinks() {
   const shown = filterLinks(all, filter);
 
   return (
-    <Screen title={t("title")} sub={t("sub")} refreshing={links.refreshing} onRefresh={() => void links.refresh()}>
+    <Screen title={t("title")} sub={t("subShort")} tip={t("sub")} refreshing={links.refreshing} onRefresh={() => void links.refresh()}>
       <PillButton testID="new-payment-link" onPress={() => router.push("/payment-links/new")} accessibilityLabel={t("new")} icon="plus" title={t("new")} />
 
       {links.data && !links.data.readiness.ready ? (

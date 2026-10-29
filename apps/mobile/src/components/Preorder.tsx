@@ -121,17 +121,22 @@ export function PreorderEditor({ value, onChange, audience, taken }: { value: Pr
             // A deposit the shop (or the customer, paying by card at checkout) pays when it places the preorder; the
             // rest once the stock is ready (shared/preorder.ts).
             <View>
-              <Label>{audience === "shops" ? t("preorders.deposit") : t("preorders.depositCustomers")}</Label>
+              {/* How the deposit works: behind the ⓘ, so the editor stays short. */}
+              <Label
+                tip={{
+                  text:
+                    audience === "shops"
+                      ? value.depositPct ? t("preorders.depositHint", { pct: value.depositPct }) : t("preorders.noDepositHint")
+                      : value.depositPct && value.depositPct < 100 ? t("preorders.depositHintCustomers", { pct: value.depositPct }) : t("preorders.noDepositHintCustomers"),
+                }}
+              >
+                {audience === "shops" ? t("preorders.deposit") : t("preorders.depositCustomers")}
+              </Label>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
                 {[...PREORDER_DEPOSIT_CHOICES, ...(PREORDER_DEPOSIT_CHOICES.includes(value.depositPct as (typeof PREORDER_DEPOSIT_CHOICES)[number]) ? [] : [value.depositPct])].map((pct) => (
                   <Chip key={pct} label={pct === 0 ? t("preorders.noDeposit") : `${pct}%`} on={value.depositPct === pct} onPress={() => edit({ depositPct: pct })} />
                 ))}
               </View>
-              <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20, marginTop: 6 }}>
-                {audience === "shops"
-                  ? value.depositPct ? t("preorders.depositHint", { pct: value.depositPct }) : t("preorders.noDepositHint")
-                  : value.depositPct && value.depositPct < 100 ? t("preorders.depositHintCustomers", { pct: value.depositPct }) : t("preorders.noDepositHintCustomers")}
-              </T>
             </View>
           ) : null}
           <View>

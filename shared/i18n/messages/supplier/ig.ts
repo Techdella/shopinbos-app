@@ -692,6 +692,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "preorders.qty": "Otu {count}",
   "preorders.noOrders": "Enwebeghị ịtụ.",
   "orders.sampleTag": "Ihe nlele",
+  "agr.subShort": "Ụlọ ahịa chọrọ ire ngwaahịa gị.",
+  "agr.noneSubShort": "Mgbe ụlọ ahịa chọrọ ire ngwaahịa gị, ọ ga-egosi ebe a.",
 };
 
 export default ig;

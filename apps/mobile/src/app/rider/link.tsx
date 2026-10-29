@@ -43,16 +43,18 @@ export default function RiderLink() {
   return (
     <Screen
       title={t("link.title")}
-      sub={t("link.sub")}
+      sub={t("link.subShort")}
+      tip={t("link.sub")}
       footer={<PillButton title={t("link.open")} busy={busy} onPress={() => void open()} />}
     >
       {error ? <Notice>{error}</Notice> : null}
       <View>
-        <Label>{t("link.label")}</Label>
+        <Label tip={{ text: t("link.private") }}>{t("link.label")}</Label>
         <Field value={text} onChangeText={setText} placeholder="https://app.shopinbos.com/rider/…" autoCapitalize="none" autoCorrect={false} accessibilityLabel={t("link.label")} />
       </View>
       <PillButton title={t("link.paste")} tone="white" size="sm" style={{ alignSelf: "flex-start" }} onPress={() => void paste()} />
-      <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>{t("link.private")}</T>
+      {/* Keeping it private stays on screen in one line; why is in the tip on the label. */}
+      <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>{t("link.privateShort")}</T>
     </Screen>
   );
 }

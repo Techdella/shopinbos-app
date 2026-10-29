@@ -7,7 +7,7 @@ import { LoadingBlock } from "@/components/kit";
 import { LinkShareButtons } from "@/components/LinkShareButtons";
 import { OnboardingFrame } from "@/components/OnboardingFrame";
 import { useOnboarding } from "@/components/OnboardingContext";
-import { Field, Label, Notice, PillButton, T } from "@/components/ui";
+import { Field, InfoTip, Label, Notice, PillButton, T } from "@/components/ui";
 import { finishOnboarding } from "@/lib/onboarding";
 import { fetchBio, saveBio } from "@/lib/paylinks";
 import { STARTER_SOCIALS, starterBioBlocks, type BioBlock, type BioPage, type StarterSocial } from "@/lib/paylinks-pure";
@@ -106,8 +106,11 @@ export default function OnboardingBio() {
         )
       }
     >
-      <Title>{saved ? t("bio.readyTitle") : t("bio.title")}</Title>
-      <Small style={{ marginTop: 8, fontSize: 15, lineHeight: 22 }}>{saved ? t("bio.readySub") : t("bio.sub")}</Small>
+      {/* What the page is (and, once made, where to put it): in the tip next to the title. */}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+        <Title style={{ flexShrink: 1 }}>{saved ? t("bio.readyTitle") : t("bio.title")}</Title>
+        <InfoTip testID="bio-tip" title={saved ? t("bio.readyTitle") : t("bio.title")} text={saved ? [t("bio.readySub"), t("bio.where")] : t("bio.sub")} size={20} />
+      </View>
 
       {!page && !loadError ? (
         <View style={{ marginTop: 20 }}>
@@ -129,7 +132,6 @@ export default function OnboardingBio() {
             </View>
             <LinkShareButtons url={saved.url} message={t("bio.shareMessage", { name, url: saved.url })} showWhatsapp={false} />
           </View>
-          <Small style={{ fontSize: 14, lineHeight: 20 }}>{t("bio.where")}</Small>
         </View>
       ) : page ? (
         <View style={{ marginTop: 20, gap: 16 }}>

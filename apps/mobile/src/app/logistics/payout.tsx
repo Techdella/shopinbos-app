@@ -2,7 +2,7 @@ import { router } from "expo-router";
 import { List, Row, Small, Tile } from "@/components/design";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { Screen } from "@/components/Screen";
-import { PillButton } from "@/components/ui";
+import { PillButton, WithTip } from "@/components/ui";
 import { useT } from "@/lib/i18n";
 import { useLoad } from "@/lib/useLoad";
 import { fetchWallet } from "@/lib/wallet";
@@ -29,7 +29,9 @@ export default function Payout() {
           <Row lead={<Tile icon="wallet" />} title={bank ? `${bank.bankName} ••• ${bank.accountEnding}` : t("biz.payoutNone")} sub={bank ? bank.accountName : undefined} />
         </List>
       ) : null}
-      <Small>{t("payout.note")}</Small>
+      <WithTip title={t("moneyCard.noteTitle")} tip={{ text: t("payout.note") }}>
+        <Small>{t("moneyCard.noteShort")}</Small>
+      </WithTip>
     </Screen>
   );
 }

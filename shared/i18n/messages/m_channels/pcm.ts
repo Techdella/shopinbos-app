@@ -62,6 +62,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "acc.noInstagramApp": "Instagram never join yet. For Instagram app, change am to business account and link am to your Facebook Page, then connect again.",
   "card.confirmMeta": "Disconnect {name}? New messages and product updates go stop for there. Your old chats go still dey.",
   "card.confirmWhatsapp": "Disconnect {name}? New WhatsApp messages go stop to dey enter your inbox and your products go stop to update there. Your old chats go still dey.",
+  subShort: "Connect WhatsApp, Facebook & Instagram and Google.",
 };
 
 export default pcm;

@@ -697,6 +697,17 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "lvl.dayShort.4": "Tọọ",
   "lvl.dayShort.5": "Fra",
   "lvl.dayShort.6": "Sat",
+  "moneyCard.noteTitle": "Otú a si akwụ gị ụgwọ",
+  "moneyCard.noteShort": "Ego delivery na-aga ozugbo n'ụlọ akụ gị.",
+  "lvl.interstateTitle": "Ọrụ n'etiti steeti",
+  "lvl.interstateShort": "Ọrụ n'etiti steeti na-emeghe na Ọkwa 2 · A tụkwasịrị obi.",
+  "lvl.safetyTitle": "Oke nchekwa",
+  "lvl.safetyShort": "Ndị mmekọ ọhụrụ nwekwara oke nchekwa.",
+  "cashScreen.subShort": "N'etiti gị na onye na-ere ọ bụla. Shopinbos anaghị ejide ya.",
+  "connect.subShort": "Ndị otu anyị nwere ike jikọọ software delivery gị maka gị.",
+  "conn.subShort": "Ndị na-ere na ndị na-ebubata nwere ike jikọọ gị ozugbo.",
+  "today.finishHintShort": "Foto ID gị na selfie. Enweghị akwụkwọ ma ọ bụ nkọwa ụlọ akụ.",
+  "riders.noneBodyShort": "Tinye onye na-agba ọgba tum tum na aha ya na nọmba WhatsApp ya.",
 };
 
 export default ig;

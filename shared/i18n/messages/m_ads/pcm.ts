@@ -46,6 +46,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "requestPaid": "E don pay. The team go call you inside one working day.",
   "requestUnpaid": "We don save your request, but you never pay the setup fee, so the team never start.",
   "c.payFee": "Pay the team {fee} setup fee",
+  subShort: "Run ads for Facebook and Instagram.",
 };
 
 export default pcm;

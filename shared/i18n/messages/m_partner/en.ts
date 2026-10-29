@@ -710,6 +710,17 @@ const en = {
   "lvl.dayShort.4": "Thu",
   "lvl.dayShort.5": "Fri",
   "lvl.dayShort.6": "Sat",
+  "moneyCard.noteTitle": "How you get paid",
+  "moneyCard.noteShort": "Delivery fees go straight to your bank.",
+  "lvl.interstateTitle": "Interstate jobs",
+  "lvl.interstateShort": "Interstate opens at Tier 2 · Trusted.",
+  "lvl.safetyTitle": "Safety limits",
+  "lvl.safetyShort": "New partners also have safety limits.",
+  "cashScreen.subShort": "Between you and each seller. Shopinbos doesn’t hold it.",
+  "connect.subShort": "Our team can connect your delivery software for you.",
+  "conn.subShort": "Sellers and suppliers can connect with you straight away.",
+  "today.finishHintShort": "Your ID photo and a selfie. No papers or bank details.",
+  "riders.noneBodyShort": "Add a rider with their name and WhatsApp number.",
 } satisfies Record<string, string>;
 
 export default en;

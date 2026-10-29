@@ -191,6 +191,7 @@ const en = {
   "bio.shareMessage": "Shop with {name}: {url}",
   "bio.where": "Instagram: Edit profile, then Links. TikTok: Edit profile, then Website. WhatsApp Business: Business profile, then Website.",
   "bio.done": "Go to my shop",
+  "pay.bankLaterShort": "You can add your bank later.",
 } satisfies Record<string, string>;
 
 export default en;

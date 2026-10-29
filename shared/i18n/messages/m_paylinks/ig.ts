@@ -159,6 +159,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "block.track": "Soro order m",
   "block.trackSub": "Ndị ahịa ga-achọta order ha",
   "block.other": "Block",
+  subShort: "Ziga link na WhatsApp. Onye ahịa gị ga-akwụ ụgwọ.",
+  "bio.subShort": "Otu peeji nwere ngwaahịa na links gị.",
 };
 
 export default ig;

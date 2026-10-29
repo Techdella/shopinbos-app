@@ -91,6 +91,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "note.logoSaved": "Echekwala logo ọhụrụ gị.",
   "note.taglineAdded": "Etinyela ahịrịokwu. Pịa Chekwaa mgbanwe iji debe ya.",
   "note.headingAdded": "Etinyela isiokwu. Pịa Chekwaa mgbanwe iji debe ya.",
+  "link.whatsappShort": "Ọ na-emepe chat na WhatsApp ụlọ ahịa gị.",
 };
 
 export default ig;

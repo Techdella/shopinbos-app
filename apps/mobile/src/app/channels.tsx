@@ -302,7 +302,7 @@ export default function Channels() {
   };
 
   return (
-    <Screen title={t("title")} sub={t("sub")} refreshing={data.refreshing} onRefresh={() => void Promise.all([data.refresh(), email.refresh()])}>
+    <Screen title={t("title")} sub={t("subShort")} tip={t("sub")} refreshing={data.refreshing} onRefresh={() => void Promise.all([data.refresh(), email.refresh()])}>
       {note ? <Notice tone={note.tone}>{note.text}</Notice> : showReturned && returned ? <Notice tone={returned.tone}>{returned.text}</Notice> : null}
       {data.loading && !overview ? <LoadingBlock /> : null}
       {data.error && !overview ? <ErrorState message={data.error} onRetry={() => void data.reload()} /> : null}

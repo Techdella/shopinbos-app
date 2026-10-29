@@ -62,6 +62,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "acc.noInstagramApp": "A kò tíì fi Instagram kún un. Nínú app Instagram, yí i padà sí business account kí o sì so ó mọ́ Facebook Page rẹ, lẹ́yìn náà so pọ̀ lẹ́ẹ̀kan sí i.",
   "card.confirmMeta": "Ṣé kí o yọ {name} kúrò? Ìfiránṣẹ́ tuntun àti ìmúdójúìwọ̀n ọjà á dúró níbẹ̀. Àwọn chat àtijọ́ rẹ á wà síbẹ̀.",
   "card.confirmWhatsapp": "Yọ {name} kúrò? Àwọn message WhatsApp tuntun kò ní wá sínú inbox rẹ mọ́, àwọn ọjà rẹ kò sì ní ṣe àtúnṣe níbẹ̀ mọ́. Àwọn chat àtijọ́ rẹ yóò wà.",
+  subShort: "So WhatsApp, Facebook & Instagram àti Google pọ̀.",
 };
 
 export default yo;

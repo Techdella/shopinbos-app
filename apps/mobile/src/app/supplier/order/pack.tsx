@@ -8,7 +8,7 @@ import { AppIcon } from "@/components/icons";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { BoardScreen } from "@/components/Screen";
 import { useWords } from "@/components/supplier/DropshipKit";
-import { Notice, PillButton, T } from "@/components/ui";
+import { InfoTip, Notice, PillButton, T } from "@/components/ui";
 import { orderItems } from "@/components/SupplierOrderRow";
 import { packButton, sellerInitials, toggleStep } from "@/lib/dropship-pure";
 import { fetchPack, fetchSupplierOrder, savePack, uploadMediaPhoto, type DropshipOrder, type PackView } from "@/lib/supplier";
@@ -172,7 +172,11 @@ export default function PackScreen() {
       </>)}
 
       <View style={{ gap: 8 }}>
-        <T style={{ fontFamily: fonts.display, fontSize: 17, marginTop: 6 }}>{wholesale ? f("pack.photosTitle") : words("pack.way", "Pack it {seller}'s way", { seller })}</T>
+        {/* Why the two photos matter: in the tip next to the heading. */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 2, marginTop: 6 }}>
+          <T style={{ flexShrink: 1, fontFamily: fonts.display, fontSize: 17 }}>{wholesale ? f("pack.photosTitle") : words("pack.way", "Pack it {seller}'s way", { seller })}</T>
+          <InfoTip title={f("pack.photosTitle")} text={f("pack.why")} />
+        </View>
         {view.steps.map((step) => {
           const contents = step.id === "contents";
           const photo = step.id === "photo" || contents;
@@ -209,7 +213,6 @@ export default function PackScreen() {
           );
         })}
         {view.photoUrl && !view.packed ? <T accessibilityRole="button" weight="bold" onPress={() => void snap("photo")} style={{ fontSize: 14, color: colors.accentInk, alignSelf: "flex-start", paddingVertical: 4 }}>{words("pack.retake", "Take the photo again")}</T> : null}
-        <T style={{ fontSize: 12.5, color: colors.inkSoft, lineHeight: 18 }}>{f("pack.why")}</T>
       </View>
     </BoardScreen>
   );

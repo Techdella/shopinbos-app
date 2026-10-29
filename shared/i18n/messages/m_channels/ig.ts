@@ -62,6 +62,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "acc.noInstagramApp": "Etinyebeghị Instagram. N'app Instagram, gbanwee ya ka ọ bụrụ business account ma jikọọ ya na Facebook Page gị, wee jikọọ ọzọ.",
   "card.confirmMeta": "Kwụsịkọọ {name}? Ozi ọhụrụ na mmelite ngwaahịa ga-akwụsị ebe ahụ. Mkparịta ụka gị ochie ga-anọgide.",
   "card.confirmWhatsapp": "Wepụ {name}? Ozi WhatsApp ọhụrụ agaghị abata n'inbox gị ọzọ, ngwaahịa gị agaghịkwa emelite ebe ahụ. Chat ochie gị ga-anọgide.",
+  subShort: "Jikọọ WhatsApp, Facebook & Instagram na Google.",
 };
 
 export default ig;

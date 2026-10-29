@@ -4,7 +4,7 @@ import { router } from "expo-router";
 import { AGREEMENT_POINTS, type StockCheck } from "@shared/supplier-trust";
 import { cleanSignedName, dropshipDocument } from "@shared/contracts";
 import { Badge } from "@/components/kit";
-import { Card, Field, Notice, PillButton, T, Toggle } from "@/components/ui";
+import { Card, Field, InfoTip, Notice, PillButton, T, Toggle, WithTip } from "@/components/ui";
 import { sendAgreement, type FindProduct, type Listing } from "@/lib/marketplace";
 import { useT } from "@/lib/i18n";
 import { colors, radii, themed } from "@/theme";
@@ -53,10 +53,13 @@ export function SupplierRiskCard({ supplier, badges = true }: { supplier: FindPr
   );
 }
 
-function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
+function Step({ n, title, tip, children }: { n: number; title: string; tip?: string; children: React.ReactNode }) {
   return (
     <View style={{ gap: 8, backgroundColor: colors.canvas, borderRadius: radii.card, padding: 12 }}>
-      <T weight="extrabold" style={{ fontSize: 15 }}>{`${n}. ${title}`}</T>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
+        <T weight="extrabold" style={{ fontSize: 15, flexShrink: 1 }}>{`${n}. ${title}`}</T>
+        {tip ? <InfoTip title={title} text={tip} /> : null}
+      </View>
       {children}
     </View>
   );
@@ -119,10 +122,9 @@ export function BeforeYouList({ product, listing, onSent }: { product: FindProdu
 
   return (
     <Card style={{ gap: 12 }}>
-      <View style={{ gap: 4 }}>
+      <WithTip title={t("trust.beforeTitle", { name })} tip={{ text: t("trust.beforeSub") }}>
         <T weight="extrabold" style={{ fontSize: 16 }} accessibilityRole="header">{t("trust.beforeTitle", { name })}</T>
-        <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{t("trust.beforeSub")}</T>
-      </View>
+      </WithTip>
       {product.supplier.far ? <Notice tone="info">{t("sup.farFees")}</Notice> : null}
       {listing.noCity ? (
         <>
@@ -135,7 +137,7 @@ export function BeforeYouList({ product, listing, onSent }: { product: FindProdu
       ) : (
         <>
           {listing.step === "declined" ? <Notice>{`${t("trust.declined", { name })}${listing.supplierNote ? ` "${listing.supplierNote}"` : ""}`}</Notice> : null}
-          <Step n={1} title={t("trust.step.call", { name })}>
+          <Step n={1} title={t("trust.step.call", { name })} tip={t("trust.callAsk")}>
             {phone ? (
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
                 <PillButton title={listing.phone ?? ""} size="sm" onPress={() => void Linking.openURL(`tel:${phone}`)} />
@@ -144,7 +146,6 @@ export function BeforeYouList({ product, listing, onSent }: { product: FindProdu
             ) : (
               <T style={{ color: colors.inkSoft, fontSize: 14 }}>{t("trust.noPhone")}</T>
             )}
-            <T style={{ color: colors.inkSoft, fontSize: 13.5, lineHeight: 19 }}>{t("trust.callAsk")}</T>
             <Check on={called} onChange={setCalled} label={t("trust.called", { name })} />
           </Step>
           <Step n={2} title={t("trust.step.stock")}>

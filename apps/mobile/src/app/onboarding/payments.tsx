@@ -4,7 +4,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { canonicalState } from "@shared/delivery-market";
 import { DEFAULT_PAYMENT_METHODS, PAYMENT_METHODS, zonesForSellChoice, type DeliveryZone, type OnboardingSellArea, type PaymentMethodKey } from "@shared/onboarding";
 import { Title } from "@/components/design";
-import { ButtonRow, Card, Field, Label, Notice, PillButton, T, Toggle } from "@/components/ui";
+import { ButtonRow, Card, Field, Label, Notice, PillButton, T, Toggle, WithTip } from "@/components/ui";
 import { OnboardingFrame } from "@/components/OnboardingFrame";
 import { useOnboarding } from "@/components/OnboardingContext";
 import { ApiError } from "@/lib/api";
@@ -139,13 +139,15 @@ export default function Payments() {
           </View>
         ))}
       </Card>
-      <T weight="bold" style={{ fontSize: 14, color: colors.inkSoft, marginTop: 24, marginBottom: 10 }}>{t("pay.payouts")}</T>
+      <WithTip title={t("pay.payouts")} tip={{ text: t("pay.bankLater") }} style={{ marginTop: 24, marginBottom: 10 }}>
+        <T weight="bold" style={{ fontSize: 14, color: colors.inkSoft }}>{t("pay.payouts")}</T>
+      </WithTip>
       <Card style={{ padding: 20, borderRadius: 24, borderWidth: 1, borderColor: colors.line }}>
         {bankLinked ? (
           <T weight="bold" style={{ color: colors.success, fontSize: 15 }}>{t("pay.bankAdded")}</T>
         ) : (
           <>
-            <T style={{ fontSize: 15, lineHeight: 22 }}>{t("pay.bankLater")}</T>
+            <T style={{ fontSize: 15, lineHeight: 22 }}>{t("pay.bankLaterShort")}</T>
             <ButtonRow labels={[t("pay.addBank"), t("pay.later")]} gap={8} style={{ marginTop: 12 }}>
               <PillButton title={t("pay.addBank")} size="md" style={{ flex: 1 }} onPress={() => setBankOpen(true)} />
               <PillButton title={t("pay.later")} tone="white" size="md" style={{ flex: 1 }} onPress={() => setNote(t("pay.noProblem"))} />

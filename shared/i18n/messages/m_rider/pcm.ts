@@ -198,6 +198,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   // Reach tiers (shared/partner-reach.ts)
   "earn.weekLine": "Wetin you earn this week: {amount}",
   "earn.paidBy": "{company} dey pay you",
+  "link.subShort": "Paste the private link wey your company send you.",
+  "link.privateShort": "No show anybody this link.",
+  "signIn.linkHintShort": "Use the number wey your company take add you.",
 };
 
 export default pcm;

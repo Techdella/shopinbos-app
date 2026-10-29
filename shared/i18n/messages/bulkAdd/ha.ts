@@ -133,6 +133,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "other.csvSub": "Kana da jeri? Ɗora fayil ɗin CSV ko Excel. Hotunan da ka ɗora a nan za su dace da sunan fayil.",
   "other.one": "Ƙara kaya ɗaya",
   "grid.photo": "Hoto",
+  "pick.subShort": "Har zuwa 300 lokaci guda. Hoto ɗaya, kaya ɗaya.",
+  "other.csvSubShort": "Kana da jeri? Ɗora fayil ɗin CSV ko Excel.",
 } satisfies Record<string, string>;
 
 export default ha;

@@ -186,6 +186,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "bio.shareMessage": "Ra nǹkan lọ́dọ̀ {name}: {url}",
   "bio.where": "Instagram: Edit profile, lẹ́yìn náà Links. TikTok: Edit profile, lẹ́yìn náà Website. WhatsApp Business: Business profile, lẹ́yìn náà Website.",
   "bio.done": "Lọ sí ṣọ́ọ̀bù mi",
+  "pay.bankLaterShort": "O lè fi bánkì rẹ kún un nígbà míì.",
 };
 
 export default yo;

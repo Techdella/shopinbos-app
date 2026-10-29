@@ -217,7 +217,7 @@ export default function LogisticsJobs() {
       <GettingStartedCard />
 
       {data && !data.partner.onboarded ? (
-        <CardButton icon="truck" tint={colors.mintTint} iconBg="#FFFFFF" title={t("today.finish")} sub={t("today.finishHint")} onPress={() => router.push("/logistics/verification")} />
+        <CardButton icon="truck" tint={colors.mintTint} iconBg="#FFFFFF" title={t("today.finish")} sub={t("today.finishHintShort")} onPress={() => router.push("/logistics/verification")} />
       ) : data && verification && data.partner.verificationStatus !== "verified" && !(checklistShown && data.partner.verificationStatus === "unverified") ? (
         <CardButton icon="shield" tint={colors.warnTint} iconBg="#FFFFFF" iconFg={colors.warnInk} title={verification.label} sub={verification.hint} onPress={() => router.push("/logistics/verification")} />
       ) : null}

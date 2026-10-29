@@ -175,6 +175,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "sale.codeFind": "Find am by code",
   "sale.codePlaceholder": "Code, like BAG2",
   "sale.codeNone": "No product get the code {code}.",
+  "list.emptyBodyShort": "Orders go show here. You sell for WhatsApp or face to face? Record am.",
 };
 
 export default pcm;

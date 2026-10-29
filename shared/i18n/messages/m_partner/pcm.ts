@@ -697,6 +697,17 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "lvl.dayShort.4": "Thu",
   "lvl.dayShort.5": "Fri",
   "lvl.dayShort.6": "Sat",
+  "moneyCard.noteTitle": "How you dey take collect money",
+  "moneyCard.noteShort": "Delivery fee dey go straight to your bank.",
+  "lvl.interstateTitle": "Interstate jobs",
+  "lvl.interstateShort": "Interstate go open for Tier 2 · Trusted.",
+  "lvl.safetyTitle": "Safety limits",
+  "lvl.safetyShort": "New partners still get safety limits.",
+  "cashScreen.subShort": "Na between you and each seller. Shopinbos no dey hold am.",
+  "connect.subShort": "Our team fit connect your delivery software for you.",
+  "conn.subShort": "Sellers and suppliers fit connect with you sharp sharp.",
+  "today.finishHintShort": "Your ID photo and selfie. No papers or bank details.",
+  "riders.noneBodyShort": "Add rider with im name and WhatsApp number.",
 };
 
 export default pcm;

@@ -11,7 +11,7 @@ import { FilterBar, FilterGroup, FilterSheet } from "@/components/FilterBar";
 import { Badge, EmptyState, ErrorState, Initials, LoadingBlock } from "@/components/kit";
 import { ListScreen, PackStrip, Tick } from "@/components/seller/FindKit";
 import { useQuickAdd } from "@/components/seller/QuickAdd";
-import { Card, Chip, Field, LinkButton, Mascot, PillButton, Segmented, T } from "@/components/ui";
+import { Card, Chip, Field, LinkButton, Mascot, PillButton, Segmented, T, WithTip } from "@/components/ui";
 import { FIND_PRICE_BANDS, NEAR_ME_KM, NO_FIND_FILTERS, filterFind, findCities, findFilterCount, saleBreakdown, sortCategories, withoutAdded, type FindFilters } from "@/lib/find-pure";
 import { fetchFindContext, fetchFindProducts, oneTapPrice, type FindProduct } from "@/lib/marketplace";
 import { fetchPacks } from "@/lib/quick-add";
@@ -448,7 +448,9 @@ export default function FindProducts() {
           ) : null}
           {loaded.data ? (
             loaded.data.hasPlace ? (
-              <T style={{ color: colors.inkSoft, fontSize: 13.5, lineHeight: 19 }}>{tm("trust.nearbyOnly", { city: loaded.data.city ?? "" })}</T>
+              <WithTip title={tm("trust.nearbyTitle")} tip={{ text: tm("trust.nearbyOnly", { city: loaded.data.city ?? "" }) }}>
+                <T style={{ color: colors.inkSoft, fontSize: 13.5, lineHeight: 19 }}>{tm("trust.nearbyShort", { city: loaded.data.city ?? "" })}</T>
+              </WithTip>
             ) : (
               <Card style={{ gap: 10, backgroundColor: "#FDF0D5" }}>
                 <T style={{ fontSize: 14, lineHeight: 20 }}>{tm("trust.addCity")}</T>

@@ -186,6 +186,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "bio.shareMessage": "Zụta ihe n'aka {name}: {url}",
   "bio.where": "Instagram: Edit profile, wee Links. TikTok: Edit profile, wee Website. WhatsApp Business: Business profile, wee Website.",
   "bio.done": "Gaa n'ụlọ ahịa m",
+  "pay.bankLaterShort": "Ị nwere ike itinye ụlọ akụ gị ma emechaa.",
 };
 
 export default ig;

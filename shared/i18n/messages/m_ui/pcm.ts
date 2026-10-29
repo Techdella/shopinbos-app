@@ -260,6 +260,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "update.requiredBody": "This app version don too old to work. Update am for Google Play. E no go take pass one minute, and your shop and everything inside go stay as dem dey.",
   "update.help": "You need help? Talk to us",
   "update.storeFailed": "We no fit open Google Play. Open the Play Store app and search for Shopinbos.",
+  "tip.more": "More info",
+  "tip.learnMore": "Learn more",
 };
 
 export default pcm;

@@ -91,6 +91,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "note.logoSaved": "An ajiye sabon tambarinka.",
   "note.taglineAdded": "An ƙara take. Danna Ajiye canje-canje don ka riƙe shi.",
   "note.headingAdded": "An ƙara kanun. Danna Ajiye canje-canje don ka riƙe shi.",
+  "link.whatsappShort": "Yana buɗe hira a WhatsApp na shagonka.",
 };
 
 export default ha;

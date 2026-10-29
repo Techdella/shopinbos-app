@@ -60,6 +60,7 @@ const en = {
   "acc.noInstagramApp": "Instagram isn't added yet. In the Instagram app, switch to a business account and link it to your Facebook Page, then connect again.",
   "card.confirmMeta": "Disconnect {name}? New messages and product updates stop there. Your past chats stay.",
   "card.confirmWhatsapp": "Disconnect {name}? New WhatsApp messages stop coming to your inbox and your products stop updating there. Your past chats stay.",
+  subShort: "Connect WhatsApp, Facebook & Instagram and Google.",
 } satisfies Record<string, string>;
 
 export default en;

@@ -98,6 +98,10 @@ const en = {
   "add.tip2": "Rex writes the name, price and description",
   "add.tip2Sub": "You check them before they go in your shop.",
   "add.recent": "Added lately",
+  "list.preorderBarShort": "Products taking pre-orders.",
+  "list.stockHintShort": "Tap + or − when you sell or restock.",
+  "list.stockTipTitle": "Keeping stock right",
+  "dropship.subShort": "You don't buy these. The supplier sends them.",
 } satisfies Record<string, string>;
 
 export default en;

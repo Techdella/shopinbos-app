@@ -198,6 +198,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   // Reach tiers (shared/partner-reach.ts)
   "earn.weekLine": "Abin da ka samu a makon nan: {amount}",
   "earn.paidBy": "{company} ne ke biyan ka",
+  "link.subShort": "Liƙa link na sirri da kamfaninka ya aiko maka.",
+  "link.privateShort": "Kada ka nuna wa kowa wannan link.",
+  "signIn.linkHintShort": "Yi amfani da lambar da kamfaninka ya saka ka da ita.",
 };
 
 export default ha;

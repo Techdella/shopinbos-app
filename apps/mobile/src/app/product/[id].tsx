@@ -31,7 +31,7 @@ import { OneLine, PreorderEditor } from "@/components/Preorder";
 import { ApiError } from "@/lib/api";
 import { Screen } from "@/components/Screen";
 import { ChoiceRow, Sheet } from "@/components/Sheet";
-import { Card, Field, Label, LinkButton, Notice, PillButton, Segmented, T, Toggle } from "@/components/ui";
+import { Card, Field, InfoTip, Label, LinkButton, Notice, PillButton, Segmented, T, Toggle, WithTip } from "@/components/ui";
 import { setPaused } from "@/lib/dropship";
 import { saleBreakdown } from "@/lib/find-pure";
 import { cleanCategoryName, categoryOptions, sameNameCategory, type CategoryLite } from "@/lib/categories-pure";
@@ -155,12 +155,15 @@ function RemoveButton({ label, onPress }: { label: string; onPress: () => void }
   );
 }
 
-/** A switch with its words, for on/off settings. */
-function SwitchRow({ title, sub, on, onChange }: { title: string; sub?: string; on: boolean; onChange: (on: boolean) => void }) {
+/** A switch with its words, for on/off settings. `tip`: the longer explanation, behind an ⓘ after the title. */
+function SwitchRow({ title, sub, tip, on, onChange }: { title: string; sub?: string; tip?: string; on: boolean; onChange: (on: boolean) => void }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
       <View style={{ flex: 1, gap: 2 }}>
-        <T weight="bold" style={{ fontSize: 16 }}>{title}</T>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
+          <T weight="bold" style={{ fontSize: 16, flexShrink: 1 }}>{title}</T>
+          {tip ? <InfoTip title={title} text={tip} /> : null}
+        </View>
         {sub ? <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{sub}</T> : null}
       </View>
       <Toggle on={on} onChange={onChange} label={title} />
@@ -577,8 +580,9 @@ export default function EditProductScreen() {
 
       {/* Photos: the first is the main one. Tap one to move or remove it. */}
       <Card style={{ gap: 10 }}>
-        <T weight="extrabold" style={{ fontSize: 18 }}>{t("edit.photos")}</T>
-        <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 22 }}>{t("edit.photosSub")}</T>
+        <WithTip title={t("edit.photos")} tip={{ text: t("edit.photosSub") }}>
+          <T weight="extrabold" style={{ fontSize: 18 }}>{t("edit.photos")}</T>
+        </WithTip>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
           {form.images.map((url, index) => (
             <Pressable
@@ -671,7 +675,7 @@ export default function EditProductScreen() {
             <T style={{ color: colors.inkSoft, fontSize: 14, marginTop: 6 }}>{t("stock.reservedHint")}</T>
           </View>
           <Card>
-            <SwitchRow title={t("stock.keepSelling")} sub={t("stock.keepSellingSub")} on={more.continueSelling} onChange={(continueSelling) => editMore({ continueSelling })} />
+            <SwitchRow title={t("stock.keepSelling")} tip={t("stock.keepSellingSub")} on={more.continueSelling} onChange={(continueSelling) => editMore({ continueSelling })} />
           </Card>
         </>
       ) : null}
@@ -902,8 +906,9 @@ export default function EditProductScreen() {
 
           {versionState.rows.length ? (
             <View style={{ gap: 4, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.line }}>
-              <T weight="extrabold" style={{ fontSize: 16 }}>{t("opt.rows")}</T>
-              <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{t("edit.variantsSub")}</T>
+              <WithTip title={t("opt.rows")} tip={{ text: t("edit.variantsSub") }}>
+                <T weight="extrabold" style={{ fontSize: 16 }}>{t("opt.rows")}</T>
+              </WithTip>
             </View>
           ) : null}
           {versionState.rows.map((variant) => {
@@ -1023,14 +1028,14 @@ export default function EditProductScreen() {
           <T style={{ color: colors.inkSoft, fontSize: 14, marginTop: 6 }}>{t("more.tagsHint")}</T>
         </View>
         <View>
-          <Label>{t("more.video")}</Label>
+          <Label tip={{ text: t("more.videoHint") }}>{t("more.video")}</Label>
           <Field value={more.videoUrl} onChangeText={(videoUrl) => editMore({ videoUrl })} autoCapitalize="none" autoCorrect={false} keyboardType="url" placeholder="https://youtube.com/watch?v=…" accessibilityLabel={t("more.video")} />
-          <T style={{ color: colors.inkSoft, fontSize: 14, marginTop: 6 }}>{t("more.videoHint")}</T>
         </View>
         {product.featured != null ? <SwitchRow title={t("more.featured")} sub={t("more.featuredSub")} on={more.featured} onChange={(featured) => editMore({ featured })} /> : null}
         <View style={{ gap: 4, paddingTop: 6, borderTopWidth: 1, borderTopColor: colors.line }}>
-          <T weight="extrabold" style={{ fontSize: 16, marginTop: 6 }}>{t("more.google")}</T>
-          <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{t("more.googleSub")}</T>
+          <WithTip title={t("more.google")} tip={{ text: t("more.googleSub") }} style={{ marginTop: 6 }}>
+            <T weight="extrabold" style={{ fontSize: 16 }}>{t("more.google")}</T>
+          </WithTip>
         </View>
         <View>
           <Label>{t("more.seoTitle")}</Label>

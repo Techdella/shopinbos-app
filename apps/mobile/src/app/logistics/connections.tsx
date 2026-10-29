@@ -5,7 +5,7 @@ import { List, Row, Sub } from "@/components/design";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { Initial, NoteCard } from "@/components/PartnerKit";
 import { Screen } from "@/components/Screen";
-import { LinkButton, Notice, Toggle } from "@/components/ui";
+import { LinkButton, Notice, Toggle, WithTip } from "@/components/ui";
 import { ApiError } from "@/lib/api";
 import { POD_LOCKED_CODE } from "@/lib/dropship-pure";
 import { useT } from "@/lib/i18n";
@@ -60,7 +60,9 @@ export default function Connections() {
 
   return (
     <Screen title={t("conn.title")} refreshing={market.refreshing} onRefresh={() => void market.refresh()}>
-      <Sub>{t("conn.sub")}</Sub>
+      <WithTip title={t("conn.title")} tip={{ text: t("conn.sub") }}>
+        <Sub>{t("conn.subShort")}</Sub>
+      </WithTip>
       {market.loading && !market.data ? <LoadingBlock /> : null}
       {market.error && !market.data ? <ErrorState message={market.error} onRetry={() => void market.reload()} /> : null}
       {market.data && !list.length ? <NoteCard tone="mint" title={t("conn.none")}>{t("conn.noneBody")}</NoteCard> : null}

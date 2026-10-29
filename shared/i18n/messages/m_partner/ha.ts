@@ -697,6 +697,17 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "lvl.dayShort.4": "Alh",
   "lvl.dayShort.5": "Jum",
   "lvl.dayShort.6": "Asa",
+  "moneyCard.noteTitle": "Yadda ake biyan ka",
+  "moneyCard.noteShort": "Kuɗin isarwa na zuwa kai tsaye bankinka.",
+  "lvl.interstateTitle": "Ayyukan tsakanin jihohi",
+  "lvl.interstateShort": "Tsakanin jihohi yana buɗewa a Mataki 2 · Amintacce.",
+  "lvl.safetyTitle": "Iyakokin tsaro",
+  "lvl.safetyShort": "Sababbin abokan aiki ma suna da iyakokin tsaro.",
+  "cashScreen.subShort": "Tsakaninka da kowane mai sayarwa. Shopinbos ba ya riƙe shi.",
+  "connect.subShort": "Ƙungiyarmu za ta iya haɗa manhajar isarwarka maka.",
+  "conn.subShort": "Masu sayarwa da masu kawowa za su iya haɗawa da kai nan take.",
+  "today.finishHintShort": "Hoton ID ɗinka da selfie. Babu takardu ko bayanan banki.",
+  "riders.noneBodyShort": "Ƙara mahayi da sunansa da lambar WhatsApp ɗinsa.",
 };
 
 export default ha;

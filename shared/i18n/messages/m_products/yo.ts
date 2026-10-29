@@ -96,6 +96,10 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "add.tip2": "Rex yóò kọ orúkọ, owó àti àpèjúwe",
   "add.tip2Sub": "Ìwọ yóò ṣàyẹ̀wò wọn kí wọ́n tó wọ ṣọ́ọ̀bù rẹ.",
   "add.recent": "Èyí tí o fi kún láìpẹ́",
+  "list.preorderBarShort": "Àwọn ọjà tí ń gba ìbéèrè ṣáájú.",
+  "list.stockHintShort": "Tẹ + tàbí − nígbà tí o bá tà tàbí kó ọjà kún un.",
+  "list.stockTipTitle": "Mímú iye ọjà tọ́",
+  "dropship.subShort": "O kò ra àwọn wọ̀nyí. Olùpèsè ló ń fi wọ́n ránṣẹ́.",
 };
 
 export default yo;

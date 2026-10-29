@@ -98,6 +98,7 @@ const en = {
   "note.logoSaved": "Your new logo is saved.",
   "note.taglineAdded": "Tagline added. Tap Save changes to keep it.",
   "note.headingAdded": "Heading added. Tap Save changes to keep it.",
+  "link.whatsappShort": "Opens a chat on your shop's WhatsApp.",
 } satisfies Record<string, string>;
 
 export default en;

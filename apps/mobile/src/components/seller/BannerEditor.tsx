@@ -6,7 +6,7 @@ import { AppIcon, type AppIconName } from "@/components/icons";
 import { Picture } from "@/components/kit";
 import { Mascot } from "@/components/Mascot";
 import { Sheet } from "@/components/Sheet";
-import { Field, Label, LinkButton, Notice, PillButton, T, Toggle } from "@/components/ui";
+import { Field, Label, LinkButton, Notice, PillButton, T, Toggle, WithTip } from "@/components/ui";
 import { buildBanner, drawShopLogos, fetchCollections, saveShopLogo, writeTaglines, type LogoIdea, type RexBanner, type ShopCollection } from "@/lib/banner";
 import { ACCENT_CHOICES, type EditorProduct } from "@/lib/shop-edit";
 import { useT } from "@/lib/i18n";
@@ -198,7 +198,11 @@ export function LinkPicker({
           ) : null}
         </View>
       ) : null}
-      {value?.action === "whatsapp" ? <T style={{ fontSize: 14, color: colors.inkSoft }}>{t("link.whatsappHint")}</T> : null}
+      {value?.action === "whatsapp" ? (
+        <WithTip title={t("link.whatsapp")} tip={{ text: t("link.whatsappHint") }}>
+          <T style={{ fontSize: 14, color: colors.inkSoft }}>{t("link.whatsappShort")}</T>
+        </WithTip>
+      ) : null}
     </View>
   );
 }

@@ -96,6 +96,10 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "add.tip2": "Rex na-ede aha, ọnụahịa na nkọwa",
   "add.tip2Sub": "Ị na-elele ha tupu ha abanye n'ụlọ ahịa gị.",
   "add.recent": "Ndị ị tinyere n'oge na-adịbeghị anya",
+  "list.preorderBarShort": "Ngwaahịa na-anabata ịtụ tupu oge.",
+  "list.stockHintShort": "Pịa + ma ọ bụ − mgbe ị rere ma ọ bụ tinyekwuo stock.",
+  "list.stockTipTitle": "Idebe stock n'ụzọ ziri ezi",
+  "dropship.subShort": "Ị naghị azụ ndị a. Onye na-ebubata na-eziga ha.",
 };
 
 export default ig;

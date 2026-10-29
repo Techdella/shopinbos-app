@@ -114,7 +114,7 @@ export default function Ads() {
   const openRequests = overview ? overview.requests.filter((request) => request.status !== "done" && request.status !== "cancelled") : [];
 
   return (
-    <Screen title={t("title")} sub={t("sub")} refreshing={data.refreshing} onRefresh={() => void data.refresh()}>
+    <Screen title={t("title")} sub={t("subShort")} tip={t("sub")} refreshing={data.refreshing} onRefresh={() => void data.refresh()}>
       {note ? <Notice tone={note.tone}>{note.text}</Notice> : null}
       <Card style={{ gap: 10, backgroundColor: colors.inkFill }}>
         <T weight="extrabold" style={{ fontSize: 18, color: "#FFFFFF" }}>{t("c.startTitle")}</T>

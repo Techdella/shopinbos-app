@@ -624,6 +624,10 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "trySample.title": "Gwada shi tukuna",
   "trySample.body": "Yi odar samfuri 1 a farashin dropship ({price}) don duba inganci kafin ka sayar. Ɗaya kowane kaya.",
   "notice.pausedShort": "An dakatar",
+  "trust.nearbyTitle": "Masu kawowa kusa da kai",
+  "trust.nearbyShort": "Masu kawowa kusa da {city} ne ke fara bayyana.",
+  "ws.subShort": "Kayan da ka saya daga masu kawowa.",
+  "ws.emptySubShort": "Saya da yawa lokaci guda daga mai kawowa da aka tantance.",
 };
 
 export default ha;

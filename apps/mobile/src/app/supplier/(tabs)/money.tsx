@@ -7,7 +7,7 @@ import { ErrorState, LoadingBlock } from "@/components/kit";
 import { LanguageRow } from "@/components/LanguagePicker";
 import { orderAmount, orderItems } from "@/components/SupplierOrderRow";
 import { TabScreen } from "@/components/TabScreen";
-import { T } from "@/components/ui";
+import { T, WithTip } from "@/components/ui";
 import { upcomingPayout } from "@/lib/delivery-pure";
 import { friendlyDay } from "@/lib/friendly";
 import { useT } from "@/lib/i18n";
@@ -79,7 +79,9 @@ export default function SupplierMoney() {
               onPress={bank ? () => router.push("/supplier/wallet") : editBank}
             />
           </List>
-          <Small style={{ marginTop: -6 }}>{t("money.howItMoves")}</Small>
+          <WithTip title={t("moneyCard.noteTitle")} tip={{ text: t("money.howItMoves") }} style={{ marginTop: -6 }}>
+            <Small>{t("money.howItMovesShort")}</Small>
+          </WithTip>
 
           <View style={{ gap: 10 }}>
             <Eyebrow>{t("money.recent")}</Eyebrow>

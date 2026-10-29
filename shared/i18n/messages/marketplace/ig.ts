@@ -624,6 +624,10 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "trySample.title": "Nwalee ya mbụ",
   "trySample.body": "Nye iwu otu ihe nlele na ọnụahịa dropship ({price}) iji lelee ịdị mma ya tupu ị ree ya. Otu maka ngwaahịa ọ bụla.",
   "notice.pausedShort": "Akwụsịrị",
+  "trust.nearbyTitle": "Ndị na-ebubata nọ gị nso",
+  "trust.nearbyShort": "Ndị na-ebubata nọ {city} nso na-ebu ụzọ egosi.",
+  "ws.subShort": "Stock ị zụtara n'aka ndị na-ebubata.",
+  "ws.emptySubShort": "Zụta ọtụtụ n'otu oge n'aka onye na-ebubata a nyochara.",
 };
 
 export default ig;

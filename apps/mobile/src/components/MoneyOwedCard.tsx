@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Alert, View } from "react-native";
 import { router } from "expo-router";
 import { CLAIM_REASONS, CLAIM_WITHIN_DAYS, PAY_WITHIN_DAYS, type ClaimTarget } from "@shared/money-owed";
-import { Card, Chip, Field, Label, Notice, PillButton, T } from "@/components/ui";
+import { Card, Chip, Field, Label, Notice, PillButton, T, WithTip } from "@/components/ui";
 import { answerClaim, cancelDebt, confirmDebtPaid, nairaFromKobo, payDebt, raiseClaim, type Debt, type MoneyOwed, type WalletRole } from "@/lib/wallet";
 import { useT } from "@/lib/i18n";
 import { colors, radii } from "@/theme";
@@ -84,10 +84,9 @@ export function MoneyOwedCard({ owed, role, onChanged }: { owed: MoneyOwed; role
 
   return (
     <Card style={{ gap: 12 }}>
-      <View style={{ gap: 4 }}>
+      <WithTip title={t("owed.title")} tip={{ text: t("owed.sub", { days: PAY_WITHIN_DAYS }) }}>
         <T weight="extrabold" style={{ fontSize: 17 }} accessibilityRole="header">{t("owed.title")}</T>
-        <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{t("owed.sub", { days: PAY_WITHIN_DAYS })}</T>
-      </View>
+      </WithTip>
       {owed.pausedAt ? <Notice>{t("owed.paused")}</Notice> : null}
 
       {owed.iOwe.length ? <T weight="extrabold" style={{ fontSize: 15 }}>{t("owed.iOwe")}</T> : null}
@@ -173,7 +172,10 @@ function ClaimForm({ owed, t, onDone }: { owed: MoneyOwed; t: WalletT; onDone: (
   if (!open) {
     return (
       <View style={{ gap: 8, backgroundColor: colors.canvas, borderRadius: radii.card, padding: 12 }}>
-        <T style={{ fontSize: 14, lineHeight: 20 }}>{t("claim.prompt", { days: CLAIM_WITHIN_DAYS })}</T>
+        {/* The deadline stays on screen; what counts is in the tip. */}
+        <WithTip title={t("claim.title")} tip={{ text: t("claim.prompt", { days: CLAIM_WITHIN_DAYS }) }}>
+          <T style={{ fontSize: 14, lineHeight: 20 }}>{t("claim.promptShort", { days: CLAIM_WITHIN_DAYS })}</T>
+        </WithTip>
         <PillButton title={t("claim.open")} tone="white" size="sm" onPress={() => setOpen(true)} />
       </View>
     );
@@ -200,8 +202,9 @@ function ClaimForm({ owed, t, onDone }: { owed: MoneyOwed; t: WalletT; onDone: (
 
   return (
     <View style={{ gap: 10, backgroundColor: colors.canvas, borderRadius: radii.card, padding: 12 }}>
-      <T weight="extrabold" style={{ fontSize: 15 }}>{t("claim.title")}</T>
-      <T style={{ color: colors.inkSoft, fontSize: 13.5, lineHeight: 19 }}>{t("claim.who")}</T>
+      <WithTip title={t("claim.title")} tip={{ text: t("claim.who") }}>
+        <T weight="extrabold" style={{ fontSize: 15 }}>{t("claim.title")}</T>
+      </WithTip>
       {owed.claimable.length ? (
         <>
           <Label>{t("claim.which")}</Label>

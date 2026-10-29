@@ -91,6 +91,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "note.logoSaved": "Your new logo don save.",
   "note.taglineAdded": "Tagline don enter. Tap Save changes to keep am.",
   "note.headingAdded": "Heading don enter. Tap Save changes to keep am.",
+  "link.whatsappShort": "E go open chat for your shop WhatsApp.",
 };
 
 export default pcm;

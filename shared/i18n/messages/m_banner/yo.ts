@@ -91,6 +91,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "note.logoSaved": "A ti fi lógò tuntun rẹ pamọ́.",
   "note.taglineAdded": "A ti fi àkọlé kún un. Tẹ “Fi àwọn àyípadà pamọ́” láti pa á mọ́.",
   "note.headingAdded": "A ti fi àkòrí kún un. Tẹ “Fi àwọn àyípadà pamọ́” láti pa á mọ́.",
+  "link.whatsappShort": "Ó ṣí ìfọ̀rọ̀wérọ̀ lórí WhatsApp ṣọ́ọ̀bù rẹ.",
 };
 
 export default yo;

@@ -104,7 +104,7 @@ export default function LinkInBio() {
 
   if (!page.data || !draft) {
     return (
-      <Screen title={t("bio.title")} sub={t("bio.sub")}>
+      <Screen title={t("bio.title")} sub={t("bio.subShort")} tip={t("bio.sub")}>
         {page.loading ? <LoadingBlock /> : null}
         {page.error ? <ErrorState message={page.error} onRetry={() => void page.reload()} /> : null}
       </Screen>
@@ -117,7 +117,8 @@ export default function LinkInBio() {
   return (
     <Screen
       title={t("bio.title")}
-      sub={t("bio.sub")}
+      sub={t("bio.subShort")}
+      tip={t("bio.sub")}
       refreshing={page.refreshing}
       onRefresh={() => void page.refresh()}
       footer={

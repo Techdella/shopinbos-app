@@ -7,7 +7,7 @@ import { Title } from "@/components/design";
 import { Badge, ErrorState, Initials, LoadingBlock } from "@/components/kit";
 import { OneLine, PreorderBox } from "@/components/Preorder";
 import { Screen } from "@/components/Screen";
-import { Card, Field, Label, Notice, PillButton, Segmented, T } from "@/components/ui";
+import { Card, Field, Label, Notice, PillButton, Segmented, T, WithTip } from "@/components/ui";
 import { clampSellingPrice, priceStep, saleBreakdown, tierPrice } from "@/lib/find-pure";
 import { addToStore, fetchDropshipTerms, fetchFindContext, fetchFindProduct, orderSample, placeWholesaleOrder, requestQuote, type FindContext, type FindProduct, type Listing } from "@/lib/marketplace";
 import { AddFromSupplier, listingChoiceOf, listingDraftFrom, type ListingDraft } from "@/components/seller/AddFromSupplier";
@@ -297,7 +297,9 @@ function ProductView({ product, listing, context, terms, refreshing, onRefresh }
         <AddFromSupplier product={product} terms={terms} draft={draft} onChange={setDraft} place={context?.destination.split(",")[0]?.trim() || null} />
       ) : mode === "dropship" ? (
         <Card style={{ gap: 6 }}>
-          <T style={{ color: colors.inkSoft, lineHeight: 20, marginBottom: 6 }}>{t("product.dropshipIntro", { name: product.supplier.name })}</T>
+          <WithTip title={t("product.dropshipTitle")} tip={{ text: t("product.dropshipIntro", { name: product.supplier.name }) }} style={{ marginBottom: 6 }}>
+            <T style={{ color: colors.inkSoft, lineHeight: 20 }}>{t("product.dropshipShort", { name: product.supplier.name })}</T>
+          </WithTip>
           <Stepper
             label={t("product.sellingPrice")}
             value={naira(price)}
@@ -349,8 +351,9 @@ function ProductView({ product, listing, context, terms, refreshing, onRefresh }
       {/* One sample at the dropship price, to try it before selling it (shared/samples.ts). */}
       {mode === "dropship" && sample ? (
         <Card style={{ gap: 8 }}>
-          <T weight="extrabold" style={{ fontSize: 16 }}>{tm("trySample.title")}</T>
-          <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{tm("trySample.body", { price: naira(sample.price) })}</T>
+          <WithTip title={tm("trySample.title")} tip={{ text: tm("trySample.body", { price: naira(sample.price) }) }}>
+            <T weight="extrabold" style={{ fontSize: 16 }}>{tm("trySample.title")}</T>
+          </WithTip>
           {sample.ordered ? (
             <View style={{ gap: 8 }}>
               <Badge label={`✓ ${tm("trySample.ordered")}`} bg={colors.successTint} fg={colors.success} />

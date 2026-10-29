@@ -12,7 +12,7 @@ import { AppIcon } from "@/components/icons";
 import { KeyboardShift, useScrollToEndOnKeyboard } from "@/components/KeyboardShift";
 import { ShareProductIcon } from "@/components/seller/ProductCode";
 import { Sheet } from "@/components/Sheet";
-import { BackButton, ButtonRow, Field, Mascot, Notice, PillButton, T, Toggle } from "@/components/ui";
+import { BackButton, ButtonRow, Field, Mascot, Notice, PillButton, T, Toggle, WithTip } from "@/components/ui";
 import { VoiceInput } from "@/components/VoiceInput";
 import { WebBadge } from "@/components/WebBadge";
 import { addPhotos, bulkApi, queueFor, type BulkSession, type PublishResult } from "@/lib/bulk-add";
@@ -264,15 +264,17 @@ export default function BulkAdd() {
           <ScrollView contentContainerStyle={{ padding: 20, gap: 18 }}>
             <View style={{ alignItems: "center", gap: 12, paddingTop: 8 }}>
               <Tile icon="image" tone="peach" size={88} />
-              <Title size={28} style={{ textAlign: "center" }}>{t("pick.title")}</Title>
-              <Sub style={{ textAlign: "center" }}>{t("pick.sub")}</Sub>
+              <WithTip title={t("pick.title")} tip={{ text: t("pick.sub") }} style={{ justifyContent: "center" }}>
+                <Title size={28} style={{ textAlign: "center" }}>{t("pick.title")}</Title>
+              </WithTip>
+              <Sub style={{ textAlign: "center" }}>{t("pick.subShort")}</Sub>
             </View>
             <PillButton testID="bulk-choose" tone="accent" icon="image" title={t("pick.choose")} busy={loading} onPress={() => void pick("library")} />
             <PillButton tone="white" icon="camera" title={t("pick.camera")} disabled={loading} onPress={() => void pick("camera")} />
             <View style={{ gap: 8 }}>
               <Small>{t("other.title")}</Small>
               <List>
-                {role === "seller" ? <Row lead={<Tile icon="doc" tone="blue" />} title={t("other.csv")} sub={t("other.csvSub")} right={<WebBadge />} onPress={() => void openWeb("/products/import")} /> : null}
+                {role === "seller" ? <Row lead={<Tile icon="doc" tone="blue" />} title={t("other.csv")} sub={t("other.csvSubShort")} right={<WebBadge />} onPress={() => void openWeb("/products/import")} /> : null}
                 <Row lead={<Tile icon="camera" tone="butter" />} title={t("other.one")} onPress={() => router.push((role === "supplier" ? "/supplier/product/new" : "/add-products") as never)} chevron />
               </List>
             </View>

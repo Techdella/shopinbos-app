@@ -29,7 +29,7 @@ export default function Team() {
     >
       {riders.loading && !riders.data ? <LoadingBlock label={t("riders.loading")} /> : null}
       {riders.error && !riders.data ? <ErrorState message={riders.error} onRetry={() => void riders.reload()} /> : null}
-      {riders.data && !list.length ? <NoteCard tone="mint" title={t("riders.none")}>{t("riders.noneBody")}</NoteCard> : null}
+      {riders.data && !list.length ? <NoteCard tone="mint" title={t("riders.none")}>{t("riders.noneBodyShort")}</NoteCard> : null}
       {list.length ? (
         <List>
           {list.map((rider) => {

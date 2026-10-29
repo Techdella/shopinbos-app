@@ -692,6 +692,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "preorders.qty": "Guda {count}",
   "preorders.noOrders": "Babu odar tukuna.",
   "orders.sampleTag": "Samfuri",
+  "agr.subShort": "Shagunan da ke son sayar da kayanka.",
+  "agr.noneSubShort": "Idan shago yana son sayar da kayanka, zai bayyana a nan.",
 };
 
 export default ha;

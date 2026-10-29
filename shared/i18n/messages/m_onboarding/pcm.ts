@@ -186,6 +186,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "bio.shareMessage": "Shop with {name}: {url}",
   "bio.where": "Instagram: Edit profile, then Links. TikTok: Edit profile, then Website. WhatsApp Business: Business profile, then Website.",
   "bio.done": "Go to my shop",
+  "pay.bankLaterShort": "You fit add your bank later.",
 };
 
 export default pcm;

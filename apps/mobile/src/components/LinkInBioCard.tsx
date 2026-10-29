@@ -4,7 +4,7 @@ import { router } from "expo-router";
 import * as Clipboard from "expo-clipboard";
 import { Eyebrow } from "@/components/design";
 import { AppIcon } from "@/components/icons";
-import { PillButton, T } from "@/components/ui";
+import { PillButton, T, WithTip } from "@/components/ui";
 import { bioCardState, type BioPage } from "@/lib/paylinks-pure";
 import { shareText } from "@/lib/share";
 import { useT } from "@/lib/i18n";
@@ -50,8 +50,9 @@ export function LinkInBioCard({ page, shopName }: { page: BioPage | null; shopNa
                 <AppIcon name="link" size={20} color={colors.forest} />
               </View>
               <View style={{ flex: 1 }}>
-                <T weight="extrabold" style={{ fontSize: 16 }}>{t("linkBio.setupTitle")}</T>
-                <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{t("linkBio.setupSub")}</T>
+                <WithTip title={t("linkBio.setupTitle")} tip={{ text: t("linkBio.setupSub") }}>
+                  <T weight="extrabold" style={{ fontSize: 16 }}>{t("linkBio.setupTitle")}</T>
+                </WithTip>
               </View>
             </View>
             <PillButton testID="home-link-in-bio-setup" size="md" title={t("linkBio.setup")} onPress={() => router.push({ pathname: "/onboarding/bio", params: { from: "home" } })} />

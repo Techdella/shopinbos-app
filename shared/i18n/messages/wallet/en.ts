@@ -153,6 +153,7 @@ const en = {
   "claim.none": "There are no recent orders from a supplier or delivery partner to claim on. Claims can be made within {days} days of delivery.",
   "claim.sent": "Claim sent.",
   "setup.neverCommission": "Shopinbos never holds your money. When {who} pay by card for your products, your share settles straight to this bank, usually the next working day. Shopinbos's commission of {pct}% of the wholesale value comes off each marketplace order for your plan, and your share of Paystack's fee.",
+  "claim.promptShort": "Wrong, damaged or lost goods? Claim within {days} days.",
 } satisfies Record<string, string>;
 
 export default en;

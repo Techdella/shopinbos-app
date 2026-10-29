@@ -6,7 +6,7 @@ import { ErrorState, LoadingBlock } from "@/components/kit";
 import { Initial, NoteCard } from "@/components/PartnerKit";
 import { PaySellersCard } from "@/components/PaySellersCard";
 import { Screen } from "@/components/Screen";
-import { Notice, PillButton, T } from "@/components/ui";
+import { Notice, PillButton, T, WithTip } from "@/components/ui";
 import { useT } from "@/lib/i18n";
 import { fetchJobs, moveJob, type Job } from "@/lib/logistics";
 import { dayWord } from "@/lib/partner-pure";
@@ -40,7 +40,10 @@ export default function PodCash() {
 
   return (
     <Screen title={t("cashScreen.title")} refreshing={done.refreshing} onRefresh={() => void done.refresh()}>
-      <Sub>{t("cashScreen.sub")}</Sub>
+      {/* Who holds the cash stays on screen in one line; the rest is in the tip. */}
+      <WithTip title={t("cashScreen.title")} tip={{ text: t("cashScreen.sub") }}>
+        <Sub>{t("cashScreen.subShort")}</Sub>
+      </WithTip>
       <PaySellersCard onPaid={() => void done.reload()} />
       {done.loading && !done.data ? <LoadingBlock /> : null}
       {done.error && !done.data ? <ErrorState message={done.error} onRetry={() => void done.reload()} /> : null}

@@ -46,6 +46,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "requestPaid": "A ti san án. Ẹgbẹ́ náà yóò pè ọ́ láàárín ọjọ́ iṣẹ́ kan.",
   "requestUnpaid": "A ti fi ìbéèrè rẹ pamọ́, ṣùgbọ́n a kò tíì san owó ìṣètò, nítorí náà ẹgbẹ́ náà kò tíì bẹ̀rẹ̀.",
   "c.payFee": "San owó ìṣètò {fee} fún ẹgbẹ́ náà",
+  subShort: "Ṣe ìpolówó lórí Facebook àti Instagram.",
 };
 
 export default yo;

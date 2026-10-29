@@ -1,6 +1,7 @@
-import { forwardRef, useEffect, useRef, type ReactNode } from "react";
+import { forwardRef, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ActivityIndicator,
+  Modal,
   Pressable,
   StyleSheet,
   Text,
@@ -14,6 +15,7 @@ import {
   type ViewStyle,
 } from "react-native";
 import { Image } from "expo-image";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Defs, Path, RadialGradient, Rect, Stop } from "react-native-svg";
 import { OTP_LENGTH, type DialCountry } from "@shared/phone";
 import { darkWashStops, washStops as lightWashStops } from "@shared/tokens";
@@ -177,7 +179,96 @@ export function BackButton({ onPress }: { onPress: () => void }) {
   );
 }
 
-export function Label({ children }: { children: ReactNode }) {
+/**
+ * What an InfoTip explains: a title (defaults to the label it sits next to), the text (one string, or a few short
+ * paragraphs) and an optional "Learn more" link.
+ */
+export type Tip = { title?: string; text: string | readonly string[]; learnMore?: { label?: string; onPress: () => void } };
+
+/**
+ * The small ⓘ next to a title or label that keeps a screen short: the explanation moves out of the screen into a
+ * compact sheet the person opens when they want it (title, text, optional "Learn more"), closed with Close or a tap
+ * outside. A 44px touch target that doesn't make its row taller. Colours come from the live `colors`, so it follows
+ * light and dark mode. Use it for explainers only: warnings about money, errors, consent and status stay on screen.
+ */
+export function InfoTip({ title, text, learnMore, color = colors.inkSoft, size = 18, testID, style }: Tip & { title: string; color?: string; size?: number; testID?: string; style?: StyleProp<ViewStyle> }) {
+  const [open, setOpen] = useState(false);
+  const t = useT("m_ui", "common");
+  const insets = useSafeAreaInsets();
+  const paragraphs = typeof text === "string" ? [text] : text;
+  return (
+    <>
+      <Pressable
+        testID={testID}
+        accessibilityRole="button"
+        accessibilityLabel={t("tip.more")}
+        accessibilityHint={title}
+        onPress={() => setOpen(true)}
+        style={({ pressed }) => [{ width: 44, height: 44, marginVertical: -12, marginHorizontal: -8, alignItems: "center", justifyContent: "center", flexShrink: 0, opacity: pressed ? 0.6 : 1 }, style]}
+      >
+        <AppIcon name="info" size={size} color={color} strokeWidth={2} />
+      </Pressable>
+      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)} statusBarTranslucent>
+        <View style={{ flex: 1, justifyContent: "flex-end" }}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t("close")} onPress={() => setOpen(false)} style={[StyleSheet.absoluteFill, { backgroundColor: colors.scrim }]} />
+          <View testID={testID ? `${testID}-sheet` : "info-tip-sheet"} accessibilityViewIsModal style={{ backgroundColor: colors.surface, borderTopLeftRadius: radii.sheet, borderTopRightRadius: radii.sheet, paddingHorizontal: 20, paddingTop: 10, paddingBottom: Math.max(insets.bottom, 12) + 16, gap: 10, width: "100%", maxWidth: 600, alignSelf: "center" }}>
+            <View style={{ width: 40, height: 5, borderRadius: 3, backgroundColor: colors.grab, alignSelf: "center", marginBottom: 2 }} />
+            <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 10 }}>
+              <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: colors.mintTint, alignItems: "center", justifyContent: "center", marginTop: 1 }}>
+                <AppIcon name="info" size={18} color={colors.forest} strokeWidth={2} />
+              </View>
+              <T accessibilityRole="header" style={{ flex: 1, fontFamily: fonts.display, fontSize: 20, lineHeight: 25, letterSpacing: -0.3, paddingTop: 4 }}>{title}</T>
+              <Pressable accessibilityRole="button" accessibilityLabel={t("close")} onPress={() => setOpen(false)} hitSlop={4} style={({ pressed }) => ({ width: 44, height: 44, marginTop: -6, marginRight: -8, borderRadius: 22, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.6 : 1 })}>
+                <AppIcon name="x" size={18} color={colors.inkSoft} />
+              </Pressable>
+            </View>
+            {paragraphs.map((paragraph, index) => (
+              <T key={index} style={{ fontSize: 15.5, lineHeight: 23, color: colors.ink }}>{paragraph}</T>
+            ))}
+            {learnMore ? (
+              <Pressable
+                accessibilityRole="link"
+                onPress={() => {
+                  setOpen(false);
+                  setTimeout(learnMore.onPress, 250);
+                }}
+                hitSlop={6}
+                style={{ minHeight: 44, flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start" }}
+              >
+                <T weight="bold" style={{ fontSize: 15, color: colors.forest, textDecorationLine: "underline" }}>{learnMore.label ?? t("tip.learnMore")}</T>
+                <AppIcon name="chevron" size={16} color={colors.forest} />
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
+      </Modal>
+    </>
+  );
+}
+
+/** A title with an InfoTip after it: `<WithTip tip={{ text }} title="Getting paid"><T …>Getting paid</T></WithTip>`.
+ * The sheet's title is `tip.title`, else `title`, else the children when they are plain words. No tip: just the
+ * children. */
+export function WithTip({ tip, title, children, style }: { tip?: Tip | null; title?: string; children: ReactNode; style?: StyleProp<ViewStyle> }) {
+  if (!tip) return <>{children}</>;
+  const label = tip.title ?? title ?? (typeof children === "string" ? children : "");
+  return (
+    <View style={[{ flexDirection: "row", alignItems: "center", gap: 2 }, style]}>
+      <View style={{ flexShrink: 1 }}>{typeof children === "string" ? <T>{children}</T> : children}</View>
+      <InfoTip {...tip} title={label} />
+    </View>
+  );
+}
+
+export function Label({ children, tip }: { children: ReactNode; tip?: Tip | null }) {
+  if (tip) {
+    return (
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 2, marginBottom: 8 }}>
+        <T weight="bold" style={{ fontSize: 15, flexShrink: 1 }}>{children}</T>
+        <InfoTip {...tip} title={tip.title ?? (typeof children === "string" ? children : "")} />
+      </View>
+    );
+  }
   return <T weight="bold" style={{ fontSize: 15, marginBottom: 8 }}>{children}</T>;
 }
 
@@ -271,12 +362,14 @@ export function CodeInput({ value, onChange, onComplete }: { value: string; onCh
   );
 }
 
-export function Notice({ tone = "error", children }: { tone?: "error" | "info" | "success"; children: ReactNode }) {
+/** A tinted line. `tip`: the longer explanation behind an ⓘ at the end (the sheet's title is `tip.title`). */
+export function Notice({ tone = "error", children, tip }: { tone?: "error" | "info" | "success"; children: ReactNode; tip?: Tip & { title: string } }) {
   const bg = tone === "error" ? colors.dangerTint : tone === "success" ? colors.successTint : colors.mintTint;
   const fg = tone === "error" ? colors.danger : tone === "success" ? colors.success : colors.forest;
   return (
-    <View accessibilityRole={tone === "error" ? "alert" : undefined} style={{ backgroundColor: bg, borderRadius: radii.field, paddingHorizontal: 16, paddingVertical: 12 }}>
-      <T weight="medium" style={{ color: fg, fontSize: 15, lineHeight: 22 }}>{children}</T>
+    <View accessibilityRole={tone === "error" ? "alert" : undefined} style={{ backgroundColor: bg, borderRadius: radii.field, paddingHorizontal: 16, paddingVertical: 12, flexDirection: tip ? "row" : undefined, alignItems: tip ? "center" : undefined, gap: tip ? 4 : undefined }}>
+      <T weight="medium" style={{ color: fg, fontSize: 15, lineHeight: 22, flex: tip ? 1 : undefined }}>{children}</T>
+      {tip ? <InfoTip {...tip} color={fg} /> : null}
     </View>
   );
 }

@@ -624,6 +624,10 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "trySample.title": "Try am first",
   "trySample.body": "Order 1 sample for dropship price ({price}) make you check quality before you sell am. Na one per product.",
   "notice.pausedShort": "Paused",
+  "trust.nearbyTitle": "Suppliers wey dey near you",
+  "trust.nearbyShort": "Suppliers wey dey near {city} go show first.",
+  "ws.subShort": "Stock wey you buy from suppliers.",
+  "ws.emptySubShort": "Buy plenty pieces at once from supplier wey we don check.",
 };
 
 export default pcm;

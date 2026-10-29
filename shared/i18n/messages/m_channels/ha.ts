@@ -62,6 +62,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "acc.noInstagramApp": "Ba a ƙara Instagram ba tukuna. A cikin app ɗin Instagram, canza zuwa business account ka haɗa shi da Facebook Page ɗinka, sannan ka sake haɗawa.",
   "card.confirmMeta": "Cire {name}? Sababbin saƙonni da sabunta kayayyaki za su tsaya a can. Tsofaffin hirarrakinka za su kasance.",
   "card.confirmWhatsapp": "Cire {name}? Sabbin saƙonnin WhatsApp za su daina zuwa inbox ɗinka kuma kayayyakinka za su daina sabuntawa a can. Tsofaffin chat ɗinka za su kasance.",
+  subShort: "Haɗa WhatsApp, Facebook & Instagram da Google.",
 };
 
 export default ha;

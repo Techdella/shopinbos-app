@@ -692,6 +692,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "preorders.qty": "Ẹyọ {count}",
   "preorders.noOrders": "Kò sí àṣẹ síbẹ̀.",
   "orders.sampleTag": "Àpẹẹrẹ",
+  "agr.subShort": "Àwọn ṣọ́ọ̀bù tó fẹ́ ta ọjà rẹ.",
+  "agr.noneSubShort": "Tí ṣọ́ọ̀bù kan bá fẹ́ ta ọjà rẹ, ó máa hàn níbí.",
 };
 
 export default yo;

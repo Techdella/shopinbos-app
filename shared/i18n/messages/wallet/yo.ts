@@ -154,6 +154,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "claim.none": "Kò sí order àìpẹ́ láti ọ̀dọ̀ supplier tàbí delivery partner tí o lè béèrè lé lórí. O lè béèrè láàrin ọjọ́ {days} lẹ́yìn delivery.",
   "claim.sent": "A ti fi ìbéèrè náà ránṣẹ́.",
   "setup.neverCommission": "Shopinbos kò mú owó rẹ dání rí. Nígbà tí {who} bá sanwó pẹ̀lú káàdì fún ọjà rẹ, ìpín rẹ máa wọ inú báǹkì yìí tààrà, nígbà gbogbo ní ọjọ́ iṣẹ́ tó tẹ̀lé e. Commission Shopinbos ti {pct}% iye osunwọ̀n máa yọ kúrò lórí ọ̀rọ̀ọ̀kan ọjà-ńlá fún plan rẹ, pẹ̀lú ìpín rẹ nínú owó Paystack.",
+  "claim.promptShort": "Ọjà tí kò tọ́, tó bàjẹ́ tàbí tó sọnù? Claim láàrin ọjọ́ {days}.",
 };
 
 export default yo;
