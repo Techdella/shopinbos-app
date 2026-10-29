@@ -105,7 +105,7 @@ export default function Products() {
       )}
       {products?.length ? (
         <List>
-          {products.map((product) => <StockRow key={product.id} product={product} onStock={setStock} />)}
+          {products.map((product) => <StockRow key={product.id} product={product} onStock={setStock} section={query.show === "preorder" ? "preorder" : undefined} />)}
         </List>
       ) : null}
       {products?.length ? <Small>{t("list.stockHint")}</Small> : null}

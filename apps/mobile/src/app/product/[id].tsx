@@ -1,5 +1,5 @@
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, ScrollView, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, ScrollView, View, type LayoutChangeEvent } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
@@ -182,7 +182,16 @@ function isLive(product: EditProduct): boolean {
 export default function EditProductScreen() {
   const t = useT("m_productedit", "m_products", "common", "productTypes", "m_ui");
   const tm = useT("marketplace");
-  const { id } = useLocalSearchParams<{ id: string }>();
+  // section=preorder (from the pre-orders list): open scrolled to the Preorder settings.
+  const { id, section } = useLocalSearchParams<{ id: string; section?: string }>();
+  const scrollRef = useRef<ScrollView>(null);
+  const jumped = useRef(false);
+  const jumpTo = (event: LayoutChangeEvent) => {
+    if (jumped.current || section !== "preorder") return;
+    jumped.current = true;
+    const y = event.nativeEvent.layout.y;
+    setTimeout(() => scrollRef.current?.scrollTo({ y: Math.max(0, y - 12), animated: true }), 250);
+  };
   const [product, setProduct] = useState<EditProduct | null>(null);
   const [form, setForm] = useState<ProductEditForm | null>(null);
   const [visible, setVisible] = useState<Visible>("live");
@@ -483,6 +492,7 @@ export default function EditProductScreen() {
   return (
     <Screen
       title={t("view.title")}
+      scrollRef={scrollRef}
       refreshing={refreshing}
       onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }}
       footer={
@@ -669,17 +679,21 @@ export default function EditProductScreen() {
       {/* Preorders: sell before the stock arrives (own products). Dropship products follow the supplier's listing. */}
       {ownDropship ? (
         product.preorder || supplierPreorder ? (
-          <Card style={{ gap: 6 }}>
-            <T weight="extrabold" style={{ fontSize: 18 }}>{t("preorder.title")}</T>
-            <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>
-              {supplierPreorder && dropship
-                ? t("preorder.dropshipSupplier", { name: dropship.supplier.name, line: preorderLineText(supplierPreorder, new Date(), t) ?? "" })
-                : t("preorder.dropshipOff")}
-            </T>
-          </Card>
+          <View onLayout={jumpTo}>
+            <Card style={{ gap: 6 }}>
+              <T weight="extrabold" style={{ fontSize: 18 }}>{t("preorder.title")}</T>
+              <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>
+                {supplierPreorder && dropship
+                  ? t("preorder.dropshipSupplier", { name: dropship.supplier.name, line: preorderLineText(supplierPreorder, new Date(), t) ?? "" })
+                  : t("preorder.dropshipOff")}
+              </T>
+            </Card>
+          </View>
         ) : null
       ) : product.preorder ? (
-        <PreorderEditor value={preorder} onChange={(next) => { setPreorder(next); setSaved(false); }} audience="customers" taken={product.preorder.enabled ? product.preorder.taken : null} />
+        <View onLayout={jumpTo}>
+          <PreorderEditor value={preorder} onChange={(next) => { setPreorder(next); setSaved(false); }} audience="customers" taken={product.preorder.enabled ? product.preorder.taken : null} />
+        </View>
       ) : null}
 
       <View>
