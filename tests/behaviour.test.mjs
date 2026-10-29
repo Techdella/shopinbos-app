@@ -173,6 +173,16 @@ test("affiliates: codes, commission after discounts, and what's pending, owed an
   // Saturday 10 Oct 2026 → Friday 16 Oct; a Friday stays that Friday.
   assert.equal(aff.nextPayday(new Date("2026-10-10T09:00:00Z")).toISOString().slice(0, 10), "2026-10-16");
   assert.equal(aff.nextPayday(new Date("2026-10-16T09:00:00Z")).toISOString().slice(0, 10), "2026-10-16");
+  // The seller's own payday: a weekday they pick, a date each month, or as agreed (no date).
+  const day = (payday, at) => aff.nextPayday(new Date(at), payday)?.toISOString().slice(0, 10) ?? null;
+  assert.equal(day({ schedule: "weekly", day: 1 }, "2026-10-10T09:00:00Z"), "2026-10-12", "Saturday → next Monday");
+  assert.equal(day({ schedule: "monthly", day: 25 }, "2026-10-10T09:00:00Z"), "2026-10-25");
+  assert.equal(day({ schedule: "monthly", day: 25 }, "2026-10-26T09:00:00Z"), "2026-11-25");
+  assert.equal(day({ schedule: "monthly", day: 5 }, "2026-12-20T09:00:00Z"), "2027-01-05", "rolls into the new year");
+  assert.equal(day({ schedule: "agreed", day: 0 }, "2026-10-10T09:00:00Z"), null);
+  assert.deepEqual(aff.cleanAffiliatePayday("monthly", 31), { schedule: "monthly", day: 25 }, "only dates every month has");
+  assert.deepEqual(aff.cleanAffiliatePayday("weekly", 9), { schedule: "weekly", day: 5 });
+  assert.deepEqual(aff.cleanAffiliatePayday("nonsense", 3), aff.DEFAULT_AFFILIATE_PAYDAY);
 });
 
 test("ads: tracking codes, cost per order and Peggy's stop rule", async () => {
