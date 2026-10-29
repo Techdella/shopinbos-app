@@ -11,7 +11,7 @@ import { Screen } from "@/components/Screen";
 import { PreorderEditor } from "@/components/Preorder";
 import { DoneView, FieldLabel } from "@/components/SupplierKit";
 import { ChannelPrices, DropshipSettings, useWords } from "@/components/supplier/DropshipKit";
-import { Chip, Field, LinkButton, Notice, PillButton, T, Toggle } from "@/components/ui";
+import { Chip, Field, LinkButton, Notice, PillButton, T, Toggle, WithTip } from "@/components/ui";
 import { VoiceInput } from "@/components/VoiceInput";
 import { ApiError } from "@/lib/api";
 import { useT } from "@/lib/i18n";
@@ -271,8 +271,9 @@ export default function NewSupplierProduct() {
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
             <View style={{ flex: 1 }}>
-              <T weight="bold" style={{ fontSize: 15 }}>{t("kind.dropship")}</T>
-              <T style={{ color: colors.inkSoft, fontSize: 14.5 }}>{t("new.dropshipHint")}</T>
+              <WithTip title={t("kind.dropship")} tip={{ text: t("new.dropshipHint") }}>
+                <T weight="bold" style={{ fontSize: 15 }}>{t("kind.dropship")}</T>
+              </WithTip>
             </View>
             <Toggle on={dropship} onChange={setDropship} label={t("kind.dropship")} />
           </View>

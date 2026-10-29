@@ -48,7 +48,7 @@ function PrivateRateForm({ data, ownerUserId, name }: { data: MarketData; ownerU
     <Screen
       title={t("priv.title")}
       heading={t("priv.heading", { name })}
-      sub={t("priv.sub")}
+      tip={t("priv.sub")}
       footer={
         <PillButton tone="forest" busy={busy} onPress={() => void send()} icon="send" title={t("priv.send", { name })} />
       }

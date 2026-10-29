@@ -6,7 +6,7 @@ import { DEFAULT_DIAL_COUNTRY, formatE164, toE164 } from "@shared/phone";
 import { Keypad, Small, Sub, Title } from "@/components/design";
 import { HelpButton } from "@/components/Help";
 import { TextLink } from "@/components/RiderKit";
-import { BackButton, Field, LinkButton, Notice, PillButton, T } from "@/components/ui";
+import { BackButton, Field, LinkButton, Notice, PillButton, T, WithTip } from "@/components/ui";
 import { ApiError } from "@/lib/api";
 import { checkRiderSignInCode, saveRiderToken, sendRiderSignInCode, type RiderCodeSent } from "@/lib/rider";
 import { useT } from "@/lib/i18n";
@@ -150,7 +150,9 @@ export default function RiderSignIn() {
             />
           </View>
           {error ? <Notice>{error}</Notice> : null}
-          <Small>{say("signIn.linkHint")}</Small>
+          <WithTip title={t("form.phoneNumber")} tip={{ text: say("signIn.linkHint") }}>
+            <Small>{say("signIn.linkHintShort")}</Small>
+          </WithTip>
           {openLink}
         </ScrollView>
         <View style={{ paddingHorizontal: 20, paddingBottom: 12, paddingTop: 10 }}>

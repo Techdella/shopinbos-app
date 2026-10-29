@@ -145,7 +145,7 @@ export default function RiderToday() {
               accessibilityRole="button"
               accessibilityLabel={`${say("offer.new")}. ${routeLine(offer.run, offer.drop)}`}
               onPress={() => setOfferOpen(true)}
-              style={({ pressed }) => ({ backgroundColor: colors.forest, borderRadius: 24, padding: 20, gap: 10, opacity: pressed ? 0.92 : 1 })}
+              style={({ pressed }) => ({ backgroundColor: colors.forestFill, borderRadius: 24, padding: 20, gap: 10, opacity: pressed ? 0.92 : 1 })}
             >
               <Small style={{ color: "#BFE6DD" }}>{offer.run.pickupWindow ? `${say("offer.new")} · ${offer.run.pickupWindow}` : say("offer.new")}</Small>
               <CardTitle color="#FFFFFF">{routeLine(offer.run, offer.drop)}</CardTitle>
@@ -155,7 +155,7 @@ export default function RiderToday() {
                   : say("youEarn", { amount: naira(offer.drop.fee ?? offer.run.fees) })}
               </Small>
               <View style={{ alignSelf: "flex-start", marginTop: 6, minHeight: 44, paddingHorizontal: 18, borderRadius: 999, backgroundColor: colors.accent, justifyContent: "center" }}>
-                <T weight="bold" style={{ fontSize: 15, color: colors.ink }}>{say("offer.see")}</T>
+                <T weight="bold" style={{ fontSize: 15, color: colors.onAccent }}>{say("offer.see")}</T>
               </View>
             </Pressable>
           ) : null}

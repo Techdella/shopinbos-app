@@ -169,6 +169,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "savedVersion": "Bidiyonka da aka ajiye",
   "downloadSaved": "Sauke bidiyon da aka ajiye",
   "hub.pages": "Shafukan bidiyo",
+  "hub.subShort": "Yi reels don talla, kayayyaki da social media.",
 };
 
 export default ha;

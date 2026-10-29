@@ -169,6 +169,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "savedVersion": "Fídíò rẹ tí a fi pamọ́",
   "downloadSaved": "Gbà fídíò tí a fi pamọ́ sílẹ̀",
   "hub.pages": "Àwọn ojú-ewé fídíò",
+  "hub.subShort": "Ṣe reels fún ìpolówó, ọjà àti social media.",
 };
 
 export default yo;

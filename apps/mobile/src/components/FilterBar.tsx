@@ -33,7 +33,7 @@ export function FilterBar({ children, onMore, moreLabel, moreCount = 0, testID }
           <AppIcon name="filter" size={17} />
           <T weight="bold" numberOfLines={1} style={{ flexShrink: 1, fontSize: 15 }}>{moreLabel}</T>
           {moreCount ? (
-            <View style={{ minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5, backgroundColor: colors.ink, alignItems: "center", justifyContent: "center" }}>
+            <View style={{ minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5, backgroundColor: colors.inkFill, alignItems: "center", justifyContent: "center" }}>
               <T weight="extrabold" numberOfLines={1} style={{ flexShrink: 1, fontSize: 12, color: "#FFFFFF" }}>{String(moreCount)}</T>
             </View>
           ) : null}

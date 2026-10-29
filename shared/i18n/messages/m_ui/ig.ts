@@ -260,6 +260,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "update.requiredBody": "Ụdị ngwa a agbaala nká nke ukwuu ịrụ ọrụ. Melite ya site na Google Play. Ọ na-ewe naanị otu nkeji, ụlọ ahịa gị na ihe niile dị n'ime ya ga-anọ otu ha dị.",
   "update.help": "Ị chọrọ enyemaka? Kpọtụrụ anyị",
   "update.storeFailed": "Anyị enweghị ike imeghe Google Play. Mepee ngwa Play Store ma chọọ Shopinbos.",
+  "tip.more": "Ozi ndị ọzọ",
+  "tip.learnMore": "Mụtakwuo",
 };
 
 export default ig;

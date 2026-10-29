@@ -160,7 +160,7 @@ test("Rex on the phone takes photos from the camera or gallery and sends them wi
   assert.match(rex, /uploadPhoto\(photo, "store-banners"\)/);
   assert.match(rex, /askRex\(messages, attached\)/);
   assert.match(app("lib/rex.ts"), /imageUrls: imageUrls\.slice\(0, REX_MAX_PHOTOS\)/);
-  assert.match(app("lib/photos.ts"), /api<\{ publicUrl: string \}>\("\/api\/upload"/);
+  assert.match(app("lib/photos.ts"), /uploadOnePhoto<\{ publicUrl: string \}>\("\/api\/upload"/);
   assert.match(read("src/lib/ai/rex/agent-pure.ts"), /export const REX_MAX_PHOTOS = 6;/, "the phone's limit matches the server's");
   assert.match(app("components/ChatScreen.tsx"), /\{attach\}/);
 });

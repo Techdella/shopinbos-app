@@ -6,7 +6,7 @@ import { AppIcon } from "@/components/icons";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { BoardScreen } from "@/components/Screen";
 import { GoalList } from "@/components/supplier/DropshipKit";
-import { Notice, PillButton, T } from "@/components/ui";
+import { Notice, PillButton, T, WithTip } from "@/components/ui";
 import { ApiError } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { applyToBeFeatured, fetchPartnerLevel, type PartnerLevelView } from "@/lib/logistics";
@@ -107,7 +107,7 @@ export default function PartnerLevelScreen() {
       {level.error && !data ? <ErrorState message={level.error} onRetry={() => void level.reload()} /> : null}
       {data ? (
         <>
-          <View style={{ backgroundColor: colors.forest, borderRadius: 24, padding: 18, gap: 10 }}>
+          <View style={{ backgroundColor: colors.forestFill, borderRadius: 24, padding: 18, gap: 10 }}>
             <View style={{ flexDirection: "row", gap: 6 }} accessible accessibilityLabel={t("lvl.ladder", { name: t.dynamic(`lvl.tier.${key}`), at: at + 1 })}>
               {LEVEL_KEYS.map((step, index) => (
                 <View key={step} style={{ flex: 1, gap: 6 }}>
@@ -123,7 +123,7 @@ export default function PartnerLevelScreen() {
             <T style={{ fontSize: 14, lineHeight: 20, color: "#D2EDE8" }}>{t.dynamic(`lvl.words.${key}`)}</T>
           </View>
 
-          {data.interstateGated ? <Notice tone="info">{t("lvl.interstateGated")}</Notice> : null}
+          {data.interstateGated ? <Notice tone="info" tip={{ title: t("lvl.interstateTitle"), text: t("lvl.interstateGated") }}>{t("lvl.interstateShort")}</Notice> : null}
 
           <T style={{ fontFamily: fonts.display, fontSize: 18 }} accessibilityRole="header">{data.next ? t("lvl.next", { name: t.dynamic(`lvl.tier.${data.next}`) }) : t("lvl.top")}</T>
           {data.next && data.goals.length ? (
@@ -134,7 +134,9 @@ export default function PartnerLevelScreen() {
 
           <FeaturedBox data={data} onApplied={() => void level.reload()} />
           <Unlocks data={data} />
-          <T style={{ fontSize: 12.5, lineHeight: 18, color: colors.inkSoft }}>{t("lvl.safetyNote")}</T>
+          <WithTip title={t("lvl.safetyTitle")} tip={{ text: t("lvl.safetyNote") }}>
+            <T style={{ fontSize: 12.5, lineHeight: 18, color: colors.inkSoft }}>{t("lvl.safetyShort")}</T>
+          </WithTip>
         </>
       ) : null}
     </BoardScreen>

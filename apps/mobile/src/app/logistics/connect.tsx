@@ -7,7 +7,7 @@ import { useT } from "@/lib/i18n";
 export default function LogisticsConnect() {
   const t = useT("m_partner");
   return (
-    <Screen title={t("menu.connect")} sub={t("connect.sub")}>
+    <Screen title={t("menu.connect")} sub={t("connect.subShort")} tip={t("connect.sub")}>
       <SetupHelpRequest
         title={t("connect.title")}
         description={t("connect.description")}

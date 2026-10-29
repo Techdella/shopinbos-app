@@ -169,6 +169,7 @@ const en = {
   "savedVersion": "Your saved video",
   "downloadSaved": "Download the saved video",
   "hub.pages": "Video pages",
+  "hub.subShort": "Make reels for ads, products and social media.",
 } satisfies Record<string, string>;
 
 export default en;

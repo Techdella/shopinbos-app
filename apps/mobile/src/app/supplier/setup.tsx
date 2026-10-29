@@ -224,7 +224,7 @@ function SupplierSetupEditor({ editing }: { editing: Step }) {
 
   if (step === "where") {
     return (
-      <FlowFrame onBack={back} title={t("setup.whereTitle")} sub={t("setup.whereSub", { city: city || t("setup.yourCity") })} footer={nextButton(saveWhere)}>
+      <FlowFrame onBack={back} title={t("setup.whereTitle")} tip={t("setup.whereSub", { city: city || t("setup.yourCity") })} footer={nextButton(saveWhere)}>
         {error ? <Notice>{error}</Notice> : null}
         <View accessibilityRole="radiogroup" style={{ gap: 10 }}>
           {SELL_AREAS.map((key) => <Choice key={key} title={t.dynamic(`where.${key}`)} sub={t.dynamic(`where.${key}.sub`)} on={area === key} onPress={() => setArea(key)} />)}
@@ -254,7 +254,7 @@ function SupplierSetupEditor({ editing }: { editing: Step }) {
        
         onBack={back}
         title={t("setup.docsTitle")}
-        sub={t("setup.docsSub")}
+        tip={t("setup.docsSub")}
         footer={
           verified || docs.sent ? (
             <PillButton title={t("done")} tone="accent" onPress={() => go()} />

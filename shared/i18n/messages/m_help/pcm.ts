@@ -178,10 +178,13 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "call.screen.tiers": "Wholesale price levels",
   "call.screen.agreements": "Dropship agreements",
   "call.screen.status": "Post Status",
+  "call.screen.status_video": "Post video Status",
   "call.screen.rewards": "Rewards",
   "call.screen.insights": "Insights",
   "call.screen.email": "Email",
   "call.screen.popups": "Popups",
+  "call.screen.link_in_bio": "Link in bio",
+  "call.screen.connect_accounts": "Connect accounts",
 };
 
 export default pcm;

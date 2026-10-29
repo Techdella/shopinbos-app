@@ -8,6 +8,8 @@ import { StoreFooterBadges, useStoreFooterBadges } from "@/components/storefront
 import { StoreLogo } from "@/components/storefront/StoreLogo";
 import type { BoutiqueLook } from "./look";
 import { StoreBrandMark } from "../StoreBrandMark";
+import { getPublicStorefrontPath } from "@/lib/domains/storefront";
+import { bannerLinkHref, readableText, readBarColor, readBarLink } from "@shared/store-banner";
 import { brandTagline, footerSummaryForShoppers, isPlaceholderCopy, shopperCopy } from "@shared/placeholder-copy";
 import { englishText, type EditorText } from "../editor-text";
 import { StoreMenuBar, StoreMenuButton, type MenuColors, type ShownMenuItem } from "../StoreMenu";
@@ -45,15 +47,43 @@ function pageLinkClick(link: ChromeLink) {
 /** A plain link to another route (legal pages, policies). */
 export type ChromeHref = { key: string; label: string; href: string };
 
-/** The bar on the live store. Seller guidance saved by older templates never shows (shopperCopy). */
-export function AnnouncementBar({ text: raw, look }: { text: string | null; look: BoutiqueLook }) {
+/**
+ * The bar on the live store. Seller guidance saved by older templates never shows (shopperCopy). `settings` is the
+ * announcement section's: the colour (barColor) the seller may pick on the phone (shared/store-banner.ts); `href` is
+ * its optional link on the live store (announcementHref), none in the builder.
+ */
+export function AnnouncementBar({ text: raw, look, settings, href }: { text: string | null; look: BoutiqueLook; settings?: Record<string, unknown>; href?: string | null }) {
   const text = shopperCopy(raw);
   if (!text) return null;
+  const color = readBarColor(settings);
+  const style: React.CSSProperties = color ? { ...look.announcement, background: color, color: readableText(color) } : look.announcement;
+  const external = Boolean(href && /^https?:\/\//i.test(href));
   return (
-    <div className="px-4 py-2.5 text-center font-medium" style={look.announcement} role="region" aria-label="Store announcement">
-      {text}
+    <div className="px-4 py-2.5 text-center font-medium" style={style} role="region" aria-label="Store announcement">
+      {href ? (
+        <a href={href} target={external ? "_blank" : undefined} rel={external ? "noopener noreferrer" : undefined} style={{ color: "inherit", textDecoration: "underline", textUnderlineOffset: 3 }}>
+          {text}
+        </a>
+      ) : (
+        text
+      )}
     </div>
   );
+}
+
+/** Where the announcement bar's link goes on the live store (null: no link, or WhatsApp without a number). */
+export function announcementHref(
+  settings: Record<string, unknown> | undefined,
+  store: { basePath: string; name: string; whatsappNumber: string | null | undefined; pageHref: (page: string, params?: URLSearchParams) => string },
+) {
+  const link = readBarLink(settings);
+  if (!link) return null;
+  return bannerLinkHref(link, {
+    page: store.pageHref,
+    product: (id) => getPublicStorefrontPath(store.basePath, `/product/${encodeURIComponent(id)}`),
+    whatsapp: store.whatsappNumber ?? null,
+    name: store.name,
+  });
 }
 
 /** The colour behind the header: the ink bar for "Bold", else the theme's header colour. */

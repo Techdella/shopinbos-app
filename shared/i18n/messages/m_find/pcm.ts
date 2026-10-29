@@ -252,6 +252,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "mine.emptyTitle": "No supplier products yet",
   "mine.emptyBody": "Products wey you add from suppliers go show here, so you fit change plenty price one time.",
   "mine.find": "Find products",
+  "markup.roundingTitle": "How prices dey round",
+  "product.dropshipTitle": "How dropship dey work",
+  "product.dropshipShort": "You no go buy anything now. {name} go send am when customer pay.",
 };
 
 export default pcm;

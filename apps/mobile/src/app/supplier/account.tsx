@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { View } from "react-native";
 import { router } from "expo-router";
+import { AppearanceRow } from "@/components/AppearancePicker";
 import { List, Row, Tile } from "@/components/design";
 import { CallPeggyButton } from "@/components/CallPeggyButton";
 import { DeleteAccountButton } from "@/components/DeleteAccountButton";
@@ -91,6 +92,7 @@ export default function SupplierAccount() {
         <Row lead={<Tile icon="image" tone="gray" />} title={t("money.profile")} sub={t("profile.sub")} onPress={() => router.push("/supplier/profile")} />
         <Row lead={<Tile icon="bell" tone="gray" />} title={t("account.notifications")} onPress={() => router.push("/notifications/settings")} />
         <Row lead={<Tile icon="globe" tone="gray" />} title={t("language.title")} sub={languageOf(locale).nativeName} onPress={() => setLanguage(true)} />
+        <AppearanceRow tile />
       </List>
 
       {/* Tips and tooltips on or off, the same switch as the seller's Settings. */}

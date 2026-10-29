@@ -5,7 +5,7 @@ import { PAY_AT_DOOR_STEPS } from "@shared/dropship-rules";
 import { AppIcon } from "@/components/icons";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { BoardScreen } from "@/components/Screen";
-import { Notice, PillButton, T } from "@/components/ui";
+import { InfoTip, Notice, PillButton, T } from "@/components/ui";
 import { wordsOf } from "@/lib/dropship-pure";
 import { useT } from "@/lib/i18n";
 import { fetchPartnerLevel } from "@/lib/logistics";
@@ -36,7 +36,7 @@ export default function PayOnDeliveryScreen() {
       {level.error && !data ? <ErrorState message={level.error} onRetry={() => void level.reload()} /> : null}
       {data ? (
         <>
-          <View style={{ backgroundColor: colors.forest, borderRadius: 24, padding: 18, gap: 8, alignItems: "flex-start" }}>
+          <View style={{ backgroundColor: colors.forestFill, borderRadius: 24, padding: 18, gap: 8, alignItems: "flex-start" }}>
             <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(255,255,255,0.14)", alignItems: "center", justifyContent: "center" }}>
               <AppIcon name={data.podOpen ? "coin" : "lock"} size={22} color="#FFFFFF" />
             </View>
@@ -50,16 +50,10 @@ export default function PayOnDeliveryScreen() {
 
           {data.codPaused ? <Notice>{words("pod.pausedOld", "Pay on delivery is paused until the cash you collected on older jobs is paid in.")}</Notice> : null}
 
-          <View style={{ backgroundColor: colors.surface, borderRadius: radii.card, paddingHorizontal: 14, paddingVertical: 12, gap: 8 }}>
-            <T style={{ fontFamily: fonts.display, fontSize: 15 }}>{words("pod.howItWorks", "No cash, no code, no drop")}</T>
-            {PAY_AT_DOOR_STEPS.map((step, index) => (
-              <View key={index} style={{ flexDirection: "row", gap: 10, alignItems: "flex-start" }}>
-                <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: colors.mintTint, alignItems: "center", justifyContent: "center" }}>
-                  <T weight="extrabold" style={{ fontSize: 12, color: colors.forest }}>{index + 1}</T>
-                </View>
-                <T style={{ flex: 1, fontSize: 13, lineHeight: 18 }}>{words(`pod.step${index + 1}`, step)}</T>
-              </View>
-            ))}
+          {/* How it works: the steps are in the tip, so the screen is the status and one line. */}
+          <View style={{ backgroundColor: colors.surface, borderRadius: radii.card, paddingHorizontal: 14, paddingVertical: 12, flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <T style={{ flex: 1, fontFamily: fonts.display, fontSize: 15 }}>{words("pod.howItWorks", "No cash, no code, no drop")}</T>
+            <InfoTip title={words("pod.howItWorks", "No cash, no code, no drop")} text={PAY_AT_DOOR_STEPS.map((step, index) => `${index + 1}. ${words(`pod.step${index + 1}`, step)}`)} />
           </View>
         </>
       ) : null}

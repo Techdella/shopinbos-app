@@ -26,13 +26,13 @@ export default function SupplierAgreements() {
   const rows = list.data ?? [];
 
   return (
-    <Screen title={t("agr.title")} sub={t("agr.sub")} refreshing={list.refreshing} onRefresh={() => void list.refresh()}>
+    <Screen title={t("agr.title")} sub={t("agr.subShort")} tip={t("agr.sub")} refreshing={list.refreshing} onRefresh={() => void list.refresh()}>
       {list.loading && !list.data ? <LoadingBlock /> : null}
       {list.error && !list.data ? <ErrorState message={list.error} onRetry={() => void list.reload()} /> : null}
       {list.data && !rows.length ? (
         <Card style={{ gap: 6 }}>
           <T weight="extrabold" style={{ fontSize: 16 }}>{t("agr.none")}</T>
-          <T style={{ color: colors.inkSoft, lineHeight: 20 }}>{t("agr.noneSub")}</T>
+          <T style={{ color: colors.inkSoft, lineHeight: 20 }}>{t("agr.noneSubShort")}</T>
         </Card>
       ) : null}
       {rows.map((row) => <AgreementCard key={row.id} row={row} onAnswered={() => void list.reload()} />)}

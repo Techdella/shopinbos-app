@@ -103,7 +103,7 @@ function RatesForm({ view }: { view: DeliveryRatesView }) {
             {SIZES.map((entry) => {
               const on = size === entry.band;
               return (
-                <Pressable key={entry.band} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => setSize(entry.band)} style={{ paddingHorizontal: 10, height: 30, borderRadius: 999, justifyContent: "center", backgroundColor: on ? colors.ink : "transparent" }}>
+                <Pressable key={entry.band} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => setSize(entry.band)} style={{ paddingHorizontal: 10, height: 30, borderRadius: 999, justifyContent: "center", backgroundColor: on ? colors.inkFill : "transparent" }}>
                   <T weight="extrabold" style={{ fontSize: 12, color: on ? "#FFFFFF" : colors.grayInk }}>{words(`ds.size.${entry.band}`, entry.english)}</T>
                 </Pressable>
               );

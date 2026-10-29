@@ -200,6 +200,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "bal.accountSettingUp": "Dem dey create your wallet account number. E go show here in few minutes.",
   "bal.copy": "Copy",
   "bal.copied": "E don copy",
+  "inv.subShort": "Invoices for your orders, the ones you send and the ones you get.",
 };
 
 export default pcm;

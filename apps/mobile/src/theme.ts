@@ -1,7 +1,36 @@
 import { Platform } from "react-native";
-import { colors, radii } from "@shared/tokens";
+import { colors as lightColors, darkColors, radii, type Palette } from "@shared/tokens";
+import { applyPalette, createThemed, type Scheme } from "@/lib/appearance-pure";
 
-export { colors, radii };
+export { radii, lightColors, darkColors };
+export type { Palette };
+
+/**
+ * The app's colours: ONE live object holding the light or the dark palette (Settings > Appearance, lib/appearance.tsx).
+ * Screens read `colors.x` while they draw, so switching the scheme swaps the values in place and redraws the app.
+ * A value read once at the top of a file (a table of tones) keeps the old scheme: wrap it in `themed(() => …)`.
+ * Don't keep these in StyleSheet.create (also built once).
+ */
+export const colors: Palette = { ...lightColors };
+
+let scheme: Scheme = "light";
+let version = 0;
+
+/** The scheme drawn now. Components follow it through `useScheme()` (lib/appearance.tsx). */
+export function currentScheme(): Scheme {
+  return scheme;
+}
+
+/** Swaps the live `colors` to a scheme. Called by the AppearanceProvider before it redraws the app. */
+export function setColorScheme(next: Scheme) {
+  if (next === scheme) return;
+  scheme = next;
+  applyPalette(colors, next === "dark" ? darkColors : lightColors);
+  version += 1;
+}
+
+/** A table built from `colors` at the top of a file that follows the scheme (built again after a switch). */
+export const themed = createThemed(() => version);
 
 // Plus Jakarta Sans ships one file per weight; Android ignores fontWeight for custom fonts, so pick the family.
 export const fonts = {

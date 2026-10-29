@@ -136,7 +136,7 @@ export function useQuickAdd({ onChange, slugOf }: QuickAddOptions = {}) {
   }
 
   const toastView = toast ? (
-    <View testID="quick-toast" accessibilityLiveRegion="polite" style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: colors.ink, borderRadius: 18, paddingLeft: 14, paddingRight: 6, paddingVertical: 6, minHeight: 52 }}>
+    <View testID="quick-toast" accessibilityLiveRegion="polite" style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: colors.inkFill, borderRadius: 18, paddingLeft: 14, paddingRight: 6, paddingVertical: 6, minHeight: 52 }}>
       <AppIcon name={toast.kind === "skipped" ? "help" : "check"} size={18} color={toast.kind === "skipped" ? "#FFD7C2" : "#9BE3B5"} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <T weight="bold" style={{ color: "#FFFFFF", fontSize: 14, lineHeight: 19 }} numberOfLines={3}>

@@ -96,6 +96,10 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "add.tip2": "Rex go write the name, price and description",
   "add.tip2Sub": "You go check am before e enter your shop.",
   "add.recent": "Wetin you add recently",
+  "list.preorderBarShort": "Products wey dey take pre-order.",
+  "list.stockHintShort": "Tap + or − when you sell or add more stock.",
+  "list.stockTipTitle": "Keep your stock correct",
+  "dropship.subShort": "You no dey buy these ones. Supplier go send dem.",
 };
 
 export default pcm;

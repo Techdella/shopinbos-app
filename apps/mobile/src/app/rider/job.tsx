@@ -243,7 +243,7 @@ export default function RiderJob() {
     const asset = result.assets[0];
     setBusy("photo");
     try {
-      await uploadRiderProof(drop.id, { uri: asset.uri, mimeType: asset.mimeType, fileName: asset.fileName }, kind);
+      await uploadRiderProof(drop.id, { uri: asset.uri, mimeType: asset.mimeType, fileName: asset.fileName, width: asset.width, height: asset.height, fileSize: asset.fileSize }, kind);
       if (kind === "pickup") setPickupPhoto(true);
       else setPhotoDone(true);
     } catch (photoError) {
@@ -473,8 +473,8 @@ export default function RiderJob() {
               <Sub>{say("pay.body")}</Sub>
               {showQr ? (
                 <View style={{ alignItems: "center", gap: 8, backgroundColor: "#FFFFFF", borderRadius: 18, padding: 16 }}>
-                  <QRCode value={drop.payInApp.url} size={220} color={colors.ink} backgroundColor="#FFFFFF" />
-                  <Small>{say("pay.qrHint")}</Small>
+                  <QRCode value={drop.payInApp.url} size={220} color="#16141F" backgroundColor="#FFFFFF" />
+                  <Small style={{ color: "#4A4757" }}>{say("pay.qrHint")}</Small>
                 </View>
               ) : null}
               <PillButton tone="white" size="md" title={showQr ? say("pay.hideQr") : say("pay.showQr")} onPress={() => setShowQr((open) => !open)} />

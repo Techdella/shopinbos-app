@@ -147,12 +147,31 @@ test("verification documents upload from the phone; add-city opens the app's set
   assert.match(trust, /router\.push\("\/settings"\)/);
 });
 
-test("what stays on the website carries the badge: the video render, admin, Gmail and WhatsApp sign-up (never a purchase)", () => {
+test("what stays on the website carries the badge: the video render, admin and Gmail (never a purchase)", () => {
   assert.doesNotMatch(app("app/domain.tsx"), /openWeb\(/, "buying a domain isn't in the app (tests/store-payments.test.mjs)");
   assert.match(app("app/video/studio.tsx"), /<WebButtonLabel title=\{t\("finish\.button"\)\} \/>/);
   assert.match(app("app/web-only.tsx"), /<WebButtonLabel title="Open the admin panel" \/>/);
   const channels = app("app/channels.tsx");
-  assert.match(channels, /text: tWeb\("web\.badge"\), onPress: \(\) => void openWeb\("\/channels"\)/);
   assert.match(channels, /<WebButtonLabel title=\{usingGmail \|\| view\.gmail/);
   assert.match(app("components/familiar/StoryViewer.tsx"), /post\.cta\.kind === "view_shop" \? <WebButtonLabel/);
+});
+
+test("connecting WhatsApp, Facebook and Instagram stays in the app: no Sell everywhere page, no \"Opens website\"", () => {
+  const channels = app("app/channels.tsx");
+  // The only website exit left on the screen is Gmail's sign-in (allow-listed above).
+  assert.deepEqual(channels.match(/openWeb\(/g), ["openWeb("]);
+  assert.doesNotMatch(channels, /openWeb\("\/channels"\)|tWeb\("web\.badge"\)/);
+  assert.match(channels, /if \(result\.needsSignup\) await signUpWhatsApp\(\)/);
+  assert.match(channels, /const outcome = await connectWhatsApp\(\)/);
+  const lib = app("lib/channels.ts");
+  assert.match(lib, /WebBrowser\.openAuthSessionAsync\(whatsappConnectUrl\(API_URL, returnUrl, token\), returnUrl\)/);
+  assert.match(lib, /makeRedirectUri\(\{ scheme: "shopinbos", path: "connected" \}\)/);
+  assert.doesNotMatch(lib, /openBrowserAsync|openWeb/);
+  // Every other connect button runs the same in-app sign-in.
+  assert.match(app("components/familiar/ScheduleSheet.tsx"), /connectChannel\("meta"\)/);
+  // Web links to the connect pages open the app's screen, not the website.
+  const web = app("lib/web.ts");
+  for (const path of ["/channels", "/home/connections", "/home/inbox/channels"]) assert.ok(web.includes(`"${path}": "/channels"`), path);
+  // shopinbos://connected lands on a screen (Android can hand the link to the router too).
+  assert.match(app("app/connected.tsx"), /router\.canGoBack\(\)/);
 });

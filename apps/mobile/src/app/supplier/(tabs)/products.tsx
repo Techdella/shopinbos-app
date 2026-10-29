@@ -83,7 +83,7 @@ export default function SupplierProducts() {
         </View>
       ) : null}
 
-      {products.data && !all.length ? <Sub style={{ textAlign: "center" }}>{t("products.noneBody")}</Sub> : null}
+      {products.data && !all.length ? <Sub style={{ textAlign: "center" }}>{t("products.noneBodyShort")}</Sub> : null}
     </TabScreen>
   );
 }

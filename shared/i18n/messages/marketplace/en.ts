@@ -622,6 +622,10 @@ const en = {
   "trySample.title": "Try it first",
   "trySample.body": "Order 1 sample at the dropship price ({price}) to check the quality before you sell it. One per product.",
   "notice.pausedShort": "Paused",
+  "trust.nearbyTitle": "Suppliers near you",
+  "trust.nearbyShort": "Suppliers near {city} show first.",
+  "ws.subShort": "Stock you bought from suppliers.",
+  "ws.emptySubShort": "Buy many pieces at once from a checked supplier.",
 } satisfies Record<string, string>;
 
 export default en;

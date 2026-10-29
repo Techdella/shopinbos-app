@@ -154,6 +154,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "claim.none": "Enweghị order nso nso a site n'aka supplier ma ọ bụ delivery partner ị nwere ike ịrịọ maka ya. Ị nwere ike ịrịọ n'ime ụbọchị {days} mgbe delivery gasịrị.",
   "claim.sent": "E zigala arịrịọ ahụ.",
   "setup.neverCommission": "Shopinbos anaghị ejide ego gị. Mgbe {who} kwụrụ site na kaadị maka ngwaahịa gị, òkè gị na-abanye n'ụlọ akụ a ozugbo, na-abụkarị ụbọchị ọrụ na-esote. Kọmịshọn Shopinbos nke {pct}% nke uru nnukwu ahịa na-esi n'ọda ahịa ọ bụla maka atụmatụ gị, ya na òkè gị n'ụgwọ Paystack.",
+  "claim.promptShort": "Ngwa ahịa adịghị mma, mebiri emebi ma ọ bụ furu efu? Claim n'ime ụbọchị {days}.",
 };
 
 export default ig;

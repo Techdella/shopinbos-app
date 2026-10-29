@@ -74,7 +74,7 @@ export function SetupHelpRequest({ title, description, feature, softwareQuestion
   if (sent) {
     return (
       <View accessibilityRole="summary" style={[{ flexDirection: "row", gap: 12, backgroundColor: colors.successTint, borderRadius: radii.card, padding: 18 }, style]}>
-        <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.success, alignItems: "center", justifyContent: "center" }}>
+        <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.successFill, alignItems: "center", justifyContent: "center" }}>
           <AppIcon name="check" size={20} color="#FFFFFF" />
         </View>
         <View style={{ flex: 1 }}>

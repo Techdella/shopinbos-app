@@ -200,6 +200,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "bal.accountSettingUp": "A na-emepụta nọmba akaụntụ wallet gị. Ọ ga-apụta ebe a n'ime nkeji ole na ole.",
   "bal.copy": "Detuo",
   "bal.copied": "E detuola",
+  "inv.subShort": "Invoices maka orders gị, ndị i zitere na ndị ị natara.",
 };
 
 export default ig;

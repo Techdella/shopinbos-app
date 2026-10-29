@@ -27,7 +27,7 @@ export default function RiderEarnings() {
       {rider.error && !data ? <ErrorState message={rider.error} onRetry={() => void rider.reload()} /> : null}
       {data ? (
         <>
-          <View style={{ backgroundColor: colors.forest, borderRadius: 24, padding: 20, gap: 10 }} accessible accessibilityLabel={`${say("earn.week")}: ${naira(week.total)}. ${say("earn.line", { count: week.count, company })}`}>
+          <View style={{ backgroundColor: colors.forestFill, borderRadius: 24, padding: 20, gap: 10 }} accessible accessibilityLabel={`${say("earn.week")}: ${naira(week.total)}. ${say("earn.line", { count: week.count, company })}`}>
             <Small style={{ color: "#BFE6DD" }}>{say("earn.week")}</Small>
             <BigNumber color="#FFFFFF">{naira(week.total)}</BigNumber>
             <Small style={{ color: "#BFE6DD" }}>{say("earn.line", { count: week.count, company })}</Small>
@@ -76,7 +76,7 @@ function DayBars({ deliveries }: { deliveries: RiderWeekDelivery[] }) {
         {counts.map((count, index) => (
           <View key={DAY_KEYS[index]} style={{ flex: 1, height: "100%", alignItems: "center", justifyContent: "flex-end", gap: 6 }}>
             {/* The busiest day fills the space above the labels; an empty day is a short stub. */}
-            <View style={{ width: "100%", height: Math.round(Math.max(0.08, count / most) * BAR_MAX), borderRadius: 10, backgroundColor: index === today ? colors.forest : "#D6F0E9" }} />
+            <View style={{ width: "100%", height: Math.round(Math.max(0.08, count / most) * BAR_MAX), borderRadius: 10, backgroundColor: index === today ? colors.forestFill : "#D6F0E9" }} />
             <T weight="semibold" style={{ fontSize: 11.5, color: index === today ? colors.ink : colors.inkSoft }} numberOfLines={1}>{say(DAY_KEYS[index])}</T>
           </View>
         ))}

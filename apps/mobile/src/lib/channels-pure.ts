@@ -14,12 +14,15 @@ export type CardState =
 export type ConnectOutcome = "connected" | "problem" | "closed";
 
 /**
- * Where the sign-in ended, from the address the server sent the app back to
- * (shopinbos://channels?connected=meta, ?problem=meta or ?closed=meta, see src/lib/sales-channels/pure.ts).
+ * Where the sign-in ended, from the address the server sent the app back to: shopinbos://connected?channel=meta&
+ * status=connected|problem|closed (shared/app-connect.ts, through the web's /api/mobile/connected page), or the older
+ * shopinbos://channels?connected=meta, ?problem=meta or ?closed=meta (src/lib/sales-channels/pure.ts).
  */
 export function connectOutcome(url: string | null | undefined, platform: string): ConnectOutcome {
   const query = (url ?? "").split("#")[0].split("?")[1] ?? "";
   const params = new URLSearchParams(query);
+  const status = params.get("status");
+  if (params.get("channel") === platform && (status === "connected" || status === "problem" || status === "closed")) return status;
   if (params.get("connected") === platform) return "connected";
   if (params.get("problem") === platform) return "problem";
   return "closed";
@@ -27,8 +30,40 @@ export function connectOutcome(url: string | null | undefined, platform: string)
 
 /** The web page that starts the sign-in, through the app's sign-in handoff (src/app/auth/handoff). */
 export function connectStartUrl(apiUrl: string, platform: string, returnUrl: string, token: string | null) {
-  const connect = `/api/app/sales-channels/${encodeURIComponent(platform)}/connect?app=${encodeURIComponent(returnUrl)}`;
-  return token ? `${apiUrl}/auth/handoff?next=${encodeURIComponent(connect)}#t=${token}` : `${apiUrl}${connect}`;
+  return signedIn(apiUrl, `/api/app/sales-channels/${encodeURIComponent(platform)}/connect?app=${encodeURIComponent(returnUrl)}`, token);
+}
+
+/**
+ * The web's WhatsApp sign-up page for the app (src/app/channels/whatsapp): Meta's Embedded Signup, the same as the
+ * WhatsApp card on the website, then straight back into the app.
+ */
+export function whatsappConnectUrl(apiUrl: string, returnUrl: string, token: string | null) {
+  return signedIn(apiUrl, `/channels/whatsapp?app=${encodeURIComponent(returnUrl)}`, token);
+}
+
+function signedIn(apiUrl: string, path: string, token: string | null) {
+  return token ? `${apiUrl}/auth/handoff?next=${encodeURIComponent(path)}#t=${token}` : `${apiUrl}${path}`;
+}
+
+/** The accounts a card brought in, by name (GET /api/app/sales-channels cards[].accounts). */
+export interface ChannelAccounts {
+  whatsapp: string | null;
+  facebook: string | null;
+  instagram: string | null;
+}
+
+export type AccountLine = { key: "whatsapp" | "facebook" | "instagram" | "noInstagram"; name: string };
+
+/**
+ * The account lines a card shows once it's linked (like the web's card): the WhatsApp number, or the Facebook Page
+ * and the Instagram on it (or that no Instagram came along). Also on "Connect" when the inbox already has them.
+ */
+export function accountLines(platform: LivePlatform, state: CardState, accounts: ChannelAccounts | null | undefined): AccountLine[] {
+  if (!accounts || state.kind === "soon") return [];
+  const linkedHere = platform === "whatsapp" ? Boolean(accounts.whatsapp) : platform === "meta" ? Boolean(accounts.facebook) : false;
+  if (!linkedHere) return [];
+  if (platform === "whatsapp") return [{ key: "whatsapp", name: accounts.whatsapp! }];
+  return [{ key: "facebook", name: accounts.facebook! }, accounts.instagram ? { key: "instagram", name: accounts.instagram } : { key: "noInstagram", name: "" }];
 }
 
 /** Cards that can be disconnected (anything already linked). */

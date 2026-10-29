@@ -2,6 +2,7 @@ import { Linking, Pressable, View } from "react-native";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { NATIONWIDE } from "@shared/delivery-market";
+import { AppearanceRow } from "@/components/AppearancePicker";
 import { List, Pill, Row, Small, Tile } from "@/components/design";
 import type { AppIconName } from "@/components/icons";
 import { CallPeggyButton } from "@/components/CallPeggyButton";
@@ -97,7 +98,7 @@ export default function LogisticsBusiness() {
   return (
     <TabScreen header={header} refreshing={overview.refreshing} onRefresh={refresh}>
       {overview.data && !overview.data.partner.onboarded ? (
-        <CardButton icon="truck" tint={colors.mintTint} iconBg="#FFFFFF" title={t("today.finish")} sub={t("today.finishHint")} onPress={() => router.push("/logistics/verification")} />
+        <CardButton icon="truck" tint={colors.mintTint} iconBg="#FFFFFF" title={t("today.finish")} sub={t("today.finishHintShort")} onPress={() => router.push("/logistics/verification")} />
       ) : null}
 
       <View style={{ flexDirection: "row", gap: 10 }}>
@@ -156,6 +157,7 @@ export default function LogisticsBusiness() {
 
       <Card style={{ paddingVertical: 2, borderRadius: 24, borderWidth: 1, borderColor: colors.line }}>
         <LanguageRow first />
+        <AppearanceRow />
         <TipsRow />
       </Card>
       <LinkButton title={t("logOut")} color={colors.danger} onPress={() => confirmSignOut()} />

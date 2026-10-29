@@ -111,6 +111,15 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "live.sub": "Google free listings ń ṣiṣẹ́ lónìí: so pọ̀ lẹ́ẹ̀kan, àwọn ọjà rẹ á hàn lórí Google Search àti Shopping.",
   "moved": "Post sí Instagram, Facebook, WhatsApp àti TikTok ti ní ojú-ìwé tirẹ̀ báyìí, pẹ̀lú kàlẹ́ńdà, queue àti post ìtẹ̀ kan.",
   "moved.link": "Ṣí Social posts",
+  "appBack.title": "Padà sí Shopinbos",
+  "appBack.body": "A ń mú ọ padà sí app. Tí nǹkan kò bá ṣẹlẹ̀, tẹ bọ́tìnnì náà.",
+  "appBack.button": "Padà sí app",
+  "appWa.title": "So WhatsApp pọ̀",
+  "appWa.body": "So nọ́mbà WhatsApp Business rẹ mọ́ ṣọ́ọ̀bù rẹ. Àwọn message oníbàárà á wá sínú Chats, àwọn ọjà rẹ á sì hàn nínú WhatsApp.",
+  "appWa.step1": "Tẹ Continue with Facebook kí o sì wọlé.",
+  "appWa.step2": "Yan business rẹ àti nọ́mbà WhatsApp rẹ, tàbí fi ọ̀kan kún un.",
+  "appWa.step3": "Fọwọ́ sí i, o ó sì padà sínú app.",
+  "appWa.continue": "Tẹ̀síwájú pẹ̀lú Facebook",
 };
 
 export default yo;

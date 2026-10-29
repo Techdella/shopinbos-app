@@ -692,6 +692,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "preorders.qty": "{count} pieces",
   "preorders.noOrders": "No order yet.",
   "orders.sampleTag": "Sample",
+  "agr.subShort": "Shops wey wan sell your products.",
+  "agr.noneSubShort": "When shop wan sell your products, e go show here.",
 };
 
 export default pcm;

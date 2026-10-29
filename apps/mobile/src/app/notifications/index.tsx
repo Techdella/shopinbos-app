@@ -14,7 +14,7 @@ import { groupByDay, type NotifyCategory } from "@shared/notifications";
 import { notificationFilters } from "@/lib/familiar-pure";
 import { formatDate, type Locale } from "@shared/i18n";
 import { useLocale, useT } from "@/lib/i18n";
-import { colors } from "@/theme";
+import { colors, themed } from "@/theme";
 
 // Notifications (web /home/notifications): the same list as the bell on the web, with the "Familiar app" prototype's
 // filter chips (sellers and suppliers All / Orders / Money / Rex and Peggy, delivery partners All / Jobs / Money /
@@ -49,12 +49,12 @@ function ago(t: Words, value: string, locale: Locale, now = new Date()) {
 
 const FILTER_KEY = { all: "nf.all", orders: "nf.orders", jobs: "nf.jobs", money: "nf.money", ai: "nf.ai", peggy: "nf.peggy" } as const;
 
-const TILE: Record<AppNotification["priority"], { bg: string; fg: string }> = {
+const TILE: Record<AppNotification["priority"], { bg: string; fg: string }> = themed(() => ({
   critical: { bg: colors.dangerTint, fg: colors.danger },
   warning: { bg: "#FDF0D5", fg: "#8A5A00" },
   info: { bg: colors.canvas, fg: colors.ink },
   success: { bg: colors.successTint, fg: colors.success },
-};
+}));
 
 export default function Notifications() {
   const t = useT("m_notifications", "common");

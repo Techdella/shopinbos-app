@@ -710,6 +710,8 @@ const en = {
   "preorders.qty": "{count} units",
   "preorders.noOrders": "No orders yet.",
   "orders.sampleTag": "Sample",
+  "agr.subShort": "Shops that want to sell your products.",
+  "agr.noneSubShort": "When a shop wants to sell your products, it shows here.",
 } satisfies Record<string, string>;
 
 export default en;

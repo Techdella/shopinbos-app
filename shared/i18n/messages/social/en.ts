@@ -114,6 +114,15 @@ const en = {
   "live.sub": "Google free listings work today: connect once and your products show in Google Search and Shopping.",
   "moved": "Posting to Instagram, Facebook, WhatsApp and TikTok now has its own page, with a calendar, a queue and one-tap posts.",
   "moved.link": "Open Social posts",
+  "appBack.title": "Back to Shopinbos",
+  "appBack.body": "Taking you back to the app. If nothing happens, tap the button.",
+  "appBack.button": "Back to the app",
+  "appWa.title": "Connect WhatsApp",
+  "appWa.body": "Link your WhatsApp Business number to your shop. Customers' messages come into Chats and your products show inside WhatsApp.",
+  "appWa.step1": "Tap Continue with Facebook and sign in.",
+  "appWa.step2": "Pick your business and your WhatsApp number, or add one.",
+  "appWa.step3": "Confirm, and you're back in the app.",
+  "appWa.continue": "Continue with Facebook",
 } satisfies Record<string, string>;
 
 export default en;

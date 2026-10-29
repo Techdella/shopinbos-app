@@ -29,9 +29,10 @@ export function useProductDrafts() {
     if (result.canceled || !result.assets.length) return;
     setReading(true);
     try {
-      const { drafts: next, drafted } = await draftProducts(result.assets.slice(0, 6));
+      const { drafts: next, drafted, error: rest } = await draftProducts(result.assets.slice(0, 6));
       setDrafts((current) => [...current, ...next].slice(0, 12));
-      if (!drafted) setError(t("drafts.notNamed"));
+      if (rest) setError(rest);
+      else if (!drafted) setError(t("drafts.notNamed"));
     } catch (photoError) {
       setError(photoError instanceof Error ? photoError.message : t("drafts.readFailed"));
     } finally {

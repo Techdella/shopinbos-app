@@ -53,7 +53,7 @@ function ServicesForm({ data }: { data: MarketData }) {
     <Screen title={t("biz.services")} footer={<PillButton tone="forest" title={t("save")} busy={busy} onPress={() => void save()} />}>
       <ServicesEditor services={services} onServices={setServices} />
       {/* Reach tiers (shared/partner-reach.ts): interstate opens at Trusted (Tier 2); below it saving interstate is refused, so say what it needs. */}
-      {interstateWaiting({ services, level: partner.level }) ? <Notice tone="info">{t("lvl.interstateGated")}</Notice> : null}
+      {interstateWaiting({ services, level: partner.level }) ? <Notice tone="info" tip={{ title: t("lvl.interstateTitle"), text: t("lvl.interstateGated") }}>{t("lvl.interstateShort")}</Notice> : null}
       <List>
         <Row lead={<Tile icon="shield" tone="mint" />} title={t("lvl.title")} sub={partner.level ? t.dynamic(`lvl.tier.${partner.level}`) : undefined} onPress={() => router.push("/logistics/level")} />
       </List>

@@ -178,6 +178,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "bot.faqRemove": "Cire",
   "chats.riders": "Masu isarwa",
   "chats.suppliers": "Masu kawo kaya",
+  "auto.peggyHintShort": "Peggy za ta amsa game da kayanka, farashi da isarwa.",
+  "auto.subShort": "Amsa wa abokan ciniki lokacin da kake aiki ko ka rufe.",
 };
 
 export default ha;

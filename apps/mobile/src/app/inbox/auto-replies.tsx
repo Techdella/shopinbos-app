@@ -3,7 +3,7 @@ import { View } from "react-native";
 import { router } from "expo-router";
 import { ErrorState, LinkRow, LoadingBlock } from "@/components/kit";
 import { Screen } from "@/components/Screen";
-import { Card, Field, Label, Notice, PillButton, Segmented, T, Toggle } from "@/components/ui";
+import { Card, Field, InfoTip, Label, Notice, PillButton, Segmented, T, Toggle, WithTip } from "@/components/ui";
 import { fetchAutoReplySettings, fetchAutomation, saveAutoReplySettings, saveAutomation, type AutoReplyRules, type AutoReplySettings, type InboxAutomation } from "@/lib/inbox";
 import { useLoad } from "@/lib/useLoad";
 import { HoursEditor, PairsEditor, isClock } from "@/components/seller/ReplyEditors";
@@ -14,12 +14,16 @@ import { VoiceInput } from "@/components/VoiceInput";
 // Auto-replies (web /home/inbox/auto-replies): away message, instant "got your message" reply, opening hours per
 // day and keyword replies, all edited here.
 
-function SwitchRow({ title, hint, on, onChange, first }: { title: string; hint: string; on: boolean; onChange: (on: boolean) => void; first?: boolean }) {
+/** A switch row: `hint` is a short line under the title (what's set now); `tip` explains it behind an ⓘ. */
+function SwitchRow({ title, hint, tip, on, onChange, first }: { title: string; hint?: string; tip?: string; on: boolean; onChange: (on: boolean) => void; first?: boolean }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 14, borderTopWidth: first ? 0 : 1, borderTopColor: colors.line }}>
       <View style={{ flex: 1 }}>
-        <T weight="bold" style={{ fontSize: 15 }}>{title}</T>
-        <T style={{ color: colors.inkSoft, fontSize: 14, marginTop: 2, lineHeight: 18 }}>{hint}</T>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
+          <T weight="bold" style={{ fontSize: 15, flexShrink: 1 }}>{title}</T>
+          {tip ? <InfoTip title={title} text={tip} /> : null}
+        </View>
+        {hint ? <T style={{ color: colors.inkSoft, fontSize: 14, marginTop: 2, lineHeight: 18 }}>{hint}</T> : null}
       </View>
       <Toggle on={on} onChange={onChange} label={title} />
     </View>
@@ -34,7 +38,7 @@ export default function AutoReplies() {
   });
   if (!loaded.data) {
     return (
-      <Screen title={t("list.autoReplies")} sub={t("auto.sub")} refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
+      <Screen title={t("list.autoReplies")} sub={t("auto.subShort")} tip={t("auto.sub")} refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
         {loaded.loading ? <LoadingBlock /> : null}
         {loaded.error ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} /> : null}
       </Screen>
@@ -81,14 +85,14 @@ function AutoRepliesForm({ initial, refreshing, onRefresh }: { initial: { settin
   return (
     <Screen
       title={t("list.autoReplies")}
-      sub={t("auto.sub")}
+      sub={t("auto.subShort")} tip={t("auto.sub")}
       refreshing={refreshing}
       onRefresh={onRefresh}
       footer={<PillButton title={t("save")} busy={saving} onPress={() => void save()} />}
     >
       {note ? <Notice tone={note.tone}>{note.text}</Notice> : null}
       <Card style={{ paddingVertical: 2 }}>
-        <SwitchRow first title={t("auto.away")} hint={t("auto.awayHint")} on={settings.autoReplyEnabled} onChange={(on) => setSettings({ ...settings, autoReplyEnabled: on })} />
+        <SwitchRow first title={t("auto.away")} tip={t("auto.awayHint")} on={settings.autoReplyEnabled} onChange={(on) => setSettings({ ...settings, autoReplyEnabled: on })} />
       </Card>
       {settings.autoReplyEnabled ? (
         <Card style={{ gap: 12 }}>
@@ -103,7 +107,9 @@ function AutoRepliesForm({ initial, refreshing, onRefresh }: { initial: { settin
             />
           ) : null}
           {settings.autoReplyMode === "peggy" && aiAvailable ? (
-            <T style={{ color: colors.inkSoft, lineHeight: 20 }}>{t("auto.peggyHint")}</T>
+            <WithTip title={t("auto.peggyAnswers")} tip={{ text: t("auto.peggyHint") }}>
+              <T style={{ color: colors.inkSoft, lineHeight: 20 }}>{t("auto.peggyHintShort")}</T>
+            </WithTip>
           ) : (
             <>
               <Label>{t("auto.yourAway")}</Label>

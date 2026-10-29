@@ -5,17 +5,17 @@ import { ButtonRow, PillButton, T } from "@/components/ui";
 import { shareText } from "@/lib/share";
 import { useT } from "@/lib/i18n";
 import { whatsappShareUrl, type LinkStatus } from "@/lib/paylinks-pure";
-import { colors, radii } from "@/theme";
+import { colors, radii, themed } from "@/theme";
 
 // A link on screen with Copy, Share and (optionally) Send on WhatsApp: payment links and the link in bio page.
 
 /** Badge colours for a payment link's status (list and detail). */
-export const LINK_STATUS_COLORS: Record<LinkStatus, { bg: string; fg: string }> = {
+export const LINK_STATUS_COLORS: Record<LinkStatus, { bg: string; fg: string }> = themed(() => ({
   active: { bg: colors.mintTint, fg: colors.forest },
   paid: { bg: colors.successTint, fg: colors.success },
   expired: { bg: colors.canvas, fg: colors.inkSoft },
   cancelled: { bg: colors.canvas, fg: colors.inkSoft },
-};
+}));
 
 export function LinkShareButtons({ url, message, whatsappTo, showWhatsapp = true }: { url: string; message: string; whatsappTo?: string | null; showWhatsapp?: boolean }) {
   const t = useT("m_paylinks");

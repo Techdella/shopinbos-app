@@ -10,7 +10,7 @@ import { AppIcon } from "@/components/icons";
 import { Badge, ChipRow, ErrorState, LoadingBlock } from "@/components/kit";
 import { ProductPickSheet } from "@/components/ProductPickSheet";
 import { Screen } from "@/components/Screen";
-import { Card, Chip, Field, Label, LinkButton, Notice, PillButton, Segmented, T } from "@/components/ui";
+import { Card, Chip, Field, InfoTip, Label, LinkButton, Notice, PillButton, Segmented, T, WithTip } from "@/components/ui";
 import { uploadProductPhoto } from "@/lib/products";
 import { createVideo, fetchStudioProducts, fetchVideo, makeReelShots, patchVideo, writeVideoScript } from "@/lib/video";
 import {
@@ -180,7 +180,7 @@ function Studio({ products, project, startPurpose, startProduct }: { products: S
     setStep("photos");
     try {
       for (const asset of result.assets.slice(0, room)) {
-        const url = await uploadProductPhoto({ uri: asset.uri, mimeType: asset.mimeType, fileName: asset.fileName });
+        const url = await uploadProductPhoto({ uri: asset.uri, mimeType: asset.mimeType, fileName: asset.fileName, width: asset.width, height: asset.height, fileSize: asset.fileSize });
         update((current) => ({ ...current, photos: addPhotos(current.photos, [url]) }));
       }
     } catch (error) {
@@ -321,9 +321,9 @@ function Studio({ products, project, startPurpose, startProduct }: { products: S
         <View style={{ backgroundColor: colors.canvas, borderRadius: 16, padding: 12, gap: 8 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             <AppIcon name="sparkle" size={16} />
-            <T weight="extrabold" style={{ fontSize: 15 }}>{t("shots.title")}</T>
+            <T weight="extrabold" style={{ fontSize: 15, flexShrink: 1 }}>{t("shots.title")}</T>
+            <InfoTip title={t("shots.title")} text={t("shots.hint")} />
           </View>
-          <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{t("shots.hint")}</T>
           <ChipRow>
             {REEL_SHOT_LOOKS.map((look) => <Chip key={look} label={t(`shots.${look}`)} on={state.look === look} onPress={() => update((current) => ({ ...current, look }))} />)}
           </ChipRow>
@@ -418,18 +418,20 @@ function Studio({ products, project, startPurpose, startProduct }: { products: S
         ) : (
           <T style={{ color: colors.inkSoft, fontSize: 13.5 }}>{t("voice.noneHint")}</T>
         )}
-        <T weight="bold" style={{ fontSize: 14, marginTop: 4 }}>{t("music.title")}</T>
+        <WithTip title={t("music.title")} tip={{ text: t("music.hint") }} style={{ marginTop: 4 }}>
+          <T weight="bold" style={{ fontSize: 14 }}>{t("music.title")}</T>
+        </WithTip>
         <ChipRow>
           {MUSIC_MOODS.map((mood) => <Chip key={mood.id} label={t.dynamic(`music.${mood.id}`, mood.name)} on={state.music === mood.id} onPress={() => update((current) => ({ ...current, music: mood.id, musicTouched: true }))} />)}
           <Chip label={t("music.none")} on={state.music === "none"} onPress={() => update((current) => ({ ...current, music: "none", musicTouched: true }))} />
         </ChipRow>
-        {state.music !== "none" ? <T style={{ color: colors.inkSoft, fontSize: 13.5, lineHeight: 19 }}>{t("music.hint")}</T> : null}
       </Card>
 
       {/* 5. Make it */}
       <Card style={{ gap: 6, backgroundColor: colors.mintTint }}>
-        <T weight="extrabold" style={{ fontSize: 16, color: colors.forest }}>{t("finish.title")}</T>
-        <T style={{ fontSize: 14.5, lineHeight: 21, color: colors.forest }}>{t("finish.body")}</T>
+        <WithTip title={t("finish.title")} tip={{ text: t("finish.body") }}>
+          <T weight="extrabold" style={{ fontSize: 16, color: colors.forest }}>{t("finish.title")}</T>
+        </WithTip>
         <T style={{ fontSize: 13, color: colors.forest }}>{t("cost", { credits: CREDIT_COST.video })}</T>
       </Card>
 

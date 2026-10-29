@@ -8,7 +8,7 @@ import { ErrorState, LoadingBlock } from "@/components/kit";
 import { PayInOverdueCard } from "@/components/PayInOverdueCard";
 import { CardButton } from "@/components/PartnerKit";
 import { TabScreen } from "@/components/TabScreen";
-import { Card, PillButton, T } from "@/components/ui";
+import { Card, PillButton, T, WithTip } from "@/components/ui";
 import { useT } from "@/lib/i18n";
 import { fetchEarnings } from "@/lib/logistics";
 import { dayWord, shortPlace } from "@/lib/partner-pure";
@@ -81,7 +81,10 @@ export default function LogisticsEarnings() {
               right={<T weight="bold" style={{ fontSize: 14, color: colors.forest, textDecorationLine: "underline" }}>{bank ? t("money.change") : t("money.addBank")}</T>}
             />
           </List>
-          <Small style={{ marginTop: -8 }}>{bank ? t("moneyCard.noteBank", { bank }) : t("moneyCard.note")}</Small>
+          {/* How delivery fees reach the bank: one short line, the rest in the tip. */}
+          <WithTip title={t("moneyCard.noteTitle")} tip={{ text: bank ? t("moneyCard.noteBank", { bank }) : t("moneyCard.note") }} style={{ marginTop: -8 }}>
+            <Small>{t("moneyCard.noteShort")}</Small>
+          </WithTip>
 
           <CardButton
             icon="coin"
@@ -94,10 +97,13 @@ export default function LogisticsEarnings() {
 
           {data.cashToPayIn > 0 || data.payIn?.state === "ready" ? (
             <Card style={{ gap: 10, padding: 20, borderRadius: 24, borderWidth: 1, borderColor: colors.line }}>
-              <T weight="extrabold" style={{ fontSize: 17 }}>
-                {data.cashToPayIn > 0 ? t("payIn", { amount: naira(data.cashToPayIn), by: data.payInBy ?? t("bySix") }) : t("money.nothingToPayIn")}
-              </T>
-              <Small>{data.cashToPayIn > 0 ? (data.late && !data.overdue ? t("money.late") : t("codExplain")) : (data.credit ?? 0) > 0 ? t("money.credit", { amount: naira(data.credit ?? 0) }) : t("money.codShows")}</Small>
+              {/* What this cash is: in the tip. A late pay-in stays on screen. */}
+              <WithTip title={t("cashScreen.title")} tip={data.cashToPayIn > 0 ? { text: t("codExplain") } : null}>
+                <T weight="extrabold" style={{ fontSize: 17 }}>
+                  {data.cashToPayIn > 0 ? t("payIn", { amount: naira(data.cashToPayIn), by: data.payInBy ?? t("bySix") }) : t("money.nothingToPayIn")}
+                </T>
+              </WithTip>
+              {data.cashToPayIn > 0 ? (data.late && !data.overdue ? <Small>{t("money.late")}</Small> : null) : <Small>{(data.credit ?? 0) > 0 ? t("money.credit", { amount: naira(data.credit ?? 0) }) : t("money.codShows")}</Small>}
               {data.payIn?.state === "ready" && !data.overdue?.account ? (
                 <>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>

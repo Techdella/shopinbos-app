@@ -1,5 +1,6 @@
 import { api, ApiError } from "./api";
 import { appLocale } from "./app-locale";
+import { uploadOnePhoto, type PhotoInput } from "./upload-photo";
 
 // API clients for the "Familiar app" features shared by sellers, suppliers and delivery partners: Status (24-hour
 // stories), Rewards, credits, Ask Peggy for every role, Create with Rex and the posts calendar. Shapes follow the
@@ -30,7 +31,7 @@ export interface StatusPost {
   product: { id: string; name: string; price: number; image: string | null } | null;
   /** "open" (an app screen, target.path) and "share" (my shop link) come only on Shopinbos's own posts. */
   cta: { kind: StatusCtaKind | ShopinbosCtaKind; label: string; target?: { userId: string; slug?: string | null; partnerId?: string | null; productId?: string | null; path?: string | null } } | null;
-  /** Shopinbos's video posts: play `url` here, else the 60-second intro `intro`, else open `watchUrl`. */
+  /** A video post: play `url` here (a person's video status, or Shopinbos's), else the 60-second intro `intro`, else open `watchUrl`. */
   video?: StatusVideo | null;
   /** Shopinbos's posts: seen (or watched) by me. */
   seen?: boolean;
@@ -83,15 +84,12 @@ export const fetchShopinbos = () => optional(api<ShopinbosState>(`/api/mobile/st
 export const dismissShopinbos = (what: "status" | "start") =>
   api<{ statusOff: boolean; startOff: boolean }>("/api/mobile/status/shopinbos/dismiss", { method: "POST", json: { what } });
 
-export const postStatus = (input: { headline: string; caption?: string; imageUrl?: string; tone?: StatusTone; productId?: string; ctaKind?: StatusCtaKind }) =>
+/** A video status sends videoUrl / posterUrl / durationMs from uploadStatusVideo (lib/status-video.ts) instead of imageUrl. */
+export const postStatus = (input: { headline: string; caption?: string; imageUrl?: string; videoUrl?: string; posterUrl?: string | null; durationMs?: number | null; tone?: StatusTone; productId?: string; ctaKind?: StatusCtaKind }) =>
   api<{ post: StatusPost; reward: { points: number; streak: number } | null }>("/api/mobile/status", { method: "POST", json: input });
 
-export function uploadStatusImage(photo: { uri: string; mimeType?: string | null; fileName?: string | null }) {
-  const form = new FormData();
-  const type = photo.mimeType ?? "image/jpeg";
-  // React Native's FormData takes { uri, name, type } file parts.
-  form.append("file", { uri: photo.uri, name: photo.fileName ?? `status.${type.split("/")[1] ?? "jpg"}`, type } as unknown as Blob);
-  return api<{ url: string }>("/api/mobile/status/upload", { method: "POST", body: form });
+export function uploadStatusImage(photo: PhotoInput) {
+  return uploadOnePhoto<{ url: string }>("/api/mobile/status/upload", photo, {}, { base: "status" });
 }
 
 export const markStatusSeen = (id: string) => api<{ ok: true }>(`/api/mobile/status/${encodeURIComponent(id)}/view`, { method: "POST" }).catch(() => null);

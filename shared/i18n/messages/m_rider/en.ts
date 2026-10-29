@@ -201,6 +201,10 @@ const en = {
   // Reach tiers (shared/partner-reach.ts)
   "earn.weekLine": "Earned this week: {amount}",
   "earn.paidBy": "{company} pays you",
+  "link.subShort": "Paste the private link your company sent you.",
+  "link.privateShort": "Keep the link to yourself.",
+  "signIn.linkHintShort": "Use the number your company added you with.",
+  "welcome.subShort": "You'll get delivery jobs here.",
 } satisfies Record<string, string>;
 
 export default en;

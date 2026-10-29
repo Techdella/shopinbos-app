@@ -169,6 +169,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "savedVersion": "Vidiyo gị echekwara",
   "downloadSaved": "Budata vidiyo echekwara",
   "hub.pages": "Peeji vidiyo",
+  "hub.subShort": "Mee reels maka mgbasa ozi, ngwaahịa na social media.",
 };
 
 export default ig;

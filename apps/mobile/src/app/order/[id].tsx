@@ -6,7 +6,7 @@ import { CHANNEL_LABEL, type OrderChannel } from "@shared/channels";
 import { PAYMENT_METHOD_LABEL } from "@shared/sales";
 import { Banner, List, Pill, Row, Small, Tile, Timeline, type PillTone, type TimelineStep } from "@/components/design";
 import { AppIcon } from "@/components/icons";
-import { Card, LinkButton, Notice, PillButton, Segmented, T } from "@/components/ui";
+import { Card, LinkButton, Notice, PillButton, Segmented, T, WithTip } from "@/components/ui";
 import { capitalise, friendlyTime } from "@/lib/friendly";
 import { Screen } from "@/components/Screen";
 import { ChoiceRow, Sheet } from "@/components/Sheet";
@@ -356,8 +356,9 @@ export default function OrderScreen() {
       )}
       {toSend && (
         <Card style={{ gap: 6, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20 }}>
-          <T weight="extrabold" style={{ fontSize: 20 }}>{t("order.send")}</T>
-          <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 22 }}>{t("order.sendBody", { name: firstName })}</T>
+          <WithTip title={t("order.send")} tip={{ text: t("order.sendBody", { name: firstName }) }}>
+            <T weight="extrabold" style={{ fontSize: 20 }}>{t("order.send")}</T>
+          </WithTip>
           <LinkButton title={busy === "shipped" ? t("saving") : t("order.sentMyself")} onPress={() => void change("shipped", { logisticsType: "personal" })} />
           <LinkButton title={t("order.printLabel")} color={colors.inkSoft} onPress={() => router.push({ pathname: "/order/label", params: { id: order.id } })} />
         </Card>

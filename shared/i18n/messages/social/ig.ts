@@ -111,6 +111,15 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "live.sub": "Google free listings na-arụ ọrụ taa: jikọọ otu ugboro, ngwaahịa gị ga-apụta na Google Search na Shopping.",
   "moved": "Ịpost na Instagram, Facebook, WhatsApp na TikTok nwere ibe nke ya ugbu a, ya na kalenda, queue na post otu mmetụ.",
   "moved.link": "Mepee Social posts",
+  "appBack.title": "Laghachi na Shopinbos",
+  "appBack.body": "Anyị na-akpọghachi gị n'app. Ọ bụrụ na ọ dịghị ihe mere, pịa bọtịnụ ahụ.",
+  "appBack.button": "Laghachi n'app",
+  "appWa.title": "Jikọọ WhatsApp",
+  "appWa.body": "Jikọọ nọmba WhatsApp Business gị na ụlọ ahịa gị. Ozi ndị ahịa ga-abata na Chats, ngwaahịa gị ga-apụtakwa n'ime WhatsApp.",
+  "appWa.step1": "Pịa Continue with Facebook ma banye.",
+  "appWa.step2": "Họrọ azụmahịa gị na nọmba WhatsApp gị, ma ọ bụ tinye otu.",
+  "appWa.step3": "Kwado ya, ị laghachila n'app.",
+  "appWa.continue": "Gaa n'ihu na Facebook",
 };
 
 export default ig;

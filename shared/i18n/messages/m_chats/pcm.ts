@@ -178,6 +178,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "bot.faqRemove": "Comot am",
   "chats.riders": "Riders",
   "chats.suppliers": "Suppliers",
+  "auto.peggyHintShort": "Peggy go answer about your products, prices and delivery.",
+  "auto.subShort": "Answer customers when you dey busy or you don close.",
 };
 
 export default pcm;

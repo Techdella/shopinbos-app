@@ -125,7 +125,7 @@ export function CallSheet({ call, onMinimize, onMute, onEnd }: { call: LiveCall;
   const words = !live ? t("call.calling") : call.speaking ? t("call.speaking") : t("call.listening");
   return (
     <Modal visible animationType="slide" onRequestClose={onMinimize} statusBarTranslucent>
-      <View style={{ flex: 1, backgroundColor: colors.forest, paddingTop: insets.top + 8, paddingBottom: Math.max(insets.bottom, 16) + 8 }}>
+      <View style={{ flex: 1, backgroundColor: colors.forestFill, paddingTop: insets.top + 8, paddingBottom: Math.max(insets.bottom, 16) + 8 }}>
         <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, minHeight: 48 }}>
           <Pressable accessibilityRole="button" accessibilityLabel={t("call.minimize")} onPress={onMinimize} hitSlop={8} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44, paddingHorizontal: 14, borderRadius: 22, backgroundColor: "rgba(255,255,255,0.12)", opacity: pressed ? 0.8 : 1 })}>
             <View style={{ transform: [{ rotate: "90deg" }] }}>
@@ -164,7 +164,7 @@ export function CallSheet({ call, onMinimize, onMute, onEnd }: { call: LiveCall;
           {live ? (
             <PillButton tone="white" style={{ flex: 1 }} accessibilityLabel={call.muted ? t("call.unmute") : t("call.mute")} onPress={onMute} icon="mic" title={call.muted ? t("call.unmute") : t("call.mute")} />
           ) : null}
-          <PillButton style={{ flex: 1, backgroundColor: colors.danger }} accessibilityLabel={t("call.end")} onPress={onEnd} icon="phone" title={t("call.end")} />
+          <PillButton style={{ flex: 1, backgroundColor: colors.dangerFill }} accessibilityLabel={t("call.end")} onPress={onEnd} icon="phone" title={t("call.end")} />
         </ButtonRow>
       </View>
     </Modal>
@@ -186,7 +186,7 @@ export function CallBar({ call, note, onOpen, onMute, onEnd }: { call: LiveCall;
   const last = call.saved[call.saved.length - 1];
   const sub = note ?? (last ? line(last) : null);
   return (
-    <View testID="peggy-call-bar" style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: CALL_BAR_HEIGHT + insets.bottom, paddingBottom: insets.bottom, paddingHorizontal: 12, justifyContent: "center", backgroundColor: colors.forest, zIndex: 50, elevation: 12 }}>
+    <View testID="peggy-call-bar" style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: CALL_BAR_HEIGHT + insets.bottom, paddingBottom: insets.bottom, paddingHorizontal: 12, justifyContent: "center", backgroundColor: colors.forestFill, zIndex: 50, elevation: 12 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }} accessibilityLiveRegion="polite">
         <Pressable accessibilityRole="button" accessibilityLabel={t("call.open")} onPress={onOpen} style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 10, minHeight: 44 }}>
           <PeggyAvatar size={36} speaking={call.speaking} />
@@ -197,10 +197,10 @@ export function CallBar({ call, note, onOpen, onMute, onEnd }: { call: LiveCall;
         </Pressable>
         {call.phase === "live" ? (
           <Pressable accessibilityRole="button" accessibilityLabel={call.muted ? t("call.unmute") : t("call.mute")} onPress={onMute} hitSlop={4} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: call.muted ? "#FFFFFF" : "rgba(255,255,255,0.14)", alignItems: "center", justifyContent: "center" }}>
-            <AppIcon name="mic" size={18} color={call.muted ? colors.ink : "#FFFFFF"} />
+            <AppIcon name="mic" size={18} color={call.muted ? colors.onAccent : "#FFFFFF"} />
           </Pressable>
         ) : null}
-        <Pressable accessibilityRole="button" accessibilityLabel={t("call.end")} onPress={onEnd} hitSlop={4} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.danger, alignItems: "center", justifyContent: "center" }}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t("call.end")} onPress={onEnd} hitSlop={4} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.dangerFill, alignItems: "center", justifyContent: "center" }}>
           <AppIcon name="x" size={18} color="#FFFFFF" />
         </Pressable>
       </View>

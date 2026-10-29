@@ -46,7 +46,7 @@ export default function SupplierProfile() {
     setBusy("logo");
     setNote(null);
     try {
-      const { url } = await uploadSupplierPhoto({ uri: asset.uri, mimeType: asset.mimeType, fileName: asset.fileName });
+      const { url } = await uploadSupplierPhoto({ uri: asset.uri, mimeType: asset.mimeType, fileName: asset.fileName, width: asset.width, height: asset.height, fileSize: asset.fileSize });
       await savePublicProfile({ logoUrl: url });
       setLogo(url);
     } catch (error) {

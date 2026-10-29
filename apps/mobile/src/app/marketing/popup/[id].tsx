@@ -89,7 +89,7 @@ export default function PopupEditor() {
         <View style={{ position: "absolute", left: 14, right: 14, top: 14, height: 26, borderRadius: 10, backgroundColor: "#E6E3EE" }} />
         <View style={{ position: "absolute", left: 14, right: 14, top: 50, height: 90, borderRadius: 10, backgroundColor: "#E6E3EE" }} />
         <View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, backgroundColor: "rgba(22,20,31,0.35)" }} />
-        <View testID="popup-preview" style={{ width: "78%", backgroundColor: "#FFFFFF", borderRadius: 16, padding: 16, alignItems: "center", gap: 8 }}>
+        <View testID="popup-preview" style={{ width: "78%", backgroundColor: colors.surface, borderRadius: 16, padding: 16, alignItems: "center", gap: 8 }}>
           {shopName ? <T weight="extrabold" style={{ fontSize: 10, letterSpacing: 0.6, color: colors.inkSoft }} numberOfLines={1}>{shopName.toUpperCase()}</T> : null}
           <T weight="extrabold" style={{ fontSize: 19, lineHeight: 22, textAlign: "center" }} numberOfLines={3}>{draft.design.headline || t("edit.headlinePlaceholder")}</T>
           {draft.signup ? (
@@ -97,7 +97,7 @@ export default function PopupEditor() {
               <T style={{ fontSize: 12, color: colors.inkSoft }} numberOfLines={1}>{whatsapp ? t("edit.field.both") : t("edit.field.email")}</T>
             </View>
           ) : null}
-          <View style={{ alignSelf: "stretch", height: 34, borderRadius: 17, backgroundColor: colors.ink, alignItems: "center", justifyContent: "center" }}>
+          <View style={{ alignSelf: "stretch", height: 34, borderRadius: 17, backgroundColor: colors.inkFill, alignItems: "center", justifyContent: "center" }}>
             <T weight="extrabold" style={{ fontSize: 12, color: "#FFFFFF" }} numberOfLines={1}>{String(draft.design.buttonText ?? "") || t("edit.button")}</T>
           </View>
         </View>
@@ -143,7 +143,7 @@ export default function PopupEditor() {
 
       {!isNew ? <LinkButton title={t("edit.delete")} color={colors.danger} onPress={() => setConfirmDelete(true)} /> : null}
       <Sheet visible={confirmDelete} onClose={() => setConfirmDelete(false)} title={t("edit.deleteTitle")}>
-        <PillButton title={t("edit.deleteYes")} busy={busy === "delete"} style={{ backgroundColor: colors.danger }} onPress={() => void remove()} />
+        <PillButton title={t("edit.deleteYes")} busy={busy === "delete"} style={{ backgroundColor: colors.dangerFill }} onPress={() => void remove()} />
         <LinkButton title={t("edit.keep")} onPress={() => setConfirmDelete(false)} />
       </Sheet>
     </Screen>

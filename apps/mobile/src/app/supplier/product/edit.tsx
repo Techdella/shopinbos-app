@@ -9,7 +9,7 @@ import { BoardScreen, Screen } from "@/components/Screen";
 import { FieldLabel } from "@/components/SupplierKit";
 import { ChannelPrices, DropshipSettings, LockedPreorderCard, useWords } from "@/components/supplier/DropshipKit";
 import { PreorderEditor } from "@/components/Preorder";
-import { Chip, Field, LinkButton, Notice, PillButton, T, Toggle } from "@/components/ui";
+import { Chip, Field, LinkButton, Notice, PillButton, T, Toggle, WithTip } from "@/components/ui";
 import { VoiceInput } from "@/components/VoiceInput";
 import { dropshipBody, dropshipFormFrom, pricesFormFrom, readPricesForm, type DropshipForm, type PricesForm } from "@/lib/dropship-pure";
 import { useT } from "@/lib/i18n";
@@ -229,8 +229,9 @@ export default function EditSupplierProduct() {
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
             <View style={{ flex: 1 }}>
-              <T weight="bold" style={{ fontSize: 15 }}>{t("kind.dropship")}</T>
-              <T style={{ color: colors.inkSoft, fontSize: 14.5 }}>{t("new.dropshipHint")}</T>
+              <WithTip title={t("kind.dropship")} tip={{ text: t("new.dropshipHint") }}>
+                <T weight="bold" style={{ fontSize: 15 }}>{t("kind.dropship")}</T>
+              </WithTip>
             </View>
             <Toggle on={dropship} onChange={setDropship} label={t("kind.dropship")} />
           </View>

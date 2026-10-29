@@ -123,7 +123,7 @@ export function PushManager() {
           flexDirection: "row",
           alignItems: "center",
           gap: 12,
-          backgroundColor: colors.ink,
+          backgroundColor: colors.inkFill,
           borderRadius: 20,
           paddingHorizontal: 14,
           paddingVertical: 12,

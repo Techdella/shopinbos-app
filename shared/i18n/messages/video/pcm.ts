@@ -169,6 +169,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "savedVersion": "Your saved video",
   "downloadSaved": "Download the saved video",
   "hub.pages": "Video pages",
+  "hub.subShort": "Make reels for ads, products and social media.",
 };
 
 export default pcm;

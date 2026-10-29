@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, View, type StyleProp, type ViewStyle } fr
 import { Image } from "expo-image";
 import { initialsOf } from "@shared/identity-images";
 import { AppIcon, type AppIconName } from "@/components/icons";
-import { Card, Notice, PillButton, T } from "@/components/ui";
+import { Card, InfoTip, Notice, PillButton, T, type Tip } from "@/components/ui";
 import { useT } from "@/lib/i18n";
 import { colors, radii } from "@/theme";
 
@@ -73,10 +73,14 @@ export function LinkRow({ icon, label, hint, onPress, first, right }: { icon?: A
   );
 }
 
-export function SectionTitle({ children, action, style }: { children: ReactNode; action?: ReactNode; style?: StyleProp<ViewStyle> }) {
+/** A section heading. `tip`: what the section is for, behind an ⓘ after the words (its title defaults to them). */
+export function SectionTitle({ children, action, style, tip }: { children: ReactNode; action?: ReactNode; style?: StyleProp<ViewStyle>; tip?: Tip | null }) {
   return (
     <View style={[{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 8 }, style]}>
-      <T weight="extrabold" style={{ fontSize: 17 }} accessibilityRole="header">{children}</T>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 2, flexShrink: 1 }}>
+        <T weight="extrabold" style={{ fontSize: 17, flexShrink: 1 }} accessibilityRole="header">{children}</T>
+        {tip ? <InfoTip {...tip} title={tip.title ?? (typeof children === "string" ? children : "")} /> : null}
+      </View>
       {action}
     </View>
   );

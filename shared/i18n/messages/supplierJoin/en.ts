@@ -177,6 +177,8 @@ const en = {
   "review.state.needed": "Needed",
   "review.once": "Once verified, sellers can find your products, dropship them or buy wholesale.",
   "review.lookAround": "Look around while you wait",
+  "product.whatsappLaterTitle": "From your WhatsApp catalogue",
+  "product.whatsappLaterShort": "Have a WhatsApp catalogue? Add it all at once later.",
 } satisfies Record<string, string>;
 
 export default en;

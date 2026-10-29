@@ -624,6 +624,10 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "trySample.title": "Dán an wò kọ́kọ́",
   "trySample.body": "Paṣẹ àpẹẹrẹ 1 ní owó dropship ({price}) láti ṣàyẹ̀wò dídára rẹ̀ kí o tó tà á. Ọ̀kan fún ọjà kọ̀ọ̀kan.",
   "notice.pausedShort": "Ó dúró",
+  "trust.nearbyTitle": "Àwọn olùpèsè tó wà nítòsí rẹ",
+  "trust.nearbyShort": "Àwọn olùpèsè nítòsí {city} ló kọ́kọ́ hàn.",
+  "ws.subShort": "Ọjà tí o rà lọ́wọ́ àwọn olùpèsè.",
+  "ws.emptySubShort": "Ra ọ̀pọ̀lọpọ̀ lẹ́ẹ̀kan lọ́wọ́ olùpèsè tí a ti yẹ̀wò.",
 };
 
 export default yo;

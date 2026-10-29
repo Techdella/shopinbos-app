@@ -1,12 +1,13 @@
 import { Pressable, View } from "react-native";
 import { router } from "expo-router";
 import { naira } from "@shared/onboarding";
+import { AppearanceRow } from "@/components/AppearancePicker";
 import { BigNumber, Eyebrow, List, Row, Small, Sub, Tile } from "@/components/design";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { LanguageRow } from "@/components/LanguagePicker";
 import { orderAmount, orderItems } from "@/components/SupplierOrderRow";
 import { TabScreen } from "@/components/TabScreen";
-import { T } from "@/components/ui";
+import { T, WithTip } from "@/components/ui";
 import { upcomingPayout } from "@/lib/delivery-pure";
 import { friendlyDay } from "@/lib/friendly";
 import { useT } from "@/lib/i18n";
@@ -53,7 +54,7 @@ export default function SupplierMoney() {
       {loaded.error && !data ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} /> : null}
       {data ? (
         <>
-          <View accessible accessibilityLabel={`${f("money.toBePaid")} ${naira(data.overview.owed ?? 0)}. ${day ? f("money.paidOn", { day }) : f("money.paidNextDay")}`} style={{ backgroundColor: colors.ink, borderRadius: 24, padding: 20, gap: 8 }}>
+          <View accessible accessibilityLabel={`${f("money.toBePaid")} ${naira(data.overview.owed ?? 0)}. ${day ? f("money.paidOn", { day }) : f("money.paidNextDay")}`} style={{ backgroundColor: colors.inkFill, borderRadius: 24, padding: 20, gap: 8 }}>
             <T weight="bold" style={{ color: "rgba(255,255,255,0.72)", fontSize: 14 }}>{f("money.toBePaid")}</T>
             <BigNumber color="#FFFFFF">{naira(data.overview.owed ?? 0)}</BigNumber>
             <T weight="bold" style={{ color: "#73D8C8", fontSize: 14, lineHeight: 20 }}>{day ? f("money.paidOn", { day }) : f("money.paidNextDay")}</T>
@@ -78,7 +79,9 @@ export default function SupplierMoney() {
               onPress={bank ? () => router.push("/supplier/wallet") : editBank}
             />
           </List>
-          <Small style={{ marginTop: -6 }}>{t("money.howItMoves")}</Small>
+          <WithTip title={t("moneyCard.noteTitle")} tip={{ text: t("money.howItMoves") }} style={{ marginTop: -6 }}>
+            <Small>{t("money.howItMovesShort")}</Small>
+          </WithTip>
 
           <View style={{ gap: 10 }}>
             <Eyebrow>{t("money.recent")}</Eyebrow>
@@ -124,6 +127,7 @@ export default function SupplierMoney() {
           </List>
           <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 16, paddingVertical: 2 }}>
             <LanguageRow first />
+            <AppearanceRow />
           </View>
         </>
       ) : null}

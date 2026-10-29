@@ -57,7 +57,7 @@ export function ReferCard() {
 
   return (
     <View style={{ gap: 12 }}>
-      <View style={{ backgroundColor: colors.ink, borderRadius: 24, padding: 20, gap: 14 }}>
+      <View style={{ backgroundColor: colors.inkFill, borderRadius: 24, padding: 20, gap: 14 }}>
         <View style={{ gap: 6 }}>
           <T weight="extrabold" style={{ fontSize: 13, letterSpacing: 0.8, textTransform: "uppercase", color: "#73D8C8" }}>{t("ref.eyebrow")}</T>
           <Heading style={{ color: "#FFFFFF" }}>{t("ref.title")}</Heading>

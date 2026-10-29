@@ -52,8 +52,8 @@ const SELLER: PeggyScreen[] = [
     name: "Edit my shop",
     app: "/shop-edit",
     web: "/studio",
-    also: ["edit my shop", "edit my store", "change my shop", "shop name", "logo", "banner", "colours", "colors", "sections", "publish"],
-    about: "change the shop's name, colours, logo, banner and sections by hand, preview and publish",
+    also: ["edit my shop", "edit my store", "change my shop", "shop name", "logo", "make a logo", "banner", "build my banner", "tagline", "announcement", "announcement bar", "colours", "colors", "sections", "publish"],
+    about: "change the shop's name, tagline, colours, logo, banner (with Rex building it), announcement bar and sections, preview and publish",
   },
   { id: "products", name: "Products", app: "/products", web: "/products" },
   { id: "add_product", name: "Add a product", app: "/add-products", web: "/products/new", also: ["new product", "take a photo"] },
@@ -108,6 +108,7 @@ const SELLER: PeggyScreen[] = [
     also: ["social post", "make a social post", "new post", "create a post", "create with rex posts", "flyer", "status", "reel"],
     about: "Rex designs a social media post, flyer, status or reel",
   },
+  { id: "status_video", name: "Post a video status", app: "/status/new?kind=video", web: null, also: ["video status", "post a video"], about: "a short video (up to 30 seconds) as a 24-hour status" },
   { id: "reviews", name: "Reviews", app: "/reviews", web: "/home/reviews" },
   { id: "customers", name: "Customers", app: "/customers", web: "/home/customers" },
   // The grow screens of the Menu (canvas board M-Menu).
@@ -115,6 +116,15 @@ const SELLER: PeggyScreen[] = [
   { id: "email", name: "Email", app: "/marketing/email", web: "/home/marketing/campaigns", also: ["emails", "email campaigns", "newsletter", "send an email", "subscribers email"], about: "emails to subscribers: the ones sent and planned, and a new one Rex writes" },
   { id: "popups", name: "Popups", app: "/marketing/popups", web: "/home/marketing/forms", also: ["popup", "pop-up", "pop-ups", "sign-up popup", "collect emails"], about: "offers that show on the shop and collect emails and WhatsApp numbers" },
   { id: "domain", name: "Web address", app: "/domain", web: "/home/domain", also: ["domain"] },
+  { id: "link_in_bio", name: "Link in bio", app: "/link-in-bio", web: "/home/social/link-in-bio", also: ["bio link", "instagram bio", "tiktok bio"], about: "the one link for the Instagram, TikTok and WhatsApp bio, with Copy and Share" },
+  {
+    id: "connect_accounts",
+    name: "Connect accounts",
+    app: "/channels",
+    web: "/channels",
+    also: ["connect whatsapp", "connect instagram", "connect facebook", "sell everywhere", "channels"],
+    about: "connect WhatsApp, Facebook & Instagram and Google to the shop, all in the app",
+  },
   { id: "settings", name: "Settings", app: "/settings", web: "/home/settings" },
   { id: "help", name: "Help", app: "/help", web: "/home/peggy" },
 ];
@@ -144,6 +154,7 @@ const SUPPLIER: PeggyScreen[] = [
   { id: "create", name: "Make a post", app: "/create", web: null, also: ["social post", "make a social post", "new post", "flyer"] },
   { id: "posts", name: "Posts calendar", app: "/posts", web: null, also: ["posts", "calendar", "scheduled posts"] },
   { id: "status", name: "Post a status", app: "/status/new", web: null, also: ["status", "new status"] },
+  { id: "status_video", name: "Post a video status", app: "/status/new?kind=video", web: null, also: ["video status", "post a video"], about: "a short video (up to 30 seconds) as a 24-hour status" },
   { id: "rewards", name: "Rewards", app: "/rewards", web: null, also: ["points", "refer", "referral"] },
   { id: "help", name: "Help", app: "/help", web: null },
 ];
@@ -178,6 +189,7 @@ const PARTNER: PeggyScreen[] = [
   { id: "create", name: "Make a post", app: "/create", web: null, also: ["social post", "make a social post", "new post", "flyer"] },
   { id: "posts", name: "Posts calendar", app: "/posts", web: null, also: ["posts", "calendar", "scheduled posts"] },
   { id: "status", name: "Post a status", app: "/status/new", web: null, also: ["status", "new status"] },
+  { id: "status_video", name: "Post a video status", app: "/status/new?kind=video", web: null, also: ["video status", "post a video"], about: "a short video (up to 30 seconds) as a 24-hour status" },
   { id: "rewards", name: "Rewards", app: "/rewards", web: null, also: ["points", "refer", "referral"] },
   { id: "help", name: "Help", app: "/help", web: null },
 ];

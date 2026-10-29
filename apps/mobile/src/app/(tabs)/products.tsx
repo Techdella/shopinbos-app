@@ -5,7 +5,7 @@ import { List, Seg, Small } from "@/components/design";
 import { FilterBar, FilterGroup, FilterSheet } from "@/components/FilterBar";
 import { Screen } from "@/components/Screen";
 import { StockRow, useStockSaver } from "@/components/seller/StockRows";
-import { Chip, Notice, PillButton, T } from "@/components/ui";
+import { Chip, Notice, PillButton, T, WithTip } from "@/components/ui";
 import { categoryChips, type StoreCategory } from "@/lib/categories-pure";
 import type { ProductItem } from "@/lib/dashboard";
 import { DEFAULT_PRODUCT_QUERY, PRODUCT_SHOWS, PRODUCT_SORTS, productFilterCount, type ProductListQuery } from "@/lib/product-filters-pure";
@@ -92,7 +92,9 @@ export default function Products() {
       {query.show === "preorder" ? (
         // Pre-order products: tap one to change its ship date, limit and deposit; orders and buyers live on Pre-orders.
         <View style={{ backgroundColor: colors.surface, borderRadius: 20, borderWidth: 1, borderColor: colors.line, padding: 16, gap: 10 }}>
-          <T style={{ fontSize: 14.5, lineHeight: 21, color: colors.inkSoft }}>{t("list.preorderBar")}</T>
+          <WithTip title={t("filters.show.preorder")} tip={{ text: t("list.preorderBar") }}>
+            <T style={{ fontSize: 14.5, lineHeight: 21, color: colors.inkSoft }}>{t("list.preorderBarShort")}</T>
+          </WithTip>
           <PillButton testID="products-preorders" size="sm" tone="white" icon="clock" title={t("list.preorderManage")} onPress={() => router.push("/preorders")} />
         </View>
       ) : null}
@@ -108,7 +110,11 @@ export default function Products() {
           {products.map((product) => <StockRow key={product.id} product={product} onStock={setStock} section={query.show === "preorder" ? "preorder" : undefined} />)}
         </List>
       ) : null}
-      {products?.length ? <Small>{t("list.stockHint")}</Small> : null}
+      {products?.length ? (
+        <WithTip title={t("list.stockTipTitle")} tip={{ text: t("list.stockHint") }}>
+          <Small>{t("list.stockHintShort")}</Small>
+        </WithTip>
+      ) : null}
 
       <FilterSheet visible={sheet} onClose={() => setSheet(false)} title={t("filters.title")} doneLabel={t("filters.done")} clearLabel={t("filters.clear")} onClear={() => pick({ categoryId: "", sort: "newest" })}>
         {chips.length ? (

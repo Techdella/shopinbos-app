@@ -4,7 +4,7 @@ import { naira } from "@shared/onboarding";
 import { MARKUP_PERCENT_CHOICES, markupExample, readMarkup, type Markup } from "@shared/supplier-markup";
 import { Sheet } from "@/components/Sheet";
 import { Choice } from "@/components/design";
-import { PillButton, T } from "@/components/ui";
+import { PillButton, T, WithTip } from "@/components/ui";
 import { useT } from "@/lib/i18n";
 import { colors, fonts } from "@/theme";
 
@@ -44,10 +44,12 @@ export function MarkupPicker({ value, onChange }: { value: Pick; onChange: (next
         </View>
       ) : null}
       <View style={{ backgroundColor: colors.mintTint, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 11 }}>
-        <T weight="bold" style={{ fontSize: 14, lineHeight: 20, color: colors.forest }}>
-          {example ? t("markup.example", { cost: naira(example.cost), price: naira(example.price) }) : t("markup.amountMin")}
-        </T>
-        <T style={{ fontSize: 13, lineHeight: 18, color: colors.forest, marginTop: 2 }}>{t("markup.rounding")}</T>
+        {/* How prices round: in the tip. */}
+        <WithTip title={t("markup.roundingTitle")} tip={{ text: t("markup.rounding") }}>
+          <T weight="bold" style={{ fontSize: 14, lineHeight: 20, color: colors.forest }}>
+            {example ? t("markup.example", { cost: naira(example.cost), price: naira(example.price) }) : t("markup.amountMin")}
+          </T>
+        </WithTip>
       </View>
     </View>
   );

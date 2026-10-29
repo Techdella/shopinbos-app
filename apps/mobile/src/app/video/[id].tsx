@@ -173,7 +173,7 @@ export default function VideoDetail() {
 
       <Sheet visible={confirm} onClose={() => setConfirm(false)} title={t("delete.title")}>
         <T style={{ fontSize: 15, lineHeight: 22, color: colors.inkSoft }}>{t("delete.body", { title: row.title })}</T>
-        <PillButton title={t("delete.yes")} busy={busy === "delete"} style={{ backgroundColor: colors.danger }} onPress={() => void remove()} />
+        <PillButton title={t("delete.yes")} busy={busy === "delete"} style={{ backgroundColor: colors.dangerFill }} onPress={() => void remove()} />
         <LinkButton title={t("delete.keep")} onPress={() => setConfirm(false)} />
       </Sheet>
     </Screen>

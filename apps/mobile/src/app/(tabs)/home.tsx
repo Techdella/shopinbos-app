@@ -42,6 +42,9 @@ import { colors } from "@/theme";
 import { PushPromptCard } from "@/components/PushPromptCard";
 import { NotificationBellButton } from "@/components/NotificationBellButton";
 import { CampaignsCard } from "@/components/CampaignsCard";
+import { LinkInBioCard } from "@/components/LinkInBioCard";
+import { fetchBio } from "@/lib/paylinks";
+import type { BioPage } from "@/lib/paylinks-pure";
 import { useT } from "@/lib/i18n";
 import { realName } from "@shared/person-name";
 
@@ -120,6 +123,8 @@ export default function Home() {
   const [payout, setPayout] = useState<{ amount: number; date: string | null } | null>(null);
   const [rewards, setRewards] = useState<Rewards | null>(null);
   const [status, setStatus] = useState<StatusFeed | null>(null);
+  // The link in bio page (its link with Copy and Share, or "Set it up"); null until it loads or when it can't.
+  const [bio, setBio] = useState<BioPage | null>(null);
   const loadExtras = useCallback(
     () =>
       Promise.all([
@@ -130,6 +135,7 @@ export default function Home() {
           .catch(() => null),
         fetchRewards().then(setRewards).catch(() => null),
         fetchStatusFeed().then(setStatus).catch(() => null),
+        fetchBio().then(setBio).catch(() => null),
       ]),
     [],
   );
@@ -357,6 +363,9 @@ export default function Home() {
         </View>
         {/* A free voice call with Peggy, in the app (hidden where calls can't run). */}
         <CallPeggyButton note={false} />
+
+        {/* The seller's link in bio: Copy and Share, or set it up (onboarding/bio.tsx). */}
+        <LinkInBioCard page={bio} shopName={data?.store.name ?? ""} />
 
         {cachedAt !== null && (
           <OfflineBanner

@@ -252,6 +252,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "mine.emptyTitle": "Enweghị ngwaahịa supplier ugbu a",
   "mine.emptyBody": "Ngwaahịa ị tinyere site n'aka supplier ga-apụta ebe a, ka ị gbanwee ọtụtụ ọnụahịa otu mgbe.",
   "mine.find": "Chọta ngwaahịa",
+  "markup.roundingTitle": "Otú a si emezi ọnụahịa",
+  "product.dropshipTitle": "Otú dropship si arụ ọrụ",
+  "product.dropshipShort": "Ị naghị azụ ihe ọ bụla ugbu a. {name} ga-eziga ya mgbe onye ahịa kwụrụ ụgwọ.",
 };
 
 export default ig;

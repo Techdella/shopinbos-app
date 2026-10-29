@@ -105,11 +105,26 @@ export function elevenLabsBuiltInTools() {
     end_call: {
       type: "system",
       name: "end_call",
-      description: "End the call when they say goodbye, ask to hang up, or everything is done and they need nothing else. Save the call summary and say a short goodbye first.",
+      description:
+        "Hang up the call. Use it as soon as they say goodbye or that they're done (for example: bye, thank you that's all, nothing else, I don't have anything again, I no get anything again, na im be that, e don do), or ask you to hang up. Say one short goodbye line in the same turn, then call this straight away: never wait for them to answer your goodbye. Don't use it while they're still asking something.",
       params: { system_tool_type: "end_call" },
     },
   };
 }
+
+/**
+ * The agent's client events (conversation_config.conversation.client_events) with agent_tool_response added, so the
+ * app is told when Peggy calls end_call and closes the call at once. Null when it's already there, or when the
+ * current list is unknown (then it's left alone rather than guessed: client tools depend on it).
+ */
+export function clientEventsWithToolResponse(current: unknown): string[] | null {
+  const list = Array.isArray(current) ? current.filter((event): event is string => typeof event === "string") : [];
+  if (!list.length || list.includes("agent_tool_response")) return null;
+  return [...list, "agent_tool_response"];
+}
+
+/** Peggy's answer after save_call_summary: the summary is the last thing before goodbye, so it tells her to hang up. */
+const AFTER_SUMMARY = "If they're done, say one short goodbye now and call end_call in the same turn; if they still want something, help them first.";
 
 /** The ElevenLabs agent config for the tools (client tools: the app runs them and answers Peggy). */
 export function elevenLabsTools() {
@@ -166,6 +181,7 @@ export function toolReply(tool: string, params: unknown, role: SetupRole, saved:
   if (tool === "open_screen") return "Not opened: screens open on their phone or browser, not here. Tell them where to tap.";
   if (tool === "get_dashboard") return "I couldn't read their dashboard just now. Use what you already know.";
   if (!toolAllowed(tool, role)) return `That can't be saved for ${ROLE_WORDS[role]}. Tell them where to set it in the app instead.`;
+  if (tool === "save_call_summary") return `${saved.length ? "Summary saved." : "The summary wasn't saved, but that's fine."} ${AFTER_SUMMARY}`;
   if (saved.length) {
     const unknown = tool === "add_coverage" ? coverageTokens(p).unknown : [];
     const done = `Saved. ${saved.join(". ")}.`;

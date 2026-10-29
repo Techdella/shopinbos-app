@@ -19,7 +19,7 @@ import {
   type ProductPath,
   type SellerQuestion,
 } from "@shared/onboarding";
-import { Chip, Field, Label, LinkButton, Mascot, Notice, PillButton, T } from "@/components/ui";
+import { Chip, Field, InfoTip, Label, LinkButton, Mascot, Notice, PillButton, T } from "@/components/ui";
 import { List, Row, Tile } from "@/components/design";
 import { AppIcon, type AppIconName } from "@/components/icons";
 import { OnboardingFrame } from "@/components/OnboardingFrame";
@@ -400,9 +400,13 @@ export default function SellerQuestions() {
     forward();
   }
 
-  const title = (text: string, sub?: string) => (
+  // `tip`: the longer explanation, behind an ⓘ after the title (a step shows at most one short line).
+  const title = (text: string, sub?: string, tip?: string) => (
     <View style={{ marginBottom: 22 }}>
-      <T accessibilityRole="header" style={{ fontFamily: fonts.display, fontSize: 30, lineHeight: 34, letterSpacing: -0.6 }}>{text}</T>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+        <T accessibilityRole="header" style={{ flexShrink: 1, fontFamily: fonts.display, fontSize: 30, lineHeight: 34, letterSpacing: -0.6 }}>{text}</T>
+        {tip ? <InfoTip title={text} text={tip} size={20} /> : null}
+      </View>
       {sub ? <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21, marginTop: 8 }}>{sub}</T> : null}
     </View>
   );
@@ -498,7 +502,7 @@ export default function SellerQuestions() {
               <>
                 <Notice tone="info">{t("logo.unavailable")}</Notice>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: colors.surface, borderRadius: 20, padding: 14 }}>
-                  <View style={{ width: 64, height: 64, borderRadius: 14, backgroundColor: colors.ink, alignItems: "center", justifyContent: "center" }}>
+                  <View style={{ width: 64, height: 64, borderRadius: 14, backgroundColor: colors.inkFill, alignItems: "center", justifyContent: "center" }}>
                     <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 22 }}>{lettermark(displayName)}</T>
                   </View>
                   <T weight="bold" style={{ flex: 1, fontSize: 15 }}>{t("logo.useInitials")}</T>
@@ -612,7 +616,7 @@ export default function SellerQuestions() {
     const cardWidth = width - 72;
     body = (
       <>
-        {title(t("product.dropshipTitle"), t("product.dropshipHint"))}
+        {title(t("product.dropshipTitle"), undefined, t("product.dropshipHint"))}
         {picks === null ? (
           <T style={{ color: colors.inkSoft }}>{t("product.loading")}</T>
         ) : !picks.length ? (
@@ -676,7 +680,7 @@ export default function SellerQuestions() {
     const shown = ordered.slice(0, looksShown);
     body = (
       <>
-        {title(t("look.title"), t("look.hintLibrary", { count: library?.looks.length ?? 60 }))}
+        {title(t("look.title"), undefined, t("look.hintLibrary", { count: library?.looks.length ?? 60 }))}
         {!library ? (
           libraryFailed ? <Notice>{t("look.loadFailed")}</Notice> : <ActivityIndicator color={colors.ink} style={{ marginVertical: 24 }} />
         ) : (
@@ -702,7 +706,7 @@ export default function SellerQuestions() {
                     >
                       <MiniShop look={look} height={190} storeName={displayName} />
                       {selected ? (
-                        <View style={{ position: "absolute", left: 6, top: 30, flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3, backgroundColor: colors.ink }}>
+                        <View style={{ position: "absolute", left: 6, top: 30, flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3, backgroundColor: colors.inkFill }}>
                           <AppIcon name="check" size={11} color="#FFFFFF" strokeWidth={2.6} />
                           <T weight="bold" style={{ fontSize: 11, color: "#FFFFFF" }}>{t("look.selected")}</T>
                         </View>
@@ -766,7 +770,7 @@ export default function SellerQuestions() {
   if (question === "address") {
     body = (
       <>
-        {title(t("address.title"))}
+        {title(t("address.title"), undefined, t("address.noRush"))}
         <View style={{ gap: 12 }}>
           {choice("free", t("address.free"), t("address.freeHint"), "globe", addressChoice === "free", () => setAddressChoice("free"))}
           {addressChoice === "free" ? (
@@ -781,7 +785,6 @@ export default function SellerQuestions() {
           {choice("have", t("address.have"), t("address.haveHint"), "link", addressChoice === "have", () => setAddressChoice("have"))}
           {addressChoice === "have" ? <Notice tone="info">{t("address.haveNote")}</Notice> : null}
         </View>
-        {addressChoice === "free" ? <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20, marginTop: 16 }}>{t("address.noRush")}</T> : null}
       </>
     );
     footer = (
@@ -827,7 +830,8 @@ export default function SellerQuestions() {
       <>{title(liveProblem ? t("live.notYet", { reason: liveProblem }) : t("live.publishing"))}</>
     );
     footer = live ? (
-      <PillButton title={t("live.home")} busy={busy} onPress={() => void finish()} />
+      // Next: the link in bio step (onboarding/bio.tsx), which finishes onboarding and opens Home (skippable).
+      <PillButton testID="live-continue" title={t("live.home")} busy={busy} onPress={() => router.push("/onboarding/bio")} />
     ) : liveProblem ? (
       <PillButton title={t("live.retry")} busy={busy} onPress={() => void goLive()} />
     ) : null;

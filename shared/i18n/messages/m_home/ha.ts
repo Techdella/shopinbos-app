@@ -124,6 +124,17 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "create.popupSub": "Tayi a shagonka mai tara imel da lambobin WhatsApp",
   "needs.allOrders": "Duk oda",
   "fromPeggy": "Daga Peggy",
+  "linkBio.title": "Link in bio",
+  "linkBio.edit": "Gyara",
+  "linkBio.setupTitle": "Yi link in bio ɗinka",
+  "linkBio.setupSub": "Link ɗaya don bio na Instagram da TikTok ɗinka: shagonka, WhatsApp da social ɗinka.",
+  "linkBio.setup": "Saita shi",
+  "linkBio.live": "Yana aiki · saka shi a bio ɗinka",
+  "linkBio.off": "A ɓoye yake · kunna shi a Gyara",
+  "linkBio.copy": "Kwafa",
+  "linkBio.copied": "An kwafa",
+  "linkBio.share": "Raba",
+  "linkBio.shareMessage": "Yi siyayya a {name}: {url}",
 };
 
 export default ha;
