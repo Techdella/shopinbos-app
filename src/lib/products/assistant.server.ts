@@ -11,6 +11,7 @@ import {
 } from "@shared/product-assistant";
 import { ProductSuggestionSchema, type ProductAssistantRequest } from "@shared/product-variants-schema";
 import { normalizeVariants } from "@shared/product-variants";
+import { peggyExampleEn, sizesFit } from "@shared/peggy-opener";
 
 // Peggy's product assistant: the seller's words (and maybe a photo) plus the form as it is now, in; proposed form
 // changes out, as structured JSON checked with zod (ProductSuggestionSchema). Nothing is saved here: the form shows
@@ -67,7 +68,11 @@ export async function suggestProductChanges(input: ProductAssistantRequest): Pro
   }
   if (!suggestion) {
     return {
-      message: result ? "I couldn't work that out. Try something like: sizes S, M, L, XL in red and black, XL costs ₦2,000 more." : "I can't reach my brain just now. Try again in a moment, or tell me sizes and prices like: S, M, L, XL, XL costs ₦2,000 more.",
+      message: result
+        ? `I couldn't work that out. Try something like: ${peggyExampleEn(state.productType)}.`
+        : sizesFit(state.productType)
+          ? "I can't reach my brain just now. Try again in a moment, or tell me sizes and prices like: S, M, L, XL, XL costs ₦2,000 more."
+          : "I can't reach my brain just now. Try again in a moment.",
       suggestion: null,
       changes: [],
       source: "none",
