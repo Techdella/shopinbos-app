@@ -66,6 +66,7 @@ export const ACCESS_ACTION_LABELS: Record<string, string> = {
   reveal_contact: "Viewed contact details",
   suspend_store: "Paused the shop",
   restore_store: "Restored the shop",
+  whatsapp_notice: "Sent a notice to their WhatsApp",
   approve_story: "Approved their story for the tips",
   reject_story: "Decided not to use their story",
 };
