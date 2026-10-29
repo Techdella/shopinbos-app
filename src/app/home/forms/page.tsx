@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { requireRole } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
-import { buildStorefrontUrl } from "@/lib/domains/storefront";
+import { liveStoreHref } from "@/lib/domains/storefront";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { EmptyState, FilterChips, ListCard, Pill, PillLink, StatGrid, StatTile } from "@/components/app-kit";
 import { Icon } from "@/components/ui/Icon";
@@ -83,7 +83,7 @@ export default async function SellerFormSubmissionsPage({ searchParams }: { sear
         <>
           <PillLink href="/home/messages" icon="chat" tone="ink">{t("forms.reply")}</PillLink>
           <PillLink href="/home/marketing/forms" icon="settings" iconOnlyOnPhone>{t("forms.manage")}</PillLink>
-          <PillLink href={store.status === "active" || store.status === "published" ? buildStorefrontUrl(store) : `/s/${store.slug}`} icon="globe" iconOnlyOnPhone>{t("forms.viewStore")}</PillLink>
+          <PillLink href={liveStoreHref(store)} icon="globe" iconOnlyOnPhone>{t("forms.viewStore")}</PillLink>
         </>
       }
     >

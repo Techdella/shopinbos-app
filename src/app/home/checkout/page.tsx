@@ -2,7 +2,7 @@ import { requireRole } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { PillLink } from "@/components/app-kit";
-import { buildDirectStorefrontPath } from "@/lib/domains/storefront";
+import { liveStoreHref } from "@/lib/domains/storefront";
 import { checkoutPaymentOptions, checkoutPaymentSettings, paystackSecretReady } from "@shared/checkout-payments";
 import { readCheckoutSettings } from "@shared/cart-checkout";
 import { storeTakesCards, storeTakesKorapay } from "@/lib/wallet/wallet.server";
@@ -27,6 +27,8 @@ export default async function CheckoutPage() {
       id: true,
       name: true,
       slug: true,
+      customDomain: true,
+      status: true,
       logoUrl: true,
       brandSettings: true,
       checkoutConfig: { select: { requirePhone: true, enableNotes: true, enableGiftNote: true, enableCoupon: true, enableUpsells: true, enableTrustBadges: true, upsellProducts: true } },
@@ -54,7 +56,7 @@ export default async function CheckoutPage() {
       store={storeSummary(store)}
       title={t("co.title")}
       sub={t("co.sub")}
-      actions={store ? <PillLink href={buildDirectStorefrontPath(store.slug, "/checkout")} icon="eye">{t("co.see")}</PillLink> : undefined}
+      actions={store ? <PillLink href={liveStoreHref(store, "/checkout")} icon="eye">{t("co.see")}</PillLink> : undefined}
     >
       <PageTip className="mb-5">{tipT("checkout")}</PageTip>
       <CheckoutSettings
