@@ -1,17 +1,14 @@
 import * as ImagePicker from "expo-image-picker";
-import { api } from "./api";
+import { uploadOnePhoto, type PhotoInput } from "./upload-photo";
 
 // Photos from the camera or the gallery, uploaded through the web's own upload route (POST /api/upload, which
-// stores them in the shop's media library). Used by Rex's chat (attach photos to a message) and Edit my shop
-// (logo and banner pictures).
+// stores them in the shop's media library). Used by Rex's chat (attach photos to a message), Edit my shop (logo and
+// banner pictures) and onboarding (logo, first product photo). Shrunk on the phone first (lib/upload-photo.ts).
 
 export type PhotoSource = "camera" | "library";
 
-export interface PickedPhoto {
-  uri: string;
-  mimeType?: string | null;
-  fileName?: string | null;
-}
+/** A picked photo (ImagePicker assets fit: their size and dimensions help shrink it before sending). */
+export type PickedPhoto = PhotoInput;
 
 /** The photos picked (none when cancelled), or "denied" when the phone's permission is off. */
 export async function pickPhotos(source: PhotoSource, max = 1): Promise<PickedPhoto[] | "denied"> {
@@ -25,13 +22,11 @@ export async function pickPhotos(source: PhotoSource, max = 1): Promise<PickedPh
   return result.assets.slice(0, Math.max(1, max));
 }
 
-/** Uploads one photo; "store-banners" for Rex and banners, "brand" for a logo. Returns its public https address. */
+/**
+ * Uploads one photo; "store-banners" for Rex and banners, "brand" for a logo (kept see-through), "products" for a
+ * product. Returns its public https address.
+ */
 export async function uploadPhoto(photo: PickedPhoto, folder: "store-banners" | "brand" | "products" = "store-banners") {
-  const form = new FormData();
-  const type = photo.mimeType ?? "image/jpeg";
-  // React Native's FormData takes { uri, name, type } file parts.
-  form.append("file", { uri: photo.uri, name: photo.fileName ?? `photo.${type.split("/")[1] ?? "jpg"}`, type } as unknown as Blob);
-  form.append("folder", folder);
-  const data = await api<{ publicUrl: string }>("/api/upload", { method: "POST", body: form });
+  const data = await uploadOnePhoto<{ publicUrl: string }>("/api/upload", photo, { folder }, { base: folder === "products" ? "product" : "photo", keepTransparency: folder === "brand" });
   return data.publicUrl;
 }

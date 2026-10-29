@@ -313,7 +313,7 @@ export default function EditProductScreen() {
     setUploading(result.assets.length);
     try {
       for (const asset of result.assets) {
-        const url = await uploadProductPhoto({ uri: asset.uri, mimeType: asset.mimeType, fileName: asset.fileName });
+        const url = await uploadProductPhoto({ uri: asset.uri, mimeType: asset.mimeType, fileName: asset.fileName, width: asset.width, height: asset.height, fileSize: asset.fileSize });
         setForm((current) => (current ? { ...current, images: [...current.images, url] } : current));
         setSaved(false);
         setUploading((count) => Math.max(0, count - 1));

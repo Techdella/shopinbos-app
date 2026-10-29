@@ -28,6 +28,7 @@ import { Field, LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { LIVENESS_ON, useKoraLiveness, type LivenessPass } from "@/components/kyc/KoraLiveness";
 import { useT } from "@/lib/i18n";
 import { birthDate, selfieDataUri } from "@/lib/kyc-pure";
+import { shrunkBase64 } from "@/lib/upload-photo";
 import { openSupportWhatsApp } from "@/lib/support";
 import {
   addFirstSupplierProduct,
@@ -64,7 +65,8 @@ async function takePhoto(front: boolean): Promise<Picked | "denied" | "big" | nu
   const result = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], cameraType: front ? ImagePicker.CameraType.front : ImagePicker.CameraType.back, allowsEditing: front, ...(front ? { aspect: [1, 1] as [number, number] } : {}), quality: front ? 0.35 : 0.45, base64: true });
   if (result.canceled || !result.assets?.[0]) return null;
   const asset = result.assets[0];
-  const dataUri = selfieDataUri(asset.base64, asset.mimeType);
+  // Too big as taken (a high-resolution camera): shrink it on the phone and try again.
+  const dataUri = selfieDataUri(asset.base64, asset.mimeType) ?? selfieDataUri(await shrunkBase64(asset), "image/jpeg");
   return dataUri ? { uri: asset.uri, dataUri } : "big";
 }
 

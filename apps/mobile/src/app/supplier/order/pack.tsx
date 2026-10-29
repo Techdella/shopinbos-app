@@ -79,7 +79,7 @@ export default function PackScreen() {
     setBusy(which);
     setError(null);
     try {
-      const url = await uploadMediaPhoto({ uri: asset.uri, mimeType: asset.mimeType, fileName: asset.fileName });
+      const url = await uploadMediaPhoto({ uri: asset.uri, mimeType: asset.mimeType, fileName: asset.fileName, width: asset.width, height: asset.height, fileSize: asset.fileSize });
       setPack(await savePack(view.orderId, which === "contents" ? { contentsPhotoUrl: url } : { photoUrl: url }, kind));
     } catch (photoError) {
       setError(photoError instanceof Error ? photoError.message : words("pack.photoFailed", "The photo didn't upload. Try again."));

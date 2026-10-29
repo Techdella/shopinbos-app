@@ -180,7 +180,7 @@ function Studio({ products, project, startPurpose, startProduct }: { products: S
     setStep("photos");
     try {
       for (const asset of result.assets.slice(0, room)) {
-        const url = await uploadProductPhoto({ uri: asset.uri, mimeType: asset.mimeType, fileName: asset.fileName });
+        const url = await uploadProductPhoto({ uri: asset.uri, mimeType: asset.mimeType, fileName: asset.fileName, width: asset.width, height: asset.height, fileSize: asset.fileSize });
         update((current) => ({ ...current, photos: addPhotos(current.photos, [url]) }));
       }
     } catch (error) {

@@ -2,11 +2,14 @@ import { API_URL, ApiError, api, authHeader, phoneMessage } from "./api";
 import { tNow } from "./app-locale";
 import { BULK_UPLOAD_CONCURRENCY, type BulkAsk, type BulkEvent, type BulkGroupSuggestion, type BulkItem, type BulkRole, type BulkSummary } from "@shared/bulk-products";
 import { createUploadQueue, newClientKey, type UploadQueue, type UploadTask } from "@shared/bulk-upload-queue";
+import { filePart, preparePhoto } from "./upload-photo";
+import { uploadProblem } from "./upload-photo-pure";
 
 // "Add many with Peggy" on the phone (app/bulk-add.tsx): the calls to /api/mobile/bulk-products and the photo upload
 // queue. The queue lives here, at module level, one per session: leaving the screen doesn't stop it, and the photos
 // still waiting are kept on the phone, so opening the screen again (even after the app was closed) carries on.
-// Photos are compressed by the picker (quality 0.6) and resized on the server (src/lib/products/bulk/vision.server.ts).
+// Photos are shrunk on the phone before sending (lib/upload-photo.ts) and resized again for the AI on the server
+// (src/lib/products/bulk/vision.server.ts).
 
 export interface BulkSession {
   id: string;
@@ -51,10 +54,11 @@ export interface PhoneTask extends UploadTask {
 
 async function uploadOne(sessionId: string, task: PhoneTask, onProgress: (fraction: number) => void) {
   const headers = await authHeader();
+  // Shrunk on the phone first (a camera photo can be over the ~4.5 MB upload limit); the original name is kept.
+  const ready = await preparePhoto({ uri: task.uri, mimeType: task.mimeType, fileName: task.fileName }, { base: "photo" });
   await new Promise<void>((resolve, reject) => {
     const form = new FormData();
-    // React Native's FormData takes { uri, name, type } file parts.
-    form.append("file", { uri: task.uri, name: task.fileName ?? "photo.jpg", type: task.mimeType } as unknown as Blob);
+    form.append("file", filePart(ready));
     form.append("clientKey", task.clientKey);
     if (task.fileName) form.append("fileName", task.fileName);
     const xhr = new XMLHttpRequest();
@@ -72,7 +76,8 @@ async function uploadOne(sessionId: string, task: PhoneTask, onProgress: (fracti
       }
       reject(new ApiError(phoneMessage(error?.message, xhr.status, error?.code), xhr.status, error?.code));
     };
-    xhr.onerror = () => reject(new ApiError(tNow("m_ui")("error.offline"), 0));
+    // No answer: offline, unless the body was too big to be taken (then it's final, not retried).
+    xhr.onerror = () => reject(uploadProblem(0, ready.bytes) === "tooBig" ? new ApiError(tNow("m_ui")("error.tooBig"), 413) : new ApiError(tNow("m_ui")("error.offline"), 0));
     xhr.send(form);
   });
 }

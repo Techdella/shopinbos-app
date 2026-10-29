@@ -1,6 +1,8 @@
 import type { VerificationDoc } from "@shared/verification-docs";
 import type { TakingBlock } from "@shared/taking-jobs";
 import { api, apiBody } from "./api";
+import { uploadOnePhoto, type PhotoInput } from "./upload-photo";
+import { DOC_MAX_SIDE } from "./upload-photo-pure";
 
 // The delivery partner (dispatch) side of the app: /api/mobile/logistics/** on the web backend, made for the app
 // with the same job rules as the web dispatch console, plus /api/logistics/me (the portal's own API).
@@ -105,12 +107,8 @@ export type JobAction =
 
 export const moveJob = (id: string, body: JobAction) => api<{ job: Job | null }>(`/api/mobile/logistics/jobs/${encodeURIComponent(id)}`, { method: "POST", json: body });
 
-export function uploadJobProof(id: string, photo: { uri: string; mimeType?: string | null; fileName?: string | null }) {
-  const form = new FormData();
-  const type = photo.mimeType ?? "image/jpeg";
-  // React Native's FormData takes { uri, name, type } file parts.
-  form.append("file", { uri: photo.uri, name: photo.fileName ?? `proof.${type.split("/")[1] ?? "jpg"}`, type } as unknown as Blob);
-  return api<{ proofUrl: string }>(`/api/mobile/logistics/jobs/${encodeURIComponent(id)}/proof`, { method: "POST", body: form });
+export function uploadJobProof(id: string, photo: PhotoInput) {
+  return uploadOnePhoto<{ proofUrl: string }>(`/api/mobile/logistics/jobs/${encodeURIComponent(id)}/proof`, photo, {}, { base: "proof" });
 }
 
 export interface RiderRow {
@@ -340,13 +338,18 @@ export const finishOnboarding = (input: { displayName?: string; coverageZones: s
   api<unknown>("/api/logistics/onboarding", { method: "PATCH", json: { ...input, pricingModel: "fixed", completed: true } });
 
 /** Upload one verification document (a photo) for the company, with the existing document types. */
-export async function uploadVerificationDoc(docType: string, file: { uri: string; mimeType?: string | null; fileName?: string | null }) {
-  const form = new FormData();
-  const type = file.mimeType ?? "image/jpeg";
-  const ext = type === "application/pdf" ? "pdf" : type.split("/")[1] === "jpeg" ? "jpg" : (type.split("/")[1] ?? "jpg");
-  form.append("docType", docType);
-  form.append("file", { uri: file.uri, name: file.fileName ?? `${docType}.${ext}`, type } as unknown as Blob);
-  const result = await apiBody<{ success?: boolean; error?: string }>("/api/logistics/verification/upload", { method: "POST", body: form });
+export async function uploadVerificationDoc(docType: string, file: PhotoInput) {
+  const path = "/api/logistics/verification/upload";
+  let result: { success?: boolean; error?: string };
+  if (file.mimeType === "application/pdf") {
+    const form = new FormData();
+    form.append("docType", docType);
+    form.append("file", { uri: file.uri, name: file.fileName ?? `${docType}.pdf`, type: file.mimeType } as unknown as Blob);
+    result = await apiBody<{ success?: boolean; error?: string }>(path, { method: "POST", body: form });
+  } else {
+    // A photo of a document: shrunk less than product photos, so the writing stays readable.
+    result = await uploadOnePhoto<{ success?: boolean; error?: string }>(path, file, { docType }, { base: docType, maxSide: DOC_MAX_SIDE, envelope: "body" });
+  }
   if (result.success === false) throw new Error(result.error || "");
   return result;
 }
