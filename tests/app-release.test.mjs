@@ -95,7 +95,11 @@ test("API route: public, rate limited, CORS and short caching; admin page logs c
   assert.match(server, /platformSettingChange\.create/);
   const page = read("src/app/admin/app-release/page.tsx");
   assert.match(page, /requireAdminSection\("developers"\)/);
-  assert.match(read("src/components/admin/AppReleaseAdmin.tsx"), /Set the latest build only after the version is live on Google Play\./);
+  assert.match(page, /getAppRelease\("android"\)[\s\S]*getAppRelease\("ios"\)/);
+  const admin = read("src/components/admin/AppReleaseAdmin.tsx");
+  assert.match(admin, /Set the latest build only after the version is live on \{info\.store\}\./);
+  assert.match(admin, /<PlatformCard platform="android"[\s\S]*<PlatformCard platform="ios"/);
+  assert.match(admin, /name="platform" value=\{platform\}/);
   assert.match(read("src/app/actions/app-release.ts"), /requireAdminSection\("developers"\)/);
 });
 
@@ -119,8 +123,15 @@ test("phone app: the prompt is mounted, waits for launch and calls, and reads th
   assert.match(read("apps/mobile/package.json"), /"expo-application"/);
 });
 
+test("phone app: iPhones ask only when the build knows its App Store link", () => {
+  const lib = read("apps/mobile/src/lib/app-update.ts");
+  assert.match(lib, /EXPO_PUBLIC_IOS_APP_STORE_URL/);
+  assert.match(lib, /Platform\.OS === "ios" && storeUrls\("ios", IOS_STORE_URL\)\.length/);
+  assert.match(lib, /"update\.storeFailedIos"/);
+});
+
 test("the update words are in every language", () => {
-  const keys = ["update.title", "update.body", "update.now", "update.later", "update.requiredTitle", "update.requiredBody", "update.help", "update.storeFailed"];
+  const keys = ["update.title", "update.body", "update.now", "update.later", "update.requiredTitle", "update.requiredBody", "update.help", "update.storeFailed", "update.storeFailedIos"];
   for (const locale of ["en", "pcm", "yo", "ha", "ig"]) {
     for (const key of keys) assert.ok(CATALOGS.m_ui[locale]?.[key], `${locale} m_ui ${key}`);
   }

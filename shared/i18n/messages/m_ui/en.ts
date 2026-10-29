@@ -264,6 +264,7 @@ const en = {
   "update.requiredBody": "This version of the app is too old to work. Update it from Google Play. It takes a minute, and your shop and everything in it stay as they are.",
   "update.help": "Need help? Contact us",
   "update.storeFailed": "We couldn't open Google Play. Open the Play Store app and search for Shopinbos.",
+  "update.storeFailedIos": "We couldn't open the App Store. Open the App Store app and search for Shopinbos.",
 } satisfies Record<string, string>;
 
 export default en;

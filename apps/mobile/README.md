@@ -43,7 +43,8 @@ Native folders are generated (Continuous Native Generation), so don't commit `io
 2. Add the app's settings as EAS environment variables in the `preview` and `production` environments, which `eas.json` maps to each profile: `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`, `EXPO_PUBLIC_SUPPORT_WHATSAPP`.
 3. `npx eas-cli@latest build --profile preview` builds an installable test app: an APK for Android, ad hoc for registered iPhones. `--profile simulator` builds for the iOS simulator. `--profile production` builds for the stores, and the build number goes up by itself.
 4. `npx eas-cli@latest credentials` sets up the APNs key (iOS push) and the FCM key (Android push), which Expo's push service needs.
-5. `npx eas-cli@latest submit --profile production` uploads to App Store Connect / Google Play. App ids are `com.shopinbos.app` on both platforms, and the deep-link scheme is `shopinbos`.
+5. `npx eas-cli@latest submit --profile production` uploads to App Store Connect / Google Play. App ids are `com.shopinbos.app` on both platforms, and the deep-link scheme is `shopinbos`. The App Store steps (app record, Team ID, TestFlight, listing) are in `docs/app-store/README.md`.
+6. iPhone universal links: app.shopinbos.com pages listed in `shared/app-links.ts` open the app (`src/app/+native-intent.tsx` picks the screen). They need `APPLE_TEAM_ID` on Vercel.
 
 This folder is outside the web app's TypeScript project and its Next.js build. Vercel only installs the root package.
 

@@ -16,7 +16,7 @@ import { availablePromptDue, releaseCheckDue, updateState, type AppRelease } fro
 
 // "A new version of Shopinbos is ready" (shared/app-release.ts; set in Admin › App updates). Mounted once in the
 // root layout. Asks on launch and when the app comes back to the front (at most once an hour):
-//   available → a bottom sheet with "Update now" (opens Google Play) and "Later" (asks again in 3 days, or for a newer build)
+//   available → a bottom sheet with "Update now" (opens Google Play or the App Store) and "Later" (asks again in 3 days, or for a newer build)
 //   required  → a full-screen view with only "Update now" and a way to contact us: this build is too old to work.
 // Never during the launch screen, a Peggy call or Home's first tour, and never in the way when the request fails (offline: nothing).
 

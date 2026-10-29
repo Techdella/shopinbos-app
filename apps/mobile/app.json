@@ -10,6 +10,10 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.shopinbos.app",
+      "associatedDomains": [
+        "applinks:app.shopinbos.com",
+        "webcredentials:app.shopinbos.com"
+      ],
       "infoPlist": {
         "NSCameraUsageDescription": "Take photos of your products and proof of delivery, and check your face when you verify your identity.",
         "NSPhotoLibraryUsageDescription": "Choose product photos so Rex can list them in your shop.",
