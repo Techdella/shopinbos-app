@@ -36,3 +36,6 @@ CREATE INDEX IF NOT EXISTS "OrderRefund_retailOrderId_idx" ON "OrderRefund" ("re
 CREATE INDEX IF NOT EXISTS "OrderRefund_storeId_status_idx" ON "OrderRefund" ("storeId", "status");
 CREATE INDEX IF NOT EXISTS "OrderRefund_status_updatedAt_idx" ON "OrderRefund" ("status", "updatedAt");
 
+
+-- No access through the Supabase API (it holds customers' bank account numbers); the app reads it through Prisma.
+ALTER TABLE "OrderRefund" ENABLE ROW LEVEL SECURITY;
