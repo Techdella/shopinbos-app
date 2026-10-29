@@ -201,6 +201,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "link.subShort": "Paste the private link wey your company send you.",
   "link.privateShort": "No show anybody this link.",
   "signIn.linkHintShort": "Use the number wey your company take add you.",
+  "welcome.subShort": "You go dey get delivery jobs here.",
 };
 
 export default pcm;

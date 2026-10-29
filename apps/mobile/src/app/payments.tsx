@@ -7,7 +7,7 @@ import { cleanPaymentBadges, PAYMENT_BADGE_KEYS, PAYMENT_BADGE_LABELS, type Badg
 import { AppIcon } from "@/components/icons";
 import { Badge, ErrorState, LinkRow, LoadingBlock, SectionTitle } from "@/components/kit";
 import { Screen } from "@/components/Screen";
-import { Card, Chip, Field, Label, LinkButton, Notice, PillButton, T, Toggle } from "@/components/ui";
+import { Card, Chip, Field, Label, LinkButton, Notice, PillButton, T, Toggle, WithTip } from "@/components/ui";
 import { ApiError } from "@/lib/api";
 import { TONE_COLORS } from "@/lib/dashboard";
 import { friendlyTime } from "@/lib/friendly";
@@ -136,7 +136,7 @@ export default function Payments() {
         <PillButton title={bank ? t("money.changeBank") : t("money.addBank")} tone={bank ? "white" : "ink"} size="md" onPress={() => setBankOpen(true)} />
       </Card>
 
-      <SectionTitle action={saving ? <T style={{ color: colors.inkSoft, fontSize: 14 }}>{t("saving")}</T> : undefined}>{t("money.ways")}</SectionTitle>
+      <SectionTitle tip={{ text: t("money.methodsNote") }} action={saving ? <T style={{ color: colors.inkSoft, fontSize: 14 }}>{t("saving")}</T> : undefined}>{t("money.ways")}</SectionTitle>
       <Card style={{ paddingVertical: 2 }}>
         {/* A way to pay the server says can't reach checkout at all ("hidden") isn't offered. */}
         {PAYMENT_METHODS.filter((method) => data.states?.[method.key] !== "hidden").map((method, index) => {
@@ -166,8 +166,9 @@ export default function Payments() {
       </Card>
       {data.methods.transfer ? (
         <Card style={{ gap: 10 }}>
-          <T weight="bold" style={{ fontSize: 15.5 }}>{t("money.window")}</T>
-          <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 19 }}>{t("money.windowHint")}</T>
+          <WithTip title={t("money.window")} tip={{ text: t("money.windowHint") }}>
+            <T weight="bold" style={{ fontSize: 15.5 }}>{t("money.window")}</T>
+          </WithTip>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             <Chip label={t("money.windowDefault", { label: hoursLabel(data.transferWindow.defaultHours, t) })} on={data.transferWindow.hours === null} onPress={() => setWindow(null)} />
             {data.transferWindow.choices
@@ -178,11 +179,9 @@ export default function Payments() {
           </View>
         </Card>
       ) : null}
-      <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{t("money.methodsNote")}</T>
 
-      <SectionTitle>{t("money.badgesTitle")}</SectionTitle>
+      <SectionTitle tip={{ text: t("money.badgesHint") }}>{t("money.badgesTitle")}</SectionTitle>
       <Card style={{ gap: 12 }}>
-        <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{t("money.badgesHint")}</T>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
           {PAYMENT_BADGE_KEYS.map((badge) => (
             <Chip

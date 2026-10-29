@@ -187,6 +187,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "bio.where": "Instagram: Edit profile, lẹ́yìn náà Links. TikTok: Edit profile, lẹ́yìn náà Website. WhatsApp Business: Business profile, lẹ́yìn náà Website.",
   "bio.done": "Lọ sí ṣọ́ọ̀bù mi",
   "pay.bankLaterShort": "O lè fi bánkì rẹ kún un nígbà míì.",
+  "start.subShort": "Ṣètò ṣọ́ọ̀bù rẹ láti bẹ̀rẹ̀ sí tà.",
 };
 
 export default yo;

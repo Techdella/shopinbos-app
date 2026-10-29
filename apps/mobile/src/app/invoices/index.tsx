@@ -27,7 +27,7 @@ export default function Invoices() {
   const data = loaded.data;
 
   return (
-    <Screen title={t("inv.title")} sub={t("inv.sub")} refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
+    <Screen title={t("inv.title")} sub={t("inv.subShort")} tip={t("inv.sub")} refreshing={loaded.refreshing} onRefresh={() => void loaded.refresh()}>
       <PillButton testID="new-invoice" onPress={() => router.push("/invoices/new")} accessibilityLabel={t("inv.new")} icon="plus" title={t("inv.new")} />
 
       {loaded.loading && !data ? <LoadingBlock /> : null}

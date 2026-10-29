@@ -209,6 +209,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "bal.accountSettingUp": "À ń ṣẹ̀dá nọ́mbà àkáǹtì wallet rẹ. Yóò hàn níbí láàárín ìṣẹ́jú díẹ̀.",
   "bal.copy": "Daakọ",
   "bal.copied": "A ti daakọ",
+  "inv.subShort": "Àwọn invoice fún àwọn order rẹ, tí o fi ránṣẹ́ àti tí o gbà.",
 };
 
 export default yo;

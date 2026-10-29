@@ -192,6 +192,7 @@ const en = {
   "bio.where": "Instagram: Edit profile, then Links. TikTok: Edit profile, then Website. WhatsApp Business: Business profile, then Website.",
   "bio.done": "Go to my shop",
   "pay.bankLaterShort": "You can add your bank later.",
+  "start.subShort": "Get your shop ready to sell.",
 } satisfies Record<string, string>;
 
 export default en;

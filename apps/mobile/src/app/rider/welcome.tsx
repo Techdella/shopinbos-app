@@ -3,7 +3,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Eyebrow, Sub, Title } from "@/components/design";
 import { Center, RiderBadge } from "@/components/RiderKit";
-import { PillButton } from "@/components/ui";
+import { PillButton, WithTip } from "@/components/ui";
 import { firstName, initials } from "@/lib/rider-pure";
 import { useRiderStrings } from "@/lib/rider-strings";
 import { colors } from "@/theme";
@@ -22,7 +22,9 @@ export default function RiderWelcome() {
           <RiderBadge label={initials(company)} size={96} />
           <Eyebrow>{say("welcome.hi", { name: firstName(params.name) ?? "" })}</Eyebrow>
           <Title style={{ textAlign: "center" }}>{say("welcome.title", { company })}</Title>
-          <Sub style={{ textAlign: "center" }}>{say("welcome.sub")}</Sub>
+          <WithTip title={say("welcome.title", { company })} tip={{ text: say("welcome.sub") }} style={{ justifyContent: "center" }}>
+            <Sub style={{ textAlign: "center" }}>{say("welcome.subShort")}</Sub>
+          </WithTip>
         </Center>
       </ScrollView>
       <View style={{ paddingHorizontal: 20, paddingBottom: 12, paddingTop: 10 }}>

@@ -88,7 +88,7 @@ export default function StartHere() {
   }
 
   return (
-    <Screen title={t("start.title")} sub={t("start.sub")} refreshing={setup.refreshing} onRefresh={() => void setup.refresh()}>
+    <Screen title={t("start.title")} sub={t("start.subShort")} tip={t("start.sub")} refreshing={setup.refreshing} onRefresh={() => void setup.refresh()}>
       {setup.loading && !data ? <LoadingBlock /> : null}
       {setup.error && !data ? <ErrorState message={setup.error} onRetry={() => void setup.reload()} /> : null}
       {error ? <Notice>{error}</Notice> : null}

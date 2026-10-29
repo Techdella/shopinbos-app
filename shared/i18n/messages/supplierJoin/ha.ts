@@ -166,6 +166,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "review.state.needed": "Ana bukata",
   "review.once": "Da zarar an tabbatar da kai, masu sayarwa za su iya samun kayanka, su yi dropship ko su saya da yawa.",
   "review.lookAround": "Duba ko'ina yayin da kake jira",
+  "product.whatsappLaterTitle": "Daga katalogin WhatsApp ɗinka",
+  "product.whatsappLaterShort": "Kana da katalogin WhatsApp? Ƙara duka lokaci guda daga baya.",
 };
 
 export default ha;

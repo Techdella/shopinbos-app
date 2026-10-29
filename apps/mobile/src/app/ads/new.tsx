@@ -267,8 +267,7 @@ export default function NewAdCampaign() {
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             {(["all", "women", "men"] as const).map((value) => <Chip key={value} label={t(`c.gender.${value}`)} on={audience.gender === value} onPress={() => setAudience((a) => ({ ...a, gender: value }))} />)}
           </View>
-          <Label>{t("c.interests")}</Label>
-          <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{t("c.interestsHint")}</T>
+          <Label tip={{ text: t("c.interestsHint") }}>{t("c.interests")}</Label>
           <View style={{ flexDirection: "row", gap: 8 }}>
             <Field
               style={{ flex: 1 }}

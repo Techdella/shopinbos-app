@@ -209,6 +209,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "bal.accountSettingUp": "Ana ƙirƙirar lambar asusun walat ɗinka. Za ta bayyana a nan cikin ƴan mintuna.",
   "bal.copy": "Kwafa",
   "bal.copied": "An kwafa",
+  "inv.subShort": "Invoices na odarka, waɗanda ka aika da waɗanda ka karɓa.",
 };
 
 export default ha;

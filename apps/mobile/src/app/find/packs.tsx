@@ -6,7 +6,7 @@ import { markupLabel } from "@shared/supplier-markup";
 import { Badge, EmptyState, ErrorState, LoadingBlock } from "@/components/kit";
 import { ListScreen, PackCard } from "@/components/seller/FindKit";
 import { useQuickAdd } from "@/components/seller/QuickAdd";
-import { Card, LinkButton, PillButton, T } from "@/components/ui";
+import { Card, InfoTip, LinkButton, PillButton, T } from "@/components/ui";
 import { fetchPacks, type PackItem, type StarterPack } from "@/lib/quick-add";
 import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
@@ -63,8 +63,10 @@ export default function StarterPacks() {
         keyExtractor={(entry) => entry.id}
         ListHeaderComponent={
           <View style={{ gap: 10, paddingBottom: 4 }}>
-            <T style={{ fontFamily: fonts.display, fontSize: 28, lineHeight: 32 }}>{t("packs.pageTitle")}</T>
-            <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>{t("packs.pageSub")}</T>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <T style={{ flexShrink: 1, fontFamily: fonts.display, fontSize: 28, lineHeight: 32 }}>{t("packs.pageTitle")}</T>
+              <InfoTip title={t("packs.pageTitle")} text={t("packs.pageSub")} size={20} />
+            </View>
             {status}
             {loaded.data && !packs.length ? <EmptyState icon="box" title={t("packs.emptyTitle")}>{t("packs.emptyBody")}</EmptyState> : null}
           </View>

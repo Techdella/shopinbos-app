@@ -571,6 +571,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "home.agreementsSub": "Karanta yarjejeniyar ka sa hannu",
   "kind.sample": "Samfuri",
   "money.howItMovesShort": "Rabonka na zuwa kai tsaye bankinka.",
+  "products.noneBodyShort": "Ƙara hoto, farashi da yawan kaya. Shaguna za su sayar maka.",
 };
 
 export default ha;

@@ -166,6 +166,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "review.state.needed": "We need am",
   "review.once": "Once we verify you, sellers fit find your products, dropship dem or buy wholesale.",
   "review.lookAround": "Look around while you dey wait",
+  "product.whatsappLaterTitle": "From your WhatsApp catalogue",
+  "product.whatsappLaterShort": "You get WhatsApp catalogue? Add all of am at once later.",
 };
 
 export default pcm;

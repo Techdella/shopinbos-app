@@ -49,7 +49,7 @@ export default function Payouts() {
             </View>
           </Card>
 
-          <SectionTitle>{t("po.bank")}</SectionTitle>
+          <SectionTitle tip={{ text: t("po.auto") }}>{t("po.bank")}</SectionTitle>
           <Card style={{ gap: 12 }}>
             {data.bank ? (
               <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
@@ -66,7 +66,6 @@ export default function Payouts() {
             ) : (
               <Notice tone="info">{t("po.noBank")}</Notice>
             )}
-            <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{t("po.auto")}</T>
             <PillButton title={data.bank ? t("po.changeBank") : t("po.addBank")} tone={data.bank ? "white" : "ink"} size="md" onPress={() => router.push("/wallet")} />
           </Card>
 

@@ -24,7 +24,7 @@ import { CallPeggyButton } from "@/components/CallPeggyButton";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { FlowFrame, NoteCard } from "@/components/SupplierKit";
 import { StatePicker } from "@/components/StatePicker";
-import { Field, LinkButton, Notice, PillButton, T } from "@/components/ui";
+import { Field, LinkButton, Notice, PillButton, T, WithTip } from "@/components/ui";
 import { LIVENESS_ON, useKoraLiveness, type LivenessPass } from "@/components/kyc/KoraLiveness";
 import { useT } from "@/lib/i18n";
 import { birthDate, selfieDataUri } from "@/lib/kyc-pure";
@@ -478,7 +478,9 @@ export function SupplierJoinFlow() {
             <Field value={productPrice} onChangeText={(text) => setProductPrice(text.replace(/\D/g, ""))} keyboardType="number-pad" placeholder={t("product.price")} accessibilityLabel={t("product.price")} />
           </>
         ) : null}
-        <T style={{ color: colors.inkSoft, fontSize: 13.5, lineHeight: 19 }}>{t("product.whatsappLater")}</T>
+        <WithTip title={t("product.whatsappLaterTitle")} tip={{ text: t("product.whatsappLater") }}>
+          <T style={{ color: colors.inkSoft, fontSize: 13.5, lineHeight: 19 }}>{t("product.whatsappLaterShort")}</T>
+        </WithTip>
       </View>
     );
     action = {

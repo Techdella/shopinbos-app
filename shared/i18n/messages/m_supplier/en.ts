@@ -582,6 +582,7 @@ const en = {
   "home.agreementsSub": "Read the agreement and sign",
   "kind.sample": "Sample",
   "money.howItMovesShort": "Your share goes straight to your bank.",
+  "products.noneBodyShort": "Add a photo, price and stock. Shops sell it for you.",
 } satisfies Record<string, string>;
 
 export default en;

@@ -264,10 +264,10 @@ export default function BulkAdd() {
           <ScrollView contentContainerStyle={{ padding: 20, gap: 18 }}>
             <View style={{ alignItems: "center", gap: 12, paddingTop: 8 }}>
               <Tile icon="image" tone="peach" size={88} />
+              <Title size={28} style={{ textAlign: "center" }}>{t("pick.title")}</Title>
               <WithTip title={t("pick.title")} tip={{ text: t("pick.sub") }} style={{ justifyContent: "center" }}>
-                <Title size={28} style={{ textAlign: "center" }}>{t("pick.title")}</Title>
+                <Sub style={{ textAlign: "center" }}>{t("pick.subShort")}</Sub>
               </WithTip>
-              <Sub style={{ textAlign: "center" }}>{t("pick.subShort")}</Sub>
             </View>
             <PillButton testID="bulk-choose" tone="accent" icon="image" title={t("pick.choose")} busy={loading} onPress={() => void pick("library")} />
             <PillButton tone="white" icon="camera" title={t("pick.camera")} disabled={loading} onPress={() => void pick("camera")} />

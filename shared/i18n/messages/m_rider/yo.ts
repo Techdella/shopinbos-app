@@ -201,6 +201,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "link.subShort": "Lẹ link àdáni tí ilé-iṣẹ́ rẹ fi ránṣẹ́ sí ọ.",
   "link.privateShort": "Má ṣe fi link yìí han ẹnikẹ́ni.",
   "signIn.linkHintShort": "Lo nọ́ńbà tí ilé-iṣẹ́ rẹ fi kún ọ.",
+  "welcome.subShort": "Iṣẹ́ delivery á máa dé bá ọ níbí.",
 };
 
 export default yo;

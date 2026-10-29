@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { View } from "react-native";
 import { naira } from "@shared/onboarding";
-import { Card, Notice, PillButton, T } from "@/components/ui";
+import { Card, Notice, PillButton, T, WithTip } from "@/components/ui";
 import { useT } from "@/lib/i18n";
 import { useLoad } from "@/lib/useLoad";
 import { fetchSellersCash, paySellerCash } from "@/lib/wallet";
@@ -43,8 +43,9 @@ export function PaySellersCard({ onPaid }: { onPaid: () => void }) {
 
   return (
     <Card style={{ gap: 10, padding: 18 }}>
-      <T weight="extrabold" style={{ fontSize: 17 }} accessibilityRole="header">{t("money.paySellers")}</T>
-      <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>{t("money.paySellersSub")}</T>
+      <WithTip title={t("money.paySellers")} tip={{ text: t("money.paySellersSub") }}>
+        <T weight="extrabold" style={{ fontSize: 17 }} accessibilityRole="header">{t("money.paySellers")}</T>
+      </WithTip>
       {sellers.map((row) => (
         <View key={row.sellerId} style={{ gap: 8, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 10 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>

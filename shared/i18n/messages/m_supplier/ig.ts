@@ -571,6 +571,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "home.agreementsSub": "Gụọ nkwekọrịta ahụ ma bịanye aka",
   "kind.sample": "Ihe nlele",
   "money.howItMovesShort": "Òkè gị na-aga ozugbo n'ụlọ akụ gị.",
+  "products.noneBodyShort": "Tinye foto, ọnụahịa na stock. Ụlọ ahịa ga-ere ya maka gị.",
 };
 
 export default ig;

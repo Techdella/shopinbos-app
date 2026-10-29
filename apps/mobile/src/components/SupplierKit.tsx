@@ -5,7 +5,7 @@ import { Image } from "expo-image";
 import Svg, { Path } from "react-native-svg";
 import { Small, Sub, Title } from "@/components/design";
 import { AppIcon } from "@/components/icons";
-import { T } from "@/components/ui";
+import { InfoTip, T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
 import { colors, themed } from "@/theme";
 import { KeyboardShift } from "@/components/KeyboardShift";
@@ -15,7 +15,8 @@ import { KeyboardShift } from "@/components/KeyboardShift";
 // round −/+ buttons on a product row, and the tinted note cards on an order.
 
 /** A set-up step (`.scr.flow` with `.hdr`): a round back button and "1 of 4", a big title, the body, a pinned footer. */
-export function FlowFrame({ step, onBack, title, sub, children, footer, aside }: { step?: string; onBack?: () => void; title?: string; sub?: string; children?: ReactNode; footer?: ReactNode; aside?: ReactNode }) {
+/** `tip`: the longer explanation behind an ⓘ after the title, so `sub` stays one short line (or goes). */
+export function FlowFrame({ step, onBack, title, sub, tip, children, footer, aside }: { step?: string; onBack?: () => void; title?: string; sub?: string; tip?: string; children?: ReactNode; footer?: ReactNode; aside?: ReactNode }) {
   const t = useT("common");
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
@@ -36,7 +37,16 @@ export function FlowFrame({ step, onBack, title, sub, children, footer, aside }:
           ) : null}
           {title || sub ? (
             <View style={{ gap: 8 }}>
-              {title ? <Title>{title}</Title> : null}
+              {title ? (
+                tip ? (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                    <Title style={{ flexShrink: 1 }}>{title}</Title>
+                    <InfoTip title={title} text={tip} size={20} />
+                  </View>
+                ) : (
+                  <Title>{title}</Title>
+                )
+              ) : null}
               {sub ? <Sub>{sub}</Sub> : null}
             </View>
           ) : null}

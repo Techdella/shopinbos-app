@@ -214,6 +214,7 @@ const en = {
   "bal.accountSettingUp": "Your wallet account number is being created. It shows here in a few minutes.",
   "bal.copy": "Copy",
   "bal.copied": "Copied",
+  "inv.subShort": "Invoices for your orders, sent and received.",
 } satisfies Record<string, string>;
 
 export default en;
