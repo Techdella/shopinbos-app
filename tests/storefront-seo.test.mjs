@@ -470,3 +470,40 @@ test("storefront pages: canonical on the store's own address, robots from the st
   assert.match(read("src/app/actions/workspace.ts"), /hideFromSearch: formData\.get\("hideFromSearch"\) === "on"/);
   assert.match(read("src/app/home/seo/page.tsx"), /name="hideFromSearch" defaultChecked=\{hiddenFromSearch\}/);
 });
+
+// ─── Announcing live stores (IndexNow and Search Console) ────────────────────
+
+test("IndexNow: one request per host, https only, each URL once, key file at /indexnow.txt", async () => {
+  const ping = await import("../src/lib/seo/search-ping.ts");
+  assert.equal(ping.validIndexNowKey("abc"), false, "too short");
+  assert.equal(ping.validIndexNowKey("a1b2c3d4e5"), true);
+  assert.equal(ping.validIndexNowKey("has space1"), false);
+  const bodies = ping.indexNowBodies(
+    ["https://adas.mybos.store/", "https://adas.mybos.store/product/1", "https://adas.mybos.store/", "http://insecure.ng/", "not a url", "https://adas.ng/about"],
+    "a1b2c3d4e5",
+  );
+  assert.deepEqual(bodies, [
+    { host: "adas.mybos.store", key: "a1b2c3d4e5", keyLocation: "https://adas.mybos.store/indexnow.txt", urlList: ["https://adas.mybos.store/", "https://adas.mybos.store/product/1"] },
+    { host: "adas.ng", key: "a1b2c3d4e5", keyLocation: "https://adas.ng/indexnow.txt", urlList: ["https://adas.ng/about"] },
+  ]);
+  // Store hosts pass the key file through to the app's route instead of rewriting it into the storefront.
+  assert.deepEqual(routing.storePathAction(ping.INDEXNOW_KEY_PATH, "adas"), { action: "pass" });
+  assert.ok(existsSync(new URL("src/app/indexnow.txt/route.ts", ROOT)));
+});
+
+test("Search Console: the root domain's property covers every store subdomain, never custom domains", async () => {
+  const ping = await import("../src/lib/seo/search-ping.ts");
+  assert.equal(ping.searchConsoleSite(undefined, "mybos.store"), "sc-domain:mybos.store");
+  assert.equal(ping.searchConsoleSite(" https://x.com/ ", "mybos.store"), "https://x.com/");
+  assert.equal(ping.searchConsoleSite("", "localhost"), null);
+  assert.equal(ping.inSearchConsoleSite("https://adas.mybos.store/sitemap.xml", "sc-domain:mybos.store"), true);
+  assert.equal(ping.inSearchConsoleSite("https://mybos.store/sitemap.xml", "sc-domain:mybos.store"), true);
+  assert.equal(ping.inSearchConsoleSite("https://adas.ng/sitemap.xml", "sc-domain:mybos.store"), false);
+  assert.equal(ping.inSearchConsoleSite("https://evilmybos.store/sitemap.xml", "sc-domain:mybos.store"), false);
+});
+
+test("publishing a store and adding a product announce them; the root sitemap lists subdomain stores", () => {
+  assert.match(read("src/lib/store-publishing.ts"), /announceStore\(store\.slug\)/);
+  assert.match(read("src/app/api/app/store-products/route.ts"), /announceStorePaths\(store\.slug/);
+  assert.match(read("src/app/sitemap.xml/route.ts"), /buildPlatformSubdomainOrigin\(slug\)}\/sitemap\.xml/);
+});
