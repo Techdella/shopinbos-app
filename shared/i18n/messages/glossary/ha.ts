@@ -95,7 +95,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "payment-links.short": "Link da kake turawa a chat don abokin ciniki ya biya ainihin kaya ya zaɓi delivery.",
   "payment-links.example": "Tolu ta nemi jakar ja ta WhatsApp. Ka tura link, ta biya ₦18,000 da kati.",
   "link-in-bio.short": "Shafi ɗaya mai kayanka, maɓallan Buy now da WhatsApp, don bio na Instagram ko TikTok.",
-  "link-in-bio.example": "Bio na TikTok ɗinka ya ce adafabrics.shopinbos.com/links. Masoya suna taɓawa su saya.",
+  "link-in-bio.example": "Bio na TikTok ɗinka ya ce adafabrics.mybos.store/links. Masoya suna taɓawa su saya.",
   "checkout.short": "Shafin da mai saye ke shigar da adireshinsa ya biya.",
   "checkout.example": "Kemi ta saka adireshinta na Yaba, ta zaɓi bank transfer ta biya ₦24,000.",
   "abandoned-carts.short": "Cart da mutane suka cika amma suka bar kafin su biya, don ka tunatar da su.",

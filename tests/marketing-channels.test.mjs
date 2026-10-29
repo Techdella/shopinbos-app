@@ -75,9 +75,9 @@ test("template variables: {{1}}..{{n}} filled from the mapping, in order, with s
   const body = "Hi {{1}}, use {{3}} at {{2}} today. Shop: {{4}} now.";
   assert.deepEqual(tc.placeholders(body), [1, 3, 2, 4]);
   assert.equal(tc.variableCount(content(body)), 4);
-  const values = { first_name: "Ada", store_name: "Adire House", discount_code: "DEC20", link: "https://adire.shopinbos.com" };
+  const values = { first_name: "Ada", store_name: "Adire House", discount_code: "DEC20", link: "https://adire.mybos.store" };
   const { params, missing } = tc.fillTemplateVariables(["first_name", "store_name", "discount_code", "link"], 4, values);
-  assert.deepEqual(params, ["Ada", "Adire House", "DEC20", "https://adire.shopinbos.com"]);
+  assert.deepEqual(params, ["Ada", "Adire House", "DEC20", "https://adire.mybos.store"]);
   assert.deepEqual(missing, []);
   const empty = tc.fillTemplateVariables(["first_name", "product_link", "order_number"], 3, { link: "https://shop" });
   assert.deepEqual(empty.params, ["there", "https://shop", "-"], "a missing name becomes 'there', a missing link the shop link");
@@ -107,7 +107,7 @@ test("template components for Meta: samples for every variable, footer and butto
   const components = tc.toMetaComponents(preset.content, preset.variables, "4::aW1hZ2U=");
   assert.deepEqual(components[0], { type: "HEADER", format: "IMAGE", example: { header_handle: ["4::aW1hZ2U="] } });
   assert.equal(components[1].type, "BODY");
-  assert.deepEqual(components[1].example.body_text[0], ["Ada", "Adire House", "ADIRE-20", "https://adire.shopinbos.com"]);
+  assert.deepEqual(components[1].example.body_text[0], ["Ada", "Adire House", "ADIRE-20", "https://adire.mybos.store"]);
   assert.deepEqual(components.at(-1), { type: "BUTTONS", buttons: [{ type: "QUICK_REPLY", text: "Stop promotions" }] });
   const back = tc.fromMetaComponents(components);
   assert.equal(back.body, preset.content.body);
@@ -289,7 +289,7 @@ test("Meta's template status webhook is read per template, ignoring other fields
 });
 
 test("Template Library: blanks map to order details by their words, or the template is skipped", () => {
-  const base = "https://adire.shopinbos.com/order";
+  const base = "https://adire.mybos.store/order";
   const shipped = tc.planLibraryTemplate(
     {
       name: "shipment_confirmation_2",
@@ -314,8 +314,8 @@ test("Template Library: blanks map to order details by their words, or the templ
 });
 
 test("Template Library order buttons: the order id goes at the end of the link when sending", () => {
-  const content = { header: { format: "NONE" }, body: "Hi {{1}}", buttons: [{ type: "QUICK_REPLY", text: "Thanks" }, { type: "URL", text: "Track", url: "https://adire.shopinbos.com/order/{{1}}" }] };
-  assert.deepEqual(tc.urlButtonSuffixes(content, { order_link: "https://adire.shopinbos.com/order/cm9xyz" }), [{ index: 1, text: "cm9xyz" }]);
+  const content = { header: { format: "NONE" }, body: "Hi {{1}}", buttons: [{ type: "QUICK_REPLY", text: "Thanks" }, { type: "URL", text: "Track", url: "https://adire.mybos.store/order/{{1}}" }] };
+  assert.deepEqual(tc.urlButtonSuffixes(content, { order_link: "https://adire.mybos.store/order/cm9xyz" }), [{ index: 1, text: "cm9xyz" }]);
   assert.equal(tc.urlButtonSuffixes(content, { order_link: "https://other.shop/order/cm9xyz" }), null, "a link from another domain can't be used");
   assert.deepEqual(tc.urlButtonSuffixes({ ...content, buttons: [] }, {}), []);
   const message = tc.templateMessage({ name: "order_shipped_quick", language: "en_US", params: ["Ada"], urlButtons: [{ index: 1, text: "cm9xyz" }] });

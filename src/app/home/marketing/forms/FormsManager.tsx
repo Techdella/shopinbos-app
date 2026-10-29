@@ -450,7 +450,7 @@ function FormEditor({ editing, startAsPopup, theme, discounts, extras, onClose, 
   );
 }
 
-export function FormsManager({ forms, storeSlug, theme, discounts, extras, openId = null }: { forms: ManagedForm[]; storeSlug: string; theme: EditorTheme; discounts: DiscountOption[]; extras: EditorExtras; openId?: string | null }) {
+export function FormsManager({ forms, joinBase, theme, discounts, extras, openId = null }: { forms: ManagedForm[]; /** The store's own /join address (custom domain, subdomain or /s/<slug>), no trailing slash. */ joinBase: string; theme: EditorTheme; discounts: DiscountOption[]; extras: EditorExtras; openId?: string | null }) {
   const router = useRouter();
   const t = useT("marketing", "common");
   const locale = useLocale();
@@ -483,7 +483,7 @@ export function FormsManager({ forms, storeSlug, theme, discounts, extras, openI
   }
 
   function copyLink(form: ManagedForm) {
-    const link = `${window.location.origin}/s/${storeSlug}/join/${form.id}`;
+    const link = `${joinBase}/${form.id}`;
     void navigator.clipboard?.writeText(link).then(() => {
       setCopied(form.id);
       window.setTimeout(() => setCopied(null), 2000);
@@ -537,7 +537,7 @@ export function FormsManager({ forms, storeSlug, theme, discounts, extras, openI
       )}
 
       {forms.some((f) => !f.isPopup && f.active) ? (
-        <Card className="p-4 text-[13.5px] text-app-ink-soft">{t("forms.pagesLiveAt")} <code className="text-app-ink">/s/{storeSlug}/join/…</code>. {t("forms.pagesTip")}</Card>
+        <Card className="p-4 text-[13.5px] text-app-ink-soft">{t("forms.pagesLiveAt")} <code className="text-app-ink">{joinBase}/…</code>. {t("forms.pagesTip")}</Card>
       ) : null}
 
       {editor ? (

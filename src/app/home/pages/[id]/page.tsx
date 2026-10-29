@@ -1,3 +1,4 @@
+import { buildStorefrontOrigin } from "@/lib/domains/storefront";
 import { notFound } from "next/navigation";
 import { requireRole } from "@/lib/server-auth";
 import { getSellerWorkspace } from "@/lib/workspace";
@@ -41,6 +42,7 @@ export default async function PageDetailPage({ params }: { params: Promise<{ id:
           page={JSON.parse(JSON.stringify(page))}
           storeId={workspace.store.id}
           storeSlug={workspace.store.slug}
+          storeBase={buildStorefrontOrigin(workspace.store)}
           storeStatus={workspace.store.status}
         />
       </div>

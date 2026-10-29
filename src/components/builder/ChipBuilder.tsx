@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { buildPlatformStoreBase } from "@/lib/domains/storefront";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { BackButton, DeviceToggle, Mascot, PillButton, Wordmark, cx } from "@/components/app-ui";
@@ -601,11 +602,14 @@ export function ChipBuilder({ userName, userAvatarUrl = null, existingStore, sel
   const stepEyebrow = t("chip.step", { n: stepNumber, total: STEP_COUNT, label: stepLabels[currentPhaseIdx] ?? "" });
   const productCount = storeConfig.products.filter((p) => p.name && p.name !== "Product One" && p.name !== "Product Two" && p.name !== "Product Three").length || storeConfig.products.length;
 
+  // The free address as shoppers see it: <slug>.mybos.store (or app.shopinbos.com/s/<slug> before subdomains are on).
+  const freeAddress = buildPlatformStoreBase(storeConfig.slug).replace(/^https?:\/\//, "");
+
   const previewPanel = (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
         <p className="m-0 min-w-0 truncate text-[13px] font-bold text-app-ink-soft">
-          {t("chip.livePreview", { address: `${storeConfig.slug}.shopinbos.com` })}
+          {t("chip.livePreview", { address: freeAddress })}
         </p>
         <DeviceToggle value={device} onChange={setDevice} size="sm" className="bg-white" />
       </div>
@@ -634,7 +638,7 @@ export function ChipBuilder({ userName, userAvatarUrl = null, existingStore, sel
               <span key={c} className="h-[9px] w-[9px] rounded-full opacity-70" style={{ background: c }} />
             ))}
           </div>
-          <div className="min-w-0 flex-1 truncate rounded-full bg-app-canvas px-3 py-1 text-[12px] text-app-ink-soft">{storeConfig.slug}.shopinbos.com</div>
+          <div className="min-w-0 flex-1 truncate rounded-full bg-app-canvas px-3 py-1 text-[12px] text-app-ink-soft">{freeAddress}</div>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
           <StorePreview
@@ -1097,7 +1101,7 @@ export function ChipBuilder({ userName, userAvatarUrl = null, existingStore, sel
                 <PhaseHead eyebrow={stepEyebrow} title={t("chip.chooseAddress")} sub={t("chip.chooseAddressSub")} />
                 <StoreStrip>
                   <span>{t("chip.freeAddress")}</span>
-                  <span className="font-bold text-app-ink">{storeConfig.slug}.shopinbos.com</span>
+                  <span className="font-bold text-app-ink">{freeAddress}</span>
                   <span>{t("chip.counts", { products: storeConfig.products.length, pages: selectedPages.length })}</span>
                 </StoreStrip>
                 <DomainSetup
@@ -1113,7 +1117,7 @@ export function ChipBuilder({ userName, userAvatarUrl = null, existingStore, sel
                 <PhaseHead eyebrow={stepEyebrow} title={t("chip.payDelivery")} sub={t("chip.payDeliverySub")} />
                 <StoreStrip>
                   <span className="font-bold text-app-ink">{storeConfig.name}</span>
-                  <span>· {customDomain ?? `${storeConfig.slug}.shopinbos.com`}</span>
+                  <span>· {customDomain ?? freeAddress}</span>
                 </StoreStrip>
                 <div className="rounded-[22px] bg-white p-4 sm:p-5">
                   <LaunchSetup

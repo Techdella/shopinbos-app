@@ -95,7 +95,7 @@ function CustomerPanel({ data, now }: { data: AgentTicket; now: number }) {
             <h2 className="m-0 text-[15px] font-extrabold">{context.business.kind}</h2>
             <DeskPill tone={context.business.status === "active" || context.business.status === "verified" ? "success" : "muted"}>{context.business.status}</DeskPill>
           </div>
-          <Link href={context.business.href} className="text-[14.5px] font-bold text-app-ink no-underline hover:underline" target={context.business.href.startsWith("/s/") ? "_blank" : undefined}>
+          <Link href={context.business.href} className="text-[14.5px] font-bold text-app-ink no-underline hover:underline" target={context.business.href.startsWith("http") || context.business.href.startsWith("/s/") ? "_blank" : undefined}>
             {context.business.name}
           </Link>
           <div className="text-[13px] text-app-ink-soft">{context.business.detail}</div>

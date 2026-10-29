@@ -317,7 +317,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "plans.f.seller.products": "{count, plural, one {Tó ọjà #} other {Tó ọjà #}}",
   "plans.f.seller.productsUnlimited": "Ọjà láìní òpin",
   "plans.f.seller.customDomain": "Domain tìrẹ",
-  "plans.f.seller.subdomain": "Àdírẹ́sì Shopinbos (yourshop.shopinbos.com)",
+  "plans.f.seller.subdomain": "Àdírẹ́sì Shopinbos (yourshop.mybos.store)",
   "plans.f.seller.themes_basic": "Àwọn theme ìpìlẹ̀",
   "plans.f.seller.themes_premium": "Àwọn theme ìpìlẹ̀ + premium",
   "plans.f.seller.themes_all": "Gbogbo theme",

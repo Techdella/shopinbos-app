@@ -36,7 +36,7 @@ export default async function AdminSellerPage(props: { params: Promise<{ id: str
           <span className="min-w-0 break-words">{seller.name}</span>
         </span>
       }
-      sub={`${seller.customDomain ?? `/s/${seller.slug}`}${seller.city ? ` · ${seller.city}` : ""}, ${seller.country}`}
+      sub={`${storeUrl(seller).replace(/^https?:\/\//, "").replace(/\/$/, "")}${seller.city ? ` · ${seller.city}` : ""}, ${seller.country}`}
       actions={
         <>
           <PillLink href="/admin/sellers" icon="arrowLeft" iconOnlyOnPhone>All sellers</PillLink>

@@ -347,7 +347,7 @@ function TemplateEditor({ draft: initial, connected, onClose, onSaved }: { draft
                   {urlButton ? (
                     <div className="grid gap-2 sm:grid-cols-2">
                       <input aria-label={t("wa.buttonWords")} value={urlButton.text} onChange={(e) => setContent({ buttons: content.buttons.map((b) => (b.type === "URL" ? { ...b, text: e.target.value.slice(0, 25) } : b)) })} className={inputClass} />
-                      <input aria-label={t("wa.buttonLink")} value={urlButton.url ?? ""} onChange={(e) => setContent({ buttons: content.buttons.map((b) => (b.type === "URL" ? { ...b, url: e.target.value.trim() } : b)) })} className={inputClass} placeholder="https://yourshop.shopinbos.com" />
+                      <input aria-label={t("wa.buttonLink")} value={urlButton.url ?? ""} onChange={(e) => setContent({ buttons: content.buttons.map((b) => (b.type === "URL" ? { ...b, url: e.target.value.trim() } : b)) })} className={inputClass} placeholder="https://yourshop.mybos.store" />
                     </div>
                   ) : null}
                 </div>

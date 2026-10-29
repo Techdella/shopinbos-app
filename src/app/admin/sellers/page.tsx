@@ -63,7 +63,7 @@ export default async function AdminSellersPage(props: { searchParams?: Promise<{
                   </Link>
                   <div className="truncate text-[13px] text-app-ink-soft">
                     {row.ownerFirstName && <>{row.ownerFirstName} · </>}
-                    <a href={storeUrl(row)} target="_blank" rel="noreferrer" className="text-app-ink-soft">{row.customDomain ?? `/s/${row.slug}`}</a>
+                    <a href={storeUrl(row)} target="_blank" rel="noreferrer" className="text-app-ink-soft">{storeUrl(row).replace(/^https?:\/\//, "").replace(/\/$/, "")}</a>
                     {row.city ? ` · ${row.city}` : ""}, {row.country}
                   </div>
                 </div>

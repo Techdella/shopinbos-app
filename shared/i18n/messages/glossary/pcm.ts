@@ -95,7 +95,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "payment-links.short": "Link wey you send for chat so customer fit pay for the exact products and choose delivery.",
   "payment-links.example": "Tolu ask for the red bag for WhatsApp. You send link, she pay ₦18,000 with card.",
   "link-in-bio.short": "One page wey get your products, Buy now buttons and WhatsApp, for your Instagram or TikTok bio.",
-  "link-in-bio.example": "Your TikTok bio talk adafabrics.shopinbos.com/links. Fans tap am come buy.",
+  "link-in-bio.example": "Your TikTok bio talk adafabrics.mybos.store/links. Fans tap am come buy.",
   "checkout.short": "The page where buyer go put im address and pay.",
   "checkout.example": "Kemi put her Yaba address, pick bank transfer and pay ₦24,000.",
   "abandoned-carts.short": "Carts wey people fill but dem comot before dem pay, so you fit remind dem.",
