@@ -6,6 +6,7 @@ import { ApiError } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { callState, fetchSetupView, notePeggyOpened, patchCall, recordSaved, runCallTool, runContinue, setCallControls, startCallSession, usePeggyCall, usePeggySaved } from "@/lib/peggy-call";
 import { CALL_TOOLS, editPath, nextStepPath, openScreenOnPhone, stepKey, type CallRole } from "@/lib/peggy-call-pure";
+import { HANG_UP_AFTER_MS, HANG_UP_FALLBACK_MS, shouldHangUp } from "@shared/peggy-goodbye";
 import { useRole } from "@/lib/role";
 import { CallBar, CallSheet, CallSummary, useSavedLine } from "./PeggyCallViews";
 
@@ -45,17 +46,65 @@ function Engine() {
   const limit = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Peggy hangs up when they're done. Her end_call tool ends the call from ElevenLabs' side (reason "agent"); as a
+  // safety net the app also hangs up itself when they've said they're done and Peggy has said goodbye
+  // (shared/peggy-goodbye.ts), once she has finished speaking. Either way the summary says Peggy ended the call.
+  const lastUserLine = useRef("");
+  const goodbye = useRef<{ pending: boolean; byPeggy: boolean; soon: ReturnType<typeof setTimeout> | null; fallback: ReturnType<typeof setTimeout> | null }>({ pending: false, byPeggy: false, soon: null, fallback: null });
+  const clearGoodbyeTimers = () => {
+    if (goodbye.current.soon) clearTimeout(goodbye.current.soon);
+    if (goodbye.current.fallback) clearTimeout(goodbye.current.fallback);
+    goodbye.current.soon = null;
+    goodbye.current.fallback = null;
+  };
+  const cancelGoodbye = () => {
+    clearGoodbyeTimers();
+    goodbye.current.pending = false;
+  };
+  const hangUpForPeggy = () => {
+    if (!goodbye.current.pending) return;
+    clearGoodbyeTimers();
+    goodbye.current.byPeggy = true;
+    void conversationRef.current.endSession();
+  };
+  const armGoodbye = () => {
+    clearGoodbyeTimers();
+    goodbye.current.pending = true;
+    // If the app never hears that she stopped talking, it still hangs up a little later (unless she's still talking).
+    goodbye.current.fallback = setTimeout(() => (conversationRef.current.isSpeaking ? null : hangUpForPeggy()), HANG_UP_FALLBACK_MS);
+  };
+
   const conversation = useConversation({
     onConnect: ({ conversationId: id }: { conversationId: string }) => {
       conversationId.current = id;
       setStartedAt(clockNow());
       patchCall({ phase: "live" });
     },
+    onMessage: ({ message, source }: { message: string; source: "user" | "ai" }) => {
+      if (source === "user") {
+        lastUserLine.current = message;
+        // They said something after her goodbye: the call carries on.
+        cancelGoodbye();
+      } else if (shouldHangUp(lastUserLine.current, message)) {
+        armGoodbye();
+      }
+    },
+    onModeChange: ({ mode }: { mode: "speaking" | "listening" }) => {
+      if (!goodbye.current.pending) return;
+      if (goodbye.current.soon) clearTimeout(goodbye.current.soon);
+      goodbye.current.soon = mode === "listening" ? setTimeout(hangUpForPeggy, HANG_UP_AFTER_MS) : null;
+    },
     onDisconnect: (details?: { reason?: string }) => {
       if (limit.current) clearTimeout(limit.current);
       setStartedAt(null);
       const current = callState();
-      const endedBy = details?.reason === "agent" || details?.reason === "user" || details?.reason === "error" ? details.reason : null;
+      // Peggy ended it: her end_call (reason "agent"), the app hanging up after her goodbye, or the line closing
+      // right after her goodbye (LiveKit can report that as an error).
+      const peggyEnded = goodbye.current.byPeggy || (goodbye.current.pending && details?.reason !== "user");
+      cancelGoodbye();
+      goodbye.current.byPeggy = false;
+      lastUserLine.current = "";
+      const endedBy = peggyEnded ? "agent" : details?.reason === "agent" || details?.reason === "user" || details?.reason === "error" ? details.reason : null;
       // A call that never connected just closes; one that did (also when Peggy hung up) shows what Peggy saved.
       if (current.phase === "live" || current.saved.length) patchCall({ phase: "summary", minimized: false, endedBy });
       else if (current.phase === "connecting") patchCall({ phase: "idle", minimized: false });
@@ -169,6 +218,8 @@ function Engine() {
     () => () => {
       if (toastTimer.current) clearTimeout(toastTimer.current);
       if (limit.current) clearTimeout(limit.current);
+      if (goodbye.current.soon) clearTimeout(goodbye.current.soon);
+      if (goodbye.current.fallback) clearTimeout(goodbye.current.fallback);
     },
     [],
   );
