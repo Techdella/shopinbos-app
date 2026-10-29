@@ -221,7 +221,7 @@ export async function TierPanel({ partnerId }: { partnerId: string }) {
           </Card>
 
           <Card className="overflow-hidden">
-            <CardHead title="Optional" sub="Not needed to take jobs. A bank account checked by name shows Payout ready (asked at the first withdrawal)." className="px-4 pt-4 sm:px-5" />
+            <CardHead title="Optional" sub="Not needed to take jobs. A bank account checked by name shows Payout ready (added in their Wallet to get paid)." className="px-4 pt-4 sm:px-5" />
             <ul className="m-0 mt-3 list-none divide-y divide-app-line border-t border-app-line p-0">
               <Row item="Licensed Courier (NIPOST)" state={snapshot.docs["courier-licence"] ?? "missing"} actions={<DocDecision partnerId={partnerId} doc={courier} />}>
                 {courier && docHasFile(courier) ? <FileLink path={courier.filePath}>Open licence</FileLink> : "Not uploaded (never required)"}

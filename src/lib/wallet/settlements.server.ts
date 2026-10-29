@@ -1,10 +1,10 @@
 import "server-only";
 
 import { db } from "@/lib/db/client";
-import { listPaystackSettlements } from "@/lib/paystack";
+import { fetchPaystackSubaccount, listPaystackSettlements, shopinbosSubaccountName, updatePaystackSubaccount } from "@/lib/paystack";
 import { paystackSecretReady } from "@shared/checkout-payments";
 
-// "₦12,400 is in your bank": Paystack pays each business's share (store sales, transfers to their wallet account
+// "Shopinbos paid ₦12,400 into your bank": Paystack pays each business's share (store sales, transfers to their wallet account
 // number, supplier and delivery shares) into their own bank in settlements, and sends no webhook for it. Every hour
 // (with the lifecycle job) this reads each business's recent settlements, records each paid one on their statement
 // once (WalletEntry "settlement", status "settled", so it never counts twice in "paid to you") and tells them. One
@@ -29,7 +29,13 @@ export async function recordSettlements(limit = 200) {
   });
   let recorded = 0;
   for (const wallet of wallets) {
-    const settlements = await listPaystackSettlements(wallet.subaccountCode!, 10);
+    const subaccount = await fetchPaystackSubaccount(wallet.subaccountCode!);
+    if (!subaccount) continue;
+    // Subaccounts made before their names led with "Shopinbos" get it now, once.
+    if (subaccount.businessName && shopinbosSubaccountName(subaccount.businessName) !== subaccount.businessName) {
+      await updatePaystackSubaccount(wallet.subaccountCode!, { businessName: subaccount.businessName }).catch((error) => console.error("[settlements] rename failed", error));
+    }
+    const settlements = await listPaystackSettlements(wallet.subaccountCode!, 10, subaccount.id);
     for (const settlement of settlements) {
       if (!settlement.id || !PAID.has(settlement.status.toLowerCase())) continue;
       const paidKobo = settlement.effectiveAmount ?? settlement.totalAmount;
@@ -56,8 +62,8 @@ export async function recordSettlements(limit = 200) {
         userId: wallet.userId,
         event: "payout.sent",
         priority: "success",
-        title: `${formatNaira(paidKobo)} is in your bank`,
-        description: `Paystack paid ${formatNaira(paidKobo)} into ${bank}${settlement.totalFees ? `, after ${formatNaira(settlement.totalFees)} in Paystack fees` : ""}. It's on your wallet statement.`,
+        title: `Shopinbos paid ${formatNaira(paidKobo)} into your bank`,
+        description: `Paystack paid ${formatNaira(paidKobo)} into ${bank} for Shopinbos${settlement.totalFees ? `, after ${formatNaira(settlement.totalFees)} in Paystack fees` : ""}. It's on your wallet statement.`,
         link: walletPath(wallet.role),
         actionLabel: "Open wallet",
         metadata: { settlementId: settlement.id, amountKobo: paidKobo, feesKobo: settlement.totalFees },
