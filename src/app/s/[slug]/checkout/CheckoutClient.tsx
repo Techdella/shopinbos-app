@@ -137,6 +137,8 @@ interface Quote {
   delivery?: unknown;
   /** Preorder lines with a deposit (shared/preorder.ts): paying by card charges payNow, the balance when it ships. */
   deposit?: { payNow: number; balance: number } | null;
+  /** Some items ship from a supplier: paid only in the app (shared/checkout-payments.ts fromSuppliers). */
+  fromSuppliers?: boolean;
 }
 
 const EMPTY_DETAILS: CheckoutDetails = { name: "", email: "", phone: "", street: "", city: "", state: "", country: "", landmark: "" };
@@ -227,19 +229,20 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
   // Dropship items from suppliers ship as their own parcels, each with its fee (already inside the quote's totals).
   const parcels = useMemo(() => readQuotedParcels(liveQuote?.delivery), [liveQuote]);
   const supplierDelivers = hasSupplierDelivery(parcels);
+  const fromSuppliers = liveQuote?.fromSuppliers === true;
 
   // With delivery partners, pay on delivery goes with the chosen option (partnerPaymentOptions, as the checkout API).
   const paymentOptions = useMemo(
     () => (partners
-      ? partnerPaymentOptions(commerce.payments, { city: details.city, state: details.state, total: totals.total }, marketOption)
-      : checkoutPaymentOptions(commerce.payments, { city: details.city, state: details.state, total: totals.total }))
+      ? partnerPaymentOptions(commerce.payments, { city: details.city, state: details.state, total: totals.total, fromSuppliers }, marketOption)
+      : checkoutPaymentOptions(commerce.payments, { city: details.city, state: details.state, total: totals.total, fromSuppliers }))
       // A supplier delivering its own parcel takes no cash (the checkout API refuses pay on delivery then).
       .filter((option) => !(supplierDelivers && option.key === "pay_on_delivery")),
-    [partners, marketOption, commerce.payments, details.city, details.state, totals.total, supplierDelivers],
+    [partners, marketOption, commerce.payments, details.city, details.state, totals.total, supplierDelivers, fromSuppliers],
   );
   // Keep the shopper's pick while it is still on offer (an address or total change can rule pay on delivery out).
   // No way to pay that works for this order: nothing is placed, and the shopper is told to message the store.
-  const noWayToPay = paymentOptions.length === 0 ? noWayToPayText(commerce.payments, { city: details.city, state: details.state, total: totals.total }) : null;
+  const noWayToPay = paymentOptions.length === 0 ? noWayToPayText(commerce.payments, { city: details.city, state: details.state, total: totals.total, fromSuppliers }) : null;
   const paymentMethod: CheckoutPaymentMethod = paymentOptions.some((option) => option.key === chosenMethod) ? chosenMethod! : paymentOptions[0]?.key ?? "transfer";
   const isPaystack = paymentMethod === "paystack";
   // Pay on delivery (shared/pay-at-door.ts): the delivery fee is paid now with Paystack, the rest in the app at the door.
@@ -761,7 +764,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
           currency={store.currency}
           preview={preview}
           area={[details.city.trim(), details.state.trim()].filter(Boolean).join(", ") || null}
-          storePayOnDelivery={checkoutPaymentOptions(commerce.payments, { city: details.city, state: details.state, total: totals.total }).some((option) => option.key === "pay_on_delivery")}
+          storePayOnDelivery={checkoutPaymentOptions(commerce.payments, { city: details.city, state: details.state, total: totals.total, fromSuppliers }).some((option) => option.key === "pay_on_delivery")}
           payOnDelivery={commerce.payments.methods?.cod === true}
         />
         <PhoneCheck theme={theme} check={phoneCheck} />

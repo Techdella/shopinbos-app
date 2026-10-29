@@ -12,7 +12,8 @@ import {
 } from "@shared/dropship-rules";
 
 // Supplier track-record levels, server side (the rules are shared/dropship-rules.ts): New → Trusted → Established.
-// Pre-orders mean shops pay before the goods exist, so only Established suppliers can switch them on. Levels go up
+// Pre-orders mean shops pay before the goods exist, so only Established suppliers can switch them on. Late parcels
+// (strikes) count as problems and 3 still counting keep a supplier off Established. Levels go up
 // (and down) by themselves: refreshSupplierLevel is called when an order is delivered or reviewed, before the
 // supplier turns pre-orders on, and when they open their level screen.
 
@@ -25,12 +26,14 @@ export async function supplierLevelRecord(supplierId: string, now = new Date()):
     select: { verificationStatus: true, rating: true, ratingCount: true, missedOrders: true, missedReadyDates: true, pickupLat: true, createdAt: true },
   });
   if (!supplier) return null;
-  const [dropshipDelivered, wholesaleDelivered, dropshipRejected, wholesaleRejected, reviews] = await Promise.all([
+  const [dropshipDelivered, wholesaleDelivered, dropshipRejected, wholesaleRejected, reviews, lateStrikes] = await Promise.all([
     db.supplierOrder.count({ where: { supplierId, status: "delivered" } }),
     db.wholesaleOrder.count({ where: { supplierId, status: "delivered" } }),
     db.supplierOrder.count({ where: { supplierId, status: "rejected" } }),
     db.wholesaleOrder.count({ where: { supplierId, status: "cancelled", rejectReason: { not: null } } }),
     db.supplierReview.count({ where: { supplierId, targetRole: "supplier", status: "active" } }),
+    // Late shipments still counting (shared/fault-matrix.ts strikes): they count against the level.
+    db.supplierStrike.count({ where: { supplierId, kind: "late", expiresAt: { gt: now } } }),
   ]);
   return {
     verified: supplier.verificationStatus === "verified",
@@ -41,6 +44,7 @@ export async function supplierLevelRecord(supplierId: string, now = new Date()):
     addressVerified: supplier.pickupLat !== null,
     createdAt: supplier.createdAt,
     missedReadyDates: supplier.missedReadyDates,
+    lateStrikes,
     now,
   };
 }

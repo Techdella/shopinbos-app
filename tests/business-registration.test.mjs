@@ -93,7 +93,7 @@ test("CAC is only asked to file after a verified payment, by one caller, and a r
   const service = read("src/lib/business-registration/service.server.ts");
   assert.match(service, /^import "server-only";/);
   assert.match(service, /updateMany\(\{ where: \{ id: row\.id, status: "paid" \}, data: \{ status: "submitting" \} \}\)/, "one caller files");
-  assert.match(service, /verified\.amount !== row\.amountNgn \* 100/);
+  assert.match(service, /paidKobo\(verified\) !== row\.amountNgn \* 100/);
   assert.match(service, /metadata\.registration_id !== row\.id/);
   assert.match(service, /refundPaystackTransaction\(row\.reference\)/);
   assert.match(service, /await removeFiles\(row\)/, "pictures are deleted once CAC approves");

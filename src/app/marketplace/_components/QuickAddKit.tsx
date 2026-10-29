@@ -114,7 +114,7 @@ export function useSkipWords() {
 export function groupSkips(skipped: QuickAddResult["skipped"]) {
   const groups: Array<{ key: string; code: string; name: string | null; count: number; firstId: string }> = [];
   for (const item of skipped) {
-    const perSupplier = item.code.startsWith("AGREEMENT") || item.code === "TOO_FAR";
+    const perSupplier = item.code.startsWith("AGREEMENT") || item.code === "TOO_FAR" || item.code === "NOT_PAYABLE";
     const key = perSupplier ? `${item.code}:${item.supplierId}` : item.code;
     const found = groups.find((group) => group.key === key);
     if (found) found.count += 1;

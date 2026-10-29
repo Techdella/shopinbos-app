@@ -82,7 +82,7 @@ test("wiring: staff, packs, boosts, rate cards, pickup points, exceptions, follo
 
   const server = read("src/lib/plans/extras.server.ts");
   assert.match(server, /metadata\.purpose !== "plan_extra"/);
-  assert.match(server, /Number\(verified\.amount\) !== row\.amountKobo/);
+  assert.match(server, /paidKobo\(verified\) !== row\.amountKobo/);
   assert.match(server, /where: \{ reference, status: "pending" \},\s*data: \{ status: "paid"/, "credited once");
   assert.match(server, /if \(moved\.count !== 1\) return;/);
   assert.match(read("src/app/api/webhooks/paystack/route.ts"), /ref\.startsWith\(EXTRA_REFERENCE_PREFIX\)/);
