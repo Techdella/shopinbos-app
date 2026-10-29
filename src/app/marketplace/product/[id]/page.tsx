@@ -66,7 +66,7 @@ export default async function MarketplaceProductPage({ params, searchParams }: {
       wholesaleOrders = mine.map((order) => ({ ...order, createdAt: order.createdAt.toISOString() }));
       product = { ...product, similar: similarRange(product, peers.map(toFindProduct)) };
       added = inStore > 0;
-      // Who the supplier is and how close (src/lib/marketplace/agreements.server.ts): verification, risk score,
+      // Who the supplier is and how close (far ones are allowed; delivery from them may cost more) (src/lib/marketplace/agreements.server.ts): verification, risk score,
       // distance, and the call / stock check / agreement steps before dropshipping their products.
       const [place, trust, agreement, terms, selling, ratings, sampleOffer] = await Promise.all([
         sellerPlace(user.id),
@@ -81,9 +81,9 @@ export default async function MarketplaceProductPage({ params, searchParams }: {
       ]);
       const distance = nearness(place, { city: row.supplier.city, address: row.supplier.address });
       const info = trust.get(row.supplier.id);
-      const step = !sellerHasPlace(place) ? "noPlace" : !distance.near ? "far" : listingStep(agreement);
+      const step = listingStep(agreement);
       const contact = step === "agree" || step === "declined" ? await supplierContact(row.supplier.id) : { phone: null, address: null };
-      listing = { step, phone: contact.phone, address: contact.address, supplierNote: agreement?.supplierNote ?? null, shopName: store.name, shopCity: store.city };
+      listing = { step, noCity: !sellerHasPlace(place), phone: contact.phone, address: contact.address, supplierNote: agreement?.supplierNote ?? null, shopName: store.name, shopCity: store.city };
       product = {
         ...product,
         // Wholesale (paid to the supplier directly) only from verified suppliers.
@@ -92,7 +92,7 @@ export default async function MarketplaceProductPage({ params, searchParams }: {
         shopsSelling: selling.get(row.id) ?? 0,
         ratings,
         sampleOffer,
-        supplier: { ...product.supplier, km: distance.km, area: distance.area, risk: info?.risk ?? null, verificationStatus: row.supplier.verificationStatus, agreed: agreement?.status === "active" },
+        supplier: { ...product.supplier, km: distance.km, area: distance.area, far: sellerHasPlace(place) && !distance.near, risk: info?.risk ?? null, verificationStatus: row.supplier.verificationStatus, agreed: agreement?.status === "active" },
       };
     }
   }

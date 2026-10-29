@@ -21,10 +21,12 @@ import { dropshipDocument } from "@shared/contracts";
 // Accepting is signing: the shop reads the full Dropship agreement (shared/contracts.ts) and types its name; the
 // signed copy goes under Contracts for both sides.
 
-export type ListingStep = "agree" | "waiting" | "declined" | "ready" | "far" | "noPlace";
+export type ListingStep = "agree" | "waiting" | "declined" | "ready";
 
 export interface ListingInfo {
   step: ListingStep;
+  /** No city in Settings: distances can't be shown (a tip, not a requirement). */
+  noCity?: boolean;
   phone: string | null;
   address: string | null;
   supplierNote: string | null;
@@ -70,14 +72,18 @@ export function BeforeYouList({ supplier, listing }: { supplier: FindSupplier; l
         <p className="m-0 mt-1 text-[13px] leading-[1.5] text-app-ink-soft">{t("trust.beforeSub")}</p>
       </div>
       <SupplierRiskDetails supplier={supplier} />
+      {supplier.far ? (
+        <p className="m-0 flex items-start gap-1.5 rounded-[14px] bg-[#FDF0D5] px-3 py-2.5 text-[13.5px] font-semibold">
+          <Icon name="truck" size={15} className="mt-0.5 shrink-0" />{t("sup.farFees")}
+        </p>
+      ) : null}
 
-      {listing.step === "noPlace" ? (
-        <p className="m-0 rounded-[14px] bg-[#FDF0D5] px-3 py-2.5 text-[13.5px]">
+      {listing.noCity ? (
+        <p className="m-0 rounded-[14px] bg-app-canvas px-3 py-2.5 text-[13.5px]">
           {t("trust.addCity")} <Link href="/home/settings" className="font-extrabold text-app-ink">{t("trust.addCityBtn")}</Link>
         </p>
-      ) : listing.step === "far" ? (
-        <p className="m-0 rounded-[14px] bg-app-canvas px-3 py-2.5 text-[13.5px]">{t("trust.tooFar", { name })}</p>
-      ) : listing.step === "waiting" || sent ? (
+      ) : null}
+      {listing.step === "waiting" || sent ? (
         <p role="status" className="m-0 rounded-[14px] bg-app-success-tint px-3 py-2.5 text-[13.5px] font-bold text-app-success">{sent ?? t("trust.waiting", { name })}</p>
       ) : (
         <>

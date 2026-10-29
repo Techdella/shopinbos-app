@@ -33,7 +33,6 @@ import {
   addFirstSupplierProduct,
   checkSupplierCac,
   fetchSupplierJoin,
-  requestCatalogueListing,
   saveSupplierJoin,
   sendSupplierId,
   sendSupplierSelfie,
@@ -477,18 +476,7 @@ export function SupplierJoinFlow() {
             <Field value={productPrice} onChangeText={(text) => setProductPrice(text.replace(/\D/g, ""))} keyboardType="number-pad" placeholder={t("product.price")} accessibilityLabel={t("product.price")} />
           </>
         ) : null}
-        <Choice
-          title={current.catalogueRequested ? t("product.whatsappDone") : t("product.whatsapp")}
-          on={current.catalogueRequested}
-          onPress={() =>
-            void run(async () => {
-              await requestCatalogueListing();
-              setView(await saveSupplierJoin({ step: "review" }));
-              setNote(t("product.whatsappDone"));
-              go("review");
-            })
-          }
-        />
+        <T style={{ color: colors.inkSoft, fontSize: 13.5, lineHeight: 19 }}>{t("product.whatsappLater")}</T>
       </View>
     );
     action = {
