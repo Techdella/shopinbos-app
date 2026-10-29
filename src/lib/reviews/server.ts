@@ -1,5 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db/client";
+import { storeUrl } from "@/lib/marketing/brand";
 import { fromExternalReview, fromStoreReview, reviewModerationData, sortReviews, type ReviewItem, type ReviewStatusValue } from "./pure";
 
 // Loading reviews from every source into one list. Reads fall back gracefully while the reviews migration
@@ -10,13 +11,13 @@ export function appUrl() {
   return (process.env.NEXT_PUBLIC_APP_URL ?? "https://app.shopinbos.com").replace(/\/+$/, "");
 }
 
-export function reviewUrls(slug: string) {
-  const base = `${appUrl()}/s/${encodeURIComponent(slug)}`;
-  const api = `${appUrl()}/api/public/store/${encodeURIComponent(slug)}/reviews`;
+/** Customer-facing pages on the store's own address (custom domain, subdomain or /s/<slug>); feed and widget on the app's API. */
+export function reviewUrls(store: { slug: string; customDomain: string | null }) {
+  const api = `${appUrl()}/api/public/store/${encodeURIComponent(store.slug)}/reviews`;
   return {
-    wall: `${base}/reviews`,
-    reviewLink: (token: string) => `${base}/review/${token}`,
-    product: (productId: string) => `${base}/product/${productId}`,
+    wall: storeUrl(store, "/reviews"),
+    reviewLink: (token: string) => storeUrl(store, `/review/${token}`),
+    product: (productId: string) => storeUrl(store, `/product/${productId}`),
     feed: `${api}/feed.xml`,
     widget: `${api}/widget.js`,
   };

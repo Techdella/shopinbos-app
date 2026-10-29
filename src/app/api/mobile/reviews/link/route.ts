@@ -18,7 +18,7 @@ export const runtime = "nodejs";
 const REQUESTABLE = ["paid", "processing", "packed", "shipped", "delivered"] as const;
 
 export const GET = withSeller(async (_req, { user }) => {
-  const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, slug: true } });
+  const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, slug: true, customDomain: true } });
   if (!store) return apiError("NOT_FOUND", "Store not found", 404);
   const orders = await db.retailOrder.findMany({
     where: { storeId: store.id, status: { in: [...REQUESTABLE] }, createdAt: { gte: new Date(Date.now() - 120 * 86_400_000) } },
@@ -27,7 +27,7 @@ export const GET = withSeller(async (_req, { user }) => {
     select: { id: true, orderNumber: true, buyerName: true, buyerPhone: true, status: true, createdAt: true, deliveredAt: true },
   });
   return ok({
-    wall: reviewUrls(store.slug).wall,
+    wall: reviewUrls(store).wall,
     orders: orders.map((order) => ({
       id: order.id,
       orderNumber: order.orderNumber,
