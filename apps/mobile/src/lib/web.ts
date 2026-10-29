@@ -54,7 +54,8 @@ const APP_SCREENS: Record<string, string> = {
   // Customer messages always open the app's Chats (a conversation link opens that chat, see openPath).
   "/home/messages": "/chats",
   "/home/inbox": "/chats",
-  "/home/inbox/channels": "/chats",
+  // Connecting WhatsApp, Facebook & Instagram happens in the app (app/channels.tsx), never on the website.
+  "/home/inbox/channels": "/channels",
   "/home/inbox/settings": "/chats",
   "/home/inbox/email": "/chats",
   "/home/messages/partners": "/partners",
@@ -88,9 +89,9 @@ const APP_SCREENS: Record<string, string> = {
   "/home/settings": "/settings",
   "/home/store": "/settings",
   "/home/notifications": "/notifications",
-  // "Sell everywhere" isn't in the phone app: connecting chat channels starts from Chats.
-  "/channels": "/chats",
-  "/home/connections": "/chats",
+  // Sell everywhere and the connections page: the app's own Connect accounts screen.
+  "/channels": "/channels",
+  "/home/connections": "/channels",
   "/home/domain": "/domain",
   "/home/labels": "/packaging",
   "/home/labels/packaging": "/packaging",

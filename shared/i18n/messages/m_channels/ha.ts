@@ -2,8 +2,8 @@
 import type en from "./en.ts";
 
 const ha: Partial<Record<keyof typeof en, string>> = {
-  title: "Sayar a ko'ina",
-  sub: "Haɗa accounts ɗinka, kayayyakinka za su bayyana a can. Farashi da stock za su riƙa sabuntawa da kansu.",
+  title: "Haɗa asusu",
+  sub: "Haɗa WhatsApp, Facebook & Instagram da Google a nan. Hirarrakinka za su shigo Chats, kayayyakinka kuma za su bayyana a can.",
   cantSave: "Kayayyakinka suna ci gaba da bayyana inda aka haɗa su, amma ba za a iya ajiye canje-canje a nan yanzu ba. Danna Help mu gyara.",
   "p.whatsapp": "Abokan ciniki za su ga kayayyakinka kai tsaye a cikin WhatsApp.",
   "p.meta": "Kayayyakinka a Facebook Shop da posts ɗin Instagram.",
@@ -36,11 +36,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "soon.title": "Yana zuwa nan ba da daɗewa ba",
   "soon.notify": "Sanar da ni idan ya shirya",
   "soon.noted": "Za mu sanar da kai",
-  "wa.title": "Fara haɗa lambar WhatsApp ɗinka",
-  "wa.body": "WhatsApp yana buƙatar a haɗa lambar kasuwancinka da shagonka. Za mu buɗe hakan a browser ɗinka. Idan ka gama, dawo ka sake danna Haɗa.",
-  "wa.open": "Buɗe",
   "post.title": "Wallafa ka raba",
-  "post.sub": "Rubuta post game da kayayyakinka ka raba shi ko'ina. Yana buɗewa a browser ɗinka",
+  "post.sub": "Rubuta post game da kayayyakinka ka raba shi ko'ina.",
   openFailed: "Ba mu iya buɗe shafin shiga ba. Duba network ɗinka ka sake gwadawa.",
   "email.title": "Email a Inbox ɗinka",
   "email.name": "Email",
@@ -59,6 +56,12 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "email.domainTitle": "Saita email na domain ɗinka a babban allo",
   "email.domainBody": "Email kamar hello@yourshop.com: zaɓi adireshin ka taɓa Haɗa. Ya fi sauƙi a kwamfuta, amma kana iya buɗe shi a wannan wayar ma.",
   "email.askUs": "Tambaye mu mu saita maka",
+  "acc.whatsapp": "WhatsApp: {name}",
+  "acc.facebook": "Facebook Page: {name}",
+  "acc.instagram": "Instagram: {name}",
+  "acc.noInstagramApp": "Ba a ƙara Instagram ba tukuna. A cikin app ɗin Instagram, canza zuwa business account ka haɗa shi da Facebook Page ɗinka, sannan ka sake haɗawa.",
+  "card.confirmMeta": "Cire {name}? Sababbin saƙonni da sabunta kayayyaki za su tsaya a can. Tsofaffin hirarrakinka za su kasance.",
+  "card.confirmWhatsapp": "Cire {name}? Sabbin saƙonnin WhatsApp za su daina zuwa inbox ɗinka kuma kayayyakinka za su daina sabuntawa a can. Tsofaffin chat ɗinka za su kasance.",
 };
 
 export default ha;

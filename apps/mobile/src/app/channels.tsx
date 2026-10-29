@@ -8,17 +8,19 @@ import { Screen } from "@/components/Screen";
 import { WebButtonLabel } from "@/components/WebBadge";
 import { Card, LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { ApiError } from "@/lib/api";
-import { canDisconnect, canDisconnectEmail, emailCardState, gmailAvailable, GMAIL_CONNECT_PATH } from "@/lib/channels-pure";
-import { connectChannel, disconnectChannel, disconnectEmail, fetchChannels, fetchEmailSetup, retryChannel, type ChannelCard, type EmailSetupLite, type LivePlatform } from "@/lib/channels";
+import { accountLines, canDisconnect, canDisconnectEmail, emailCardState, gmailAvailable, GMAIL_CONNECT_PATH } from "@/lib/channels-pure";
+import { connectChannel, connectWhatsApp, disconnectChannel, disconnectEmail, fetchChannels, fetchEmailSetup, retryChannel, type ChannelCard, type EmailSetupLite, type LivePlatform } from "@/lib/channels";
 import { useLoad } from "@/lib/useLoad";
 import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors, themed } from "@/theme";
 
-// Sell everywhere (web /channels): one card per platform with one button. Facebook & Instagram, TikTok and Google
-// sign in through the web's own sign-in in an in-app browser that comes back here; WhatsApp sets up its catalog
-// in one tap once the number is connected (connecting the number itself runs on the web). Platforms not set up on
-// the server. Channels that can't be connected yet are left out (no "Coming soon"); posting is the Posts calendar.
+// Connect accounts (web /channels): one card per platform with one button, all connected in the app. Facebook &
+// Instagram, TikTok and Google sign in through the web's own sign-in in an in-app browser; WhatsApp sets up its
+// catalog in one tap once the number is connected, and connects the number with Meta's Embedded Signup in an in-app
+// browser (the web's small /channels/whatsapp page). Every sign-in comes back here (shopinbos://connected), never to
+// the website's Sell everywhere page. Each card then shows what it brought in (the number, the Page, the Instagram)
+// and Disconnect. Channels that can't be connected yet are left out (no "Coming soon"); posting is the Posts calendar.
 
 const MARK: Record<LivePlatform, { letter: string; bg: string }> = themed(() => ({
   whatsapp: { letter: "W", bg: colors.whatsapp },
@@ -40,7 +42,6 @@ function Mark({ platform, faded }: { platform: LivePlatform; faded?: boolean }) 
 
 function PlatformCard({ card, onChanged, onNote }: { card: ChannelCard; onChanged: () => Promise<void>; onNote: (note: Note | null) => void }) {
   const t = useT("m_channels", "common");
-  const tWeb = useT("m_ui");
   const [busy, setBusy] = useState<"connect" | "retry" | "disconnect" | null>(null);
   const { state, platform, name } = card;
 
@@ -57,19 +58,18 @@ function PlatformCard({ card, onChanged, onNote }: { card: ChannelCard; onChange
     }
   }
 
-  function askWhatsAppSignup() {
-    Alert.alert(t("wa.title"), t("wa.body"), [
-      { text: t("cancel"), style: "cancel" },
-      // Meta's WhatsApp sign-up only runs on the website; the button reads "Opens website ↗" (the WebBadge words).
-      { text: tWeb("web.badge"), onPress: () => void openWeb("/channels") },
-    ]);
+  // No number linked yet: Meta's WhatsApp sign-up in an in-app browser, then back here with how it went.
+  async function signUpWhatsApp() {
+    const outcome = await connectWhatsApp();
+    if (outcome === "connected") onNote({ tone: "success", text: t("connected", { name }) });
+    else if (outcome === "problem") onNote({ tone: "error", text: t("card.waFailed") });
   }
 
   function connect() {
     if (platform === "whatsapp") {
       return run("connect", async () => {
         const result = await retryChannel("whatsapp");
-        if (result.needsSignup) askWhatsAppSignup();
+        if (result.needsSignup) await signUpWhatsApp();
         else if (!result.ok) onNote({ tone: "error", text: t("card.waFailed") });
       });
     }
@@ -83,19 +83,20 @@ function PlatformCard({ card, onChanged, onNote }: { card: ChannelCard; onChange
   function retry() {
     return run("retry", async () => {
       const result = await retryChannel(platform);
-      if (result.needsSignup) askWhatsAppSignup();
+      if (result.needsSignup) await signUpWhatsApp();
       else if (!result.ok) onNote({ tone: "error", text: platform === "whatsapp" ? t("card.waFailed") : t("card.failed", { name }) });
     });
   }
 
   function disconnect() {
-    Alert.alert(t("card.disconnect"), t("card.confirm", { name }), [
+    Alert.alert(t("card.disconnect"), t(platform === "meta" ? "card.confirmMeta" : platform === "whatsapp" ? "card.confirmWhatsapp" : "card.confirm", { name }), [
       { text: t("cancel"), style: "cancel" },
       { text: t("card.disconnect"), style: "destructive", onPress: () => void run("disconnect", async () => void (await disconnectChannel(platform))) },
     ]);
   }
 
   const working = busy !== null;
+  const lines = accountLines(platform, state, card.accounts);
   const connectButton = (label: string) => <PillButton title={busy === "connect" ? t("card.connecting") : label} size="md" busy={busy === "connect"} disabled={working} onPress={() => void connect()} />;
 
   let body: React.ReactNode = null;
@@ -156,6 +157,23 @@ function PlatformCard({ card, onChanged, onNote }: { card: ChannelCard; onChange
           <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{t(`p.${platform}`)}</T>
         </View>
       </View>
+      {lines.length ? (
+        <View testID={`channel-accounts-${platform}`} style={{ gap: 6, backgroundColor: colors.canvas, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10 }}>
+          {lines.map((line) =>
+            line.key === "noInstagram" ? (
+              <View key={line.key} style={{ gap: 4 }}>
+                <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{t("acc.noInstagramApp")}</T>
+                <LinkButton title={t("card.connectAgain")} color={colors.accentInk} onPress={() => (working ? undefined : void connect())} style={{ alignSelf: "flex-start" }} />
+              </View>
+            ) : (
+              <View key={line.key} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <AppIcon name="check" size={16} color={colors.success} />
+                <T weight="semibold" style={{ flex: 1, fontSize: 14.5 }} numberOfLines={2}>{t(`acc.${line.key}`, { name: line.name })}</T>
+              </View>
+            ),
+          )}
+        </View>
+      ) : null}
       {body}
       {canDisconnect(state) ? <LinkButton title={busy === "disconnect" ? t("card.syncing") : t("card.disconnect")} color={colors.inkSoft} onPress={() => (working ? undefined : disconnect())} style={{ alignSelf: "flex-start" }} /> : null}
     </Card>

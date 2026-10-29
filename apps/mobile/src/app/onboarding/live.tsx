@@ -37,10 +37,9 @@ export default function Live() {
     setTimeout(() => setToast(null), 2400);
   }
 
-  async function goToShop() {
-    setLeaving(true);
-    await finishOnboarding(status!.store.live).catch(() => null);
-    router.replace("/home");
+  // Next: the link in bio step (onboarding/bio.tsx), which finishes onboarding and opens Home (skippable).
+  function goToShop() {
+    router.push("/onboarding/bio");
   }
 
   // "Let Peggy answer WhatsApp?": finish onboarding, then open the Peggy chatbot settings over Home.
@@ -111,7 +110,7 @@ export default function Live() {
             <PublishButton title={t("pay.goLive")} onPublished={() => void refresh()} />
           </>
         )}
-        <LinkButton title={leaving ? t("live.opening") : t("live.goToShop")} style={{ marginTop: 4, marginBottom: 6 }} onPress={() => void goToShop()} />
+        <LinkButton title={leaving ? t("live.opening") : t("live.goToShop")} style={{ marginTop: 4, marginBottom: 6 }} onPress={goToShop} />
       </SafeAreaView>
       {toast && (
         <View style={{ position: "absolute", bottom: 120, alignSelf: "center", backgroundColor: colors.inkFill, borderRadius: radii.pill, paddingHorizontal: 18, paddingVertical: 12 }}>

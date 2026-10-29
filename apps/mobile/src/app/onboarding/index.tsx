@@ -827,7 +827,8 @@ export default function SellerQuestions() {
       <>{title(liveProblem ? t("live.notYet", { reason: liveProblem }) : t("live.publishing"))}</>
     );
     footer = live ? (
-      <PillButton title={t("live.home")} busy={busy} onPress={() => void finish()} />
+      // Next: the link in bio step (onboarding/bio.tsx), which finishes onboarding and opens Home (skippable).
+      <PillButton testID="live-continue" title={t("live.home")} busy={busy} onPress={() => router.push("/onboarding/bio")} />
     ) : liveProblem ? (
       <PillButton title={t("live.retry")} busy={busy} onPress={() => void goLive()} />
     ) : null;

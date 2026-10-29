@@ -115,6 +115,15 @@ const SELLER: PeggyScreen[] = [
   { id: "email", name: "Email", app: "/marketing/email", web: "/home/marketing/campaigns", also: ["emails", "email campaigns", "newsletter", "send an email", "subscribers email"], about: "emails to subscribers: the ones sent and planned, and a new one Rex writes" },
   { id: "popups", name: "Popups", app: "/marketing/popups", web: "/home/marketing/forms", also: ["popup", "pop-up", "pop-ups", "sign-up popup", "collect emails"], about: "offers that show on the shop and collect emails and WhatsApp numbers" },
   { id: "domain", name: "Web address", app: "/domain", web: "/home/domain", also: ["domain"] },
+  { id: "link_in_bio", name: "Link in bio", app: "/link-in-bio", web: "/home/social/link-in-bio", also: ["bio link", "instagram bio", "tiktok bio"], about: "the one link for the Instagram, TikTok and WhatsApp bio, with Copy and Share" },
+  {
+    id: "connect_accounts",
+    name: "Connect accounts",
+    app: "/channels",
+    web: "/channels",
+    also: ["connect whatsapp", "connect instagram", "connect facebook", "sell everywhere", "channels"],
+    about: "connect WhatsApp, Facebook & Instagram and Google to the shop, all in the app",
+  },
   { id: "settings", name: "Settings", app: "/settings", web: "/home/settings" },
   { id: "help", name: "Help", app: "/help", web: "/home/peggy" },
 ];

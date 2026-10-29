@@ -1,7 +1,7 @@
 // Phone app (apps/mobile): Sell everywhere (app/channels.tsx). Card words match the web's "social" namespace.
 const en = {
-  title: "Sell everywhere",
-  sub: "Connect your accounts and your products show there. Prices and stock update by themselves.",
+  title: "Connect accounts",
+  sub: "Connect WhatsApp, Facebook & Instagram and Google right here. Your chats come into Chats and your products show there.",
   cantSave: "Your products still show where they're connected, but changes here can't be saved right now. Tap Help and we'll sort it out.",
   "p.whatsapp": "Customers see your products right inside WhatsApp.",
   "p.meta": "Your products in your Facebook Shop and Instagram posts.",
@@ -34,11 +34,8 @@ const en = {
   "soon.title": "Coming soon",
   "soon.notify": "Tell me when it's ready",
   "soon.noted": "We'll let you know",
-  "wa.title": "Connect your WhatsApp number first",
-  "wa.body": "WhatsApp needs your business number linked to your shop. We'll open that in your browser. When it's done, come back and tap Connect again.",
-  "wa.open": "Open",
   "post.title": "Post & share",
-  "post.sub": "Write a post about your products and share it everywhere. Opens in your browser",
+  "post.sub": "Write a post about your products and share it everywhere.",
   openFailed: "Couldn't open the sign-in. Check your connection and try again.",
   "email.title": "Email in your Inbox",
   "email.name": "Email",
@@ -57,6 +54,12 @@ const en = {
   "email.domainTitle": "Set up your domain email on a bigger screen",
   "email.domainBody": "Email like hello@yourshop.com: pick the address and tap Connect. It's easier on a computer, but you can open it on this phone too.",
   "email.askUs": "Ask us to set it up",
+  "acc.whatsapp": "WhatsApp: {name}",
+  "acc.facebook": "Facebook Page: {name}",
+  "acc.instagram": "Instagram: {name}",
+  "acc.noInstagramApp": "Instagram isn't added yet. In the Instagram app, switch to a business account and link it to your Facebook Page, then connect again.",
+  "card.confirmMeta": "Disconnect {name}? New messages and product updates stop there. Your past chats stay.",
+  "card.confirmWhatsapp": "Disconnect {name}? New WhatsApp messages stop coming to your inbox and your products stop updating there. Your past chats stay.",
 } satisfies Record<string, string>;
 
 export default en;

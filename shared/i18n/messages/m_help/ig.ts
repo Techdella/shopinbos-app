@@ -182,6 +182,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "call.screen.insights": "Nghọta",
   "call.screen.email": "Email",
   "call.screen.popups": "Popups",
+  "call.screen.link_in_bio": "Link in bio",
+  "call.screen.connect_accounts": "Jikọọ akaụntụ",
 };
 
 export default ig;

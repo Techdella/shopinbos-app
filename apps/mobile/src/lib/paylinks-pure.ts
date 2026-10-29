@@ -265,3 +265,54 @@ export function bioSaveBody(page: Pick<BioPage, "published" | "title" | "bio" | 
 
 /** Taps on one block (0 when it has none yet). */
 export const blockTaps = (clicks: Record<string, number>, id: string) => clicks[id] ?? 0;
+
+// ─── Link in bio in onboarding and on Home ───────────────────────────────────
+
+/** The socials the onboarding step asks for (the web's SOCIAL_KEYS in src/lib/bio/pure.ts has more). */
+export const STARTER_SOCIALS = ["instagram", "tiktok", "facebook"] as const;
+export type StarterSocial = (typeof STARTER_SOCIALS)[number];
+
+/** "@ada.fabrics", "ada.fabrics" or a full profile link, as the server's socialUrl reads it; "" when there's nothing. */
+export function cleanHandle(value: string): string {
+  const raw = value.trim();
+  if (!raw) return "";
+  if (/^https?:\/\//i.test(raw)) return cleanUrl(raw) ?? "";
+  const handle = raw.replace(/^@+/, "").replace(/[^A-Za-z0-9._-]/g, "").slice(0, 60);
+  return handle ? `@${handle}` : "";
+}
+
+/**
+ * The page the onboarding step saves: the starter blocks the server suggests (GET /api/app/bio before a page is
+ * saved: "Shop now", new arrivals, top products, the WhatsApp button, "Track my order"), with "Shop now" always on
+ * top (a link to the whole shop, even before there are products) and the seller's socials as icons above
+ * "Track my order". A page the seller already saved keeps its blocks; socials they typed are only added.
+ */
+export function starterBioBlocks(blocks: BioBlock[], socials: Partial<Record<StarterSocial, string>>, random = Math.random): BioBlock[] {
+  const out = [...blocks];
+  if (!out.some((block) => block.type === "shop")) out.unshift({ id: newBlockId(random), type: "shop" });
+  const links: Record<string, string> = {};
+  for (const key of STARTER_SOCIALS) {
+    const value = cleanHandle(socials[key] ?? "");
+    if (value) links[key] = value;
+  }
+  if (!Object.keys(links).length) return out.slice(0, MAX_BIO_BLOCKS);
+  const existing = out.findIndex((block) => block.type === "socials");
+  if (existing >= 0) {
+    const block = out[existing] as Extract<BioBlock, { type: "socials" }>;
+    const kept = Object.fromEntries(Object.entries(block.links).filter(([, value]) => value?.trim()));
+    out[existing] = { ...block, links: { ...links, ...kept } };
+    return out.slice(0, MAX_BIO_BLOCKS);
+  }
+  const track = out.findIndex((block) => block.type === "track");
+  out.splice(track >= 0 ? track : out.length, 0, { id: newBlockId(random), type: "socials", links });
+  return out.slice(0, MAX_BIO_BLOCKS);
+}
+
+export type BioCardState = { kind: "loading" } | { kind: "setup" } | { kind: "off"; url: string } | { kind: "live"; url: string };
+
+/** What Home's link-in-bio card shows: the link (Copy, Share) once the page is saved, "Set it up" before. */
+export function bioCardState(page: Pick<BioPage, "exists" | "published" | "url"> | null | undefined): BioCardState {
+  if (!page) return { kind: "loading" };
+  if (!page.exists) return { kind: "setup" };
+  return page.published ? { kind: "live", url: page.url } : { kind: "off", url: page.url };
+}

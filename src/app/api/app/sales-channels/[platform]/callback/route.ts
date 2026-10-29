@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { credentialKey } from "@/lib/inbox/crypto";
 import { appResultUrl, appReturnCookieName, appReturnUrl, checkCallbackState, isOAuthPlatform, nonceCookieName, returnCookieName, safeReturnPath } from "@/lib/sales-channels/pure";
 import { finishConnect } from "@/lib/sales-channels/server";
+import { appConnectedDeepLink, appConnectedPagePath, isConnectedReturn } from "@shared/app-connect";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -11,7 +12,8 @@ export const maxDuration = 120;
 // GET: the platform sends the seller back here. Only a fresh state we signed, for this platform, this seller's
 // store and this browser (nonce cookie) is accepted; then the code becomes encrypted tokens and the catalog and
 // feed are set up. Ends on the page the seller started from (/channels, Inbox → Channels or Start here, the connect
-// route's return cookie), where the card shows how it went, or back in the phone app when the sign-in started there.
+// route's return cookie), where the card shows how it went, or back in the phone app when the sign-in started there
+// (through /api/mobile/connected, which has a "Back to the app" button for browsers that need a tap, shared/app-connect.ts).
 export const GET = withSeller(async (req: NextRequest, { user, params }) => {
   const platform = params.platform;
   if (!isOAuthPlatform(platform)) return NextResponse.redirect(new URL("/channels", req.url));
@@ -45,7 +47,9 @@ export const GET = withSeller(async (req: NextRequest, { user, params }) => {
   const app = appReturnUrl(req.cookies.get(appReturnCookieName(platform))?.value);
   if (app) {
     const result = back.searchParams.get("connected") ? "connected" : back.searchParams.get("problem") ? "problem" : "closed";
-    response = NextResponse.redirect(appResultUrl(app, platform, result));
+    // shopinbos://connected?channel=meta&status=connected (older app versions: shopinbos://channels?connected=meta).
+    const link = isConnectedReturn(app) ? appConnectedDeepLink(app, platform, result) : appResultUrl(app, platform, result);
+    response = NextResponse.redirect(new URL(appConnectedPagePath(link), req.url));
     response.cookies.set(appReturnCookieName(platform), "", { path: `/api/app/sales-channels/${platform}`, maxAge: 0 });
   }
   response.cookies.set(nonceCookieName(platform), "", { path: `/api/app/sales-channels/${platform}`, maxAge: 0 });
