@@ -1,6 +1,6 @@
 import "server-only";
 
-import { generateImage, loadReferences, MAX_REFERENCES, type ImageSize } from "@/lib/ai/images";
+import { generateImage, loadReferences, MAX_REFERENCES, type ImageQuality, type ImageSize } from "@/lib/ai/images";
 import { brandImageBrief, type BrandContext } from "@shared/brand-context";
 
 // A picture in the seller's brand: their logo (sent to the image model as the first reference, so it is
@@ -24,6 +24,7 @@ export async function makeBrandImage({
   logo,
   colours,
   referenceUrls = [],
+  quality,
   path,
 }: {
   brand: BrandContext | null;
@@ -35,13 +36,15 @@ export async function makeBrandImage({
   colours: boolean;
   /** Photos (or video stills) from our own storage to work from. */
   referenceUrls?: string[];
+  /** "high" for premium work (packaging mockups, ads). */
+  quality?: ImageQuality;
   path: string;
 }): Promise<BrandImageResult> {
   const logoUrl = logo ? brand?.logoUrl ?? null : null;
   const logoRef = logoUrl ? await loadReferences([logoUrl]) : [];
   const others = await loadReferences(referenceUrls.filter((url) => url !== logoUrl).slice(0, MAX_REFERENCES - logoRef.length));
   const brief = brandImageBrief(brand ? { ...brand, logoUrl: logoRef.length ? brand.logoUrl : null } : null, { logo, colours, otherReferences: others.length });
-  const url = await generateImage({ prompt: `${prompt.trim()}\n\n${brief}`, size, references: [...logoRef, ...others], path });
+  const url = await generateImage({ prompt: `${prompt.trim()}\n\n${brief}`, size, references: [...logoRef, ...others], quality, path });
   return {
     url,
     usedLogo: logoRef.length > 0,

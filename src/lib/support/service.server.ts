@@ -726,7 +726,7 @@ export async function userContext(userId: string) {
   return {
     user: { id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role as string, city: user.city, country: user.country, createdAt: user.createdAt, verificationStatus: user.verificationStatus as string },
     business: user.store
-      ? { kind: "Store", name: user.store.name, detail: user.store.customDomain ?? `${user.store.slug}.shopinbos.com`, status: user.store.status, href: `/s/${user.store.slug}` }
+      ? { kind: "Store", name: user.store.name, detail: user.store.customDomain ?? `${user.store.slug}.mybos.store`, status: user.store.status, href: `/s/${user.store.slug}` }
       : user.supplier
         ? { kind: "Supplier", name: user.supplier.displayName, detail: String(user.supplier.verificationStatus), status: String(user.supplier.verificationStatus), href: `/admin/suppliers/${user.supplier.id}` }
         : user.logisticsPartner

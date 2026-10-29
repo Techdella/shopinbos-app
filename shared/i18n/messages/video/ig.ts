@@ -72,6 +72,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "shots.undo": "Jiri foto mbụ m",
   "shots.cost": "Foto ọ bụla na-eji otu foto n'ime nke taa, mgbe ahụ kredit {credits}.",
   "style": "2. Ụdị",
+  "styleFeel": "Otu ụdị",
+  "styleAll": "Ha niile ({count})",
   "tpl.float": "Float",
   "tpl.floatBlurb": "Ngwaahịa gị na-efegharị n'azụ agba akara dị nro na okwu otu. Jụụ ma dị oke ọnụ.",
   "tpl.bold": "Big type",

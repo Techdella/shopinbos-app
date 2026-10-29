@@ -18,6 +18,8 @@ export function normaliseImageSize(size: string | undefined): ImageSize {
   return "1024x1024";
 }
 
+export type ImageQuality = "low" | "medium" | "high";
+
 export class ImageUnavailableError extends Error {}
 
 async function store(b64: string, path: string) {
@@ -34,11 +36,14 @@ export async function generateImage({
   size = "1024x1024",
   transparent = false,
   references = [],
+  quality,
   path,
 }: {
   prompt: string;
   size?: ImageSize;
   transparent?: boolean;
+  /** "high" for premium work (packaging mockups, ads): finer detail and lettering, slower. Default: the model's own. */
+  quality?: ImageQuality;
   /**
    * Pictures to work from (the brand logo first, then the seller's photos or video stills), from loadReferences.
    * With any, the model draws from them (images.edit) instead of from words alone.
@@ -59,6 +64,7 @@ export async function generateImage({
         size,
         input_fidelity: "high",
         output_format: "webp",
+        ...(quality ? { quality } : {}),
         ...(transparent ? { background: "transparent" as const } : {}),
       })
     : openai.images.generate({
@@ -67,6 +73,7 @@ export async function generateImage({
         n: 1,
         size,
         output_format: "webp",
+        ...(quality ? { quality } : {}),
         ...(transparent ? { background: "transparent" as const } : {}),
       }));
   const b64 = response.data?.[0]?.b64_json;

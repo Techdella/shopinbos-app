@@ -297,7 +297,7 @@ export function CampaignEditor({
                     <textarea ref={textRef} id="c-text" rows={6} value={draft.bodyHtml} onChange={(e) => set({ bodyHtml: e.target.value })} className={textareaClass} maxLength={918} placeholder={t("editor.smsPlaceholder")} />
                     <VoiceInputButton value={draft.bodyHtml} onChange={(bodyHtml) => set({ bodyHtml })} maxLength={918} context="a text message to customers" className="mt-2" />
                   </Field>
-                  <SmsCounter text={draft.bodyHtml.replace(/{{\s*name\s*}}/g, "Adaeze").replace(/{{\s*store\s*}}/g, tb("bs.link.shop")).replace(/{{\s*store_url\s*}}/g, "https://yourshop.shopinbos.com")} recipients={audience} costPerSegment={sms.costPerSegment} currency={sms.currency} />
+                  <SmsCounter text={draft.bodyHtml.replace(/{{\s*name\s*}}/g, "Adaeze").replace(/{{\s*store\s*}}/g, tb("bs.link.shop")).replace(/{{\s*store_url\s*}}/g, "https://yourshop.mybos.store")} recipients={audience} costPerSegment={sms.costPerSegment} currency={sms.currency} />
                   {!/\bSTOP\b/i.test(draft.bodyHtml) ? (
                     <button type="button" className={`${buttonClass("white", "sm")} justify-self-start`} onClick={() => set({ bodyHtml: `${draft.bodyHtml.trimEnd()} ${t("editor.replyStop")}` })}>{t("editor.addReplyStop", { text: t("editor.replyStop") })}</button>
                   ) : null}

@@ -7,7 +7,7 @@
 export const CREATIVE_PLACEMENTS = ["social_post", "story", "feed_ad", "store_banner", "email_header", "popup", "campaign_poster"] as const;
 export type CreativePlacement = (typeof CREATIVE_PLACEMENTS)[number];
 
-export const CREATIVE_CONCEPTS = ["bold_headline", "product_lineup", "witty_metaphor", "model_with_products", "floating_hero", "dark_premium", "ingredient_splash", "flat_lay", "minimal_studio"] as const;
+export const CREATIVE_CONCEPTS = ["bold_headline", "product_lineup", "witty_metaphor", "model_with_products", "floating_hero", "dark_premium", "ingredient_splash", "flat_lay", "minimal_studio", "mascot_pack", "mood_grid", "ingredient_fusion", "flavour_family", "render_3d"] as const;
 export type CreativeConcept = (typeof CREATIVE_CONCEPTS)[number];
 
 export const CREATIVE_PLACEMENT_INFO: Record<CreativePlacement, { name: string; shape: "square" | "portrait" | "landscape"; ratio: string; note: string }> = {
@@ -66,6 +66,31 @@ export const CREATIVE_CONCEPT_INFO: Record<CreativeConcept, { name: string; hint
     hint: "One product, calm colour, lots of space.",
     direction: "A calm minimal advert: one product on a simple plinth or surface, a soft single-colour background, gentle shadows, lots of empty space, one short line of elegant text.",
   },
+  mascot_pack: {
+    name: "Mascot pack",
+    hint: "The pack becomes a cartoon character with big eyes and a window mouth.",
+    direction: "A playful packaging advert: the product's pack redesigned as a friendly cartoon character (huge round white eyes, thick eyebrows, a die-cut window mouth showing the real product inside), two packs in different bright colours standing side by side on a clean light grey studio floor with soft shadows, photoreal packaging render.",
+  },
+  mood_grid: {
+    name: "Mood grid",
+    hint: "A 2×2 grid: one pack per tile, each a different colour and mood.",
+    direction: "A 2 × 2 grid of four square tiles, each tile a different pastel colour (yellow, blue, pink, green) with a matching pack: the same brand pack shown as four expressive cartoon characters (happy, sad, angry, greedy) with a round window showing the product, a tiny mood label in the corner of each tile. Photoreal, glossy, collectable.",
+  },
+  ingredient_fusion: {
+    name: "Ingredient fusion",
+    hint: "Half product, half hero ingredient, fused into one striking shape.",
+    direction: "A striking split-colour poster: on one side a deep colour, on the other a lighter tint; a single perfect sphere that is half the product and half its hero ingredient fused seamlessly down the middle (like half ice cream scoop, half blueberry, with two fresh leaves), the product's pack floating beside it with its lid lifted, an elegant thin sans-serif name with a flowing script word beneath.",
+  },
+  flavour_family: {
+    name: "Flavour family",
+    hint: "The whole range in candy colours, piled up together.",
+    direction: "A joyful range shot: seven or eight packs of the product in different candy colours (lime, tangerine, berry, grape, coral) piled and tumbling together in a playful heap, each with the same friendly design and its flavour name, on a warm peach background with soft sculptural pastel 3D shapes behind, bright soft light.",
+  },
+  render_3d: {
+    name: "3D render",
+    hint: "Glossy 3D scene with pastel shapes, plinths and soft light.",
+    direction: "A premium 3D-rendered product scene: the product on a smooth pastel plinth among soft sculptural shapes (spheres, arches, wavy ribbons) in two or three harmonious pastel colours, glossy and matte materials, soft global illumination and gentle shadows, like a high-end brand's Instagram launch post.",
+  },
 };
 
 const unsplash = (id: string) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=360&h=360&q=75`;
@@ -81,6 +106,11 @@ export const CREATIVE_CONCEPT_PHOTO: Record<CreativeConcept, { url: string; cred
   ingredient_splash: { url: unsplash("1707129785947-ddc627a8bab9"), credit: "Madara" },
   flat_lay: { url: unsplash("1777655789747-9644d9596287"), credit: "Vagaro" },
   minimal_studio: { url: unsplash("1671575192248-5d8e42f18a9c"), credit: "Giorgio Trovato" },
+  mascot_pack: { url: unsplash("1633533446213-a438ff5f0629"), credit: "MK +2" },
+  mood_grid: { url: unsplash("1580314552228-5a7ce023fc9e"), credit: "PULSÍTOS.com" },
+  ingredient_fusion: { url: unsplash("1629385744299-74b9cf013f52"), credit: "Courtney Cook" },
+  flavour_family: { url: unsplash("1693480879928-7c7fb5f68204"), credit: "pouchdirect" },
+  render_3d: { url: unsplash("1718419466963-5a74903d0ae8"), credit: "Zulian Firmansyah" },
 };
 
 export function isCreativePlacement(value: unknown): value is CreativePlacement {
