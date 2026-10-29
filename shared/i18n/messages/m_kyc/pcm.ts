@@ -98,7 +98,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "q.extra.base": "Add photo of your base",
   "q.extra.baseSub": "E go give you Address Verified badge.",
   "q.extra.bank": "Payout ready",
-  "q.extra.bankSub": "Add your bank account when you first withdraw, for your Wallet.",
+  "q.extra.bankSub": "Add your bank account for your Wallet make you collect your money.",
   "q.base.inState": "For {state}",
   "item.approved": "Approved",
   "item.pending": "We dey check am",

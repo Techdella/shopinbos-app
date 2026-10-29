@@ -6,7 +6,6 @@ import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { paystackSecretReady } from "@shared/checkout-payments";
 import { initializePaystackTransaction, verifyPaystackTransaction, paidKobo } from "@/lib/paystack";
-import { createPaystackTransferRecipient } from "@/lib/payout-bank";
 import { readDedicatedAccount } from "@/lib/logistics/payin-rules";
 import { dvaBank, dvaUnavailableMessage } from "@/lib/logistics/paystack-dva";
 import { appBase, sendPlatformEmail } from "@/lib/email/compliance.server";
@@ -18,16 +17,16 @@ import { ensurePaystackModeSynced } from "@/lib/paystack-mode.server";
 import { BALANCE_LIMITS, WALLET_REFERENCE, paystackNames, paystackPhone, validAmountNaira } from "./balance-rules";
 
 // The prepaid wallet balance. Businesses top it up (card, or a bank transfer to their own top-up account number),
-// spend it on Shopinbos services (AI credits), and withdraw what's left to their checked bank (Paystack transfer).
-// Sales are never added here: they still settle straight to the bank through Paystack splits.
+// and spend it on Shopinbos services (AI credits). It's spend-only: prepaid for Shopinbos services, never withdrawn,
+// so Shopinbos holds no one's money to pay back out. Sales are never added here: they settle straight to the bank
+// through Paystack splits.
 //
 // Every change to balanceKobo happens in one database transaction with a WalletTransaction whose reference is
 // unique, so a retried webhook or a double click can't count twice, and a CHECK constraint keeps it >= 0.
 //
-// Paystack setup: Transfers must be enabled and the "OTP for transfers" setting switched off (Settings →
-// Preferences) for withdrawals to go out by API; top-up accounts need Dedicated Virtual Accounts
-// (WALLET_TOPUP_ACCOUNTS=true, bank from PAYSTACK_DVA_BANK). Webhooks: charge.success, transfer.success,
-// transfer.failed, transfer.reversed → /api/webhooks/paystack.
+// Paystack setup: top-up accounts need Dedicated Virtual Accounts (WALLET_TOPUP_ACCOUNTS=true, bank from
+// PAYSTACK_DVA_BANK). Webhooks: charge.success (and transfer.* for withdrawals made before they stopped) →
+// /api/webhooks/paystack.
 
 export class WalletBalanceError extends Error {}
 
@@ -478,128 +477,20 @@ export async function handleWalletAccountAssign(eventType: string, data: unknown
   return true;
 }
 
-// ─── Withdrawals ──────────────────────────────────────────────────────────────
+// ─── Withdrawals (stopped) ────────────────────────────────────────────────────
 
 /**
- * The Paystack transfer recipient for the wallet's checked bank, made (and saved) the first time it's needed. Changing
- * the bank clears it (linkWalletBank), so a withdrawal always goes to the bank on the wallet now. Null when Paystack
- * couldn't make one.
+ * The balance is spend-only: prepaid for Shopinbos services, never paid back out, so Shopinbos holds no one's money
+ * to return. Withdrawals waiting in line from before are put back on the balance (hourly, with the lifecycle job),
+ * and a transfer still out with Paystack finishes through handleWalletTransfer.
  */
-async function withdrawalRecipient(wallet: { id: string; transferRecipient: string | null; bankName: string | null; bankCode: string | null; accountNumber: string | null; accountName: string | null }) {
-  if (wallet.transferRecipient) return wallet.transferRecipient;
-  if (!wallet.bankCode || !wallet.accountNumber || !wallet.accountName) return null;
-  const made = await createPaystackTransferRecipient({ bankName: wallet.bankName ?? "", bankCode: wallet.bankCode, accountNumber: wallet.accountNumber, accountName: wallet.accountName });
-  if (!made.recipientCode) return null;
-  await db.wallet.update({ where: { id: wallet.id }, data: { transferRecipient: made.recipientCode } });
-  return made.recipientCode;
-}
-
-/** Sends part of the balance to their checked bank. The money leaves the balance now; a failed transfer puts it back. */
-export async function withdrawToBank(userId: string, naira: number) {
-  if (!walletPaymentsReady()) throw new WalletBalanceError("Withdrawals aren't switched on yet.");
-  const problem = validAmountNaira(naira, BALANCE_LIMITS.withdrawMin, BALANCE_LIMITS.withdrawMax);
-  if (problem) throw new WalletBalanceError(problem);
-  const wallet = await ensureWallet(userId);
-  if (wallet.status !== "active") throw new WalletBalanceError("Your wallet is paused. Message us to sort it out.");
-  if (!wallet.accountNumber || !wallet.bankCode || !wallet.accountName || wallet.subaccountStatus !== "active") {
-    throw new WalletBalanceError("Add and check your bank account first, so we know where to send it.");
-  }
-  const to = await withdrawalRecipient(wallet);
-  if (!to) throw new WalletBalanceError("We couldn't set up your bank for withdrawals just now. Try again in a few minutes.");
-  const amountKobo = Math.round(naira * 100);
-  const reference = `${WALLET_REFERENCE.withdrawal}${randomUUID().replace(/-/g, "")}`;
-  const description = `Withdrawal to ${wallet.bankName ?? "your bank"} ••${wallet.accountNumber.slice(-4)}`;
-  await db.$transaction((tx) => debitWallet(wallet.id, { amountKobo, reference, kind: "withdrawal", description, status: "pending" }, tx));
-  // Withdrawals are paid from Shopinbos's Paystack balance. When it can't cover this one yet (money in settles to the
-  // bank), the withdrawal waits in line instead of failing: the money stays off their balance, the team is told, and
-  // sendQueuedWithdrawals sends it as soon as the balance allows.
-  const available = await paystackBalanceKobo();
-  if (available !== null && available < amountKobo) {
-    await queueWithdrawal(reference, "Waiting for the payout balance");
-    return { reference, status: "queued" as const };
-  }
-  return { reference, status: await sendWithdrawal(reference, to, amountKobo, true) };
-}
-
-/** Shopinbos's NGN balance on Paystack, in kobo (what withdrawals are paid from), or null when Paystack didn't say. */
-async function paystackBalanceKobo(): Promise<number | null> {
-  try {
-    const response = await fetch(`${PAYSTACK_BASE}/balance`, { headers: { Authorization: `Bearer ${secret()}` }, cache: "no-store", signal: AbortSignal.timeout(15_000) });
-    const json = (await response.json().catch(() => null)) as { status?: boolean; data?: Array<{ currency?: string; balance?: number }> } | null;
-    if (!response.ok || !json?.status || !Array.isArray(json.data)) return null;
-    const ngn = json.data.find((row) => row.currency === "NGN");
-    return typeof ngn?.balance === "number" ? ngn.balance : null;
-  } catch {
-    return null;
-  }
-}
-
-const NOT_ENOUGH = /balance is not enough|insufficient/i;
-
-/**
- * Asks Paystack to send a withdrawal. "done"/"pending" when it went (the transfer webhook finishes it); "queued" when
- * the payout balance is short (it waits); a refusal for any other reason puts the money back on their balance.
- */
-async function sendWithdrawal(reference: string, recipient: string, amountKobo: number, onScreen: boolean): Promise<"done" | "pending" | "queued"> {
-  await db.walletTransaction.updateMany({ where: { reference, status: "queued" }, data: { status: "pending", error: null } });
-  const sent = await paystack("/transfer", { source: "balance", amount: amountKobo, recipient, reference, reason: "Shopinbos wallet withdrawal", currency: "NGN" });
-  if (!sent.ok) {
-    if (NOT_ENOUGH.test(sent.message)) {
-      await queueWithdrawal(reference, "Waiting for the payout balance");
-      return "queued";
-    }
-    await refundWithdrawal(reference, sent.message, !onScreen);
-    if (onScreen) throw new WalletBalanceError("The withdrawal didn't go through, so your balance is back. Try again later or message us.");
-    return "pending";
-  }
-  const status = String((sent.data as { status?: string } | undefined)?.status ?? "pending");
-  if (status === "success") await finishWithdrawal(reference);
-  return status === "success" ? "done" : "pending";
-}
-
-/** Holds a withdrawal until the payout balance covers it, and tells the team once a day while any wait. */
-async function queueWithdrawal(reference: string, note: string) {
-  await db.walletTransaction.updateMany({ where: { reference, status: "pending" }, data: { status: "queued", error: note } });
-  const waiting = await db.walletTransaction.aggregate({ where: { kind: "withdrawal", status: "queued" }, _sum: { amountKobo: true }, _count: { _all: true } });
-  const { notifyAdmins } = await import("@/lib/notifications/notify.server");
-  await notifyAdmins({
-    event: "wallet.withdrawal",
-    priority: "warning",
-    title: "Wallet withdrawals are waiting for the Paystack balance",
-    description: `${waiting._count._all} withdrawal(s) worth ${formatNaira(-(waiting._sum.amountKobo ?? 0))} are queued because the Paystack balance can't cover them. Fund the Paystack balance (or keep settlements in it); they go out automatically within the hour.`,
-    link: "/admin/wallets",
-    dedupeKey: `withdrawals-queued:${new Date().toISOString().slice(0, 10)}`,
-    email: "transactional",
-  }).catch((error) => console.error("[wallet] queued-withdrawal alert", error));
-}
-
-/** Sends queued withdrawals, oldest first, while the Paystack balance covers them (hourly, with the lifecycle job). */
-export async function sendQueuedWithdrawals(limit = 20) {
-  if (!walletPaymentsReady()) return { sent: 0, waiting: 0 };
-  const queued = await db.walletTransaction.findMany({
-    where: { kind: "withdrawal", status: "queued" },
-    orderBy: { createdAt: "asc" },
-    take: limit,
-    select: { reference: true, amountKobo: true, wallet: { select: { id: true, transferRecipient: true, bankName: true, bankCode: true, accountNumber: true, accountName: true, subaccountStatus: true } } },
-  });
-  let available = queued.length ? await paystackBalanceKobo() : null;
-  let sent = 0;
+export async function returnQueuedWithdrawals(limit = 50) {
+  const queued = await db.walletTransaction.findMany({ where: { kind: "withdrawal", status: "queued" }, orderBy: { createdAt: "asc" }, take: limit, select: { reference: true } });
   for (const row of queued) {
-    const amountKobo = -row.amountKobo;
-    if (available === null || available < amountKobo) break;
-    // Paid to the bank on the wallet when it goes out, even if they changed it while the withdrawal waited.
-    const to = row.wallet.subaccountStatus === "active" ? await withdrawalRecipient(row.wallet).catch(() => null) : null;
-    if (!to) {
-      await db.walletTransaction.updateMany({ where: { reference: row.reference, status: "queued" }, data: { status: "pending" } });
-      await refundWithdrawal(row.reference, "No bank set up for withdrawals.");
-      continue;
-    }
-    const outcome = await sendWithdrawal(row.reference, to, amountKobo, false).catch(() => "queued" as const);
-    if (outcome === "queued") break;
-    available -= amountKobo;
-    sent += 1;
+    await db.walletTransaction.updateMany({ where: { reference: row.reference, status: "queued" }, data: { status: "pending" } });
+    await refundWithdrawal(row.reference, "Withdrawals have stopped: your balance is for AI credits and other Shopinbos services.");
   }
-  return { sent, waiting: queued.length - sent };
+  return { returned: queued.length };
 }
 
 async function finishWithdrawal(reference: string) {
@@ -650,7 +541,8 @@ export async function walletBalanceView(userId: string) {
     open,
     ready: walletPaymentsReady() && open,
     balanceNaira: (wallet?.balanceKobo ?? 0) / 100,
-    canWithdraw: Boolean(wallet && wallet.status === "active" && wallet.accountNumber && wallet.subaccountStatus === "active"),
+    /** Always false: the balance is spend-only. Kept for older phone apps, which hide Withdraw on it. */
+    canWithdraw: false,
     bank: wallet?.accountNumber ? `${wallet.bankName ?? "Bank"} ••${wallet.accountNumber.slice(-4)}` : null,
     // A partner given a number before verification still sees it (they were told about it); it activates on verification.
     topUpAccount: wallet?.topUpStatus === "ready" && wallet.topUpAccountNumber ? { number: wallet.topUpAccountNumber, name: wallet.topUpAccountName ?? "", bank: wallet.topUpBankName ?? "" } : null,

@@ -158,7 +158,7 @@ test("credits show as a number and a refill line only; the wallet card has no To
   assert.doesNotMatch(credits, /Pressable|PillButton|onPress/, "the credits line is not a button");
   const card = code(read("apps/mobile/src/components/WalletBalanceCard.tsx"));
   assert.doesNotMatch(card, /topUp|bal\.topUp|emailWalletTopUp/);
-  assert.match(card, /withdrawFromWallet\(/, "withdrawing to their own bank stays");
+  assert.doesNotMatch(card, /withdrawFromWallet/, "the balance is spend-only: no Withdraw");
 });
 
 test("themes: no lock while every theme is free, and a lock never names a plan or links to one", () => {

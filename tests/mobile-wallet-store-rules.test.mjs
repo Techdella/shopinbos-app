@@ -1,6 +1,6 @@
 // The phone's Wallet card follows the app-store payment rules (Apple 3.1.1, Google Play payments): the balance pays
 // for Shopinbos services, so the app never takes a top-up or points anywhere to make one (no button, no email with
-// the website steps); withdrawing to the person's own bank stays in the app. tests/store-payments.test.mjs has more.
+// the website steps). It's spend-only, so there's no Withdraw either. tests/store-payments.test.mjs has more.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -18,7 +18,7 @@ test("the phone's wallet card never starts a payment, shows the account number o
   assert.match(lib, /WALLET_ACCOUNT_IN_APP = process\.env\.EXPO_PUBLIC_WALLET_ACCOUNT_NUMBER === "true"/);
   assert.doesNotMatch(read("apps/mobile/eas.json"), /EXPO_PUBLIC_WALLET_ACCOUNT_NUMBER/);
   assert.doesNotMatch(read("apps/mobile/src/components/WalletAccountNumber.tsx"), /openBrowserAsync|topUpWallet|>[A-Z][a-z]+ [a-z]+[^<{]*</);
-  assert.match(card, /withdrawFromWallet\(/);
+  assert.doesNotMatch(card + lib, /withdrawFromWallet|wallet\/withdraw/, "the balance is spend-only");
   assert.doesNotMatch(card, />[A-Z][a-z]+ [a-z]+[^<{]*</, "no hard-coded English text");
 });
 

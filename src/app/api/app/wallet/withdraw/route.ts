@@ -1,19 +1,9 @@
-import { NextRequest } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
-import { apiError, ok } from "@/lib/api/response";
-import { WalletBalanceError, withdrawToBank } from "@/lib/wallet/balance.server";
+import { apiError } from "@/lib/api/response";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// POST /api/app/wallet/withdraw { naira }: send part of the balance to their checked bank (Paystack transfer).
-export const POST = withAuth(async (req: NextRequest, { user }) => {
-  const body = (await req.json().catch(() => ({}))) as { naira?: unknown };
-  try {
-    return ok(await withdrawToBank(user.id, Number(body.naira)));
-  } catch (error) {
-    if (error instanceof WalletBalanceError) return apiError("BAD_REQUEST", error.message);
-    console.error("[wallet] withdrawal failed", error);
-    return apiError("UNAVAILABLE", "Couldn't start the withdrawal. Try again.", 503);
-  }
-}, ["seller", "supplier", "logistics_partner"]);
+// POST /api/app/wallet/withdraw: withdrawals have stopped. The balance is spend-only (prepaid for Shopinbos services),
+// so Shopinbos holds no one's money to pay out. Older phone apps that still call this get a plain answer.
+export const POST = withAuth(async () => apiError("BAD_REQUEST", "Your Shopinbos balance is for AI credits and other Shopinbos services, so it can't be withdrawn. Sales go straight to your bank."), ["seller", "supplier", "logistics_partner"]);

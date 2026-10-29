@@ -53,13 +53,11 @@ export function WalletAccountPanel<V extends WalletAccountView>({ view, onUpdate
           <li><strong>Get paid:</strong> share it with customers or anyone who owes you. What they send goes straight to your bank, {view.topUpGoesTo}, usually the next working day. Shopinbos never holds it.</li>
           <li><strong>See every payment:</strong> each transfer shows on your statement with who sent it, and we tell you the moment it arrives.</li>
           <li><strong>Top up to spend:</strong> pay by card with Top up to add to your balance for AI credits and other Shopinbos services.</li>
-          <li><strong>Withdraw:</strong> anything left on your balance can go to your bank whenever you like.</li>
         </ul>
       ) : (
         <ul className="m-0 mt-1.5 list-disc pl-5">
           <li><strong>Top up:</strong> transfer to it from any bank app, or pay by card with Top up.</li>
           <li><strong>Spend:</strong> your balance pays for AI credits and other Shopinbos services.</li>
-          <li><strong>Withdraw:</strong> send what&apos;s left to your main bank account whenever you like.</li>
           <li><strong>Get paid straight to your bank:</strong> add your bank below and transfers to this account go straight to it.</li>
         </ul>
       )}
