@@ -22,6 +22,7 @@ import { editNeedsReview, statusAfterEdit } from "@shared/supplier-product-revie
 import { notifyPriceNotice, supplierPriceEdit } from "@/lib/marketplace/price-notice.server";
 import { channelPriceProblem, cleanDropshipMinQty, cleanHandlingDays } from "@shared/dropship-rules";
 import { preorderLevelProblem } from "@/lib/supplier-levels.server";
+import { cleanLink, SHOWCASE_TEAM_MAX, supplierShowcase } from "@shared/supplier-showcase";
 
 async function getSupplierActor() {
   const user = await requireRole(["supplier"], "/supplier/login");
@@ -427,7 +428,8 @@ export async function updateSupplierProfile(formData: FormData) {
   const responseTimeLabel = String(formData.get("responseTimeLabel") || "").trim();
   const description = String(formData.get("description") || "").trim();
   const whatsappNumber = String(formData.get("whatsappNumber") || "").trim();
-  const website = String(formData.get("website") || "").trim();
+  const website = cleanLink(formData.get("website"));
+  const storeUrl = cleanLink(formData.get("storeUrl"));
   const returnPolicy = String(formData.get("returnPolicy") || "").trim().slice(0, 1500);
 
   await db.user.update({
@@ -445,15 +447,59 @@ export async function updateSupplierProfile(formData: FormData) {
       responseTimeLabel: responseTimeLabel || undefined,
       description: description || undefined,
       whatsappNumber: whatsappNumber || undefined,
-      website: website || undefined,
+      // Emptied on purpose: no link on the public page.
+      website: formData.has("website") ? website : undefined,
       // Emptied on purpose: the minimum in the Supplier terms applies again.
       returnPolicy: formData.has("returnPolicy") ? returnPolicy || null : undefined,
     },
   });
+  if (formData.has("storeUrl")) await mergeSupplierState(supplier.id, { storeUrl });
 
   invalidatePublicMarketplaceCache({ supplierSlug: supplier.slug });
 
   redirect("/supplier/profile?saved=true");
+}
+
+/** Sets keys in a supplier's onboardingState, read fresh so a save never drops another one's change. */
+async function mergeSupplierState(supplierId: string, patch: Record<string, unknown>) {
+  const row = await db.supplier.findUnique({ where: { id: supplierId }, select: { onboardingState: true } });
+  const state = row?.onboardingState && typeof row.onboardingState === "object" && !Array.isArray(row.onboardingState) ? (row.onboardingState as Record<string, unknown>) : {};
+  await db.supplier.update({ where: { id: supplierId }, data: { onboardingState: { ...state, ...patch } as any } });
+}
+
+/** "Meet the team" on the public page: a photo, a name and what they do (e.g. "Account manager"). */
+export async function addSupplierShowcaseMember(formData: FormData) {
+  const { supplier } = await getSupplierActor();
+  const name = String(formData.get("name") ?? "").replace(/\s+/g, " ").trim().slice(0, 80);
+  const role = String(formData.get("role") ?? "").replace(/\s+/g, " ").trim().slice(0, 60);
+  const file = formData.get("photo");
+  if (name.length < 2) redirect("/supplier/profile?error=Add+their+name#team");
+  if (!(file instanceof File) || !file.size || !/^image\//.test(file.type)) redirect("/supplier/profile?error=Add+their+photo#team");
+  if (file.size > 8 * 1024 * 1024) redirect("/supplier/profile?error=That+photo+is+bigger+than+8+MB#team");
+  if (supplierShowcase(supplier.onboardingState).team.length >= SHOWCASE_TEAM_MAX) redirect(`/supplier/profile?error=Up+to+${SHOWCASE_TEAM_MAX}+people#team`);
+
+  let photoUrl: string;
+  try {
+    const { uploadFileServer, uploadPath } = await import("@/lib/supabase/storage.server");
+    photoUrl = (await uploadFileServer("supplier-logos", file, uploadPath(`supplier-team/${supplier.id}`, file))).publicUrl;
+  } catch {
+    redirect("/supplier/profile?error=Upload+failed#team");
+  }
+  const fresh = await db.supplier.findUnique({ where: { id: supplier.id }, select: { onboardingState: true } });
+  const team = supplierShowcase(fresh?.onboardingState).team;
+  const id = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+  await mergeSupplierState(supplier.id, { showcaseTeam: [...team, { id, name, role, photoUrl }].slice(0, SHOWCASE_TEAM_MAX) });
+  invalidatePublicMarketplaceCache({ supplierSlug: supplier.slug });
+  redirect("/supplier/profile?saved=true#team");
+}
+
+export async function removeSupplierShowcaseMember(formData: FormData) {
+  const { supplier } = await getSupplierActor();
+  const id = String(formData.get("id") ?? "");
+  const team = supplierShowcase(supplier.onboardingState).team;
+  await mergeSupplierState(supplier.id, { showcaseTeam: team.filter((member) => member.id !== id) });
+  invalidatePublicMarketplaceCache({ supplierSlug: supplier.slug });
+  redirect("/supplier/profile?saved=true#team");
 }
 
 export async function uploadSupplierCover(formData: FormData) {

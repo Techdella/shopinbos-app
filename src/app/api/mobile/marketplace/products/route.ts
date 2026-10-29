@@ -3,14 +3,14 @@ import { PRODUCT_PLAN_FIRST } from "@/lib/plans/placement";
 import { withSeller } from "@/lib/auth/middleware";
 import { apiError, ok } from "@/lib/api/response";
 import { db } from "@/lib/db/client";
-import { nearbyForSeller } from "@/lib/marketplace/agreements.server";
+import { VISIBLE_SUPPLIER, nearbyForSeller } from "@/lib/marketplace/agreements.server";
 import { sameState, sellerState } from "@/lib/marketplace/quick-add.server";
 import { productSelect, productWhere, sellerStore, withPreorderState } from "./_shared";
 import { customerPlacesFor, nearCustomersFor, shopsSellingFor } from "@/lib/marketplace/find-extras.server";
 
 export const dynamic = "force-dynamic";
 
-// GET ?q= → { hasPlace, city, state, products } (up to 300; the app lists them virtualised): Find products in the phone app, the same as the web's /marketplace:
+// GET ?q= &supplier=<slug> → { hasPlace, city, state, products } (up to 300; the app lists them virtualised): Find products in the phone app, the same as the web's /marketplace:
 // suppliers near the seller first, then far ones (verified or not; all of them, unmeasured, with no city set), each with its verification, risk score, distance and
 // whether the seller already has a Dropship agreement with it (src/lib/marketplace/agreements.server.ts), and
 // `preorder` when the supplier takes preorders (ship date, places left, promise; never the raw counts), the
@@ -21,8 +21,10 @@ export const GET = withSeller(async (req: NextRequest, { user }) => {
   const store = await sellerStore(user.id);
   if (!store) return apiError("NOT_FOUND", "Set up your store first.", 404);
   const q = (req.nextUrl.searchParams.get("q") ?? "").trim().slice(0, 120);
+  // ?supplier=<slug>: one supplier's products (their page in the app), wherever they are.
+  const supplierSlug = (req.nextUrl.searchParams.get("supplier") ?? "").trim().slice(0, 120);
   const rows = await db.supplierProduct.findMany({
-    where: { ...productWhere(store.country || "Nigeria"), ...(q ? { OR: [{ name: { contains: q, mode: "insensitive" } }, { description: { contains: q, mode: "insensitive" } }] } : {}) },
+    where: { ...(supplierSlug ? { status: "published" as const, supplier: { ...VISIBLE_SUPPLIER, slug: supplierSlug } } : productWhere(store.country || "Nigeria")), ...(q ? { OR: [{ name: { contains: q, mode: "insensitive" } }, { description: { contains: q, mode: "insensitive" } }] } : {}) },
     select: productSelect,
     orderBy: [PRODUCT_PLAN_FIRST, { trendScore: "desc" }, { createdAt: "desc" }],
     take: 300,

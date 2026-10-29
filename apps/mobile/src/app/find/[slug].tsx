@@ -262,6 +262,9 @@ function ProductView({ product, listing, context, terms, refreshing, onRefresh }
           />
         </View>
         <SupplierTrustBadges supplier={product.supplier} />
+        {product.supplier.slug ? (
+          <PillButton tone="white" size="sm" icon="store" title={tm("sup.allTheirProducts")} onPress={() => router.push({ pathname: "/suppliers/[slug]", params: { slug: product.supplier.slug } })} />
+        ) : null}
       </Card>
 
       {product.dropship && product.wholesale ? (

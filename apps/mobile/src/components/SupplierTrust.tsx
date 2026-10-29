@@ -20,7 +20,8 @@ const LEVEL = {
   high: { bg: colors.dangerTint, fg: colors.danger },
 } as const;
 
-export function SupplierTrustBadges({ supplier }: { supplier: FindProduct["supplier"] }) {
+/** Verified or not, the risk score and how far: on a product (FindProduct["supplier"]) or a supplier's own page. */
+export function SupplierTrustBadges({ supplier }: { supplier: { verificationStatus: string; risk: { level: keyof typeof LEVEL; score: number } | null; km: number | null } }) {
   const t = useT("marketplace");
   return (
     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
@@ -30,7 +31,6 @@ export function SupplierTrustBadges({ supplier }: { supplier: FindProduct["suppl
         <Badge label={supplier.verificationStatus === "pending" ? t("trust.pending") : t("trust.unverified")} bg={colors.dangerTint} fg={colors.danger} />
       )}
       {supplier.risk ? <Badge label={t.dynamic(`trust.risk.${supplier.risk.level}`, supplier.risk.level, { score: supplier.risk.score })} bg={LEVEL[supplier.risk.level].bg} fg={LEVEL[supplier.risk.level].fg} /> : null}
-      {supplier.far ? <Badge label={t("sup.farBadge")} bg="#FDF0D5" fg="#8A5A00" /> : null}
       {typeof supplier.km === "number" ? <Badge label={t("trust.km", { km: supplier.km < 1 ? "<1" : String(Math.round(supplier.km)) })} /> : null}
     </View>
   );
