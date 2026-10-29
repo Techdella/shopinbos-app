@@ -138,8 +138,6 @@ const en = {
   "product.price": "Price per item (₦)",
   "product.add": "Add product",
   "product.added": "{name} added. You can add more later.",
-  "product.whatsapp": "Send us your WhatsApp catalogue and we'll list it for you",
-  "product.whatsappDone": "Got it. We'll message you on WhatsApp for your catalogue.",
   "product.needPhoto": "Take a photo of the product.",
   "product.needName": "Type what it's called.",
   "product.needPrice": "Type the price in naira.",

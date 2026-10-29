@@ -128,8 +128,6 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "product.price": "Iye owó ẹyọ kan (₦)",
   "product.add": "Fi ọjà kún un",
   "product.added": "A ti fi {name} kún un. O lè fi púpọ̀ sí i nígbà míì.",
-  "product.whatsapp": "Fi WhatsApp catalogue rẹ ránṣẹ́ sí wa, a máa ṣe àkójọ rẹ̀ fún ọ",
-  "product.whatsappDone": "A ti gbọ́. A máa fi ọ̀rọ̀ ránṣẹ́ sí ọ lórí WhatsApp fún catalogue rẹ.",
   "product.needPhoto": "Ya fọ́tò ọjà náà.",
   "product.needName": "Kọ orúkọ rẹ̀.",
   "product.needPrice": "Kọ iye owó ní naira.",
