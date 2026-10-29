@@ -305,6 +305,13 @@ const en = {
   "sale.codeNone": "No product has the code {code}.",
   // Preorder lists, Stock is ready and deposits (shared/preorder.ts)
   "preorders.title": "Preorders",
+  "preorders.start.title": "Take pre-orders on a product",
+  "preorders.start.sub": "Sell it before the stock arrives. Shoppers see Preorder now and your ship date. Set a limit, a deposit or a note in the product's settings.",
+  "preorders.start.product": "Product",
+  "preorders.start.pick": "Pick a product",
+  "preorders.start.shipsAt": "Ships from (optional)",
+  "preorders.start.submit": "Take pre-orders",
+  "preorders.start.terms": "It's your promise to your customers: you send it, and you sort out any delay with them. Shopinbos doesn't hold the money.",
   "preorders.taking": "Taking preorders",
   "preorders.stopped": "Preorders ended",
   "preorders.stockReady": "Stock is ready",

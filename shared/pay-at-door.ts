@@ -1,17 +1,17 @@
-// Pay on delivery without cash: the customer checks the parcel at the door, pays in the app (Paystack: transfer to
-// a one-time account, card or USSD), and only then sees the 4-digit delivery code the rider types to close the drop.
-// No code, no drop: the rider app can't mark a pay-on-delivery order delivered until the money is in. Riders never
-// hold cash. Pure, unit-tested in tests/pay-at-door.test.mjs; the payment itself is src/lib/commerce/pay-at-door.server.ts.
+// Pay on delivery is the seller's own arrangement with their customer and their delivery people (Shopinbos only
+// provides the platform: shared/checkout-payments.ts PAY_ON_DELIVERY_ON). The customer pays the seller or their rider at
+// the door, by cash or transfer as they agree, and the seller marks the order paid (paystackStatus "offline"); or the
+// customer pays in the app from their order page (Paystack: transfer to a one-time account, card or USSD), split like
+// a card order. Shopinbos sets no rider rules: a drop isn't held for payment and the delivery code isn't hidden.
+// Pure, unit-tested in tests/pay-at-door.test.mjs; the in-app payment is src/lib/commerce/pay-at-door.server.ts.
 //
-// The delivery fee is paid at checkout (POD_FEE_PREFIX), settled straight to the delivery partner (or the seller for
-// their own delivery), so a customer who won't pay at the door has still paid for the trip. Until it's in, the order
-// waits (paymentDueAt is set, the card window) and expires like an unpaid card order; once it's in (depositPaidAt) the
-// order is confirmed, sent to suppliers and booked, and the door payment is the rest (total less the fee). Orders with
-// free delivery have nothing to pay upfront and go live straight away, as before.
+// When the store takes card payments, the delivery fee can be paid at checkout (POD_FEE_PREFIX), settled straight to
+// the delivery partner (or the seller for their own delivery). Until it's in, the order waits (paymentDueAt) and expires
+// like an unpaid card order; once it's in (depositPaidAt) the order is confirmed and the rest is paid at the door.
+// Stores without card payments, and free delivery, have nothing to pay upfront and go live straight away.
 //
-// An order is "paid at the door" once the Paystack payment is verified (paystackStatus "success"), or the seller
-// marked it paid before it left (paystackStatus "offline", or status "paid"). Jobs from before this change that still
-// carry a cash amount (codAmount) close the old way, with the cash recorded, so nothing in flight gets stuck.
+// An order is "paid" once an in-app payment is verified (paystackStatus "success"), or the seller marked it paid
+// (paystackStatus "offline", or status "paid").
 
 /** Paystack references for door payments (the webhook and the order page route them here). */
 export const PAY_AT_DOOR_PREFIX = "pdoor_";
@@ -70,15 +70,14 @@ export function payAtDoorDue(order: FeeOrder) {
 }
 
 /**
- * Why a job can't be marked delivered yet, or null. A pay-on-delivery order must be paid first, whoever closes the
- * drop (rider, partner portal or API). Old cash jobs (codAmount set) are exempt: they record the cash instead.
+ * Why a job can't be marked delivered yet, or null. Never for payment: how the customer pays at the door is between
+ * the seller, their customer and their rider, so Shopinbos doesn't hold a drop for it.
  */
-export function payAtDoorBlock(order: DoorOrder | null | undefined, job: { codAmount: number | null }) {
-  if (!order || !payAtDoorDue(order) || (job.codAmount ?? 0) > 0) return null;
-  return "The customer hasn't paid yet. Ask them to pay with the link on their phone (or scan the QR code in your app). Once the money is in they get the code to give you.";
+export function payAtDoorBlock(_order: DoorOrder | null | undefined, _job: { codAmount: number | null }): string | null {
+  return null;
 }
 
-/** The delivery code the customer may see: only once a pay-on-delivery order is paid. */
-export function codeVisible(order: DoorOrder) {
-  return !isPayOnDelivery(order) || payAtDoorPaid(order);
+/** The delivery code the customer may see: always (it proves who received the parcel, not that it's paid). */
+export function codeVisible(_order: DoorOrder) {
+  return true;
 }

@@ -5,9 +5,9 @@
 //
 // "pod.disclaimer" is the published pay-on-delivery terms (POD_DISCLAIMER in shared/delivery-market.ts), and
 // "pod.disclaimerPartner" the partner's side of them (POD_DISCLAIMER_PARTNER). Every translation must say exactly the
-// same thing: the customer pays in the app (the delivery fee at checkout, the rest at the door), the money settles
-// straight to the businesses' banks, riders never collect cash, no payment and code means no handover (the parcel
-// goes back), and Shopinbos does not hold the funds (shared/pay-at-door.ts).
+// same thing: pay on delivery is between the shop, its customer and its delivery partner; the customer pays the shop
+// or its rider at the door as they agree (or in the app); the seller marks it paid; and Shopinbos does not collect,
+// hold or guarantee the money (shared/pay-at-door.ts).
 const en = {
   // ─── Rule words (shared/delivery-market.ts) ───────────────────────────────
   "service.doorstep": "Doorstep delivery",
@@ -47,11 +47,11 @@ const en = {
   "decline.none": "No reason given",
   // The published pay-on-delivery terms (see the note at the top).
   "pod.disclaimer":
-    "With pay on delivery, your customer pays the delivery fee at checkout and the rest in the app when the parcel arrives, by card, bank transfer or USSD through Paystack. The money settles straight to your bank and your delivery partner's: riders never collect cash. The rider hands over the parcel only after the customer has paid and given their code; if they won't pay, it comes back to you. Shopinbos does not hold these funds.",
+    "Pay on delivery is between you, your customer and your delivery partner. Your customer pays you or your rider when it arrives, by cash or transfer as you agree, or in the app from their order page; mark the order paid once you have the money. When you take card payments, the delivery fee can be paid at checkout. Shopinbos doesn't collect, hold or guarantee pay-on-delivery money.",
   // The partner's side of
   // "pod.disclaimer" (POD_DISCLAIMER_PARTNER in shared/delivery-market.ts).
   "pod.disclaimerPartner":
-    "With pay on delivery, the customer pays in the app when your rider arrives, never in cash. Your delivery fee settles straight to your bank through Paystack. Hand over the parcel only after the customer has paid and given their code; if they won't pay, bring it back to the shop. Shopinbos does not hold these funds.",
+    "Pay on delivery is between you and the shop. The customer pays your rider or the shop at the door, by cash or transfer as you and the shop agree, or in the app. Pass on any cash as you agreed with the shop. Shopinbos doesn't collect, hold or guarantee pay-on-delivery money.",
   "offPlatform.warning":
     "Keep jobs and payments in Shopinbos. In-app jobs are paid automatically, tracked, and count towards your rating. Payments arranged outside the app aren't protected by Shopinbos.",
   "time.sameDay": "Same day",

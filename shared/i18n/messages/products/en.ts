@@ -13,6 +13,7 @@ const en = {
   "vis.collection_only": "Collections only",
   "vis.hidden": "Hidden",
   "list.import": "Import",
+  "list.preorders": "Pre-orders",
   "list.export": "Export",
   addProduct: "Add product",
   "list.search": "Search name or SKU",

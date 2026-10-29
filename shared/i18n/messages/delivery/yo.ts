@@ -39,9 +39,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "decline.other": "Ìdí mìíràn",
   "decline.none": "Wọn kò sọ ìdí",
   "pod.disclaimer":
-    "Pẹ̀lú pay on delivery, oníbàárà rẹ yóò san owó ìfijíṣẹ́ nígbà checkout, yóò sì san ìyókù nínú app nígbà tí parcel bá dé, pẹ̀lú card, bank transfer tàbí USSD nípasẹ̀ Paystack. Owó náà máa ń lọ tààrà sí bánkì rẹ àti ti delivery partner rẹ: rider kì í gba cash. Rider yóò fi parcel lé e lọ́wọ́ lẹ́yìn tí oníbàárà bá ti sanwó tí ó sì fún un ní code rẹ̀ nìkan; tí kò bá sanwó, yóò padà sọ́dọ̀ rẹ. Shopinbos kì í di owó yìí mú.",
+    "Pay on delivery wà láàrin ìwọ, oníbàárà rẹ àti delivery partner rẹ. Oníbàárà rẹ yóò san owó fún ọ tàbí rider rẹ nígbà tí ó bá dé, pẹ̀lú cash tàbí transfer bí ẹ ṣe fohùn ṣọ̀kan, tàbí nínú app láti ojú-ìwé order wọn; samisi order náà gẹ́gẹ́ bí èyí tí a ti san lẹ́yìn tí owó bá dé ọ̀dọ̀ rẹ. Tí o bá ń gba ìsanwó kaadi, oníbàárà lè san owó ìfijíṣẹ́ nígbà checkout. Shopinbos kì í gba, kì í dì mú, kì í sì í ṣe ìdánilójú owó pay on delivery.",
   "pod.disclaimerPartner":
-    "Pẹ̀lú pay on delivery, oníbàárà yóò sanwó nínú app nígbà tí rider rẹ bá dé, kì í ṣe cash. Owó ìfijíṣẹ́ rẹ máa ń lọ tààrà sí bánkì rẹ nípasẹ̀ Paystack. Fi parcel lé e lọ́wọ́ lẹ́yìn tí oníbàárà bá ti sanwó tí ó sì fún ọ ní code rẹ̀ nìkan; tí kò bá sanwó, gbé e padà sí ṣọ́ọ̀bù náà. Shopinbos kì í di owó yìí mú.",
+    "Pay on delivery wà láàrin ìwọ àti ṣọ́ọ̀bù náà. Oníbàárà yóò san owó fún rider rẹ tàbí ṣọ́ọ̀bù ní ẹnu ọ̀nà, pẹ̀lú cash tàbí transfer bí ìwọ àti ṣọ́ọ̀bù ṣe fohùn ṣọ̀kan, tàbí nínú app. Fi cash èyíkéyìí lé wọn lọ́wọ́ bí ẹ ṣe fohùn ṣọ̀kan. Shopinbos kì í gba, kì í dì mú, kì í sì í ṣe ìdánilójú owó pay on delivery.",
   "offPlatform.warning": "Ẹ jẹ́ kí iṣẹ́ àti ìsanwó wà nínú Shopinbos. Ìsanwó fún iṣẹ́ inú app máa ń ṣẹlẹ̀ fúnra rẹ̀, a máa ń tọpinpin iṣẹ́ náà, ó sì máa ń kà kún rating rẹ. Shopinbos kò dáàbò bo ìsanwó tí ẹ bá ṣètò lóde app.",
   "time.sameDay": "Ọjọ́ kan náà",
   "time.days": "{count, plural, other {ọjọ́ #}}",

@@ -307,6 +307,13 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "sale.codeNone": "No product get the code {code}.",
   // Preorder lists, Stock is ready and deposits (shared/preorder.ts)
   "preorders.title": "Preorders",
+  "preorders.start.title": "Take pre-orders for one product",
+  "preorders.start.sub": "Sell am before the stock reach. Shoppers go see Preorder now and your ship date. Set limit, deposit or note for the product settings.",
+  "preorders.start.product": "Product",
+  "preorders.start.pick": "Pick one product",
+  "preorders.start.shipsAt": "E go ship from (if you want)",
+  "preorders.start.submit": "Take pre-orders",
+  "preorders.start.terms": "Na your promise to your customers: you go send am, and you go settle any delay with dem. Shopinbos no dey hold the money.",
   "preorders.taking": "Dey collect preorders",
   "preorders.stopped": "Preorders don close",
   "preorders.stockReady": "Stock don ready",

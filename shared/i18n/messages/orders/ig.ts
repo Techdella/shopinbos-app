@@ -307,6 +307,13 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "sale.codeNone": "Ọ dịghị ngwaahịa nwere koodu {code}.",
   // Preorder lists, Stock is ready and deposits (shared/preorder.ts)
   "preorders.title": "Ịtụ n'ihu oge",
+  "preorders.start.title": "Nara pre-order na ngwaahịa",
+  "preorders.start.sub": "Ree ya tupu ngwa ahịa abịa. Ndị na-azụ ahịa ga-ahụ Preorder now na ụbọchị ị ga-eziga ya. Tọọ oke, nkwụnye ego ma ọ bụ ndetu na ntọala ngwaahịa ahụ.",
+  "preorders.start.product": "Ngwaahịa",
+  "preorders.start.pick": "Họrọ ngwaahịa",
+  "preorders.start.shipsAt": "A ga-eziga site na (nhọrọ)",
+  "preorders.start.submit": "Nara pre-order",
+  "preorders.start.terms": "Ọ bụ nkwa gị nye ndị ahịa gị: ị ga-eziga ya, ma dozie igbu oge ọ bụla na ha. Shopinbos anaghị ejide ego ahụ.",
   "preorders.taking": "Na-anara ịtụ n'ihu oge",
   "preorders.stopped": "Ịtụ n'ihu oge akwụsịla",
   "preorders.stockReady": "Ngwaahịa adịla njikere",

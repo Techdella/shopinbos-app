@@ -39,9 +39,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "decline.other": "Another reason",
   "decline.none": "Dem no talk why",
   "pod.disclaimer":
-    "For pay on delivery, your customer go pay delivery fee for checkout, then pay the rest inside the app when the parcel reach, with card, bank transfer or USSD through Paystack. The money go enter your bank and your delivery partner bank straight: rider no dey collect cash. Rider go give the parcel only after the customer don pay and give their code; if dem no pay, e go come back to you. Shopinbos no dey hold this money.",
+    "Pay on delivery na between you, your customer and your delivery partner. Your customer go pay you or your rider when e reach, with cash or transfer as una agree, or inside the app from their order page; mark the order paid once the money don enter. If you dey take card payment, customer fit pay delivery fee for checkout. Shopinbos no dey collect, hold or guarantee pay-on-delivery money.",
   "pod.disclaimerPartner":
-    "For pay on delivery, customer go pay inside the app when your rider reach, no be cash. Your delivery fee go enter your bank straight through Paystack. Give the parcel only after the customer don pay and give their code; if dem no pay, carry am back to the shop. Shopinbos no dey hold this money.",
+    "Pay on delivery na between you and the shop. Customer go pay your rider or the shop for door, with cash or transfer as you and the shop agree, or inside the app. Pass any cash as you and the shop agree. Shopinbos no dey collect, hold or guarantee pay-on-delivery money.",
   "offPlatform.warning":
     "Keep jobs and payments inside Shopinbos. Payment for jobs inside the app dey happen automatically, we dey track dem, and dem dey count for your rating. Shopinbos no dey protect payment wey una arrange outside the app.",
   "time.sameDay": "Same day",

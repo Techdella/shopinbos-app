@@ -103,10 +103,10 @@ test("wallet-less suppliers: a warning period, then the block", () => {
   assert.match(read("docs/migrations/2026-12-09-wallet-grace-handling-days.sql"), /"walletAskedAt"[\s\S]*"handlingDays"/);
 });
 
-test("the pay-on-delivery terms are published: in the app, no cash, code before handover", async () => {
+test("the pay-on-delivery terms are published: the seller's arrangement with their customer and delivery partner", async () => {
   const market = await import("../shared/delivery-market.ts");
-  assert.match(market.POD_DISCLAIMER, /riders never collect cash/);
-  assert.match(market.POD_DISCLAIMER, /given their code/);
+  assert.match(market.POD_DISCLAIMER, /cash or transfer as you agree/);
+  assert.match(market.POD_DISCLAIMER, /Shopinbos doesn't collect, hold or guarantee/);
   assert.doesNotMatch(read("shared/i18n/messages/delivery/en.ts"), /LEGAL REVIEW|needs legal review/);
   for (const loc of ["pcm", "yo", "ha", "ig"]) assert.doesNotMatch(read(`shared/i18n/messages/delivery/${loc}.ts`), /legal review/, loc);
 });

@@ -307,6 +307,13 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "sale.codeNone": "Babu kayan da ke da kodi {code}.",
   // Preorder lists, Stock is ready and deposits (shared/preorder.ts)
   "preorders.title": "Odar kafin lokaci",
+  "preorders.start.title": "Karɓi pre-order a kan kaya",
+  "preorders.start.sub": "Sayar da shi kafin kayan su iso. Masu siyayya za su ga Preorder now da ranar tura kayanka. Saita iyaka, ajiya ko bayani a saitunan kayan.",
+  "preorders.start.product": "Kaya",
+  "preorders.start.pick": "Zaɓi kaya",
+  "preorders.start.shipsAt": "Za a tura daga (ba dole ba)",
+  "preorders.start.submit": "Karɓi pre-order",
+  "preorders.start.terms": "Alkawarinka ne ga abokan cinikinka: kai ne za ka tura shi, kuma kai ne za ka warware duk wani jinkiri da su. Shopinbos ba ya riƙe kuɗin.",
   "preorders.taking": "Ana karɓar odar kafin lokaci",
   "preorders.stopped": "An rufe odar kafin lokaci",
   "preorders.stockReady": "Kaya sun shirya",

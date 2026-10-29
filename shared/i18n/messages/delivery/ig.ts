@@ -39,9 +39,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "decline.other": "Ihe ọzọ",
   "decline.none": "Ha ekwughị ihe kpatara ya",
   "pod.disclaimer":
-    "Na pay on delivery, onye ahịa gị na-akwụ ụgwọ nnyefe n'oge checkout, ma kwụọ ndị fọdụrụ n'ime app mgbe parcel ahụ rutere, site na kaadị, bank transfer ma ọ bụ USSD site na Paystack. Ego ahụ na-aga ozugbo n'ụlọ akụ gị na nke onye na-ebuga gị ngwa: rider anaghị anara cash. Rider ga-enye parcel ahụ naanị mgbe onye ahịa kwụchara ụgwọ ma nye koodu ya; ọ bụrụ na ọ kwụghị, a ga-eweghachi ya gị. Shopinbos anaghị ejide ego ndị a.",
+    "Pay on delivery dị n'etiti gị, onye ahịa gị na onye na-ebuga gị ngwa. Onye ahịa gị ga-akwụ gị ma ọ bụ rider gị mgbe ọ rutere, site na cash ma ọ bụ transfer dịka unu kwekọrịtara, ma ọ bụ n'ime app site na peeji order ha; kaa order ahụ akara dị ka akwụọla mgbe ego ahụ rutere gị. Ọ bụrụ na ị na-anara ịkwụ ụgwọ kaadị, onye ahịa nwere ike ịkwụ ụgwọ nnyefe na checkout. Shopinbos anaghị anara, anaghị ejide, anaghịkwa ekwe nkwa maka ego pay on delivery.",
   "pod.disclaimerPartner":
-    "Na pay on delivery, onye ahịa na-akwụ ụgwọ n'ime app mgbe rider gị rutere, ọ bụghị cash. Ụgwọ nnyefe gị na-aga ozugbo n'ụlọ akụ gị site na Paystack. Nye parcel ahụ naanị mgbe onye ahịa kwụchara ụgwọ ma nye gị koodu ya; ọ bụrụ na ọ kwụghị, weghachi ya n'ụlọ ahịa ahụ. Shopinbos anaghị ejide ego ndị a.",
+    "Pay on delivery dị n'etiti gị na ụlọ ahịa ahụ. Onye ahịa ga-akwụ rider gị ma ọ bụ ụlọ ahịa n'ọnụ ụzọ, site na cash ma ọ bụ transfer dịka gị na ụlọ ahịa kwekọrịtara, ma ọ bụ n'ime app. Nyefee cash ọ bụla dịka unu kwekọrịtara. Shopinbos anaghị anara, anaghị ejide, anaghịkwa ekwe nkwa maka ego pay on delivery.",
   "offPlatform.warning":
     "Debe ọrụ na ịkwụ ụgwọ n'ime Shopinbos. A na-akwụ ụgwọ ọrụ dị n'ime app n'onwe ya, a na-esochi ha, ha na-agụkwa na rating gị. Shopinbos anaghị echebe ịkwụ ụgwọ unu hazịrị n'èzí app.",
   "time.sameDay": "N'otu ụbọchị",

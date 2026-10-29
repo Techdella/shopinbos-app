@@ -60,3 +60,30 @@ test("customer-facing words speak as the shop", async () => {
   const lines = trust.trustLines({ verifiedSupplier: true, verifiedDelivery: true, paidAtCheckout: true });
   assert.ok(lines.every((line) => !/Shopinbos|protection/i.test(`${line.title} ${line.detail}`)));
 });
+
+test("pay on delivery is the seller's own arrangement: on, no card needed, their own limit, the terms beside the switch", async () => {
+  const pay = await import("../shared/checkout-payments.ts");
+  assert.equal(pay.PAY_ON_DELIVERY_ON, true);
+  const settings = { methods: { cod: true }, paystackReady: false, transferReady: false, codLimit: null, zones: [] };
+  assert.deepEqual(pay.checkoutPaymentOptions(settings, { total: 900_000 }).map((option) => option.key), ["pay_on_delivery"], "no card needed, no Shopinbos limit");
+  assert.equal(pay.isCodLimitChoice(null), true);
+  assert.equal(pay.isCodLimitChoice(100_000), true);
+  assert.equal(pay.isCodLimitChoice(123), false);
+  assert.match(read("src/lib/seller-payments.server.ts"), /export async function saveSellerCodLimit/);
+  const page = read("src/app/home/payments/PaymentMethods.tsx");
+  assert.match(page, /t\("methods\.codTerms"\)/);
+  assert.match(page, /t\("methods\.codNoLimit"\)/);
+  const door = await import("../shared/pay-at-door.ts");
+  assert.equal(door.payAtDoorBlock({ paymentMethod: "pay_on_delivery", status: "shipped" }, { codAmount: null }), null, "no Shopinbos rider rule");
+  // The delivery fee upfront only when the store takes cards.
+  assert.match(read("src/app/api/public/store/[slug]/checkout/route.ts"), /paymentMethod === "pay_on_delivery" && paymentSettings\.paystackReady \? podFeeKobo/);
+});
+
+test("pre-orders are easy to find: switch them on for a product from the Preorders page, linked from Products", () => {
+  const actions = read("src/app/actions/preorders.ts");
+  assert.match(actions, /export async function storeStartPreorderAction[\s\S]{0,900}fulfillmentType === "dropship"[\s\S]{0,600}preorderSaveData\(parsed\.value/);
+  const page = read("src/app/home/preorders/page.tsx");
+  assert.match(page, /<form action=\{storeStartPreorderAction\}/);
+  assert.match(page, /t\("preorders\.start\.terms"\)/, "it's the seller's promise to their customers");
+  assert.match(read("src/app/products/page.tsx"), /href="\/home\/preorders\?view=shop"/);
+});

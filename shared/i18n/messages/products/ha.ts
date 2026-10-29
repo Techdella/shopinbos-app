@@ -15,6 +15,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "vis.collection_only": "Collections kawai",
   "vis.hidden": "A ɓoye",
   "list.import": "Shigo da",
+  "list.preorders": "Pre-order",
   "list.export": "Fitar",
   addProduct: "Saka kaya",
   "list.search": "Nemi suna ko SKU",

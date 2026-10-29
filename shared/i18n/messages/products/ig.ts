@@ -15,6 +15,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "vis.collection_only": "Naanị collections",
   "vis.hidden": "Ezoro ezo",
   "list.import": "Bubata",
+  "list.preorders": "Pre-order",
   "list.export": "Bupụ",
   addProduct: "Tinye ngwaahịa",
   "list.search": "Chọọ aha ma ọ bụ SKU",

@@ -307,6 +307,13 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "sale.codeNone": "Kò sí ọjà tó ní kóòdù {code}.",
   // Preorder lists, Stock is ready and deposits (shared/preorder.ts)
   "preorders.title": "Àwọn àṣẹ ṣáájú",
+  "preorders.start.title": "Gba pre-order lórí ọjà kan",
+  "preorders.start.sub": "Tà á kí ọjà tó dé. Àwọn oníbàárà yóò rí Preorder now àti ọjọ́ tí o máa fi ránṣẹ́. Ṣètò ààlà, deposit tàbí àkọsílẹ̀ nínú ètò ọjà náà.",
+  "preorders.start.product": "Ọjà",
+  "preorders.start.pick": "Yan ọjà kan",
+  "preorders.start.shipsAt": "Yóò bẹ̀rẹ̀ sí ní lọ láti (kò pọndandan)",
+  "preorders.start.submit": "Gba pre-order",
+  "preorders.start.terms": "Ìlérí rẹ ni sí àwọn oníbàárà rẹ: ìwọ ni o máa fi ránṣẹ́, ìwọ sì ni o máa yanjú ìdádúró èyíkéyìí pẹ̀lú wọn. Shopinbos kì í di owó náà mú.",
   "preorders.taking": "Ń gba àṣẹ ṣáájú",
   "preorders.stopped": "Àṣẹ ṣáájú ti parí",
   "preorders.stockReady": "Ọjà ti ṣetán",

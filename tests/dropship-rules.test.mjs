@@ -141,12 +141,12 @@ test("partner tiers: reach, not cash; Tier 3 (stored cash_trusted) needs 150 job
   assert.equal(r.partnerLevel({ ...top, cacOrGuarantor: false }), "trusted");
   assert.equal(r.partnerLevel({ ...top, createdAt: "2026-09-20T00:00:00Z" }), "trusted", "60 days");
   assert.equal(r.partnerLevelGoals(top).goals.some((g) => g.key === "remittances"), false);
-  // Switched off everywhere for now (shared/checkout-payments.ts PAY_ON_DELIVERY_ON); the rules for when it's back:
-  assert.equal(r.canOfferPayOnDelivery({ level: "verified" }), false);
+  // On: every verified partner can offer it; the rest is agreed with each shop (no Shopinbos cash rules).
+  assert.equal(r.canOfferPayOnDelivery({ level: "verified" }), true);
   assert.equal(r.canOfferPayOnDeliveryRules({ level: "verified" }), true);
   assert.equal(r.canOfferPayOnDeliveryRules({ level: "verified", verificationStatus: "pending" }), false);
   assert.equal(r.canOfferPayOnDeliveryRules({ level: "trusted", verificationStatus: "verified" }), true);
-  assert.equal(r.canOfferPayOnDeliveryRules({ level: "cash_trusted", codPaused: true }), false);
+  assert.equal(r.canOfferPayOnDeliveryRules({ level: "cash_trusted", codPaused: true }), true, "older cash owed is between the partner and the shop");
   // What each tier unlocks.
   assert.deepEqual([1, 2, 3].map((tier) => r.partnerTierNumber(r.PARTNER_LEVELS[tier - 1])), [1, 2, 3]);
   assert.equal(r.partnerTierNumber("nonsense"), 1);

@@ -124,7 +124,7 @@ export type PaymentMethodKey = "transfer" | "card" | "korapay" | "cod" | "wa";
 export const PAYMENT_METHODS: { key: PaymentMethodKey; label: string; hint: string }[] = [
   { key: "transfer", label: "Bank transfer", hint: "Each order gets its own account number; paid into your bank and confirmed for you" },
   { key: "card", label: "Card and USSD", hint: "Debit cards and USSD, paid straight into your bank" },
-  { key: "cod", label: "Pay on delivery", hint: "Up to ₦50,000, verified phone numbers, where riders cover" },
+  { key: "cod", label: "Pay on delivery", hint: "Your customer pays you or your rider when it arrives, as you agree" },
   { key: "wa", label: "Finish on WhatsApp", hint: "Customers can chat to pay" },
 ];
 
