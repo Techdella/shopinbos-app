@@ -10,6 +10,7 @@ import { orderLines } from "@/lib/supplier-orders/views.server";
 import { supplierEarnings } from "@/lib/supplier-orders/money.server";
 import { getT } from "@/lib/i18n/server";
 import { PageTip } from "@/components/learn/PageTip";
+import { nextPayout } from "@/lib/wallet/settlements.server";
 
 export const dynamic = "force-dynamic";
 
@@ -127,6 +128,8 @@ export default async function SupplierPayoutsPage({ searchParams }: { searchPara
   const openValue = (openWholesale._sum.totalPrice ?? 0) + (openDropship._sum.costTotal ?? 0);
   // Paystack settles shops' card payments for these orders straight to the supplier's bank (Shopinbos Wallet).
   const verifiedBank = await walletReady(user.id);
+  // The supplier's one number: what Paystack pays into their bank next, and the day it lands.
+  const next = verifiedBank ? await nextPayout(user.id).catch(() => null) : null;
 
   return (
     <AppPage
@@ -137,6 +140,7 @@ export default async function SupplierPayoutsPage({ searchParams }: { searchPara
       <PageTip who="peggy" className="mb-5">{tipT("supplier.payouts")}</PageTip>
       {notice.error ? <div role="alert" className="mb-4 rounded-[16px] bg-app-danger-tint px-4 py-3 text-[14px] font-bold text-app-danger">{notice.error}</div> : null}
       <StatGrid className="mb-5">
+        {next ? <StatTile tone="card" label={t("payouts.nextPayout")} value={money(next.amountKobo / 100)} hint={next.date ? t("payouts.reachesBank", { date: shortDate(new Date(next.date)) }) : t("payouts.reachesSoon")} /> : null}
         <StatTile tone="card" label={t("payouts.earned")} value={money(totals.earned)} hint={t("payouts.earnedHint", { count: totals.earnedCount })} />
         <StatTile tone="card" label={t("payouts.owed")} value={money(totals.owed)} hint={t("payouts.owedHint", { count: totals.owedCount })} />
         <StatTile tone="card" label={t("payouts.paid")} value={money(totals.paid)} hint={t("payouts.paidHint", { count: totals.paidCount })} />

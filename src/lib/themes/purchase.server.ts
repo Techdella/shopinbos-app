@@ -3,7 +3,7 @@ import "server-only";
 import crypto from "node:crypto";
 import { db } from "@/lib/db/client";
 import { billingEmail } from "@/lib/auth/billing-email";
-import { initializePaystackTransaction, verifyPaystackTransaction } from "@/lib/paystack";
+import { initializePaystackTransaction, verifyPaystackTransaction, paidKobo } from "@/lib/paystack";
 import { getPriceBook } from "@/lib/pricing/price-book.server";
 import { themeLibraryEntry, themeTier } from "@/lib/store-templates/theme-library";
 import { THEME_REFERENCE_PREFIX, isBuyableTier, themePriceNaira } from "@shared/theme-purchase";
@@ -82,7 +82,7 @@ export async function completeThemePurchase(reference: string): Promise<{ status
   if (
     !user ||
     verified.currency !== "NGN" ||
-    Number(verified.amount) !== row.amountKobo ||
+    paidKobo(verified) !== row.amountKobo ||
     metadata.purpose !== "theme_purchase" ||
     metadata.user_id !== row.userId ||
     metadata.theme_id !== row.themeId ||

@@ -8,7 +8,8 @@ import { PillButton } from "@/components/app-ui";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { formatMoney } from "@shared/i18n";
 import type { BulkRole } from "@shared/bulk-products";
-import { addFiles, bulkApi, forgetLost, lostUploads, queueFor, type BulkSession, type PublishResult } from "./client";
+import { newClientKey } from "@shared/bulk-upload-queue";
+import { addFiles, BulkError, bulkApi, forgetLost, lostUploads, queueFor, type BulkSession, type PublishResult } from "./client";
 import { BulkChat } from "./BulkChat";
 import { BulkDrafts } from "./BulkDrafts";
 import { ShareWhatsAppButton } from "@/components/products/ShareWhatsAppButton";
@@ -47,6 +48,8 @@ export function BulkAddWithPeggy({ role, productsHref, importHref, oneHref }: { 
   const [result, setResult] = useState<{ published: PublishResult["published"]; failed: PublishResult["failed"]; overLimit: number; notReady: number; live: boolean } | null>(null);
   const [live, setLive] = useState(true);
   const fileInput = useRef<HTMLInputElement>(null);
+  const catalogueInput = useRef<HTMLInputElement>(null);
+  const [reading, setReading] = useState<{ done: number; total: number; found: number; missed: number } | null>(null);
   const queue = useQueue(session?.id ?? null);
   const looking = useRef(false);
   const uploadingRef = useRef(false);
@@ -123,6 +126,42 @@ export function BulkAddWithPeggy({ role, productsHref, importHref, oneHref }: { 
     }
   }
 
+  /** WhatsApp catalogue screenshots, one at a time: Peggy reads each one into named, priced products. */
+  async function readCatalogue(files: File[]) {
+    const shots = files.filter((file) => /^image\/(jpeg|png|webp)$/.test(file.type)).slice(0, 30);
+    if (!shots.length) return files.length ? setError(t("catalogue.wrongType")) : undefined;
+    setError(null);
+    setResult(null);
+    let found = 0;
+    let missed = 0;
+    try {
+      const current = session ?? (await bulkApi.open());
+      if (!session) setSession(current);
+      for (const [index, file] of shots.entries()) {
+        setReading({ done: index, total: shots.length, found, missed });
+        try {
+          const answer = await bulkApi.catalogue(current.id, file, newClientKey("c"));
+          found += answer.added;
+          if (answer.session) setSession(answer.session);
+          if (answer.full) {
+            setError(t("upload.full"));
+            break;
+          }
+        } catch (shotError) {
+          // A screenshot with no products on it doesn't stop the rest; anything else (offline, out of credits) does.
+          if (shotError instanceof BulkError && shotError.status === 422) missed += 1;
+          else throw shotError;
+        }
+      }
+      if (missed) setError(t("catalogue.missed", { count: missed }));
+      else if (!found) setError(t("catalogue.none"));
+    } catch (readError) {
+      setError(readError instanceof Error ? readError.message : String(readError));
+    } finally {
+      setReading(null);
+    }
+  }
+
   async function act(run: () => Promise<BulkSession | null>) {
     setError(null);
     try {
@@ -191,7 +230,13 @@ export function BulkAddWithPeggy({ role, productsHref, importHref, oneHref }: { 
           <Icon name={hasItems ? "plus" : "upload"} size={16} />
           {hasItems ? t("pick.more") : t("pick.choose")}
         </PillButton>
+        <input ref={catalogueInput} type="file" accept="image/jpeg,image/png,image/webp" multiple className="sr-only" onChange={(event) => { const picked = Array.from(event.target.files ?? []); event.target.value = ""; void readCatalogue(picked); }} aria-label={t("catalogue.choose")} data-testid="bulk-catalogue-input" />
+        <PillButton tone="white" size="md" disabled={Boolean(reading)} onClick={() => catalogueInput.current?.click()}>
+          <Icon name="whatsapp" size={16} />
+          {t("catalogue.choose")}
+        </PillButton>
       </div>
+      {!hasItems && <p className="m-0 max-w-[520px] text-[13.5px] text-app-ink-soft">{t("catalogue.how")}</p>}
     </div>
   );
 
@@ -207,6 +252,15 @@ export function BulkAddWithPeggy({ role, productsHref, importHref, oneHref }: { 
       ) : (
         <>
           {picker}
+          {reading && (
+            <section className="rounded-[18px] border border-app-line bg-white px-4 py-3" aria-live="polite">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-[14px]">
+                <strong>{t("catalogue.reading", { done: reading.done, total: reading.total })}</strong>
+                <span className="text-app-ink-soft">{t("catalogue.found", { count: reading.found })}</span>
+              </div>
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-app-canvas"><div className="h-full rounded-full bg-app-accent transition-all" style={{ width: `${Math.round(((reading.done + 0.5) / reading.total) * 100)}%` }} /></div>
+            </section>
+          )}
           {queue.total > 0 && (queue.uploading + queue.waiting + queue.failed > 0 || (session?.summary.drafting ?? 0) > 0) && (
             <section className="rounded-[18px] border border-app-line bg-white px-4 py-3" aria-live="polite">
               <div className="flex flex-wrap items-center justify-between gap-2 text-[14px]">

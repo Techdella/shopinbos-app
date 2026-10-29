@@ -21,6 +21,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "stock.Sold out": "Ó ti tán",
   "list.title": "Àwọn order",
   "list.sub": "Order {count} · {amount} nínú títà tí wọ́n ti sanwó",
+  "list.youEarn": "O jèrè {amount}",
   "list.export": "Gbé jáde",
   recordSale: "Kọ títà sílẹ̀",
   "filter.all": "Gbogbo",

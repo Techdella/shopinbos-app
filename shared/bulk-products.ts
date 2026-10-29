@@ -706,3 +706,70 @@ export function eventLines(event: BulkEvent, items: BulkItem[], t: BulkT, money:
       return [event.live ? t("peggy.publishedLive", { count: event.count }) : t("peggy.publishedDraft", { count: event.count })];
   }
 }
+
+// ─── WhatsApp catalogue screenshots ───────────────────────────────────────────
+// "From my WhatsApp catalogue": the person uploads screenshots of their catalogue (the list, or one product open) and
+// Peggy reads every product on each one. Unlike a product photo, a catalogue shows the person's own name and price,
+// so both are taken as given; the photo is cut out of the screenshot. Server side: src/lib/products/bulk/catalogue.server.ts.
+
+export const CATALOGUE_MAX_PER_SCREENSHOT = 12;
+
+/** Where a product's photo is on the screenshot, as fractions of its width and height (0 to 1). */
+export interface CatalogueBox {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+export interface CatalogueProduct {
+  name: string;
+  description: string;
+  category: string;
+  priceKobo: number | null;
+  box: CatalogueBox | null;
+}
+
+const fraction = (value: unknown) => {
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : null;
+};
+
+/** A photo box the reader gave, or null when it is missing, outside the screenshot or too small to be a photo. */
+export function catalogueBox(value: unknown): CatalogueBox | null {
+  if (!value || typeof value !== "object") return null;
+  const raw = value as Record<string, unknown>;
+  const x = fraction(raw.x);
+  const y = fraction(raw.y);
+  const w = fraction(raw.w);
+  const h = fraction(raw.h);
+  if (x === null || y === null || w === null || h === null) return null;
+  const box = { x, y, w: Math.min(w, 1 - x), h: Math.min(h, 1 - y) };
+  return box.w >= 0.05 && box.h >= 0.03 ? box : null;
+}
+
+/** The pixel rectangle to cut for a box, padded a little (the reader's boxes are close, not exact). */
+export function cropRect(box: CatalogueBox, width: number, height: number, pad = 0.01) {
+  const left = Math.max(0, Math.floor((box.x - pad) * width));
+  const top = Math.max(0, Math.floor((box.y - pad) * height));
+  const right = Math.min(width, Math.ceil((box.x + box.w + pad) * width));
+  const bottom = Math.min(height, Math.ceil((box.y + box.h + pad) * height));
+  return { left, top, width: Math.max(1, right - left), height: Math.max(1, bottom - top) };
+}
+
+/** The products the reader found on one screenshot: named ones only, at most CATALOGUE_MAX_PER_SCREENSHOT. */
+export function readCatalogueProducts(parsed: unknown): CatalogueProduct[] {
+  const list = parsed && typeof parsed === "object" && Array.isArray((parsed as { products?: unknown }).products) ? ((parsed as { products: unknown[] }).products) : [];
+  const clean = (value: unknown, max: number) => (typeof value === "string" ? value.replace(/\s+/g, " ").trim().slice(0, max) : "");
+  const out: CatalogueProduct[] = [];
+  for (const entry of list) {
+    if (!entry || typeof entry !== "object") continue;
+    const raw = entry as Record<string, unknown>;
+    const name = clean(raw.name, 120);
+    if (name.length < 2) continue;
+    const price = typeof raw.price === "number" ? (raw.price > 0 ? Math.round(raw.price * 100) : null) : parseNaira(clean(raw.price, 40));
+    out.push({ name, description: clean(raw.description, 300), category: clean(raw.category, 60), priceKobo: price && price <= BULK_MAX_PRICE_KOBO ? price : null, box: catalogueBox(raw.box) });
+    if (out.length >= CATALOGUE_MAX_PER_SCREENSHOT) break;
+  }
+  return out;
+}

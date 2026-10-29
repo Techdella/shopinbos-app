@@ -116,7 +116,7 @@ test("a theme bought on its own works on any plan; everyone can preview every th
   const server = read("src/lib/themes/purchase.server.ts");
   assert.match(server, /verifyPaystackTransaction\(reference\)/);
   assert.match(server, /metadata\.purpose !== "theme_purchase"/);
-  assert.match(server, /Number\(verified\.amount\) !== row\.amountKobo/);
+  assert.match(server, /paidKobo\(verified\) !== row\.amountKobo/);
   assert.match(server, /updateMany\(\{ where: \{ reference, status: "pending" \}, data: \{ status: "paid"/);
   const webhook = read("src/app/api/webhooks/paystack/route.ts");
   assert.match(webhook, /ref\.startsWith\(THEME_REFERENCE_PREFIX\)\) \{\s+await completeThemePurchase\(ref\)/);

@@ -81,8 +81,8 @@ test("inbox whatsapp: team templates fill in, stay on one line and pass Meta's r
   const followup = wa.teamTemplate("shopinbos_team_followup");
   assert.ok(followup);
   const values = { name: "ada okafor", agent: "Tolu Bello", note: "Your account is approved.\n\nAdd products   now." };
-  assert.deepEqual(wa.teamTemplateParams(followup, values), ["ada", "Tolu", "Your account is approved. Add products now."]);
-  assert.match(wa.renderTeamTemplate(followup, values), /^Hi ada, it's Tolu from the Shopinbos team\. Your account is approved\. Add products now\./);
+  assert.deepEqual(wa.teamTemplateParams(followup, values), ["Ada", "Tolu", "Your account is approved. Add products now."]);
+  assert.match(wa.renderTeamTemplate(followup, values), /^Hi Ada, it's Tolu from the Shopinbos team\. Your account is approved\. Add products now\./);
   assert.equal(wa.teamTemplateProblem(followup, { name: null, agent: "Tolu", note: "  " }), "Write the message to send.");
   assert.equal(wa.teamTemplateParams(followup, { name: null, agent: "", note: "x" })[0], "there");
   for (const template of wa.TEAM_TEMPLATES) {
@@ -162,7 +162,7 @@ test("whatsapp templates the team writes: placeholders, names and Meta's rules",
   assert.equal(made.template.body, "Hi {{1}}, welcome {{2}}. {{3}}\n\nThanks!");
   assert.deepEqual(made.template.params, ["first_name", "business", "note"]);
   assert.equal(wa.templateText(made.template), "Hi {{first_name}}, welcome {{business}}. {{message}}\n\nThanks!");
-  assert.deepEqual(wa.teamTemplateParams(made.template, { name: "ada", agent: "T", note: "Go", business: "Ada Co" }), ["ada", "Ada Co", "Go"]);
+  assert.deepEqual(wa.teamTemplateParams(made.template, { name: "ada", agent: "T", note: "Go", business: "Ada Co" }), ["Ada", "Ada Co", "Go"]);
   assert.equal(wa.templateFromDraft({ name: "x", purpose: "p", category: "UTILITY", body: "{{first_name}} hi" }).ok, false);
   assert.equal(wa.templateFromDraft({ name: "x", purpose: "p", category: "UTILITY", body: "hi {{first_name}}" }).ok, false);
   assert.equal(wa.templateFromDraft({ name: "x", purpose: "p", category: "UTILITY", body: "hi {{first_name}} {{agent}} ok" }).ok, false);

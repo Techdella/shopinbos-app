@@ -277,6 +277,10 @@ async function updateProduct(ctx: PeggyToolContext, input: PeggyToolInput<"updat
   const data: Prisma.StoreProductUpdateInput = {};
 
   if (input.price !== null && input.price !== product.retailPrice) {
+    // A dropship listing never goes below the supplier's lowest price or to a loss (src/lib/marketplace/dropship.server.ts).
+    const { dropshipPriceProblem } = await import("@/lib/marketplace/dropship.server");
+    const problem = await dropshipPriceProblem(ctx.userId, product.id, input.price);
+    if (problem) return { content: `I didn't change the price of ${product.name}: ${problem}` };
     data.retailPrice = input.price;
     if (product.costPrice != null) data.margin = parseFloat((((input.price - product.costPrice) / input.price) * 100).toFixed(2));
     changes.push(`price ${money(product.retailPrice)} → ${money(input.price)}`);

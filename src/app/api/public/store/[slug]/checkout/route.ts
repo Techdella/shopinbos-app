@@ -225,7 +225,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const cardsReady = paystackSecretReady(paystackSecret) && (await storeTakesCards(store.id));
   // Korapay too, only when every naira can be split to the businesses' own Korapay split accounts.
   const paymentSettings = checkoutPaymentSettings(store.brandSettings, shippingZones, cardsReady, await storeTakesKorapay(store.id));
-  const paymentContext = { city: deliveryAddress.city, state: deliveryAddress.state, total };
+  // Supplier items are paid only in the app (shared/checkout-payments.ts fromSuppliers): never a hand-marked transfer.
+  const paymentContext = { city: deliveryAddress.city, state: deliveryAddress.state, total, fromSuppliers: priced.stockHolds.some((hold) => hold.source === "supplier") };
   // Pay on delivery with a delivery partner is agreed per partner (both the shop and the partner opt in, spec §8),
   // and still needs the seller's own pay on delivery switch and cap (partnerPayOnDeliveryBlock, as the checkout page).
   if (paymentMethod === "pay_on_delivery" && selfParcels.length) {
@@ -236,7 +237,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   if (partnerPodBlock) return withCors(req, apiError("BAD_REQUEST", partnerPodBlock), CHECKOUT_CORS);
   if (!partnerPod && !checkoutPaymentOptions(paymentSettings, paymentContext).some((option) => option.key === paymentMethod)) {
     const reason = paymentMethod === "pay_on_delivery" && paymentSettings.methods?.cod ? payOnDeliveryBlock(paymentSettings, paymentContext) : null;
-    return withCors(req, apiError("BAD_REQUEST", reason ?? "This store doesn't take that payment method. Choose another way to pay."), CHECKOUT_CORS);
+    const supplierOnly = paymentMethod === "transfer" && paymentContext.fromSuppliers ? "Items that ship from a supplier can only be paid online. Choose another way to pay." : null;
+    return withCors(req, apiError("BAD_REQUEST", reason ?? supplierOnly ?? "This store doesn't take that payment method. Choose another way to pay."), CHECKOUT_CORS);
   }
   if (paymentMethod === "pay_on_delivery" && !buyerPhone) {
     return withCors(req, apiError("BAD_REQUEST", "Add a phone number so the rider can reach you for pay on delivery."), CHECKOUT_CORS);

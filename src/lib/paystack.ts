@@ -6,7 +6,10 @@ const PAYSTACK_BASE = (process.env.VERCEL_ENV !== "production" && process.env.PA
 export interface PaystackVerification {
   status: string;
   reference: string;
+  /** What the customer was charged: more than we asked for when Paystack's fee is passed on to them. */
   amount: number;
+  /** What we asked for (the `amount` sent to initialize). Use paidKobo() rather than reading either one. */
+  requested_amount?: number;
   currency: string;
   customer?: { email?: string };
   metadata?: Record<string, unknown>;
@@ -20,6 +23,16 @@ export interface PaystackVerification {
     exp_year?: string;
     [key: string]: unknown;
   };
+}
+
+/**
+ * The amount we asked for, in kobo, once Paystack confirms it. When the fee is passed on to the customer, `amount`
+ * is the price plus the fee (e.g. ₦2,030.46 for a ₦2,000 pack), so comparing it to our price fails a good payment.
+ */
+export function paidKobo(verified: Pick<PaystackVerification, "amount" | "requested_amount">) {
+  const charged = Number(verified.amount);
+  const requested = Number(verified.requested_amount);
+  return Number.isFinite(requested) && requested > 0 && requested <= charged ? requested : charged;
 }
 
 function secretKey() {

@@ -3,6 +3,7 @@ import "server-only";
 import { buildPlatformEmail } from "@/lib/email/compliance.server";
 import { html } from "@/lib/email/shell";
 import { PORTAL_LABEL, SUPPORT_EMAIL, escapeHtml, formatTicketNumber, replyAddress, topicLabel, type SupportPortal } from "./pure";
+import { greetingName } from "@shared/person-name";
 
 // Support emails: the team's new-ticket alert, the customer's "we've got it" receipt and agent replies.
 // Built on the shared email shell (src/lib/email/shell.ts): Shopinbos logo, light/dark, compliance footer.
@@ -34,7 +35,7 @@ export function newTicketEmail(input: { number: number | null; name: string; ema
 }
 
 export function receivedEmail(input: { name: string; number: number; body: string }) {
-  const first = input.name.trim().split(/\s+/)[0] || "there";
+  const first = greetingName(input.name);
   return buildPlatformEmail({
     kind: "transactional",
     eyebrow: `Ticket ${formatTicketNumber(input.number)}`,

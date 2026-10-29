@@ -13,6 +13,8 @@ import { pageWindow } from "@/lib/pagination";
 import { Pagination } from "@/components/seller/Pagination";
 import { PageTip } from "@/components/learn/PageTip";
 import { orderHasPreorder } from "@shared/preorder";
+import { orderEarnings } from "@shared/seller-payments";
+import { readSplitPlan } from "@/lib/wallet/rules";
 
 export const dynamic = "force-dynamic";
 
@@ -73,6 +75,24 @@ export default async function OrdersPage({
   // A page past the end shows the last page; the count comes first so the query can skip to it.
   const paging = pageWindow(rawPage, matching, PAGE_SIZE);
   const orders = store && matching ? await db.retailOrder.findMany({ where, orderBy: { createdAt: "desc" }, skip: paging.skip, take: paging.take }) : [];
+  // The seller's one number per order: what they earn on it (shared/seller-payments.ts orderEarnings), from the
+  // payment split, else the total less the suppliers' cost and partner fees. Two grouped queries for the whole page.
+  const paidIds = orders.filter((order) => (PAID_ORDER_STATUSES as readonly string[]).includes(order.status)).map((order) => order.id);
+  const [supplierCosts, partnerFees] = paidIds.length
+    ? await Promise.all([
+        db.supplierOrder.groupBy({ by: ["retailOrderId"], where: { retailOrderId: { in: paidIds }, status: { notIn: ["rejected", "cancelled", "expired"] }, replacesId: null }, _sum: { costTotal: true } }),
+        db.deliveryBooking.groupBy({ by: ["orderId"], where: { orderId: { in: paidIds }, tripKind: null, status: { notIn: ["cancelled", "declined"] }, replacedById: null }, _sum: { deliveryFee: true } }),
+      ]).catch(() => [[], []] as const)
+    : [[], []];
+  const earnFor = (order: (typeof orders)[number]) => {
+    if (!paidIds.includes(order.id)) return null;
+    return orderEarnings({
+      totalKobo: Math.round(Number(order.total) * 100),
+      plans: [readSplitPlan(order.paymentSplit), order.balancePaidAt ? readSplitPlan(order.balanceSplit) : null],
+      supplierCostKobo: Math.round((supplierCosts.find((row) => row.retailOrderId === order.id)?._sum.costTotal ?? 0) * 100),
+      partnerFeesKobo: Math.round((partnerFees.find((row) => row.orderId === order.id)?._sum.deliveryFee ?? 0) * 100),
+    }).earnKobo / 100;
+  };
 
   const statusCount = new Map(byStatus.map((row) => [row.status as string, row._count._all]));
   const countFor = (statuses: RetailOrderStatus[] | null) =>
@@ -134,6 +154,7 @@ export default async function OrdersPage({
           <ListCard>
             {orders.map((order) => {
               const row = orderRow({ ...order, total: Number(order.total) });
+              const earn = earnFor(order);
               const channelLabel = order.channel ? CHANNEL_LABEL[order.channel as OrderChannel] ?? order.channel : null;
               const channel = channelLabel ? t.dynamic(`channel.${channelLabel}`, channelLabel) : null;
               return (
@@ -156,7 +177,10 @@ export default async function OrdersPage({
                         <span className="hidden truncate text-[13.5px] text-app-ink-soft xl:block">{channel ?? "—"}</span>
                       </div>
                       <div className="flex items-baseline justify-between gap-3 md:flex-col md:items-end md:gap-0.5 xl:contents">
-                        <span className="text-[15px] font-extrabold xl:text-right">{naira(row.total)}</span>
+                        <span className="grid xl:text-right">
+                          <span className="text-[15px] font-extrabold">{naira(row.total)}</span>
+                          {earn !== null ? <span className={`text-[12.5px] font-bold ${earn < 0 ? "text-app-danger" : "text-app-success"}`}>{t("list.youEarn", { amount: naira(earn) })}</span> : null}
+                        </span>
                         <span className="text-[12.5px] text-app-ink-soft xl:text-right">
                           <span className="xl:hidden">{channel ? `${channel} · ` : ""}</span>
                           <time dateTime={order.createdAt.toISOString()}>{timeAgo(order.createdAt, Date.now(), locale)}</time>
