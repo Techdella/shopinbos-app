@@ -178,8 +178,8 @@ function toFindProduct(row: RawProduct): FindProduct {
 }
 
 /**
- * Up to 100 products from suppliers near the seller (verified or not), most trending first. `hasPlace` false: the
- * store has no city yet, so no supplier counts as near (the screen asks for one).
+ * Up to 100 products, suppliers near the seller first (verified or not), most trending first. `hasPlace` false: the
+ * store has no city yet, so every product shows without distances (the screen suggests adding one).
  */
 export async function fetchFindProducts(q?: string) {
   const params = new URLSearchParams();
@@ -192,10 +192,12 @@ export async function fetchFindProducts(q?: string) {
 export const oneTapPrice = (product: FindProduct, markup: Markup | null) => quickAddPrice({ cost: product.addCost, suggested: product.price, minRetail: product.floor, markup }).price;
 
 /** What the seller does before dropshipping a supplier's products (the web's "Before you sell" steps). */
-export type ListingStep = "agree" | "waiting" | "declined" | "ready" | "noPlace";
+export type ListingStep = "agree" | "waiting" | "declined" | "ready";
 
 export interface Listing {
   step: ListingStep;
+  /** No city in Settings: distances can't be shown (a tip, not a requirement; newer servers). */
+  noCity?: boolean;
   /** The supplier's phone and address, only while the seller still has to call them. */
   phone: string | null;
   address: string | null;

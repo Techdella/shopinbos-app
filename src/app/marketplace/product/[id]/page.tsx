@@ -81,9 +81,9 @@ export default async function MarketplaceProductPage({ params, searchParams }: {
       ]);
       const distance = nearness(place, { city: row.supplier.city, address: row.supplier.address });
       const info = trust.get(row.supplier.id);
-      const step = !sellerHasPlace(place) ? "noPlace" : listingStep(agreement);
+      const step = listingStep(agreement);
       const contact = step === "agree" || step === "declined" ? await supplierContact(row.supplier.id) : { phone: null, address: null };
-      listing = { step, phone: contact.phone, address: contact.address, supplierNote: agreement?.supplierNote ?? null, shopName: store.name, shopCity: store.city };
+      listing = { step, noCity: !sellerHasPlace(place), phone: contact.phone, address: contact.address, supplierNote: agreement?.supplierNote ?? null, shopName: store.name, shopCity: store.city };
       product = {
         ...product,
         // Wholesale (paid to the supplier directly) only from verified suppliers.

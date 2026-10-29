@@ -124,12 +124,13 @@ export function BeforeYouList({ product, listing, onSent }: { product: FindProdu
         <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{t("trust.beforeSub")}</T>
       </View>
       {product.supplier.far ? <Notice tone="info">{t("sup.farFees")}</Notice> : null}
-      {listing.step === "noPlace" ? (
+      {listing.noCity ? (
         <>
           <Notice tone="info">{t("trust.addCity")}</Notice>
           <PillButton title={t("trust.addCityBtn")} tone="white" size="md" onPress={() => router.push("/settings")} />
         </>
-      ) : listing.step === "waiting" || sent ? (
+      ) : null}
+      {listing.step === "waiting" || sent ? (
         <Notice tone="success">{sent ?? t("trust.waiting", { name })}</Notice>
       ) : (
         <>

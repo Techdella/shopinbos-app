@@ -379,7 +379,6 @@ export const sendSupplierSelfie = (input: { selfie: string; liveness?: { referen
 export const addFirstSupplierProduct = (input: { photo: string; name: string; price: number }) =>
   api<{ id: string; name: string }>("/api/supplier/onboarding/first-product", { method: "POST", json: input });
 
-export const requestCatalogueListing = () => api<{ requested: boolean }>("/api/supplier/onboarding/catalogue", { method: "POST" });
 
 /** Changes the business once it's set up (PATCH /api/supplier/profile: no change to the verification status). */
 export const saveSupplierProfile = (input: { businessName?: string; displayName?: string; city?: string; address?: string; categories?: string[] }) =>
