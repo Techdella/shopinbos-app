@@ -71,8 +71,11 @@ export function BigTile({ icon, bg, fg }: { icon: AppIconName; bg: string; fg: s
 /** The green tick on "Delivered" (`.check`). */
 export function DoneCheck() {
   return (
-    <View style={{ width: 96, height: 96, borderRadius: 48, backgroundColor: colors.successTint, alignItems: "center", justifyContent: "center" }}>
-      <AppIcon name="check" size={46} color={colors.success} strokeWidth={2.6} />
+    // A solid green disc in a soft halo: the "Delivery done!" moment.
+    <View style={{ width: 132, height: 132, borderRadius: 66, backgroundColor: colors.successTint, alignItems: "center", justifyContent: "center" }}>
+      <View style={{ width: 92, height: 92, borderRadius: 46, backgroundColor: colors.successFill, alignItems: "center", justifyContent: "center" }}>
+        <AppIcon name="check" size={46} color="#FFFFFF" strokeWidth={2.8} />
+      </View>
     </View>
   );
 }

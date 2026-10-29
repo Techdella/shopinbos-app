@@ -255,6 +255,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "markup.roundingTitle": "Yadda ake zagaye farashi",
   "product.dropshipTitle": "Yadda dropship ke aiki",
   "product.dropshipShort": "Ba ka saya komai yanzu. {name} zai aika idan abokin ciniki ya biya.",
+  // v26 soft cards (components/visual.tsx)
+  "packs.see": "Duba pack ɗin",
 };
 
 export default ha;

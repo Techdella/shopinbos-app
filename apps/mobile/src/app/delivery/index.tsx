@@ -13,7 +13,7 @@ import { fetchDeliveryHub, saveDeliverySettings, type DeliveryHub, type Delivery
 import { stateName, whereWords } from "@/lib/delivery-pure";
 import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
-import { colors } from "@/theme";
+import { colors, surfaceCard } from "@/theme";
 
 // Delivery (the "Seller app" prototype's dvHub) for sellers and suppliers: where I sell, my delivery partners (and
 // private rates waiting for me), Find delivery partners, and my own options. Sellers also choose what customers see
@@ -98,7 +98,7 @@ export default function DeliveryHubScreen() {
                 ))}
               </List>
             ) : (
-              <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20 }}>
+              <View style={{ ...surfaceCard(), padding: 20 }}>
                 <T style={{ fontSize: 15, lineHeight: 22, color: colors.inkSoft }}>{t("hub.noPartners")}</T>
               </View>
             )}

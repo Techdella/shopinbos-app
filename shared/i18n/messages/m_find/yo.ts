@@ -255,6 +255,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "markup.roundingTitle": "Bí iye owó ṣe ń yíká",
   "product.dropshipTitle": "Bí dropship ṣe ń ṣiṣẹ́",
   "product.dropshipShort": "O kò ra nǹkan kan báyìí. {name} á fi ránṣẹ́ tí oníbàárà bá sanwó.",
+  // v26 soft cards (components/visual.tsx)
+  "packs.see": "Wo pack náà",
 };
 
 export default yo;

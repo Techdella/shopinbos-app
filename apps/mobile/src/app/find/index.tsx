@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import { FlatList, Pressable, Share, View, useWindowDimensions } from "react-native";
+import { FlatList, Pressable, ScrollView, Share, View, useWindowDimensions } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
 import { naira } from "@shared/onboarding";
@@ -12,7 +12,7 @@ import { Badge, EmptyState, ErrorState, Initials, LoadingBlock } from "@/compone
 import { ListScreen, PackStrip, Tick } from "@/components/seller/FindKit";
 import { useQuickAdd } from "@/components/seller/QuickAdd";
 import { Card, Chip, Field, LinkButton, Mascot, PillButton, Segmented, T, WithTip } from "@/components/ui";
-import { FIND_PRICE_BANDS, NEAR_ME_KM, NO_FIND_FILTERS, filterFind, findCities, findFilterCount, saleBreakdown, sortCategories, withoutAdded, type FindFilters } from "@/lib/find-pure";
+import { FIND_PRICE_BANDS, NEAR_ME_KM, NO_FIND_FILTERS, categoryLook, filterFind, findCities, findFilterCount, saleBreakdown, sortCategories, withoutAdded, type FindFilters } from "@/lib/find-pure";
 import { fetchFindContext, fetchFindProducts, oneTapPrice, type FindProduct } from "@/lib/marketplace";
 import { fetchPacks } from "@/lib/quick-add";
 import { SupplierTrustBadges } from "@/components/SupplierTrust";
@@ -22,7 +22,8 @@ import { openStatusCta, rememberSavedFinds, savedFinds } from "@/lib/seller-home
 import { useSession } from "@/lib/session";
 import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
-import { colors, fonts } from "@/theme";
+import { colors, fonts, surfaceCard } from "@/theme";
+import { CategoryCircle, Stars } from "@/components/visual";
 import { DIAL_COUNTRIES } from "@shared/phone";
 
 // Find products to sell (web /marketplace). First a full-screen swipe card per product ("Familiar app" prototype
@@ -66,12 +67,13 @@ function ProductCard({ product, added, width, selecting, picked, busy, price, on
       accessibilityLabel={t("card.label", { name: product.name, cost: naira(product.cost), price: naira(sell), keep: naira(sale.keep) })}
       onPress={selecting ? (added ? undefined : onPick) : open}
       onLongPress={added ? undefined : onPick}
-      style={({ pressed }) => ({ width, backgroundColor: colors.surface, borderRadius: 18, overflow: "hidden", opacity: pressed ? 0.85 : selecting && added ? 0.55 : 1, borderWidth: picked ? 2.5 : 0, borderColor: colors.ink })}
+      style={({ pressed }) => ({ width, ...surfaceCard(22), padding: 6, opacity: pressed ? 0.85 : selecting && added ? 0.55 : 1, ...(picked ? { borderWidth: 2.5, borderColor: colors.ink } : null) })}
     >
-      <View style={{ aspectRatio: 1, backgroundColor: colors.lilac }}>
+      {/* Image first, inset in the card with its own round corners; the round + sits on its corner. */}
+      <View style={{ aspectRatio: 1, backgroundColor: colors.lilac, borderRadius: 17, overflow: "hidden" }}>
         {product.images[0] ? <Image source={{ uri: product.images[0] }} style={{ width: "100%", height: "100%" }} contentFit="cover" transition={150} recyclingKey={product.id} /> : null}
         {/* Stacked, so two badges never squeeze or wrap on a half-width card. */}
-        <View style={{ position: "absolute", left: 8, right: 44, top: 8, alignItems: "flex-start", gap: 4 }}>
+        <View style={{ position: "absolute", left: 8, right: selecting ? 44 : 8, top: 8, alignItems: "flex-start", gap: 4 }}>
           {added ? <Badge label={t("card.inStore")} bg={colors.successTint} fg={colors.success} /> : product.dropship ? <Badge label={t("card.dropship")} bg={colors.surface} /> : <Badge label={t("card.wholesale")} bg={colors.surface} />}
           <PreorderBadge product={product} />
         </View>
@@ -85,17 +87,17 @@ function ProductCard({ product, added, width, selecting, picked, busy, price, on
             onPress={onAdd}
             disabled={busy}
             hitSlop={6}
-            style={({ pressed }) => ({ position: "absolute", top: 8, right: 8, width: 36, height: 36, borderRadius: 18, borderWidth: 2, borderColor: "#FFFFFF", backgroundColor: colors.inkFill, alignItems: "center", justifyContent: "center", opacity: busy ? 0.5 : pressed ? 0.8 : 1 })}
+            style={({ pressed }) => ({ position: "absolute", bottom: 8, right: 8, width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: "#FFFFFF", backgroundColor: colors.inkFill, alignItems: "center", justifyContent: "center", boxShadow: "0px 4px 10px rgba(14,42,56,0.25)", opacity: busy ? 0.5 : pressed ? 0.8 : 1 })}
           >
             <AppIcon name="plus" size={20} color="#FFFFFF" strokeWidth={2.6} />
           </Pressable>
         ) : added ? (
-          <View style={{ position: "absolute", top: 8, right: 8, width: 36, height: 36, borderRadius: 18, backgroundColor: colors.successFill, alignItems: "center", justifyContent: "center" }}>
+          <View style={{ position: "absolute", bottom: 8, right: 8, width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: "#FFFFFF", backgroundColor: colors.successFill, alignItems: "center", justifyContent: "center" }}>
             <AppIcon name="check" size={18} color="#FFFFFF" strokeWidth={2.6} />
           </View>
         ) : null}
       </View>
-      <View style={{ padding: 10, gap: 6 }}>
+      <View style={{ paddingHorizontal: 6, paddingTop: 10, paddingBottom: 6, gap: 6 }}>
         <T weight="bold" style={{ fontSize: 13.5, lineHeight: 18 }} numberOfLines={2}>{product.name}</T>
         <T style={{ color: colors.inkSoft, fontSize: 11.5 }} numberOfLines={1}>{[product.supplier.name, product.supplier.city].filter(Boolean).join(" · ")}</T>
         <SupplierTrustBadges supplier={product.supplier} />
@@ -127,11 +129,12 @@ function CardFacts({ product }: { product: FindProduct }) {
   return (
     <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 6 }} testID={`find-facts-${product.slug}`}>
       {rated ? (
-        <T weight="bold" style={{ fontSize: 11.5, color: colors.inkSoft }} accessibilityLabel={tm("rate.cardLabel", { rating: product.supplier.rating!.toFixed(1), count: product.supplier.ratingCount })}>
-          <T weight="bold" style={{ fontSize: 11.5, color: "#F2A93B" }}>★</T>{` ${product.supplier.rating!.toFixed(1)} (${product.supplier.ratingCount})`}
-        </T>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }} accessible accessibilityLabel={tm("rate.cardLabel", { rating: product.supplier.rating!.toFixed(1), count: product.supplier.ratingCount })}>
+          <Stars value={product.supplier.rating!} size={11.5} />
+          <T weight="bold" style={{ fontSize: 11.5, color: colors.inkSoft }}>{`${product.supplier.rating!.toFixed(1)} (${product.supplier.ratingCount})`}</T>
+        </View>
       ) : null}
-      {product.shopsSelling > 0 ? <Badge label={tm("shops.selling", { count: product.shopsSelling })} bg="#E2F6F1" fg="#0C4A44" /> : null}
+      {product.shopsSelling > 0 ? <Badge label={tm("shops.selling", { count: product.shopsSelling })} bg={colors.mintTint} fg={colors.forest} /> : null}
     </View>
   );
 }
@@ -438,12 +441,20 @@ export default function FindProducts() {
       {tab === "nigeria" ? (
         <>
           <Field value={filters.q} onChangeText={(q) => set({ q })} placeholder={t("search")} returnKeyType="search" accessibilityLabel={t("searchLabel")} style={{ height: 48 }} />
+          {/* Categories as round tiles with their names under them; the picked one goes dark. */}
+          {products.length && categories.length > 1 ? (
+            <ScrollView testID="find-categories" horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20, flexGrow: 0 }} contentContainerStyle={{ paddingHorizontal: 14, gap: 2 }}>
+              <CategoryCircle icon="grid" tone="gray" label={t("all")} on={!filters.category} onPress={() => set({ category: "" })} />
+              {categories.map((name) => {
+                const look = categoryLook(name);
+                return <CategoryCircle key={name} icon={look.icon} tone={look.tone} label={t.dynamic(`category.${name}`, name)} on={filters.category === name} onPress={() => set({ category: filters.category === name ? "" : name })} />;
+              })}
+            </ScrollView>
+          ) : null}
           {products.length ? (
             <FilterBar testID="find-filters" onMore={() => setSheet(true)} moreLabel={t("filters.title")} moreCount={findFilterCount(filters)}>
               <Seg label={t("select.button")} on={selecting} onPress={() => (selecting ? stopSelecting() : setSelecting(true))} />
               <Seg label={t("filters.notInShop")} on={Boolean(filters.notInShop)} onPress={() => set({ notInShop: !filters.notInShop })} />
-              {categories.length > 1 ? <Seg label={t("all")} on={!filters.category} onPress={() => set({ category: "" })} /> : null}
-              {categories.length > 1 ? categories.map((name) => <Seg key={name} label={t.dynamic(`category.${name}`, name)} on={filters.category === name} onPress={() => set({ category: filters.category === name ? "" : name })} />) : null}
             </FilterBar>
           ) : null}
           {loaded.data ? (
@@ -452,7 +463,7 @@ export default function FindProducts() {
                 <T style={{ color: colors.inkSoft, fontSize: 13.5, lineHeight: 19 }}>{tm("trust.nearbyShort", { city: loaded.data.city ?? "" })}</T>
               </WithTip>
             ) : (
-              <Card style={{ gap: 10, backgroundColor: "#FDF0D5" }}>
+              <Card style={{ gap: 10, backgroundColor: colors.warnTint }}>
                 <T style={{ fontSize: 14, lineHeight: 20 }}>{tm("trust.addCity")}</T>
                 <PillButton title={tm("trust.addCityBtn")} tone="white" size="sm" onPress={() => router.push("/settings")} />
               </Card>

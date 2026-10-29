@@ -13,7 +13,7 @@ import { formatDate } from "@shared/i18n";
 import { useRole } from "@/lib/role";
 import { useLoad } from "@/lib/useLoad";
 import { useLocale, useT } from "@/lib/i18n";
-import { colors, fonts } from "@/theme";
+import { colors, fonts, surfaceCard } from "@/theme";
 
 // Rewards for sellers, suppliers and delivery partners ("Familiar app" prototype `rewards`): the level with a ring,
 // the streak and points, this week's challenges with Claim, badges, and swapping points for Rex credits. Points
@@ -99,7 +99,7 @@ export default function Rewards() {
           <ReferCard />
 
           {data.loyalty ? (
-            <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 18, gap: 8 }} accessible accessibilityLabel={t("rw.tier", { tier: data.loyalty.tierName })}>
+            <View style={{ ...surfaceCard(), padding: 18, gap: 8 }} accessible accessibilityLabel={t("rw.tier", { tier: data.loyalty.tierName })}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                 <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: data.loyalty.color }} />
                 <Title size={20}>{t("rw.tier", { tier: data.loyalty.tierName })}</Title>
@@ -170,7 +170,7 @@ export default function Rewards() {
                       key={badge.key}
                       accessible
                       accessibilityLabel={badge.earned ? t("rw.badgeEarned", { title: badge.title }) : t("rw.badgeLocked", { title: badge.title })}
-                      style={{ width: "47%", flexGrow: 1, flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: colors.surface, borderRadius: 20, borderWidth: 1, borderColor: colors.line, padding: 12, opacity: badge.earned ? 1 : 0.5 }}
+                      style={{ width: "47%", flexGrow: 1, flexDirection: "row", alignItems: "center", gap: 10, ...surfaceCard(), padding: 12, opacity: badge.earned ? 1 : 0.5 }}
                     >
                       <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: badge.earned ? tone.bg : colors.grayTint, alignItems: "center", justifyContent: "center" }}>
                         <AppIcon name={badge.earned ? "star" : "clock"} size={18} color={colors.ink} />

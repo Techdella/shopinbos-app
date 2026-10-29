@@ -11,7 +11,7 @@ import { fetchInsights } from "@/lib/grow";
 import { conversionTrend, INSIGHT_RANGES, percent, trend, type InsightNumber, type InsightRange, type Insights } from "@/lib/grow-pure";
 import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
-import { colors } from "@/theme";
+import { colors, fonts } from "@/theme";
 
 // Insights (canvas board M-Insights; the web's /home/analytics, cut down): Today / 7 days / 30 days; sales, orders,
 // store visits and visits that bought, each with how it moved against the period before; where visitors came from;
@@ -25,7 +25,8 @@ function Stat({ testID, label, value, line }: { testID: string; label: string; v
     <Card style={{ flex: 1, minWidth: 0, gap: 2 }}>
       <View testID={testID}>
         <T style={{ fontSize: 13, color: colors.inkSoft }} numberOfLines={1}>{label}</T>
-        <T weight="extrabold" style={{ fontSize: 22, lineHeight: 28 }} numberOfLines={1} adjustsFontSizeToFit>{value}</T>
+        {/* The big number (Bricolage, like the stat cards elsewhere). */}
+        <T style={{ fontFamily: fonts.display, fontSize: 28, lineHeight: 34, letterSpacing: -0.6, marginVertical: 2 }} numberOfLines={1} adjustsFontSizeToFit>{value}</T>
         <T style={{ fontSize: 13, color: colors.inkSoft }} numberOfLines={2}>{line}</T>
       </View>
     </Card>

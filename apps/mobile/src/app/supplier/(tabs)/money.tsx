@@ -2,11 +2,13 @@ import { Pressable, View } from "react-native";
 import { router } from "expo-router";
 import { naira } from "@shared/onboarding";
 import { AppearanceRow } from "@/components/AppearancePicker";
-import { BigNumber, Eyebrow, List, Row, Small, Sub, Tile } from "@/components/design";
+import { Eyebrow, List, Row, Small, Sub, Tile } from "@/components/design";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { LanguageRow } from "@/components/LanguagePicker";
 import { orderAmount, orderItems } from "@/components/SupplierOrderRow";
 import { TabScreen } from "@/components/TabScreen";
+import { MiniBars, StatCard } from "@/components/visual";
+import { trailingTotals, trailingWeekdays } from "@/lib/visual-pure";
 import { T, WithTip } from "@/components/ui";
 import { upcomingPayout } from "@/lib/delivery-pure";
 import { friendlyDay } from "@/lib/friendly";
@@ -15,7 +17,7 @@ import { fetchSupplierOrders, fetchSupplierOverview, type SupplierOrder } from "
 import { orderKindLabel, supplierOrderStage, weekSummary } from "@/lib/supplier-pure";
 import { useLoad } from "@/lib/useLoad";
 import { fetchWallet, nairaFromKobo } from "@/lib/wallet";
-import { colors } from "@/theme";
+import { colors, surfaceCard } from "@/theme";
 
 // Supplier Money ("Familiar app" supplier prototype `money`, without withdrawing): Paystack splits each payment and
 // sends the supplier's share straight to their bank, so there's no balance to withdraw. The dark "Coming to your
@@ -33,12 +35,22 @@ export default function SupplierMoney() {
     const [overview, wallet, done] = await Promise.all([fetchSupplierOverview(), fetchWallet().catch(() => null), fetchSupplierOrders("done").catch(() => null)]);
     const finished = done ? ([...done.dropship, ...done.wholesale] as SupplierOrder[]).sort((a, b) => b.createdAt.localeCompare(a.createdAt)) : [];
     const allEntries = wallet?.view.entries ?? [];
+    const weekOrders = finished.map((order) => ({ status: order.status, createdAt: order.createdAt, amount: orderAmount(order) }));
+    const week = weekSummary(allEntries, weekOrders);
     return {
       overview,
       wallet,
       entries: allEntries.slice(0, 8),
       orders: finished.slice(0, 8),
-      week: weekSummary(allEntries, finished.map((order) => ({ status: order.status, createdAt: order.createdAt, amount: orderAmount(order) }))),
+      week,
+      // The same money a day: what Paystack paid in, or before any, the delivered orders (as weekSummary counts it).
+      days: trailingTotals(
+        allEntries.length
+          ? allEntries.filter((entry) => entry.status !== "refunded" && entry.amountKobo > 0).map((entry) => ({ at: entry.createdAt, amount: entry.amountKobo / 100 }))
+          : weekOrders.filter((order) => order.status === "delivered").map((order) => ({ at: order.createdAt, amount: Number(order.amount) || 0 })),
+        7,
+        week.amount,
+      ),
       next: upcomingPayout(wallet?.view.settlements),
     };
   });
@@ -46,6 +58,7 @@ export default function SupplierMoney() {
   const bank = data?.overview.bank;
   const owner = data?.wallet?.view.bank?.accountName;
   const day = data?.next?.date ? friendlyDay(data.next.date, new Date(), t) : null;
+  const dayLabels = trailingWeekdays(7).map((weekday) => t(`wk.${weekday}` as "wk.0"));
   const editBank = () => router.push({ pathname: "/supplier/setup", params: { edit: "bank" } });
 
   return (
@@ -54,16 +67,19 @@ export default function SupplierMoney() {
       {loaded.error && !data ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} /> : null}
       {data ? (
         <>
-          <View accessible accessibilityLabel={`${f("money.toBePaid")} ${naira(data.overview.owed ?? 0)}. ${day ? f("money.paidOn", { day }) : f("money.paidNextDay")}`} style={{ backgroundColor: colors.inkFill, borderRadius: 24, padding: 20, gap: 8 }}>
-            <T weight="bold" style={{ color: "rgba(255,255,255,0.72)", fontSize: 14 }}>{f("money.toBePaid")}</T>
-            <BigNumber color="#FFFFFF">{naira(data.overview.owed ?? 0)}</BigNumber>
-            <T weight="bold" style={{ color: "#73D8C8", fontSize: 14, lineHeight: 20 }}>{day ? f("money.paidOn", { day }) : f("money.paidNextDay")}</T>
+          <View accessible accessibilityLabel={`${f("money.toBePaid")} ${naira(data.overview.owed ?? 0)}. ${day ? f("money.paidOn", { day }) : f("money.paidNextDay")}`}>
+            <StatCard tone="dark" icon="wallet" label={f("money.toBePaid")} value={naira(data.overview.owed ?? 0)} line={day ? f("money.paidOn", { day }) : f("money.paidNextDay")} />
           </View>
 
-          <View accessible accessibilityLabel={`${t("money.thisWeek")} ${naira(data.week.amount)}, ${t("money.weekOrders", { count: data.week.count })}`} style={{ backgroundColor: colors.mintTint, borderRadius: 24, padding: 18, gap: 4 }}>
-            <T weight="semibold" style={{ fontSize: 13.5, color: colors.forest }}>{t("money.thisWeek")}</T>
-            <T weight="extrabold" style={{ fontSize: 24 }}>{naira(data.week.amount)}</T>
-            <T style={{ fontSize: 13.5, color: colors.forest }}>{t("money.weekOrders", { count: data.week.count })}</T>
+          {/* This week: the total big, and a bar a day (today lit) when the days add up to it. */}
+          <View accessible accessibilityLabel={`${t("money.thisWeek")} ${naira(data.week.amount)}, ${t("money.weekOrders", { count: data.week.count })}`}>
+            <StatCard
+              icon="chart"
+              label={t("money.thisWeek")}
+              value={naira(data.week.amount)}
+              line={t("money.weekOrders", { count: data.week.count })}
+              chart={data.days.complete && data.week.amount > 0 ? <MiniBars values={data.days.totals} labels={dayLabels} accessibilityLabel={t("chart.lastDays", { days: data.days.totals.map((amount, index) => `${dayLabels[index]} ${naira(amount)}`).join(", ") })} /> : null}
+            />
           </View>
 
           <List>
@@ -114,7 +130,7 @@ export default function SupplierMoney() {
                 ))}
               </List>
             ) : (
-              <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 18, gap: 4 }}>
+              <View style={{ ...surfaceCard(), padding: 18, gap: 4 }}>
                 <T weight="bold" style={{ fontSize: 16 }}>{t("money.none")}</T>
                 <Sub>{t("money.noneBody")}</Sub>
               </View>
@@ -125,7 +141,7 @@ export default function SupplierMoney() {
             <Row lead={<Tile icon="wallet" tone="gray" />} title={t("money.openWallet")} sub={t("money.walletHint")} onPress={() => router.push("/supplier/wallet")} />
             <Row lead={<Tile icon="settings" tone="gray" />} title={t("money.account")} sub={t("money.accountHint")} onPress={() => router.push("/supplier/account")} />
           </List>
-          <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 16, paddingVertical: 2 }}>
+          <View style={{ ...surfaceCard(), paddingHorizontal: 16, paddingVertical: 2 }}>
             <LanguageRow first />
             <AppearanceRow />
           </View>

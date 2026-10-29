@@ -16,7 +16,7 @@ import { useT } from "@/lib/i18n";
 import { askTeam, DELIVERY_ZONES, fetchDesign, fetchDesigns, formatsFor, minQuantity, orderPrints, productTypeOf, quantityChoices, quotePrint, saveDesign, shopProductType, startDesign, templatesFor, withWords, writeWords, type DeliveryZone } from "@/lib/packaging";
 import { fetchSetup } from "@/lib/setup";
 import { useLoad } from "@/lib/useLoad";
-import { colors, fonts } from "@/theme";
+import { colors, fonts, surfaceCard } from "@/theme";
 
 // Packaging and labels (web /home/labels/packaging, "Familiar app" prototype My shop › Packaging): pick a template
 // (each shown live with the shop's name and logo, on one of the shop's products or a sample), preview it big, let
@@ -346,7 +346,7 @@ export default function Packaging() {
                     accessibilityRole="button"
                     accessibilityLabel={t.dynamic(`style.${style}`, PACK_STYLE_INFO[style].name)}
                     onPress={() => pickTemplate(style)}
-                    style={({ pressed }) => ({ flex: 1, backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 12, gap: 8, alignItems: "center", opacity: pressed ? 0.85 : 1 })}
+                    style={({ pressed }) => ({ flex: 1, ...surfaceCard(), padding: 12, gap: 8, alignItems: "center", opacity: pressed ? 0.85 : 1 })}
                   >
                     <PackFront design={base(style)} width={tileWidth} />
                     <T weight="bold" numberOfLines={2} style={{ fontSize: 14, alignSelf: "stretch", textAlign: "center" }}>{t.dynamic(`style.${style}`, PACK_STYLE_INFO[style].name)}</T>

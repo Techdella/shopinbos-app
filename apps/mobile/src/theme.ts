@@ -1,4 +1,4 @@
-import { Platform } from "react-native";
+import { Platform, type ViewStyle } from "react-native";
 import { colors as lightColors, darkColors, radii, type Palette } from "@shared/tokens";
 import { applyPalette, createThemed, type Scheme } from "@/lib/appearance-pure";
 
@@ -31,6 +31,25 @@ export function setColorScheme(next: Scheme) {
 
 /** A table built from `colors` at the top of a file that follows the scheme (built again after a switch). */
 export const themed = createThemed(() => version);
+
+/** How round the soft cards are (lists, cards, stat cards): one size so every surface in the app matches. */
+export const CARD_RADIUS = 24;
+
+/**
+ * The soft lift under a card: a faint navy shadow on the light canvas (no hard border); in dark mode a shadow can't
+ * be seen on navy, so a hairline in `line` draws the edge instead. The 1px border is there in both, so a card is the
+ * same size in either scheme. Read while drawing (it follows the live scheme), not kept in StyleSheet.create.
+ */
+export function softShadow(): ViewStyle {
+  return scheme === "dark"
+    ? { borderWidth: 1, borderColor: colors.line }
+    : { borderWidth: 1, borderColor: "rgba(14,42,56,0.05)", boxShadow: "0px 1px 2px rgba(14,42,56,0.04), 0px 8px 22px rgba(14,42,56,0.06)" };
+}
+
+/** A white (surface) card on the canvas: radius 24, the soft lift. Spread it into a style: `{ ...surfaceCard(), padding: 18 }`. */
+export function surfaceCard(radius: number = CARD_RADIUS): ViewStyle {
+  return { backgroundColor: colors.surface, borderRadius: radius, ...softShadow() };
+}
 
 // Plus Jakarta Sans ships one file per weight; Android ignores fontWeight for custom fonts, so pick the family.
 export const fonts = {

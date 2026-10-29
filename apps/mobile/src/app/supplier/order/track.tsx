@@ -9,7 +9,7 @@ import { capitalise, friendlyTime } from "@/lib/friendly";
 import { useT } from "@/lib/i18n";
 import { openSupportWhatsApp } from "@/lib/support";
 import { useLoad } from "@/lib/useLoad";
-import { colors } from "@/theme";
+import { colors, surfaceCard } from "@/theme";
 
 // Track a supplier order ("Familiar app" supplier prototype `track`): where the parcel is (a status pill and the
 // title), from → to, the delivery partner and when it should arrive, the timeline, "Call {partner}" and "Report a
@@ -46,7 +46,7 @@ export default function SupplierTrack() {
 
       {data ? (
         <>
-          <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 18, gap: 10 }}>
+          <View style={{ ...surfaceCard(), padding: 18, gap: 10 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
               <Pill label={t.dynamic(`status.${data.status}`, data.status.replace(/_/g, " "))} tone="org" />
               {ref ? <T style={{ fontSize: 13, color: colors.inkSoft }}>{ref}</T> : null}
@@ -63,7 +63,7 @@ export default function SupplierTrack() {
           </View>
 
           {data.timeline.length ? (
-            <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 18 }}>
+            <View style={{ ...surfaceCard(), padding: 18 }}>
               <Timeline steps={data.timeline.map((step) => ({ ...step, at: step.at ? capitalise(friendlyTime(step.at, new Date(), t)) : null }))} />
             </View>
           ) : null}

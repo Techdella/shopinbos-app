@@ -7,6 +7,7 @@ import { PAYMENT_METHOD_LABEL } from "@shared/sales";
 import { Banner, List, Pill, Row, Small, Tile, Timeline, type PillTone, type TimelineStep } from "@/components/design";
 import { AppIcon } from "@/components/icons";
 import { Card, LinkButton, Notice, PillButton, Segmented, T, WithTip } from "@/components/ui";
+import { RoundAction, RoundActions } from "@/components/visual";
 import { capitalise, friendlyTime } from "@/lib/friendly";
 import { Screen } from "@/components/Screen";
 import { ChoiceRow, Sheet } from "@/components/Sheet";
@@ -19,7 +20,7 @@ import { fetchOrderDelivery, fetchReassignOptions, jobAction, openPartnerChat, t
 import { daysWords, ownTimeline, timelineStates, timelineWordKey, whatsappNumber } from "@/lib/delivery-pure";
 import { cancelAndRefund, fetchOrder, undoSupplierSwitch, updateOrder, type OrderDetail, type OrderPart, type OrderParts } from "@/lib/orders";
 import { useT } from "@/lib/i18n";
-import { colors } from "@/theme";
+import { colors, surfaceCard } from "@/theme";
 import { EarningsCard, ProblemsCard, ReturnCard } from "@/components/seller/OrderMoney";
 
 // One order ("Seller app" prototype `on.order`): the item, customer, total and when; Paid / Pay on delivery and
@@ -57,7 +58,7 @@ const PART_TONE: Record<OrderPart["state"], keyof typeof TONE_COLORS> = { waitin
 function Parcels({ parts }: { parts: OrderParts }) {
   const t = useT("m_orders");
   return (
-    <Card style={{ gap: 8, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20 }}>
+    <Card style={{ gap: 8, padding: 20 }}>
       <T weight="extrabold" style={{ fontSize: 20 }}>{parts.line ?? t("order.sentBySupplier")}</T>
       {parts.parts.map((part) => (
         <View key={part.key} style={{ gap: 4, paddingVertical: 6, borderTopWidth: 1, borderTopColor: colors.line }}>
@@ -297,7 +298,7 @@ export default function OrderScreen() {
 
       {/* A supplier didn't accept in time: we sent it to someone else (Undo until they accept)… */}
       {switches.map((problem) => (
-        <Card key={problem.supplierOrderId} style={{ gap: 6, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20 }}>
+        <Card key={problem.supplierOrderId} style={{ gap: 6, padding: 20 }}>
           <T weight="extrabold" style={{ fontSize: 20 }}>{t("order.notAccepted", { name: problem.supplierName })}</T>
           <T style={{ fontSize: 15, lineHeight: 22 }}>{t("order.sentTo", { name: problem.switched!.toName })} {problem.switched!.costWords}</T>
           <T style={{ color: colors.inkSoft, fontSize: 15 }}>{problem.items}</T>
@@ -311,7 +312,7 @@ export default function OrderScreen() {
 
       {/* …or the seller chooses: find another supplier, or cancel and refund the customer. */}
       {deciding && (
-        <Card style={{ gap: 10, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20 }}>
+        <Card style={{ gap: 10, padding: 20 }}>
           <T weight="extrabold" style={{ fontSize: 20 }}>{t("order.notAccepted", { name: deciding.supplierName })}</T>
           <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 22 }}>{t("order.decide", { items: deciding.items })}</T>
           <ChoiceRow icon="search" title={t("order.findAnother")} sub={t("order.findAnotherSub")} tint={colors.successTint} onPress={() => router.push({ pathname: "/find", params: { q: deciding.searchQuery } })} />
@@ -348,14 +349,14 @@ export default function OrderScreen() {
 
       {/* What to do now (orders without a delivery partner) */}
       {unpaid && (
-        <Card style={{ gap: 10, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20 }}>
+        <Card style={{ gap: 10, padding: 20 }}>
           <T weight="extrabold" style={{ fontSize: 20 }}>{t("order.howPaid")}</T>
           <Segmented<PaidWith> options={[{ value: "transfer", label: t("order.paidTransfer") }, { value: "cash", label: t("order.paidCash") }, { value: "pos", label: t("order.paidPos") }]} value={paidWith} onChange={setPaidWith} />
           {phone && <LinkButton title={t("order.remind")} color={colors.forest} onPress={() => void Linking.openURL(`https://wa.me/${whatsappNumber(phone)}?text=${encodeURIComponent(reminder)}`)} />}
         </Card>
       )}
       {toSend && (
-        <Card style={{ gap: 6, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20 }}>
+        <Card style={{ gap: 6, padding: 20 }}>
           <WithTip title={t("order.send")} tip={{ text: t("order.sendBody", { name: firstName }) }}>
             <T weight="extrabold" style={{ fontSize: 20 }}>{t("order.send")}</T>
           </WithTip>
@@ -364,7 +365,7 @@ export default function OrderScreen() {
         </Card>
       )}
       {order.status === "shipped" && !partnerPlan && (
-        <Card style={{ gap: 6, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20 }}>
+        <Card style={{ gap: 6, padding: 20 }}>
           <T weight="extrabold" style={{ fontSize: 20 }}>{t("order.onTheWay")}</T>
           {order.trackingCode ? <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t("order.riderCode", { code: order.trackingCode })}</T> : null}
           <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t("order.tapWhen", { name: firstName })}</T>
@@ -376,7 +377,7 @@ export default function OrderScreen() {
       {/* Track ("Familiar app" prototype `track`): where it is, from → to, the partner and their estimate, the
           timeline, Call the partner, Report a problem and Share tracking (the customer's own order page). No map, and
           never the rider's location. */}
-      <View testID="order-track" style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20, gap: 14 }}>
+      <View testID="order-track" style={{ ...surfaceCard(), padding: 20, gap: 14 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
           <T weight="extrabold" style={{ flex: 1, fontSize: 20 }} accessibilityRole="header">{t("track.title")}</T>
           <Pill label={statusWords} tone={order.status === "delivered" ? "ok" : needsPartner ? "warn" : "teal"} />
@@ -399,16 +400,16 @@ export default function OrderScreen() {
             <Timeline steps={timeline.steps} />
           </View>
         ))}
-        {/* Call, Share tracking and Report a problem: one stack of full-width buttons, all the same size. */}
-        <View style={{ gap: 10 }}>
+        {/* Call, Share tracking and Report a problem: round buttons in one row, each named under it. */}
+        <RoundActions style={{ marginTop: 4 }}>
           {lead?.partner?.phone ? (
-            <PillButton testID="track-call" tone="white" size="md" accessibilityLabel={t("track.call", { name: lead.partner.name })} onPress={() => void Linking.openURL(`tel:${lead.partner!.phone!.replace(/[^\d+]/g, "")}`)} icon="phone" title={t("track.call", { name: lead.partner.name })} />
+            <RoundAction testID="track-call" tone="primary" icon="phone" label={t("order.call")} accessibilityLabel={t("track.call", { name: lead.partner.name })} onPress={() => void Linking.openURL(`tel:${lead.partner!.phone!.replace(/[^\d+]/g, "")}`)} />
           ) : null}
           {order.trackingUrl ? (
-            <PillButton testID="track-share" tone="white" size="md" accessibilityLabel={t("track.share", { name: firstName })} onPress={() => void Share.share({ message: t("track.shareMessage", { name: firstName, url: order.trackingUrl! }) }).catch(() => null)} icon="share" title={t("track.share", { name: firstName })} />
+            <RoundAction testID="track-share" icon="share" label={t("share")} accessibilityLabel={t("track.share", { name: firstName })} onPress={() => void Share.share({ message: t("track.shareMessage", { name: firstName, url: order.trackingUrl! }) }).catch(() => null)} />
           ) : null}
-          <PillButton testID="track-problem" tone="white" size="md" icon="help" title={t("track.problem")} onPress={() => setProblem(true)} />
-        </View>
+          <RoundAction testID="track-problem" icon="help" label={t("track.problem")} onPress={() => setProblem(true)} />
+        </RoundActions>
       </View>
 
       <Sheet visible={problem} onClose={() => setProblem(false)} title={t("track.problem")}>
@@ -437,7 +438,7 @@ export default function OrderScreen() {
       </Sheet>
 
       {/* Items and totals */}
-      <Card style={{ gap: 4, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20 }}>
+      <Card style={{ gap: 4, padding: 20 }}>
         {order.items.map((line, index) => (
           <View key={`${line.name}-${index}`} style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 6 }}>
             <Thumb uri={line.image} size={48} radius={12} />
@@ -478,8 +479,12 @@ export default function OrderScreen() {
 
       {phone ? (
         <Sheet visible={contact} onClose={() => setContact(false)} title={t("order2.callOrWhatsApp")}>
-          <ChoiceRow icon="chat" title={t("order.whatsapp")} sub={phone} tint={colors.successTint} iconColor={colors.success} onPress={() => { setContact(false); void Linking.openURL(`https://wa.me/${whatsappNumber(phone)}`); }} />
-          <ChoiceRow icon="phone" title={t("order.call")} sub={phone} onPress={() => { setContact(false); void Linking.openURL(`tel:${phone.replace(/[^\d+]/g, "")}`); }} />
+          {/* The number, then WhatsApp and Call as two big round buttons (the call-screen look). */}
+          <T weight="bold" style={{ fontSize: 18, textAlign: "center" }} selectable>{phone}</T>
+          <RoundActions style={{ paddingVertical: 8 }}>
+            <RoundAction tone="whatsapp" size={64} icon="chat" label={t("order.whatsapp")} onPress={() => { setContact(false); void Linking.openURL(`https://wa.me/${whatsappNumber(phone)}`); }} />
+            <RoundAction tone="primary" size={64} icon="phone" label={t("order.call")} onPress={() => { setContact(false); void Linking.openURL(`tel:${phone.replace(/[^\d+]/g, "")}`); }} />
+          </RoundActions>
         </Sheet>
       ) : null}
 

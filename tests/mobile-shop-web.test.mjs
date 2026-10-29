@@ -17,8 +17,8 @@ test("Menu (was My shop): the Grow and Store grids are rows of three equal tiles
   const shop = app("app/(tabs)/shop.tsx");
   const grid = shop.slice(shop.indexOf("function ToolGrid("), shop.indexOf("export default function Menu"));
   assert.match(grid, /tools\.slice\(index, index \+ 3\)/);
-  assert.match(grid, /flexDirection: "row", gap: 8/);
-  assert.match(grid, /flex: 1, minWidth: 0/);
+  assert.match(grid, /flexDirection: "row", gap: 12/);
+  assert.match(grid, /flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 0/, "equal tiles: no width from the words, so the last row lines up");
   assert.doesNotMatch(grid, /width: "\d+(\.\d+)?%"|flexWrap/);
   // Web address and Packaging moved off the screen's top into the Look group; both are still app screens.
   assert.match(shop, /id: "domain", label: "Web address", icon: "globe", path: "app:\/domain"/);
@@ -98,7 +98,7 @@ test("Packaging: pick a template, preview with the shop's name and logo, save, o
   assert.match(screen, /result\.outcome === "cancelled"/);
   assert.doesNotMatch(screen, /openWeb\(/);
   // Template tiles: rows of two equal tiles.
-  assert.match(screen, /flex: 1, backgroundColor: colors\.surface/);
+  assert.match(screen, /flex: 1, \.\.\.surfaceCard\(\)/, "equal soft tiles");
   const lib = app("lib/packaging.ts");
   for (const path of ["/api/app/print-designs", "/api/app/packaging/copy", "/api/app/print-orders", "/api/app/packaging/requests"]) assert.ok(lib.includes(path), path);
   assert.match(read("src/app/api/app/print-designs/[id]/route.ts"), /export const GET = withSeller/);

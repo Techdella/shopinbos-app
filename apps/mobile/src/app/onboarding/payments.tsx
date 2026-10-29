@@ -128,7 +128,7 @@ export default function Payments() {
     >
       <Title>{t("pay.title")}</Title>
       <T weight="bold" style={{ fontSize: 14, color: colors.inkSoft, marginTop: 24, marginBottom: 10 }}>{t("pay.how")}</T>
-      <Card style={{ paddingVertical: 4, paddingHorizontal: 16, borderRadius: 24, borderWidth: 1, borderColor: colors.line }}>
+      <Card style={{ paddingVertical: 4, paddingHorizontal: 16 }}>
         {PAYMENT_METHODS.map((method, index) => (
           <View key={method.key} style={{ flexDirection: "row", alignItems: "center", gap: 16, paddingVertical: 13, borderTopWidth: index ? 1 : 0, borderTopColor: colors.line }}>
             <View style={{ flex: 1 }}>
@@ -142,7 +142,7 @@ export default function Payments() {
       <WithTip title={t("pay.payouts")} tip={{ text: t("pay.bankLater") }} style={{ marginTop: 24, marginBottom: 10 }}>
         <T weight="bold" style={{ fontSize: 14, color: colors.inkSoft }}>{t("pay.payouts")}</T>
       </WithTip>
-      <Card style={{ padding: 20, borderRadius: 24, borderWidth: 1, borderColor: colors.line }}>
+      <Card style={{ padding: 20 }}>
         {bankLinked ? (
           <T weight="bold" style={{ color: colors.success, fontSize: 15 }}>{t("pay.bankAdded")}</T>
         ) : (
@@ -156,7 +156,7 @@ export default function Payments() {
         )}
       </Card>
       <T weight="bold" style={{ fontSize: 14, color: colors.inkSoft, marginTop: 24, marginBottom: 10 }}>{t("pay.delivery")}</T>
-      <Card style={{ paddingVertical: 4, paddingHorizontal: 16, borderRadius: 24, borderWidth: 1, borderColor: colors.line }}>
+      <Card style={{ paddingVertical: 4, paddingHorizontal: 16 }}>
         {zones.map((zone, index) => (
           <View key={zone.name} style={{ flexDirection: "row", alignItems: "center", paddingVertical: 15, borderTopWidth: index ? 1 : 0, borderTopColor: colors.line }}>
             <T style={{ flex: 1, fontSize: 15 }}>{zoneLabel(zone)}</T>

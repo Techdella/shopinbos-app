@@ -115,7 +115,7 @@ export default function SellerQuestions() {
   const [live, setLive] = useState(false);
   const [liveProblem, setLiveProblem] = useState<string | null>(null);
   const [shareNote, setShareNote] = useState<string | null>(null);
-  // 05-StoreName: "adaskloset.shopinbos.com is free" under the name, checked as they type.
+  // 05-StoreName: "adaskloset.mybos.store is free" under the name, checked as they type.
   const [nameAddress, setNameAddress] = useState<StoreAddress | null>(null);
   // 11-Details: "Add another one" saved a product and came back to the camera.
   const [productNote, setProductNote] = useState<string | null>(null);

@@ -202,6 +202,12 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "link.privateShort": "Má ṣe fi link yìí han ẹnikẹ́ni.",
   "signIn.linkHintShort": "Lo nọ́ńbà tí ilé-iṣẹ́ rẹ fi kún ọ.",
   "welcome.subShort": "Iṣẹ́ delivery á máa dé bá ọ níbí.",
+  // v26 soft cards (components/visual.tsx)
+  "offer.earn": "Owó rẹ",
+  "offer.distance": "Sí ibi gbígbé",
+  "offer.km": "{km} km",
+  "done.earned": "Owó tí o rí",
+  "done.cash": "Owó tí o gbà lọ́wọ́",
 };
 
 export default yo;

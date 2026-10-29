@@ -3,7 +3,9 @@ import { View } from "react-native";
 import { router } from "expo-router";
 import * as Clipboard from "expo-clipboard";
 import { naira } from "@shared/onboarding";
-import { DarkCard, Eyebrow, List, Row, Small, Tile } from "@/components/design";
+import { Eyebrow, List, Row, Small, Tile } from "@/components/design";
+import { MiniBars, MiniStat, StatCard } from "@/components/visual";
+import { trailingTotals, trailingWeekdays } from "@/lib/visual-pure";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { PayInOverdueCard } from "@/components/PayInOverdueCard";
 import { CardButton } from "@/components/PartnerKit";
@@ -22,19 +24,9 @@ import { colors } from "@/theme";
 // pay-on-delivery cash to settle with each seller, and Recent. Partners that still pay cash in to their own pay-in
 // account see it here with Copy (transfers to it are matched automatically).
 
-/** A tinted number card (prototype `.grid2` `.c-butter` / `.c-mint`). */
-function TintStat({ bg, label, value, line }: { bg: string; label: string; value: string; line?: string }) {
-  return (
-    <View style={{ flex: 1, backgroundColor: bg, borderRadius: 22, padding: 16, gap: 4 }} accessible accessibilityLabel={[label, value, line].filter(Boolean).join(", ")}>
-      <T weight="semibold" style={{ fontSize: 13, color: colors.inkSoft }}>{label}</T>
-      <T weight="extrabold" numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 20 }}>{value}</T>
-      {line ? <T weight="semibold" style={{ fontSize: 12.5, color: colors.inkSoft }}>{line}</T> : null}
-    </View>
-  );
-}
-
 export default function LogisticsEarnings() {
   const t = useT("m_partner", "common");
+  const ui = useT("m_ui");
   const earnings = useLoad(fetchEarnings);
   const cash = useLoad(fetchSellersCash);
   const data = earnings.data;
@@ -55,6 +47,9 @@ export default function LogisticsEarnings() {
   }
 
   const bank = data?.bank ? `${data.bank.bankName} ${data.bank.account}` : null;
+  // "Earned this week" is the server's last-7-days sum; the newest deliveries draw it a day a bar only when they hold it all.
+  const week = trailingTotals((data?.recent ?? []).map((row) => ({ at: row.deliveredAt, amount: row.amount })), 7, data?.week.amount ?? 0);
+  const days = trailingWeekdays(7).map((day) => ui(`wk.${day}` as "wk.0"));
 
   return (
     <TabScreen title={t("money.title")} refreshing={earnings.refreshing} onRefresh={refresh}>
@@ -64,11 +59,19 @@ export default function LogisticsEarnings() {
         <>
           {data.overdue ? <PayInOverdueCard overdue={data.overdue} onChecked={() => void earnings.reload()} /> : null}
 
-          <DarkCard eyebrow={t("moneyCard.week")} amount={naira(data.week.amount)} line={t("moneyCard.line", { count: data.week.jobs })} />
+          {/* This week's big number, with a bar a day (today lit) when the recent deliveries hold the whole week. */}
+          <StatCard
+            tone="dark"
+            icon="truck"
+            label={t("moneyCard.week")}
+            value={naira(data.week.amount)}
+            line={t("moneyCard.line", { count: data.week.jobs })}
+            chart={week.complete ? <MiniBars dark values={week.totals} labels={days} accessibilityLabel={ui("chart.lastDays", { days: week.totals.map((amount, index) => `${days[index]} ${naira(amount)}`).join(", ") })} /> : null}
+          />
 
-          <View style={{ flexDirection: "row", gap: 10 }}>
-            <TintStat bg="#FFF1C9" label={t("money.earnedToday")} value={naira(data.today.amount)} line={t("money.jobs", { count: data.today.jobs })} />
-            <TintStat bg={colors.mintTint} label={t("money.month")} value={naira(data.month.amount)} line={t("money.jobs", { count: data.month.jobs })} />
+          <View style={{ flexDirection: "row", gap: 12 }}>
+            <MiniStat tone="butter" label={t("money.earnedToday")} value={naira(data.today.amount)} line={t("money.jobs", { count: data.today.jobs })} />
+            <MiniStat tone="mint" label={t("money.month")} value={naira(data.month.amount)} line={t("money.jobs", { count: data.month.jobs })} />
           </View>
 
           <List>
@@ -96,7 +99,7 @@ export default function LogisticsEarnings() {
           />
 
           {data.cashToPayIn > 0 || data.payIn?.state === "ready" ? (
-            <Card style={{ gap: 10, padding: 20, borderRadius: 24, borderWidth: 1, borderColor: colors.line }}>
+            <Card style={{ gap: 10, padding: 20 }}>
               {/* What this cash is: in the tip. A late pay-in stays on screen. */}
               <WithTip title={t("cashScreen.title")} tip={data.cashToPayIn > 0 ? { text: t("codExplain") } : null}>
                 <T weight="extrabold" style={{ fontSize: 17 }}>
@@ -133,7 +136,7 @@ export default function LogisticsEarnings() {
               ))}
             </List>
           ) : (
-            <Card style={{ padding: 20, borderRadius: 24, borderWidth: 1, borderColor: colors.line }}>
+            <Card style={{ padding: 20 }}>
               <Small>{t("money.noDeliveries")}</Small>
             </Card>
           )}

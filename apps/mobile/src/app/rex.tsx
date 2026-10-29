@@ -16,7 +16,7 @@ import { fetchSetup } from "@/lib/setup";
 import { openShop } from "@/lib/share";
 import { openPath } from "@/lib/web";
 import { useT } from "@/lib/i18n";
-import { colors, radii } from "@/theme";
+import { colors, radii, surfaceCard } from "@/theme";
 
 // Ask Rex ("Familiar app" prototype `askRex`; Rex Studio chat, web /studio), like Peggy's screen: "I build and
 // change your shop", the credits left (never sold or pointed to in the app), three suggestions and the rest
@@ -85,7 +85,7 @@ function StoreActions() {
 
 function CardView({ card, ask, share }: { card: RexCard; ask: (text: string) => void; share: (imageUrl: string) => void }) {
   const t = useT("m_rex", "common", "m_familiar");
-  const frame = { backgroundColor: colors.surface, borderRadius: 18, borderWidth: 1, borderColor: colors.line, padding: 12, gap: 8 } as const;
+  const frame = { ...surfaceCard(18), padding: 12, gap: 8 } as const;
   switch (card.type) {
     case "image":
       return (
@@ -336,7 +336,7 @@ export default function Rex() {
           <Bubble mine={false}>{t("hello2")}</Bubble>
           <View style={{ gap: 8 }}>
             {SUGGESTIONS.map((key) => (
-              <Pressable key={key} accessibilityRole="button" onPress={() => void ask(t(key))} style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 48, backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 14, paddingVertical: 12 }}>
+              <Pressable key={key} accessibilityRole="button" onPress={() => void ask(t(key))} style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 48, ...surfaceCard(16), paddingHorizontal: 14, paddingVertical: 12 }}>
                 <AppIcon name="sparkle" size={18} color={colors.accentInk} />
                 <T weight="bold" style={{ flex: 1, fontSize: 14.5 }}>{t(key)}</T>
               </Pressable>

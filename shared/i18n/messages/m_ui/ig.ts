@@ -262,6 +262,15 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "update.storeFailed": "Anyị enweghị ike imeghe Google Play. Mepee ngwa Play Store ma chọọ Shopinbos.",
   "tip.more": "Ozi ndị ọzọ",
   "tip.learnMore": "Mụtakwuo",
+  // v26 soft cards (components/visual.tsx)
+  "wk.0": "Mọn",
+  "wk.1": "Tuz",
+  "wk.2": "Wen",
+  "wk.3": "Tọọ",
+  "wk.4": "Fraị",
+  "wk.5": "Sat",
+  "wk.6": "Ụka",
+  "chart.lastDays": "Ụbọchị 7 gara aga: {days}",
 };
 
 export default ig;

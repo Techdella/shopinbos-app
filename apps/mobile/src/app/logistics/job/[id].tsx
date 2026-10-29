@@ -11,13 +11,13 @@ import { ErrorState, LoadingBlock } from "@/components/kit";
 import { NoteCard, shopRoleOf } from "@/components/PartnerKit";
 import { Screen } from "@/components/Screen";
 import { Sheet } from "@/components/Sheet";
-import { Card, Notice, PillButton, T } from "@/components/ui";
+import { ButtonRow, Card, Notice, PillButton, T } from "@/components/ui";
+import { RoundAction, RoundActions } from "@/components/visual";
 import { useT } from "@/lib/i18n";
 import { fetchJob, fetchMarket, moveJob, type JobAction } from "@/lib/logistics";
 import { STATUS_WORD, isPointJob, jobFooter, jobTimeline, nextMove } from "@/lib/logistics-pure";
 import { shortPlace, timeAgo } from "@/lib/partner-pure";
 import { useLoad } from "@/lib/useLoad";
-import { colors } from "@/theme";
 
 // One delivery job ("Familiar app" prototype F-Delivery `job`): from → to, the shop and whether it is a seller or a
 // supplier, pick-up and drop-off, the service and size with the pick-up deadline, what you get, the
@@ -84,10 +84,11 @@ export default function JobScreen() {
 
   const footer =
     footerKind === "offer" ? (
-      <>
-        {button("accept", t("job.acceptPick"), () => setSheet("assign"))}
-        {ghost(t("decline"), () => setSheet("decline"))}
-      </>
+      // A new request: Decline and Accept side by side (stacked, Accept on top, when the words don't fit).
+      <ButtonRow labels={[t("decline"), t("job.acceptPick")]} size="lg" icons primaryLast>
+        <PillButton title={t("decline")} tone="white" disabled={off} onPress={() => setSheet("decline")} style={{ flex: 1 }} />
+        <PillButton tone="forest" busy={busy === "accept"} disabled={off} onPress={() => setSheet("assign")} icon="check" title={t("job.acceptPick")} style={{ flex: 1 }} />
+      </ButtonRow>
     ) : footerKind === "moving" && move ? (
       <>
         {button(move.to, t.dynamic(move.key), () => void run(move.to, { action: "status", to: move.to }))}
@@ -148,7 +149,7 @@ export default function JobScreen() {
               </T>
             ) : null}
           </View>
-          <Card style={{ padding: 20, borderRadius: 24, borderWidth: 1, borderColor: colors.line }}>
+          <Card style={{ padding: 20 }}>
             <Timeline steps={steps.map((step) => ({ label: t.dynamic(step.key), state: step.state }))} />
           </Card>
         </>
@@ -156,21 +157,21 @@ export default function JobScreen() {
 
       {current.proofUrl ? <Image source={{ uri: current.proofUrl }} style={{ width: "100%", height: 200, borderRadius: 24 }} contentFit="cover" accessibilityLabel={t("job.proofPhoto")} /> : null}
 
-      {/* Call, WhatsApp and Message the shop: one stack of full-width buttons, all the same size. */}
-      <View style={{ gap: 10 }}>
+      {/* Call and WhatsApp the customer, Message the shop: round buttons in one row, each named under it. */}
+      <RoundActions>
         {current.buyer?.phone ? (
           <>
-            <PillButton tone="white" size="md" onPress={() => void Linking.openURL(`tel:${current.buyer!.phone}`)} icon="phone" title={t("job.callCustomer")} />
-            <PillButton tone="white" size="md" onPress={() => void Linking.openURL(`https://wa.me/${current.buyer!.phone!.replace(/\D/g, "")}`)} icon="chat" title="WhatsApp" />
+            <RoundAction tone="primary" icon="phone" label={t("job.callCustomer")} onPress={() => void Linking.openURL(`tel:${current.buyer!.phone}`)} />
+            <RoundAction tone="whatsapp" icon="chat" label="WhatsApp" onPress={() => void Linking.openURL(`https://wa.me/${current.buyer!.phone!.replace(/\D/g, "")}`)} />
           </>
         ) : null}
-        <PillButton title={t("job.messageShop", { shop: current.shop })} tone="white" size="md" onPress={() => router.push({ pathname: "/logistics/chat/[id]", params: { id: current.sellerUserId, name: current.shop } })} />
-      </View>
+        <RoundAction icon="send" label={t("job.messageShop", { shop: current.shop })} onPress={() => router.push({ pathname: "/logistics/chat/[id]", params: { id: current.sellerUserId, name: current.shop } })} />
+      </RoundActions>
 
       <Sheet visible={sheet === "assign" || sheet === "reassign"} onClose={() => setSheet(null)} title={t("assign.title")}>
         <Sub style={{ marginTop: -6 }}>{t("assign.sub")}</Sub>
         {options.length ? null : (
-          <Card style={{ padding: 20, borderRadius: 24, borderWidth: 1, borderColor: colors.line }}>
+          <Card style={{ padding: 20 }}>
             <Sub>{t("assign.none")}</Sub>
           </Card>
         )}

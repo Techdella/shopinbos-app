@@ -262,6 +262,15 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "update.storeFailed": "A kò lè ṣí Google Play. Ṣí app Play Store kí o sì wá Shopinbos.",
   "tip.more": "Àlàyé síi",
   "tip.learnMore": "Kọ́ síi",
+  // v26 soft cards (components/visual.tsx)
+  "wk.0": "Ajé",
+  "wk.1": "Ìṣẹ́",
+  "wk.2": "Rú",
+  "wk.3": "Bọ̀",
+  "wk.4": "Ẹtì",
+  "wk.5": "Àbá",
+  "wk.6": "Àìkú",
+  "chart.lastDays": "Ọjọ́ méje tó kọjá: {days}",
 };
 
 export default yo;

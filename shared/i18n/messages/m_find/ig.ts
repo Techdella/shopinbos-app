@@ -255,6 +255,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "markup.roundingTitle": "Otú a si emezi ọnụahịa",
   "product.dropshipTitle": "Otú dropship si arụ ọrụ",
   "product.dropshipShort": "Ị naghị azụ ihe ọ bụla ugbu a. {name} ga-eziga ya mgbe onye ahịa kwụrụ ụgwọ.",
+  // v26 soft cards (components/visual.tsx)
+  "packs.see": "Lee pack ahụ",
 };
 
 export default ig;

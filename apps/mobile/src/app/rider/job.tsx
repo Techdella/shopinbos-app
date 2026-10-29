@@ -11,6 +11,7 @@ import { BigTile, Center, DoneCheck, mapUrl, TextLink } from "@/components/Rider
 import { RiderMap } from "@/components/RiderMap";
 import { Screen } from "@/components/Screen";
 import { Field, Notice, PillButton, T } from "@/components/ui";
+import { MiniStat } from "@/components/visual";
 import { ApiError } from "@/lib/api";
 import { fetchRider, riderAction, uploadRiderProof, type RiderDrop, type RiderRun } from "@/lib/rider";
 import { useOwnPosition } from "@/lib/rider-location";
@@ -316,6 +317,13 @@ export default function RiderJob() {
             <DoneCheck />
             <Title>{t.delivered}</Title>
             <Sub style={{ textAlign: "center" }}>{last && last.earned > 0 ? say("done.added", { amount: naira(last.earned) }) : t.doneEarned}</Sub>
+            {/* What this drop made, big: earned, and the cash to hand over (when there was any). */}
+            {last && (last.earned > 0 || last.cash > 0) ? (
+              <View style={{ flexDirection: "row", gap: 12, alignSelf: "stretch", marginTop: 8 }}>
+                {last.earned > 0 ? <MiniStat tone="ok" label={say("done.earned")} value={naira(last.earned)} /> : null}
+                {last.cash > 0 ? <MiniStat tone="warn" label={say("done.cash")} value={naira(last.cash)} /> : null}
+              </View>
+            ) : null}
             {last && last.cash > 0 ? <Small style={{ textAlign: "center" }}>{t.doneCash({ amount: naira(last.cash) })}</Small> : null}
           </Center>
         </ScrollView>

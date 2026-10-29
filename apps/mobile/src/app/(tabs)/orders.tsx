@@ -15,7 +15,7 @@ import { ORDER_GROUPS, orderGroup, type OrderGroup } from "@/lib/delivery-pure";
 import { capitalise, friendlyDay } from "@/lib/friendly";
 import { PushPromptCard } from "@/components/PushPromptCard";
 import { useT } from "@/lib/i18n";
-import { colors } from "@/theme";
+import { surfaceCard } from "@/theme";
 
 // Orders ("Seller app" prototype `on.orders`): three chips with counts (Needs action, On the way, Done) over one
 // card of rows: picture, "customer · total", "item · where it is". A delivery a partner declined (or didn't take
@@ -86,7 +86,7 @@ export default function Orders() {
         </EmptyState>
       ) : null}
       {orders?.length && !shown.length ? (
-        <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20, gap: 12 }}>
+        <View style={{ ...surfaceCard(), padding: 20, gap: 12 }}>
           <Sub>{t("list.nothingTitle")}</Sub>
           {orderFilterCount(filters) ? <PillButton title={t("filters.clear")} size="sm" tone="white" onPress={() => setFilters(NO_ORDER_FILTERS)} /> : null}
         </View>

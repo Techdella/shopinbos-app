@@ -11,7 +11,7 @@ import { findDeliveryPartners } from "@/lib/delivery";
 import { timeframeWords, whereWords } from "@/lib/delivery-pure";
 import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
-import { colors } from "@/theme";
+import { colors, surfaceCard } from "@/theme";
 import { FilterBar } from "@/components/FilterBar";
 
 // Find partners (the prototype's dvFind): verified partners that pick up where the business ships from and cover
@@ -66,7 +66,7 @@ export default function FindPartners() {
             })}
           </List>
         ) : (
-          <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20 }}>
+          <View style={{ ...surfaceCard(), padding: 20 }}>
             <Sub>{t("find.empty")}</Sub>
           </View>
         )
