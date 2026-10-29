@@ -13,11 +13,10 @@ import { isLibraryTheme } from "@/lib/store-templates/theme-library";
 import { productsLeft } from "@/lib/plans/gates.server";
 import { currencyFromPrice, parsePrice, validateStoreConfig } from "@/lib/ai/rex/store-config";
 import {
-  createBlankEditorSnapshot,
-  createSnapshotFromTemplate,
-  getCurrentTemplateMeta,
-  getTemplateManifest,
+  fallbackDraftSnapshot,
   hydrateDraftFromStoreConfig,
+  moveOffBlankStarter,
+  parseEditorState,
   resolveDraftSnapshot,
   snapshotToStoreConfig,
   type StoreBrandSettingsLike,
@@ -107,13 +106,16 @@ export async function writeStoreDraft(args: {
   });
   const live = isLiveStatus(existing?.status);
   const brandSettings = ((existing?.brandSettings as Record<string, unknown> | null) ?? {}) as StoreBrandSettingsLike;
-  const selected = getCurrentTemplateMeta(brandSettings);
-  const manifest = selected ? getTemplateManifest(selected.templateId) : null;
-  const fallback = manifest ? createSnapshotFromTemplate(manifest) : createBlankEditorSnapshot(config.name);
+  // No theme picked yet (Rex straight from a brief): a free theme that fits what they sell, never the blank starter.
+  const pickHint = { storeCategory: `${config.tagline}, ${config.heroSubline}`, productNames: config.products.map((product) => product.name) };
+  const fallback = fallbackDraftSnapshot(brandSettings, config.name, pickHint);
+  const current = resolveDraftSnapshot(brandSettings, null);
+  const offBlank = current ? moveOffBlankStarter(current, brandSettings, config.name, pickHint) : null;
+  const base: StoreBrandSettingsLike = offBlank?.moved ? { ...brandSettings, editor: { ...parseEditorState(brandSettings.editor), draft: offBlank.snapshot } } : brandSettings;
 
   const { slug: _slug, changed: _changed, logoUrl: _logo, ...editorSpec } = config;
   void _slug; void _changed; void _logo;
-  const hydrated = hydrateDraftFromStoreConfig(brandSettings, editorSpec, fallback);
+  const hydrated = hydrateDraftFromStoreConfig(base, editorSpec, fallback);
   let draft = normaliseHomeSlug(hydrated.updated);
   if (args.heroImageUrl) draft = withHeroImage(draft, args.heroImageUrl, config.name);
 

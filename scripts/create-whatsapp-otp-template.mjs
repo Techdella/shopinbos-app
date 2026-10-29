@@ -56,7 +56,7 @@ if (match || statusOnly) {
     console.log(`ℹ️  No template called "${name}" (${language}) yet. Run without --status to create it.`);
   } else {
     console.log(`✅ Template "${match.name}" (${match.language}, ${match.category}): ${match.status}${match.rejected_reason && match.rejected_reason !== "NONE" ? ` — ${match.rejected_reason}` : ""}`);
-    if (match.status === "APPROVED") console.log(`   Set AUTH_OTP_WHATSAPP_TEMPLATE=${name}, AUTH_OTP_WHATSAPP_PROVIDER=meta and AUTH_OTP_WHATSAPP=1 in Vercel.`);
+    if (match.status === "APPROVED") console.log(`   Set AUTH_OTP_WHATSAPP_TEMPLATE=${name} and AUTH_OTP_WHATSAPP=1 in Vercel.`);
   }
   process.exit(0);
 }
@@ -78,5 +78,5 @@ const created = await call(`/${waba}/message_templates`, {
 });
 console.log(`✅ Created template "${name}" (${language}): ${created.status ?? "PENDING"} (id ${created.id}).`);
 console.log("   Check approval with --status. Once APPROVED, set in Vercel:");
-console.log(`   AUTH_OTP_WHATSAPP=1  AUTH_OTP_WHATSAPP_PROVIDER=meta  AUTH_OTP_WHATSAPP_TEMPLATE=${name}`);
+console.log(`   AUTH_OTP_WHATSAPP=1  AUTH_OTP_WHATSAPP_TEMPLATE=${name}`);
 console.log("   WHATSAPP_OTP_PHONE_NUMBER_ID=…  WHATSAPP_OTP_TOKEN=…");

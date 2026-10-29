@@ -1,5 +1,5 @@
-// Phone sign-in codes on WhatsApp with an SMS fallback (src/lib/auth/otp-channel.ts): which provider, which channel
-// to try, the fallback order, what the screen is told, and the provider request shapes. Never Twilio.
+// Phone sign-in codes on WhatsApp with an SMS fallback (src/lib/auth/otp-channel.ts): WhatsApp only through WhatsApp
+// Cloud, which channel to try, the fallback order, what the screen is told, and the request shape. Never Twilio.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
@@ -8,32 +8,22 @@ const otp = await import("../src/lib/auth/otp-channel.ts");
 
 const TERMII = { TERMII_API_KEY: "tk", TERMII_SENDER_ID: "Shopinbos" };
 const SENDCHAMP = { SENDCHAMP_API_KEY: "sk", AUTH_OTP_WHATSAPP_SENDER: "+234 801 234 5678", AUTH_OTP_WHATSAPP_TEMPLATE: "tpl_123" };
+const META = { WHATSAPP_OTP_PHONE_NUMBER_ID: "1234567890", WHATSAPP_OTP_TOKEN: "EAAG-test", AUTH_OTP_WHATSAPP_TEMPLATE: "shopinbos_login_code" };
 
-test("WhatsApp codes are off unless AUTH_OTP_WHATSAPP is on and a provider has what it needs", () => {
-  assert.equal(otp.whatsappCodeConfig({ ...TERMII }), null, "flag off");
-  assert.equal(otp.whatsappCodeConfig({ ...TERMII, AUTH_OTP_WHATSAPP: "0" }), null);
-  assert.equal(otp.whatsappCodeConfig({ AUTH_OTP_WHATSAPP: "1" }), null, "no provider keys");
-  assert.equal(otp.whatsappCodeConfig({ AUTH_OTP_WHATSAPP: "1", TERMII_API_KEY: "tk" }), null, "Termii needs a sender");
-  assert.equal(otp.whatsappCodeConfig({ AUTH_OTP_WHATSAPP: "1", SENDCHAMP_API_KEY: "sk", AUTH_OTP_WHATSAPP_SENDER: "234801" }), null, "Sendchamp needs a template");
+test("WhatsApp codes only go through WhatsApp Cloud, and only when AUTH_OTP_WHATSAPP is on", () => {
+  assert.equal(otp.whatsappCodeConfig({ ...META }), null, "flag off");
+  assert.equal(otp.whatsappCodeConfig({ ...META, AUTH_OTP_WHATSAPP: "0" }), null);
+  assert.equal(otp.whatsappCodeConfig({ AUTH_OTP_WHATSAPP: "1" }), null, "no WhatsApp Cloud keys");
   assert.equal(otp.whatsappCodeConfig({ AUTH_OTP_WHATSAPP: "1", TWILIO_ACCOUNT_SID: "AC", TWILIO_AUTH_TOKEN: "x" }), null, "never Twilio");
-
-  const termii = otp.whatsappCodeConfig({ ...TERMII, AUTH_OTP_WHATSAPP: "1" });
-  assert.equal(termii.provider, "termii");
-  assert.equal(termii.sender, "Shopinbos", "falls back to TERMII_SENDER_ID");
-  assert.equal(otp.whatsappCodeConfig({ ...TERMII, AUTH_OTP_WHATSAPP: "true", AUTH_OTP_WHATSAPP_SENDER: "ShopWA" }).sender, "ShopWA");
-
-  const sendchamp = otp.whatsappCodeConfig({ ...SENDCHAMP, AUTH_OTP_WHATSAPP: "1" });
-  assert.equal(sendchamp.provider, "sendchamp");
-  assert.equal(sendchamp.sender, "2348012345678", "digits only");
-  assert.equal(sendchamp.template, "tpl_123");
-  assert.equal(sendchamp.templateParam, "1");
-
-  const both = { ...TERMII, ...SENDCHAMP, AUTH_OTP_WHATSAPP: "1" };
-  assert.equal(otp.whatsappCodeConfig(both).provider, "termii", "default order");
-  assert.equal(otp.whatsappCodeConfig({ ...both, SMS_PROVIDER: "sendchamp" }).provider, "sendchamp", "follows SMS_PROVIDER");
-  assert.equal(otp.whatsappCodeConfig({ ...both, SMS_PROVIDER: "sendchamp", AUTH_OTP_WHATSAPP_PROVIDER: "termii" }).provider, "termii", "AUTH_OTP_WHATSAPP_PROVIDER wins");
-  assert.equal(otp.whatsappCodesAvailable(both), true);
+  // SMS providers' keys never send WhatsApp.
+  assert.equal(otp.whatsappCodeConfig({ ...TERMII, AUTH_OTP_WHATSAPP: "1" }), null, "not Termii");
+  assert.equal(otp.whatsappCodeConfig({ ...SENDCHAMP, AUTH_OTP_WHATSAPP: "1" }), null, "not Sendchamp");
+  assert.equal(otp.whatsappCodeConfig({ AUTH_OTP_WHATSAPP: "1", BREVO_API_KEY: "b" }), null, "not Brevo");
+  const all = { ...TERMII, ...SENDCHAMP, ...META, AUTH_OTP_WHATSAPP: "1", SMS_PROVIDER: "sendchamp", AUTH_OTP_WHATSAPP_PROVIDER: "termii" };
+  assert.equal(otp.whatsappCodeConfig(all).provider, "meta", "WhatsApp Cloud whatever else is set");
+  assert.equal(otp.whatsappCodesAvailable(all), true);
   assert.equal(otp.whatsappCodesAvailable({}), false);
+  for (const name of ["termiiWhatsAppRequest", "sendchampWhatsAppRequest"]) assert.equal(otp[name], undefined, `${name} is gone`);
 });
 
 test("channel choice: 'Send it by SMS' always means SMS; otherwise WhatsApp only when it is set up", () => {
@@ -61,24 +51,7 @@ test("the screen is only told WhatsApp when the hook noted WhatsApp", () => {
   assert.equal(otp.reportedChannel(undefined), "sms");
 });
 
-test("provider requests and responses", () => {
-  const termii = otp.whatsappCodeConfig({ ...TERMII, AUTH_OTP_WHATSAPP: "1", TERMII_BASE_URL: "https://acme.api.termii.com/" });
-  const t = otp.termiiWhatsAppRequest(termii, "+2348031234567", "123456");
-  assert.equal(t.url, "https://acme.api.termii.com/api/sms/send");
-  assert.equal(t.body.channel, "whatsapp");
-  assert.equal(t.body.to, "2348031234567");
-  assert.equal(t.body.api_key, "tk");
-  assert.match(t.body.sms, /123456/);
-
-  const sendchamp = otp.whatsappCodeConfig({ ...SENDCHAMP, AUTH_OTP_WHATSAPP: "1", AUTH_OTP_WHATSAPP_TEMPLATE_PARAM: "code" });
-  const s = otp.sendchampWhatsAppRequest(sendchamp, "+2348031234567", "654321");
-  assert.equal(s.url, "https://api.sendchamp.com/api/v1/whatsapp/message/send");
-  assert.deepEqual(s.body, { recipient: "2348031234567", sender: "2348012345678", type: "template", template_code: "tpl_123", custom_data: { body: { code: "654321" } } });
-
-  assert.deepEqual(otp.readWhatsAppSend("termii", true, { code: "ok", message_id: "1" }), { ok: true });
-  assert.equal(otp.readWhatsAppSend("termii", false, { message: "Device not found" }).ok, false);
-  assert.deepEqual(otp.readWhatsAppSend("sendchamp", true, { status: "success" }), { ok: true });
-  assert.deepEqual(otp.readWhatsAppSend("sendchamp", true, { status: "error", message: "Template not approved" }), { ok: false, error: "Template not approved" });
+test("code messages", () => {
   assert.match(otp.signInCodeMessage("111222"), /111222/);
   // SMS codes end with the WebOTP line, so Android Chrome fills the code in on app.shopinbos.com.
   assert.match(otp.signInCodeSms("111222"), /\n\n@app\.shopinbos\.com #111222$/);
@@ -102,20 +75,17 @@ test("wiring: send route, hook, flag endpoint, env docs and the migration", () =
     assert.doesNotMatch(file, /TWILIO_|api\.twilio\.com/i, "no Twilio keys or API");
   }
   const env = readFileSync(".env.local.example", "utf8");
-  for (const name of ["AUTH_OTP_WHATSAPP=", "AUTH_OTP_WHATSAPP_SENDER=", "AUTH_OTP_WHATSAPP_TEMPLATE=", "AUTH_OTP_WHATSAPP_PROVIDER="]) assert.ok(env.includes(name), name);
+  for (const name of ["AUTH_OTP_WHATSAPP=", "AUTH_OTP_WHATSAPP_TEMPLATE=", "WHATSAPP_OTP_PHONE_NUMBER_ID=", "WHATSAPP_OTP_TOKEN="]) assert.ok(env.includes(name), name);
   assert.ok(existsSync("docs/migrations/2026-10-21-auth-code-channel.sql"));
   assert.match(readFileSync("prisma/schema.prisma", "utf8"), /model AuthCodeChannel \{/);
 });
 
 test("Meta Cloud API: Shopinbos's own WhatsApp number sends the authentication template", () => {
-  const META = { WHATSAPP_OTP_PHONE_NUMBER_ID: "1234567890", WHATSAPP_OTP_TOKEN: "EAAG-test", AUTH_OTP_WHATSAPP_TEMPLATE: "shopinbos_login_code" };
   assert.equal(otp.whatsappCodeConfig(META), null, "off until AUTH_OTP_WHATSAPP=1");
   assert.equal(otp.whatsappCodeConfig({ ...META, AUTH_OTP_WHATSAPP: "1", AUTH_OTP_WHATSAPP_TEMPLATE: "" }), null, "needs the template");
   const config = otp.whatsappCodeConfig({ ...META, AUTH_OTP_WHATSAPP: "1" });
   assert.equal(config.provider, "meta");
   assert.equal(config.language, "en");
-  // Named explicitly, Meta wins over Termii/Sendchamp keys that are also set.
-  assert.equal(otp.whatsappCodeConfig({ ...META, ...TERMII, AUTH_OTP_WHATSAPP: "1", AUTH_OTP_WHATSAPP_PROVIDER: "meta" }).provider, "meta");
   const req = otp.metaWhatsAppRequest({ ...config, graphVersion: "v21.0" }, "+234 803 123 4567", "481516");
   assert.equal(req.url, "https://graph.facebook.com/v21.0/1234567890/messages");
   assert.equal(req.body.to, "2348031234567");

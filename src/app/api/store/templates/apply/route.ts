@@ -4,121 +4,29 @@ import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { withSeller } from "@/lib/auth/middleware";
 import {
-  applyTemplateToDraft,
   buildTemplateSelectionMeta,
+  createBlankEditorSnapshot,
   createSnapshotFromTemplate,
   getTemplateManifest,
-  parseEditorState,
+  isBlankStarter,
   resolveDraftSnapshot,
   resolvePublishedSnapshot,
   switchThemeDraft,
-  type StoreEditorSnapshot,
+  withoutBlankPlaceholders,
   type StoreBrandSettingsLike,
 } from "@/lib/store-templates";
+import { THEME_PRODUCTS_SELECT, hydrateDraftWithStoreData, settingsWithThemeDraft } from "@/lib/themes/apply.server";
 import { seedDefaultAbandonedCartAutomation } from "@/lib/automations/defaults";
+import { LEGACY_LOOK_THEME_IDS } from "@shared/onboarding";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function stripUndefinedDeep<T>(value: T): T {
-  if (Array.isArray(value)) {
-    return value.map((item) => stripUndefinedDeep(item)) as T;
-  }
-  if (value && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>)
-        .filter(([, entry]) => entry !== undefined)
-        .map(([key, entry]) => [key, stripUndefinedDeep(entry)]),
-    ) as T;
-  }
-  return value;
-}
-
-function formatMoney(currency: string | null | undefined, amount: number | null | undefined) {
-  const value = Number(amount ?? 0);
-  const code = currency || "NGN";
-  try {
-    return new Intl.NumberFormat("en-NG", {
-      style: "currency",
-      currency: code,
-      maximumFractionDigits: 0,
-    }).format(value);
-  } catch {
-    return `${code} ${value.toLocaleString()}`;
-  }
-}
-
-function hydrateDraftWithStoreData(
-  draft: StoreEditorSnapshot,
-  store: {
-    name: string;
-    logoUrl?: string | null;
-    currency?: string | null;
-    storeProducts: Array<{
-      id: string;
-      name: string;
-      description?: string | null;
-      images: string[];
-      retailPrice: number | null;
-      currency: string | null;
-    }>;
-  },
-) {
-  const products = store.storeProducts.slice(0, 8);
-  if (products.length === 0 && !store.logoUrl) return draft;
-
-  return {
-    ...draft,
-    pages: draft.pages.map((page) => ({
-      ...page,
-      sections: page.sections.map((section) => {
-        if (section.kind === "header") {
-          return {
-            ...section,
-            settings: {
-              ...section.settings,
-              editableLogo: true,
-              logoUrl: store.logoUrl ?? null,
-              syncedStoreName: store.name,
-            },
-          };
-        }
-
-        const alreadyMapped = (section.items ?? []).some((item) => typeof item.mappedStoreProductId === "string" && item.mappedStoreProductId);
-        if ((section.kind === "featured-products" || section.kind === "cart-summary" || section.kind === "wishlist-grid") && products.length > 0 && !alreadyMapped) {
-          const styleItems = section.items && section.items.length > 0 ? section.items : [];
-          return {
-            ...section,
-            settings: {
-              ...section.settings,
-              allowMapping: true,
-              dataSource: "storeProducts",
-            },
-            items: products.slice(0, Math.max(styleItems.length, 3)).map((product, index) => {
-              const style = styleItems[index % Math.max(styleItems.length, 1)] ?? {};
-              return {
-                ...style,
-                id: product.id,
-                title: product.name,
-                subtitle: product.description?.slice(0, 90) || String(style.subtitle ?? "Store product"),
-                priceLabel: formatMoney(product.currency ?? store.currency, product.retailPrice),
-                imageUrl: product.images[0] ?? style.imageUrl,
-                mappedStoreProductId: product.id,
-              };
-            }),
-          };
-        }
-
-        return section;
-      }),
-    })),
-    updatedAt: new Date().toISOString(),
-  };
-}
-
 export const POST = withSeller(async (req: NextRequest, { user }) => {
   const body = (await req.json().catch(() => null)) as { templateId?: string } | null;
-  const templateId = body?.templateId?.trim();
+  // Older phone builds send their look ids ("heritage"); they stand for library themes.
+  const sent = body?.templateId?.trim();
+  const templateId = sent ? LEGACY_LOOK_THEME_IDS[sent] ?? sent : sent;
 
   if (!templateId) {
     return NextResponse.json({ error: { code: "BAD_REQUEST", message: "templateId is required" } }, { status: 400 });
@@ -138,19 +46,7 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
       currency: true,
       brandSettings: true,
       // The seller's own and dropshipped products alike; archived ones never fill a section.
-      storeProducts: {
-        where: { status: { not: "archived" } },
-        orderBy: { createdAt: "desc" },
-        take: 8,
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          images: true,
-          retailPrice: true,
-          currency: true,
-        },
-      },
+      storeProducts: THEME_PRODUCTS_SELECT,
     },
   });
 
@@ -172,22 +68,17 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
 
   // Switching keeps the seller's own copy, images, picked products, hidden sections and extra pages. Products,
   // prices and orders live in their own tables and never change here.
-  const switched = switchThemeDraft(previousDraft, createSnapshotFromTemplate(manifest), previousManifest ? createSnapshotFromTemplate(previousManifest) : null);
+  // Off the blank starter, its seed tells the seller's words from the starter's, and its empty colour tiles stay behind.
+  const fromBlank = previousDraft && isBlankStarter(previousDraft) ? previousDraft : null;
+  const previousSeed = previousManifest
+    ? createSnapshotFromTemplate(previousManifest)
+    : fromBlank ? withoutBlankPlaceholders(createBlankEditorSnapshot(store.name)) : null;
+  const switched = switchThemeDraft(fromBlank ? withoutBlankPlaceholders(fromBlank) : previousDraft, createSnapshotFromTemplate(manifest), previousSeed);
   const draft = hydrateDraftWithStoreData(switched.snapshot, store);
 
   // A live store keeps its published look until the seller publishes; only the draft changes. A store that
   // has never published takes the theme straight away.
-  const nextSettings: StoreBrandSettingsLike = published
-    ? {
-        ...currentSettings,
-        editor: {
-          ...parseEditorState(currentSettings.editor),
-          template: buildTemplateSelectionMeta(manifest),
-          draft,
-        },
-      }
-    : applyTemplateToDraft(currentSettings, manifest, draft);
-  const cleanSettings = stripUndefinedDeep(nextSettings);
+  const cleanSettings = settingsWithThemeDraft(currentSettings, manifest, draft);
 
   const updated = await db.store.update({
     where: { id: store.id },

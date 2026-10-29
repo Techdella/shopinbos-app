@@ -258,10 +258,11 @@ async function deliver(input: NotifyInput & { priority: NotifyPriority; type: No
 
 /**
  * WhatsApp for an alert: the approved template on our own number (Meta Cloud API) when it's connected, since WhatsApp
- * only lets a business start a chat with a template (lib/notifications/whatsapp-templates.ts). Not connected, or the
- * template isn't approved yet: the SMS provider's WhatsApp as plain text, as before.
+ * only lets a business start a chat with a template (lib/notifications/whatsapp-templates.ts). Template not approved
+ * yet: plain text on the same number, which reaches people who messaged us in the last 24 hours. Always WhatsApp
+ * Cloud, never an SMS provider.
  */
-async function sendAlertWhatsApp(args: {
+export async function sendAlertWhatsApp(args: {
   input: NotifyInput;
   category: NotifyCategory;
   to: string;

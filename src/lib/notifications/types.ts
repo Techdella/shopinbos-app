@@ -1,4 +1,4 @@
-export type ProviderName = "termii" | "africastalking" | "sendchamp";
+export type ProviderName = "termii" | "africastalking" | "sendchamp" | "meta";
 
 export type SmsRoute = "dnd" | "non_dnd" | "international";
 
