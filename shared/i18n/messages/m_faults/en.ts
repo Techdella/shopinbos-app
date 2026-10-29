@@ -37,6 +37,12 @@ const en = {
   "earn.problems": "After problems on this order",
   "earn.estimate": "Worked out from the order: the payment wasn't split at checkout.",
   "problems.title": "Problems on this order",
+  "problems.yourCall": "Your call",
+  "problems.handling": "You're handling it",
+  "problems.suggested": "Suggested: {line}",
+  "problems.customerWould": "Your customer would be told: {line}",
+  "problems.accept": "Accept this",
+  "problems.myself": "I'll handle it myself",
 
   "returns.title": "Return request",
   "returns.status.requested": "Waiting for you",

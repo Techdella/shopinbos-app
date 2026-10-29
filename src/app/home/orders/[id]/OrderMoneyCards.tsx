@@ -6,6 +6,8 @@ import { Card, CardHead, Pill } from "@/components/app-kit";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { formatMoney } from "@shared/i18n";
 import type { SellerOrderMoney } from "@/lib/faults/seller.server";
+import Link from "next/link";
+import { decideFaultAction } from "@/app/actions/faults";
 
 // The seller's order page (src/lib/faults/seller.server.ts sellerOrderMoney): what they earn on the order (C10, from
 // the split), problems on it and what each meant for them, and a customer's return to approve, decline or receive.
@@ -41,21 +43,57 @@ export function EarningsCard({ money }: { money: SellerOrderMoney }) {
   );
 }
 
-export function ProblemsCard({ money }: { money: SellerOrderMoney }) {
+/**
+ * What went wrong on the order. It's the seller's shop and customer: Shopinbos's suggestions wait here until the
+ * seller accepts one (it applies now) or handles it themselves (nothing happens), and the customer's reports link to
+ * the evidence to decide.
+ */
+export function ProblemsCard({ orderId, money }: { orderId: string; money: SellerOrderMoney }) {
   const t = useT("faults");
-  if (!money.problems.length) return null;
+  const router = useRouter();
+  const [busy, setBusy] = useState<string | null>(null);
+  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
+  if (!money.problems.length && !money.reports.length) return null;
+  async function decide(caseId: string, accept: boolean) {
+    setBusy(caseId);
+    setNote(null);
+    const result = await decideFaultAction(caseId, accept).catch(() => ({ ok: false as const, error: t("error.generic") }));
+    setBusy(null);
+    setNote(result.ok ? { ok: true, text: result.message ?? t("problems.done") } : { ok: false, text: result.error });
+    router.refresh();
+  }
   return (
-    <Card className="p-5">
+    <div id="problems" className="scroll-mt-24"><Card className="p-5">
       <CardHead title={t("problems.title")} />
       <ul className="m-0 mt-3 grid list-none gap-2 p-0">
+        {money.reports.map((row) => (
+          <li key={row.id} className="grid gap-1.5 rounded-[14px] border border-app-line bg-white p-3">
+            <div className="text-[13px] font-extrabold">{row.kind === "wrong_item" ? t("problems.kind.wrong_item") : row.kind === "damaged" ? t("problems.kind.damaged") : t("problems.kind.not_delivered")}</div>
+            <p className="m-0 text-[14px]">{t("problems.reportBody")}</p>
+            <Link href={`/home/orders/${orderId}/problems/${row.id}`} className="justify-self-start text-[13.5px] font-bold text-app-accent-ink no-underline hover:underline">{t("problems.decide")}</Link>
+          </li>
+        ))}
         {money.problems.map((row) => (
-          <li key={row.id} className="rounded-[14px] bg-app-canvas p-3">
-            <div className="text-[13px] font-extrabold">{row.label}</div>
-            {row.line ? <p className="m-0 mt-1 text-[14px]">{row.line}</p> : null}
+          <li key={row.id} className={`grid gap-1.5 rounded-[14px] p-3 ${row.status === "proposed" ? "border border-app-line bg-white" : "bg-app-canvas"}`}>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-[13px] font-extrabold">{row.label}</span>
+              {row.status === "proposed" ? <Pill tone="warning">{t("problems.yourCall")}</Pill> : row.status === "declined" ? <Pill tone="muted">{t("problems.handling")}</Pill> : null}
+            </div>
+            {row.status === "proposed" ? (
+              <>
+                <p className="m-0 text-[14px]"><span className="font-bold">{t("problems.suggested")} </span>{row.line}</p>
+                {row.customerLine ? <p className="m-0 text-[13px] text-app-ink-soft">{t("problems.customerWould", { line: row.customerLine })}</p> : null}
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" disabled={busy !== null} onClick={() => void decide(row.id, true)} className="min-h-[40px] rounded-full bg-app-ink px-4 text-[13.5px] font-bold text-white">{busy === row.id ? "…" : t("problems.accept")}</button>
+                  <button type="button" disabled={busy !== null} onClick={() => void decide(row.id, false)} className="min-h-[40px] rounded-full border border-app-line bg-white px-4 text-[13.5px] font-bold">{t("problems.myself")}</button>
+                </div>
+              </>
+            ) : row.line && row.status === "applied" ? <p className="m-0 text-[14px]">{row.line}</p> : null}
           </li>
         ))}
       </ul>
-    </Card>
+      {note ? <p role="status" className={`m-0 mt-2 text-[13px] font-bold ${note.ok ? "text-app-success" : "text-app-danger"}`}>{note.text}</p> : null}
+    </Card></div>
   );
 }
 

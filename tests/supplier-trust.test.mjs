@@ -80,7 +80,7 @@ test("wired in: every add-to-store path checks the agreement, and switches only 
   assert.match(read("src/app/api/mobile/marketplace/products/route.ts"), /nearbyForSeller\(/);
 });
 
-test("pausing for money long overdue: 7 days after the due date, and lifted once nothing is that late", () => {
+test("pausing for money long overdue: suppliers and partners only, 7 days after the due date; never a seller", () => {
   const due = new Date("2026-11-01T12:00:00Z");
   assert.equal(owed.pausesAt(due).toISOString(), "2026-11-08T12:00:00.000Z");
   const debt = { status: "open", dueAt: due, amountKobo: 100_000, paidKobo: 0 };
@@ -91,5 +91,8 @@ test("pausing for money long overdue: 7 days after the due date, and lifted once
   const server = read("src/lib/money-owed/money-owed.server.ts");
   assert.match(server, /export async function refreshDebtPause/);
   assert.equal((server.match(/await refreshDebtPause\(/g) ?? []).length >= 5, true, "payments, cancels, waivers and more time all lift the pause straight away");
-  assert.match(read("src/lib/supplier-orders/wholesale.server.ts"), /buyer\?\.debtPausedAt/);
+  // A shop is the seller's business: Shopinbos never pauses a seller (wholesale orders and listings aren't blocked).
+  assert.match(server, /user\.role === "seller" \? \[\]/);
+  assert.doesNotMatch(read("src/lib/supplier-orders/wholesale.server.ts"), /buyer\?\.debtPausedAt/);
+  assert.doesNotMatch(read("src/lib/marketplace/agreements.server.ts"), /code: "PAUSED"/);
 });

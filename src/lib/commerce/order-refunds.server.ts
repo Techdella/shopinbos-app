@@ -1,7 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db/client";
 import { createNotification } from "@/lib/notifications/create";
-import { notifyAdminsToReview } from "@/lib/notifications/events.server";
 import { PAYSTACK_BANK_CODES, resolveBankAccount } from "@/lib/payout-bank";
 import { checkRateLimitShared, rateLimitKey } from "@/lib/rate-limit";
 import {
@@ -223,9 +222,8 @@ export async function customerAnswersRefund(orderId: string, refundId: string, r
     await createNotification({ userId: refund.sellerId, type: "order", priority: "success", title: `Refund received: order ${order?.orderNumber ?? ""}`, description: "Your customer confirmed the refund arrived.", link: `/home/orders/${orderId}#refunds`, event: "order.refund", dedupeKey: `order.refund.ok:${refund.id}` }).catch(() => null);
     return { ok: true, message: "Thanks for letting us know." };
   }
-  await createNotification({ userId: refund.sellerId, type: "order", priority: "critical", title: `Customer says the refund didn't arrive: order ${order?.orderNumber ?? ""}`, description: "Check your bank transfer. Shopinbos will be in touch.", link: `/home/orders/${orderId}#refunds`, event: "order.refund", dedupeKey: `order.refund.disputed:${refund.id}` }).catch(() => null);
-  await notifyAdminsToReview({ title: `Refund not received: order ${order?.orderNumber ?? ""}`, description: `The customer says the ${naira(refund.amountKobo, refund.currency)} refund the seller marked sent didn't arrive.${note ? ` "${note.slice(0, 200)}"` : ""}`, link: "/admin/refunds", dedupeKey: `admin.refund.disputed:${refund.id}` }).catch(() => null);
-  return { ok: true, message: "We've told the store and Shopinbos. We'll be in touch." };
+  await createNotification({ userId: refund.sellerId, type: "order", priority: "critical", title: `Customer says the refund didn't arrive: order ${order?.orderNumber ?? ""}`, description: `Check your bank transfer, then send it again or talk to your customer.${note ? ` They said: "${note.slice(0, 200)}"` : ""}`, link: `/home/orders/${orderId}#refunds`, event: "order.refund", dedupeKey: `order.refund.disputed:${refund.id}` }).catch(() => null);
+  return { ok: true, message: "We've told the store. They'll check and get back to you." };
 }
 
 /** Every refund on the order is through: the order shows refunded (fully when it covered the whole total). */
@@ -274,38 +272,16 @@ export async function autoConfirmSentRefunds(now = new Date()) {
   return due.length;
 }
 
-// ─── The team (Admin › Refunds) ────────────────────────────────────────────────
-
-export type RefundDecision = "received" | "resend" | "cancel";
+// ─── Sending it again ──────────────────────────────────────────────────────────
 
 /**
- * The team's decision on a refund the customer says didn't arrive (or one stuck with the seller): it did arrive (the
- * seller showed the transfer), the seller sends it again (back to "to send"), or it's cancelled (settled outside the
- * app). Both the seller and the customer's order page show the outcome.
+ * The customer says the refund didn't arrive: the seller checks their bank and sends it again (back to "to send", the
+ * customer is asked again once it's marked sent). Between the shop and its customer: Shopinbos doesn't decide.
  */
-export async function adminDecideRefund(refundId: string, decision: RefundDecision, note?: string): Promise<RefundActionResult> {
-  const refund = await db.orderRefund.findUnique({ where: { id: refundId } });
-  if (!refund || !refundOpen(refund.status)) return { ok: false, error: "This refund is already closed." };
-  const now = new Date();
-  const decided = note?.trim().slice(0, 500) || null;
-  const data =
-    decision === "received" ? { status: "confirmed", confirmedAt: now }
-    : decision === "resend" ? { status: refund.accountNumber ? "to_send" : "awaiting_account", sentAt: null, sentReference: null, remindedAt: null }
-    : { status: "cancelled" };
-  const moved = await db.orderRefund.updateMany({ where: { id: refund.id, status: refund.status }, data: { ...data, ...(decided ? { note: [refund.note, `Shopinbos: ${decided}`].filter(Boolean).join(" ") } : {}) } });
-  if (moved.count !== 1) return { ok: false, error: "It just changed. Refresh and try again." };
-  if (decision !== "resend") await finishOrderRefund(refund.retailOrderId);
-  const order = await db.retailOrder.findUnique({ where: { id: refund.retailOrderId }, select: { orderNumber: true } });
-  const ref = order?.orderNumber ?? "";
-  await createNotification({
-    userId: refund.sellerId,
-    type: "order",
-    priority: decision === "resend" ? "critical" : "info",
-    title: decision === "resend" ? `Send the refund for order ${ref} again` : decision === "received" ? `Refund for order ${ref} settled` : `Refund for order ${ref} closed`,
-    description: decided ?? (decision === "resend" ? "Shopinbos checked: it didn't reach your customer. Send it again, then tap Refund sent." : "Shopinbos closed it."),
-    link: `/home/orders/${refund.retailOrderId}#refunds`,
-    event: "order.refund",
-    dedupeKey: `order.refund.decided:${refund.id}:${decision}:${now.getTime()}`,
-  }).catch(() => null);
-  return { ok: true, message: decision === "resend" ? "Sent back to the seller." : "Closed." };
+export async function sellerResendRefund(sellerId: string, refundId: string): Promise<RefundActionResult> {
+  const refund = await db.orderRefund.findFirst({ where: { id: refundId, sellerId } });
+  if (!refund) return { ok: false, error: "We couldn't find this refund." };
+  if (refund.status !== "disputed") return { ok: false, error: "This refund isn't waiting on you." };
+  const moved = await db.orderRefund.updateMany({ where: { id: refund.id, status: "disputed" }, data: { status: refund.accountNumber ? "to_send" : "awaiting_account", sentAt: null, sentReference: null, remindedAt: null } });
+  return moved.count === 1 ? { ok: true, message: "Send it again from your bank, then tap Refund sent." } : { ok: false, error: "It just changed. Refresh and try again." };
 }

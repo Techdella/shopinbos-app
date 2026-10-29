@@ -13,7 +13,7 @@ import { RETURN_REASONS, type ReturnReason } from "@shared/fault-matrix";
 // photos for "Report a problem" or a return. Access is the order's private id, like the page itself.
 
 export interface OrderFaults {
-  late: Array<{ id: string; shipBy: string; items: string[] }>;
+  late: Array<{ id: string; shipBy: string; items: string[]; asked?: string | null }>;
   outcomes: Array<{ id: string; label: string; line: string | null; createdAt: string }>;
   returns: {
     allowed: boolean;
@@ -112,8 +112,8 @@ export function LateParts({ theme, slug, orderId, late }: { theme: ShopperTheme;
         <div key={part.id} className="grid gap-2 rounded-[14px] border p-4" style={{ borderColor: theme.border }}>
           <p className="m-0 text-[15px] font-medium">{part.items.join(", ")}</p>
           <p className="m-0 text-[13.5px]" style={{ color: theme.muted }}>{t("late.shipBy", { date: new Date(part.shipBy).toLocaleDateString("en-NG", { weekday: "short", day: "numeric", month: "short", timeZone: "Africa/Lagos" }) })}</p>
-          {done[part.id] ? (
-            <p role="status" className="m-0 rounded-[12px] px-3 py-2 text-[14px] font-semibold" style={{ background: "#E7F5EC", color: "#14532D" }}>{done[part.id]}</p>
+          {done[part.id] || part.asked ? (
+            <p role="status" className="m-0 rounded-[12px] px-3 py-2 text-[14px] font-semibold" style={{ background: "#E7F5EC", color: "#14532D" }}>{done[part.id] ?? t("late.cancelled")}</p>
           ) : (
             <div className="flex flex-wrap items-center gap-3">
               <button type="button" onClick={() => void cancel(part.id)} disabled={Boolean(busy)} className="inline-flex min-h-11 items-center rounded-full px-5 text-[14.5px] font-semibold disabled:opacity-60" style={{ background: theme.cta, color: theme.ctaText }}>

@@ -50,7 +50,8 @@ export interface OrderDetail {
 /** Kobo throughout. */
 export interface OrderMoney {
   earnings: { basis: "split" | "estimate"; customerPaidKobo: number; suppliersKobo: number; deliveryKobo: number; feeKobo: number; earnKobo: number; toDebtsKobo: number; faultsKobo: number; netKobo: number };
-  problems: Array<{ id: string; label: string; line: string | null; refund: string | null; createdAt: string }>;
+  /** status "proposed": Shopinbos's suggestion, nothing has happened until the seller accepts it (older servers: none). */
+  problems: Array<{ id: string; label: string; line: string | null; customerLine?: string | null; refund: string | null; status?: string; createdAt: string }>;
   returns: OrderReturn[];
 }
 
@@ -68,6 +69,10 @@ export interface OrderReturn {
 }
 
 /** The seller answers a customer's return: approve (books the trip back), decline (with a reason), or it's back (refund). */
+/** The seller accepts a suggested outcome (it applies now) or handles it themselves (nothing happens). */
+export const decideProblem = (orderId: string, caseId: string, accept: boolean) =>
+  api<{ message: string; money: OrderMoney }>(`/api/app/orders/${encodeURIComponent(orderId)}/faults/${encodeURIComponent(caseId)}`, { method: "POST", json: { accept } });
+
 export const answerReturn = (orderId: string, returnId: string, action: "approve" | "decline" | "received", reason?: string) =>
   api<{ returns: OrderReturn[] }>(`/api/app/orders/${encodeURIComponent(orderId)}/returns/${encodeURIComponent(returnId)}`, { method: "POST", json: { action, reason } });
 

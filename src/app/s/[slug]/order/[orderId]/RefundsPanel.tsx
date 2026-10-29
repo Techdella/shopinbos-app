@@ -98,7 +98,7 @@ function RefundCard({ theme, orderId, refund, banks, money }: { theme: ShopperTh
               <textarea value={why} onChange={(event) => setWhy(event.target.value)} maxLength={500} rows={2} className={`${field} py-2`} style={{ borderColor: theme.border, background: theme.surface }} />
             </label>
             <div className="flex flex-wrap gap-2">
-              <PrimaryButton theme={theme} type="submit" disabled={pending}>{pending ? "Sending…" : "Tell the store and Shopinbos"}</PrimaryButton>
+              <PrimaryButton theme={theme} type="submit" disabled={pending}>{pending ? "Sending…" : "Tell the store"}</PrimaryButton>
               <button type="button" className="min-h-12 px-3 text-[14px] underline" onClick={() => setMissing(false)}>Back</button>
             </div>
           </form>
@@ -114,7 +114,7 @@ function RefundCard({ theme, orderId, refund, banks, money }: { theme: ShopperTh
       ) : refund.status === "confirmed" ? (
         <p className="m-0 flex items-center gap-1.5 text-[14.5px] font-semibold" style={{ color: "#14532D" }}><Icon name="checkCircle" size={15} /> Refunded</p>
       ) : refund.status === "disputed" ? (
-        <p className="m-0 text-[14.5px]">We&apos;re checking with the store and will be in touch.</p>
+        <p className="m-0 text-[14.5px]">The store is checking and will get back to you.</p>
       ) : null}
 
       {note ? <p role="status" className="m-0 text-[13.5px] font-semibold" style={{ color: "#14532D" }}>{note}</p> : null}

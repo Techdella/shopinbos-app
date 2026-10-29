@@ -36,8 +36,8 @@ export function hasTrustLines(trust: StorefrontTrust | null | undefined): boolea
 export function trustLines(trust: StorefrontTrust | null | undefined): Array<{ key: keyof StorefrontTrust; title: string; detail: string }> {
   if (!trust) return [];
   const lines: Array<{ key: keyof StorefrontTrust; title: string; detail: string }> = [];
-  if (trust.verifiedSupplier) lines.push({ key: "verifiedSupplier", title: "Verified supplier", detail: "Made or stocked by a business Shopinbos has checked." });
+  if (trust.verifiedSupplier) lines.push({ key: "verifiedSupplier", title: "Verified supplier", detail: "Made or stocked by a business whose ID and documents were checked." });
   if (trust.verifiedDelivery) lines.push({ key: "verifiedDelivery", title: "Verified delivery", detail: "Sent with a checked delivery partner you can track." });
-  if (trust.paidAtCheckout) lines.push({ key: "paidAtCheckout", title: "Paid-at-checkout protection", detail: "Pay securely by card or bank at checkout. Your payment is recorded with your order." });
+  if (trust.paidAtCheckout) lines.push({ key: "paidAtCheckout", title: "Secure checkout", detail: "Pay by card or bank at checkout. Your payment is recorded with your order." });
   return lines;
 }

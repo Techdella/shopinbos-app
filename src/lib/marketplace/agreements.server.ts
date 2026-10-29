@@ -108,14 +108,12 @@ export type GateResult = { ok: true } | { ok: false; code: "AGREEMENT_NEEDED" | 
  * call, the stock check and both sides' agreement come before any listing.
  */
 export async function listingCheck(sellerId: string, supplierId: string): Promise<GateResult> {
-  const [supplier, seller, agreement, sellerUser] = await Promise.all([
+  const [supplier, seller, agreement] = await Promise.all([
     db.supplier.findFirst({ where: { id: supplierId, ...VISIBLE_SUPPLIER }, select: { displayName: true, city: true, address: true, userId: true } }),
     sellerPlace(sellerId),
     db.supplierAgreement.findUnique({ where: { sellerId_supplierId: { sellerId, supplierId } }, select: { status: true } }),
-    db.user.findUnique({ where: { id: sellerId }, select: { debtPausedAt: true } }),
   ]);
   if (!supplier) return { ok: false, code: "NOT_AVAILABLE", message: "This supplier isn't taking new shops right now." };
-  if (sellerUser?.debtPausedAt) return { ok: false, code: "PAUSED", message: "Pay what you owe in your Shopinbos Wallet before listing new supplier products." };
   // ₦0 capital: a dropshipped supplier is paid from the customer's own payment, which needs their Shopinbos Wallet
   // (a Paystack split account); without it the seller pays the supplier from their own share. Warning, then block:
   // the first time a shop tries, the supplier gets WALLET_GRACE_DAYS to set it up (shops can still list them, and are

@@ -166,7 +166,8 @@ async function heldByCheckouts(debtIds: string[], now = new Date()) {
 /**
  * Overdue debts the businesses in an order owe, as the split can take them: `debtors` maps each business's user to
  * its place in the split ("seller" or its supplier id). Only debts whose creditor can be paid on this gateway (or
- * Shopinbos itself) are taken, oldest due first. Never throws: a problem here must not stop a checkout.
+ * Shopinbos never: nothing is taken for it) are taken, oldest due first. A seller is never a debtor here: what a shop
+ * owes is paid in the app or confirmed by the business owed, never taken from the shop's sales. Never throws: a problem here must not stop a checkout.
  */
 export async function debtsToDeduct(debtors: Map<string, string>, gateway: SplitGateway, now = new Date()): Promise<DebtToDeduct[]> {
   try {
@@ -188,8 +189,10 @@ export async function debtsToDeduct(debtors: Map<string, string>, gateway: Split
     };
     const held = await heldByCheckouts(debts.map((debt) => debt.id), now);
     return debts.flatMap((debt) => {
-      const to = debt.creditorUserId ? accountOf(debt.creditorUserId) : null;
-      if (debt.creditorUserId && !to) return [];
+      // Only money one business owes another: nothing is taken from a payment for Shopinbos.
+      if (!debt.creditorUserId) return [];
+      const to = accountOf(debt.creditorUserId);
+      if (!to) return [];
       const availableKobo = deductibleKobo(debt, held.get(debt.id) ?? 0);
       return availableKobo > 0 ? [{ debtId: debt.id, from: debtors.get(debt.debtorUserId)!, to, availableKobo }] : [];
     });
@@ -554,11 +557,13 @@ export async function giveMoreTime(admin: { id: string }, debtId: string, note: 
 export async function refreshDebtPause(userId: string, now = new Date()) {
   try {
     const [user, debts] = await Promise.all([
-      db.user.findUnique({ where: { id: userId }, select: { debtPausedAt: true } }),
+      db.user.findUnique({ where: { id: userId }, select: { debtPausedAt: true, role: true } }),
       db.businessDebt.findMany({ where: { debtorUserId: userId, status: "open", dueAt: { lte: now } }, select: { status: true, dueAt: true, amountKobo: true, paidKobo: true } }),
     ]);
     if (!user) return;
-    const pausing = debts.filter((debt) => debtPauses(debt, now));
+    // A shop is the seller's own business: Shopinbos never pauses a seller (it only stops suppliers and delivery
+    // partners being offered to shops while they owe a shop money). A pause set before this lifts.
+    const pausing = user.role === "seller" ? [] : debts.filter((debt) => debtPauses(debt, now));
     if (pausing.length && !user.debtPausedAt) {
       await db.user.update({ where: { id: userId }, data: { debtPausedAt: now } });
       const owed = pausing.reduce((sum, debt) => sum + remainingKobo(debt), 0);
@@ -573,8 +578,8 @@ export async function refreshDebtPause(userId: string, now = new Date()) {
 }
 
 /**
- * The team records money a business owes another (or Shopinbos, for a chargeback Paystack took from Shopinbos's
- * balance), found by account email. Owed straight away, due in 3 days.
+ * The team records money a business owes another business (a decision both agreed to outside the app), found by
+ * account email. Owed straight away, due in 3 days. Never money owed to Shopinbos.
  */
 export async function recordDebt(admin: { id: string }, input: { debtorEmail: string; creditorEmail: string | null; reason: string; amountKobo: number | null; details: string }): Promise<MoneyResult> {
   if (!isDebtReason(input.reason) || input.reason === "overpaid") return { ok: false, error: "Choose a reason." };
@@ -584,8 +589,9 @@ export async function recordDebt(admin: { id: string }, input: { debtorEmail: st
   const find = (email: string) => db.user.findFirst({ where: { email: { equals: email.trim(), mode: "insensitive" } }, select: { id: true } });
   const debtor = await find(input.debtorEmail);
   if (!debtor) return { ok: false, error: "No account has the email of the business that owes." };
-  const creditor = input.creditorEmail?.trim() ? await find(input.creditorEmail) : null;
-  if (input.creditorEmail?.trim() && !creditor) return { ok: false, error: "No account has the email of the business owed." };
+  if (!input.creditorEmail?.trim()) return { ok: false, error: "Enter the email of the business that's owed." };
+  const creditor = await find(input.creditorEmail);
+  if (!creditor) return { ok: false, error: "No account has the email of the business owed." };
   if (creditor?.id === debtor.id) return { ok: false, error: "A business can't owe itself." };
   const now = new Date();
   const id = randomBytes(9).toString("hex");

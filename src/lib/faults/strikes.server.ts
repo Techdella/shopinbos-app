@@ -78,8 +78,9 @@ export async function setShipBy(supplierOrderId: string, acceptedAt = new Date()
 }
 
 /**
- * The cron: accepted orders past their ship-by date and not sent are late, once each: a strike for the supplier,
- * and the customer and the seller are told the customer may cancel that part for a full refund.
+ * The cron: accepted orders past their ship-by date and not sent are late, once each: a strike for the supplier, and
+ * the seller is told (it's their customer: they decide whether to offer a cancellation; the customer's order page
+ * shows the part as late and lets them ask the shop).
  */
 export async function markLateOrders(now = new Date(), limit = 100) {
   const rows = await db.supplierOrder.findMany({
@@ -94,8 +95,7 @@ export async function markLateOrders(now = new Date(), limit = 100) {
     if (moved.count !== 1) continue;
     late += 1;
     await addStrike({ supplierId: row.supplierId, kind: "late", supplierOrderId: row.id, retailOrderId: row.retailOrderId }, now);
-    await createNotification({ userId: row.sellerId, type: "dropshipping", priority: "warning", title: `${row.supplier.displayName} is late with order ${row.retailOrder.orderNumber}`, description: "It's past the ship-by date. Your customer can now cancel that part for a full refund from their order page; if they do, you don't earn your margin on it.", link: `/home/orders/${row.retailOrderId}`, event: "supplier.late", dedupeKey: `late:${row.id}` }).catch(() => null);
-    await import("@/lib/notifications/customer-messages").then((messages) => messages.textLateCancelOffer(row.retailOrderId, row.id)).catch(() => undefined);
+    await createNotification({ userId: row.sellerId, type: "dropshipping", priority: "warning", title: `${row.supplier.displayName} is late with order ${row.retailOrder.orderNumber}`, description: "It's past the ship-by date. You can wait, chase your supplier, or offer your customer a cancellation. If your customer asks to cancel, you'll decide on the order page.", link: `/home/orders/${row.retailOrderId}`, event: "supplier.late", dedupeKey: `late:${row.id}` }).catch(() => null);
   }
   return { late };
 }

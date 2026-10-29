@@ -1782,9 +1782,14 @@ model FaultCase {
   refundStatus    String?
   note            String?
   decidedByUserId String?
+  /// proposed: worked out from the matrix, waiting for the seller (nothing has happened yet) · applied · declined
+  /// (the seller handles it themselves). The shop is the seller's business: Shopinbos only suggests.
+  status          String   @default("applied")
+  decidedAt       DateTime?
   createdAt       DateTime @default(now())
 
   @@index([retailOrderId])
+  @@index([storeId, status])
   @@index([storeId, createdAt])
 }
 

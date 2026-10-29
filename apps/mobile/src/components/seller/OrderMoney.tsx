@@ -4,7 +4,7 @@ import { Image } from "expo-image";
 import { naira } from "@shared/onboarding";
 import { Card, Field, LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
-import { answerReturn, type OrderMoney, type OrderReturn } from "@/lib/orders";
+import { answerReturn, decideProblem, type OrderMoney, type OrderReturn } from "@/lib/orders";
 import { colors } from "@/theme";
 
 // The seller's order screen (src/lib/faults/seller.server.ts): what they earn on the order (from the split), problems
@@ -41,18 +41,51 @@ export function EarningsCard({ money }: { money: OrderMoney }) {
   );
 }
 
-export function ProblemsCard({ money }: { money: OrderMoney }) {
+/**
+ * What went wrong on the order. It's the seller's shop and customer: Shopinbos's suggestions wait until the seller
+ * accepts one (it applies now) or handles it themselves (nothing happens).
+ */
+export function ProblemsCard({ orderId, money: initial }: { orderId: string; money: OrderMoney }) {
   const t = useT("m_faults");
+  const [money, setMoney] = useState(initial);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
   if (!money.problems.length) return null;
+  async function decide(caseId: string, accept: boolean) {
+    setBusy(`${caseId}:${accept}`);
+    setNote(null);
+    try {
+      const result = await decideProblem(orderId, caseId, accept);
+      setMoney(result.money);
+      setNote({ ok: true, text: result.message });
+    } catch (error) {
+      setNote({ ok: false, text: error instanceof Error ? error.message : t("error.generic") });
+    } finally {
+      setBusy(null);
+    }
+  }
   return (
     <Card style={card}>
       <T weight="extrabold" style={{ fontSize: 18 }}>{t("problems.title")}</T>
-      {money.problems.map((row) => (
-        <View key={row.id} style={{ backgroundColor: colors.canvas, borderRadius: 16, padding: 12, gap: 2 }}>
-          <T weight="extrabold" style={{ fontSize: 13.5 }}>{row.label}</T>
-          {row.line ? <T style={{ fontSize: 14.5, lineHeight: 20 }}>{row.line}</T> : null}
-        </View>
-      ))}
+      {money.problems.map((row) => {
+        const proposed = row.status === "proposed";
+        return (
+          <View key={row.id} style={{ backgroundColor: proposed ? colors.surface : colors.canvas, borderWidth: proposed ? 1.5 : 0, borderColor: colors.line, borderRadius: 16, padding: 12, gap: 6 }}>
+            <T weight="extrabold" style={{ fontSize: 13.5 }}>{row.label}{proposed ? ` · ${t("problems.yourCall")}` : row.status === "declined" ? ` · ${t("problems.handling")}` : ""}</T>
+            {proposed ? (
+              <>
+                {row.line ? <T style={{ fontSize: 14.5, lineHeight: 20 }}>{t("problems.suggested", { line: row.line })}</T> : null}
+                {row.customerLine ? <T style={{ fontSize: 13.5, color: colors.inkSoft }}>{t("problems.customerWould", { line: row.customerLine })}</T> : null}
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                  <PillButton size="sm" title={t("problems.accept")} busy={busy === `${row.id}:true`} disabled={busy !== null} onPress={() => void decide(row.id, true)} />
+                  <PillButton size="sm" tone="white" title={t("problems.myself")} busy={busy === `${row.id}:false`} disabled={busy !== null} onPress={() => void decide(row.id, false)} />
+                </View>
+              </>
+            ) : row.line && row.status !== "declined" ? <T style={{ fontSize: 14.5, lineHeight: 20 }}>{row.line}</T> : null}
+          </View>
+        );
+      })}
+      {note ? (note.ok ? <T weight="bold" style={{ color: colors.success }}>{note.text}</T> : <Notice>{note.text}</Notice>) : null}
     </Card>
   );
 }

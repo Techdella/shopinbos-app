@@ -1,13 +1,13 @@
 import "server-only";
 import { db } from "@/lib/db/client";
-import { createNotification } from "@/lib/notifications/create";
 import { FAULT_EVENTS, FAULT_LABELS, REPLACEABLE, faultProblem, isFaultEvent, resolveFault, suggestFault, type FaultEvent, type FaultOutcome, type Remedy } from "@shared/fault-matrix";
 import { applyFault, loadFaultFacts } from "./resolve.server";
 
-// "Report a problem" for the team: the customer's report (wrong item, damaged, not received) with every photo side by
-// side (the supplier's contents and sealed-parcel photos, the rider's pickup and handover photos, the customer's),
-// the outcome the evidence points to pre-selected (shared/fault-matrix.ts suggestFault), and what each choice would
-// mean for everyone. The team confirms one; money moves only through the refund and money owed.
+// "Report a problem": the customer's report (wrong item, damaged, not received) with every photo side by side (the
+// supplier's contents and sealed-parcel photos, the rider's pickup and handover photos, the customer's), the outcome
+// the evidence points to pre-selected (shared/fault-matrix.ts suggestFault), and what each choice would mean for
+// everyone. It's the shop's customer, so the seller decides (like Shopify: Shopinbos only suggests); money moves only
+// through the seller's refund and money owed between the businesses. The team sees it read-only.
 
 export interface DisputeEvidence {
   partKey: string;
@@ -59,19 +59,18 @@ export async function disputeView(issueId: string) {
 }
 
 /**
- * The team's decision on a report: an outcome from the matrix (applied once: refund and money owed) or "nobody owes"
- * (event null, with the reason). Closes the report and tells the seller.
+ * The seller's decision on their customer's report: an outcome from the matrix (applied once: refund and money owed)
+ * or "nobody owes" (event null, with the reason). Closes the report.
  */
-export async function decideDispute(admin: { id: string }, issueId: string, input: { event: string | null; remedy?: string | null; partKeys?: string[]; note: string }) {
+export async function decideDispute(seller: { id: string }, issueId: string, input: { event: string | null; remedy?: string | null; partKeys?: string[]; note: string }) {
   const issue = await db.deliveryIssue.findUnique({ where: { id: issueId } });
-  if (!issue) return { ok: false as const, error: "We couldn't find this report." };
+  const owner = issue ? await db.store.findUnique({ where: { id: issue.storeId }, select: { userId: true } }) : null;
+  if (!issue || owner?.userId !== seller.id) return { ok: false as const, error: "We couldn't find this report." };
   if (issue.faultCaseId) return { ok: false as const, error: "This report has already been decided." };
   const note = input.note.trim().slice(0, 1500);
-  if (note.length < 5) return { ok: false as const, error: "Write the reason for the decision: the businesses see it." };
+  if (note.length < 5) return { ok: false as const, error: "Say why in a few words: your supplier and delivery partner see it." };
   if (!input.event) {
     await db.deliveryIssue.update({ where: { id: issue.id }, data: { status: "resolved", resolvedAt: new Date() } });
-    const store = await db.store.findUnique({ where: { id: issue.storeId }, select: { userId: true } });
-    if (store) await createNotification({ userId: store.userId, type: "order", priority: "info", title: "Problem report closed: nobody owes anything", description: note, link: `/home/orders/${issue.retailOrderId}`, event: "fault.outcome" }).catch(() => null);
     return { ok: true as const, outcome: null };
   }
   if (!isFaultEvent(input.event) || input.event === "changed_mind") return { ok: false as const, error: "Pick what happened." };
@@ -83,7 +82,7 @@ export async function decideDispute(admin: { id: string }, issueId: string, inpu
     remedy: input.remedy === "replacement" ? "replacement" : "refund",
     partKeys: input.partKeys?.filter(Boolean).length ? input.partKeys : undefined,
     note,
-    decidedByUserId: admin.id,
+    decidedByUserId: seller.id,
     bookTrips: true,
   });
   if (!applied.ok) return { ok: false as const, error: applied.error };

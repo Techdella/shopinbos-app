@@ -7,7 +7,7 @@ import { buttonClass, fieldClass } from "@/components/admin/AdminKit";
 import { DEBT_REASONS } from "@/lib/money-owed/rules";
 
 // The team's decisions on money owed: uphold a claim (for the amount settled on) or reject it, cancel what's left
-// of a debt, and record a debt decided outside the app or a chargeback. Both businesses see the note.
+// of a debt, and record a debt decided outside the app. Both businesses see the note.
 
 function useRun() {
   const router = useRouter();
@@ -54,7 +54,7 @@ export function DebtDecision({ debtId, pending: claim, amount: claimed }: { debt
 
 export function RecordDebtForm() {
   const { error, pending, run } = useRun();
-  const [form, setForm] = useState({ debtorEmail: "", creditorEmail: "", reason: "chargeback", amount: "", details: "" });
+  const [form, setForm] = useState({ debtorEmail: "", creditorEmail: "", reason: "wrong_item", amount: "", details: "" });
   const [saved, setSaved] = useState(false);
   const set = (key: keyof typeof form) => (event: { target: { value: string } }) => {
     setSaved(false);
@@ -67,14 +67,14 @@ export function RecordDebtForm() {
         event.preventDefault();
         run(() => recordDebtAction(form), () => {
           setSaved(true);
-          setForm({ debtorEmail: "", creditorEmail: "", reason: "chargeback", amount: "", details: "" });
+          setForm({ debtorEmail: "", creditorEmail: "", reason: "wrong_item", amount: "", details: "" });
         });
       }}
     >
       <input className={fieldClass} type="email" required value={form.debtorEmail} onChange={set("debtorEmail")} placeholder="Owed by (account email)" />
-      <input className={fieldClass} type="email" value={form.creditorEmail} onChange={set("creditorEmail")} placeholder="Owed to (account email, empty = Shopinbos)" />
+      <input className={fieldClass} type="email" required value={form.creditorEmail} onChange={set("creditorEmail")} placeholder="Owed to (account email)" />
       <select className={fieldClass} value={form.reason} onChange={set("reason")}>
-        {Object.entries(DEBT_REASONS).filter(([key]) => key !== "overpaid").map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+        {Object.entries(DEBT_REASONS).filter(([key]) => key !== "overpaid" && key !== "chargeback").map(([key, label]) => <option key={key} value={key}>{label}</option>)}
       </select>
       <input className={fieldClass} inputMode="decimal" required value={form.amount} onChange={set("amount")} placeholder="Amount (₦)" />
       <textarea className={`${fieldClass} min-h-[72px] py-2 sm:col-span-2`} required value={form.details} onChange={set("details")} placeholder="What it's for: order number, what happened, what was decided" />

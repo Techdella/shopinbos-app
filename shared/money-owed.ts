@@ -4,9 +4,10 @@
 //
 // Shopinbos never holds anyone's money. When something goes wrong in a flow Shopinbos facilitates (a supplier
 // paid at checkout who never sent the order, goods that came back wrong or damaged, a parcel lost after pickup),
-// the business at fault owes the other one, and Shopinbos keeps the record, decides disputes and makes sure it
-// gets paid: in the app (Paystack, split straight to the other business's bank), confirmed by the business owed
-// when it was paid another way, or, once overdue, from part of the debtor's share of later sales.
+// the business at fault owes the other one under the agreement they signed. Shopinbos keeps the record and referees
+// disputes between businesses. It's paid in the app (Paystack, split straight to the other business's bank),
+// confirmed by the business owed when it was paid another way, or, once overdue, from part of a supplier's or
+// delivery partner's later payments from that shop. A shop's own share is never taken: a shop pays in the app.
 //
 // Between a seller and their own customers (refunds, returns, a buyer refusing a parcel) Shopinbos has no part:
 // that is the seller's business, under the seller's own return policy.

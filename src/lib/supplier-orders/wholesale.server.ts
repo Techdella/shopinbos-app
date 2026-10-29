@@ -37,9 +37,6 @@ export function wholesaleRef(id: string) {
 }
 
 export async function placeWholesaleOrder(input: PlaceWholesaleInput): Promise<ServiceResult<Prisma.WholesaleOrderGetPayload<{ include: { supplierProduct: { select: { id: true; name: true; images: true } } } }>>> {
-  // Paused for money long overdue (src/lib/money-owed): no new business until it's paid.
-  const buyer = await db.user.findUnique({ where: { id: input.sellerId }, select: { debtPausedAt: true } });
-  if (buyer?.debtPausedAt) return { ok: false, code: "CONFLICT", message: "Pay what you owe in your Shopinbos Wallet before placing new wholesale orders." };
   const sample = input.sample === true;
   const product = await db.supplierProduct.findFirst({
     where: {

@@ -160,9 +160,15 @@ export interface ApplyInput {
   decidedByUserId?: string | null;
   /** Book the trips back (wrong items). Returns book theirs when approved; failed deliveries come back on their own job. */
   bookTrips?: boolean;
+  /**
+   * Only a suggestion: the case is recorded as "proposed" and nothing happens (no refund, money owed, strikes, trips
+   * or messages) until the seller accepts it (decideFaultCase). Everything the system starts on its own is proposed;
+   * the seller's own decisions apply at once. The shop is the seller's business.
+   */
+  propose?: boolean;
 }
 
-export type ApplyResult = { ok: true; fresh: boolean; caseId: string; outcome: FaultOutcome } | { ok: false; error: string };
+export type ApplyResult = { ok: true; fresh: boolean; caseId: string; outcome: FaultOutcome; proposed: boolean } | { ok: false; error: string };
 
 async function notify(userId: string | null | undefined, title: string, description: string, link: string, priority: "info" | "warning" | "critical" = "info", dedupeKey?: string) {
   if (!userId || !description) return;
@@ -170,18 +176,20 @@ async function notify(userId: string | null | undefined, title: string, descript
 }
 
 /**
- * Resolves and applies one outcome, once per key. Safe to call again (the case already exists: nothing happens).
- * Never throws for a known problem; a database error after the case is recorded is logged.
+ * Works out one outcome from the matrix, once per key, and applies it, or (propose) records it for the seller to
+ * decide. Safe to call again (the case already exists: nothing happens). Never throws for a known problem; a
+ * database error after the case is recorded is logged.
  */
 export async function applyFault(input: ApplyInput): Promise<ApplyResult> {
-  const existing = await db.faultCase.findUnique({ where: { key: input.key }, select: { id: true, outcome: true } });
-  if (existing) return { ok: true, fresh: false, caseId: existing.id, outcome: existing.outcome as unknown as FaultOutcome };
+  const existing = await db.faultCase.findUnique({ where: { key: input.key }, select: { id: true, outcome: true, status: true } });
+  if (existing) return { ok: true, fresh: false, caseId: existing.id, outcome: existing.outcome as unknown as FaultOutcome, proposed: existing.status === "proposed" };
   const facts = await loadFaultFacts(input.retailOrderId);
   if (!facts) return { ok: false, error: "We couldn't find this order." };
   const resolverInput = { event: input.event, order: facts.faultOrder, partKeys: input.partKeys, remedy: input.remedy, returnPayer: input.returnPayer ?? (facts.order.store.returnShippingPayer === "seller" ? "seller" as const : "customer" as const), partnerDepositKobo: 0 };
   const problem = faultProblem(resolverInput);
   if (problem) return { ok: false, error: problem };
   const outcome = resolveFault(resolverInput);
+  const proposed = input.propose === true;
 
   let caseId: string;
   try {
@@ -198,17 +206,37 @@ export async function applyFault(input: ApplyInput): Promise<ApplyResult> {
         refundKobo: outcome.refundKobo,
         note: input.note?.trim().slice(0, 1500) || null,
         decidedByUserId: input.decidedByUserId ?? null,
+        status: proposed ? "proposed" : "applied",
+        decidedAt: proposed ? null : new Date(),
       },
     });
     caseId = created.id;
   } catch (error) {
     if ((error as { code?: string }).code === "P2002") {
-      const again = await db.faultCase.findUnique({ where: { key: input.key }, select: { id: true, outcome: true } });
-      if (again) return { ok: true, fresh: false, caseId: again.id, outcome: again.outcome as unknown as FaultOutcome };
+      const again = await db.faultCase.findUnique({ where: { key: input.key }, select: { id: true, outcome: true, status: true } });
+      if (again) return { ok: true, fresh: false, caseId: again.id, outcome: again.outcome as unknown as FaultOutcome, proposed: again.status === "proposed" };
     }
     throw error;
   }
 
+  if (proposed) {
+    // The seller decides: what the matrix suggests, and that nothing happens until they choose.
+    await notify(
+      facts.order.store.userId,
+      `Decide: ${FAULT_LABELS[outcome.event].toLowerCase()}, order ${facts.order.orderNumber}`,
+      `Suggested: ${outcome.lines.seller} Nothing happens until you accept it or handle it yourself.`,
+      `/home/orders/${facts.order.id}#problems`,
+      "warning",
+      `fault:${input.key}:proposed`,
+    );
+    return { ok: true, fresh: true, caseId, outcome, proposed: true };
+  }
+  await runOutcome({ key: input.key, decidedByUserId: input.decidedByUserId ?? null, bookTrips: input.bookTrips === true }, caseId, facts, outcome);
+  return { ok: true, fresh: true, caseId, outcome, proposed: false };
+}
+
+/** Everything an applied outcome does: money owed, strikes, replacements, trips back, the refund and the messages. */
+async function runOutcome(input: { key: string; decidedByUserId: string | null; bookTrips: boolean }, caseId: string, facts: FaultFacts, outcome: FaultOutcome) {
   const sellerId = facts.order.store.userId;
   const supplierUser = new Map(facts.supplierOrders.map((row) => [row.supplierId, row.supplier.userId]));
   const partnerIds = [...new Set(outcome.debts.flatMap((debt) => [debt.from, debt.to]).flatMap((party) => (party.role === "logistics" ? [party.partnerId] : [])))];
@@ -221,7 +249,8 @@ export async function applyFault(input: ApplyInput): Promise<ApplyResult> {
   const bookingOf = (partKey: string) => facts.bookings.find((row) => !row.replacedById && (row.shipmentKey === partKey || (!row.shipmentKey && facts.faultOrder.parts.length === 1))) ?? null;
 
   try {
-    // 1. Money owed: at once, and taken from the debtor's next payments (shared/money-owed.ts deductsAutomatically).
+    // 1. Money owed between the businesses, owed now. A supplier's or partner's is taken from their next payments
+    //    from this shop (shared/money-owed.ts deductsAutomatically); the shop's own never is (it pays in the app).
     const now = new Date();
     let index = 0;
     for (const debt of outcome.debts) {
@@ -236,7 +265,7 @@ export async function applyFault(input: ApplyInput): Promise<ApplyResult> {
       const sourceKey = notSent ? `notsent:${so!.id}` : `fault:${input.key}:${index}`;
       try {
         await db.businessDebt.create({
-          data: { sourceKey, debtorUserId, creditorUserId, reason: debt.reason, amountKobo: debt.kobo, status: "open", details: debt.why, retailOrderId: facts.order.id, supplierOrderId: so?.id ?? null, bookingId: bookingOf(debt.partKey)?.id ?? null, dueAt: now, decidedByUserId: input.decidedByUserId ?? null, decidedAt: input.decidedByUserId ? now : null },
+          data: { sourceKey, debtorUserId, creditorUserId, reason: debt.reason, amountKobo: debt.kobo, status: "open", details: debt.why, retailOrderId: facts.order.id, supplierOrderId: so?.id ?? null, bookingId: bookingOf(debt.partKey)?.id ?? null, dueAt: now, decidedByUserId: input.decidedByUserId, decidedAt: input.decidedByUserId ? now : null },
         });
       } catch (error) {
         if ((error as { code?: string }).code !== "P2002") throw error;
@@ -285,7 +314,31 @@ export async function applyFault(input: ApplyInput): Promise<ApplyResult> {
   } catch (error) {
     console.error(`[faults] could not finish case ${input.key}`, error);
   }
-  return { ok: true, fresh: true, caseId, outcome };
+}
+
+/**
+ * The seller's decision on a suggested outcome: accept it (it applies now, as the matrix worked it out) or handle it
+ * themselves (nothing happens; between the shop and its customer, the shop decides). `beforeApply` runs what the
+ * source needs first (cancel a late part the customer asked to cancel, and so on). Once per case.
+ */
+export async function decideFaultCase(sellerId: string, caseId: string, accept: boolean, beforeApply?: (row: { key: string; source: string; retailOrderId: string; partKeys: string[] }) => Promise<string | null>): Promise<{ ok: true; outcome: FaultOutcome } | { ok: false; error: string }> {
+  const row = await db.faultCase.findUnique({ where: { id: caseId } });
+  if (!row) return { ok: false, error: "We couldn't find this." };
+  const store = await db.store.findUnique({ where: { id: row.storeId }, select: { userId: true } });
+  if (!store || store.userId !== sellerId) return { ok: false, error: "We couldn't find this." };
+  if (row.status !== "proposed") return { ok: false, error: row.status === "declined" ? "You chose to handle this yourself." : "This has already been done." };
+  if (accept && beforeApply) {
+    const problem = await beforeApply({ key: row.key, source: row.source, retailOrderId: row.retailOrderId, partKeys: row.partKeys });
+    if (problem) return { ok: false, error: problem };
+  }
+  const moved = await db.faultCase.updateMany({ where: { id: row.id, status: "proposed" }, data: { status: accept ? "applied" : "declined", decidedByUserId: sellerId, decidedAt: new Date() } });
+  if (moved.count !== 1) return { ok: false, error: "This has already been decided." };
+  const outcome = row.outcome as unknown as FaultOutcome;
+  if (!accept) return { ok: true, outcome };
+  const facts = await loadFaultFacts(row.retailOrderId);
+  if (!facts) return { ok: false, error: "We couldn't find this order." };
+  await runOutcome({ key: row.key, decidedByUserId: sellerId, bookTrips: false }, row.id, facts, outcome);
+  return { ok: true, outcome };
 }
 
 /** A replacement of a supplier's parcel: the same lines again, to accept, pack (photos) and send. Once per order. */
@@ -350,6 +403,6 @@ export async function faultCasesFor(retailOrderId: string) {
   const rows = await db.faultCase.findMany({ where: { retailOrderId }, orderBy: { createdAt: "desc" }, take: 20 });
   return rows.map((row) => {
     const outcome = row.outcome as unknown as FaultOutcome;
-    return { id: row.id, event: row.event, label: FAULT_LABELS[row.event as FaultEvent] ?? row.event, remedy: row.remedy, refundKobo: row.refundKobo, refundStatus: row.refundStatus, lines: outcome?.lines ?? null, createdAt: row.createdAt.toISOString(), refundWords: row.refundKobo > 0 ? naira(row.refundKobo) : null };
+    return { id: row.id, status: row.status, source: row.source, event: row.event, label: FAULT_LABELS[row.event as FaultEvent] ?? row.event, remedy: row.remedy, refundKobo: row.refundKobo, refundStatus: row.refundStatus, lines: outcome?.lines ?? null, createdAt: row.createdAt.toISOString(), refundWords: row.refundKobo > 0 ? naira(row.refundKobo) : null };
   });
 }

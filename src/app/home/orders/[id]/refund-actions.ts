@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/server-auth";
-import { sellerSentRefund } from "@/lib/commerce/order-refunds.server";
+import { sellerResendRefund, sellerSentRefund } from "@/lib/commerce/order-refunds.server";
 
 // The seller's side of a guided refund (shared/order-refunds.ts): "Refund sent" once they've paid the customer from
 // their own bank.
@@ -22,3 +22,11 @@ export async function markRefundSentAction(formData: FormData) {
   back(orderId, await sellerSentRefund(user.id, refundId, String(formData.get("reference") ?? "")));
 }
 
+
+export async function resendRefundAction(formData: FormData) {
+  const user = await requireRole(["seller"], "/login");
+  const orderId = String(formData.get("orderId") ?? "").trim();
+  const refundId = String(formData.get("refundId") ?? "").trim();
+  if (!orderId || !refundId) redirect("/home/orders");
+  back(orderId, await sellerResendRefund(user.id, refundId));
+}

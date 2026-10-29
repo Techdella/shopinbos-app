@@ -11,7 +11,13 @@ import { returnsForOrder } from "./returns.server";
 
 export interface SellerOrderMoney {
   earnings: OrderEarnings;
-  problems: Array<{ id: string; label: string; line: string | null; refund: string | null; createdAt: string }>;
+  /**
+   * What went wrong on the order. "proposed": Shopinbos's suggestion, waiting for the seller to accept it or handle it
+   * themselves (nothing has happened); "applied" and "declined" are decided.
+   */
+  problems: Array<{ id: string; label: string; line: string | null; customerLine: string | null; refund: string | null; status: string; createdAt: string }>;
+  /** The customer's open reports (wrong item, damaged, not received) for the seller to decide. */
+  reports: Array<{ id: string; kind: string; createdAt: string }>;
   returns: Awaited<ReturnType<typeof returnsForOrder>>;
 }
 
@@ -22,7 +28,9 @@ export async function sellerOrderMoney(order: { id: string; storeId: string; tot
     db.supplierOrder.findMany({ where: { retailOrderId: order.id, status: { notIn: ["rejected", "cancelled", "expired"] }, replacesId: null }, select: { costTotal: true } }),
     db.deliveryBooking.findMany({ where: { orderId: order.id, tripKind: null, status: { notIn: ["cancelled", "declined"] }, replacedById: null }, select: { deliveryFee: true } }),
   ]);
-  const rows = await db.faultCase.findMany({ where: { retailOrderId: order.id }, select: { outcome: true } });
+  // Only what the seller accepted counts in what they earn; a suggestion hasn't happened.
+  const rows = await db.faultCase.findMany({ where: { retailOrderId: order.id, status: "applied" }, select: { outcome: true } });
+  const reports = await db.deliveryIssue.findMany({ where: { retailOrderId: order.id, storeId: order.storeId, status: "open", faultCaseId: null, kind: { in: ["wrong_item", "damaged", "not_delivered"] } }, orderBy: { createdAt: "asc" }, select: { id: true, kind: true, createdAt: true } }).catch(() => []);
   const faultsKobo = rows.reduce((sum, row) => sum + (partyNets(row.outcome as unknown as FaultOutcome).seller ?? 0), 0);
   const earnings = orderEarnings({
     totalKobo: Math.round(Number(order.total) * 100),
@@ -33,7 +41,8 @@ export async function sellerOrderMoney(order: { id: string; storeId: string; tot
   });
   return {
     earnings,
-    problems: cases.map((row) => ({ id: row.id, label: row.label, line: row.lines?.seller ?? null, refund: row.refundWords, createdAt: row.createdAt })),
+    problems: cases.map((row) => ({ id: row.id, label: row.label, line: row.lines?.seller ?? null, customerLine: row.lines?.customer ?? null, refund: row.refundWords, status: row.status, createdAt: row.createdAt })),
+    reports: reports.map((row) => ({ id: row.id, kind: row.kind, createdAt: row.createdAt.toISOString() })),
     returns,
   };
 }

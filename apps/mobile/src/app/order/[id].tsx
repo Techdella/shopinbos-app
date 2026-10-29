@@ -465,7 +465,7 @@ export default function OrderScreen() {
       {/* What the seller earns on it (C10), a customer's return and problems on it (shared/fault-matrix.ts). */}
       {order.money && !unpaid ? <EarningsCard money={order.money} /> : null}
       {order.money?.returns.length ? <ReturnCard key={order.money.returns[0]!.id + order.money.returns[0]!.status} orderId={order.id} returns={order.money.returns} /> : null}
-      {order.money?.problems.length ? <ProblemsCard money={order.money} /> : null}
+      {order.money?.problems.length ? <ProblemsCard orderId={order.id} money={order.money} /> : null}
 
       {(unpaid || toSend || (selfPickup && live)) && !deciding && <LinkButton title={busy === "cancelled" ? t("order.cancelling") : t("order.cancelThis")} color={colors.danger} onPress={confirmCancel} />}
 

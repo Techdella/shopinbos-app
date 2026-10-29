@@ -37,6 +37,12 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "earn.problems": "Mgbe nsogbu dị na order a gasịrị",
   "earn.estimate": "Agbakọrọ ya site n'order: e kewaghị ego ahụ na checkout.",
   "problems.title": "Nsogbu dị na order a",
+  "problems.yourCall": "Mkpebi gị",
+  "problems.handling": "Ị na-elekọta ya",
+  "problems.suggested": "Ihe anyị tụrụ aro: {line}",
+  "problems.customerWould": "A ga-agwa onye ahịa gị: {line}",
+  "problems.accept": "Nabata ya",
+  "problems.myself": "M ga-elekọta ya n'onwe m",
 
   "returns.title": "Arịrịọ nlọghachi",
   "returns.status.requested": "Ọ na-eche gị",
