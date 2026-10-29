@@ -4,6 +4,7 @@ import { ensureAppUserForSupabaseUser } from "@/lib/auth/app-user";
 import { getSupabaseServiceClient, getSupabaseServerClient } from "@/lib/supabase/server";
 import type { AuthUser, JWTClaims, Role } from "./types";
 import { apiError } from "@/lib/api/response";
+import { storeSafeResponse } from "@/lib/app-session.server";
 import { e164FromSupabase } from "@/lib/auth/app-user";
 import { asAccountRole } from "@/lib/auth/role-rules";
 import { recordActivity } from "@/lib/platform-analytics/activity.server";
@@ -162,7 +163,8 @@ export function withAuth(handler: Handler, allowedRoles?: Role[]) {
     }
 
     // Next.js 16 passes route params as a Promise; resolve once so handlers can read params.id directly.
-    return handler(req, { user: acting, params: (await params) ?? {} });
+    // Pages the phone app opened: plan and credits errors without "Upgrade to …" (src/lib/app-session.ts).
+    return storeSafeResponse(req, await handler(req, { user: acting, params: (await params) ?? {} }));
   };
 }
 

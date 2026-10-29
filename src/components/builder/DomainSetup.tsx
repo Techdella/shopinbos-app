@@ -6,6 +6,7 @@ import { Icon } from "@/components/ui/Icon";
 import { DomainOwnership } from "@/components/domains/DomainOwnership";
 import { buildStorefrontOrigin } from "@/lib/domains/storefront";
 import { useT } from "@/components/i18n/I18nProvider";
+import { useAppSession } from "@/components/billing/useAppSession";
 import { naira } from "@shared/onboarding";
 import { DomainPurchaseBanner } from "@/components/domains/BoughtDomain";
 import { friendlyError } from "@/lib/errors/report-client";
@@ -140,6 +141,8 @@ function getSchemaSection(schema: RegistrarContactSchema | null) {
 
 export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOption, doneLabel: doneLabelProp }: DomainSetupProps) {
   const t = useT("domain");
+  // Opened from the phone app: no buying a domain here (src/lib/app-session.ts); free and own domains still work.
+  const inApp = useAppSession();
   const doneLabel = doneLabelProp ?? t("setup.continueLaunch");
   const [pickedOption, setOption] = useState<DomainOption | null>(null);
   const option = controlledOption ?? pickedOption;
@@ -374,7 +377,7 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
             { id: "free" as const, label: t("setup.free"), desc: t("setup.freeDesc", { domain: freeDomain }) },
             { id: "connect" as const, label: t("choice.own"), desc: t("setup.ownDesc") },
             { id: "buy" as const, label: t("choice.buy"), desc: t("setup.buyDesc") },
-          ].map((item) => (
+          ].filter((item) => !inApp || item.id !== "buy").map((item) => (
             <button
               key={item.id}
               type="button"
@@ -418,7 +421,7 @@ export function DomainSetup({ storeSlug, storeName, onDone, option: controlledOp
         </div>
       )}
 
-      {option === "buy" && (
+      {option === "buy" && !inApp && (
         <Panel>
           <form
             onSubmit={(event) => {

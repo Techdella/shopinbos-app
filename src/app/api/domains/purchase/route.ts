@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { customDomainProblem } from "@/lib/plans/gates.server";
 import { z } from "zod";
 import { withSeller } from "@/lib/auth/middleware";
+import { NOT_IN_APP_CODE, NOT_IN_APP_MESSAGE, isAppRequest } from "@/lib/app-session.server";
 import { db } from "@/lib/db/client";
 import { getDomainAvailabilityOnVercel } from "@/lib/domains/vercel";
 import { normalizeDomain } from "@/lib/domains/storefront";
@@ -57,6 +58,7 @@ function failure(code: string, message: string, status: number) {
 }
 
 export const POST = withSeller(async (req: NextRequest, { user }) => {
+  if (isAppRequest(req.headers)) return failure(NOT_IN_APP_CODE, NOT_IN_APP_MESSAGE, 403);
   if (process.env.DOMAIN_PURCHASE_ENABLED !== "true") {
     return failure("purchase_unavailable", "Buying a domain here isn't available yet. Buy it from any registrar and connect it instead.", 403);
   }

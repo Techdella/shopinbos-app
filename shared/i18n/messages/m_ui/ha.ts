@@ -260,6 +260,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "update.requiredBody": "Wannan sigar manhajar ta tsufa ba za ta yi aiki ba. Sabunta ta daga Google Play. Minti ɗaya kawai, kuma shagonka da duk abin da ke ciki za su kasance yadda suke.",
   "update.help": "Kana buƙatar taimako? Tuntuɓe mu",
   "update.storeFailed": "Ba mu iya buɗe Google Play ba. Buɗe manhajar Play Store ka nemi Shopinbos.",
+  "update.storeFailedIos": "Ba mu iya buɗe App Store ba. Buɗe manhajar App Store ka nemi Shopinbos.",
   "tip.more": "Ƙarin bayani",
   "tip.learnMore": "Ƙara koyo",
   // v26 soft cards (components/visual.tsx)

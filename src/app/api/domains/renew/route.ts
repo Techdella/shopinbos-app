@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { withSeller } from "@/lib/auth/middleware";
+import { NOT_IN_APP_CODE, NOT_IN_APP_MESSAGE, isAppRequest } from "@/lib/app-session.server";
 import { db } from "@/lib/db/client";
 import { DomainBillingError, domainPurchaseEnabled, quoteDomain, renewableDomain, startDomainCheckout } from "@/lib/domains/billing.server";
 import type { VercelContactInformation } from "@/lib/domains/vercel";
@@ -36,6 +37,7 @@ export const GET = withSeller(async (req: NextRequest, { user }) => {
 });
 
 export const POST = withSeller(async (req: NextRequest, { user }) => {
+  if (isAppRequest(req.headers)) return failure(NOT_IN_APP_CODE, NOT_IN_APP_MESSAGE, 403);
   if (!domainPurchaseEnabled()) {
     return failure("renew_unavailable", "Renewing here isn't available right now. Tap Help and we'll renew it for you.", 403);
   }

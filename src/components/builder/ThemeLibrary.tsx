@@ -31,6 +31,7 @@ import { TIER_BADGE, ThemePreviewDialog, ThemeThumbnail, UPGRADE_HREF } from "./
 import type { PreviewOwnStore } from "./theme-preview/preview-store";
 import { Mascot } from "@/components/brand/Mascot";
 import { useT } from "@/components/i18n/I18nProvider";
+import { useAppSession } from "@/components/billing/useAppSession";
 
 // The 2026 storefront themes as cards with real previews (the storefront renderer, scaled down, with a sample
 // catalogue or the seller's own products). Used by /builder/templates (mode "page") and the builder's Themes view
@@ -119,7 +120,9 @@ export function ThemeLibrary({ mode, currentThemeId, onPreview, onCustomize, ini
   const owned = access?.owned ?? [];
   const lockedPlan = (theme: ThemeLibraryEntry | null) => (theme && theme.id !== current && !tierIncludes(allowedTier, theme.tier) && !owned.includes(theme.id) ? TIER_PLAN_LABEL[theme.tier] : null);
   /** "₦2,000" for a theme that's locked and can be bought, else null. */
-  const buyPrice = (theme: ThemeLibraryEntry | null) => (theme && lockedPlan(theme) && access && theme.tier !== "basic" ? formatThemePrice(access.prices[theme.tier]) : null);
+  // Opened from the phone app: no theme prices or Buy buttons (src/lib/app-session.ts); "See plans" links hide too.
+  const inApp = useAppSession();
+  const buyPrice = (theme: ThemeLibraryEntry | null) => (!inApp && theme && lockedPlan(theme) && access && theme.tier !== "basic" ? formatThemePrice(access.prices[theme.tier]) : null);
   const [buyingId, setBuyingId] = useState<string | null>(null);
   // Back from Paystack: ?theme=paid|pending|failed&themeId=…
   const [bought, setBought] = useState<{ status: "paid" | "pending" | "failed"; themeId: string | null } | null>(null);

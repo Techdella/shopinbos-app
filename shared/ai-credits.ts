@@ -146,6 +146,9 @@ export function creditsUrlFor(role: string | null | undefined) {
 }
 
 /** The message when there aren't enough credits for an action. */
-export function outOfCreditsMessage(cost: number, balance: number) {
-  return `This needs ${cost} AI credit${cost === 1 ? "" : "s"} and you have ${balance}. Top up to carry on, or wait for your plan's credits to refill at the start of next month.`;
+export function outOfCreditsMessage(cost: number, balance: number, options: { inApp?: boolean } = {}) {
+  const needs = `This needs ${cost} AI credit${cost === 1 ? "" : "s"} and you have ${balance}.`;
+  // Opened from the phone app: no "top up" (app store payment rules, shared/store-payments.ts).
+  if (options.inApp) return `${needs} Your plan's credits refill at the start of next month.`;
+  return `${needs} Top up to carry on, or wait for your plan's credits to refill at the start of next month.`;
 }

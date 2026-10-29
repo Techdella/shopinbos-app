@@ -45,6 +45,8 @@ export function isDigitalPurchasePath(path: string): boolean {
   const query = new URLSearchParams(rawQuery);
   const tab = (query.get("tab") ?? "").toLowerCase();
   if (/(^|\/)settings$/.test(pathname) && ["billing", "plan", "plans", "credits"].includes(tab)) return true;
+  // The supplier profile's "Billing & Plan" tab, and any other page's billing tab.
+  if (tab.startsWith("billing")) return true;
   if (/\/wallet$/.test(pathname) && /top-?up/.test(tab || query.get("action")?.toLowerCase() || "")) return true;
   return false;
 }
@@ -67,4 +69,22 @@ export function storeSafeKind(code: string | null | undefined, status: number, m
 export function sellsDigitalGoods(item: { link?: string | null; actionUrl?: string | null; href?: string | null; title?: string | null; description?: string | null }): boolean {
   for (const path of [item.link, item.actionUrl, item.href]) if (path && isDigitalPurchasePath(path)) return true;
   return PURCHASE_CTA.test(`${item.title ?? ""} ${item.description ?? ""}`);
+}
+
+/** What's left of a message when every sentence in it was a purchase prompt. */
+export const NOT_ON_PLAN_MESSAGE = "This isn't on your plan.";
+
+/**
+ * A server message without its purchase prompt, for pages the phone app opened: every sentence that says to upgrade,
+ * top up or buy credits goes ("…and you have 50. Upgrade to Pro to add more." → "…and you have 50."). Saying what the
+ * plan includes stays. Nothing left → NOT_ON_PLAN_MESSAGE.
+ */
+export function withoutPurchasePrompt(message: string): string {
+  if (!PURCHASE_CTA.test(message)) return message;
+  const kept = message
+    .split(/(?<=[.!?])\s+/)
+    .filter((sentence) => !PURCHASE_CTA.test(sentence))
+    .join(" ")
+    .trim();
+  return kept || NOT_ON_PLAN_MESSAGE;
 }

@@ -3,7 +3,8 @@ import "server-only";
 import { cache } from "react";
 import { cookies, headers } from "next/headers";
 import { DEFAULT_LOCALE, isLocale, LOCALE_COOKIE, negotiateLocale, type Locale } from "@shared/i18n";
-import { mergedMessages, NAMESPACES, tFor, type KeysOf, type MergedMessages, type Namespace } from "@shared/i18n/catalog";
+import { mergedMessages, NAMESPACES, tFor, tForPage, type KeysOf, type MergedMessages, type Namespace } from "@shared/i18n/catalog";
+import { isAppSession } from "@/lib/app-session.server";
 import { REQUEST_PATH_HEADER } from "@/lib/server-auth";
 import { namespacesForPath } from "./routes";
 import { parsePreferences } from "@shared/preferences";
@@ -34,9 +35,19 @@ export async function getLocale(): Promise<Locale> {
   return (await getLocaleInfo()).locale;
 }
 
+/** True on a page the phone app opened: its words carry no purchase prompts (shared/i18n/catalog.ts storeSafeText). */
+async function storeSafePage() {
+  try {
+    return await isAppSession();
+  } catch {
+    return false; // Outside a request.
+  }
+}
+
 /** `const t = await getT("nav", "common")` in a server component or route handler. */
 export async function getT<const NS extends readonly Namespace[]>(...namespaces: NS): Promise<TFunction<KeysOf<NS>>> {
-  return tFor(await getLocale(), ...namespaces);
+  const [locale, storeSafe] = await Promise.all([getLocale(), storeSafePage()]);
+  return tForPage(locale, storeSafe, ...namespaces);
 }
 
 /**
@@ -51,7 +62,8 @@ export async function getClientMessages(): Promise<MergedMessages> {
     // Outside a request: shell words only.
   }
   const known = new Set<string>(NAMESPACES);
-  return mergedMessages(await getLocale(), namespacesForPath(path).filter((ns): ns is Namespace => known.has(ns)));
+  const [locale, storeSafe] = await Promise.all([getLocale(), storeSafePage()]);
+  return mergedMessages(locale, namespacesForPath(path).filter((ns): ns is Namespace => known.has(ns)), { storeSafe });
 }
 
 // ── Emails and other messages sent to one person ──────────────────────────────

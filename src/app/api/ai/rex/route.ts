@@ -4,7 +4,7 @@ import { apiError, ok } from "@/lib/api/response";
 import { meterAi } from "@/lib/ai/usage";
 import { parseRexBody } from "@/lib/ai/rex/agent-pure";
 import { runRex } from "@/lib/ai/rex/agent";
-import { isPhoneAppRequest } from "@shared/store-payments";
+import { isAppRequest } from "@/lib/app-session.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,7 +22,7 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
   const limited = await meterAi(user.id, "text");
   if (limited) return limited;
 
-  const result = await runRex(user.id, parsed.turns, parsed.imageUrls, { inApp: isPhoneAppRequest(req.headers) });
+  const result = await runRex(user.id, parsed.turns, parsed.imageUrls, { inApp: isAppRequest(req.headers) });
   if ("error" in result) return apiError(result.status === 404 ? "NOT_FOUND" : "UNAVAILABLE", result.error, result.status ?? 503);
   return ok(result);
 });

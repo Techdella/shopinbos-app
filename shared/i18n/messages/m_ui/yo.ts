@@ -260,6 +260,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "update.requiredBody": "Ẹ̀yà app yìí ti di àtijọ́ jù láti ṣiṣẹ́. Ṣe àtúnṣe rẹ̀ láti Google Play. Ìṣẹ́jú kan péré ni, ṣọ́ọ̀bù rẹ àti gbogbo ohun inú rẹ̀ yóò wà bí wọ́n ṣe wà.",
   "update.help": "Ṣé o nílò ìrànlọ́wọ́? Kàn sí wa",
   "update.storeFailed": "A kò lè ṣí Google Play. Ṣí app Play Store kí o sì wá Shopinbos.",
+  "update.storeFailedIos": "A kò lè ṣí App Store. Ṣí app App Store kí o sì wá Shopinbos.",
   "tip.more": "Àlàyé síi",
   "tip.learnMore": "Kọ́ síi",
   // v26 soft cards (components/visual.tsx)

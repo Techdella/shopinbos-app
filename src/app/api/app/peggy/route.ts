@@ -3,6 +3,7 @@ import { withSeller } from "@/lib/auth/middleware";
 import { apiError, ok } from "@/lib/api/response";
 import { meterAi } from "@/lib/ai/usage";
 import { parsePeggyBody, runPeggy } from "@/lib/ai/peggy";
+import { isAppRequest } from "@/lib/app-session.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,7 +19,8 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
   const limited = await meterAi(user.id, "text");
   if (limited) return limited;
 
-  const result = await runPeggy({ id: user.id, phone: user.phone ?? null }, parsed.turns);
+  // From the phone app or a page it opened: app store payment rules (IN_APP_PAYMENTS_RULE).
+  const result = await runPeggy({ id: user.id, phone: user.phone ?? null }, parsed.turns, { inApp: isAppRequest(req.headers) });
   if ("error" in result) return apiError("UNAVAILABLE", result.error, 503);
   return ok({ text: result.text, actions: result.actions });
 });

@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { ClientLayout } from "@/components/ClientLayout";
+import { AppSessionGuard } from "@/components/AppSessionGuard";
 import { I18nProvider } from "@/components/i18n/I18nProvider";
 import { getClientMessages, getLocale } from "@/lib/i18n/server";
+import { isAppSession } from "@/lib/app-session.server";
 import "./fonts.css";
 import "./globals.css";
 
@@ -23,12 +25,14 @@ export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   // App language (shared/i18n): the sib_lang cookie, else Accept-Language. Pidgin is lang="pcm".
-  const [locale, messages] = await Promise.all([getLocale(), getClientMessages()]);
+  const [locale, messages, inApp] = await Promise.all([getLocale(), getClientMessages(), isAppSession()]);
   return (
     <html
       lang={locale}
       suppressHydrationWarning
       className="sib-fonts h-full"
+      // Opened from the phone app: nothing that sells a digital item shows (src/lib/app-session.ts).
+      {...(inApp ? { "data-in-app": "1" } : {})}
     >
       <head>
         <link rel="preload" href="/fonts/plus-jakarta-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
@@ -37,6 +41,7 @@ export default async function RootLayout({
       <body className="min-h-full">
         <I18nProvider locale={locale} messages={messages}>
           <ClientLayout>{children}</ClientLayout>
+          {inApp ? <AppSessionGuard /> : null}
         </I18nProvider>
         <Analytics />
       </body>

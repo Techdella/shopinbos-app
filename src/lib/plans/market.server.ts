@@ -1,4 +1,5 @@
 import "server-only";
+import { storeSafeMessage } from "@/lib/app-session.server";
 import { db } from "@/lib/db/client";
 import {
   PLAN_NAMES,
@@ -35,7 +36,7 @@ export async function connectionLimitProblem(ownerUserId: string, partnerId: str
     const more = limitOf(plan);
     return more === null || more > active.length;
   });
-  return `Your plan includes ${plural(limit, "delivery partner")} and you have ${active.length}.${next ? ` Upgrade to ${PLAN_NAMES[next]} to add more, or remove one first.` : " Remove one first."}`;
+  return storeSafeMessage(`Your plan includes ${plural(limit, "delivery partner")} and you have ${active.length}.${next ? ` Upgrade to ${PLAN_NAMES[next]} to add more, or remove one first.` : " Remove one first."}`);
 }
 
 /** Switching on pay on delivery for a connection (sellers: Growth and up). */
@@ -74,5 +75,5 @@ export async function pickupPointLimitProblem(partnerId: string): Promise<string
     const more = logisticsLimits(plan).pickupPoints;
     return more === null || more > count;
   });
-  return `Your plan includes ${plural(limit, "pickup point")}.${plan ? ` Upgrade to ${PLAN_NAMES[plan]} to add more.` : ""}`;
+  return storeSafeMessage(`Your plan includes ${plural(limit, "pickup point")}.${plan ? ` Upgrade to ${PLAN_NAMES[plan]} to add more.` : ""}`);
 }

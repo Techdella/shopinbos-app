@@ -4,9 +4,10 @@
 //   latestBuild  the newest build live in the store. A phone on an older build is told a new version is ready
 //                (a sheet it can put off for three days). 0 = nothing to say.
 //   minBuild     the oldest build that still works. A phone below it sees a full-screen "Update now" it can't skip.
-// Build numbers are Android's versionCode (EAS sets it remotely; the app reads it with expo-application's
-// nativeBuildVersion). The phone asks GET /api/mobile/app-release?platform=android on launch and when it comes back
-// to the front (at most once an hour). Opening the store is not a purchase.
+// Build numbers are Android's versionCode and iOS's build number (CFBundleVersion); EAS counts both up remotely and
+// the app reads them with expo-application's nativeBuildVersion. The phone asks GET /api/mobile/app-release?platform=
+// android|ios on launch and when it comes back to the front (at most once an hour). iPhones ask only when their build
+// knows the App Store link (EXPO_PUBLIC_IOS_APP_STORE_URL). Opening the store is not a purchase.
 
 export const APP_RELEASE_PLATFORMS = ["android", "ios"] as const;
 export type AppReleasePlatform = (typeof APP_RELEASE_PLATFORMS)[number];
@@ -92,12 +93,12 @@ export function updateState(currentBuild: number | string | null | undefined, re
 export const ANDROID_PACKAGE = "com.shopinbos.app";
 export const PLAY_STORE_MARKET_URL = `market://details?id=${ANDROID_PACKAGE}`;
 export const PLAY_STORE_WEB_URL = `https://play.google.com/store/apps/details?id=${ANDROID_PACKAGE}`;
-/** The App Store listing, once the iOS app is live (the phone app can also set EXPO_PUBLIC_IOS_APP_STORE_URL). */
+/** The App Store listing, once the iOS app is live (the phone app gets it from EXPO_PUBLIC_IOS_APP_STORE_URL). */
 export const IOS_APP_STORE_URL = "";
 
 /**
- * The links to try in order: the Play Store app first, then the Play Store website. iOS isn't live yet: no link
- * (the phone does nothing) until an App Store URL is set.
+ * The links to try in order: the Play Store app first, then the Play Store website. iOS: the App Store link (it opens
+ * the App Store app), or none (the phone does nothing) until one is set.
  */
 export function storeUrls(platform: string, iosUrl: string | null | undefined = IOS_APP_STORE_URL): string[] {
   if (platform === "android") return [PLAY_STORE_MARKET_URL, PLAY_STORE_WEB_URL];
