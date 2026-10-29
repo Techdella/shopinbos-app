@@ -17,6 +17,8 @@ export async function addStrike(input: { supplierId: string; kind: StrikeKind; s
     console.error(`[strikes] could not record a strike for ${input.supplierId}`, error);
     return { added: false };
   }
+  // Late parcels count against the supplier's level (shared/dropship-rules.ts supplierLevel): recheck it now.
+  if (input.kind === "late") await import("@/lib/supplier-levels.server").then((levels) => levels.refreshSupplierLevel(input.supplierId)).catch(() => undefined);
   const [supplier, strikes] = await Promise.all([
     db.supplier.findUnique({ where: { id: input.supplierId }, select: { userId: true, displayName: true, reviewFlaggedAt: true } }),
     db.supplierStrike.findMany({ where: { supplierId: input.supplierId, expiresAt: { gt: now } }, select: { expiresAt: true } }),
@@ -28,7 +30,7 @@ export async function addStrike(input: { supplierId: string; kind: StrikeKind; s
     type: "dropshipping",
     priority: "warning",
     title: `A strike: ${STRIKE_LABELS[input.kind].toLowerCase()}`,
-    description: `You have ${count} ${count === 1 ? "strike" : "strikes"} in the last ${STRIKE_DAYS} days. At ${STRIKES_FOR_REVIEW}, our team reviews your account. Strikes clear after ${STRIKE_DAYS} days.`,
+    description: `You have ${count} ${count === 1 ? "strike" : "strikes"} in the last ${STRIKE_DAYS} days. At ${STRIKES_FOR_REVIEW}, our team reviews your account.${input.kind === "late" ? " Late parcels also count against your level." : ""} Strikes clear after ${STRIKE_DAYS} days.`,
     link: "/supplier/level",
     event: "supplier.strike",
     dedupeKey: `strike:${input.kind}:${input.supplierOrderId ?? now.toISOString()}`,

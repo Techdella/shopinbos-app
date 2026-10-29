@@ -457,6 +457,8 @@ export const SUPPLIER_LEVEL_RULES = {
   established: { delivered: 100, reviews: 30, rating: 4.5, disputeRate: 0.03, days: 60 },
   /** Missing this many pre-order ready dates drops an Established supplier back to Trusted. */
   missedReadyDatesDrop: 2,
+  /** Late shipments still counting (strikes, 90 days, shared/fault-matrix.ts) that keep a supplier off Established. */
+  lateStrikesDrop: 3,
 } as const;
 
 export interface SupplierRecord {
@@ -473,13 +475,18 @@ export interface SupplierRecord {
   addressVerified: boolean;
   createdAt: Date | string;
   missedReadyDates?: number;
+  /** Parcels sent after their ship-by date, still counting (late strikes within 90 days). Each is a problem too. */
+  lateStrikes?: number;
   now?: Date;
 }
 
 const daysSince = (from: Date | string, now: Date) => Math.max(0, Math.floor((now.getTime() - new Date(from).getTime()) / 86_400_000));
-const disputeRate = (record: { delivered: number; disputes: number }) => {
-  const total = record.delivered + record.disputes;
-  return total ? record.disputes / total : 0;
+// Late handling counts against the supplier's level: each late shipment still counting is a problem, like a rejected
+// order (the owner's table: "late handling counts against the supplier's tier").
+const disputeRate = (record: { delivered: number; disputes: number; lateStrikes?: number }) => {
+  const problems = record.disputes + (record.lateStrikes ?? 0);
+  const total = record.delivered + problems;
+  return total ? problems / total : 0;
 };
 
 export function supplierLevel(record: SupplierRecord): SupplierLevel {
@@ -491,7 +498,8 @@ export function supplierLevel(record: SupplierRecord): SupplierLevel {
   if (!trusted) return "new";
   const established =
     record.delivered >= e.delivered && record.reviews >= e.reviews && record.rating >= e.rating && rate < e.disputeRate && daysSince(record.createdAt, now) >= e.days &&
-    (record.missedReadyDates ?? 0) < SUPPLIER_LEVEL_RULES.missedReadyDatesDrop;
+    (record.missedReadyDates ?? 0) < SUPPLIER_LEVEL_RULES.missedReadyDatesDrop &&
+    (record.lateStrikes ?? 0) < SUPPLIER_LEVEL_RULES.lateStrikesDrop;
   return established ? "established" : "trusted";
 }
 
@@ -534,6 +542,7 @@ export function supplierLevelGoals(record: SupplierRecord): { level: SupplierLev
     { key: "days", label: "Days on Shopinbos", have: days, need: e.days, done: days >= e.days, kind: "count" },
     { key: "rating", label: `Rating ${e.rating} or more`, have: record.rating, need: e.rating, done: record.rating >= e.rating, kind: "check" },
     { key: "disputes", label: `Problems under ${pct(e.disputeRate)}%`, have: pct(rate), need: pct(e.disputeRate), done: rate < e.disputeRate, kind: "check" },
+    { key: "late", label: `Fewer than ${SUPPLIER_LEVEL_RULES.lateStrikesDrop} late parcels in 90 days`, have: record.lateStrikes ?? 0, need: SUPPLIER_LEVEL_RULES.lateStrikesDrop, done: (record.lateStrikes ?? 0) < SUPPLIER_LEVEL_RULES.lateStrikesDrop, kind: "check" },
   ];
   return { level, next: level === "established" ? null : "established", goals };
 }

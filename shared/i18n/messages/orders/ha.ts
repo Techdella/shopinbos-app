@@ -21,6 +21,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "stock.Sold out": "Ya ƙare",
   "list.title": "Orders",
   "list.sub": "Orders {count} · {amount} na cinikin da aka biya",
+  "list.youEarn": "Ribarka {amount}",
   "list.export": "Fitar",
   recordSale: "Rubuta ciniki",
   "filter.all": "Duka",

@@ -88,6 +88,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       parcels: priced.delivery.parcels?.lines ?? [],
       ownItems: priced.delivery.parcels ? priced.delivery.parcels.ownItems : true,
     },
+    // Some items ship from a supplier: they're paid only in the app (no bank transfer marked paid by hand).
+    fromSuppliers: priced.stockHolds.some((hold) => hold.source === "supplier"),
     items: priced.items.map((item) => ({ productId: item.productId, variant: item.variant ?? null, price: item.price, quantity: item.quantity, ...(item.depositPct ? { depositPct: item.depositPct } : {}) })),
     // Preorder deposits (shared/preorder.ts): paying by card charges payNow (naira) and the rest is due once the
     // stock is ready. Other ways to pay take the whole total. Null: one payment.
