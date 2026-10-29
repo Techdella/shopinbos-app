@@ -84,7 +84,8 @@ export default async function MarketplaceSuppliersPage({ searchParams }: PagePro
   const place = { city: store.city ?? user.city ?? null, address: null };
   const hasPlace = sellerHasPlace(place);
   const distances = new Map(rawSuppliers.map((supplier) => [supplier.id, nearness(place, supplier)]));
-  const near = hasPlace ? rawSuppliers.filter((supplier) => distances.get(supplier.id)?.near) : [];
+  // No city set: nothing can be measured, so every supplier shows.
+  const near = hasPlace ? rawSuppliers.filter((supplier) => distances.get(supplier.id)?.near) : rawSuppliers;
   const isFar = (supplier: typeof rawSuppliers[number]) => hasPlace && !distances.get(supplier.id)?.near;
   const hiddenFar = rawSuppliers.length - near.length;
   const shown = showFar ? rawSuppliers : near;

@@ -21,10 +21,12 @@ import { dropshipDocument } from "@shared/contracts";
 // Accepting is signing: the shop reads the full Dropship agreement (shared/contracts.ts) and types its name; the
 // signed copy goes under Contracts for both sides.
 
-export type ListingStep = "agree" | "waiting" | "declined" | "ready" | "noPlace";
+export type ListingStep = "agree" | "waiting" | "declined" | "ready";
 
 export interface ListingInfo {
   step: ListingStep;
+  /** No city in Settings: distances can't be shown (a tip, not a requirement). */
+  noCity?: boolean;
   phone: string | null;
   address: string | null;
   supplierNote: string | null;
@@ -76,11 +78,12 @@ export function BeforeYouList({ supplier, listing }: { supplier: FindSupplier; l
         </p>
       ) : null}
 
-      {listing.step === "noPlace" ? (
-        <p className="m-0 rounded-[14px] bg-[#FDF0D5] px-3 py-2.5 text-[13.5px]">
+      {listing.noCity ? (
+        <p className="m-0 rounded-[14px] bg-app-canvas px-3 py-2.5 text-[13.5px]">
           {t("trust.addCity")} <Link href="/home/settings" className="font-extrabold text-app-ink">{t("trust.addCityBtn")}</Link>
         </p>
-      ) : listing.step === "waiting" || sent ? (
+      ) : null}
+      {listing.step === "waiting" || sent ? (
         <p role="status" className="m-0 rounded-[14px] bg-app-success-tint px-3 py-2.5 text-[13.5px] font-bold text-app-success">{sent ?? t("trust.waiting", { name })}</p>
       ) : (
         <>

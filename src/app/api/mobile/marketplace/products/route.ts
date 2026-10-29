@@ -10,8 +10,8 @@ import { customerPlacesFor, nearCustomersFor, shopsSellingFor } from "@/lib/mark
 
 export const dynamic = "force-dynamic";
 
-// GET ?q= → { hasPlace, city, state, products } (up to 300; the app lists them virtualised): Find products in the phone app, the same as the web's /marketplace: only
-// suppliers near the seller for now (verified or not), each with its verification, risk score, distance and
+// GET ?q= → { hasPlace, city, state, products } (up to 300; the app lists them virtualised): Find products in the phone app, the same as the web's /marketplace:
+// suppliers near the seller first, then far ones (verified or not; all of them, unmeasured, with no city set), each with its verification, risk score, distance and
 // whether the seller already has a Dropship agreement with it (src/lib/marketplace/agreements.server.ts), and
 // `preorder` when the supplier takes preorders (ship date, places left, promise; never the raw counts), the
 // seller's `state` and, per supplier, `sameState` (in the seller's state), and the channel prices the one-tap price

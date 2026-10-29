@@ -104,9 +104,8 @@ export type GateResult = { ok: true } | { ok: false; code: "AGREEMENT_NEEDED" | 
  * call, the stock check and both sides' agreement come before any listing.
  */
 export async function listingCheck(sellerId: string, supplierId: string): Promise<GateResult> {
-  const [supplier, seller, agreement, sellerUser] = await Promise.all([
+  const [supplier, agreement, sellerUser] = await Promise.all([
     db.supplier.findFirst({ where: { id: supplierId, ...VISIBLE_SUPPLIER }, select: { displayName: true, userId: true } }),
-    sellerPlace(sellerId),
     db.supplierAgreement.findUnique({ where: { sellerId_supplierId: { sellerId, supplierId } }, select: { status: true } }),
     db.user.findUnique({ where: { id: sellerId }, select: { debtPausedAt: true } }),
   ]);
@@ -129,8 +128,7 @@ export async function listingCheck(sellerId: string, supplierId: string): Promis
     }).catch(() => null);
     return { ok: false, code: "NOT_PAYABLE", message: `${supplier.displayName} can't be paid automatically yet, so you'd have to pay them yourself. We've asked them to set up their wallet; try again once they have.` };
   }
-  // Far suppliers are allowed too (delivery from them may cost more); the city is what the distance is measured from.
-  if (!sellerHasPlace(seller)) return { ok: false, code: "NO_PLACE", message: "Add your city in Settings first, so we can show how far each supplier is from you." };
+  // Any distance, with or without a city in Settings (far suppliers are marked: delivery from them may cost more).
   if (agreement?.status === "active") return { ok: true };
   if (agreement?.status === "requested") return { ok: false, code: "AGREEMENT_WAITING", message: `Waiting for ${supplier.displayName} to accept the Dropship agreement. You can list once they do.` };
   if (agreement?.status === "declined") return { ok: false, code: "AGREEMENT_DECLINED", message: `${supplier.displayName} didn't accept the Dropship agreement. Call them, then send it again.` };
@@ -148,8 +146,6 @@ export async function requestAgreement(seller: { id: string; name?: string | nul
   if (input.signedName !== undefined && !cleanSignedName(input.signedName)) return { ok: false, error: SIGN_NAME_ERROR };
   const supplier = await db.supplier.findFirst({ where: { id: input.supplierId, ...VISIBLE_SUPPLIER }, select: { id: true, userId: true, displayName: true } });
   if (!supplier) return { ok: false, error: "This supplier isn't taking new shops right now." };
-  const place = await sellerPlace(seller.id);
-  if (!sellerHasPlace(place)) return { ok: false, error: "Add your city in Settings first." };
   const existing = await db.supplierAgreement.findUnique({ where: { sellerId_supplierId: { sellerId: seller.id, supplierId: supplier.id } }, select: { status: true } });
   if (existing?.status === "active") return { ok: true, message: "You already have an agreement with this supplier." };
   const now = new Date();
@@ -271,11 +267,12 @@ type Decoratable = { supplier: { id: string | null; city: string; verificationSt
 /**
  * Products from suppliers near the seller first, then far ones (marked `far`: delivery from them may cost more), with
  * what the seller needs to judge each one: distance, verification, risk score and whether they already agreed.
- * `addresses` maps supplier id → its address. `hiddenFar` is always 0 now; kept for older phone apps.
+ * `addresses` maps supplier id → its address. With no city set (`hasPlace` false) every product shows, without
+ * distances. `hiddenFar` is always 0 now; kept for older phone apps.
  */
 export async function nearbyForSeller<T extends Decoratable>(sellerId: string, products: T[], addresses: Map<string, string | null>): Promise<{ products: T[]; hasPlace: boolean; hiddenFar: number }> {
   const place = await sellerPlace(sellerId);
-  if (!sellerHasPlace(place)) return { products: [], hasPlace: false, hiddenFar: products.length };
+  const hasPlace = sellerHasPlace(place);
   const measured = products.flatMap((product) => {
     const id = product.supplier.id;
     if (!id) return [];
@@ -289,12 +286,12 @@ export async function nearbyForSeller<T extends Decoratable>(sellerId: string, p
   ]);
   const agreed = new Set(agreements.map((row) => row.supplierId));
   return {
-    hasPlace: true,
+    hasPlace,
     hiddenFar: 0,
     products: near.map(({ product, distance }) => {
       const id = product.supplier.id!;
       const info = trust.get(id);
-      return { ...product, supplier: { ...product.supplier, km: distance.km, area: distance.area, far: !distance.near, risk: info?.risk ?? null, verificationStatus: info?.verificationStatus ?? product.supplier.verificationStatus, agreed: agreed.has(id) } };
+      return { ...product, supplier: { ...product.supplier, km: distance.km, area: distance.area, far: hasPlace && !distance.near, risk: info?.risk ?? null, verificationStatus: info?.verificationStatus ?? product.supplier.verificationStatus, agreed: agreed.has(id) } };
     }),
   };
 }
