@@ -5042,6 +5042,13 @@ model StatusPost {
   caption   String?
   /// A photo uploaded through /api/mobile/status/upload (public bucket, status/<authorId>/).
   imageUrl  String?
+  /// A short video (up to 30 s, 25 MB) the phone uploaded straight to Storage with a signed URL from
+  /// /api/mobile/status/upload-url (public bucket, status/<authorId>/; rules in shared/status-video.ts).
+  videoUrl  String?
+  /// The video's still frame (same folder), shown while it loads.
+  posterUrl String?
+  /// The video's length in milliseconds, as the phone measured it.
+  durationMs Int?
   /// peach | mint | blue | warn | ink
   tone      String   @default("peach")
   /// The product the post is about, by the author's role: a supplier's own SupplierProduct (what "Add to my shop"

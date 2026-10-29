@@ -45,8 +45,9 @@ export interface StatusPostView {
     target: { userId: string; slug: string | null; partnerId: string | null; productId: string | null; path?: string | null };
   } | null;
   /**
-   * Additive, Shopinbos's own posts only (src/lib/status/shopinbos.server.ts): a video post plays `url` (an MP4 in
-   * our bucket) in the viewer, else the 60-second feature intro `intro` in the app, else opens `watchUrl`.
+   * Additive: a video post plays `url` (an MP4) in the viewer, muted until tapped, for as long as it runs. A person's
+   * own video status (shared/status-video.ts) has url, posterUrl and durationSeconds; Shopinbos's own posts
+   * (src/lib/status/shopinbos.server.ts) may instead have the 60-second feature intro `intro`, or `watchUrl`.
    */
   video?: { intro: string | null; url: string | null; watchUrl: string | null; posterUrl: string | null; durationSeconds: number | null } | null;
   /** Additive, Shopinbos's own posts only: this viewer has seen it. */
@@ -68,11 +69,23 @@ export interface StatusAuthorView {
 }
 
 const POST_SELECT = {
-  id: true, authorId: true, role: true, headline: true, caption: true, imageUrl: true, tone: true, productId: true, ctaKind: true,
-  expiresAt: true, createdAt: true,
+  id: true, authorId: true, role: true, headline: true, caption: true, imageUrl: true, videoUrl: true, posterUrl: true, durationMs: true,
+  tone: true, productId: true, ctaKind: true, expiresAt: true, createdAt: true,
 } as const;
 
-type PostRow = { id: string; authorId: string; role: Role; headline: string; caption: string | null; imageUrl: string | null; tone: string; productId: string | null; ctaKind: string | null; expiresAt: Date; createdAt: Date };
+export type PostRow = {
+  id: string; authorId: string; role: Role; headline: string; caption: string | null; imageUrl: string | null;
+  videoUrl: string | null; posterUrl: string | null; durationMs: number | null;
+  tone: string; productId: string | null; ctaKind: string | null; expiresAt: Date; createdAt: Date;
+};
+
+export { POST_SELECT };
+
+/** A person's video status in the contract's `video` shape (null for a photo or text post). */
+export function rowVideo(row: Pick<PostRow, "videoUrl" | "posterUrl" | "durationMs">): StatusPostView["video"] {
+  if (!row.videoUrl) return null;
+  return { intro: null, url: row.videoUrl, watchUrl: null, posterUrl: row.posterUrl, durationSeconds: row.durationMs ? Math.round(row.durationMs / 100) / 10 : null };
+}
 
 /** Live posts an author shows at most (oldest first, the story order). */
 const POSTS_PER_AUTHOR = 10;
@@ -207,6 +220,7 @@ export async function postViews(rows: PostRow[], viewerId: string, profiles: Map
       tone: row.tone as StatusTone,
       product,
       cta,
+      ...(row.videoUrl ? { video: rowVideo(row) } : {}),
       createdAt: row.createdAt.toISOString(),
       expiresAt: row.expiresAt.toISOString(),
       views: viewCount.get(row.id) ?? 0,
@@ -290,11 +304,13 @@ export async function livePost(id: string, now = new Date()) {
 /** Deletes posts that expired before `before` (default now), with their views and likes, and their photos. */
 export async function purgeExpiredStatus(options: { before?: Date; limit?: number } = {}) {
   const before = options.before ?? new Date();
-  const rows = await db.statusPost.findMany({ where: { expiresAt: { lte: before } }, select: { id: true, imageUrl: true }, orderBy: { expiresAt: "asc" }, take: options.limit ?? 500 });
+  const rows = await db.statusPost.findMany({ where: { expiresAt: { lte: before } }, select: { id: true, imageUrl: true, videoUrl: true, posterUrl: true }, orderBy: { expiresAt: "asc" }, take: options.limit ?? 500 });
   if (!rows.length) return { deleted: 0, images: 0 };
   // Views and likes go with the post (ON DELETE CASCADE).
   const { count } = await db.statusPost.deleteMany({ where: { id: { in: rows.map((row) => row.id) }, expiresAt: { lte: before } } });
   const images = await removeUnusedImages(rows.map((row) => row.imageUrl));
+  // A video and its poster belong to one post (a fresh name per upload).
+  await Promise.allSettled(rows.flatMap((row) => [row.videoUrl, row.posterUrl]).filter((url): url is string => !!url).map((url) => removeFileByPublicUrl(url)));
   return { deleted: count, images };
 }
 

@@ -118,6 +118,11 @@ const nextConfig: NextConfig = {
         source: "/audio/tips/:file*",
         headers: [{ key: "Cache-Control", value: "public, max-age=2592000, immutable" }],
       },
+      {
+        // Shopinbos's own Status clips (shared/shopinbos-status.ts): cached a day, so a remade clip shows up soon.
+        source: "/status-videos/:file*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" }],
+      },
     ];
   },
   images: {

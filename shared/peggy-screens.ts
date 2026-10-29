@@ -108,6 +108,7 @@ const SELLER: PeggyScreen[] = [
     also: ["social post", "make a social post", "new post", "create a post", "create with rex posts", "flyer", "status", "reel"],
     about: "Rex designs a social media post, flyer, status or reel",
   },
+  { id: "status_video", name: "Post a video status", app: "/status/new?kind=video", web: null, also: ["video status", "post a video"], about: "a short video (up to 30 seconds) as a 24-hour status" },
   { id: "reviews", name: "Reviews", app: "/reviews", web: "/home/reviews" },
   { id: "customers", name: "Customers", app: "/customers", web: "/home/customers" },
   // The grow screens of the Menu (canvas board M-Menu).
@@ -153,6 +154,7 @@ const SUPPLIER: PeggyScreen[] = [
   { id: "create", name: "Make a post", app: "/create", web: null, also: ["social post", "make a social post", "new post", "flyer"] },
   { id: "posts", name: "Posts calendar", app: "/posts", web: null, also: ["posts", "calendar", "scheduled posts"] },
   { id: "status", name: "Post a status", app: "/status/new", web: null, also: ["status", "new status"] },
+  { id: "status_video", name: "Post a video status", app: "/status/new?kind=video", web: null, also: ["video status", "post a video"], about: "a short video (up to 30 seconds) as a 24-hour status" },
   { id: "rewards", name: "Rewards", app: "/rewards", web: null, also: ["points", "refer", "referral"] },
   { id: "help", name: "Help", app: "/help", web: null },
 ];
@@ -187,6 +189,7 @@ const PARTNER: PeggyScreen[] = [
   { id: "create", name: "Make a post", app: "/create", web: null, also: ["social post", "make a social post", "new post", "flyer"] },
   { id: "posts", name: "Posts calendar", app: "/posts", web: null, also: ["posts", "calendar", "scheduled posts"] },
   { id: "status", name: "Post a status", app: "/status/new", web: null, also: ["status", "new status"] },
+  { id: "status_video", name: "Post a video status", app: "/status/new?kind=video", web: null, also: ["video status", "post a video"], about: "a short video (up to 30 seconds) as a 24-hour status" },
   { id: "rewards", name: "Rewards", app: "/rewards", web: null, also: ["points", "refer", "referral"] },
   { id: "help", name: "Help", app: "/help", web: null },
 ];

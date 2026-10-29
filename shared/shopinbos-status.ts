@@ -2,7 +2,8 @@
 // in the "Getting started" card on Home (and in Help, to watch again). Defined here in code, not stored as user
 // posts; the words are in shared/i18n/messages/m_familiar ("sib.<role>.<key>.*"), the videos are the existing
 // 60-second feature intros (shared/feature-intros.ts) and, when one is published, the help video for the topic
-// (shared/help-videos.ts). Seen and dismissed are kept in User.preferences (shared/preferences.ts).
+// (shared/help-videos.ts). The "video status" posts (keys vid…) play a short clip made for them, served from
+// public/status-videos/ on app.shopinbos.com (scripts/make-status-videos.py), so people see they can post videos. Seen and dismissed are kept in User.preferences (shared/preferences.ts).
 // Pure and import-free (type-only imports): the server builds the posts in src/lib/status/shopinbos.server.ts.
 // Unit-tested in tests/shopinbos-status.test.mjs.
 
@@ -23,34 +24,47 @@ export interface ShopinbosPostDef {
   intro?: string;
   /** …and the help topic (shared/help-videos.ts) whose recorded video plays instead when one is published. */
   helpTopic?: string;
+  /** A short clip in public/status-videos/ (<file>.mp4 and its poster <file>.jpg) that plays in the Status viewer. */
+  clip?: { file: string; durationSeconds: number };
   cta?: ShopinbosCta;
 }
 
 const ROLE_SLUG: Record<StatusRole, string> = { seller: "seller", supplier: "supplier", logistics_partner: "partner" };
 
+/** Where the clips are served from (the app's own static files). */
+export const STATUS_CLIP_DIR = "/status-videos";
+/** "Post a video status": opens the composer with Video chosen. */
+export const VIDEO_STATUS_PATH = "/status/new?kind=video";
+
 export const SHOPINBOS_POSTS: Record<StatusRole, readonly ShopinbosPostDef[]> = {
   seller: [
     { key: "welcome", tone: "peach", intro: "home", helpTopic: "start_shop" },
+    { key: "vidproduct", tone: "ink", clip: { file: "seller-product", durationSeconds: 10 }, cta: { kind: "open", path: VIDEO_STATUS_PATH } },
     { key: "call", tone: "mint", cta: { kind: "call_peggy" } },
     { key: "product", tone: "mint", intro: "inventory", helpTopic: "add_product", cta: { kind: "open", path: "/add-products" } },
     { key: "share", tone: "blue", cta: { kind: "share" } },
     { key: "status", tone: "warn", cta: { kind: "open", path: "/status/new" } },
+    { key: "vidcustomer", tone: "ink", clip: { file: "seller-customer", durationSeconds: 10 }, cta: { kind: "open", path: VIDEO_STATUS_PATH } },
     { key: "find", tone: "ink", intro: "marketplace", helpTopic: "sell_without_stock", cta: { kind: "open", path: "/find" } },
   ],
   supplier: [
     { key: "welcome", tone: "peach", intro: "supplier-home", helpTopic: "supplier_orders" },
+    { key: "vidstock", tone: "ink", clip: { file: "supplier-stock", durationSeconds: 10 }, cta: { kind: "open", path: VIDEO_STATUS_PATH } },
     { key: "call", tone: "mint", cta: { kind: "call_peggy" } },
     { key: "product", tone: "mint", intro: "supplier-products", helpTopic: "supplier_products", cta: { kind: "open", path: "/supplier/product/new" } },
     { key: "orders", tone: "blue", intro: "supplier-orders", cta: { kind: "open", path: "/supplier/orders" } },
     { key: "delivery", tone: "ink", cta: { kind: "open", path: "/delivery" } },
+    { key: "vidpacking", tone: "ink", clip: { file: "supplier-packing", durationSeconds: 10 }, cta: { kind: "open", path: VIDEO_STATUS_PATH } },
     { key: "status", tone: "warn", cta: { kind: "open", path: "/status/new" } },
   ],
   logistics_partner: [
     { key: "welcome", tone: "peach", intro: "partner-home", helpTopic: "partner_jobs" },
+    { key: "vidready", tone: "ink", clip: { file: "partner-ready", durationSeconds: 10 }, cta: { kind: "open", path: VIDEO_STATUS_PATH } },
     { key: "call", tone: "mint", cta: { kind: "call_peggy" } },
     { key: "jobs", tone: "mint", intro: "partner-jobs", cta: { kind: "open", path: "/logistics/jobs" } },
     { key: "riders", tone: "blue", intro: "partner-riders", helpTopic: "rider_flow", cta: { kind: "open", path: "/logistics/team" } },
     { key: "rates", tone: "ink", intro: "partner-rate-card", cta: { kind: "open", path: "/logistics/rates" } },
+    { key: "viddone", tone: "ink", clip: { file: "partner-delivered", durationSeconds: 10 }, cta: { kind: "open", path: VIDEO_STATUS_PATH } },
     { key: "status", tone: "warn", cta: { kind: "open", path: "/status/new" } },
   ],
 };
@@ -72,6 +86,12 @@ export function parseShopinbosPostId(id: unknown): { role: StatusRole; key: stri
   if (!match) return null;
   const role = (Object.keys(ROLE_SLUG) as StatusRole[]).find((value) => ROLE_SLUG[value] === match[1])!;
   return SHOPINBOS_POSTS[role].some((post) => post.key === match[2]) ? { role, key: match[2]! } : null;
+}
+
+/** A clip's video and poster paths on the app's own site ("/status-videos/seller-product.mp4"); null without one. */
+export function clipPaths(def: Pick<ShopinbosPostDef, "clip">): { video: string; poster: string; durationSeconds: number } | null {
+  if (!def.clip || !/^[a-z0-9-]{1,40}$/.test(def.clip.file)) return null;
+  return { video: `${STATUS_CLIP_DIR}/${def.clip.file}.mp4`, poster: `${STATUS_CLIP_DIR}/${def.clip.file}.jpg`, durationSeconds: def.clip.durationSeconds };
 }
 
 /** The m_familiar message keys for a post's words. */

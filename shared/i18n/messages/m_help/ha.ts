@@ -178,6 +178,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "call.screen.tiers": "Matakan farashin jumla",
   "call.screen.agreements": "Yarjejeniyar dropship",
   "call.screen.status": "Saka Status",
+  "call.screen.status_video": "Saka Status na bidiyo",
   "call.screen.rewards": "Lada",
   "call.screen.insights": "Bayanai",
   "call.screen.email": "Imel",

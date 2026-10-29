@@ -6,11 +6,13 @@ import type { StatusAuthor } from "@/lib/familiar";
 import { useT } from "@/lib/i18n";
 import { hideShopinbosStatus, seenHere, useShopinbosHere } from "@/lib/shopinbos";
 import { colors } from "@/theme";
+import { hasPlayableVideo } from "@shared/status-video";
 import { ShopinbosMark } from "./ShopinbosMark";
 
 // The row of Status rings under the Home header ("Familiar app" prototype `.stories`): "Your status" first (a dashed
 // ring with an orange +), then the businesses with live posts, unseen ones in orange, seen ones in grey.
 // Shopinbos's own getting-started posts (author.official) show the brand logo; a long-press hides them for good.
+// A ring whose posts include a video that plays in the viewer carries a small ▶ badge (VideoBadge).
 
 const RING = 64;
 
@@ -18,6 +20,17 @@ function Ring({ seen, dashed, children }: { seen?: boolean; dashed?: boolean; ch
   return (
     <View style={{ width: RING, height: RING, borderRadius: RING / 2, padding: 2.5, borderWidth: 2.5, borderStyle: dashed ? "dashed" : "solid", borderColor: dashed ? "#C9C5D4" : seen ? "#D3D0DB" : colors.accent, alignItems: "center", justifyContent: "center" }}>
       {children}
+    </View>
+  );
+}
+
+/** The ▶ on a ring (or a thumbnail) whose posts include a video. */
+export function VideoBadge({ size = 22 }: { size?: number }) {
+  return (
+    <View testID="status-video-badge" pointerEvents="none" style={{ position: "absolute", right: -2, bottom: -2, width: size, height: size, borderRadius: size / 2, backgroundColor: colors.inkFill, borderWidth: 2, borderColor: colors.canvas, alignItems: "center", justifyContent: "center" }}>
+      <View style={{ marginLeft: size * 0.08 }}>
+        <AppIcon name="play" size={size * 0.5} color="#FFFFFF" strokeWidth={2.6} />
+      </View>
     </View>
   );
 }
@@ -80,15 +93,18 @@ export function StatusRow({
                 key={author.userId}
                 testID="shopinbos-ring"
                 accessibilityRole="button"
-                accessibilityLabel={t("status.openOf", { name: author.name })}
+                accessibilityLabel={hasPlayableVideo(author.posts) ? `${t("status.openOf", { name: author.name })}. ${t("status.hasVideo")}` : t("status.openOf", { name: author.name })}
                 accessibilityHint={t("sib.hold")}
                 onPress={() => onOpen(index)}
                 onLongPress={askHide}
                 style={{ width: 68, alignItems: "center", gap: 6 }}
               >
-                <Ring seen={author.seen || author.posts.every(seenHere)}>
-                  <ShopinbosMark size={RING - 13} />
-                </Ring>
+                <View>
+                  <Ring seen={author.seen || author.posts.every(seenHere)}>
+                    <ShopinbosMark size={RING - 13} />
+                  </Ring>
+                  {hasPlayableVideo(author.posts) ? <VideoBadge /> : null}
+                </View>
                 <T weight="semibold" numberOfLines={1} style={{ fontSize: 12, color: colors.inkSoft, maxWidth: 68 }}>{author.name}</T>
               </Pressable>
             ) : null,
@@ -96,10 +112,13 @@ export function StatusRow({
       {leading}
       {authors.map((author, index) =>
         author.official ? null : (
-          <Pressable key={author.userId} accessibilityRole="button" accessibilityLabel={t("status.openOf", { name: author.name })} onPress={() => onOpen(index)} style={{ width: 68, alignItems: "center", gap: 6 }}>
-            <Ring seen={author.seen}>
-              <Picture uri={author.logoUrl} name={author.name} size={RING - 13} />
-            </Ring>
+          <Pressable key={author.userId} accessibilityRole="button" accessibilityLabel={hasPlayableVideo(author.posts) ? `${t("status.openOf", { name: author.name })}. ${t("status.hasVideo")}` : t("status.openOf", { name: author.name })} onPress={() => onOpen(index)} style={{ width: 68, alignItems: "center", gap: 6 }}>
+            <View>
+              <Ring seen={author.seen}>
+                <Picture uri={author.logoUrl} name={author.name} size={RING - 13} />
+              </Ring>
+              {hasPlayableVideo(author.posts) ? <VideoBadge /> : null}
+            </View>
             <T weight="semibold" numberOfLines={1} style={{ fontSize: 12, color: colors.inkSoft, maxWidth: 68 }}>{author.name}</T>
           </Pressable>
         ),
