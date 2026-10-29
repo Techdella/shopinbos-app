@@ -47,6 +47,7 @@ const en = {
 
   "product.title": "Add your first product.",
   "product.snap": "Open the camera",
+  "product.whatsappLater": "Have a WhatsApp catalogue? Once you're set up, add it all at once from screenshots: Products › Add many with Peggy › From my WhatsApp catalogue.",
   "product.gallery": "Choose from gallery",
   "product.uploading": "Uploading your photo…",
   "product.photoReady": "Nice photo. Next, its name and price.",

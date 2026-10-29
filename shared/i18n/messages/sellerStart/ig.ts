@@ -47,6 +47,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
 
   "product.title": "Tinye ngwaahịa mbụ gị.",
   "product.snap": "Mepee igwefoto",
+  "product.whatsappLater": "Ị nwere katalọg WhatsApp? Ozugbo i dozichara, tinye ha niile otu mgbe site na screenshot: Ngwaahịa › Tinye ọtụtụ na Peggy › Site na katalọg WhatsApp m.",
   "product.gallery": "Họrọ na gallery",
   "product.uploading": "Foto gị na-ebugo…",
   "product.photoReady": "Foto mara mma. Ihe na-esote bụ aha ya na ọnụahịa ya.",

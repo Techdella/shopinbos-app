@@ -47,6 +47,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
 
   "product.title": "Fi ọjà àkọ́kọ́ rẹ kún un.",
   "product.snap": "Ṣí kámẹ́rà",
+  "product.whatsappLater": "Ṣé o ní katalọ́ọ̀gì WhatsApp? Nígbà tí o bá ti ṣètò tán, fi gbogbo rẹ̀ kún un lẹ́ẹ̀kan láti inú screenshot: Àwọn ọjà › Fi ọ̀pọ̀ kún un pẹ̀lú Peggy › Láti inú katalọ́ọ̀gì WhatsApp mi.",
   "product.gallery": "Yan láti gallery",
   "product.uploading": "Fọ́tò rẹ ń gòkè…",
   "product.photoReady": "Fọ́tò dáradára. Èyí tó kàn ni orúkọ àti iye owó rẹ̀.",

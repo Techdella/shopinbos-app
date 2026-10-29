@@ -661,6 +661,9 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
           <Icon name="upload" size={16} /> {photoUrl ? t("product.retake") : t("product.gallery")}
           <input type="file" accept="image/*" className="sr-only" aria-label={t("product.gallery")} onChange={(event) => void onProductPhoto(event.target.files?.[0])} />
         </label>
+        <p className="m-0 mt-4 flex max-w-[520px] items-start gap-2 text-[14px] text-app-ink-soft">
+          <Icon name="whatsapp" size={16} className="mt-0.5 shrink-0" /> {t("product.whatsappLater")}
+        </p>
       </>
     );
     action = { label: t("continue"), onClick: () => (photoUrl ? forward() : setError(t("product.needPhoto"))), disabled: !photoUrl };
