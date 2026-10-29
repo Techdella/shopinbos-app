@@ -248,6 +248,7 @@ async function afterStoreBalancePaid(orderId: string, via: "paystack" | "offline
             actionLabel: "Open the order",
             metadata: { orderId: order.id },
             dedupeKey: `order.balance_paid:${order.id}`,
+            email: "transactional",
           })
         : null,
       // The seller's "payment received" automations run once the order is paid in full (not on the deposit).

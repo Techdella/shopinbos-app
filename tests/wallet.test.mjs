@@ -176,3 +176,20 @@ test("withdrawals go to the bank on the wallet now, not the one it had when the 
   // A queued withdrawal is paid to the current bank too (its recipient is made again if the bank changed meanwhile).
   assert.match(balance, /await withdrawalRecipient\(row\.wallet\)/);
 });
+
+test("Paystack money is recognisably from Shopinbos and always told in the app and by email", async () => {
+  const paystack = await import("../src/lib/paystack.ts").catch(() => null);
+  const source = read("src/lib/paystack.ts");
+  // Subaccounts carry "Shopinbos - <business>", once (never "Shopinbos - Shopinbos - …").
+  assert.match(source, /business_name: shopinbosSubaccountName\(input\.businessName\)/);
+  if (paystack?.shopinbosSubaccountName) {
+    assert.equal(paystack.shopinbosSubaccountName("Tofs Variety Store"), "Shopinbos - Tofs Variety Store");
+    assert.equal(paystack.shopinbosSubaccountName("Shopinbos - Tofs"), "Shopinbos - Tofs");
+  }
+  // Settlements are looked up by the subaccount's numeric id (the ACCT_ code matches nothing).
+  assert.match(source, /settlement\?subaccount=\$\{encodeURIComponent\(id\)\}/);
+  // A paid order is emailed to the seller too, whatever their settings.
+  const events = read("src/lib/notifications/events.server.ts");
+  assert.match(events.slice(events.indexOf("export function notifyOrderPaid")), /email: "transactional"/);
+  assert.match(read("src/lib/wallet/settlements.server.ts"), /email: "transactional"/);
+});
