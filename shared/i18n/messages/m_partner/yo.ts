@@ -670,7 +670,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "lvl.unlock.ranking": "Ipò gíga nínú àkójọ àwọn ṣọ́ọ̀bù",
   "lvl.unlock.highValue": "Ẹrù oníye-lórí (fóònù, kọ̀ǹpútà, wúrà)",
   "lvl.unlock.featured": "Béèrè láti di àfihàn",
-  "lvl.unlock.fasterPayouts": "Owó kódà tí ìrìn àjò bá kùnà",
+  "lvl.unlock.fasterPayouts": "Owó tó yára dé",
   "lvl.comingSoon": "Ó ń bọ̀ láìpẹ́",
   "lvl.needs.verified": "ID àti selfie ti yege",
   "lvl.needs.trusted": "50 tí a fi jíṣẹ́ · ìdíyelé 4.3+ · àṣìṣe ìfijíṣẹ́ kò tó 2% · àdírẹ́sì ibùdó ti fìdí múlẹ̀",

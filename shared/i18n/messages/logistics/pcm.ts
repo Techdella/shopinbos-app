@@ -741,7 +741,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "reach.unlock.ranking": "Higher place for shops' rider lists",
   "reach.unlock.highValue": "High-value parcels (phones, laptops, gold)",
   "reach.unlock.featured": "Apply to be featured",
-  "reach.unlock.fasterPayouts": "Pay even when trip fail",
+  "reach.unlock.fasterPayouts": "Faster payouts",
   "reach.comingSoon": "E dey come soon",
   "reach.needs.verified": "ID and selfie don pass",
   "reach.needs.trusted": "50 delivered · rating 4.3+ · under 2% failed drops · base address verified",

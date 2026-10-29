@@ -8,10 +8,9 @@
 //   Tier 2  Trusted       50 delivered, 4.3+, <2% failed, base verified
 //                                                  interstate jobs, a higher place in shops' rider lists
 //   Tier 3  Top partner   150 delivered, 60+ days, CAC or a guarantor
-//                                                  high-value parcels, can apply to be featured, paid even on failed
-//                                                  trips (perk key "fasterPayouts", kept for older phone apps: payouts
-//                                                  are already next-day Paystack splits, so the perk is a failed trip
-//                                                  the customer caused paid in full, shared/fault-matrix.ts)
+//                                                  high-value parcels, can apply to be featured, faster payouts (a
+//                                                  perk flag only: payouts are Paystack instant splits, so it shows
+//                                                  "coming soon" until a payout queue exists)
 //
 // The tiers are LogisticsPartner.level (verified | trusted | cash_trusted, worked out in shared/dropship-rules.ts
 // partnerLevel). They are not the verification tiers of shared/partner-tiers.ts: those carry the new-partner safety
@@ -38,11 +37,7 @@ export interface LevelPerks {
   highValue: boolean;
   /** Can ask the team to be featured. */
   canApplyFeatured: boolean;
-  /**
-   * "Paid even on failed trips": a failed trip the customer caused is paid in full, the failed attempt and the trip
-   * back, the seller covering what the customer's refund can't (shared/fault-matrix.ts paidFailedTrips). The key is
-   * still "fasterPayouts" so older phone apps keep reading it.
-   */
+  /** Priority in a manual payout queue. There is none yet (instant splits), so the UI says "coming soon". */
   fasterPayouts: boolean;
 }
 
@@ -52,8 +47,8 @@ export const PARTNER_LEVEL_PERKS: Record<PartnerLevel, LevelPerks> = {
   cash_trusted: { prepaid: true, payOnDelivery: true, interstate: true, rankBoost: 25, highValue: true, canApplyFeatured: true, fasterPayouts: true },
 };
 
-/** The Top partner payout perk is live ("Paid even on failed trips"): older phone apps hide "coming soon" on it. */
-export const FASTER_PAYOUTS_LIVE = true;
+/** Payouts are Paystack instant splits: there's no payout queue to put Top partners first in yet. */
+export const FASTER_PAYOUTS_LIVE = false;
 
 export const levelPerks = (level: unknown): LevelPerks => PARTNER_LEVEL_PERKS[levelOf(level)];
 export const canTakeInterstate = (level: unknown) => levelPerks(level).interstate;
@@ -78,7 +73,7 @@ export const UNLOCK_WORDS: Record<string, string> = {
   ranking: "A higher place in shops' rider lists",
   highValue: "High-value parcels (phones, laptops, gold)",
   featured: "Apply to be featured",
-  fasterPayouts: "Paid even on failed trips",
+  fasterPayouts: "Faster payouts (coming soon)",
 };
 
 /** Featured partners first, then by tier: what shops' rider lists and job matching add to a partner's score. */

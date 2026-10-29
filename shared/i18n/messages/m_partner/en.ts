@@ -683,7 +683,7 @@ const en = {
   "lvl.unlock.ranking": "A higher place in shops' rider lists",
   "lvl.unlock.highValue": "High-value parcels (phones, laptops, gold)",
   "lvl.unlock.featured": "Apply to be featured",
-  "lvl.unlock.fasterPayouts": "Paid even on failed trips",
+  "lvl.unlock.fasterPayouts": "Faster payouts",
   "lvl.comingSoon": "Coming soon",
   "lvl.needs.verified": "ID and selfie passed",
   "lvl.needs.trusted": "50 delivered · rating 4.3+ · under 2% failed drops · base address verified",

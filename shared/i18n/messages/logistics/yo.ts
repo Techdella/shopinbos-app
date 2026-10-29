@@ -741,7 +741,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "reach.unlock.ranking": "Ipò gíga nínú àkójọ àwọn ṣọ́ọ̀bù",
   "reach.unlock.highValue": "Ẹrù oníye-lórí (fóònù, kọ̀ǹpútà, wúrà)",
   "reach.unlock.featured": "Béèrè láti di àfihàn",
-  "reach.unlock.fasterPayouts": "Owó kódà tí ìrìn àjò bá kùnà",
+  "reach.unlock.fasterPayouts": "Owó tó yára dé",
   "reach.comingSoon": "Ó ń bọ̀ láìpẹ́",
   "reach.needs.verified": "ID àti selfie ti yege",
   "reach.needs.trusted": "50 tí a fi jíṣẹ́ · ìdíyelé 4.3+ · àṣìṣe ìfijíṣẹ́ kò tó 2% · àdírẹ́sì ibùdó ti fìdí múlẹ̀",

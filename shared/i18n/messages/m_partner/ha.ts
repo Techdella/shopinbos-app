@@ -670,7 +670,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "lvl.unlock.ranking": "Matsayi mafi girma a jerin shaguna",
   "lvl.unlock.highValue": "Kaya masu tsada (wayoyi, kwamfutoci, zinariya)",
   "lvl.unlock.featured": "Nemi a fito da kai",
-  "lvl.unlock.fasterPayouts": "Biya ko da tafiya ta kasa",
+  "lvl.unlock.fasterPayouts": "Biyan kuɗi da sauri",
   "lvl.comingSoon": "Yana zuwa nan ba da jimawa ba",
   "lvl.needs.verified": "ID da selfie sun wuce",
   "lvl.needs.trusted": "50 da aka isar · ƙima 4.3+ · gazawar isarwa ƙasa da 2% · an tabbatar da adireshin tushe",

@@ -670,7 +670,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "lvl.unlock.ranking": "Ọnọdụ dị elu na ndepụta ụlọ ahịa",
   "lvl.unlock.highValue": "Ngwugwu dị oke ọnụ (ekwentị, laptọọpụ, ọlaedo)",
   "lvl.unlock.featured": "Tinye akwụkwọ ka e gosipụta gị",
-  "lvl.unlock.fasterPayouts": "Ụgwọ ọbụna mgbe njem dara",
+  "lvl.unlock.fasterPayouts": "Ịkwụ ụgwọ ngwa ngwa",
   "lvl.comingSoon": "Ọ na-abịa n'oge na-adịghị anya",
   "lvl.needs.verified": "ID na selfie gafere",
   "lvl.needs.trusted": "50 ebunyere · ọkwa 4.3+ · nnyefe dara ada erughị 2% · akwadoro adreesị isi",

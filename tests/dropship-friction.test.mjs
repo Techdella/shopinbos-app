@@ -111,7 +111,6 @@ test("the pay-on-delivery terms are published: in the app, no cash, code before 
   for (const loc of ["pcm", "yo", "ha", "ig"]) assert.doesNotMatch(read(`shared/i18n/messages/delivery/${loc}.ts`), /legal review/, loc);
 });
 
-test("Top partners: the payout perk is live as 'Paid even on failed trips'; riders see cash held against their limit", () => {
-  assert.match(read("src/lib/faults/resolve.server.ts"), /paidFailedTrips: paidFailedTrips\(partnerId\)/);
+test("riders see cash held against their limit", () => {
   assert.match(read("src/app/logistics/cash/page.tsx"), /t\("cash\.holdingTitle"\)[\s\S]{0,200}partner\.codCashCap/);
 });

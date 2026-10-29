@@ -761,7 +761,7 @@ const en = {
   "reach.unlock.ranking": "A higher place in shops' rider lists",
   "reach.unlock.highValue": "High-value parcels (phones, laptops, gold)",
   "reach.unlock.featured": "Apply to be featured",
-  "reach.unlock.fasterPayouts": "Paid even on failed trips",
+  "reach.unlock.fasterPayouts": "Faster payouts",
   "reach.comingSoon": "Coming soon",
   "reach.needs.verified": "ID and selfie passed",
   "reach.needs.trusted": "50 delivered · rating 4.3+ · under 2% failed drops · base address verified",

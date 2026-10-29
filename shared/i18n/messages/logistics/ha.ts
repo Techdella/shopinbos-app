@@ -741,7 +741,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "reach.unlock.ranking": "Matsayi mafi girma a jerin shaguna",
   "reach.unlock.highValue": "Kaya masu tsada (wayoyi, kwamfutoci, zinariya)",
   "reach.unlock.featured": "Nemi a fito da kai",
-  "reach.unlock.fasterPayouts": "Biya ko da tafiya ta kasa",
+  "reach.unlock.fasterPayouts": "Biyan kuɗi da sauri",
   "reach.comingSoon": "Yana zuwa nan ba da jimawa ba",
   "reach.needs.verified": "ID da selfie sun wuce",
   "reach.needs.trusted": "50 da aka isar · ƙima 4.3+ · gazawar isarwa ƙasa da 2% · an tabbatar da adireshin tushe",

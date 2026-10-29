@@ -75,12 +75,6 @@ export interface FaultPart {
     /** From the partner's rate card. */
     failedAttemptFeeKobo: number;
     returnFeeKobo: number;
-    /**
-     * A Top partner (shared/partner-reach.ts perk "Paid even on failed trips"): a failed trip the customer caused is
-     * always paid in full, the failed attempt and the trip back. What the customer's refund can't cover (and the trip
-     * back from a refused pay on delivery, where nothing was paid) the seller pays, from their next sales.
-     */
-    paidFailedTrips?: boolean;
   } | null;
 }
 
@@ -285,8 +279,6 @@ export function resolveFault(input: FaultInput): FaultOutcome {
         fromShopinbos += Math.min(take, back);
         if (supplierParty) owe(supplierParty, SELLER, supplierPaid, "goods_back", part.key, "delivery_failed", `${tag}: delivery failed, the customer couldn't be reached. The item comes back to you, so your pay goes back to the shop.`);
         if (partner && kept > 0) owe(SELLER, partnerParty!, kept, "failed_trip", part.key, "return_trip", `${tag}: delivery failed. The failed attempt and the trip back, kept from the customer's refund.`);
-        // Top partners are paid the whole trip even when the customer's refund can't cover it.
-        if (partner?.paidFailedTrips && tripBack > kept) owe(SELLER, partnerParty!, tripBack - kept, "failed_trip", part.key, "return_trip", `${tag}: delivery failed. The rest of the failed attempt and the trip back (Top partners are always paid for failed trips).`);
         if (partner) trips.push({ partKey: part.key, partnerId: partner.partnerId, kind: "return", feeKobo: tripBack, paidBy: "customer" });
         itemBack = true;
         break;
@@ -309,13 +301,7 @@ export function resolveFault(input: FaultInput): FaultOutcome {
       }
       case "pod_refused": {
         // Pay on delivery the customer wouldn't pay: they lose the delivery fee paid upfront (the partner keeps it,
-        // no cash handled); nothing else was paid, so nobody owes anything. The parcel goes back. A Top partner is also
-        // paid the failed attempt and the trip back, by the seller (perk "Paid even on failed trips").
-        if (partner?.paidFailedTrips) {
-          const tripBack = pos(partner.failedAttemptFeeKobo) + pos(partner.returnFeeKobo);
-          owe(SELLER, partnerParty!, tripBack, "failed_trip", part.key, "return_trip", `${tag}: not paid at the door. The failed attempt and the trip back (Top partners are always paid for failed trips).`);
-          if (tripBack > 0) trips.push({ partKey: part.key, partnerId: partner.partnerId, kind: "return", feeKobo: tripBack, paidBy: "seller" });
-        }
+        // no cash handled); nothing else was paid, so nobody owes anything. The parcel goes back.
         itemBack = true;
         break;
       }
@@ -386,7 +372,7 @@ export function faultLines(outcome: FaultOutcome, order: Pick<FaultOrder, "order
     const gets = owedTo("logistics");
     if (e === "damaged_in_transit") logistics = `${outcome.depositKobo > 0 ? `${naira(outcome.depositKobo)} from your deposit; ` : ""}${owes > 0 ? `${naira(owes)} deducted from your next payments` : "nothing more owed"}${outcome.remedy === "replacement" ? ", and you redeliver for free" : ""}.`;
     else if (e === "out_of_stock" || e === "shipped_late") logistics = owes > 0 ? `Not involved: the parcel never left, so the ${naira(owes)} fee goes back.` : "Not involved: the parcel never left.";
-    else if (e === "pod_refused") logistics = `Paid for the trip (the fee was paid upfront)${gets > 0 ? `, and ${naira(gets)} for the failed attempt and the trip back` : ""}. No cash handled.`;
+    else if (e === "pod_refused") logistics = "Paid for the trip (the fee was paid upfront). No cash handled.";
     else logistics = `Paid for the trip${gets > 0 ? `, and ${naira(gets)} for the trip back` : ""}.`;
   }
   return { customer, supplier, seller, logistics };

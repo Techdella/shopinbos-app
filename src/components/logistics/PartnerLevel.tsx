@@ -144,7 +144,7 @@ const NEEDS: Record<PartnerLevel, string> = {
   cash_trusted: "150 delivered · 60+ days on Shopinbos · CAC or a guarantor",
 };
 
-/** What each tier unlocks: three cards, ticks up to the partner's tier, locks above it. */
+/** What each tier unlocks: three cards, ticks up to the partner's tier, locks above it. Faster payouts: coming soon. */
 export function TierUnlocks({ level, fasterPayoutsLive, t }: { level: PartnerLevel; fasterPayoutsLive: boolean; t?: Translate }) {
   const at = PARTNER_LEVELS.indexOf(level);
   return (

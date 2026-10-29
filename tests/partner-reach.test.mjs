@@ -41,7 +41,7 @@ test("tiers: Tier 1 Verified, Tier 2 Trusted at 50 / 4.3 / <2% / base, Tier 3 To
   assert.equal(rules.canOfferPayOnDeliveryRules({ level: "verified", codPaused: true }), false);
 });
 
-test("perks: what each tier unlocks; Top partners are paid even on failed trips", () => {
+test("perks: what each tier unlocks; faster payouts is a flag only (coming soon)", () => {
   assert.equal(reach.levelPerks("verified").prepaid, true);
   assert.equal(reach.levelPerks("verified").payOnDelivery, true);
   assert.equal(reach.canTakeInterstate("verified"), false);
@@ -51,8 +51,7 @@ test("perks: what each tier unlocks; Top partners are paid even on failed trips"
   assert.equal(reach.canTakeHighValue("trusted"), false);
   assert.equal(reach.canTakeHighValue("cash_trusted"), true);
   assert.equal(reach.levelPerks("cash_trusted").fasterPayouts, true);
-  assert.equal(reach.FASTER_PAYOUTS_LIVE, true);
-  assert.equal(reach.UNLOCK_WORDS.fasterPayouts, "Paid even on failed trips");
+  assert.equal(reach.FASTER_PAYOUTS_LIVE, false);
   assert.deepEqual(reach.TIER_UNLOCKS.trusted, ["interstate", "ranking"]);
   for (const level of rules.PARTNER_LEVELS) for (const key of reach.TIER_UNLOCKS[level]) assert.ok(reach.UNLOCK_WORDS[key], key);
   // The phone's import-free copy matches.
