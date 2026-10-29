@@ -38,6 +38,14 @@ test("friendly errors: our own plain messages pass through, and a caller's fallb
   assert.equal(f.friendlyText("Plain string from somewhere").text, "Plain string from somewhere");
 });
 
+test("friendly errors: a rejected DOM Event says what failed to load", () => {
+  class Event { constructor(type, target) { this.type = type; this.target = target; } }
+  const script = new Event("error", { tagName: "SCRIPT", src: "https://example.com/widget.js" });
+  assert.equal(f.errorDetails(script).message, 'Event "error" on <script src=https://example.com/widget.js>');
+  assert.equal(f.errorDetails(new Event("close", { url: "wss://example.com/live" })).message, 'Event "close" from wss://example.com/live');
+  assert.equal(f.errorDetails(new Event("error", null)).message, 'Event "error"');
+});
+
 test("friendly errors: the same problem groups together, whoever and wherever", () => {
   assert.equal(f.pagePattern("/s/ada-fashion/products/clx9a8b7c6d5?x=1"), "/s/:slug/products/:id");
   assert.equal(f.pagePattern("/signup"), "/signup");
