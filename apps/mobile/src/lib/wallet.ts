@@ -1,3 +1,4 @@
+import Constants from "expo-constants";
 import { api } from "./api";
 import { payInApp, type PayResult, type StartedPayment } from "./pay";
 
@@ -139,18 +140,24 @@ export const nairaFromKobo = (kobo: number) => `₦${(kobo / 100).toLocaleString
 // ─── Prepaid wallet balance (GET /api/app/wallet; src/lib/wallet/balance.server.ts on the server) ───
 
 /**
- * The prepaid balance (spend-only: never withdrawn) shows in the app only when EXPO_PUBLIC_PREPAID_BALANCE=true. Google Play
- * counts a stored balance as a digital wallet, a financial feature only organization developer accounts may ship,
- * so store builds leave it off until the app moves to one. The balance stays on the web app (/home/wallet).
+ * App Store and Google Play builds (EAS "production" profile, app.config.js extra.storeBuild). Both stores count a
+ * stored balance as a digital wallet, which only organization developer accounts may ship (Google Play's financial
+ * features policy, Apple 3.1.5(i)), so these builds never show it, whatever the EXPO_PUBLIC_* settings say.
  */
-export const PREPAID_BALANCE_IN_APP = process.env.EXPO_PUBLIC_PREPAID_BALANCE === "true";
+export const STORE_BUILD = (Constants.expoConfig?.extra as { storeBuild?: boolean } | undefined)?.storeBuild === true;
+
+/**
+ * The prepaid balance (spend-only: never withdrawn) shows in the app only when EXPO_PUBLIC_PREPAID_BALANCE=true, and
+ * never in store builds (STORE_BUILD), on iPhone and Android alike. The balance stays on the web app (/home/wallet).
+ */
+export const PREPAID_BALANCE_IN_APP = !STORE_BUILD && process.env.EXPO_PUBLIC_PREPAID_BALANCE === "true";
 
 /**
  * Their own wallet account number on the wallet card, only when EXPO_PUBLIC_WALLET_ACCOUNT_NUMBER=true. Paying into it
  * tops up a balance spent on Shopinbos services, which App Store and Play builds can't point people to pay outside
  * the stores (Apple 3.1.1, Google Play payments), so store builds leave it off; the top-up email carries it instead.
  */
-export const WALLET_ACCOUNT_IN_APP = process.env.EXPO_PUBLIC_WALLET_ACCOUNT_NUMBER === "true";
+export const WALLET_ACCOUNT_IN_APP = !STORE_BUILD && process.env.EXPO_PUBLIC_WALLET_ACCOUNT_NUMBER === "true";
 
 export interface WalletBalance {
   ready: boolean;

@@ -110,7 +110,10 @@ currency).
 
 Decision:
 
-- The balance card stays off in store builds (`EXPO_PUBLIC_PREPAID_BALANCE` unset).
+- The balance card is never in store builds, on iPhone or Android. App Store and Play builds use the EAS
+  `production` profile; `app.config.js` marks them (`extra.storeBuild`) and `src/lib/wallet.ts` turns the balance and
+  the wallet account number off there, whatever `EXPO_PUBLIC_PREPAID_BALANCE` says. Test builds can still show it.
+- So neither store sees a digital wallet, and the app doesn't need an organization developer account for it.
 - When it's on, it shows only the balance and past transactions. There is no Top up, no Withdraw (the balance is
   spend-only), no email and no account number to transfer to.
 - Sales never touch this balance: Paystack splits them straight to the bank.
@@ -149,8 +152,9 @@ Decision:
 - The closest options are the payments ones: mobile payments and transfers. Name Paystack as the processor wherever
   the form asks how payments are processed. Shopinbos doesn't lend, doesn't trade crypto and doesn't hold customer
   money in store builds.
-- Don't declare a digital wallet while `EXPO_PUBLIC_PREPAID_BALANCE` stays off. Turning the balance on in a store
-  build needs an organization developer account and a "digital wallet" declaration first.
+- Don't declare a digital wallet: store builds never show the prepaid balance (`STORE_BUILD` in
+  `src/lib/wallet.ts`). Putting it in a store build means changing that rule, after moving to an organization
+  developer account and declaring a digital wallet.
 
 ### Play Console: in-app products and the Payments policy
 
