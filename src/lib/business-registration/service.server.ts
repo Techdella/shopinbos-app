@@ -4,7 +4,7 @@ import type { BusinessRegistration, Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { billingEmail } from "@/lib/auth/billing-email";
 import { notify, notifyAdmins } from "@/lib/notifications/notify.server";
-import { initializePaystackTransaction, refundPaystackTransaction, verifyPaystackTransaction } from "@/lib/paystack";
+import { initializePaystackTransaction, refundPaystackTransaction, verifyPaystackTransaction, paidKobo } from "@/lib/paystack";
 import { paystackSecretReady } from "@shared/checkout-payments";
 import { getPriceBook } from "@/lib/pricing/price-book.server";
 import { naira } from "@shared/onboarding";
@@ -227,7 +227,7 @@ async function recordVerifiedPayment(row: BusinessRegistration) {
   const customer = verified.customer?.email?.toLowerCase() ?? "";
   const allowed = new Set([user ? billingEmail(user) : "", row.payerEmail?.toLowerCase() ?? ""].filter(Boolean));
   const mismatch =
-    verified.currency !== "NGN" || verified.amount !== row.amountNgn * 100
+    verified.currency !== "NGN" || paidKobo(verified) !== row.amountNgn * 100
       ? "the amount paid wasn't the registration price"
       : verified.reference !== row.reference || metadata.purpose !== PURPOSE || metadata.user_id !== row.userId || metadata.registration_id !== row.id
         ? "the payment details didn't match this application"
