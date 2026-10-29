@@ -3,7 +3,7 @@ import { colors } from "@/theme";
 
 // Line icons for the app chrome (tab bar, quick actions, Peggy tasks). 24px grid, 1.9 stroke.
 
-export type AppIconName = "home" | "box" | "chat" | "bag" | "grid" | "plus" | "search" | "bell" | "mic" | "receipt" | "play" | "megaphone" | "sparkle" | "truck" | "mail" | "coin" | "chevron" | "store" | "user" | "printer" | "tag" | "wifiOff" | "star" | "check" | "clock" | "share" | "doc" | "send" | "settings" | "image" | "bot" | "phone" | "pin" | "camera" | "shield" | "users" | "help" | "wallet" | "logout" | "x" | "globe" | "link" | "route" | "filter" | "lock" | "copy" | "chart" | "zap" | "popup" | "sun" | "moon" | "contrast" | "info";
+export type AppIconName = "home" | "box" | "chat" | "bag" | "grid" | "plus" | "search" | "bell" | "mic" | "receipt" | "play" | "megaphone" | "sparkle" | "truck" | "mail" | "coin" | "chevron" | "store" | "user" | "printer" | "tag" | "wifiOff" | "star" | "check" | "clock" | "share" | "doc" | "send" | "settings" | "image" | "bot" | "phone" | "pin" | "camera" | "shield" | "users" | "help" | "wallet" | "logout" | "x" | "globe" | "link" | "route" | "filter" | "lock" | "copy" | "chart" | "zap" | "popup" | "sun" | "moon" | "contrast" | "info" | "volume" | "volumeOff" | "video";
 
 const PATHS: Record<AppIconName, (color: string) => React.ReactNode> = {
   home: () => <Path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />,
@@ -63,6 +63,10 @@ const PATHS: Record<AppIconName, (color: string) => React.ReactNode> = {
   popup: () => <><Rect x="3" y="3" width="18" height="18" rx="3" /><Rect x="7" y="8" width="10" height="8" rx="2" /></>,
   // ⓘ: the "More info" button next to a title (InfoTip in ui.tsx).
   info: () => <><Circle cx="12" cy="12" r="8.5" /><Path d="M12 11v5.5M12 7.6h.01" /></>,
+  // Status videos: sound on / off, and a video camera (the composer's Video choice).
+  volume: () => <><Path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" /><Path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" /></>,
+  volumeOff: () => <><Path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" /><Path d="M16 9.5l5 5M21 9.5l-5 5" /></>,
+  video: () => <><Rect x="3" y="6.5" width="12.5" height="11" rx="2" /><Path d="M15.5 10.5l5-3v9l-5-3z" /></>,
 };
 
 export function AppIcon({ name, size = 22, color = colors.ink, strokeWidth = 1.9 }: { name: AppIconName; size?: number; color?: string; strokeWidth?: number }) {

@@ -1,17 +1,19 @@
 import { useState } from "react";
 import { Pressable, View } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { Choice, Pill, Sub, TILE, Title } from "@/components/design";
 import { AppIcon } from "@/components/icons";
 import { LoadingBlock } from "@/components/kit";
 import { Screen } from "@/components/Screen";
-import { Field, Notice, PillButton, T, Toggle } from "@/components/ui";
+import { Field, Notice, PillButton, Segmented, T, Toggle } from "@/components/ui";
 import { ApiError } from "@/lib/api";
 import { postStatus, uploadStatusImage, type StatusCtaKind } from "@/lib/familiar";
 import { familiarRole, STATUS_CAPTION_MAX, STATUS_HEADLINE_MAX, statusHeadline, statusPicks } from "@/lib/familiar-pure";
 import { sharePost } from "@/lib/familiar-share";
+import { pickedVideoProblem, uploadStatusVideo, type VideoInput } from "@/lib/status-video";
+import { clockLabel, pickerDurationMs, STATUS_VIDEO_MAX_MS } from "@shared/status-video";
 import { homeFor } from "@/lib/partner-pure";
 import { fetchSupplierProducts } from "@/lib/supplier";
 import { useRole } from "@/lib/role";
@@ -24,8 +26,22 @@ import { colors } from "@/theme";
 // `statusDone`. Suppliers show sellers new stock (pick one of their products), delivery partners tell sellers about
 // their routes, sellers say what they need ("Looking for a Lagos partner"). An optional photo, and "Also share to my
 // WhatsApp Status" opens the phone's share sheet afterwards. POST /api/mobile/status; +15 points when rewards are on.
+// "Photo or video": a short video (up to 30 s, picked or recorded, trimmed and compressed by the picker) goes straight
+// to Storage with a signed URL (lib/status-video.ts) with a poster frame. ?kind=video opens with Video chosen (the
+// "Post a video" button on Shopinbos's video statuses).
 
 type Photo = { uri: string; mimeType?: string | null; fileName?: string | null };
+type Media = "photo" | "video";
+
+/** Picker options for a status video: at most 30 s, compressed to 720p where the phone can (iOS trims on pick). */
+const VIDEO_PICK: ImagePicker.ImagePickerOptions = {
+  mediaTypes: ["videos"],
+  videoMaxDuration: STATUS_VIDEO_MAX_MS / 1000,
+  allowsEditing: true,
+  videoQuality: ImagePicker.UIImagePickerControllerQualityType.Medium,
+  videoExportPreset: ImagePicker.VideoExportPreset.H264_1280x720,
+  quality: 0.7,
+};
 
 export default function NewStatus() {
   const t = useT("m_familiar");
@@ -39,6 +55,10 @@ export default function NewStatus() {
   const [productId, setProductId] = useState<string | null>(null);
   const [said, setSaid] = useState("");
   const [photo, setPhoto] = useState<Photo | null>(null);
+  const params = useLocalSearchParams<{ kind?: string }>();
+  const [media, setMedia] = useState<Media>(params.kind === "video" ? "video" : "photo");
+  const [video, setVideo] = useState<VideoInput | null>(null);
+  const [sent, setSent] = useState<number | null>(null);
   const [toWhatsApp, setToWhatsApp] = useState(false);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
@@ -69,26 +89,67 @@ export default function NewStatus() {
     }
   };
 
+  const videoWords = () => ({ tooBig: t("sn.videoTooBig"), tooLong: t("sn.videoTooLong"), type: t("sn.videoType") });
+
+  /** Takes a picked or recorded video when it fits (30 s, 25 MB, MP4 / MOV); says why not otherwise. */
+  const takeVideo = (asset: ImagePicker.ImagePickerAsset | null) => {
+    if (!asset) return;
+    const input: VideoInput = { uri: asset.uri, mimeType: asset.mimeType, fileName: asset.fileName, fileSize: asset.fileSize, duration: asset.duration };
+    const why = pickedVideoProblem(input);
+    if (why) {
+      setProblem(why === "too_big" ? t("sn.videoTooBig") : why === "too_long" ? t("sn.videoTooLong") : t("sn.videoType"));
+      return;
+    }
+    setVideo(input);
+    setPhoto(null);
+    setProblem(null);
+  };
+
+  const chooseVideo = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync().catch(() => null);
+    if (!permission?.granted) {
+      setProblem(t("sn.photoPermission"));
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync(VIDEO_PICK).catch(() => null);
+    takeVideo(result && !result.canceled ? result.assets[0] ?? null : null);
+  };
+
+  const recordVideo = async () => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync().catch(() => null);
+    if (!permission?.granted) {
+      setProblem(t("sn.cameraPermission"));
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync(VIDEO_PICK).catch(() => null);
+    takeVideo(result && !result.canceled ? result.assets[0] ?? null : null);
+  };
+
   const post = async () => {
     if (!ready) return;
     setBusy(true);
     setProblem(null);
     try {
       let imageUrl: string | undefined;
-      if (photo) imageUrl = (await uploadStatusImage(photo)).url;
+      let clip: Awaited<ReturnType<typeof uploadStatusVideo>> | null = null;
+      if (media === "video" && video) {
+        setSent(0);
+        clip = await uploadStatusVideo(video, (fraction) => setSent(Math.round(fraction * 100)), videoWords());
+      } else if (media === "photo" && photo) imageUrl = (await uploadStatusImage(photo)).url;
       const tone = (picks.find((item) => item.key === pick)?.tone ?? (who === "supplier" ? "peach" : "mint"));
       const ctaKind: StatusCtaKind = who === "supplier" ? (product ? "add_product" : "chat") : who === "logistics_partner" ? "see_rates" : "chat";
       const result = await postStatus({
         headline: headline.slice(0, STATUS_HEADLINE_MAX),
         caption: caption ? caption.slice(0, STATUS_CAPTION_MAX) : undefined,
         imageUrl,
+        ...(clip ? { videoUrl: clip.videoUrl, posterUrl: clip.posterUrl, durationMs: clip.durationMs } : {}),
         tone,
         productId: product?.id,
         ctaKind,
       });
       setDone({ reward: result.reward });
       if (toWhatsApp) {
-        const picture = imageUrl ?? result.post.imageUrl ?? result.post.product?.image ?? product?.images[0] ?? null;
+        const picture = imageUrl ?? result.post.imageUrl ?? clip?.posterUrl ?? result.post.product?.image ?? product?.images[0] ?? null;
         await sharePost({ imageUrl: picture, caption: [headline, caption].filter(Boolean).join("\n"), target: "whatsapp_status", title: t("share.title") }).catch(() => false);
       }
     } catch (error) {
@@ -96,6 +157,7 @@ export default function NewStatus() {
       else setProblem(error instanceof Error ? error.message : t("sn.failed"));
     } finally {
       setBusy(false);
+      setSent(null);
     }
   };
 
@@ -182,14 +244,53 @@ export default function NewStatus() {
         />
       </View>
 
-      {photo ? (
-        <View style={{ gap: 8 }}>
-          <Image source={{ uri: photo.uri }} style={{ width: "100%", height: 200, borderRadius: 24, backgroundColor: colors.grayTint }} contentFit="cover" accessibilityLabel={t("sn.photo")} />
-          <PillButton title={t("sn.removePhoto")} tone="white" size="sm" onPress={() => setPhoto(null)} style={{ alignSelf: "flex-start" }} />
-        </View>
-      ) : (
-        <PillButton tone="white" size="md" onPress={() => void choosePhoto()} accessibilityLabel={t("sn.addPhoto")} icon="camera" title={t("sn.addPhoto")} />
-      )}
+      <View style={{ gap: 10 }} testID="status-media">
+        <T weight="bold" style={{ fontSize: 15 }}>{t("sn.photoOrVideo")}</T>
+        <Segmented<Media>
+          options={[{ value: "photo", label: t("sn.mediaPhoto") }, { value: "video", label: t("sn.mediaVideo") }]}
+          value={media}
+          onChange={(next) => {
+            setMedia(next);
+            setProblem(null);
+          }}
+        />
+        {media === "video" ? (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <AppIcon name="video" size={18} color={colors.inkSoft} />
+            <T style={{ flex: 1, fontSize: 14, color: colors.inkSoft }}>{t("sn.videoHint")}</T>
+          </View>
+        ) : null}
+        {media === "photo" ? (
+          photo ? (
+            <View style={{ gap: 8 }}>
+              <Image source={{ uri: photo.uri }} style={{ width: "100%", height: 200, borderRadius: 24, backgroundColor: colors.grayTint }} contentFit="cover" accessibilityLabel={t("sn.photo")} />
+              <PillButton title={t("sn.removePhoto")} tone="white" size="sm" onPress={() => setPhoto(null)} style={{ alignSelf: "flex-start" }} />
+            </View>
+          ) : (
+            <PillButton tone="white" size="md" onPress={() => void choosePhoto()} accessibilityLabel={t("sn.addPhoto")} icon="camera" title={t("sn.addPhoto")} />
+          )
+        ) : video ? (
+          <View style={{ gap: 8 }}>
+            <View testID="status-video-picked" accessibilityLabel={t("sn.video")} style={{ height: 160, borderRadius: 24, backgroundColor: colors.inkFill, alignItems: "center", justifyContent: "center", gap: 10 }}>
+              <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center" }}>
+                <View style={{ marginLeft: 4 }}>
+                  <AppIcon name="play" size={28} color="#FFFFFF" />
+                </View>
+              </View>
+              <T weight="bold" style={{ color: "#FFFFFF", fontSize: 15 }}>
+                {t("sn.videoLength", { time: clockLabel(pickerDurationMs(video.duration)) })}
+              </T>
+              {sent != null ? <T style={{ color: "#FFFFFF", fontSize: 13 }} accessibilityLiveRegion="polite">{t("sn.uploading", { percent: sent })}</T> : null}
+            </View>
+            <PillButton title={t("sn.removeVideo")} tone="white" size="sm" disabled={busy} onPress={() => setVideo(null)} style={{ alignSelf: "flex-start" }} />
+          </View>
+        ) : (
+          <View style={{ gap: 10 }}>
+            <PillButton tone="white" size="md" onPress={() => void recordVideo()} accessibilityLabel={t("sn.recordVideo")} icon="video" title={t("sn.recordVideo")} />
+            <PillButton tone="white" size="md" onPress={() => void chooseVideo()} accessibilityLabel={t("sn.pickVideo")} icon="image" title={t("sn.pickVideo")} />
+          </View>
+        )}
+      </View>
 
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 16, minHeight: 64 }}>
         <T weight="bold" style={{ flex: 1, fontSize: 15.5 }}>{t("sn.alsoWhatsApp")}</T>

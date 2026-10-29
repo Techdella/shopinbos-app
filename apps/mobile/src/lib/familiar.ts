@@ -31,7 +31,7 @@ export interface StatusPost {
   product: { id: string; name: string; price: number; image: string | null } | null;
   /** "open" (an app screen, target.path) and "share" (my shop link) come only on Shopinbos's own posts. */
   cta: { kind: StatusCtaKind | ShopinbosCtaKind; label: string; target?: { userId: string; slug?: string | null; partnerId?: string | null; productId?: string | null; path?: string | null } } | null;
-  /** Shopinbos's video posts: play `url` here, else the 60-second intro `intro`, else open `watchUrl`. */
+  /** A video post: play `url` here (a person's video status, or Shopinbos's), else the 60-second intro `intro`, else open `watchUrl`. */
   video?: StatusVideo | null;
   /** Shopinbos's posts: seen (or watched) by me. */
   seen?: boolean;
@@ -84,7 +84,8 @@ export const fetchShopinbos = () => optional(api<ShopinbosState>(`/api/mobile/st
 export const dismissShopinbos = (what: "status" | "start") =>
   api<{ statusOff: boolean; startOff: boolean }>("/api/mobile/status/shopinbos/dismiss", { method: "POST", json: { what } });
 
-export const postStatus = (input: { headline: string; caption?: string; imageUrl?: string; tone?: StatusTone; productId?: string; ctaKind?: StatusCtaKind }) =>
+/** A video status sends videoUrl / posterUrl / durationMs from uploadStatusVideo (lib/status-video.ts) instead of imageUrl. */
+export const postStatus = (input: { headline: string; caption?: string; imageUrl?: string; videoUrl?: string; posterUrl?: string | null; durationMs?: number | null; tone?: StatusTone; productId?: string; ctaKind?: StatusCtaKind }) =>
   api<{ post: StatusPost; reward: { points: number; streak: number } | null }>("/api/mobile/status", { method: "POST", json: input });
 
 export function uploadStatusImage(photo: PhotoInput) {

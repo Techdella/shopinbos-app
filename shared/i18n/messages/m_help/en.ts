@@ -180,6 +180,7 @@ const en = {
   "call.screen.tiers": "Wholesale price tiers",
   "call.screen.agreements": "Dropship agreements",
   "call.screen.status": "Post a status",
+  "call.screen.status_video": "Post a video status",
   "call.screen.rewards": "Rewards",
   "call.screen.insights": "Insights",
   "call.screen.email": "Email",

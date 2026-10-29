@@ -178,6 +178,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "call.screen.tiers": "Ìpele owó ọjà ẹ̀yàwọ̀",
   "call.screen.agreements": "Àdéhùn dropship",
   "call.screen.status": "Fi Status ránṣẹ́",
+  "call.screen.status_video": "Fi Status fídíò ránṣẹ́",
   "call.screen.rewards": "Ẹ̀bùn",
   "call.screen.insights": "Àkíyèsí",
   "call.screen.email": "Ímeèlì",

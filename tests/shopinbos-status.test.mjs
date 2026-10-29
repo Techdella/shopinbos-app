@@ -13,14 +13,14 @@ const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf
 const LANGS = ["en", "pcm", "yo", "ha", "ig"];
 const catalogs = Object.fromEntries(await Promise.all(LANGS.map(async (lang) => [lang, (await import(`../shared/i18n/messages/m_familiar/${lang}.ts`)).default])));
 
-test("posts: a few per role, sellers get the five the owner asked for", () => {
+test("posts: a few per role, sellers get the five the owner asked for (plus two video statuses)", () => {
   for (const role of ["seller", "supplier", "logistics_partner"]) {
     const posts = sib.shopinbosPosts(role);
-    assert.ok(posts.length >= 3 && posts.length <= 6, role);
+    assert.ok(posts.length >= 3 && posts.length <= 8, role);
     assert.equal(new Set(posts.map((post) => post.key)).size, posts.length, `${role}: unique keys`);
     assert.ok(posts.some((post) => post.intro), `${role}: has a video post`);
   }
-  assert.deepEqual(sib.shopinbosPosts("seller").map((post) => post.key), ["welcome", "call", "product", "share", "status", "find"]);
+  assert.deepEqual(sib.shopinbosPosts("seller").map((post) => post.key), ["welcome", "vidproduct", "call", "product", "share", "status", "vidcustomer", "find"]);
   // Every role has the "Call Peggy" post, whose button starts the in-app call.
   for (const role of ["seller", "supplier", "logistics_partner"]) assert.deepEqual(sib.shopinbosPosts(role).find((post) => post.key === "call")?.cta, { kind: "call_peggy" }, role);
   const seller = Object.fromEntries(sib.shopinbosPosts("seller").map((post) => [post.key, post.cta]));
@@ -54,7 +54,8 @@ test("buttons open real app screens only", () => {
       if (post.cta?.kind !== "open") continue;
       const path = post.cta.path;
       assert.ok(sib.isShopinbosPath(path));
-      const file = path.replace(/^\//, "");
+      // "/status/new?kind=video": the screen is status/new, the query only picks Video there.
+      const file = path.split("?")[0].replace(/^\//, "");
       const candidates = [`${file}.tsx`, `${file}/index.tsx`, file.replace(/^(supplier|logistics)\//, "$1/(tabs)/") + ".tsx"];
       assert.ok(candidates.some((candidate) => { try { read(`apps/mobile/src/app/${candidate}`); return true; } catch { return false; } }), `${path} is a phone screen`);
     }
