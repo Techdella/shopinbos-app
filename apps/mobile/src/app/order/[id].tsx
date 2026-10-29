@@ -20,6 +20,7 @@ import { daysWords, ownTimeline, timelineStates, timelineWordKey, whatsappNumber
 import { cancelAndRefund, fetchOrder, undoSupplierSwitch, updateOrder, type OrderDetail, type OrderPart, type OrderParts } from "@/lib/orders";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
+import { EarningsCard, ProblemsCard, ReturnCard } from "@/components/seller/OrderMoney";
 
 // One order ("Seller app" prototype `on.order`): the item, customer, total and when; Paid / Pay on delivery and
 // where it is; what needs the seller (a partner declined → send it to another partner; ready → the partner is
@@ -460,6 +461,11 @@ export default function OrderScreen() {
         )}
         {!toSend && live && !unpaid ? <LinkButton title={t("order.printLabel")} color={colors.inkSoft} onPress={() => router.push({ pathname: "/order/label", params: { id: order.id } })} /> : null}
       </Card>
+
+      {/* What the seller earns on it (C10), a customer's return and problems on it (shared/fault-matrix.ts). */}
+      {order.money && !unpaid ? <EarningsCard money={order.money} /> : null}
+      {order.money?.returns.length ? <ReturnCard key={order.money.returns[0]!.id + order.money.returns[0]!.status} orderId={order.id} returns={order.money.returns} /> : null}
+      {order.money?.problems.length ? <ProblemsCard money={order.money} /> : null}
 
       {(unpaid || toSend || (selfPickup && live)) && !deciding && <LinkButton title={busy === "cancelled" ? t("order.cancelling") : t("order.cancelThis")} color={colors.danger} onPress={confirmCancel} />}
 

@@ -66,7 +66,7 @@ export async function payAtDoor(orderId: string): Promise<{ ok: true; url: strin
   return started.ok ? { ok: true, url: started.authorizationUrl } : { ok: false, error: started.error };
 }
 
-// ─── Refunds (who pays when things go wrong, shared/order-refunds.ts) ─────────
+// ─── Guided refunds (shared/order-refunds.ts) ─────────────────────────────────
 // The order's unguessable id is the customer's access, as for the order page itself; each step is checked against it.
 
 const validId = (value: unknown) => typeof value === "string" && value.length > 0 && value.length <= 64;
@@ -83,11 +83,4 @@ export async function answerRefund(orderId: string, refundId: string, received: 
   if (!validId(orderId) || !validId(refundId)) return { ok: false as const, error: "We couldn't find this refund." };
   const { customerAnswersRefund } = await import("@/lib/commerce/order-refunds.server");
   return customerAnswersRefund(orderId, refundId, received === true, typeof note === "string" ? note : undefined);
-}
-
-/** The customer cancels a supplier's late part of their order for a full refund. */
-export async function cancelLatePart(orderId: string, supplierOrderId: string) {
-  if (!validId(orderId) || !validId(supplierOrderId)) return { ok: false as const, error: "We couldn't find this part of your order." };
-  const { customerCancelsLatePart } = await import("@/lib/commerce/order-refunds.server");
-  return customerCancelsLatePart(orderId, supplierOrderId);
 }

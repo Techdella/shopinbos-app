@@ -3,9 +3,9 @@ import { db } from "@/lib/db/client";
 import { createNotification } from "@/lib/notifications/create";
 import { formatFromAddress, sendEmail } from "@/lib/notifications/resend";
 import { appBase, loadStoreSender } from "@/lib/email/compliance.server";
-import { refundEmail } from "@/lib/email/store-emails";
+import { faultRefundEmail, refundEmail } from "@/lib/email/store-emails";
 import { paystackSecretReady } from "@shared/checkout-payments";
-import { canStartRefund, paystackRefundBody, readPaystackRefund, refundIdempotencyKey, refundRoute, refundStatusFromEvent, refundStillOpen } from "./refunds";
+import { canStartRefund, faultRefundBody, faultRefundPlan, paystackRefundBody, readPaystackRefund, refundIdempotencyKey, refundRoute, refundStatusFromEvent, refundStillOpen } from "./refunds";
 
 // Refunds a payment that arrived after its order expired and the stock had sold (see refunds.ts for the rules).
 // Card payments go back through Paystack's Refund API with the platform key (the same PAYSTACK_SECRET_KEY that
@@ -76,7 +76,7 @@ async function markFailed(order: RefundOrder, reason: string) {
   await notifySeller(order, `Refund failed: order ${order.orderNumber}`, `The payment came in after this order expired and its stock sold. We tried to refund ${money(Number(order.total), order.currency)} through Paystack and it failed (${reason}). Refund the buyer from your Paystack dashboard or by transfer.`, "critical");
 }
 
-async function callPaystackRefund(secret: string, body: ReturnType<typeof paystackRefundBody>): Promise<ReturnType<typeof readPaystackRefund>> {
+async function callPaystackRefund(secret: string, body: ReturnType<typeof paystackRefundBody> | ReturnType<typeof faultRefundBody>): Promise<ReturnType<typeof readPaystackRefund>> {
   try {
     const response = await fetch(`${paystackBase()}/refund`, {
       method: "POST",
@@ -230,5 +230,69 @@ export async function refundCancelledOrder(orderId: string, why: string, options
   } catch (error) {
     console.error(`[refunds] could not refund cancelled order ${orderId}`, error);
     return "failed";
+  }
+}
+
+/**
+ * A refund decided by "who pays when things go wrong" (src/lib/faults/resolve.server.ts), once per case: the part the
+ * refund route sends through Paystack (a card payment not split at checkout, or Shopinbos's own take on a split one)
+ * goes back with a partial Paystack refund; the rest the seller sends (their bank has it), and they're told exactly
+ * how much, and guided through sending it (shared/order-refunds.ts: the customer's account, "Refund sent", the
+ * customer confirms). The order's own refund columns record the first one. Never throws.
+ */
+export async function refundFault(input: { orderId: string; caseKey: string; event?: string; refundKobo: number; fromShopinbosKobo: number; why: string; customerLine: string }): Promise<{ status: "processed" | "processing" | "manual" | "failed" | "skipped"; paystackKobo: number; sellerKobo: number }> {
+  const none = { status: "skipped" as const, paystackKobo: 0, sellerKobo: 0 };
+  try {
+    const order = await loadOrder(input.orderId);
+    if (!order || input.refundKobo <= 0) return none;
+    const plan = faultRefundPlan(order, input.refundKobo, input.fromShopinbosKobo);
+    const naira = (kobo: number) => money(kobo / 100, order.currency);
+    let status: "processed" | "processing" | "manual" | "failed" = plan.sellerKobo > 0 ? "manual" : "processing";
+    let paystackFailed: string | null = null;
+    if (plan.paystackKobo > 0) {
+      const secret = process.env.PAYSTACK_SECRET_KEY;
+      if (!paystackSecretReady(secret) || !order.paystackRef) paystackFailed = "Paystack isn't set up";
+      else {
+        const result = await callPaystackRefund(secret!, faultRefundBody({ transaction: order.paystackRef, caseKey: input.caseKey, amountKobo: plan.paystackKobo, orderNumber: order.orderNumber }));
+        if (!result.ok) paystackFailed = result.message;
+        else if (plan.sellerKobo === 0) status = result.status === "processed" ? "processed" : "processing";
+        if (result.ok && order.refundStatus === null) {
+          await db.retailOrder.updateMany({ where: { id: order.id, refundStatus: null }, data: { refundStatus: plan.sellerKobo > 0 ? "manual" : result.status, refundId: result.id, ...(result.status === "processed" && plan.sellerKobo === 0 ? { refundedAt: new Date() } : {}) } });
+        }
+      }
+    }
+    // Paystack couldn't send its part: the seller sends that too (the team sees it on the case).
+    const sellerKobo = plan.sellerKobo + (paystackFailed ? plan.paystackKobo : 0);
+    const paystackKobo = paystackFailed ? 0 : plan.paystackKobo;
+    if (paystackFailed && sellerKobo > 0) status = plan.sellerKobo > 0 ? "manual" : "failed";
+    if (sellerKobo > 0) {
+      await db.retailOrder.updateMany({ where: { id: order.id, refundStatus: null }, data: { refundStatus: "manual" } });
+      await db.retailOrder.update({ where: { id: order.id }, data: { paymentIssue: `${input.why} Send the customer ${naira(sellerKobo)}.`.slice(0, 500) } }).catch(() => null);
+      // The customer gives their account on their order page; the seller sends it and taps "Refund sent" (this tells
+      // the seller too, once per case).
+      const { openRefund } = await import("@/lib/commerce/order-refunds.server");
+      const { refundFaultFor, refundReasonForFault } = await import("@shared/order-refunds");
+      await openRefund({
+        sourceKey: `fault:${input.caseKey}`,
+        orderId: order.id,
+        reason: refundReasonForFault(input.event),
+        fault: refundFaultFor(input.event),
+        amountKobo: sellerKobo,
+        note: `${input.why}${paystackKobo > 0 ? ` Shopinbos is refunding its own ${naira(paystackKobo)} through Paystack.` : ""}`,
+      });
+    } else {
+      await notifySeller(order, `Refund started: order ${order.orderNumber}`, `${input.why} ${naira(paystackKobo)} is going back to your customer through Paystack.`, "info");
+    }
+    if (order.buyerEmail) {
+      const sender = await loadStoreSender(order.storeId).catch(() => null);
+      if (sender) {
+        const email = faultRefundEmail({ appUrl: appBase(), store: sender, buyerName: order.buyerName, orderNumber: order.orderNumber, what: input.customerLine, paystack: paystackKobo > 0 ? naira(paystackKobo) : null, byStore: sellerKobo > 0 ? naira(sellerKobo) : null });
+        await sendEmail({ to: [order.buyerEmail], from: formatFromAddress(order.store.name), subject: email.subject, html: email.html }).catch((error) => console.error(`[refunds] fault refund email for ${order.orderNumber} failed`, error));
+      }
+    }
+    return { status, paystackKobo, sellerKobo };
+  } catch (error) {
+    console.error(`[refunds] could not refund case ${input.caseKey}`, error);
+    return { status: "failed", paystackKobo: 0, sellerKobo: 0 };
   }
 }

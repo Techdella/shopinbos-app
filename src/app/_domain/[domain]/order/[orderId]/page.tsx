@@ -46,7 +46,7 @@ export default async function CustomDomainOrderPage({ params, searchParams }: Pr
 
   const [next, refundPanel] = await Promise.all([
     loadOrderNextSteps(order, store),
-    customerRefundPanel(order.id).catch(() => ({ refunds: [], lateParts: [], refundBanks: [] as string[] })),
+    customerRefundPanel(order.id).catch(() => ({ refunds: [], refundBanks: [] as string[] })),
   ]);
   const publicStore = { name: store.name, slug: store.slug, logoUrl: store.logoUrl, currency: store.currency, brandSettings: next.brandSettings };
 

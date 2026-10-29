@@ -483,3 +483,34 @@ export async function notifyOrderCustomerPreorderPayment(orderId: string, kind: 
     return [];
   }
 }
+
+/** The supplier missed the ship-by date: the customer may cancel that part for a full refund from their order page. */
+export const LATE_CANCEL_SMS = "{{store}}: part of your order {{order_number}} hasn't been sent in time. You can wait, or cancel it for a full refund here: {{order_url}}";
+
+/** The ship-by date passed (src/lib/faults/strikes.server.ts): one SMS per late parcel, in the shop's name. Never throws. */
+export async function textLateCancelOffer(orderId: string, supplierOrderId: string) {
+  try {
+    const order = await db.retailOrder.findUnique({ where: { id: orderId }, select: { id: true, storeId: true, orderNumber: true, buyerName: true, buyerPhone: true } });
+    const phone = normalizePhone(order?.buyerPhone);
+    if (!order || !phone) return [];
+    const store = await db.store.findUnique({ where: { id: order.storeId }, select: MARKETING_STORE_SELECT });
+    if (!store) return [];
+    const recipient = { event: "order_late_cancel" as CustomerEvent, refId: `${order.id}:${supplierOrderId}`, phone, name: order.buyerName, values: {}, smsVars: {} } satisfies Recipient;
+    const id = await claim(store.id, recipient, "sms");
+    if (!id) return [];
+    const allowed = mayText({ channel: "sms", phone, purpose: "transactional", consent: true, optOuts: await loadOptOuts(store.id) });
+    if (!allowed.ok) {
+      await finish(id, { ok: false, error: allowed.reason, skipped: true });
+      return [{ channel: "sms" as const, ok: false, error: allowed.reason }];
+    }
+    const settings = await getMessagingSettings(order.storeId);
+    const body = fillVariables(LATE_CANCEL_SMS, { store: store.name, order_number: order.orderNumber, order_url: storeUrl(store, `/order/${order.id}`) } as unknown as FlowVariables, "text").replace(/\s{2,}/g, " ").trim();
+    const send = await textSender(store, { senderId: settings.smsSenderId });
+    const outcome = await send.sms(phone, body).catch((error): SendOutcome => ({ ok: false, error: String(error) }));
+    await finish(id, outcome);
+    return [{ channel: "sms" as const, ok: outcome.ok }];
+  } catch (error) {
+    console.error(`[customer messages] late offer for order ${orderId} failed`, error);
+    return [];
+  }
+}

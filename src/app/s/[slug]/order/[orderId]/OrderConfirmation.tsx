@@ -11,13 +11,14 @@ import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { formatStoreMoney } from "@/lib/storefront/shopper-info";
 import { ItemThumb, Panel, PrimaryButton, ShopperShell } from "@/components/storefront/shopper/ShopperShell";
 import { payAtDoor as startPayAtDoor, payOrderBalance } from "./actions";
-import { RefundsPanel, type CustomerRefund, type LatePart } from "./RefundsPanel";
+import { RefundsPanel, type CustomerRefund } from "./RefundsPanel";
 import { resolveShopperTheme, type ShopperTheme } from "@/components/storefront/shopper/theme";
 import { TransferInstructions, payByText, type TransferDetails } from "./TransferInstructions";
 import { OrderRewardsPanel, type OrderRewards } from "@/components/storefront/gamification/Rewards";
 import { shopperGameColors } from "@/components/storefront/gamification/client";
 import { ISSUE_KINDS, type IssueKind, type TimelineStep } from "@shared/delivery-market";
 import type { OrderDeliveryView } from "./order-props";
+import { LateParts, OrderOutcomes, PhotoPicker, ReturnPanel, type OrderFaults } from "./OrderProblems";
 
 interface Props {
   /** Starter and up: no "Delivery tracking by Shopinbos" line. */
@@ -75,9 +76,10 @@ interface Props {
   balance?: BalanceView | null;
   /** Pay on delivery, paid in the app at the door (src/lib/commerce/pay-at-door.server.ts payAtDoorView): naira. */
   payAtDoor?: PayAtDoorView | null;
-  /** Refunds and late supplier parts (who pays when things go wrong, shared/order-refunds.ts). */
+  /** Who pays when things go wrong (src/lib/faults/customer.server.ts): late parts, outcomes, returns. */
+  faults?: OrderFaults | null;
+  /** Refunds the store sends from its own bank, guided (shared/order-refunds.ts). */
   refunds?: CustomerRefund[];
-  lateParts?: LatePart[];
   refundBanks?: string[];
 }
 
@@ -108,7 +110,7 @@ export interface BalanceView {
 
 const PAID = ["paid", "processing", "packed", "shipped", "delivered"];
 
-export function OrderConfirmation({ order, store, storeBasePath, transfer = null, deliveryCode = null, rewards = null, delivery = null, brandedTracking = true, balance = null, payAtDoor = null, refunds = [], lateParts = [], refundBanks = [] }: Props) {
+export function OrderConfirmation({ order, store, storeBasePath, transfer = null, deliveryCode = null, rewards = null, delivery = null, brandedTracking = true, balance = null, payAtDoor = null, faults = null, refunds = [], refundBanks = [] }: Props) {
   const cart = useCart(store.slug);
   const theme = useMemo(() => resolveShopperTheme(store.brandSettings), [store.brandSettings]);
   const clearCart = cart.clear;
@@ -180,7 +182,9 @@ export function OrderConfirmation({ order, store, storeBasePath, transfer = null
 
           {owing ? <PayTheRest theme={theme} orderId={order.id} balance={owing} money={money} /> : null}
 
-          <RefundsPanel theme={theme} orderId={order.id} refunds={refunds} lateParts={lateParts} banks={refundBanks} money={money} />
+          {faults?.late.length && order.status !== "cancelled" ? <LateParts theme={theme} slug={store.slug} orderId={order.id} late={faults.late} /> : null}
+          {faults?.outcomes.length ? <OrderOutcomes theme={theme} outcomes={faults.outcomes} /> : null}
+          <RefundsPanel theme={theme} orderId={order.id} refunds={refunds} banks={refundBanks} money={money} />
 
           <NextSteps
             theme={theme}
@@ -226,6 +230,7 @@ export function OrderConfirmation({ order, store, storeBasePath, transfer = null
           {order.status !== "cancelled" && (isPaid || method === "pay_on_delivery") ? (
             <ReportProblem theme={theme} storeSlug={store.slug} storeName={store.name} orderId={order.id} buyerName={order.buyerName} />
           ) : null}
+          {faults && order.status === "delivered" ? <ReturnPanel theme={theme} slug={store.slug} orderId={order.id} returns={faults.returns} storeName={store.name} /> : null}
 
           {isPaid && order.items.some((item) => item.productId) ? (
             <section aria-labelledby="review-heading" className="grid gap-3">
@@ -642,6 +647,7 @@ function ReportProblem({ theme, storeSlug, storeName, orderId, buyerName }: { th
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [sent, setSent] = useState(false);
+  const [photos, setPhotos] = useState<string[]>([]);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -652,7 +658,7 @@ function ReportProblem({ theme, storeSlug, storeName, orderId, buyerName }: { th
       const res = await fetch(`/api/public/store/${encodeURIComponent(storeSlug)}/orders/${encodeURIComponent(orderId)}/issue`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind, message: message.trim() || undefined, name: name.trim() || undefined }),
+        body: JSON.stringify({ kind, message: message.trim() || undefined, name: name.trim() || undefined, photos: photos.length ? photos : undefined }),
       });
       const json = await res.json().catch(() => null);
       if (!res.ok) return setError(json?.error?.message ?? "Couldn't send it. Try again.");
@@ -668,7 +674,7 @@ function ReportProblem({ theme, storeSlug, storeName, orderId, buyerName }: { th
     return (
       <Panel theme={theme} className="p-5" aria-live="polite">
         <h2 className="text-[18px] font-semibold" style={{ fontFamily: theme.heading }}>Problem reported: {kind ? CUSTOMER_ISSUE_WORDS[kind] : ""}</h2>
-        <p className="mt-1 text-[14.5px] leading-6" style={{ color: theme.muted }}>{storeName} will get back to you.</p>
+        <p className="mt-1 text-[14.5px] leading-6" style={{ color: theme.muted }}>{storeName} will get back to you.{kind === "wrong_item" || kind === "damaged" || kind === "not_delivered" ? " Our team checks the packing and delivery photos and decides who puts it right: a refund or a replacement." : ""}</p>
       </Panel>
     );
   }
@@ -699,6 +705,7 @@ function ReportProblem({ theme, storeSlug, storeName, orderId, buyerName }: { th
           Tell the store more (optional)
           <textarea value={message} onChange={(event) => setMessage(event.target.value)} rows={3} maxLength={1000} className="block w-full rounded-[14px] border bg-white px-4 py-3 text-[16px] font-normal outline-none focus-visible:outline focus-visible:outline-2" style={{ borderColor: theme.border, color: "#16141F" }} />
         </label>
+        {kind === "wrong_item" || kind === "damaged" ? <PhotoPicker theme={theme} slug={storeSlug} orderId={orderId} photos={photos} onChange={setPhotos} /> : null}
         <label className="grid gap-1.5 text-[14px] font-medium">
           Your name
           <input value={name} onChange={(event) => setName(event.target.value)} maxLength={80} autoComplete="name" className="h-12 w-full rounded-full border bg-white px-4 text-[16px] font-normal outline-none focus-visible:outline focus-visible:outline-2" style={{ borderColor: theme.border, color: "#16141F" }} />

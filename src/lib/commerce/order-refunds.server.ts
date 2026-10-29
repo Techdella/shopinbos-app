@@ -4,27 +4,22 @@ import { createNotification } from "@/lib/notifications/create";
 import { notifyAdminsToReview } from "@/lib/notifications/events.server";
 import { PAYSTACK_BANK_CODES, resolveBankAccount } from "@/lib/payout-bank";
 import { checkRateLimitShared, rateLimitKey } from "@/lib/rate-limit";
-import { supplierPartCollect } from "@shared/cod-split";
 import {
-  LATE_STRIKES_FOR_REVIEW,
   REFUND_CONFIRM_DAYS,
   REFUND_REASON_TEXT,
-  STRIKE_WINDOW_DAYS,
   cleanAccountNumber,
-  customerMayCancelLate,
   maskAccount,
   refundOpen,
-  shipByDate,
   type RefundFault,
   type RefundReason,
 } from "@shared/order-refunds";
 
-// Who pays when things go wrong (rules and the table in shared/order-refunds.ts). Shopinbos never holds money, so a
-// customer's refund is sent by the seller from their own bank to the account the customer gave on their order page;
-// the seller taps "Refund sent" and the customer confirms or says it didn't arrive (then the team steps in). When a
-// supplier caused it, the supplier owes the seller back through money owed (src/lib/money-owed): the "not sent" debt for
-// out of stock and late, a claim with the packing photo for a wrong or damaged item. Every step is once (sourceKey,
-// conditional updates) and nothing here throws into the caller's flow.
+// Guided refunds (shared/order-refunds.ts). Shopinbos never holds money, so the part of a refund the seller owes
+// (who pays is decided in src/lib/faults, shared/fault-matrix.ts; a cancelled paid order; a late payment) is sent by
+// the seller from their own bank to the account the customer gave on their order page; the seller taps "Refund sent"
+// and the customer confirms or says it didn't arrive (then the team steps in, Admin › Refunds). What others owe the
+// seller for it is money owed (src/lib/money-owed). Every step is once (sourceKey, conditional updates) and nothing
+// here throws into the caller's flow.
 
 const PAID_STATUSES = ["paid", "processing", "packed", "shipped", "delivered"];
 
@@ -108,45 +103,6 @@ export async function openRefund(input: OpenRefundInput) {
   }
 }
 
-/** The customer's share of the order total for one supplier's lines (the whole total when that's all the order is). */
-async function supplierPartKobo(supplierOrderId: string) {
-  const row = await db.supplierOrder.findUnique({ where: { id: supplierOrderId }, select: { items: true, retailOrder: { select: { id: true, items: true, total: true } } } });
-  if (!row) return 0;
-  const lines = Array.isArray(row.retailOrder.items) ? row.retailOrder.items.length : 0;
-  const parts = Array.isArray(row.items) ? row.items.length : 0;
-  const naira = lines > 0 && parts >= lines ? Number(row.retailOrder.total) : supplierPartCollect(row.retailOrder.items, Number(row.retailOrder.total) || 0, row.items);
-  return Math.round(Math.max(0, naira) * 100);
-}
-
-/**
- * A supplier's part of a paid order won't come (declined as out of stock, or the customer cancelled it for being late):
- * the customer is refunded that part, the supplier owes the seller back what they were paid at checkout (the "not sent"
- * debt, recorded now rather than at the next sweep), and a decline counts as a strike (missed order).
- */
-export async function onSupplierPartFailed(supplierOrderId: string, reason: "out_of_stock" | "supplier_late") {
-  try {
-    const row = await db.supplierOrder.findUnique({ where: { id: supplierOrderId }, select: { id: true, status: true, sellerId: true, supplierId: true, retailOrderId: true, replacesId: true, rejectReason: true } });
-    if (!row || !["rejected", "cancelled", "expired"].includes(row.status)) return null;
-    if (reason === "out_of_stock") await db.supplier.update({ where: { id: row.supplierId }, data: { missedOrders: { increment: 1 } } }).catch(() => null);
-    const { syncNotSentDebts } = await import("@/lib/money-owed/money-owed.server");
-    await syncNotSentDebts({ sellerId: row.sellerId, since: new Date(Date.now() - 60 * 60_000) });
-    const debt = await db.businessDebt.findUnique({ where: { sourceKey: `notsent:${row.id}` }, select: { id: true } }).catch(() => null);
-    return await openRefund({
-      sourceKey: `supplier:${row.id}`,
-      orderId: row.retailOrderId,
-      reason,
-      fault: "supplier",
-      amountKobo: await supplierPartKobo(row.id),
-      supplierOrderId: row.id,
-      note: reason === "out_of_stock" && row.rejectReason ? `Supplier: ${row.rejectReason}` : null,
-      debtId: debt?.id ?? null,
-    });
-  } catch (error) {
-    console.error(`[order refunds] supplier part ${supplierOrderId} failed`, error);
-    return null;
-  }
-}
-
 /**
  * The seller cancelled a paid order: the customer gets back what isn't already being refunded. Out of stock with the
  * supplier when one of its suppliers declined or ran out of time, else the seller's own call.
@@ -206,17 +162,10 @@ export async function refundsForOrder(orderId: string, audience: "customer" | "s
   }));
 }
 
-/** The customer's order page: their refunds, the late supplier parts they may cancel, and the banks to pick from. */
+/** The customer's order page: their refunds and the banks to pick from. */
 export async function customerRefundPanel(orderId: string) {
-  const [refunds, late] = await Promise.all([
-    refundsForOrder(orderId, "customer"),
-    db.supplierOrder.findMany({ where: { retailOrderId: orderId, status: "accepted", lateAt: { not: null } }, select: { id: true, items: true } }).catch(() => []),
-  ]);
-  const lateParts = late.map((row) => {
-    const names = (Array.isArray(row.items) ? row.items : []).map((item) => (item && typeof item === "object" && "name" in item ? String((item as { name?: unknown }).name ?? "") : "")).filter(Boolean);
-    return { id: row.id, items: names.length ? names.join(", ") : "Part of your order" };
-  });
-  return { refunds: refunds.map(({ id, reasonText, amount, status, bankName, account, accountName }) => ({ id, reasonText, amount, status, bankName, account, accountName })), lateParts, refundBanks: REFUND_BANKS };
+  const refunds = await refundsForOrder(orderId, "customer");
+  return { refunds: refunds.map(({ id, reasonText, amount, status, bankName, account, accountName }) => ({ id, reasonText, amount, status, bankName, account, accountName })), refundBanks: REFUND_BANKS };
 }
 
 export type RefundActionResult = { ok: true; message: string; accountName?: string } | { ok: false; error: string };
@@ -290,25 +239,6 @@ async function finishOrderRefund(orderId: string) {
   await db.retailOrder.update({ where: { id: orderId }, data: { refundStatus: "processed", refundedAt: new Date(), paymentIssue: null } }).catch(() => null);
 }
 
-/**
- * The customer cancels a late supplier's part of their order (it's past its handling time and hasn't left): the
- * supplier order is cancelled, the customer refunded for it, and the supplier owes the seller back.
- */
-export async function customerCancelsLatePart(orderId: string, supplierOrderId: string): Promise<RefundActionResult> {
-  const row = await db.supplierOrder.findFirst({ where: { id: supplierOrderId, retailOrderId: orderId }, select: { id: true, status: true, lateAt: true, supplierId: true, sellerId: true, supplier: { select: { userId: true } }, retailOrder: { select: { orderNumber: true } } } });
-  if (!row) return { ok: false, error: "We couldn't find this part of your order." };
-  if (!customerMayCancelLate(row)) return { ok: false, error: row.status === "shipped" || row.status === "delivered" ? "It's already on its way, so it can't be cancelled now." : "This part of your order isn't late." };
-  const moved = await db.supplierOrder.updateMany({ where: { id: row.id, status: "accepted" }, data: { status: "cancelled" } });
-  if (moved.count !== 1) return { ok: false, error: "It has just moved on. Refresh to see where it is." };
-  const refund = await onSupplierPartFailed(row.id, "supplier_late");
-  const ref = row.retailOrder.orderNumber;
-  await Promise.allSettled([
-    createNotification({ userId: row.supplier.userId, type: "dropshipping", priority: "critical", title: `Order ${ref} was cancelled: it was late`, description: "The customer cancelled because it wasn't sent in its handling time. Don't send it. What you were paid for it is owed back to the shop.", link: "/supplier/orders", event: "supplier.update", dedupeKey: `supplier.late.cancelled:${row.id}` }),
-    createNotification({ userId: row.sellerId, type: "dropshipping", priority: "warning", title: `Customer cancelled the late part of order ${ref}`, description: "Your supplier didn't send it in time. Refund your customer; your supplier pays you back.", link: `/home/orders/${orderId}#refunds`, event: "supplier.update", dedupeKey: `seller.late.cancelled:${row.id}` }),
-  ]);
-  return refund ? { ok: true, message: "Cancelled. Add your bank account below for your refund." } : { ok: true, message: "Cancelled." };
-}
-
 // ─── The seller ────────────────────────────────────────────────────────────────
 
 /** The seller sent the refund from their bank. The customer is asked whether it arrived. */
@@ -321,102 +251,6 @@ export async function sellerSentRefund(sellerId: string, refundId: string, refer
   const { textOrderRefund } = await import("@/lib/notifications/customer-messages");
   await textOrderRefund(refund.retailOrderId, refund.id, "sent", naira(refund.amountKobo, refund.currency)).catch(() => null);
   return { ok: true, message: "Marked sent. We've asked your customer to confirm it arrived." };
-}
-
-// ─── Wrong or damaged item: who caused it ──────────────────────────────────────
-
-export type IssueFault = "supplier" | "partner" | "seller";
-
-/**
- * The seller decides who caused a wrong or damaged item the customer reported: the customer is refunded (the supplier's
- * part for a supplier fault, else the whole order), and a supplier or the delivery partner owes the seller back through
- * a claim they can accept or dispute (the packing photo and the delivery photo go with it as evidence).
- */
-export async function resolveIssueWithRefund(seller: { id: string }, issueId: string, fault: IssueFault, supplierOrderId?: string | null): Promise<RefundActionResult> {
-  const store = await db.store.findUnique({ where: { userId: seller.id }, select: { id: true } });
-  const issue = store ? await db.deliveryIssue.findFirst({ where: { id: issueId, storeId: store.id }, select: { id: true, kind: true, message: true, retailOrderId: true, bookingId: true, status: true } }) : null;
-  if (!issue?.retailOrderId) return { ok: false, error: "We couldn't find this report." };
-  const reason: RefundReason = fault === "partner" ? "damaged_in_transit" : issue.kind === "wrong_item" ? "wrong_item" : "damaged";
-  const order = await db.retailOrder.findUnique({ where: { id: issue.retailOrderId }, select: { id: true, total: true, shippingFee: true, orderNumber: true } });
-  if (!order) return { ok: false, error: "We couldn't find this order." };
-  const { raiseClaim } = await import("@/lib/money-owed/money-owed.server");
-  let amountKobo = Math.round(Number(order.total) * 100);
-  let debtNote: string | null = null;
-  if (fault === "supplier") {
-    const part = await db.supplierOrder.findFirst({ where: { id: supplierOrderId ?? "", retailOrderId: order.id, sellerId: seller.id }, select: { id: true, costTotal: true, deliveryFee: true, packPhotoUrl: true } });
-    if (!part) return { ok: false, error: "Pick the supplier who sent it." };
-    amountKobo = await supplierPartKobo(part.id);
-    const claim = await raiseClaim(seller, {
-      target: "supplier_order",
-      targetId: part.id,
-      reason: issue.kind === "wrong_item" ? "wrong_item" : "damaged",
-      amountKobo: Math.round((part.costTotal + part.deliveryFee) * 100),
-      details: `The customer reported ${issue.kind === "wrong_item" ? "the wrong item" : "a damaged item"}${issue.message ? `: "${issue.message.slice(0, 400)}"` : ""}.${part.packPhotoUrl ? ` Packing photo: ${part.packPhotoUrl}` : ""}`,
-    });
-    debtNote = claim.ok ? "Claim sent to the supplier." : claim.error;
-  } else if (fault === "partner" && issue.bookingId) {
-    const job = await db.deliveryBooking.findUnique({ where: { id: issue.bookingId }, select: { proofUrl: true } });
-    const goods = Math.round(Math.max(0, Number(order.total) - Number(order.shippingFee ?? 0)) * 100);
-    const claim = await raiseClaim(seller, {
-      target: "booking",
-      targetId: issue.bookingId,
-      reason: "damaged_in_transit",
-      amountKobo: goods,
-      details: `The customer reported a damaged parcel${issue.message ? `: "${issue.message.slice(0, 400)}"` : ""}.${job?.proofUrl ? ` Delivery photo: ${job.proofUrl}` : ""}`,
-    });
-    debtNote = claim.ok ? "Claim sent to the delivery partner." : claim.error;
-  }
-  const refund = await openRefund({ sourceKey: `issue:${issue.id}`, orderId: order.id, reason, fault, amountKobo, supplierOrderId: fault === "supplier" ? supplierOrderId : null, note: debtNote });
-  await db.deliveryIssue.updateMany({ where: { id: issue.id, status: "open" }, data: { status: "resolved" } }).catch(() => null);
-  if (!refund) return { ok: false, error: "This order wasn't paid, so there's nothing to refund." };
-  return { ok: true, message: `Refund opened.${debtNote ? ` ${debtNote}` : ""}` };
-}
-
-// ─── Late handling (the supplier cron) ─────────────────────────────────────────
-
-/** When a supplier accepts: their ship-by deadline from the products' handling days. */
-export async function setShipBy(supplierOrderId: string, acceptedAt: Date) {
-  const row = await db.supplierOrder.findUnique({ where: { id: supplierOrderId }, select: { items: true } });
-  const ids = (Array.isArray(row?.items) ? (row!.items as Array<{ supplierProductId?: unknown }>) : []).map((item) => item.supplierProductId).filter((id): id is string => typeof id === "string");
-  const products = ids.length ? await db.supplierProduct.findMany({ where: { id: { in: ids } }, select: { handlingDays: true } }) : [];
-  await db.supplierOrder.updateMany({ where: { id: supplierOrderId, shipBy: null }, data: { shipBy: shipByDate(acceptedAt, products.map((product) => product.handlingDays)) } });
-}
-
-/**
- * Accepted orders past their ship-by without shipping: a strike on the supplier (missedReadyDates), the seller and the
- * customer told (the customer may cancel that part for a full refund), and at LATE_STRIKES_FOR_REVIEW late orders in
- * STRIKE_WINDOW_DAYS the team reviews the supplier's tier. Once per order (lateAt).
- */
-export async function markLateSuppliers(now = new Date(), limit = 200) {
-  const rows = await db.supplierOrder.findMany({
-    where: { status: "accepted", lateAt: null, shipBy: { lte: now } },
-    take: limit,
-    select: { id: true, supplierId: true, sellerId: true, retailOrderId: true, supplier: { select: { userId: true, displayName: true } }, retailOrder: { select: { orderNumber: true } } },
-  });
-  let marked = 0;
-  for (const row of rows) {
-    const moved = await db.supplierOrder.updateMany({ where: { id: row.id, status: "accepted", lateAt: null }, data: { lateAt: now } });
-    if (moved.count !== 1) continue;
-    marked += 1;
-    await db.supplier.update({ where: { id: row.supplierId }, data: { missedReadyDates: { increment: 1 } } }).catch(() => null);
-    const ref = row.retailOrder.orderNumber;
-    await Promise.allSettled([
-      createNotification({ userId: row.supplier.userId, type: "dropshipping", priority: "critical", title: `Order ${ref} is late`, description: "It's past its handling time. Send it today: the customer can now cancel it, and late orders count against your level.", link: "/supplier/orders", event: "supplier.update", dedupeKey: `supplier.late:${row.id}` }),
-      createNotification({ userId: row.sellerId, type: "dropshipping", priority: "warning", title: `${row.supplier.displayName} is late with order ${ref}`, description: "Your customer can wait or cancel that part for a full refund; your supplier pays you back if they do.", link: `/home/orders/${row.retailOrderId}`, event: "supplier.update", dedupeKey: `seller.late:${row.id}` }),
-      import("@/lib/notifications/customer-messages").then((messages) => messages.textOrderLate(row.retailOrderId, row.id)),
-    ]);
-    const since = new Date(now.getTime() - STRIKE_WINDOW_DAYS * 86_400_000);
-    const strikes = await db.supplierOrder.count({ where: { supplierId: row.supplierId, lateAt: { gte: since } } });
-    if (strikes >= LATE_STRIKES_FOR_REVIEW) {
-      await notifyAdminsToReview({
-        title: `${row.supplier.displayName}: ${strikes} late orders in ${STRIKE_WINDOW_DAYS} days`,
-        description: `Review their tier. Latest: order ${ref}.`,
-        link: `/admin/suppliers/${row.supplierId}`,
-        dedupeKey: `admin.supplier.late:${row.supplierId}:${Math.floor(now.getTime() / (7 * 86_400_000))}`,
-      }).catch(() => null);
-    }
-  }
-  return marked;
 }
 
 /** Reminds sellers of refunds the customer gave an account for 2+ days ago, once. */

@@ -398,15 +398,22 @@ export function effectiveBranding(choice: string | null | undefined, offer: Bran
 }
 
 export interface PackStep {
-  id: "plain" | "slip" | "sticker" | "code" | "photo";
+  id: "contents" | "plain" | "slip" | "sticker" | "code" | "photo";
   text: string;
   detail: string;
 }
 
-/** The supplier's checklist on a dropship order: pack it the seller's way. The sealed-parcel photo is always last. */
+/** The two packing photos (shared/fault-matrix.ts: they decide most disputes). */
+export const PACK_PHOTO_STEPS = ["contents", "photo"] as const;
+
+/**
+ * The supplier's checklist on a dropship order: pack it the seller's way. It starts with a photo of the item in the
+ * open box and ends with the sealed parcel: the two photos that decide most disputes.
+ */
 export function packChecklist(input: { sellerName: string; choice: string | null | undefined; orderCode: string; stickersLeft?: number | null; skus?: readonly string[] }): PackStep[] {
   const skus = (input.skus ?? []).filter(Boolean);
   return [
+    { id: "contents", text: "Snap the item in the open box", detail: "Shows exactly what you sent, before you seal it" },
     { id: "plain", text: "Pack plain, no price tag", detail: "Nothing with your name, price or receipt inside" },
     ...(input.choice === "packing_slip" ? [{ id: "slip" as const, text: `Print ${input.sellerName}'s packing slip`, detail: skus.length ? `Shows ${skus.join(", ")}` : "Their logo and a thank-you note" }] : []),
     ...(input.choice === "stickers"
@@ -417,10 +424,14 @@ export function packChecklist(input: { sellerName: string; choice: string | null
   ];
 }
 
-/** The order can be marked ready only with every step ticked and the sealed-parcel photo taken. */
-export function packReadyProblem(steps: readonly PackStep[], done: readonly string[], photoUrl: string | null | undefined): string | null {
+/**
+ * The order can be marked ready only with every step ticked and both photos taken: the item in the open box
+ * (`contentsUrl`, when the checklist asks for it) and the sealed parcel.
+ */
+export function packReadyProblem(steps: readonly PackStep[], done: readonly string[], photoUrl: string | null | undefined, contentsUrl?: string | null): string | null {
+  if (steps.some((step) => step.id === "contents") && !contentsUrl) return "Snap a photo of the item in the open box first.";
   if (!photoUrl) return "Snap a photo of the sealed parcel first.";
-  const left = steps.filter((step) => step.id !== "photo" && !done.includes(step.id));
+  const left = steps.filter((step) => step.id !== "photo" && step.id !== "contents" && !done.includes(step.id));
   return left.length ? `${left.length} step${left.length === 1 ? "" : "s"} left: ${left[0].text}.` : null;
 }
 

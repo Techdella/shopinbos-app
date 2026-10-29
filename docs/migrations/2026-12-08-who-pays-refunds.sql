@@ -1,7 +1,7 @@
--- Who pays when things go wrong, first batch (shared/order-refunds.ts): customers' refunds the seller sends from their
--- own bank (Shopinbos never holds money), and the supplier's ship-by deadline for late handling.
--- Additive only: one new table and two nullable columns; nothing changed or removed. Safe to run more than once.
--- Run BEFORE deploying this code (order pages, the seller's order page and the supplier cron read these).
+-- Guided refunds (shared/order-refunds.ts): the part of a refund the seller sends from their own bank (Shopinbos never
+-- holds money), with the customer's account, "Refund sent" and the customer's confirmation. Run after
+-- 2026-12-07-who-pays-when-things-go-wrong.sql. Additive only: one new table. Safe to run more than once.
+-- Run BEFORE deploying this code (the order pages, the seller's order page and the supplier cron read it).
 
 CREATE TABLE IF NOT EXISTS "OrderRefund" (
   "id" TEXT NOT NULL,
@@ -36,6 +36,3 @@ CREATE INDEX IF NOT EXISTS "OrderRefund_retailOrderId_idx" ON "OrderRefund" ("re
 CREATE INDEX IF NOT EXISTS "OrderRefund_storeId_status_idx" ON "OrderRefund" ("storeId", "status");
 CREATE INDEX IF NOT EXISTS "OrderRefund_status_updatedAt_idx" ON "OrderRefund" ("status", "updatedAt");
 
-ALTER TABLE "SupplierOrder" ADD COLUMN IF NOT EXISTS "shipBy" TIMESTAMP(3);
-ALTER TABLE "SupplierOrder" ADD COLUMN IF NOT EXISTS "lateAt" TIMESTAMP(3);
-CREATE INDEX IF NOT EXISTS "SupplierOrder_status_shipBy_idx" ON "SupplierOrder" ("status", "shipBy");

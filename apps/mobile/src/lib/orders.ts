@@ -43,7 +43,33 @@ export interface OrderDetail {
   trackingUrl?: string | null;
   /** A line was preordered: the earliest ship date (or null: soon). Null for an ordinary order; older servers leave it out. */
   preorder?: { shipsOn: string | null } | null;
+  /** What the seller earns on it, problems on it and a customer's return (src/lib/faults/seller.server.ts). */
+  money?: OrderMoney | null;
 }
+
+/** Kobo throughout. */
+export interface OrderMoney {
+  earnings: { basis: "split" | "estimate"; customerPaidKobo: number; suppliersKobo: number; deliveryKobo: number; feeKobo: number; earnKobo: number; toDebtsKobo: number; faultsKobo: number; netKobo: number };
+  problems: Array<{ id: string; label: string; line: string | null; refund: string | null; createdAt: string }>;
+  returns: OrderReturn[];
+}
+
+export interface OrderReturn {
+  id: string;
+  reason: string;
+  reasonLabel: string;
+  message: string | null;
+  photos: string[];
+  status: string;
+  returnPayer: string;
+  refundKobo: number;
+  declineReason: string | null;
+  createdAt: string;
+}
+
+/** The seller answers a customer's return: approve (books the trip back), decline (with a reason), or it's back (refund). */
+export const answerReturn = (orderId: string, returnId: string, action: "approve" | "decline" | "received", reason?: string) =>
+  api<{ returns: OrderReturn[] }>(`/api/app/orders/${encodeURIComponent(orderId)}/returns/${encodeURIComponent(returnId)}`, { method: "POST", json: { action, reason } });
 
 /** One parcel: a supplier's, or the seller's own ("You"). */
 export interface OrderPart {

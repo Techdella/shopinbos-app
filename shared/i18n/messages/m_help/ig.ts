@@ -134,6 +134,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "call.screen.create": "Mee mbipụta",
   "call.screen.customers": "Ndị ahịa",
   "call.screen.delivery": "Nnyefe",
+  "call.screen.returns": "Nlọghachi ngwa",
   "call.screen.delivery_areas": "Ebe ị na-ebuga ngwa",
   "call.screen.delivery_partners": "Chọta ụlọ ọrụ nnyefe",
   "call.screen.domain": "Adreesị weebụ",

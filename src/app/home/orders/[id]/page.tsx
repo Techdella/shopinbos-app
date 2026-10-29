@@ -25,6 +25,8 @@ import { refundsForOrder } from "@/lib/commerce/order-refunds.server";
 import { shortCodesById } from "@/lib/products/short-code.server";
 import { ProductCodeBadge } from "@/components/products/ProductCodeBadge";
 import { orderHasPreorder, orderPreorderShipsOn } from "@shared/preorder";
+import { sellerOrderMoney } from "@/lib/faults/seller.server";
+import { EarningsCard, ProblemsCard, ReturnsCard } from "./OrderMoneyCards";
 
 type OrderItem = { name?: string; title?: string; quantity?: number; price?: number; image?: string | null; variant?: string; productId?: string; preorder?: boolean; shipsOn?: string | null };
 
@@ -69,9 +71,11 @@ export default async function OrderDetailPage({ params, searchParams }: { params
   const booking = await db.deliveryBooking.findFirst({
     where: { orderId: order.id, sellerId: user.id, status: { not: "cancelled" } },
     orderBy: { createdAt: "desc" },
-    select: { id: true, status: true, deliveryCode: true, proofUrl: true, rider: { select: { name: true } }, logisticsPartner: { select: { id: true, displayName: true } } },
+    select: { id: true, status: true, deliveryCode: true, rider: { select: { name: true } }, logisticsPartner: { select: { id: true, displayName: true } } },
   });
 
+  // What the seller earns on it (C10), problems on it and a customer's return (src/lib/faults/seller.server.ts).
+  const orderMoney = await sellerOrderMoney({ ...order, storeId: store.id, total: Number(order.total) }).catch(() => null);
   const items = (Array.isArray(order.items) ? order.items : []) as OrderItem[];
   const preorderShipsOn = orderPreorderShipsOn(order.items);
   // Suppliers behind the products on this order (dropshipped or bought wholesale), to message about it.
@@ -92,17 +96,11 @@ export default async function OrderDetailPage({ params, searchParams }: { params
     .findMany({
       where: { retailOrderId: order.id, storeId: store.id },
       orderBy: { createdAt: "asc" },
-      select: { id: true, status: true, items: true, trackingCode: true, carrier: true, rejectReason: true, shippedAt: true, deliveredAt: true, packPhotoUrl: true, supplier: { select: { id: true, displayName: true } } },
+      select: { id: true, status: true, items: true, trackingCode: true, carrier: true, rejectReason: true, shippedAt: true, deliveredAt: true, supplier: { select: { id: true, displayName: true } } },
     })
     .catch(() => []);
-  // Who pays when things go wrong (shared/order-refunds.ts): refunds the seller sends from their own bank, and wrong or
-  // damaged items the customer reported, for the seller to say who caused it.
-  const [refunds, issues] = await Promise.all([
-    refundsForOrder(order.id, "seller"),
-    db.deliveryIssue
-      .findMany({ where: { retailOrderId: order.id, storeId: store.id, status: "open", kind: { in: ["damaged", "wrong_item"] } }, orderBy: { createdAt: "asc" }, select: { id: true, kind: true, message: true, createdAt: true } })
-      .catch(() => []),
-  ]);
+  // Refunds the seller sends from their own bank, guided (shared/order-refunds.ts).
+  const refunds = await refundsForOrder(order.id, "seller");
   // Parcels: "2 of 3 parcels sent", each part's state, and anything to decide (a supplier didn't accept in time).
   const parts = supplierOrders.length ? await sellerPartsView(order.id, store.id).catch(() => null) : null;
   const address = addressLines(order.deliveryAddress);
@@ -194,10 +192,6 @@ export default async function OrderDetailPage({ params, searchParams }: { params
           <RefundsCard
             orderId={order.id}
             refunds={refunds}
-            issues={issues}
-            supplierParts={supplierOrders.filter((row) => ["shipped", "delivered"].includes(row.status)).map((row) => ({ id: row.id, name: row.supplier.displayName, packPhotoUrl: row.packPhotoUrl }))}
-            proofUrl={booking?.proofUrl ?? null}
-            hasBooking={!!booking}
             money={money}
             flash={{ saved: flash.refundSaved, error: flash.refundError }}
           />
@@ -402,6 +396,10 @@ export default async function OrderDetailPage({ params, searchParams }: { params
               </div>
             )}
           </Card>
+
+          {orderMoney && !["pending", "awaiting_payment"].includes(order.status) ? <div className="max-xl:order-2"><EarningsCard money={orderMoney} /></div> : null}
+          {orderMoney?.returns.length ? <div className="max-xl:order-2"><ReturnsCard orderId={order.id} money={orderMoney} /></div> : null}
+          {orderMoney?.problems.length ? <div className="max-xl:order-2"><ProblemsCard money={orderMoney} /></div> : null}
 
           {/* Status and actions */}
           <Card className="p-5 max-xl:order-3">

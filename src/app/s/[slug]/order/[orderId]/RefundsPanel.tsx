@@ -5,12 +5,11 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
 import { Panel, PrimaryButton } from "@/components/storefront/shopper/ShopperShell";
 import type { ShopperTheme } from "@/components/storefront/shopper/theme";
-import { answerRefund, cancelLatePart, giveRefundAccountAction } from "./actions";
+import { answerRefund, giveRefundAccountAction } from "./actions";
 
-// The customer's side of "who pays when things go wrong" (shared/order-refunds.ts). Shopinbos never holds money, so the
-// store sends a refund from its own bank: the customer gives the account here (checked with the bank, the name shows),
-// sees it being sent, and says whether it arrived. A supplier's part that's past its handling time can be cancelled
-// here for a full refund.
+// The customer's side of a guided refund (shared/order-refunds.ts). Shopinbos never holds money, so the store sends
+// its part of a refund from its own bank: the customer gives the account here (checked with the bank, the name shows),
+// sees it being sent, and says whether it arrived.
 
 export interface CustomerRefund {
   id: string;
@@ -22,47 +21,14 @@ export interface CustomerRefund {
   accountName: string | null;
 }
 
-export interface LatePart {
-  id: string;
-  items: string;
-}
-
 const field = "min-h-12 w-full rounded-[12px] border px-3 text-[16px]";
 
-export function RefundsPanel({ theme, orderId, refunds, lateParts, banks, money }: { theme: ShopperTheme; orderId: string; refunds: CustomerRefund[]; lateParts: LatePart[]; banks: string[]; money: (amount: number) => string }) {
-  if (!refunds.length && !lateParts.length) return null;
+export function RefundsPanel({ theme, orderId, refunds, banks, money }: { theme: ShopperTheme; orderId: string; refunds: CustomerRefund[]; banks: string[]; money: (amount: number) => string }) {
+  if (!refunds.length) return null;
   return (
     <div id="refund" className="grid scroll-mt-4 gap-4">
-      {lateParts.map((part) => <LatePartCard key={part.id} theme={theme} orderId={orderId} part={part} />)}
       {refunds.map((refund) => <RefundCard key={refund.id} theme={theme} orderId={orderId} refund={refund} banks={banks} money={money} />)}
     </div>
-  );
-}
-
-function LatePartCard({ theme, orderId, part }: { theme: ShopperTheme; orderId: string; part: LatePart }) {
-  const router = useRouter();
-  const [pending, start] = useTransition();
-  const [error, setError] = useState<string | null>(null);
-  const [sure, setSure] = useState(false);
-  return (
-    <Panel theme={theme} className="grid gap-2 p-5" aria-labelledby={`late-${part.id}`}>
-      <h2 id={`late-${part.id}`} className="m-0 flex items-center gap-2 text-[18px] font-semibold" style={{ fontFamily: theme.heading }}><Icon name="clock" size={18} /> Part of your order is late</h2>
-      <p className="m-0 text-[14.5px] leading-6" style={{ color: theme.muted }}>{part.items} hasn&apos;t been sent in its usual time. You can wait, or cancel it and get your money back for it.</p>
-      {sure ? (
-        <div className="flex flex-wrap gap-2">
-          <PrimaryButton theme={theme} type="button" disabled={pending} onClick={() => start(async () => {
-            setError(null);
-            const result = await cancelLatePart(orderId, part.id).catch(() => ({ ok: false as const, error: "Something went wrong. Try again." }));
-            if (!result.ok) setError(result.error);
-            router.refresh();
-          })}>{pending ? "Cancelling…" : "Yes, cancel it and refund me"}</PrimaryButton>
-          <button type="button" className="min-h-12 rounded-full px-4 text-[15px] font-semibold underline" onClick={() => setSure(false)}>Keep waiting</button>
-        </div>
-      ) : (
-        <button type="button" className="min-h-12 justify-self-start rounded-full border px-5 text-[15px] font-semibold" style={{ borderColor: theme.border }} onClick={() => setSure(true)}>Cancel it for a full refund</button>
-      )}
-      {error ? <p role="alert" className="m-0 text-[13.5px]" style={{ color: "#B42318" }}>{error}</p> : null}
-    </Panel>
   );
 }
 

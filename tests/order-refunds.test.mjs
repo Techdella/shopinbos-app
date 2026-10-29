@@ -1,6 +1,5 @@
-// Who pays when things go wrong, first batch: the supplier rows (shared/order-refunds.ts). Shopinbos never holds money:
-// the seller refunds the customer from their own bank, guided by the app, and whoever caused it pays the seller back
-// (BusinessDebt). The pure rules, plus the places that must apply them.
+// Guided refunds (shared/order-refunds.ts). Shopinbos never holds money: the seller sends their part of a refund from
+// their own bank, guided by the app (who pays is shared/fault-matrix.ts). The pure rules, plus the places that apply them.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -19,62 +18,29 @@ test("a refund moves customer → seller → customer, and the team steps in on 
   for (const reason of rules.REFUND_REASONS) assert.ok(rules.REFUND_REASON_TEXT[reason], reason);
 });
 
+test("every fault event maps to a refund reason the customer understands, and who pays the seller back", async () => {
+  const matrix = await import("../shared/fault-matrix.ts");
+  for (const event of matrix.FAULT_EVENTS) {
+    assert.notEqual(rules.refundReasonForFault(event), "other", event);
+    assert.ok(rules.REFUND_REASON_TEXT[rules.refundReasonForFault(event)], event);
+  }
+  assert.equal(rules.refundFaultFor("out_of_stock"), "supplier");
+  assert.equal(rules.refundFaultFor("damaged_in_transit"), "partner");
+  assert.equal(rules.refundFaultFor("changed_mind"), "none");
+});
+
+test("the seller's part of a fault refund is guided, once per case", () => {
+  const refunds = read("src/lib/commerce/refunds.server.ts");
+  assert.match(refunds, /if \(sellerKobo > 0\) \{[\s\S]{0,1000}openRefund\(\{\s*sourceKey: `fault:\$\{input\.caseKey\}`/);
+  assert.match(read("src/lib/faults/resolve.server.ts"), /refundFault\(\{[^)]*event: outcome\.event/);
+});
+
 test("account numbers: 10 digits, and the customer only sees the last 4", () => {
   assert.equal(rules.cleanAccountNumber("012 345 6789"), "0123456789");
   assert.equal(rules.cleanAccountNumber("12345"), null);
   assert.equal(rules.cleanAccountNumber("01234567890"), null);
   assert.equal(rules.maskAccount("0123456789"), "•••• 6789");
   assert.equal(rules.maskAccount(null), "");
-});
-
-test("ship-by is the end of the day in Lagos, accepted plus the longest handling time (1 to 3 days)", () => {
-  const accepted = new Date("2026-10-28T10:00:00Z"); // 11:00 in Lagos
-  assert.equal(rules.shipByDate(accepted, [1]).toISOString(), "2026-10-29T22:59:59.000Z");
-  assert.equal(rules.shipByDate(accepted, [1, 3, 2]).toISOString(), "2026-10-31T22:59:59.000Z");
-  assert.equal(rules.shipByDate(accepted, [9]).toISOString(), "2026-10-29T22:59:59.000Z", "out of range counts as 1");
-  assert.equal(rules.shipByDate(accepted, []).toISOString(), "2026-10-29T22:59:59.000Z");
-  const late = new Date("2026-10-28T23:30:00Z"); // 00:30 the next day in Lagos
-  assert.equal(rules.shipByDate(late, [1]).toISOString(), "2026-10-30T22:59:59.000Z");
-});
-
-test("late: accepted, not shipped, past ship-by; only then can the customer cancel it", () => {
-  const shipBy = new Date("2026-10-29T22:59:59Z");
-  const after = new Date("2026-10-30T08:00:00Z");
-  assert.equal(rules.supplierLate({ status: "accepted", shipBy }, after), true);
-  assert.equal(rules.supplierLate({ status: "accepted", shipBy }, new Date("2026-10-29T12:00:00Z")), false);
-  assert.equal(rules.supplierLate({ status: "shipped", shipBy }, after), false);
-  assert.equal(rules.supplierLate({ status: "accepted", shipBy: null }, after), false);
-  assert.equal(rules.customerMayCancelLate({ status: "accepted", lateAt: after }), true);
-  assert.equal(rules.customerMayCancelLate({ status: "accepted", lateAt: null }), false);
-  assert.equal(rules.customerMayCancelLate({ status: "shipped", lateAt: after }), false, "it's on its way");
-});
-
-test("out of stock after payment: refund opened, the supplier owes the seller back, and gets a strike", () => {
-  const server = read("src/lib/commerce/order-refunds.server.ts");
-  assert.match(server, /reason === "out_of_stock"[\s\S]{0,200}missedOrders: \{ increment: 1 \}/);
-  assert.match(server, /syncNotSentDebts\(/, "the not-sent debt is what the supplier owes back");
-  assert.match(server, /sourceKey: `supplier:\$\{/);
-  assert.match(read("src/lib/supplier-orders/service.server.ts"), /onSupplierPartFailed\(order\.id, "out_of_stock"\)/);
-  assert.match(read("src/lib/supplier-orders/service.server.ts"), /setShipBy\(order\.id, now\)/);
-});
-
-test("supplier late: marked by the cron, a strike each, the team reviews at 3 in 90 days", () => {
-  const server = read("src/lib/commerce/order-refunds.server.ts");
-  assert.match(server, /missedReadyDates: \{ increment: 1 \}/);
-  assert.match(server, /strikes >= LATE_STRIKES_FOR_REVIEW[\s\S]{0,80}notifyAdminsToReview/);
-  assert.match(server, /customerMayCancelLate\(row\)/);
-  const cron = read("src/lib/supplier-orders/acceptance.server.ts");
-  for (const step of ["markLateSuppliers", "remindRefundsToSend", "autoConfirmSentRefunds"]) assert.match(cron, new RegExp(`await ${step}\\(now`), step);
-});
-
-test("wrong or damaged item: the seller says who caused it, with the packing and delivery photos as evidence", () => {
-  const server = read("src/lib/commerce/order-refunds.server.ts");
-  assert.match(server, /target: "supplier_order"[\s\S]{0,400}Packing photo: \$\{part\.packPhotoUrl\}/);
-  assert.match(server, /target: "booking"[\s\S]{0,400}Delivery photo: \$\{job\.proofUrl\}/);
-  const card = read("src/app/home/orders/[id]/RefundsCard.tsx");
-  assert.match(card, /packPhotoUrl/);
-  assert.match(card, /proofUrl/);
-  assert.match(card, /value=\{`supplier:\$\{part\.id\}`\}/);
 });
 
 test("Shopinbos never holds the money: refunds of split orders go through the seller's own bank", () => {
@@ -88,9 +54,11 @@ test("Shopinbos never holds the money: refunds of split orders go through the se
   assert.match(server, /audience === "seller" \? row\.accountNumber \?\? "" : maskAccount\(row\.accountNumber\)/);
 });
 
-test("the customer's order page: give an account, confirm it arrived, cancel a late part", () => {
+test("the customer's order page: give an account, confirm it arrived; the cron reminds and closes", () => {
   const actions = read("src/app/s/[slug]/order/[orderId]/actions.ts");
-  for (const name of ["giveRefundAccount", "customerAnswersRefund", "customerCancelsLatePart"]) assert.match(actions, new RegExp(name));
+  for (const name of ["giveRefundAccount", "customerAnswersRefund"]) assert.match(actions, new RegExp(name));
+  const cron = read("src/lib/supplier-orders/acceptance.server.ts");
+  for (const step of ["remindRefundsToSend", "autoConfirmSentRefunds"]) assert.match(cron, new RegExp(`await ${step}\\(now\\)`), step);
   for (const page of ["src/app/s/[slug]/order/[orderId]/page.tsx", "src/app/_domain/[domain]/order/[orderId]/page.tsx"]) {
     assert.match(read(page), /customerRefundPanel\(order\.id\)/, page);
   }
@@ -100,8 +68,6 @@ test("the customer's order page: give an account, confirm it arrived, cancel a l
 test("the schema change ships as a migration", () => {
   const sql = read("docs/migrations/2026-12-08-who-pays-refunds.sql");
   assert.match(sql, /CREATE TABLE IF NOT EXISTS "OrderRefund"/);
-  assert.match(sql, /"shipBy"/);
-  assert.match(sql, /"lateAt"/);
   const schema = read("prisma/schema.prisma");
   assert.match(schema, /model OrderRefund \{/);
   assert.match(schema, /sourceKey\s+String\s+@unique/);
