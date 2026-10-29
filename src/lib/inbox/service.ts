@@ -5,6 +5,7 @@ import { after } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { aiText } from "@/lib/ai/text";
+import { storeUrl } from "@/lib/marketing/brand";
 import { createNotification } from "@/lib/notifications/create";
 import { PAID_ORDER_STATUSES } from "@/lib/insights";
 import { decryptJson } from "./crypto";
@@ -336,20 +337,21 @@ export async function addNote(input: { storeId: string; conversationId: string; 
 
 async function storeFacts(storeId: string) {
   const [store, products] = await Promise.all([
-    db.store.findUnique({ where: { id: storeId }, select: { name: true, description: true, city: true, country: true, currency: true, slug: true } }),
+    db.store.findUnique({ where: { id: storeId }, select: { name: true, description: true, city: true, country: true, currency: true, slug: true, customDomain: true } }),
     db.storeProduct.findMany({
       where: { storeId, status: "published" },
       orderBy: { soldStock: "desc" },
       take: 30,
-      select: { name: true, retailPrice: true, currentStock: true },
+      select: { id: true, name: true, retailPrice: true, currentStock: true },
     }).catch(() => []),
   ]);
   if (!store) return "";
+  // The store's real address (custom domain, <slug>.mybos.store or /s/<slug>), the same one the storefront uses.
   return [
     `Shop: ${store.name}${store.city ? ` in ${store.city}` : ""}${store.country ? `, ${store.country}` : ""}. Currency ${store.currency}.`,
     store.description ? `About: ${store.description.slice(0, 400)}` : "",
-    products.length ? `Products (name, price, stock): ${products.map((p) => `${p.name} ${Math.round(Number(p.retailPrice))} ${p.currentStock > 0 ? "in stock" : "out of stock"}`).join("; ")}` : "",
-    `Store link: ${(process.env.NEXT_PUBLIC_APP_URL ?? "https://app.shopinbos.com").replace(/\/$/, "")}/s/${store.slug}`,
+    products.length ? `Products (name, price, stock, link):\n${products.map((p) => `${p.name} | ${Math.round(Number(p.retailPrice))} | ${p.currentStock > 0 ? "in stock" : "out of stock"} | ${storeUrl(store, `/product/${p.id}`)}`).join("\n")}` : "",
+    `Store link: ${storeUrl(store, "/")}`,
   ].filter(Boolean).join("\n");
 }
 
@@ -372,6 +374,7 @@ export async function draftReplyWithPeggy(storeId: string, conversationId: strin
     system:
       "You are Peggy, writing a reply for a small online shop in Nigeria to send to a customer. Warm, brief, plain Nigerian English. " +
       "Only use facts from the shop details and the conversation; never invent prices, stock, delivery times, discounts or policies. If you don't know, say the shop will confirm. " +
+      "Only share links exactly as written in the shop details (a product's own link for a product); never make up or change a link. " +
       "Return only the message text, no greeting line like 'Subject:', no signature placeholders, no emojis unless the customer used them.",
     prompt: `${facts}\n${extra?.order ? `${extra.order}\n` : ""}\nConversation (oldest first):\n${thread}\n\n${extra?.instruction ? `The seller wants: ${extra.instruction}\n` : ""}Write the shop's next reply.`,
   });
