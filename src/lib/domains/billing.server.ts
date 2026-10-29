@@ -8,6 +8,7 @@ import { notify } from "@/lib/notifications/notify.server";
 import {
   chargePaystackAuthorization,
   initializePaystackTransaction,
+  paidKobo,
   refundPaystackTransaction,
   verifyPaystackTransaction,
 } from "@/lib/paystack";
@@ -219,7 +220,7 @@ async function recordVerifiedPayment(row: DomainPurchase) {
   if (verified.status !== "success") {
     throw new DomainBillingError("not_paid", "Paystack hasn't confirmed this payment.");
   }
-  if (verified.currency !== "NGN" || verified.amount !== row.amountNgn * 100) {
+  if (verified.currency !== "NGN" || paidKobo(verified) !== row.amountNgn * 100) {
     throw new DomainBillingError("amount_mismatch", "Paystack did not confirm the expected payment amount.");
   }
   const metadata = verified.metadata ?? {};

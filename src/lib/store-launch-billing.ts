@@ -3,7 +3,7 @@ import { billingEmail } from "@/lib/auth/billing-email";
 
 import { db } from "@/lib/db/client";
 import type { Prisma } from "@prisma/client";
-import { verifyPaystackTransaction } from "@/lib/paystack";
+import { verifyPaystackTransaction, paidKobo } from "@/lib/paystack";
 import { publishStoreDraft } from "@/lib/store-publishing";
 import { mergeBrandSettings } from "@/lib/workspace";
 
@@ -80,7 +80,7 @@ export async function completeStoreLaunchPayment(reference: string) {
   }
 
   const verified = await verifyPaystackTransaction(reference);
-  const paidNgn = Math.floor(verified.amount / 100);
+  const paidNgn = Math.floor(paidKobo(verified) / 100);
   if (verified.status !== "success" || verified.currency !== "NGN" || paidNgn !== payment.amount_due) {
     throw new Error("Paystack did not confirm the expected payment amount.");
   }

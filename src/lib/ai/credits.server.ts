@@ -5,7 +5,7 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { getPlanCatalog } from "@/lib/plans/catalog.server";
 import { billingEmail } from "@/lib/auth/billing-email";
-import { chargePaystackAuthorization, initializePaystackTransaction, verifyPaystackTransaction } from "@/lib/paystack";
+import { chargePaystackAuthorization, initializePaystackTransaction, verifyPaystackTransaction, paidKobo } from "@/lib/paystack";
 import { readSavedAuthorization, savedAuthorization } from "@/lib/domains/billing-pure";
 import { CREDIT_LIFETIME_MONTHS, CREDIT_REFERENCE_PREFIX, DEFAULT_AUTO_PACK, creditCosts, creditPack, creditPacksFrom, creditPeriod, packKobo, planFill, shouldAutoTopUp } from "@shared/ai-credits";
 import { planKeyFor, monthlyCreditsFor, type PlanKey } from "@shared/plans";
@@ -219,7 +219,7 @@ export async function completeCreditPurchase(reference: string): Promise<"paid" 
   if (
     !user ||
     verified.currency !== "NGN" ||
-    Number(verified.amount) !== row.amountKobo ||
+    paidKobo(verified) !== row.amountKobo ||
     metadata.purpose !== "ai_credits" ||
     metadata.user_id !== row.userId ||
     customer !== billingEmail(user)

@@ -5,7 +5,7 @@ import { after } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { paystackSecretReady } from "@shared/checkout-payments";
-import { initializePaystackTransaction, verifyPaystackTransaction } from "@/lib/paystack";
+import { initializePaystackTransaction, verifyPaystackTransaction, paidKobo } from "@/lib/paystack";
 import { createPaystackTransferRecipient } from "@/lib/payout-bank";
 import { readDedicatedAccount } from "@/lib/logistics/payin-rules";
 import { dvaBank, dvaUnavailableMessage } from "@/lib/logistics/paystack-dva";
@@ -144,8 +144,8 @@ export async function confirmCardTopUp(reference: string): Promise<"done" | "fai
   if (verified.currency !== "NGN" || metadata.purpose !== "wallet_topup" || !walletId) return "failed";
   const wallet = await db.wallet.findUnique({ where: { id: walletId }, select: { id: true } });
   if (!wallet) return "failed";
-  const credited = await creditWallet(wallet.id, { amountKobo: Number(verified.amount), reference, kind: "topup", description: "Top-up by card" });
-  if (credited) await notifyMoneyIn(wallet.id, Number(verified.amount), { via: "card", reference }).catch((error) => console.error("[wallet] money-in notification", error));
+  const credited = await creditWallet(wallet.id, { amountKobo: paidKobo(verified), reference, kind: "topup", description: "Top-up by card" });
+  if (credited) await notifyMoneyIn(wallet.id, paidKobo(verified), { via: "card", reference }).catch((error) => console.error("[wallet] money-in notification", error));
   return "done";
 }
 

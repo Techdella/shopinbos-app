@@ -2,7 +2,7 @@ import "server-only";
 import crypto from "node:crypto";
 import { db } from "@/lib/db/client";
 import { billingEmail } from "@/lib/auth/billing-email";
-import { initializePaystackTransaction, verifyPaystackTransaction } from "@/lib/paystack";
+import { initializePaystackTransaction, verifyPaystackTransaction, paidKobo } from "@/lib/paystack";
 import { getPriceBook } from "@/lib/pricing/price-book.server";
 import { westAfricaCountries } from "@/lib/data/west-africa";
 import {
@@ -97,7 +97,7 @@ export async function completeExtraPurchase(reference: string): Promise<"paid" |
   if (
     !user ||
     verified.currency !== "NGN" ||
-    Number(verified.amount) !== row.amountKobo ||
+    paidKobo(verified) !== row.amountKobo ||
     metadata.purpose !== "plan_extra" ||
     metadata.user_id !== row.userId ||
     (verified.customer?.email?.toLowerCase() ?? null) !== billingEmail(user)
