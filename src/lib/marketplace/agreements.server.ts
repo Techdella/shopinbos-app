@@ -97,7 +97,7 @@ export async function supplierContact(supplierId: string) {
   return { phone: row?.whatsappNumber || row?.user.phone || null, address: [row?.address, row?.city].filter(Boolean).join(", ") || null };
 }
 
-export type GateResult = { ok: true } | { ok: false; code: "AGREEMENT_NEEDED" | "AGREEMENT_WAITING" | "AGREEMENT_DECLINED" | "TOO_FAR" | "NO_PLACE" | "PAUSED" | "NOT_AVAILABLE"; message: string };
+export type GateResult = { ok: true } | { ok: false; code: "AGREEMENT_NEEDED" | "AGREEMENT_WAITING" | "AGREEMENT_DECLINED" | "TOO_FAR" | "NO_PLACE" | "PAUSED" | "NOT_AVAILABLE" | "NOT_PAYABLE"; message: string };
 
 /**
  * Whether this seller can list this supplier's products to dropship now. Every add-to-store path calls it, so the
@@ -105,13 +105,30 @@ export type GateResult = { ok: true } | { ok: false; code: "AGREEMENT_NEEDED" | 
  */
 export async function listingCheck(sellerId: string, supplierId: string): Promise<GateResult> {
   const [supplier, seller, agreement, sellerUser] = await Promise.all([
-    db.supplier.findFirst({ where: { id: supplierId, ...VISIBLE_SUPPLIER }, select: { displayName: true } }),
+    db.supplier.findFirst({ where: { id: supplierId, ...VISIBLE_SUPPLIER }, select: { displayName: true, userId: true } }),
     sellerPlace(sellerId),
     db.supplierAgreement.findUnique({ where: { sellerId_supplierId: { sellerId, supplierId } }, select: { status: true } }),
     db.user.findUnique({ where: { id: sellerId }, select: { debtPausedAt: true } }),
   ]);
   if (!supplier) return { ok: false, code: "NOT_AVAILABLE", message: "This supplier isn't taking new shops right now." };
   if (sellerUser?.debtPausedAt) return { ok: false, code: "PAUSED", message: "Pay what you owe in your Shopinbos Wallet before listing new supplier products." };
+  // ₦0 capital: a dropshipped supplier is paid from the customer's own payment, which needs their Shopinbos Wallet
+  // (a Paystack split account). Without it the seller would pay the supplier from their own share, so no new listings
+  // until it's set up; the supplier is told a shop is waiting (once a week).
+  const wallet = await db.wallet.findFirst({ where: { userId: supplier.userId, status: "active", subaccountStatus: "active" }, select: { id: true } });
+  if (!wallet) {
+    await createNotification({
+      userId: supplier.userId,
+      type: "dropshipping",
+      priority: "warning",
+      title: "A shop wants to dropship your products",
+      description: "Set up your Shopinbos Wallet so you're paid straight from each customer's payment. Shops can't list your products to dropship until it's ready.",
+      link: "/supplier/wallet",
+      event: "supplier.update",
+      dedupeKey: `supplier.wallet-needed:${supplierId}:${Math.floor(Date.now() / (7 * 86_400_000))}`,
+    }).catch(() => null);
+    return { ok: false, code: "NOT_PAYABLE", message: `${supplier.displayName} can't be paid automatically yet, so you'd have to pay them yourself. We've asked them to set up their wallet; try again once they have.` };
+  }
   // Far suppliers are allowed too (delivery from them may cost more); the city is what the distance is measured from.
   if (!sellerHasPlace(seller)) return { ok: false, code: "NO_PLACE", message: "Add your city in Settings first, so we can show how far each supplier is from you." };
   if (agreement?.status === "active") return { ok: true };

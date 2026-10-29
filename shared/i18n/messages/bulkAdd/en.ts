@@ -128,6 +128,13 @@ const en = {
   discard: "Start over",
   discardAsk: "Remove these drafts and start over?",
   // Other ways to add products
+  "catalogue.choose": "From my WhatsApp catalogue",
+  "catalogue.how": "Have a WhatsApp Business catalogue? Open it in WhatsApp, screenshot the list (scroll and screenshot again for more), then pick the screenshots. Peggy adds every product with its name, price and photo.",
+  "catalogue.reading": "Peggy is reading screenshot {done} of {total}",
+  "catalogue.found": "{count, plural, one {# product found} other {# products found}}",
+  "catalogue.missed": "{count, plural, one {Peggy couldn't find products on # screenshot. Screenshot your catalogue list, or one product opened.} other {Peggy couldn't find products on # screenshots. Screenshot your catalogue list, or one product opened.}}",
+  "catalogue.none": "Peggy couldn't find products on those screenshots. Screenshot your catalogue list, or one product opened.",
+  "catalogue.wrongType": "Pick screenshots (PNG or JPG).",
   "other.title": "Other ways",
   "other.csv": "Import a spreadsheet",
   "other.csvSub": "Have a list already? Upload a CSV or Excel file. Photos you uploaded here are matched by file name.",

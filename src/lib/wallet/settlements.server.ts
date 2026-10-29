@@ -68,3 +68,19 @@ export async function recordSettlements(limit = 200) {
   }
   return { checked: wallets.length, recorded };
 }
+
+const SETTLED = ["success", "processed", "paid", "failed", "reversed"];
+
+/**
+ * The business's next payout, for its one simple number ("To be paid ₦X · reaches your bank Fri 7 Nov"): what Paystack
+ * hasn't paid into their bank yet and the earliest date it will. Null when nothing is waiting or Paystack can't say.
+ */
+export async function nextPayout(userId: string): Promise<{ amountKobo: number; date: string | null } | null> {
+  if (!paystackSecretReady(process.env.PAYSTACK_SECRET_KEY)) return null;
+  const wallet = await db.wallet.findFirst({ where: { userId, subaccountCode: { not: null } }, select: { subaccountCode: true } });
+  if (!wallet?.subaccountCode) return null;
+  const waiting = (await listPaystackSettlements(wallet.subaccountCode, 10)).filter((row) => row.totalAmount > 0 && !SETTLED.includes(row.status.toLowerCase()));
+  if (!waiting.length) return null;
+  const dates = waiting.map((row) => row.settlementDate).filter((date): date is string => !!date).sort();
+  return { amountKobo: waiting.reduce((sum, row) => sum + row.totalAmount, 0), date: dates[0] ?? null };
+}

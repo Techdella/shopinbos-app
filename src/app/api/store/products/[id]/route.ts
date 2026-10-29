@@ -65,6 +65,14 @@ export const PATCH = withSeller(async (
     ...(preorderParsed?.ok && typeof preorder?.depositPct === "number" ? { preorderDepositPct: preorder.depositPct } : {}),
   };
 
+  // A dropship listing's price follows the supplier's terms: never below their lowest price, never at a loss (the same
+  // check as "Add to store", src/lib/marketplace/dropship.server.ts).
+  if (retailPrice !== undefined && product.supplierProductId && dropship) {
+    const { dropshipPriceProblem } = await import("@/lib/marketplace/dropship.server");
+    const problem = await dropshipPriceProblem(user.id, product.id, retailPrice);
+    if (problem) return apiError("PRICE_PROBLEM", problem);
+  }
+
   const effectiveCost = costPrice ?? product.costPrice;
   const effectivePrice = retailPrice ?? product.retailPrice;
 

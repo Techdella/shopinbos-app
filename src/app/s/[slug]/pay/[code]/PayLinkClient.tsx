@@ -131,7 +131,7 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
   const [errors, setErrors] = useState<Errors>({});
   const [deliveryOptionId, setDeliveryOptionId] = useState<string | null>(null);
   const [chosenMethod, setChosenMethod] = useState<CheckoutPaymentMethod | null>(null);
-  const [quote, setQuote] = useState<{ key: string; totals: OrderTotals } | null>(null);
+  const [quote, setQuote] = useState<{ key: string; totals: OrderTotals; fromSuppliers?: boolean } | null>(null);
   const [quoteError, setQuoteError] = useState<string | null>(null);
   // Delivery partners: the options the server quoted for the choices and address in `key`.
   const [market, setMarket] = useState<{ key: string; value: QuotedDelivery | null } | null>(null);
@@ -184,13 +184,15 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
   const estimate = orderTotals({ subtotal: itemsTotal, shippingFee: simple && saved?.fee != null ? saved.fee : delivery.fee });
   const quoteKey = JSON.stringify([optionId, quantity, details.city, details.state, partners ? deliveryOptionId : delivery.option?.id ?? null]);
   const totals = quote && quote.key === quoteKey ? quote.totals : estimate;
+  // Some items ship from a supplier: paid only in the app (shared/checkout-payments.ts fromSuppliers).
+  const fromSuppliers = quote?.key === quoteKey && quote.fromSuppliers === true;
 
   const paymentOptions = useMemo(() => {
-    const context = { city: details.city, state: details.state, total: totals.total };
+    const context = { city: details.city, state: details.state, total: totals.total, fromSuppliers };
     // With delivery partners, pay on delivery goes with the chosen option (as the checkout API checks it).
     return partners ? partnerPaymentOptions(commerce.payments, context, marketOption) : checkoutPaymentOptions(commerce.payments, context);
-  }, [partners, marketOption, commerce.payments, details.city, details.state, totals.total]);
-  const noWayToPay = paymentOptions.length === 0 ? noWayToPayText(commerce.payments, { city: details.city, state: details.state, total: totals.total }) : null;
+  }, [partners, marketOption, commerce.payments, details.city, details.state, totals.total, fromSuppliers]);
+  const noWayToPay = paymentOptions.length === 0 ? noWayToPayText(commerce.payments, { city: details.city, state: details.state, total: totals.total, fromSuppliers }) : null;
   // The short page has one Pay button: the best way to pay the store offers (card first).
   const paymentMethod: CheckoutPaymentMethod = simple
     ? oneTapMethod(paymentOptions.map((option) => option.key)) ?? "transfer"
@@ -217,7 +219,7 @@ function PayForm({ theme, link, store, commerce, preview, storeBasePath, money, 
             return setQuoteError(json?.error?.message ?? null);
           }
           setQuoteError(null);
-          setQuote({ key, totals: json.data.totals as OrderTotals });
+          setQuote({ key, totals: json.data.totals as OrderTotals, fromSuppliers: json.data.fromSuppliers === true });
           // The short page reads the quoted option too (the seller's saved option's name and price).
           if (partners || simple) setMarket({ key: deliveryKey, value: readQuotedDelivery(json.data?.delivery) });
         })
