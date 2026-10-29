@@ -122,7 +122,7 @@ export async function requestReviews(input: { storeId: string; orderIds: string[
     db.reviewRequest.findMany({ where: { storeId: store.id, orderId: { in: orderIds }, channel: input.channel, status: { in: ["sent", "opened", "completed"] } }, select: { orderId: true } }),
   ]);
   const asked = new Set(earlier.map((row) => row.orderId));
-  const urls = reviewUrls(store.slug);
+  const urls = reviewUrls(store);
   const results: RequestOutcome[] = [];
 
   for (const order of orders) {

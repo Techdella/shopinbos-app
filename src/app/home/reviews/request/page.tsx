@@ -85,7 +85,7 @@ export default async function RequestReviewsPage() {
               <p className="m-0 mt-3 text-[12.5px] leading-[1.5] text-app-ink-soft">
                 {t("ask.howPlain")}{!ready.whatsapp ? <> <a href="/home/connections" className="font-bold text-app-accent-ink">{t("ask.connectWa")}</a></> : null}
               </p>
-              <p className="m-0 mt-2 text-[12.5px] text-app-ink-soft">{t("ask.wall")} <a href={reviewUrls(store.slug).wall} target="_blank" rel="noopener noreferrer" className="font-bold text-app-accent-ink">{t("ask.open")}</a></p>
+              <p className="m-0 mt-2 text-[12.5px] text-app-ink-soft">{t("ask.wall")} <a href={reviewUrls(store).wall} target="_blank" rel="noopener noreferrer" className="font-bold text-app-accent-ink">{t("ask.open")}</a></p>
             </Card>
             <Card className="p-5">
               <CardHead title={t("ask.recent")} sub={t("ask.recentSub", { sent: sentCount, completed })} />

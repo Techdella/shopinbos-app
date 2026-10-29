@@ -317,7 +317,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "plans.f.seller.products": "{count, plural, one {Har kaya #} other {Har kayayyaki #}}",
   "plans.f.seller.productsUnlimited": "Kayayyaki marasa iyaka",
   "plans.f.seller.customDomain": "Domain naka na kanka",
-  "plans.f.seller.subdomain": "Adireshin Shopinbos (yourshop.shopinbos.com)",
+  "plans.f.seller.subdomain": "Adireshin Shopinbos (yourshop.mybos.store)",
   "plans.f.seller.themes_basic": "Theme na asali",
   "plans.f.seller.themes_premium": "Theme na asali + premium",
   "plans.f.seller.themes_all": "Duk theme",

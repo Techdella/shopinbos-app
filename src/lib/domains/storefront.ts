@@ -79,6 +79,15 @@ export function buildStorefrontUrl(store: StorefrontStoreRef, pathname = "/") {
   return new URL(normalizedPath, `${base}/`).toString();
 }
 
+/**
+ * A storefront link for the seller to open: the store's own address once it's live, otherwise the app's
+ * /s/<slug> path (an unpublished store only shows to its signed-in seller on the app).
+ */
+export function liveStoreHref(store: StorefrontStoreRef & { status?: string | null }, pathname = "/") {
+  const live = store.status === "active" || store.status === "published";
+  return live ? buildStorefrontUrl(store, pathname) : buildDirectStorefrontPath(store.slug, pathname);
+}
+
 export function buildDirectStorefrontPath(slug: string, pathname = "/") {
   const normalizedPath = pathname.startsWith("/") ? pathname : `/${pathname}`;
   return normalizedPath === "/" ? `/s/${slug}` : `/s/${slug}${normalizedPath}`;

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { requireRole } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
+import { storeUrl } from "@/lib/marketing/brand";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { AssistantNote, MoreActions, PillLink } from "@/components/app-kit";
 import { readDesign, readFields, readPopupConfig, rewardLabel, themeHeadingFont, type RewardKind } from "@/lib/marketing/forms";
@@ -30,7 +31,7 @@ export default async function FormsPage({ searchParams }: { searchParams?: Promi
   const openId = (await searchParams)?.edit ?? null;
   const user = await requireRole(["seller"], "/login");
   const t = await getT("marketing");
-  const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true, status: true, brandSettings: true } });
+  const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, customDomain: true, logoUrl: true, status: true, brandSettings: true } });
   const since = new Date(Date.now() - 30 * 86_400_000);
   const [rows, stats, discountRows, zones] = store
     ? await Promise.all([
@@ -112,7 +113,7 @@ export default async function FormsPage({ searchParams }: { searchParams?: Promi
       }
     >
       <div className="grid gap-5">
-        <FormsManager forms={forms} storeSlug={store?.slug ?? ""} theme={theme} discounts={discounts} extras={extras} openId={openId} />
+        <FormsManager forms={forms} joinBase={store ? storeUrl(store, "/join") : ""} theme={theme} discounts={discounts} extras={extras} openId={openId} />
         <AssistantNote>{t("forms.note")}</AssistantNote>
       </div>
     </SellerPage>

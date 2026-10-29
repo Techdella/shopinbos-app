@@ -3,7 +3,7 @@ import { requireRole } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
 import { Card, CardHead, EmptyState, ListCard, ListRow, Pill, PillLink, StatGrid, StatTile } from "@/components/app-kit";
-import { buildDirectStorefrontPath } from "@/lib/domains/storefront";
+import { liveStoreHref } from "@/lib/domains/storefront";
 import { readCartSettings, sanitizeLines, CHECKOUT_STEP_LABELS, type CheckoutStep } from "@shared/cart-checkout";
 import { CartSettings } from "./CartSettings";
 import { formatMoney, formatNumber, formatRelative, type Locale } from "@shared/i18n";
@@ -40,7 +40,7 @@ export default async function CommerceCartPage({ searchParams }: { searchParams?
   const t = await getT("store");
   const locale = await getLocale();
   const naira = nairaFor(locale);
-  const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, logoUrl: true, brandSettings: true } });
+  const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, name: true, slug: true, customDomain: true, status: true, logoUrl: true, brandSettings: true } });
   const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
   const openWhere = { storeId: store?.id ?? "__none__", recoveredAt: null, createdAt: { gte: since } };
@@ -75,7 +75,7 @@ export default async function CommerceCartPage({ searchParams }: { searchParams?
       store={storeSummary(store)}
       title={t("cart.title")}
       sub={t("cart.sub")}
-      actions={store ? <PillLink href={buildDirectStorefrontPath(store.slug, "/cart")} icon="eye">{t("cart.seeBag")}</PillLink> : undefined}
+      actions={store ? <PillLink href={liveStoreHref(store, "/cart")} icon="eye">{t("cart.seeBag")}</PillLink> : undefined}
     >
       <PageTip className="mb-5">{tipT("cart")}</PageTip>
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">

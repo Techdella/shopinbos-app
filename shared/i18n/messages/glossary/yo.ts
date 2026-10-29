@@ -95,7 +95,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "payment-links.short": "Link tí o fi ránṣẹ́ nínú chat kí oníbàárà lè sanwó fún ọjà gangan, kí ó sì yan delivery.",
   "payment-links.example": "Tolu béèrè fún àpò pupa lórí WhatsApp. O fi link ránṣẹ́, ó sì san ₦18,000 pẹ̀lú card.",
   "link-in-bio.short": "Ojú-ìwé kan pẹ̀lú àwọn ọjà rẹ, bọ́tìnnì Buy now àti WhatsApp, fún bio Instagram tàbí TikTok rẹ.",
-  "link-in-bio.example": "Bio TikTok rẹ sọ pé adafabrics.shopinbos.com/links. Àwọn olólùfẹ́ tẹ̀ ẹ́, wọ́n sì rà.",
+  "link-in-bio.example": "Bio TikTok rẹ sọ pé adafabrics.mybos.store/links. Àwọn olólùfẹ́ tẹ̀ ẹ́, wọ́n sì rà.",
   "checkout.short": "Ojú-ewé tí olùrà ti ń fi àdírẹ́sì rẹ̀ sí, tí ó sì ti ń sanwó.",
   "checkout.example": "Kemi fi àdírẹ́sì Yaba rẹ̀ sí i, ó yan bank transfer, ó sì san ₦24,000.",
   "abandoned-carts.short": "Cart tí àwọn ènìyàn kún ṣùgbọ́n tí wọ́n fi sílẹ̀ kí wọ́n tó sanwó, kí o lè rán wọn létí.",

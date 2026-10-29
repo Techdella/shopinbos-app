@@ -18,7 +18,7 @@ export default async function ShareReviewsPage() {
   const t = await getT("reviews");
   const published = publicReviews(await loadReviews(store.id, { approvedOnly: true, take: 500 }));
   const summary = summarizeReviews(published);
-  const urls = reviewUrls(store.slug);
+  const urls = reviewUrls(store);
   const wallText = summary.count ? `${summary.average.toFixed(1)} out of 5 from ${summary.count} customer reviews of ${store.name}` : `Reviews of ${store.name}`;
   const showcase = published.filter((item) => item.featured).slice(0, 6);
   const picks = showcase.length ? showcase : published.filter((item) => (item.rating ?? 0) >= 4 && (item.body || item.title).trim()).slice(0, 4);

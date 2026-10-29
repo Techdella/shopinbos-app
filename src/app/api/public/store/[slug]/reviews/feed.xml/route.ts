@@ -11,10 +11,10 @@ export const dynamic = "force-dynamic";
 // product ratings policy only accepts reviews the merchant collected.
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const store = await db.store.findUnique({ where: { slug }, select: { id: true, name: true, slug: true, logoUrl: true, status: true } });
+  const store = await db.store.findUnique({ where: { slug }, select: { id: true, name: true, slug: true, customDomain: true, logoUrl: true, status: true } });
   if (!store || store.status !== "active") return new NextResponse("Not found", { status: 404 });
 
-  const urls = reviewUrls(store.slug);
+  const urls = reviewUrls(store);
   const reviews = (await loadReviews(store.id, { approvedOnly: true, take: 5000 })).filter((item) => item.kind === "store" && item.productId && item.rating);
   const products = await productNames(store.id, [...new Set(reviews.map((item) => item.productId!))]);
   const requested = new Set(

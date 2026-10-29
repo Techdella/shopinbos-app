@@ -39,6 +39,8 @@ interface Props {
   page: PageData;
   storeId: string;
   storeSlug: string;
+  /** The store's own address (custom domain, subdomain or /s/<slug>), no trailing slash. */
+  storeBase: string;
   storeStatus: string;
 }
 
@@ -72,7 +74,7 @@ function hasUnsavedDraft(page: PageData): boolean {
   return JSON.stringify(dc) !== JSON.stringify(pc);
 }
 
-export function PageDetailsClient({ page: initialPage, storeId, storeSlug, storeStatus }: Props) {
+export function PageDetailsClient({ page: initialPage, storeId, storeSlug, storeBase, storeStatus }: Props) {
   const router = useRouter();
   const t = useT("store", "common");
   const locale = useLocale();
@@ -288,7 +290,7 @@ export function PageDetailsClient({ page: initialPage, storeId, storeSlug, store
   }, [page.id, router, t]);
 
   const previewUrl = `/preview/store/${storeSlug}/${page.id}`;
-  const liveUrl = isLive && page.status === "published" ? storefrontPageHref(`/s/${storeSlug}`, page.slug) : null;
+  const liveUrl = isLive && page.status === "published" ? storefrontPageHref(storeBase, page.slug) : null;
 
   const isArchived = page.status === "archived";
 

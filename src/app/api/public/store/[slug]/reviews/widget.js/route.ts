@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 // average, count and up to ?limit= (default 6, max 12) published reviews, featured ones first.
 export async function GET(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const store = await db.store.findUnique({ where: { slug }, select: { id: true, name: true, slug: true, status: true, logoUrl: true } });
+  const store = await db.store.findUnique({ where: { slug }, select: { id: true, name: true, slug: true, customDomain: true, status: true, logoUrl: true } });
   if (!store || store.status !== "active") {
     return new NextResponse("/* store not found */", { status: 404, headers: { "Content-Type": "application/javascript; charset=utf-8" } });
   }
@@ -19,7 +19,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
   const script = buildWidgetScript({
     storeName: store.name,
     storeLogo: safeReviewerPhoto(store.logoUrl),
-    wallUrl: reviewUrls(store.slug).wall,
+    wallUrl: reviewUrls(store).wall,
     average: summary.average,
     count: summary.count,
     reviews: items

@@ -124,7 +124,7 @@ const en = {
   "payment-links.short": "A link you send in a chat so a customer can pay for exact products and pick delivery.",
   "payment-links.example": "Tolu asks for the red bag on WhatsApp. You send a link, she pays ₦18,000 by card.",
   "link-in-bio.short": "One page with your products, Buy now buttons and WhatsApp, for your Instagram or TikTok bio.",
-  "link-in-bio.example": "Your TikTok bio says adafabrics.shopinbos.com/links. Fans tap it and buy.",
+  "link-in-bio.example": "Your TikTok bio says adafabrics.mybos.store/links. Fans tap it and buy.",
   "checkout.short": "The page where a buyer enters their address and pays.",
   "checkout.example": "Kemi adds her Yaba address, picks bank transfer and pays ₦24,000.",
   "abandoned-carts.short": "Carts people filled but left before paying, so you can remind them.",

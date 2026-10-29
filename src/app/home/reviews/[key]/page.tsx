@@ -41,7 +41,7 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ k
     item.source === "google" ? getGoogleConnection(store.id) : null,
   ]);
   const product = item.productId ? products.get(item.productId) : null;
-  const urls = reviewUrls(store.slug);
+  const urls = reviewUrls(store);
   const shareText = reviewShareText(item, store.name);
   const cardId = `review-${item.id}`;
   const googleReply = item.source === "google" && item.importMethod === "api" ? (google ? "synced" : "local") : null;

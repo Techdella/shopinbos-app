@@ -1,3 +1,4 @@
+import { buildStorefrontOrigin } from "@/lib/domains/storefront";
 import { requireRole } from "@/lib/server-auth";
 import { getSellerWorkspace } from "@/lib/workspace";
 import { db } from "@/lib/db/client";
@@ -84,7 +85,7 @@ export default async function PagesPage({ searchParams }: PagesPageProps) {
               const seo = (content.seo ?? {}) as Record<string, unknown>;
               const hasSeo = !!(seo.metaTitle || seo.metaDescription);
               const badge = getPageStatusBadge(t, p.isPublished, storeIsLive);
-              const previewHref = storeIsLive && p.isPublished ? `/s/${store?.slug}/${p.slug}` : `/preview/store/${store?.slug}/${p.id}`;
+              const previewHref = storeIsLive && p.isPublished && store ? `${buildStorefrontOrigin(store)}/${p.slug}` : `/preview/store/${store?.slug}/${p.id}`;
 
               return (
                 <ListRow key={p.id}>

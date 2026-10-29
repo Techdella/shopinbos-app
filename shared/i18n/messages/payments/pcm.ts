@@ -317,7 +317,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "plans.f.seller.products": "{count, plural, one {Up to # product} other {Up to # products}}",
   "plans.f.seller.productsUnlimited": "Products no get limit",
   "plans.f.seller.customDomain": "Your own custom domain",
-  "plans.f.seller.subdomain": "Shopinbos web address (yourshop.shopinbos.com)",
+  "plans.f.seller.subdomain": "Shopinbos web address (yourshop.mybos.store)",
   "plans.f.seller.themes_basic": "Basic themes",
   "plans.f.seller.themes_premium": "Basic + premium themes",
   "plans.f.seller.themes_all": "All themes",
