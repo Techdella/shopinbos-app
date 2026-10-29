@@ -11,7 +11,7 @@ Think of this as your checklist before you launch your online store.
 ### Step 1: Choose Your Payment Gateway
 
 - The task: Pick the service that will collect payments from your customers.
-- How to: Choose one that works well in Nigeria and supports cards, bank transfer and USSD. [Paystack](https://paystack.com/) and [Flutterwave](https://flutterwave.com/) are the most common. [Moniepoint](https://moniepoint.com/) and [OPay](https://opayweb.com/) are popular for transfers and POS. If your store platform already includes payments, use that first. For example, Shopinbos stores come with payments built in, and payouts go to your bank every Friday.
+- How to: Choose one that works well in Nigeria and supports cards, bank transfer and USSD. [Paystack](https://paystack.com/) and [Flutterwave](https://flutterwave.com/) are the most common. [Moniepoint](https://moniepoint.com/) and [OPay](https://opayweb.com/) are popular for transfers and POS. If your store platform already includes payments, use that first. For example, Shopinbos stores come with payments built in, and payments settle straight to your bank.
 - Expert tip: Start simple. Do not waste weeks comparing ten providers. Pick one, get it working, and add others later. Use PayPal only if you sell to customers abroad.
 
 ### Step 2: Create Your Business Account

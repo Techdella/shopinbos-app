@@ -69,13 +69,14 @@ const ENGLISH_TEMPLATES: MemberTemplate[] = [
     button: { text: "Verify my business", url: `${APP}/verify` },
   },
   {
-    name: "shopinbos_wallet_ready",
+    // v2: the balance is spend-only and transfers settle to their bank (Meta only takes new wording under a new name).
+    name: "shopinbos_wallet_ready_v2",
     group: "wallet",
     purpose: "Your Shopinbos Wallet account number is ready",
     category: "UTILITY",
     language: "en",
     image: "setup-help",
-    body: "Hi {{1}}, your Shopinbos Wallet is ready! 🎉\n\nYour own account number is {{2}} at {{3}}, in the name {{4}}. Transfer to it from any bank app and the money lands in your wallet balance within a minute or two.\n\nUse your balance for AI credits and other Shopinbos services, and withdraw to your bank whenever you like.",
+    body: "Hi {{1}}, your Shopinbos Wallet is ready! 🎉\n\nYour own account number is {{2}} at {{3}}, in the name {{4}}. Share it with anyone who needs to pay you, from any bank app.\n\nAdd your bank on your wallet page and what they send goes straight to your bank. Top up to pay for AI credits and other Shopinbos services.",
     variables: ["first name", "account number", "bank", "account name"],
     examples: ["Ada", "9912345678", "Wema Bank", "SHOPINBOS/ADA FABRICS"],
     button: { text: "Open my wallet", url: `${APP}/wallet` },

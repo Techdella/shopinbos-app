@@ -20,7 +20,7 @@ Before anything else, you need a proper place to sell, not just DMs.
 - Delivery built in or easy to arrange with GIG Logistics, Kwik Delivery, Sendbox or your own dispatch rider
 - Simple reports so you can see what is selling
 
-**Options:** Shopinbos gives you a store built for you by Rex, the AI store builder, with payments, deliveries and payouts to your bank every Friday already set up. It is free to start (see shopinbos.com/pricing). Foreign platforms like Shopify and WooCommerce also work, but Shopify is billed in US dollars and both need extra apps for Nigerian payments and delivery.
+**Options:** Shopinbos gives you a store built for you by Rex, the AI store builder, with payments, deliveries and payments straight to your bank already set up. It is free to start (see shopinbos.com/pricing). Foreign platforms like Shopify and WooCommerce also work, but Shopify is billed in US dollars and both need extra apps for Nigerian payments and delivery.
 
 **Cost:** Free to start with Shopinbos
 

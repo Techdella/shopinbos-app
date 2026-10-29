@@ -20,7 +20,7 @@ $groups = [
 	'pay'   => [ 'Get paid', [
 		[ 'Paystack', 'Cards, bank transfer and USSD at checkout', 'Built in' ],
 		[ 'Pay on delivery', 'Cash or transfer to the rider, confirmed with a code', 'Built in' ],
-		[ 'Your bank account', 'Payouts every Friday, or withdraw any time', 'Connect' ],
+		[ 'Your bank account', 'Payments settle straight to it', 'Connect' ],
 		[ 'Payment links', 'Send in any chat, paid in two taps', 'Built in' ],
 		[ 'Invoices', 'For bulk and business customers, with reminders', 'Built in' ],
 		[ 'Transfer account', 'A dedicated account number for your shop', 'Built in' ],

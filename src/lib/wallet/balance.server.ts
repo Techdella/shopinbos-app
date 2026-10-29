@@ -269,7 +269,7 @@ async function sendWalletReadyEmail(walletId: string) {
   const first = (user.name ?? "").trim().split(/\s+/)[0];
   // WhatsApp too (Shopinbos's number, approved template), to the number they gave us.
   const phone = paystackPhone(user.phone ?? user.supplier?.whatsappNumber ?? user.logisticsPartner?.whatsappNumber ?? user.logisticsPartner?.contactPhone);
-  await sendShopinbosTemplate("shopinbos_wallet_ready", phone, [first || "there", wallet.topUpAccountNumber, wallet.topUpBankName ?? "your bank", wallet.topUpAccountName ?? "your business"]).catch(() => false);
+  await sendShopinbosTemplate("shopinbos_wallet_ready_v2", phone, [first || "there", wallet.topUpAccountNumber, wallet.topUpBankName ?? "your bank", wallet.topUpAccountName ?? "your business"]).catch(() => false);
   if (!user.email) return;
   await sendPlatformEmail({
     to: user.email,

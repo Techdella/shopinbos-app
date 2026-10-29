@@ -60,12 +60,12 @@ Customers in Nigeria like to pay in different ways. A shop that accepts all of t
 
 **The ways your customers can pay on Shopinbos:**
 
-- **Card, bank transfer and USSD**, through Paystack. The fee is 1.5% + ₦100 per payment, capped at ₦2,000. The money lands in your Shopinbos balance straight away.
+- **Card, bank transfer and USSD**, through Paystack. The fee is 1.5% + ₦100 per payment, capped at ₦2,000. The money settles straight to your bank, usually the next working day.
 - **Pay on delivery**, for orders up to ₦50,000 in Lagos, Abuja, Ibadan and Port Harcourt. The customer pays the rider in cash or by transfer when the parcel arrives.
 
 **The 4-digit delivery code.** Every pay on delivery order gets a code. The customer gives it to the rider only when they have the item in their hands. Never share the code yourself: if you do, the order can be marked delivered before the customer has it.
 
-**When you get your money.** Riders pay in the cash they collect by 6pm the same day. Your balance is paid to your bank account every Friday, and you can withdraw early any time.
+**When you get your money.** Riders pay the cash they collect to you directly by 6pm the same day. Card, transfer and USSD payments settle straight to your bank, usually the next working day.
 
 **Stop the "I don't trust online shops" problem:**
 

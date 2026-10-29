@@ -156,7 +156,6 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "step.Choose a company": "Yan ilé-iṣẹ́ kan",
   "step.Add your payout bank": "Fi báńkì payout rẹ kún un",
   "step.Your bank account is linked for payouts.": "A ti so àkáǹtì báńkì rẹ pọ̀ fún payouts.",
-  "step.Money waits safely in your balance until you do.": "Owó máa dúró láìléwu nínú balance rẹ títí o fi máa ṣe é.",
   "step.Add bank": "Fi báńkì kún un",
   "step.Put your shop live": "Gbé ṣọ́ọ̀bù rẹ sí live",
   "step.Your shop is open to shoppers.": "Ṣọ́ọ̀bù rẹ ti ṣí sílẹ̀ fún àwọn oníbàárà.",

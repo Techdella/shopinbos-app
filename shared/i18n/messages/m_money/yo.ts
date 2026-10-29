@@ -182,7 +182,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "w.last30Line": "Ọjọ́ 30 sẹ́yìn: {amount}",
   "w.recent": "Èyí tó ṣẹ̀ṣẹ̀ wáyé",
   "bal.title": "Owó inú Wallet",
-  "bal.sub": "Iye owó Shopinbos rẹ. Owó títà ṣì ń lọ tààrà sí báńkì rẹ.",
+  "bal.sub": "Owó Shopinbos rẹ, fún AI credits àti àwọn iṣẹ́ Shopinbos mìíràn. O ò lè gbà á jáde; owó títà ń lọ tààrà sí báńkì rẹ.",
   "bal.pending": "ó ń bọ̀",
   "bal.didntGo": "kò lọ",
   "pay.paid": "A ti san án. Owó náà lọ tààrà sí báǹkì wọn.",

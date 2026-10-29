@@ -150,7 +150,7 @@ Trust is the biggest hurdle when you sell on Instagram. Many Nigerian buyers hav
 Give them options:
 
 - **Pay online by card, bank transfer or USSD.** With Shopinbos, payments go through Paystack. The fee is 1.5% + ₦100 (the ₦100 is waived under ₦2,500), capped at ₦2,000.
-- **Pay on delivery** for buyers who want to see the item first. On Shopinbos, pay on delivery is available for orders up to ₦50,000 in Lagos, Abuja, Ibadan and Port Harcourt. Each order has a 4-digit code the customer gives the rider, and riders pay cash in by 6pm the same day.
+- **Pay on delivery** for buyers who want to see the item first. On Shopinbos, pay on delivery is available for orders up to ₦50,000 in Lagos, Abuja, Ibadan and Port Harcourt. Each order has a 4-digit code the customer gives the rider, and riders pay the cash to you by 6pm the same day.
 
 Read more about [payments](/features/payments/) if you want the details.
 

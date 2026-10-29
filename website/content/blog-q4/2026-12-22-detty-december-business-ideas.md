@@ -95,22 +95,22 @@ December brings more cash, more transfers and, unfortunately, more scams.
 
 ### Encourage upfront payment
 
-Card, bank transfer and USSD payments through Paystack go straight to your Shopinbos balance. The fee is 1.5% + ₦100, with the ₦100 waived under ₦2,500, and capped at ₦2,000. For a ₦15,000 outfit, that is ₦325.
+Card, bank transfer and USSD payments through Paystack go straight to your bank account. The fee is 1.5% + ₦100, with the ₦100 waived under ₦2,500, and capped at ₦2,000. For a ₦15,000 outfit, that is ₦325.
 
 ### Use pay on delivery with protection
 
-Some customers will only pay when they see the item. [Pay on delivery](/features/pay-on-delivery/) on Shopinbos works for orders up to ₦50,000 in Lagos, Abuja, Ibadan and Port Harcourt. Each order has a 4-digit code that the customer gives the rider, and riders pay cash in by 6pm the same day. That means less cash floating around with riders and fewer disputes.
+Some customers will only pay when they see the item. [Pay on delivery](/features/pay-on-delivery/) on Shopinbos works for orders up to ₦50,000 in Lagos, Abuja, Ibadan and Port Harcourt. Each order has a 4-digit code that the customer gives the rider, and riders pay the cash to you by 6pm the same day. That means less cash floating around with riders and fewer disputes.
 
 ### Know when you get paid
 
-Your balance is paid to your bank every Friday, and you can withdraw early any time. In December, many sellers withdraw more often so they can restock quickly.
+Each payment settles straight to your bank, usually the next working day, so money from a sale is ready to restock with the day after. There is nothing to withdraw.
 
 :::checklist Cash safety in December
 Check transfers in your banking app, not from screenshots
 Use delivery codes for pay on delivery orders
 Record every order and payment the same day
 Keep restock money separate from spending money
-Withdraw to your bank regularly instead of holding cash
+Let payments settle to your bank instead of holding cash
 :::
 
 ## Get extra hands, and set them up well
@@ -189,7 +189,7 @@ When the parties end, do three things:
 :::faq
 What business can I do during Detty December? | Party and concert outfits, hair and beauty, small chops and drinks, gifts for visitors, rentals of party items, and beach and travel essentials are all popular. Choose something close to what you already know.
 How do I handle deliveries during December rush? | Set clear cut-off dates, book riders early, group orders by area, and give delivery windows instead of exact times on peak days.
-Is pay on delivery safe during the festive season? | It is safer with protections in place. On Shopinbos, each order has a 4-digit code the customer gives the rider, and riders pay cash in by 6pm the same day.
+Is pay on delivery safe during the festive season? | It is safer with protections in place. On Shopinbos, each order has a 4-digit code the customer gives the rider, and riders pay the cash to you by 6pm the same day.
 When should I stop taking orders before Christmas? | Ask your delivery partners for their last dispatch dates and holiday closures, then set your own cut-off a day or two earlier.
 How can I sell during December if I don't have much stock? | Dropship from checked suppliers, offer pre-orders with clear delivery dates, or re-package your existing stock into festive bundles.
 :::

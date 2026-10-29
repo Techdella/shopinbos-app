@@ -118,6 +118,6 @@ This 90-day checklist turns the big job of starting an online business into smal
 
 Remember, every successful seller, from Tunde with his gadgets in Ikeja to Halima with her perfume oils in Kano, started where you are now: unsure but willing to take the first step. Your first 90 days build the foundation for everything that follows.
 
-At [Shopinbos](https://shopinbos.com), we provide guides, templates and tools for every stage of your journey. From finding products to getting paid every Friday, we help first-time sellers turn their online business dream into real profit.
+At [Shopinbos](https://shopinbos.com), we provide guides, templates and tools for every stage of your journey. From finding products to getting paid straight to your bank, we help first-time sellers turn their online business dream into real profit.
 
 Download this checklist, print it or save it on your phone, and start with day one. Your future customers are waiting.
