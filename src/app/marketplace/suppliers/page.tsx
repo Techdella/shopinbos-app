@@ -24,7 +24,7 @@ export async function generateMetadata() {
 }
 
 type PageProps = {
-  searchParams?: Promise<{ q?: string; country?: string; category?: string; near?: string }>;
+  searchParams?: Promise<{ q?: string; country?: string; category?: string; near?: string; reach?: string }>;
 };
 
 const RISK_TONE = { low: "success", medium: "warning", high: "danger" } as const;
@@ -44,6 +44,8 @@ export default async function MarketplaceSuppliersPage({ searchParams }: PagePro
   const store = workspace.store;
   const q = params?.q?.toLowerCase() ?? "";
   const selectedNear = norm(params?.near);
+  // "all" also shows suppliers far from the seller (marked, since delivery from them costs more); near only by default.
+  const showFar = norm(params?.reach) === "all";
   const storeCity = norm(store.city);
   const storeCountry = norm(store.country);
 
@@ -78,28 +80,33 @@ export default async function MarketplaceSuppliersPage({ searchParams }: PagePro
       _count: { select: { products: { where: { status: "published" } } } },
     },
   }), []);
-  // For now, only suppliers near the seller (shared/supplier-trust.ts), so they can go and see the stock.
+  // Suppliers near the seller (shared/supplier-trust.ts), so they can go and see the stock; far ones too when asked.
   const place = { city: store.city ?? user.city ?? null, address: null };
   const hasPlace = sellerHasPlace(place);
   const distances = new Map(rawSuppliers.map((supplier) => [supplier.id, nearness(place, supplier)]));
   const near = hasPlace ? rawSuppliers.filter((supplier) => distances.get(supplier.id)?.near) : [];
-  const [trust, featuredIds] = await Promise.all([supplierTrust(near.map((supplier) => supplier.id)), featuredSupplierUserIds()]);
+  const isFar = (supplier: typeof rawSuppliers[number]) => hasPlace && !distances.get(supplier.id)?.near;
+  const hiddenFar = rawSuppliers.length - near.length;
+  const shown = showFar ? rawSuppliers : near;
+  const [trust, featuredIds] = await Promise.all([supplierTrust(shown.map((supplier) => supplier.id)), featuredSupplierUserIds()]);
   const featured = new Set(featuredIds);
   const isFeatured = (supplier: typeof rawSuppliers[number]) => (featured.has(supplier.userId) ? 1 : 0);
-  const suppliers = [...near].sort((a, b) => {
+  const suppliers = [...shown].sort((a, b) => {
     const localScore = (supplier: typeof rawSuppliers[number]) => {
       if (selectedNear === "city") return storeCity && norm(supplier.city) === storeCity ? 2 : 0;
       if (selectedNear === "country") return storeCountry && norm(supplier.country) === storeCountry ? 1 : 0;
       return (storeCity && norm(supplier.city) === storeCity ? 2 : 0) + (storeCountry && norm(supplier.country) === storeCountry ? 1 : 0);
     };
-    return isFeatured(b) - isFeatured(a) || localScore(b) - localScore(a) || (trust.get(a.id)?.risk.score ?? 100) - (trust.get(b.id)?.risk.score ?? 100);
+    return Number(isFar(a)) - Number(isFar(b)) || isFeatured(b) - isFeatured(a) || localScore(b) - localScore(a) || (trust.get(a.id)?.risk.score ?? 100) - (trust.get(b.id)?.risk.score ?? 100);
   });
   const nearbyCount = suppliers.filter((supplier) =>
     (storeCity && norm(supplier.city) === storeCity) ||
     (storeCountry && norm(supplier.country) === storeCountry),
   ).length;
+  const farCount = suppliers.filter(isFar).length;
+  const withFarHref = `/marketplace/suppliers?${new URLSearchParams({ ...Object.fromEntries(Object.entries(params ?? {}).filter(([, value]) => typeof value === "string" && value)), reach: "all" }).toString()}`;
 
-  const filtered = Boolean(params?.q || params?.category || params?.country || params?.near);
+  const filtered = Boolean(params?.q || params?.category || params?.country || params?.near || showFar);
   const selectClass = `${FIELD_SELECT} h-[44px] rounded-full sm:w-auto`;
 
   return (
@@ -135,6 +142,10 @@ export default async function MarketplaceSuppliersPage({ searchParams }: PagePro
               <option value="">{t("sup.allCategories")}</option>
               {allCategories.map((cat) => <option key={cat} value={cat}>{cat}</option>)}
             </select>
+            <select name="reach" aria-label={t("sup.reach")} defaultValue={showFar ? "all" : ""} className={selectClass}>
+              <option value="">{t("sup.reachNear")}</option>
+              <option value="all">{t("sup.reachAll")}</option>
+            </select>
             {/* Rarely used: tucked away, open when one of them is set. */}
             <details open={Boolean(params?.country || params?.near)} className="group w-full sm:w-auto">
               <summary className="inline-flex min-h-[44px] cursor-pointer list-none items-center gap-1.5 rounded-full border border-app-line bg-white px-4 text-[14px] font-extrabold text-app-ink hover:border-app-line-strong [&::-webkit-details-marker]:hidden">
@@ -160,6 +171,12 @@ export default async function MarketplaceSuppliersPage({ searchParams }: PagePro
             <AssistantNote who="peggy" action={<PillLink href="/home/settings" tone="ink" size="sm">{t("trust.addCityBtn")}</PillLink>}>{t("trust.addCity")}</AssistantNote>
           ) : null}
 
+          {showFar && farCount > 0 ? (
+            <AssistantNote who="rex">{t("sup.farNote", { count: farCount })}</AssistantNote>
+          ) : !showFar && hasPlace && hiddenFar > 0 ? (
+            <AssistantNote who="peggy" action={<PillLink href={withFarHref} tone="ink" size="sm">{t("sup.showFarBtn")}</PillLink>}>{t("sup.farHidden", { count: hiddenFar })}</AssistantNote>
+          ) : null}
+
           {suppliers.length === 0 ? (
             <EmptyState icon="people" title={filtered ? t("sup.noMatch") : t("sup.noneYet")} action={filtered ? <PillLink href="/marketplace/suppliers" tone="ink">{t("sup.clearFilters")}</PillLink> : undefined}>
               {filtered ? t("sup.tryDifferent") : t("sup.showOnce")}
@@ -169,6 +186,7 @@ export default async function MarketplaceSuppliersPage({ searchParams }: PagePro
               {suppliers.map((s) => {
                 const risk = trust.get(s.id)?.risk;
                 const km = distances.get(s.id)?.km;
+                const far = isFar(s);
                 const location = [s.city, s.country].filter(Boolean).join(", ");
                 const logo = (
                   <span className="block h-14 w-14 shrink-0 overflow-hidden rounded-[14px] border border-app-line bg-white">
@@ -200,10 +218,16 @@ export default async function MarketplaceSuppliersPage({ searchParams }: PagePro
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-1.5">
+                        {far ? <Pill tone="warning" dot>{t("sup.farBadge")}</Pill> : null}
                         {featured.has(s.userId) ? <Pill tone="ink">{t("featured")}</Pill> : null}
                         {s.verificationStatus === "verified" ? <Pill tone="success" dot>{t("trust.verified")}</Pill> : <Pill tone="danger" dot>{s.verificationStatus === "pending" ? t("trust.pending") : t("trust.unverified")}</Pill>}
                         {risk ? <Pill tone={RISK_TONE[risk.level]}>{t.dynamic(`trust.risk.${risk.level}`, "", { score: risk.score })}</Pill> : null}
                       </div>
+                      {far ? (
+                        <p className="m-0 flex items-start gap-1.5 rounded-[12px] bg-app-canvas px-3 py-2 text-[13px] font-semibold leading-[1.45] text-app-ink">
+                          <Icon name="truck" size={14} className="mt-0.5 shrink-0" />{t("sup.farFees")}
+                        </p>
+                      ) : null}
                       {s.description ? (
                         <p className="m-0 line-clamp-2 text-[13.5px] leading-[1.5] text-app-ink-soft">{s.description}</p>
                       ) : null}
@@ -214,7 +238,7 @@ export default async function MarketplaceSuppliersPage({ searchParams }: PagePro
                         </div>
                       ) : null}
                       <div className="mt-auto grid gap-2 pt-1">
-                        <PillLink href={`/marketplace?supplier=${s.slug}`} size="sm" tone="ink" className="min-h-[42px] w-full whitespace-nowrap">
+                        <PillLink href={far ? `/suppliers/${s.slug}` : `/marketplace?supplier=${s.slug}`} size="sm" tone="ink" className="min-h-[42px] w-full whitespace-nowrap">
                           {t("sup.theirProducts")}{s._count.products > 0 ? ` · ${s._count.products}` : ""}
                         </PillLink>
                         <div className="grid grid-cols-2 gap-2">
