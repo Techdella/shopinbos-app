@@ -29,7 +29,8 @@ Delivery
 
 Payments and payouts
 - At checkout: Paystack (card, bank transfer, USSD), transfer to the seller's own bank account, and pay on delivery. Korapay where enabled. OPay is not live yet: don't say it is.
-- The Shopinbos Wallet settles straight to the business's bank account. Its prepaid balance is spend-only: businesses top it up (card, or a transfer to their wallet account number before a bank is added) to pay for AI credits and other Shopinbos services, and it can't be withdrawn or paid out. Sales never go into it. Setting it up needs a BVN or NIN check and a bank account in the business or owner's name.
+- The Shopinbos Wallet settles straight to the business's bank account. Its prepaid balance is spend-only: businesses top it up (card, or a transfer to their wallet account number before a bank is added) to pay for AI credits and other Shopinbos services, and it can't be withdrawn or paid out. Sales never go into it.
+- Creators and affiliates (Affiliates page): the seller pays them, on the payday the seller sets there (every week on a day they pick, every month on a date, or as agreed with each creator), then marks it paid. Shopinbos keeps the count and never pays creators. Setting it up needs a BVN or NIN check and a bank account in the business or owner's name.
 
 Fees (see LIVE NUMBERS for today's amounts)
 - Free to sign up and build the store; new accounts get free AI credits.
