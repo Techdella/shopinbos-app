@@ -14,7 +14,7 @@ import { productStage } from "@/lib/partner-pure";
 import { fetchSupplierProducts, type SupplierProduct } from "@/lib/supplier";
 import { LOW_STOCK } from "@/lib/supplier-pure";
 import { useLoad } from "@/lib/useLoad";
-import { colors } from "@/theme";
+import { colors, surfaceCard } from "@/theme";
 
 // Supplier Products ("Familiar app" supplier prototype `products`): a two-column grid of product cards (the photo,
 // the name, the price to shops and how many are left), the first card being "Add a product · Take a photo to
@@ -117,16 +117,16 @@ function ProductCard({ product, stock }: { product: SupplierProduct; stock: stri
       accessibilityRole="button"
       accessibilityLabel={[product.name, t("products.toShops", { price }), stock, stage].filter(Boolean).join(". ")}
       onPress={() => router.push({ pathname: "/supplier/product/[id]", params: { id: product.id } })}
-      style={({ pressed }) => ({ flex: 1, borderRadius: 22, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, overflow: "hidden", opacity: pressed ? 0.85 : 1 })}
+      style={({ pressed }) => ({ flex: 1, ...surfaceCard(22), padding: 6, opacity: pressed ? 0.85 : 1 })}
     >
       {product.images[0] ? (
-        <Image source={{ uri: product.images[0] }} style={{ width: "100%", aspectRatio: 1, backgroundColor: colors.grayTint }} contentFit="cover" accessibilityIgnoresInvertColors />
+        <Image source={{ uri: product.images[0] }} style={{ width: "100%", aspectRatio: 1, borderRadius: 17, backgroundColor: colors.grayTint }} contentFit="cover" accessibilityIgnoresInvertColors />
       ) : (
-        <View style={{ width: "100%", aspectRatio: 1, backgroundColor: colors.grayTint, alignItems: "center", justifyContent: "center" }}>
+        <View style={{ width: "100%", aspectRatio: 1, borderRadius: 17, backgroundColor: colors.grayTint, alignItems: "center", justifyContent: "center" }}>
           <AppIcon name="box" size={34} color={colors.inkSoft} />
         </View>
       )}
-      <View style={{ padding: 12, gap: 3 }}>
+      <View style={{ paddingHorizontal: 8, paddingTop: 10, paddingBottom: 8, gap: 3 }}>
         <T weight="bold" style={{ fontSize: 15, lineHeight: 19 }} numberOfLines={2}>{product.name}</T>
         <T weight="extrabold" style={{ fontSize: 15 }}>{price}</T>
         <T style={{ fontSize: 13, lineHeight: 17, color: low ? colors.warnInk : colors.inkSoft }} numberOfLines={1}>{stock}</T>

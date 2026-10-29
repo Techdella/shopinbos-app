@@ -15,7 +15,7 @@ import { homeFor } from "@/lib/partner-pure";
 import { useRole } from "@/lib/role";
 import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
-import { colors } from "@/theme";
+import { colors, fonts, surfaceCard } from "@/theme";
 
 // Ask Peggy for sellers, suppliers and delivery partners ("Familiar app" prototype `askPeggy`): GET/POST
 // /api/mobile/peggy. Peggy answers from the person's own numbers (products, stock, orders and quotes; jobs, missed
@@ -118,16 +118,22 @@ export default function AskPeggy() {
         <>
           <Bubble mine={false}>{intro.data?.intro || t(`peg.hello.${who === "logistics_partner" ? "partner" : who}`)}</Bubble>
           {!turns.length ? (
-            <View style={{ gap: 8 }}>
+            <View style={{ gap: 10 }}>
+              {/* The voice-assistant opening: a big question, the round mic (a free call with Peggy, where calls
+                  run), then the questions people ask most. */}
+              <View style={{ alignItems: "center", gap: 18, paddingVertical: 12 }}>
+                <T accessibilityRole="header" style={{ fontFamily: fonts.display, fontSize: 28, lineHeight: 32, letterSpacing: -0.6, textAlign: "center" }}>{t("peg.helpWith")}</T>
+                <CallPeggyButton variant="mic" />
+              </View>
               {suggestions.map((question) => (
                 <Pressable
                   key={question}
                   accessibilityRole="button"
                   accessibilityLabel={t("peg.askThis", { question })}
                   onPress={() => void ask(question)}
-                  style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 52, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 16, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, opacity: pressed ? 0.8 : 1 })}
+                  style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 56, paddingHorizontal: 16, paddingVertical: 12, ...surfaceCard(20), opacity: pressed ? 0.8 : 1 })}
                 >
-                  <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: TILE.peach.bg, alignItems: "center", justifyContent: "center" }}>
+                  <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: TILE.peach.bg, alignItems: "center", justifyContent: "center" }}>
                     <AppIcon name="sparkle" size={16} color={TILE.peach.fg} />
                   </View>
                   <T weight="semibold" style={{ flex: 1, fontSize: 15, lineHeight: 20 }}>{question}</T>

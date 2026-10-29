@@ -14,8 +14,9 @@ import { colors, radii } from "@/theme";
 // there at all. There is no web or browser fallback.
 //   variant "button": the big button (setup welcome, Help, Start) · "compact": a small pill (setup steps) ·
 //   "icon": a round phone button (Ask Peggy's header) · "row": a row in a List (Home, Account, Business).
+//   "mic": a big round mic (Ask Peggy before the first question).
 
-type Variant = "button" | "compact" | "icon" | "row";
+type Variant = "button" | "compact" | "icon" | "row" | "mic";
 
 export function CallPeggyButton({ style, note = true, variant = "button" }: { style?: StyleProp<ViewStyle>; note?: boolean; variant?: Variant }) {
   const t = useT("m_help");
@@ -41,6 +42,19 @@ export function CallPeggyButton({ style, note = true, variant = "button" }: { st
     );
   }
 
+  if (variant === "mic") {
+    // The voice-assistant look: one big round mic in a soft halo, "Call Peggy · free" under it.
+    return (
+      <Pressable testID="peggy-mic" accessibilityRole="button" accessibilityLabel={onCall ? t("call.backTo") : t("call.label")} onPress={press} disabled={busy} style={({ pressed }) => [{ alignItems: "center", gap: 10, opacity: pressed ? 0.85 : 1 }, style]}>
+        <View style={{ width: 116, height: 116, borderRadius: 58, backgroundColor: colors.mintTint, alignItems: "center", justifyContent: "center" }}>
+          <View style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: colors.forestFill, alignItems: "center", justifyContent: "center" }}>
+            <AppIcon name={onCall ? "phone" : "mic"} size={36} color="#FFFFFF" />
+          </View>
+        </View>
+        <T weight="bold" numberOfLines={1} style={{ fontSize: 15, color: colors.forest }}>{title}</T>
+      </Pressable>
+    );
+  }
   if (variant === "compact") {
     return (
       <Pressable accessibilityRole="button" accessibilityLabel={onCall ? t("call.backTo") : t("call.label")} onPress={press} hitSlop={6} style={({ pressed }) => [{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 40, paddingHorizontal: 14, borderRadius: radii.pill, backgroundColor: colors.mintTint, opacity: pressed ? 0.85 : 1 }, style]}>

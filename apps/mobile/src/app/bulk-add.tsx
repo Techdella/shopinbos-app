@@ -19,7 +19,7 @@ import { addPhotos, bulkApi, queueFor, type BulkSession, type PublishResult } fr
 import { useT } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { openWeb } from "@/lib/web";
-import { colors, fonts, radii } from "@/theme";
+import { colors, fonts, radii, surfaceCard } from "@/theme";
 
 // "Add many with Peggy" (shared/bulk-products.ts): pick up to 300 product photos at once, they upload in the
 // background (3 at a time, retried, carried on when the app opens again) while Peggy reads them 10 at a time; price
@@ -227,7 +227,7 @@ export default function BulkAdd() {
   }
 
   const progress = queue.total > 0 && (busy || queue.failed > 0 || (session?.summary.drafting ?? 0) > 0) ? (
-    <View style={{ backgroundColor: colors.surface, borderRadius: 18, borderWidth: 1, borderColor: colors.line, padding: 12, gap: 6, marginHorizontal: 16 }} testID="bulk-progress" accessibilityLiveRegion="polite">
+    <View style={{ ...surfaceCard(18), padding: 12, gap: 6, marginHorizontal: 16 }} testID="bulk-progress" accessibilityLiveRegion="polite">
       <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
         <T weight="bold" style={{ fontSize: 14 }}>{t("upload.progress", { done: queue.done, total: queue.total })}</T>
         {session && session.summary.total > 0 ? <T style={{ fontSize: 13, color: colors.inkSoft }}>{t("upload.reading", { done: session.summary.total - session.summary.drafting, total: session.summary.total })}</T> : null}
@@ -299,7 +299,7 @@ export default function BulkAdd() {
                   ) : null}
                 </ScrollView>
                 {session?.groups.length ? (
-                  <Pressable testID="bulk-ideas" accessibilityRole="button" onPress={() => setIdeas(true)} style={{ marginHorizontal: 16, marginTop: 6, flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 12, paddingVertical: 8 }}>
+                  <Pressable testID="bulk-ideas" accessibilityRole="button" onPress={() => setIdeas(true)} style={{ marginHorizontal: 16, marginTop: 6, flexDirection: "row", alignItems: "center", gap: 10, ...surfaceCard(16), paddingHorizontal: 12, paddingVertical: 8 }}>
                     <View style={{ flexDirection: "row" }}>
                       {session.groups[0].numbers.slice(0, 3).map((n, index) => <View key={n} style={{ marginLeft: index ? -14 : 0 }}><Thumb uri={byNumber.get(n)?.photos[0]} size={32} /></View>)}
                     </View>
@@ -470,7 +470,7 @@ function Turn({ event, items, byNumber, t }: { event: BulkEvent; items: BulkItem
       {cards.length ? (
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginRight: 24 }} testID="bulk-cards">
           {cards.map((item) => (
-            <View key={item.id} style={{ width: "48%", flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: colors.surface, borderRadius: 14, borderWidth: 1, borderColor: colors.line, padding: 6 }}>
+            <View key={item.id} style={{ width: "48%", flexDirection: "row", alignItems: "center", gap: 8, ...surfaceCard(14), padding: 6 }}>
               <Thumb uri={item.photos[0]} size={44} />
               <View style={{ flex: 1 }}>
                 <T weight="bold" style={{ fontSize: 13 }} numberOfLines={2}>{item.number}. {item.name || t("item.unnamed", { n: item.number })}</T>

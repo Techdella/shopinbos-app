@@ -1,6 +1,7 @@
 import { Pressable, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import { AppIcon } from "@/components/icons";
+import { AppIcon, type AppIconName } from "@/components/icons";
+import { CheckTile, TileGrid } from "@/components/visual";
 import { T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
 import { colors, currentScheme } from "@/theme";
@@ -8,12 +9,35 @@ import { colors, currentScheme } from "@/theme";
 // The lime "Get your shop ready · 2 of 4 done" card on Home for the first days ("Familiar app" prototype `.c-lime`
 // checklist): a progress bar and one row per step, ticked when done. Hidden once everything is done or dismissed.
 
-export type ChecklistItem = { key: string; label: string; done: boolean; onPress: () => void };
+export type ChecklistItem = { key: string; label: string; done: boolean; onPress: () => void; icon?: AppIconName };
 
-export function Checklist({ title, items, onDismiss }: { title: string; items: ChecklistItem[]; onDismiss?: () => void }) {
+/** `variant="tiles"`: the "Before you start" look (delivery partners): the title with the count and a progress bar,
+ * then two tiles to a row, each with its icon and a tick when done. */
+export function Checklist({ title, items, onDismiss, variant = "list" }: { title: string; items: ChecklistItem[]; onDismiss?: () => void; variant?: "list" | "tiles" }) {
   const t = useT("m_familiar");
   const done = items.filter((item) => item.done).length;
   if (!items.length || done === items.length) return null;
+  if (variant === "tiles") {
+    return (
+      <View style={{ gap: 12 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <T weight="extrabold" style={{ fontSize: 17, flex: 1 }} accessibilityRole="header">{title}</T>
+          <T weight="semibold" style={{ fontSize: 13, color: colors.inkSoft }}>{t("check.count", { done, total: items.length })}</T>
+          {onDismiss ? (
+            <Pressable accessibilityRole="button" accessibilityLabel={t("check.hide")} onPress={onDismiss} hitSlop={8} style={{ width: 32, height: 32, alignItems: "center", justifyContent: "center" }}>
+              <AppIcon name="x" size={18} color={colors.inkSoft} />
+            </Pressable>
+          ) : null}
+        </View>
+        <View style={{ height: 6, borderRadius: 3, backgroundColor: colors.track, overflow: "hidden" }}>
+          <View style={{ width: `${(done / items.length) * 100}%`, height: 6, borderRadius: 3, backgroundColor: colors.successFill }} />
+        </View>
+        <TileGrid>
+          {items.map((item) => <CheckTile key={item.key} icon={item.icon ?? "check"} label={item.label} done={item.done} onPress={item.onPress} />)}
+        </TileGrid>
+      </View>
+    );
+  }
   return (
     <View style={{ backgroundColor: currentScheme() === "dark" ? "#2A3912" : "#E2F5A0", borderRadius: 24, padding: 18, paddingRight: 12, gap: 10 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>

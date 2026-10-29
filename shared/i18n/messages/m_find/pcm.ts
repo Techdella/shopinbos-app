@@ -255,6 +255,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "markup.roundingTitle": "How prices dey round",
   "product.dropshipTitle": "How dropship dey work",
   "product.dropshipShort": "You no go buy anything now. {name} go send am when customer pay.",
+  // v26 soft cards (components/visual.tsx)
+  "packs.see": "See the pack",
 };
 
 export default pcm;

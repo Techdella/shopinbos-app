@@ -354,6 +354,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "sib.partner.viddone.title": "Show delivery wey you finish",
   "sib.partner.viddone.body": "Film as you hand parcel over for door. No pass 30 seconds.",
   "sib.partner.viddone.cta": "Post video",
+  // v26 soft cards (components/visual.tsx)
+  "peg.helpWith": "Wetin I fit help you do?",
 };
 
 export default pcm;

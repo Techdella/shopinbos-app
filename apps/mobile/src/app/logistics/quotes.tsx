@@ -58,7 +58,7 @@ function Waiting({ request, basePrice, onDone }: { request: PriceRequest; basePr
   }
 
   return (
-    <Card style={{ gap: 10, borderRadius: 24, borderWidth: 1, borderColor: colors.line }}>
+    <Card style={{ gap: 10 }}>
       <T weight="bold" style={{ fontSize: 14, color: colors.inkSoft }} numberOfLines={1}>{[request.shop, request.city].filter(Boolean).join(" · ")}</T>
       <RouteLine from={request.from} to={request.to} size={16} />
       <T style={{ fontSize: 14, color: colors.inkSoft }}>

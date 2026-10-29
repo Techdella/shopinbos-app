@@ -84,7 +84,7 @@ export default function ProfilePreview() {
       data.pickupPoints.length ? t("biz.pointsSub", { count: data.pickupPoints.length }) : null,
     ].filter(Boolean).join(" · ");
     card = (
-      <Card style={{ padding: 20, gap: 12, borderRadius: 24, borderWidth: 1, borderColor: colors.line }}>
+      <Card style={{ padding: 20, gap: 12 }}>
         <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
           <Initial name={partner.name} />
           <View style={{ flex: 1, gap: 3 }}>

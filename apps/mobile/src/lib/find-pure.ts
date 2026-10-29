@@ -96,6 +96,19 @@ export function sortCategories(names: string[]) {
   });
 }
 
+/** The round tile a category gets on Find (icon and tint); categories outside the usual six share a plain one. */
+export function categoryLook(name: string): { icon: "tag" | "bag" | "home" | "phone" | "box" | "sparkle" | "grid"; tone: "lime" | "peach" | "sky" | "lilac" | "butter" | "mint" | "gray" } {
+  const looks = {
+    Shoes: { icon: "tag", tone: "lime" },
+    Fashion: { icon: "bag", tone: "peach" },
+    Home: { icon: "home", tone: "sky" },
+    Gadgets: { icon: "phone", tone: "lilac" },
+    Food: { icon: "box", tone: "butter" },
+    Beauty: { icon: "sparkle", tone: "mint" },
+  } as const;
+  return looks[name as keyof typeof looks] ?? { icon: "grid", tone: "gray" };
+}
+
 // ─── Filters (the list view's chip row and Filters sheet) ────────────────────
 
 /** What the seller pays the supplier per unit, in naira bands. */

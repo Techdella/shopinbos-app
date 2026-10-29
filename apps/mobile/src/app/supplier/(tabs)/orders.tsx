@@ -12,7 +12,7 @@ import { useT } from "@/lib/i18n";
 import { fetchQuoteRequests, fetchSupplierOrders, type QuoteRequest, type SupplierOrder } from "@/lib/supplier";
 import { countWord, supplierOrderGroup, type SupplierOrderSegment } from "@/lib/supplier-pure";
 import { useLoad } from "@/lib/useLoad";
-import { colors } from "@/theme";
+import { colors, surfaceCard } from "@/theme";
 import { FilterBar } from "@/components/FilterBar";
 
 // Supplier Orders ("Simple app, end to end" supplier prototype): New, In progress, Sent and Prices, each with its
@@ -99,7 +99,7 @@ export default function SupplierOrders() {
 
 function EmptyCard({ text }: { text: string }) {
   return (
-    <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 18 }}>
+    <View style={{ ...surfaceCard(), padding: 18 }}>
       <Sub>{text}</Sub>
     </View>
   );

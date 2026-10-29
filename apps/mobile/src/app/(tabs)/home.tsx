@@ -5,6 +5,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { naira } from "@shared/onboarding";
 import { isPeggyNight } from "@shared/mascots";
 import { DarkCard, Eyebrow, List, Row, Tile, Title, type TileTone } from "@/components/design";
+import { MiniBars, PromoCarousel, type PromoSlide } from "@/components/visual";
+import { trailingWeekdays } from "@/lib/visual-pure";
 import type { AppIconName } from "@/components/icons";
 import { HomeSkeleton, OfflineBanner, OpeningShop, SlowNetwork } from "@/components/Loading";
 import { HelpButton } from "@/components/Help";
@@ -38,7 +40,7 @@ import { checklistHiddenHere, hideChecklistHere, openStatusCta, rememberTourDone
 import { shareShop } from "@/lib/share";
 import { fetchWallet } from "@/lib/wallet";
 import { openPath } from "@/lib/web";
-import { colors } from "@/theme";
+import { colors, surfaceCard } from "@/theme";
 import { PushPromptCard } from "@/components/PushPromptCard";
 import { NotificationBellButton } from "@/components/NotificationBellButton";
 import { CampaignsCard } from "@/components/CampaignsCard";
@@ -92,7 +94,7 @@ function AskCard({ who, title, sub, onPress, testID }: { who: "rex" | "peggy"; t
       accessibilityRole="button"
       accessibilityLabel={`${title}. ${sub}`}
       onPress={onPress}
-      style={({ pressed }) => ({ flex: 1, minHeight: 92, flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 14, opacity: pressed ? 0.9 : 1 })}
+      style={({ pressed }) => ({ flex: 1, minHeight: 92, flexDirection: "row", alignItems: "center", gap: 10, ...surfaceCard(), padding: 14, opacity: pressed ? 0.9 : 1 })}
     >
       {who === "peggy" ? <Mascot name="peggy" mood={isPeggyNight() ? "sleep" : "idle"} size={44} label="" /> : <Mascot name="rex" size={44} label="" />}
       <View style={{ flex: 1, minWidth: 0 }}>
@@ -288,6 +290,11 @@ export default function Home() {
     { key: "ask", title: t("tour.3.title"), body: t("tour.3.body"), target: askRef },
   ];
 
+  // Sales a day for the last week (oldest first, today last); nothing to draw on an older server or a quiet week.
+  const salesDays = (data?.daily?.data ?? []).slice(-7);
+  const dayLabels = trailingWeekdays(salesDays.length).map((day) => t(`wk.${day}` as "wk.0"));
+  if (salesDays.length && !salesDays.some((amount) => amount > 0)) salesDays.length = 0;
+
   const myPicture = latestPicture(changedPictures, "avatarUrl", data?.ownerAvatarUrl);
   const myName = data?.ownerName || firstName || "S";
 
@@ -353,7 +360,10 @@ export default function Home() {
         {!tourShowing ? <GettingStartedCard /> : null}
 
         <View ref={moneyRef} collapsable={false} style={{ gap: 18 }}>
-          <DarkCard eyebrow={t("sales.today")} amount={data ? naira(data.sales.today) : "…"} line={payoutLine} onPress={() => router.push("/wallet")} />
+          <DarkCard eyebrow={t("sales.today")} amount={data ? naira(data.sales.today) : "…"} line={payoutLine} onPress={() => router.push("/wallet")}>
+            {/* The last 7 days of sales, a bar a day, today lit (the dashboard's daily series). */}
+            {salesDays.length ? <MiniBars dark height={52} values={salesDays} labels={dayLabels} accessibilityLabel={t("chart.lastDays", { days: salesDays.map((amount, index) => `${dayLabels[index]} ${naira(amount)}`).join(", ") })} /> : null}
+          </DarkCard>
           <QuickActions actions={shortcuts} />
         </View>
 
@@ -396,7 +406,7 @@ export default function Home() {
                   {needs.map((todo) => <Row key={todo.key} lead={todo.lead} title={todo.title} sub={todo.sub} onPress={todo.onPress} />)}
                 </List>
               ) : (
-                <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20 }}>
+                <View style={{ ...surfaceCard(), padding: 20 }}>
                   <T style={{ fontSize: 16, lineHeight: 24, color: colors.inkSoft }}>{t("todo.caughtUp")}</T>
                 </View>
               )}
@@ -405,12 +415,11 @@ export default function Home() {
             {/* "From Peggy" (board A-Seller-Home): what she kept an eye on today; a tap opens her. */}
             <View style={{ gap: 10 }}>
               <Eyebrow>{t("fromPeggy")}</Eyebrow>
-              <Pressable testID="home-from-peggy" accessibilityRole="button" onPress={() => router.push("/peggy")} style={({ pressed }) => ({ flexDirection: "row", alignItems: "flex-start", gap: 10, opacity: pressed ? 0.85 : 1 })}>
-                <Mascot name="peggy" mood={isPeggyNight() ? "sleep" : "idle"} size={36} label="" />
-                <View style={{ flex: 1, minWidth: 0, backgroundColor: colors.surface, borderRadius: 18, borderTopLeftRadius: 6, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 14, paddingVertical: 12 }}>
-                  <T style={{ fontSize: 15, lineHeight: 21 }}>{peggyLine(data.counts, t)}</T>
-                </View>
-              </Pressable>
+              {/* A soft promo banner: her line, "Ask Peggy", and Peggy on the right. */}
+              <PromoCarousel
+                label={t("fromPeggy")}
+                slides={[{ key: "peggy", testID: "home-from-peggy", tone: "mint", title: peggyLine(data.counts, t), cta: t("ai.peggy"), onPress: () => router.push("/peggy"), art: <Mascot name="peggy" mood={isPeggyNight() ? "sleep" : "idle"} size={64} label="" /> } satisfies PromoSlide]}
+              />
             </View>
 
             <CampaignsCard />

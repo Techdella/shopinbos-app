@@ -20,7 +20,7 @@ import { useRole } from "@/lib/role";
 import { useLoad } from "@/lib/useLoad";
 import { formatMoney } from "@shared/i18n";
 import { useLocale, useT } from "@/lib/i18n";
-import { colors } from "@/theme";
+import { colors, surfaceCard } from "@/theme";
 
 // Post a status (24 hours, seen by other businesses on Shopinbos), "Familiar app" prototype `statusNew` and
 // `statusDone`. Suppliers show sellers new stock (pick one of their products), delivery partners tell sellers about
@@ -292,7 +292,7 @@ export default function NewStatus() {
         )}
       </View>
 
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 16, minHeight: 64 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12, ...surfaceCard(), paddingHorizontal: 16, minHeight: 64 }}>
         <T weight="bold" style={{ flex: 1, fontSize: 15.5 }}>{t("sn.alsoWhatsApp")}</T>
         <Toggle on={toWhatsApp} onChange={setToWhatsApp} label={t("sn.alsoWhatsApp")} />
       </View>

@@ -354,6 +354,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "sib.partner.viddone.title": "Gosi nnyefe ị mezuru",
   "sib.partner.viddone.body": "See vidiyo ka ị na-enyefe ngwugwu n'ọnụ ụzọ. Ruo sekọnd 30.",
   "sib.partner.viddone.cta": "Biputa vidiyo",
+  // v26 soft cards (components/visual.tsx)
+  "peg.helpWith": "Gịnị ka m ga-enyere gị aka?",
 };
 
 export default ig;

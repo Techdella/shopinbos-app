@@ -2,10 +2,10 @@ import { useCallback, useState } from "react";
 import { Pressable, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { AppearanceRow } from "@/components/AppearancePicker";
-import { Eyebrow, List, Row, Tile, Title, type TileTone } from "@/components/design";
+import { Eyebrow, List, Row, TILE, Tile, Title, type TileTone } from "@/components/design";
 import { HelpButton } from "@/components/Help";
 import { LanguageRow } from "@/components/LanguagePicker";
-import { type AppIconName } from "@/components/icons";
+import { AppIcon, type AppIconName } from "@/components/icons";
 import { Picture } from "@/components/kit";
 import { IconButton, Section } from "@/components/seller/bits";
 import { Field, LinkButton, T } from "@/components/ui";
@@ -22,7 +22,7 @@ import { shopIsLive } from "@/lib/publish";
 import { PublishButton, ShopLiveSheet } from "@/components/seller/PublishShop";
 import type { PublishedShop } from "@/lib/publish";
 import { useT } from "@/lib/i18n";
-import { colors } from "@/theme";
+import { colors, surfaceCard } from "@/theme";
 import { DeleteAccountButton } from "@/components/DeleteAccountButton";
 
 // Menu (canvas board M-Menu, "Seller app · sell, grow"; this tab was My shop, the route stays /shop): the shop's logo
@@ -130,9 +130,9 @@ function ToolGrid({ tools, counts, label }: { tools: GridTool[]; counts: { live:
   const rows: GridTool[][] = [];
   for (let index = 0; index < tools.length; index += 3) rows.push(tools.slice(index, index + 3));
   return (
-    <View style={{ gap: 8 }}>
+    <View style={{ gap: 12 }}>
       {rows.map((row) => (
-        <View key={row[0].id} style={{ flexDirection: "row", gap: 8 }}>
+        <View key={row[0].id} style={{ flexDirection: "row", gap: 12 }}>
           {row.map((tool) => {
             const count = tool.count ? counts[tool.count] : 0;
             const tag = count ? t(tool.count === "live" ? "menu.live" : "menu.on", { count }) : null;
@@ -143,19 +143,22 @@ function ToolGrid({ tools, counts, label }: { tools: GridTool[]; counts: { live:
                 accessibilityRole="button"
                 accessibilityLabel={tag ? `${label(tool)}, ${tag}` : label(tool)}
                 onPress={() => go(tool.path)}
-                style={({ pressed }) => ({ flex: 1, minWidth: 0, minHeight: 92, backgroundColor: colors.surface, borderRadius: 18, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 10, paddingVertical: 12, gap: 8, opacity: pressed ? 0.85 : 1 })}
+                style={({ pressed }) => ({ flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 0, minHeight: 104, ...surfaceCard(22), paddingHorizontal: 8, paddingTop: 14, paddingBottom: 12, gap: 8, alignItems: "center", opacity: pressed ? 0.85 : 1 })}
               >
-                <Tile icon={tool.icon} tone={tool.tone} size={36} />
-                <T weight="bold" numberOfLines={2} style={{ fontSize: 13, lineHeight: 17 }}>{label(tool)}</T>
+                {/* A round tinted icon over the name, centred (the boards' category circles). */}
+                <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: TILE[tool.tone].bg, alignItems: "center", justifyContent: "center" }}>
+                  <AppIcon name={tool.icon} size={21} color={TILE[tool.tone].fg} />
+                </View>
+                <T weight="bold" numberOfLines={2} style={{ fontSize: 13, lineHeight: 17, textAlign: "center" }}>{label(tool)}</T>
                 {tag ? (
-                  <View style={{ position: "absolute", top: 10, right: 8, borderRadius: 9, paddingHorizontal: 6, height: 18, justifyContent: "center", backgroundColor: colors.successTint }}>
+                  <View style={{ position: "absolute", top: 8, right: 8, borderRadius: 9, paddingHorizontal: 6, height: 18, justifyContent: "center", backgroundColor: colors.successTint }}>
                     <T weight="extrabold" style={{ fontSize: 10, color: colors.success }}>{tag}</T>
                   </View>
                 ) : null}
               </Pressable>
             );
           })}
-          {row.length < 3 ? Array.from({ length: 3 - row.length }, (_, index) => <View key={`gap-${index}`} style={{ flex: 1 }} />) : null}
+          {row.length < 3 ? Array.from({ length: 3 - row.length }, (_, index) => <View key={`gap-${index}`} style={{ flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 0 }} />) : null}
         </View>
       ))}
     </View>
@@ -229,7 +232,7 @@ export default function Menu() {
       }
     >
       {notSeller && (
-        <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20, gap: 6 }}>
+        <View style={{ ...surfaceCard(), padding: 20, gap: 6 }}>
           <T weight="extrabold" style={{ fontSize: 17 }}>{t("notSeller.title")}</T>
           <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>{t("notSeller.body")}</T>
         </View>
@@ -252,7 +255,7 @@ export default function Menu() {
 
       {/* The shop: logo, name and "See your store as customers do" (opens it), Share; Put my shop live under it. */}
       {store ? (
-        <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 16, gap: 12 }}>
+        <View style={{ ...surfaceCard(), padding: 16, gap: 12 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
             <Picture uri={latestPicture(changedPictures, "logoUrl", store.logoUrl)} name={store.name} size={52} shape="square" />
             <Pressable

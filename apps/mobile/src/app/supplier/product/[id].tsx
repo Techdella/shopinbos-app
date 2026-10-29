@@ -15,7 +15,7 @@ import { fetchSupplierProduct, quickEditProduct } from "@/lib/supplier";
 import { bestWholesale, LOW_STOCK } from "@/lib/supplier-pure";
 import { preorderLineText, savedFromColumns, stateOf } from "@/lib/preorder-pure";
 import { useLoad } from "@/lib/useLoad";
-import { colors } from "@/theme";
+import { colors, surfaceCard } from "@/theme";
 
 // One supplier product ("Simple app, end to end" supplier prototype): the photo, name and price to shops, "In stock"
 // with − / + (saved a moment after the last tap; no new review), and rows for the wholesale price (tap to change the
@@ -160,7 +160,7 @@ export default function SupplierProductScreen() {
       </View>
       {notice ? <Notice tone={notice.tone}>{notice.text}</Notice> : null}
 
-      <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 18, flexDirection: "row", alignItems: "center", gap: 12 }}>
+      <View style={{ ...surfaceCard(), padding: 18, flexDirection: "row", alignItems: "center", gap: 12 }}>
         <View style={{ flex: 1, gap: 3 }}>
           <T weight="bold" style={{ fontSize: 16 }}>{t("product.inStockTitle")}</T>
           <T style={{ fontSize: 14, color: stock <= LOW_STOCK ? colors.warnInk : colors.inkSoft }}>{stock <= LOW_STOCK ? t("products.runningLow", { count: stock }) : t("products.inStock", { count: stock })}</T>
@@ -210,7 +210,7 @@ export default function SupplierProductScreen() {
         </View>
       ) : null}
 
-      <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 18, gap: 10 }}>
+      <View style={{ ...surfaceCard(), padding: 18, gap: 10 }}>
         <T weight="bold" style={{ fontSize: 16 }}>{hidden ? t("product.notListed") : data.status === "pending_review" ? t("product.inReview") : t("product.listed")}</T>
         <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{hidden ? t("product.showHint") : t("product.hideHint")}</T>
         <PillButton title={hidden ? t("showToShops") : t("product.hide")} tone="white" size="md" busy={busy === "publish"} disabled={Boolean(busy)} onPress={() => void publish(hidden)} />

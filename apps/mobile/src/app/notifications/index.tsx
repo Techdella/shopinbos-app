@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { router } from "expo-router";
-import { ChipRow, EmptyState, ErrorState, LoadingBlock } from "@/components/kit";
-import { Seg } from "@/components/design";
+import { EmptyState, ErrorState, LoadingBlock } from "@/components/kit";
+import { List } from "@/components/design";
 import { AppIcon, type AppIconName } from "@/components/icons";
 import { PushPromptCard } from "@/components/PushPromptCard";
 import { Screen } from "@/components/Screen";
-import { LinkButton, PillButton, T } from "@/components/ui";
+import { LinkButton, PillButton, Segmented, T } from "@/components/ui";
 import { fetchNotifications, markNotificationsRead, openNotificationTarget, setUnreadCount, type AppNotification } from "@/lib/notifications";
 import { useRole } from "@/lib/role";
 import { useLoad } from "@/lib/useLoad";
@@ -49,11 +49,12 @@ function ago(t: Words, value: string, locale: Locale, now = new Date()) {
 
 const FILTER_KEY = { all: "nf.all", orders: "nf.orders", jobs: "nf.jobs", money: "nf.money", ai: "nf.ai", peggy: "nf.peggy" } as const;
 
-const TILE: Record<AppNotification["priority"], { bg: string; fg: string }> = themed(() => ({
-  critical: { bg: colors.dangerTint, fg: colors.danger },
-  warning: { bg: "#FDF0D5", fg: "#8A5A00" },
-  info: { bg: colors.canvas, fg: colors.ink },
-  success: { bg: colors.successTint, fg: colors.success },
+/** Each priority's round icon (tint and ink) and the colour of its time line. */
+const TILE: Record<AppNotification["priority"], { bg: string; fg: string; time: string }> = themed(() => ({
+  critical: { bg: colors.dangerTint, fg: colors.danger, time: colors.danger },
+  warning: { bg: colors.warnTint, fg: colors.warnInk, time: colors.warnInk },
+  info: { bg: colors.blueTint, fg: colors.blueInk, time: colors.blueInk },
+  success: { bg: colors.successTint, fg: colors.success, time: colors.success },
 }));
 
 export default function Notifications() {
@@ -120,9 +121,8 @@ export default function Notifications() {
         {unreadHere > 0 ? <LinkButton title={t("feed.markAllRead")} onPress={() => void readAll()} /> : null}
       </View>
 
-      <ChipRow>
-        {tabs.map((option) => <Seg key={option.key} label={option.label} on={tab === option.key} onPress={() => setTab(option.key)} />)}
-      </ChipRow>
+      {/* All / Orders / Money / Peggy as one segmented pill. */}
+      <Segmented options={tabs.map((option) => ({ value: option.key, label: option.label }))} value={tab} onChange={setTab} />
 
       {feed.loading && !feed.data ? <LoadingBlock label={t("feed.loading")} /> : null}
       {feed.error && !feed.data ? <ErrorState message={feed.error} onRetry={() => void feed.reload()} /> : null}
@@ -135,30 +135,32 @@ export default function Notifications() {
       {groups.map((group) => (
         <View key={group.key} style={{ gap: 8 }}>
           <T weight="extrabold" style={{ fontSize: 13, letterSpacing: 0.8, color: colors.inkSoft, textTransform: "uppercase", marginTop: 4 }} accessibilityRole="header">{group.title}</T>
-          {group.items.map((item) => {
-            const tile = TILE[item.priority] ?? TILE.info;
-            return (
-              <Pressable
-                key={item.id}
-                accessibilityRole="button"
-                accessibilityLabel={item.read ? `${item.title}. ${item.description}` : t("feed.unreadLabel", { title: item.title, description: item.description })}
-                onPress={() => open(item)}
-                style={({ pressed }) => ({ flexDirection: "row", gap: 12, backgroundColor: item.read ? colors.surface : "#FFF7F2", borderRadius: 20, padding: 14, opacity: pressed ? 0.85 : 1 })}
-              >
-                <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: tile.bg, alignItems: "center", justifyContent: "center" }}>
-                  <AppIcon name={ICON[item.category] ?? "bell"} size={19} color={tile.fg} />
-                </View>
-                <View style={{ flex: 1, gap: 2 }}>
-                  <View style={{ flexDirection: "row", gap: 8, alignItems: "flex-start" }}>
-                    <T weight={item.read ? "semibold" : "extrabold"} style={{ flex: 1, fontSize: 15.5, lineHeight: 21 }}>{item.title}</T>
-                    <T style={{ color: colors.inkSoft, fontSize: 13 }}>{ago(t, item.createdAt, locale)}</T>
+          {/* One soft card per day: a round coloured icon (the "avatar"), the title, the words, and the time in the
+              icon's colour; unread rows are tinted and end in a dot. */}
+          <List>
+            {group.items.map((item) => {
+              const tile = TILE[item.priority] ?? TILE.info;
+              return (
+                <Pressable
+                  key={item.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={item.read ? `${item.title}. ${item.description}` : t("feed.unreadLabel", { title: item.title, description: item.description })}
+                  onPress={() => open(item)}
+                  style={({ pressed }) => ({ flexDirection: "row", gap: 14, backgroundColor: pressed ? colors.canvas : item.read ? colors.surface : colors.peach, paddingHorizontal: 18, paddingVertical: 14 })}
+                >
+                  <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: tile.bg, alignItems: "center", justifyContent: "center" }}>
+                    <AppIcon name={ICON[item.category] ?? "bell"} size={19} color={tile.fg} />
                   </View>
-                  <T style={{ color: colors.inkSoft, fontSize: 14.5, lineHeight: 20 }} numberOfLines={3}>{item.description}</T>
-                </View>
-                {!item.read ? <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colors.accent, marginTop: 6 }} /> : null}
-              </Pressable>
-            );
-          })}
+                  <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                    <T weight={item.read ? "semibold" : "extrabold"} style={{ fontSize: 15.5, lineHeight: 21 }}>{item.title}</T>
+                    <T style={{ color: colors.inkSoft, fontSize: 14.5, lineHeight: 20 }} numberOfLines={3}>{item.description}</T>
+                    <T weight="bold" style={{ color: tile.time, fontSize: 12.5, marginTop: 2 }}>{ago(t, item.createdAt, locale)}</T>
+                  </View>
+                  {!item.read ? <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colors.accent, marginTop: 6 }} /> : null}
+                </Pressable>
+              );
+            })}
+          </List>
         </View>
       ))}
 

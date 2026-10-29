@@ -8,7 +8,7 @@ import { TabScreen } from "@/components/TabScreen";
 import { Field, T } from "@/components/ui";
 import { shortTime } from "@/lib/inbox-pure";
 import { useT } from "@/lib/i18n";
-import { colors } from "@/theme";
+import { colors, surfaceCard } from "@/theme";
 import { FilterBar } from "@/components/FilterBar";
 
 // The Chats tab for every role ("Familiar app" prototype `chats`): the title with a search button (and, for sellers,
@@ -159,14 +159,14 @@ export function ChatListScreen<F extends string>({
 
       {chats && !chats.length ? (
         empty ?? (
-          <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 18 }}>
+          <View style={{ ...surfaceCard(), padding: 18 }}>
             <Sub>{q.trim() ? t("chats.noMatch") : t("chats.noneHere")}</Sub>
           </View>
         )
       ) : null}
 
       {chats?.length ? (
-        <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, overflow: "hidden" }}>
+        <View style={{ ...surfaceCard(), overflow: "hidden" }}>
           {chats.map((chat, index) => (
             <View key={chat.key} style={index ? { borderTopWidth: 1, borderTopColor: colors.line } : undefined}>
               <ChatRow chat={chat} />

@@ -18,6 +18,8 @@ import { BeforeYouList, SupplierRiskCard, SupplierTrustBadges } from "@/componen
 import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
 import { colors, radii } from "@/theme";
+import { RatingSummaryCard, Stars } from "@/components/visual";
+import { ratingSummary } from "@/lib/visual-pure";
 
 // One supplier product (web /marketplace/product/[id]): photos, Dropship (pick your price, see what you keep,
 // add it to your store as a draft) or Wholesale (quantity, tier price, request a quote), and Message supplier.
@@ -372,15 +374,20 @@ function ProductView({ product, listing, context, terms, refreshing, onRefresh }
 
       {/* What shops say about the supplier (their ratings after orders arrived, shared/supplier-ratings.ts). */}
       {product.supplier.ratingCount > 0 && product.supplier.rating ? (
-        <Card style={{ gap: 6 }}>
-          <T weight="extrabold" style={{ fontSize: 15 }}>{`${tm("rate.whatShopsSay")} · ★ ${product.supplier.rating.toFixed(1)} · ${tm("rate.count", { count: product.supplier.ratingCount })}`}</T>
+        // The big "4.7 ★ · 23 ratings", star bars when every rating is here, then the shops' latest words.
+        <RatingSummaryCard
+          title={tm("rate.whatShopsSay")}
+          summary={ratingSummary(product.supplier.rating, product.supplier.ratingCount, product.ratings)}
+          countLabel={tm("rate.count", { count: product.supplier.ratingCount })}
+          accessibilityLabel={`${tm("rate.whatShopsSay")} · ★ ${product.supplier.rating.toFixed(1)} · ${tm("rate.count", { count: product.supplier.ratingCount })}`}
+        >
           {product.ratings.filter((entry) => entry.text).map((entry) => (
-            <T key={entry.at} style={{ fontSize: 14, lineHeight: 20 }}>
-              <T style={{ color: "#F2A93B", fontSize: 14 }}>{"★".repeat(entry.rating)}</T>
-              {`  ${entry.text}`}
-            </T>
+            <View key={entry.at} style={{ flexDirection: "row", gap: 10, alignItems: "flex-start", borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 10 }}>
+              <Stars value={entry.rating} size={13} />
+              <T style={{ flex: 1, fontSize: 14, lineHeight: 20 }}>{entry.text}</T>
+            </View>
           ))}
-        </Card>
+        </RatingSummaryCard>
       ) : null}
 
       {product.description ? (

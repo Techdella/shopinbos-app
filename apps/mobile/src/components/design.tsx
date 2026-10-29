@@ -4,7 +4,7 @@ import Svg, { Path } from "react-native-svg";
 import { AppIcon, type AppIconName } from "@/components/icons";
 import { T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
-import { colors, currentScheme, fonts, radii, themed } from "@/theme";
+import { colors, currentScheme, fonts, radii, themed, surfaceCard } from "@/theme";
 
 // Building blocks of the "Simple app, end to end (iOS + Android)" prototype: big Bricolage titles, lists as rows in one
 // white card, tinted icon tiles, pills, radio choice cards, a number keypad with digit boxes, steppers and a timeline.
@@ -65,13 +65,17 @@ export function Tile({ icon, tone = "gray", size = 44 }: { icon: AppIconName; to
   );
 }
 
-/** White card holding rows separated by hairlines (`.card` + `.row`). Rows get their top border from their position. */
+/** A soft white card holding rows separated by hairlines (`.card` + `.row`). Rows get their top border from their
+ * position; the hairline is inset by the rows' padding, so the card reads as one airy surface. */
 export function List({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
   const items = Children.toArray(children).filter(isValidElement);
   return (
-    <View style={[{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, overflow: "hidden" }, style]}>
+    <View style={[{ ...surfaceCard(), overflow: "hidden" }, style]}>
       {items.map((child, index) => (
-        <View key={child.key ?? index} style={index ? { borderTopWidth: 1, borderTopColor: colors.line } : undefined}>{child}</View>
+        <View key={child.key ?? index}>
+          {index ? <View style={{ height: 1, marginHorizontal: 18, backgroundColor: colors.line }} /> : null}
+          {child}
+        </View>
       ))}
     </View>
   );
@@ -117,7 +121,7 @@ export function Row({
       {onPress && (chevron ?? !right) ? <AppIcon name="chevron" size={18} color={colors.inkFaint} /> : null}
     </>
   );
-  const style: ViewStyle = { flexDirection: "row", alignItems: "center", gap: 14, minHeight: 68, paddingHorizontal: 16, paddingVertical: 12 };
+  const style: ViewStyle = { flexDirection: "row", alignItems: "center", gap: 14, minHeight: 68, paddingHorizontal: 18, paddingVertical: 13 };
   const content = below ? (
     <>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>{body}</View>
@@ -178,7 +182,7 @@ export function Choice({ title, sub, on, onPress, lead, multi }: { title: string
       accessibilityState={{ checked: on }}
       accessibilityLabel={sub ? `${title}. ${sub}` : title}
       onPress={onPress}
-      style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 14, minHeight: 64, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 20, borderWidth: on ? 2.5 : 1.5, borderColor: on ? colors.ink : colors.line, backgroundColor: colors.surface, opacity: pressed ? 0.9 : 1 })}
+      style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 14, minHeight: 64, paddingHorizontal: 18, paddingVertical: 14, borderRadius: 22, borderWidth: on ? 2.5 : 1.5, borderColor: on ? colors.ink : colors.line, backgroundColor: colors.surface, opacity: pressed ? 0.9 : 1 })}
     >
       {lead}
       <View style={{ flex: 1, gap: 3 }}>
@@ -310,7 +314,7 @@ export function DarkCard({ eyebrow, amount, line, onPress, children }: { eyebrow
 export function Banner({ title, children, tone = "warn", icon }: { title: string; children?: ReactNode; tone?: "warn" | "mint" | "peach" | "ok"; icon?: AppIconName }) {
   const palette = tone === "warn" ? TILE.warn : tone === "mint" ? TILE.mint : tone === "ok" ? TILE.ok : TILE.peach;
   return (
-    <View style={{ backgroundColor: palette.bg, borderRadius: 20, padding: 16, flexDirection: "row", gap: 12 }} accessibilityRole={tone === "warn" ? "alert" : undefined}>
+    <View style={{ backgroundColor: palette.bg, borderRadius: 22, padding: 18, flexDirection: "row", gap: 12 }} accessibilityRole={tone === "warn" ? "alert" : undefined}>
       {icon ? <AppIcon name={icon} size={20} color={palette.fg} /> : null}
       <View style={{ flex: 1, gap: 4 }}>
         <T weight="bold" style={{ fontSize: 16, color: tone === "warn" ? colors.ink : palette.fg }}>{title}</T>

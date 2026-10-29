@@ -11,13 +11,14 @@ import { CardTitle, MAP_OVERLAY, RiderBadge } from "@/components/RiderKit";
 import { RiderMap } from "@/components/RiderMap";
 import { Sheet } from "@/components/Sheet";
 import { TabScreen } from "@/components/TabScreen";
-import { Notice, PillButton, T, Toggle } from "@/components/ui";
+import { ButtonRow, Notice, PillButton, T, Toggle } from "@/components/ui";
+import { MiniStat } from "@/components/visual";
 import { fetchRider, forgetRiderToken, markJobTaken, riderAction, riderWelcomed, takenJobs, type RiderDrop, type RiderRun } from "@/lib/rider";
 import { useOwnPosition, useRiderLocation } from "@/lib/rider-location";
 import { activeJob, initials, routeLine, waitingOffer } from "@/lib/rider-pure";
 import { useRiderStrings } from "@/lib/rider-strings";
 import { useLoad } from "@/lib/useLoad";
-import { colors } from "@/theme";
+import { colors, surfaceCard } from "@/theme";
 
 // Riders app, Today (E2E-Rider "today"): the online switch, a new job from the company (tap → "Start this job" /
 // "Skip" sheet; the company already gave the job to this rider, there's no "take" to send it, so starting only opens
@@ -113,7 +114,7 @@ export default function RiderToday() {
 
           {/* The map (210px, only the rider's own spot, read on this phone) with the online switch on it. */}
           <RiderMap me={here} height={210} label={say("map.me")}>
-            <View style={{ ...MAP_OVERLAY, backgroundColor: colors.surface, borderRadius: 18, borderWidth: 1, borderColor: colors.line, paddingVertical: 12, paddingHorizontal: 14, minHeight: 64, flexDirection: "row", alignItems: "center", gap: 14 }}>
+            <View style={{ ...MAP_OVERLAY, ...surfaceCard(18), paddingVertical: 12, paddingHorizontal: 14, minHeight: 64, flexDirection: "row", alignItems: "center", gap: 14 }}>
               <View style={{ flex: 1, gap: 2 }}>
                 <T weight="bold" style={{ fontSize: 16 }}>{data.rider.online ? t.online : t.offline}</T>
                 <T style={{ fontSize: 13, color: colors.inkSoft }} numberOfLines={2}>{data.rider.online ? say("onlineSub", { company }) : say("offlineSub")}</T>
@@ -173,7 +174,7 @@ export default function RiderToday() {
           ) : null}
 
           {!offer && !active && data.rider.online ? (
-            <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20 }}>
+            <View style={{ ...surfaceCard(), padding: 20 }}>
               <Sub>{say("idle")}</Sub>
             </View>
           ) : null}
@@ -191,8 +192,12 @@ export default function RiderToday() {
       {offer ? (
         <Sheet visible={offerOpen} onClose={() => setOfferOpen(false)} title={routeLine(offer.run, offer.drop)}>
           {error ? <Notice>{error}</Notice> : null}
+          {/* The two numbers that decide it, big and side by side: what you earn and how far the pickup is. */}
+          <View style={{ flexDirection: "row", gap: 12 }}>
+            <MiniStat tone="ok" label={say("offer.earn")} value={naira(offer.drop.fee ?? offer.run.fees)} />
+            {offer.run.pickupKm != null ? <MiniStat tone="gray" label={say("offer.distance")} value={say("offer.km", { km: offer.run.pickupKm })} /> : null}
+          </View>
           <List>
-            <Row lead={<Tile icon="coin" tone="ok" />} title={say("youEarn", { amount: naira(offer.drop.fee ?? offer.run.fees) })} />
             {offer.drop.collect > 0 ? <Row lead={<Tile icon="wallet" tone="warn" />} title={say("collectCash", { amount: naira(offer.drop.collect) })} sub={say("payOnDelivery")} /> : null}
             <Row
               lead={<Tile icon="clock" tone="gray" />}
@@ -201,19 +206,23 @@ export default function RiderToday() {
             />
           </List>
           <Small>{say("offer.assigned", { company })}</Small>
-          <PillButton tone="forest" onPress={() => { markJobTaken(offer.drop.id); openJob(offer.drop.id); }} icon="check" title={say("startJob")} />
-          <PillButton
-            tone="white"
-            title={say("skip")}
-            busy={busy === "skip"}
-            onPress={() => {
-              const id = offer.drop.id;
-              void act("skip", () => riderAction({ action: "skip", jobId: id }), () => {
-                setOfferOpen(false);
-                setNote(say("skipped", { company }));
-              });
-            }}
-          />
+          {/* Skip and Start side by side (stacked, Start on top, when the words don't fit). */}
+          <ButtonRow labels={[say("skip"), say("startJob")]} size="lg" icons primaryLast>
+            <PillButton
+              tone="white"
+              style={{ flex: 1 }}
+              title={say("skip")}
+              busy={busy === "skip"}
+              onPress={() => {
+                const id = offer.drop.id;
+                void act("skip", () => riderAction({ action: "skip", jobId: id }), () => {
+                  setOfferOpen(false);
+                  setNote(say("skipped", { company }));
+                });
+              }}
+            />
+            <PillButton tone="forest" style={{ flex: 1 }} onPress={() => { markJobTaken(offer.drop.id); openJob(offer.drop.id); }} icon="check" title={say("startJob")} />
+          </ButtonRow>
         </Sheet>
       ) : null}
     </TabScreen>

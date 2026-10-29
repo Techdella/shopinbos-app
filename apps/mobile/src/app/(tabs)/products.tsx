@@ -11,7 +11,7 @@ import type { ProductItem } from "@/lib/dashboard";
 import { DEFAULT_PRODUCT_QUERY, PRODUCT_SHOWS, PRODUCT_SORTS, productFilterCount, type ProductListQuery } from "@/lib/product-filters-pure";
 import { fetchProductList, fetchStoreCategories } from "@/lib/products";
 import { useT } from "@/lib/i18n";
-import { colors } from "@/theme";
+import { colors, surfaceCard } from "@/theme";
 
 // Products ("Seller app" prototype `on.products`, opened from My shop): one card of rows, each with − and + to
 // change the stock when the seller sells or restocks (saved a moment after the last tap, PATCH
@@ -91,7 +91,7 @@ export default function Products() {
       </FilterBar>
       {query.show === "preorder" ? (
         // Pre-order products: tap one to change its ship date, limit and deposit; orders and buyers live on Pre-orders.
-        <View style={{ backgroundColor: colors.surface, borderRadius: 20, borderWidth: 1, borderColor: colors.line, padding: 16, gap: 10 }}>
+        <View style={{ ...surfaceCard(), padding: 16, gap: 10 }}>
           <WithTip title={t("filters.show.preorder")} tip={{ text: t("list.preorderBar") }}>
             <T style={{ fontSize: 14.5, lineHeight: 21, color: colors.inkSoft }}>{t("list.preorderBarShort")}</T>
           </WithTip>
@@ -100,7 +100,7 @@ export default function Products() {
       ) : null}
       {error && <Notice>{error}</Notice>}
       {products && !products.length && (
-        <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20, gap: 12 }}>
+        <View style={{ ...surfaceCard(), padding: 20, gap: 12 }}>
           <T style={{ fontSize: 15, lineHeight: 22 }}>{query.categoryId && query.show === "all" ? t("cat.empty", { name: picked?.name ?? "" }) : filtered ? t("filters.none") : t("list.empty")}</T>
           {filtered ? <PillButton title={t("filters.clear")} size="sm" tone="white" onPress={() => pick(DEFAULT_PRODUCT_QUERY)} /> : null}
         </View>

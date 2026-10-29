@@ -69,7 +69,7 @@ export default function Products() {
         {door === "snap" ? (
           <ProductDraftsCard state={drafts} />
         ) : (
-          <Card style={{ padding: 20, borderRadius: 24, borderWidth: 1, borderColor: colors.line }}>
+          <Card style={{ padding: 20 }}>
             <T style={{ color: colors.inkSoft, lineHeight: 21 }}>{t.dynamic(`door.${info.key}.note`, info.note)}</T>
             {door === "file" ? (
               // The spreadsheet import is a web tool (signed in through openWeb); the button says it opens the website.

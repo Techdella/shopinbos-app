@@ -62,7 +62,7 @@ import { fetchSetup } from "@/lib/setup";
 import { shareOnWhatsApp, shareText } from "@/lib/share";
 import { PREORDER_PROBLEM_KEY, isDropshipProduct, preorderFormFrom, preorderLineText, preorderPatch, type PreorderForm } from "@/lib/preorder-pure";
 import { useT } from "@/lib/i18n";
-import { colors, fonts, radii } from "@/theme";
+import { colors, fonts, radii, surfaceCard } from "@/theme";
 
 // Edit product (web /products/[id]): everything the web product form fills in. Always open: photos (order, main
 // photo), name, price, old price, stock (count it or not), description, category and whether customers see it.
@@ -512,7 +512,7 @@ export default function EditProductScreen() {
         {product.shortCode ? <CodeBadge code={product.shortCode} /> : null}
       </View>
       {stepStock ? (
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 20 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, ...surfaceCard(), padding: 20 }}>
           <View style={{ flex: 1, gap: 3 }}>
             <T weight="bold" style={{ fontSize: 16 }}>{t("view.inStock")}</T>
             <T style={{ fontSize: 14, color: stockNow <= (parseWholeNumber(form.lowStock) ?? 0) ? colors.accentInk : colors.inkSoft }}>

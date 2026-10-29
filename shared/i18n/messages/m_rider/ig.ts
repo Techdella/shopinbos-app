@@ -202,6 +202,12 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "link.privateShort": "Edebe link a naanị gị.",
   "signIn.linkHintShort": "Jiri nọmba ụlọ ọrụ gị ji tinye gị.",
   "welcome.subShort": "Ị ga-enweta ọrụ delivery ebe a.",
+  // v26 soft cards (components/visual.tsx)
+  "offer.earn": "Ị ga-enweta",
+  "offer.distance": "Ruo ebe ị ga-ebu",
+  "offer.km": "{km} km",
+  "done.earned": "Ego i nwetara",
+  "done.cash": "Ego aka i natara",
 };
 
 export default ig;

@@ -10,7 +10,7 @@ import { MascotVideo } from "@/components/MascotVideo";
 import { useOnboarding } from "@/components/OnboardingContext";
 import { finishOnboarding } from "@/lib/onboarding";
 import { useT } from "@/lib/i18n";
-import { colors, fonts, radii } from "@/theme";
+import { colors, fonts, radii, surfaceCard } from "@/theme";
 import { HelpButton } from "@/components/Help";
 import { AppIcon } from "@/components/icons";
 import { PublishButton } from "@/components/seller/PublishShop";
@@ -65,7 +65,7 @@ export default function Live() {
             {live ? t("live.open", { name: status.store.name }) : t("live.nearlyOpen", { name: status.store.name })}
           </T>
         </View>
-        <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, overflow: "hidden" }}>
+        <View style={{ ...surfaceCard(), overflow: "hidden" }}>
           {/* Shop ready: Rex's double thumbs-up in a spotlight that fades into the shop's colour (Prototype 10). */}
           <View style={{ height: 190, backgroundColor: palette.swatches[1], alignItems: "center", justifyContent: "center" }}>
             <MascotVideo clip="rex-thumbs" size={178} decorative fadeTo={palette.swatches[1]} />
@@ -83,7 +83,7 @@ export default function Live() {
             { label: t("live.instagramBio"), onPress: () => void copy(t("live.copiedInstagram"), withChannelRef(url, "instagram")) },
             { label: t("live.qrPoster"), onPress: () => setQr(true) },
           ].map((item) => (
-            <Pressable key={item.label} accessibilityRole="button" onPress={item.onPress} style={{ flex: 1, minHeight: 84, backgroundColor: colors.surface, borderRadius: 20, borderWidth: 1, borderColor: colors.line, alignItems: "center", justifyContent: "center", padding: 10 }}>
+            <Pressable key={item.label} accessibilityRole="button" onPress={item.onPress} style={{ flex: 1, minHeight: 84, ...surfaceCard(), alignItems: "center", justifyContent: "center", padding: 10 }}>
               <T weight="bold" style={{ fontSize: 14, textAlign: "center" }}>{item.label}</T>
             </Pressable>
           ))}
