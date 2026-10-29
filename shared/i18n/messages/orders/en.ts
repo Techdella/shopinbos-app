@@ -19,6 +19,7 @@ const en = {
   "stock.Sold out": "Sold out",
   "list.title": "Orders",
   "list.sub": "{count} orders · {amount} in paid sales",
+  "list.youEarn": "You earn {amount}",
   "list.export": "Export",
   recordSale: "Record a sale",
   "filter.all": "All",

@@ -38,6 +38,12 @@ export interface CheckoutPaymentContext {
   state?: string;
   /** Order total the buyer will pay. */
   total?: number;
+  /**
+   * Some items ship from a supplier (dropship): they're paid only in the app, so the supplier is paid from the same
+   * payment and the order counts as paid only when the money is in (no transfer to the seller marked paid by hand,
+   * which a fake transfer alert could fool).
+   */
+  fromSuppliers?: boolean;
 }
 
 export interface CheckoutPaymentOption {
@@ -203,7 +209,7 @@ export function checkoutPaymentOptions(settings: CheckoutPaymentSettings, contex
     // transfer, marked paid by hand) is only offered when Paystack can't take the payment.
     if ((methods.card || methods.transfer) && settings.paystackReady) keys.push("paystack");
     if (methods.korapay && settings.korapayReady) keys.push("korapay");
-    if (methods.transfer && settings.transferReady && !settings.paystackReady) keys.push("transfer");
+    if (methods.transfer && settings.transferReady && !settings.paystackReady && !context.fromSuppliers) keys.push("transfer");
     if (methods.cod && !payOnDeliveryBlock(settings, context)) keys.push("pay_on_delivery");
   }
   // Never offer a way to pay that can't work: a store that never chose its methods gets card only when its wallet
@@ -216,9 +222,10 @@ export function checkoutPaymentOptions(settings: CheckoutPaymentSettings, contex
 export function noWayToPayText(settings: CheckoutPaymentSettings, context: CheckoutPaymentContext = {}): string {
   // While pay on delivery is switched off it isn't mentioned at all (it's not a way to pay here).
   const cod = settings.methods?.cod && PAY_ON_DELIVERY_ON ? payOnDeliveryBlock(settings, context) : null;
-  return cod
-    ? `${cod} The store can't take other payments here yet, so message the store to order.`
-    : "This store can't take payments here yet. Message the store to order.";
+  if (cod) return `${cod} The store can't take other payments here yet, so message the store to order.`;
+  // Supplier items are paid only in the app; the store takes bank transfer to its own account, which can't pay them.
+  if (context.fromSuppliers && settings.methods?.transfer && settings.transferReady) return "Some items in your bag ship from a supplier and can only be paid online, which this store can't take yet. Message the store to order.";
+  return "This store can't take payments here yet. Message the store to order.";
 }
 
 /** Maps the checkout body's paymentMethod (older clients send "redirect" or "inline", both Paystack). */
@@ -230,14 +237,14 @@ export function normalizeCheckoutMethod(value: string | undefined | null): Check
 /** How to pay, for the buyer (their order email and messages): what they can do, never what "they" are doing. */
 export function buyerPaymentText(method: CheckoutPaymentMethod) {
   if (method === "transfer") return "Pay by bank transfer to the account shown at checkout, with your order number as the reference. The store confirms your order once the money arrives.";
-  if (method === "pay_on_delivery") return "You'll pay when it's delivered, in cash or by transfer to the rider.";
+  if (method === "pay_on_delivery") return "You'll pay in the app when it's delivered, then give the rider your code. No cash.";
   return "You can pay by card, bank transfer or USSD. If you didn't finish paying, open your order to pay.";
 }
 
 /** How the buyer chose to pay, for seller notifications. */
 export function paymentChoiceText(method: CheckoutPaymentMethod) {
   if (method === "transfer") return "They'll pay by bank transfer; check your account, then mark the order as paid.";
-  if (method === "pay_on_delivery") return "They'll pay on delivery, in cash or by transfer to the rider.";
+  if (method === "pay_on_delivery") return "They'll pay in the app at the door; the rider hands it over for their code.";
   if (method === "korapay") return "They're paying online by card or bank.";
   return "They're paying by card, bank or USSD through Paystack.";
 }

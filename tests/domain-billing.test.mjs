@@ -109,7 +109,7 @@ test("latest bought purchase per domain, one-year extensions, transfer lock, sav
 test("wiring: pay first, verify like store launch, one buyer, Vercel never auto-renews, refunds on failure", () => {
   const server = read("src/lib/domains/billing.server.ts");
   // Verification checks amount, currency, purpose, store, user, purchase, domain and the customer email.
-  assert.match(server, /verified\.amount !== row\.amountNgn \* 100/);
+  assert.match(server, /paidKobo\(verified\) !== row\.amountNgn \* 100/);
   assert.match(server, /metadata\.purpose !== PURPOSE\[/);
   assert.match(server, /metadata\.store_id !== row\.storeId/);
   assert.match(server, /metadata\.purchase_id !== row\.id/);

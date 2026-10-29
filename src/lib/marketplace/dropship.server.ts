@@ -3,6 +3,7 @@ import { db } from "@/lib/db/client";
 import { saleBreakdown, shipsLabel } from "./find";
 import { dropshipTermsFor } from "./dropship-listing.server";
 import { PRICE_LOSS, listingVerdict } from "@shared/price-notice";
+import { listingProblem } from "@shared/dropship-checkout";
 
 // The seller's dropship products (web /home/dropship and the mobile app), and pausing / resuming one.
 
@@ -67,4 +68,19 @@ async function stillLoses(sellerId: string, storeProductId: string): Promise<boo
   if (!listing?.supplierProduct) return false;
   const terms = (await dropshipTermsFor([listing.supplierProduct], sellerId)).get(listing.supplierProduct.id);
   return terms ? listingVerdict(terms, { retailPrice: listing.retailPrice, payer: listing.deliveryPayer, flatFee: listing.deliveryFlatFee, brandingChoice: listing.brandingChoice }).loses : false;
+}
+
+/**
+ * Why a new price for a dropship listing can't be saved from the product editor, or null: below the supplier's lowest
+ * price, or losing money on the dearest delivery the seller could have to cover (the same check as "Add to store",
+ * so editing the price later can't undo the floor or the price-notice pause, shared/price-notice.ts).
+ */
+export async function dropshipPriceProblem(sellerId: string, storeProductId: string, retailPrice: number): Promise<string | null> {
+  const listing = await db.storeProduct.findUnique({
+    where: { id: storeProductId },
+    select: { deliveryPayer: true, deliveryFlatFee: true, brandingChoice: true, supplierProduct: { select: { id: true, supplierId: true, wholesalePrice: true, suggestedRetailPrice: true, priceMode: true, dropshipPrice: true, preorderPrice: true, pricingTiers: true, minRetailPrice: true, dropshipMinQty: true, handlingDays: true, sizeBand: true, sampleAvailable: true, stockQuantity: true } } },
+  });
+  if (!listing?.supplierProduct) return null;
+  const terms = (await dropshipTermsFor([listing.supplierProduct], sellerId)).get(listing.supplierProduct.id);
+  return terms ? listingProblem(terms, { retailPrice, payer: listing.deliveryPayer, flatFee: listing.deliveryFlatFee, brandingChoice: listing.brandingChoice }) : null;
 }

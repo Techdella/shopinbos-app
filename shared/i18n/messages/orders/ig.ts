@@ -21,6 +21,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "stock.Sold out": "Ọ gwụla",
   "list.title": "Orders",
   "list.sub": "Orders {count} · {amount} n'ahịa akwụrụ ụgwọ",
+  "list.youEarn": "Ị na-enweta {amount}",
   "list.export": "Bupụ",
   recordSale: "Dekọọ ahịa",
   "filter.all": "Niile",

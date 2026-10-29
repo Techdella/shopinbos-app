@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 //   never below the supplier's lowest price. Safe to send again: what's already in the shop comes back in `already`.
 //   A `markup` sent with it is saved as the seller's markup first (the question asked on their first add).
 //   Skip codes: NOT_AVAILABLE, OUT_OF_STOCK, NOT_VERIFIED, PRICE_PROBLEM, PLAN_LIMIT, AGREEMENT_NEEDED,
-//   AGREEMENT_WAITING, AGREEMENT_DECLINED, TOO_FAR, NO_PLACE, PAUSED. Plan lines carry no upgrade prompt.
+//   AGREEMENT_WAITING, AGREEMENT_DECLINED, TOO_FAR, NO_PLACE, PAUSED, NOT_PAYABLE. Plan lines carry no upgrade prompt.
 
 const Schema = z.object({
   ids: z.array(z.string().min(1).max(64)).min(1).max(QUICK_ADD_MAX),

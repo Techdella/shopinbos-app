@@ -21,6 +21,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "stock.Sold out": "E don finish",
   "list.title": "Orders",
   "list.sub": "{count} orders · {amount} for paid sales",
+  "list.youEarn": "You go get {amount}",
   "list.export": "Export",
   recordSale: "Record sale",
   "filter.all": "All",

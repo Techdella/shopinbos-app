@@ -17,7 +17,8 @@ export type QuickSkipCode =
   | "AGREEMENT_DECLINED"
   | "TOO_FAR"
   | "NO_PLACE"
-  | "PAUSED";
+  | "PAUSED"
+  | "NOT_PAYABLE";
 
 export interface QuickSkipped {
   supplierProductId: string;
