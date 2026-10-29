@@ -31,7 +31,7 @@ import { LIVE_PARTNER_WHERE, deliverySettingsFor, originOf } from "./market.serv
 import { PARTNER_LEVEL_TIER, partnerLevelOf } from "@shared/dropship-rules";
 import { isFeaturedNow } from "@shared/partner-reach";
 import { interstateProblem, payOnDeliveryProblem as partnerPodProblem } from "@/lib/logistics/partner-levels.server";
-import { acceptPrivateRatesProblem, connectionLimitProblem, payOnDeliveryProblem, pickupPointLimitProblem, proposePrivateRatesProblem, sellAreaProblem } from "@/lib/plans/market.server";
+import { acceptPrivateRatesProblem, connectionLimitProblem, payOnDeliveryProblem, pickupPointLimitProblem, proposePrivateRatesProblem } from "@/lib/plans/market.server";
 
 // Managing the logistics marketplace: a business's delivery settings ("Where I sell"), its delivery partners
 // (connect, choose what customers see, pay on delivery, end), partners' rate cards (public and private), pickup
@@ -75,9 +75,6 @@ export async function saveDeliverySettings(userId: string, input: SettingsInput)
   const sellStates = [...new Set(states)];
   if (sellArea === "one_state" && sellStates.length !== 1) return { ok: false, error: "Pick the one state you sell in." };
   if (sellArea === "selected" && sellStates.length === 0) return { ok: false, error: "Pick at least one state you sell in." };
-  // The plan's selling states (shared/plans.ts sellingStates).
-  const areaProblem = await sellAreaProblem(userId, { sellArea, states: sellArea === "nationwide" ? Infinity : sellStates.length }, { sellArea: current.sellArea, states: current.sellArea === "nationwide" ? Infinity : current.sellStates.length });
-  if (areaProblem) return { ok: false, error: areaProblem };
   const originState = input.originState === undefined ? current.originState : input.originState ? canonicalState(String(input.originState)) : null;
   if (input.originState && !originState) return { ok: false, error: "Pick the state your parcels leave from." };
   const checkoutMode = input.checkoutMode === undefined ? current.checkoutMode : input.checkoutMode === "partners" ? "partners" : "zones";

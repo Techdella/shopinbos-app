@@ -91,12 +91,12 @@ test("wiring: staff, packs, boosts, rate cards, pickup points, exceptions, follo
 
   // The logistics marketplace (src/lib/delivery-market/manage.server.ts) carries the plan limits.
   const manage = read("src/lib/delivery-market/manage.server.ts");
-  for (const fn of ["connectionLimitProblem(owner.id", "sellAreaProblem(userId", "payOnDeliveryProblem(ownerId)", "proposePrivateRatesProblem(", "acceptPrivateRatesProblem(ownerUserId)", "pickupPointLimitProblem(partnerId)"]) {
+  for (const fn of ["connectionLimitProblem(owner.id", "payOnDeliveryProblem(ownerId)", "proposePrivateRatesProblem(", "acceptPrivateRatesProblem(ownerUserId)", "pickupPointLimitProblem(partnerId)"]) {
     assert.ok(manage.includes(fn), fn);
   }
   const market = read("src/lib/plans/market.server.ts");
   assert.match(market, /active\.some\(\(row\) => row\.logisticsPartnerId === partnerId\) \|\| active\.length < limit/, "reconnecting an existing partner is fine");
-  assert.match(market, /if \(nationwideNow\) return null;/, "a store already nationwide keeps it");
+  assert.doesNotMatch(market, /sellingStates|sellAreaProblem/, "where a seller sells isn't a plan limit");
 
   assert.match(read("src/app/actions/supplier.ts"), /if \(!limits\.bulkUpload\)/);
   assert.match(read("src/lib/suppliers/follow.server.ts"), /\.broadcast\) throw new FollowError/);
