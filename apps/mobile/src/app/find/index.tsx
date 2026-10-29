@@ -355,6 +355,7 @@ export default function FindProducts() {
               <Seg label={t("swipe.forYou")} on={feed === "forYou"} onPress={() => pickFeed("forYou")} />
               <Seg label={t("swipe.nearYou")} on={feed === "nearYou"} onPress={() => pickFeed("nearYou")} />
               {packs.length ? <Seg label={t("packs.short")} on={false} onPress={() => router.push("/find/packs")} /> : null}
+              <Seg label={tm("sup.title")} on={false} onPress={() => router.push("/suppliers")} />
             </View>
             {loaded.loading && !loaded.data ? <LoadingBlock label={t("loading")} /> : null}
             {loaded.error && !loaded.data ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} /> : null}
@@ -430,6 +431,7 @@ export default function FindProducts() {
       <List>
         <Row lead={<Tile icon="tag" tone="mint" />} title={t("mine.row")} sub={t("mine.rowSub", { count: added.size })} onPress={() => router.push("/find/mine")} />
         <Row lead={<Tile icon="box" tone="butter" />} title={t("wholesale.row")} sub={t("wholesale.rowSub")} onPress={() => router.push("/wholesale")} />
+        <Row lead={<Tile icon="users" tone="mint" />} title={tm("sup.title")} sub={tm("sup.appRowSub")} onPress={() => router.push("/suppliers")} />
       </List>
       <PackStrip packs={packs} onAll={() => router.push("/find/packs")} />
 

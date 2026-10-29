@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db/client";
 import { notify, notifyAdmins, notifyRider } from "./notify.server";
+import { notifyFollowersOfNewProduct } from "@/lib/suppliers/product-requests.server";
 
 // The notifications each role needs that weren't sent before notify(): written once here and called from where the
 // thing happens (checkout, the Paystack webhook, delivery jobs, quotes, reviews, campaigns, admin decisions).
@@ -348,6 +349,8 @@ export function notifyProductDecision(productId: string, status: string) {
       dedupeKey: `product.${status}:${product.id}:${new Date().toISOString().slice(0, 13)}`,
       email: true,
     });
+    // Shops waiting for this supplier's products ("Notify me when they add products").
+    if (approved) await notifyFollowersOfNewProduct(product.id);
   });
 }
 

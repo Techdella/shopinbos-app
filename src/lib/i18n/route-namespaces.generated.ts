@@ -266,6 +266,7 @@ export const ROUTE_NAMESPACES: ReadonlyArray<readonly [string, readonly string[]
   ["/marketplace/packs", ["auth","common","glossary","help","introTitles","learn","marketplace","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/marketplace/product/[id]", ["auth","common","contracts","glossary","help","introTitles","learn","marketplace","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/marketplace/suppliers", ["auth","common","glossary","help","introTitles","learn","marketplace","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
+  ["/marketplace/suppliers/[slug]", ["auth","common","glossary","help","introTitles","learn","marketplace","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/marketplace/wholesale", ["auth","common","glossary","help","introTitles","learn","marketplace","nav","notifications","rex","settings","shell","support","tour","ui","verification"]],
   ["/meta-data-deletion", ["common","nav","ui"]],
   ["/onboarding", ["common","nav","ui"]],
