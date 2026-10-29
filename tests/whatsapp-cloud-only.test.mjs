@@ -19,3 +19,16 @@ test("platform WhatsApp sends only through WhatsApp Cloud", () => {
   assert.doesNotMatch(read("src/lib/reviews/requests.ts"), /SENDCHAMP_API_KEY/);
   assert.doesNotMatch(read("src/lib/auth/otp-delivery.server.ts"), /termiiWhatsAppRequest|sendchampWhatsAppRequest/);
 });
+
+test("admins can send a seller's notice on WhatsApp from Admin › Sellers", () => {
+  const notify = read("src/lib/notifications/notify.server.ts");
+  const fn = notify.slice(notify.indexOf("export async function sendNotificationOnWhatsApp"));
+  assert.match(fn, /if \(!metaWhatsAppConfig\(\)\)/, "only when WhatsApp Cloud is connected");
+  assert.match(fn, /channel: "whatsapp", status: "ok"/, "not twice");
+  assert.match(fn, /sendAlertWhatsApp\(/, "the same send as notify()");
+  assert.match(fn, /record\(\{ notificationId/, "recorded as a delivery");
+  const action = read("src/app/admin/sellers/actions.ts");
+  assert.match(action, /export async function sendSellerNoticeOnWhatsApp[\s\S]*requireAdminSection\("partners"\)/);
+  assert.match(action, /notice\.userId !== store\.userId/, "only that seller's own notices");
+  assert.match(read("src/app/admin/sellers/[id]/page.tsx"), /action=\{sendSellerNoticeOnWhatsApp\}/);
+});

@@ -43,8 +43,8 @@ test("admin sellers: in the Partners section and the nav; logged actions; no buy
   for (const lang of ["en", "pcm", "yo", "ha", "ig"]) assert.match(read(`shared/i18n/messages/nav/${lang}.ts`), /"admin\.sellers":/);
 
   const actions = read("src/app/admin/sellers/actions.ts");
-  assert.equal((actions.match(/requireAdminSection\("partners"\)/g) ?? []).length, 2);
-  assert.equal((actions.match(/logDataAccess\(/g) ?? []).length, 2);
+  assert.equal((actions.match(/requireAdminSection\("partners"\)/g) ?? []).length, 3);
+  assert.equal((actions.match(/logDataAccess\(/g) ?? []).length, 3);
   // The reveal is logged before the page shows anything, and the address carries the log id, never the details.
   assert.match(actions, /const row = await logDataAccess[\s\S]*redirect\(`\/admin\/sellers\/\$\{storeId\}\?reveal=\$\{row\.id\}/);
 
