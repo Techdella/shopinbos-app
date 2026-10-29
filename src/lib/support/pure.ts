@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { greetingName, realName } from "../../../shared/person-name.ts";
 
 // Live support (signed-out "Stuck?" form, in-app chat, admin support desk): rules and helpers with no
 // database or React, shared by the API, the widgets, the admin desk and tests (Node strips the types natively).
@@ -272,10 +273,9 @@ export const macroSchema = z.object({
 
 /** Fills {{name}}, {{first_name}}, {{ticket}}, {{agent}} in a canned reply. Unknown tags are left as written. */
 export function fillMacro(body: string, vars: { name?: string | null; ticket?: number; agent?: string | null }) {
-  const first = (vars.name ?? "").trim().split(/\s+/)[0] ?? "";
   const values: Record<string, string> = {
-    name: vars.name?.trim() || "there",
-    first_name: first || "there",
+    name: realName(vars.name) || "there",
+    first_name: greetingName(vars.name),
     ticket: vars.ticket ? formatTicketNumber(vars.ticket) : "",
     agent: vars.agent?.trim().split(/\s+/)[0] || "the Shopinbos team",
   };

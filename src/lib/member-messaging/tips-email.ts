@@ -5,6 +5,7 @@ import type { Tip, TipRole } from "./tips-library";
 import type { Locale } from "../../../shared/i18n/index.ts";
 import { mailT } from "../../../shared/i18n/mail.ts";
 import { localizedTip } from "./i18n/index.ts";
+import { greetingName } from "../../../shared/person-name.ts";
 
 export type TipChannel = "email" | "whatsapp";
 
@@ -54,9 +55,9 @@ export function whatsappTipText(tip: Tip) {
   return capped.length > 300 ? `${capped.slice(0, 297).trimEnd()}…` : capped;
 }
 
+/** "Ada", or "there" with no real name (never the "Shopinbos User" stand-in): shared/person-name.ts. */
 export function firstNameOf(name: string | null | undefined) {
-  const first = (name ?? "").trim().split(/\s+/)[0] ?? "";
-  return first && !/@/.test(first) ? first : "there";
+  return greetingName(name);
 }
 
 const escape = (value: string) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");

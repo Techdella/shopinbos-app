@@ -10,6 +10,7 @@ import { BULK_MAX_PRICE_KOBO, BULK_MAX_STOCK, joinItems, type BulkRole } from "@
 import { addPhotoItem, bulkRoleOf, findSession, openSession, sessionItems, sessionView, toItem } from "./session.server";
 import { BULK_PHOTO_MAX_BYTES, BULK_PHOTO_TYPES, draftNextBatch, storeBulkPhoto } from "./vision.server";
 import { answerReply } from "./reply.server";
+import { addCatalogueScreenshot } from "./catalogue.server";
 import { publishChunk } from "./publish.server";
 
 // The "Add many with Peggy" API, for sellers and suppliers, on the phone (/api/mobile/bulk-products/**) and the web
@@ -19,6 +20,7 @@ import { publishChunk } from "./publish.server";
 //   GET    /:id                   items, chat, progress, Peggy's next question and join ideas
 //   DELETE /:id                   discard it
 //   POST   /:id/photos            one photo (multipart: file, clientKey, fileName) → one product; retries are safe
+//   POST   /:id/catalogue         one WhatsApp catalogue screenshot (multipart: file, clientKey) → its products, named and priced
 //   POST   /:id/look              Peggy reads the next 10 waiting photos
 //   POST   /:id/reply  {text}     a chat reply → changes
 //   PATCH  /:id/items  {op,…}     edit by hand, bulk set, remove, join, split, dismiss a join idea
@@ -89,6 +91,29 @@ export const photoHandler = withBulk(async (req, { user, params, role }) => {
   const added = await addPhotoItem(session.id, { clientKey, fileName, url });
   if ("full" in added && added.full) return apiError("TOO_MANY", "That's the most for one list (300). Publish these, then add more.", 409);
   return ok(added.item, added.created ? 201 : 200);
+});
+
+export const catalogueHandler = withBulk(async (req, { user, params, role }) => {
+  const session = await ownSession(user.id, params.id);
+  if (!session) return notFound();
+  const burst = await checkRateLimitShared(rateLimitKey("bulk-catalogue", user.id), { maxRequests: 30, windowMs: 60_000 });
+  if (!burst.allowed) return apiError("RATE_LIMITED", "That's a lot of screenshots at once. Wait a minute and try again.", 429);
+  const declared = Number(req.headers.get("content-length") ?? 0);
+  if (declared > BULK_PHOTO_MAX_BYTES + 64 * 1024) return apiError("TOO_LARGE", "That screenshot is bigger than 15 MB.", 413);
+  const form = await req.formData().catch(() => null);
+  const file = form?.get("file");
+  const clientKey = String(form?.get("clientKey") ?? "").trim().slice(0, 80);
+  if (!(file instanceof File) || !clientKey) return apiError("BAD_REQUEST", "Add a screenshot of your catalogue.", 400);
+  if (!BULK_PHOTO_TYPES.has(file.type)) return apiError("BAD_REQUEST", "That isn't a JPG, PNG or WebP screenshot.", 400);
+  if (file.size > BULK_PHOTO_MAX_BYTES) return apiError("TOO_LARGE", "That screenshot is bigger than 15 MB.", 413);
+  const outcome = await addCatalogueScreenshot(session, role, file, clientKey);
+  if (outcome.kind === "blocked") return outcome.response as NextResponse;
+  if (outcome.kind === "noAi") return apiError("UNAVAILABLE", "Peggy can't read screenshots right now. Add the photos instead and type the prices.", 503);
+  if (outcome.kind === "unreadable") return apiError("BAD_REQUEST", "We couldn't open that screenshot. Try a PNG or JPG.", 400);
+  if (outcome.kind === "none") return apiError("NOT_FOUND", "Peggy couldn't find products on that screenshot. Screenshot your catalogue list, or one product opened.", 422);
+  if (outcome.full && !outcome.items.length) return apiError("TOO_MANY", "That's the most for one list (300). Publish these, then add more.", 409);
+  const fresh = await findSession(user.id, session.id);
+  return ok({ added: outcome.items.length, full: outcome.full, session: fresh ? await sessionView(fresh) : null }, 201);
 });
 
 export const lookHandler = withBulk(async (req, { user, params }) => {

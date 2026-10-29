@@ -366,3 +366,33 @@ test("entry points: phone (+ sheet, Add a product, Products, My shop, supplier c
   // The spreadsheet import matches photos uploaded here by file name.
   assert.match(read("src/app/api/products/import/route.ts"), /withBulkPhotos\(user\.id, parseImageMap/);
 });
+
+// ─── WhatsApp catalogue screenshots ───────────────────────────────────────────
+
+test("catalogue screenshots: names and prices as written, photo boxes kept inside the screenshot", () => {
+  const found = bulk.readCatalogueProducts({
+    products: [
+      { name: "  Ankara  fabric, 6 yards ", price: "₦12,500", description: "Cotton", category: "Fabrics", box: { x: 0.05, y: 0.1, w: 0.3, h: 0.15 } },
+      { name: "Leather bag", price: 15000, box: { x: 0.9, y: 0.95, w: 0.5, h: 0.5 } },
+      { name: "Shea butter", price: "", box: { x: "a" } },
+      { name: "x", price: "₦500" },
+      "nonsense",
+    ],
+  });
+  assert.deepEqual(found.map((p) => [p.name, p.priceKobo]), [["Ankara fabric, 6 yards", 1_250_000], ["Leather bag", 1_500_000], ["Shea butter", null]]);
+  assert.deepEqual(found[0].box, { x: 0.05, y: 0.1, w: 0.3, h: 0.15 });
+  assert.equal(found[1].box.w <= 0.1 + 1e-9 && found[1].box.h <= 0.05 + 1e-9, true);
+  assert.equal(found[2].box, null);
+  assert.deepEqual(bulk.readCatalogueProducts(null), []);
+  assert.equal(bulk.readCatalogueProducts({ products: Array.from({ length: 30 }, (_, i) => ({ name: `Item ${i}` })) }).length, bulk.CATALOGUE_MAX_PER_SCREENSHOT);
+  assert.equal(bulk.catalogueBox({ x: 0.1, y: 0.1, w: 0.01, h: 0.5 }), null);
+  const rect = bulk.cropRect({ x: 0, y: 0.5, w: 1, h: 0.5 }, 1000, 2000);
+  assert.deepEqual(rect, { left: 0, top: 980, width: 1000, height: 1020 });
+});
+
+test("catalogue screenshots are wired into Add many with Peggy for sellers and suppliers", () => {
+  for (const base of ["app", "mobile"]) assert.match(read(`src/app/api/${base}/bulk-products/[id]/catalogue/route.ts`), /catalogueHandler as POST/);
+  assert.match(read("src/lib/products/bulk/routes.server.ts"), /addCatalogueScreenshot\(session, role, file, clientKey\)/);
+  assert.match(read("src/components/products/bulk/BulkAddWithPeggy.tsx"), /bulkApi\.catalogue\(/);
+  assert.ok(CATALOGS.bulkAdd.en["catalogue.choose"]);
+});

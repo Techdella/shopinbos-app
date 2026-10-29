@@ -5,6 +5,7 @@
 // to pick one up after that, the team sends an approved template. These two are the team's own (the lead
 // sequences' templates live in src/lib/lead-growth/whatsapp-content.ts). Meta doesn't allow a variable at the very
 // start or end of a template, and a variable can't hold new lines, so the note is flattened to one line.
+import { greetingName } from "../../../shared/person-name.ts";
 
 export const WHATSAPP_WINDOW_HOURS = 24;
 
@@ -99,7 +100,7 @@ export function teamTemplate(name: string | null | undefined) {
 
 export type TeamTemplateValues = { name: string | null; agent: string; note?: string | null; business?: string | null };
 
-const firstName = (name: string | null | undefined) => name?.trim().split(/\s+/)[0] || "there";
+const firstName = (name: string | null | undefined) => greetingName(name);
 
 /** A template variable: one line, no tabs, no runs of spaces (Meta rejects them), at most 900 characters. */
 export function templateVariable(value: string) {

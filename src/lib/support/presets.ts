@@ -2,6 +2,7 @@
 // supplier or delivery partner. {{reason}} is filled from the Reason box. Pure.
 
 import { SHOPINBOS_WHATSAPP, formatWhatsApp } from "../support-contact.ts";
+import { greetingName } from "../../../shared/person-name.ts";
 
 export type PresetId = "approved" | "rejected";
 export type PresetRole = "seller" | "supplier" | "logistics_partner" | string;
@@ -25,7 +26,7 @@ export type Preset = {
 };
 
 export function decisionPreset(id: PresetId, input: { name: string; business: string; role: PresetRole; agent: string }): Preset {
-  const first = input.name.trim().split(/\s+/)[0] || "there";
+  const first = greetingName(input.name);
   const agent = input.agent.trim().split(/\s+/)[0] || "The Shopinbos team";
   const business = input.business.trim() || "your business";
   const help = `If you need help, reply to this email or message us on WhatsApp at ${formatWhatsApp(SHOPINBOS_WHATSAPP)}.`;
