@@ -262,6 +262,15 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "update.storeFailed": "We no fit open Google Play. Open the Play Store app and search for Shopinbos.",
   "tip.more": "More info",
   "tip.learnMore": "Learn more",
+  // v26 soft cards (components/visual.tsx)
+  "wk.0": "Mon",
+  "wk.1": "Tue",
+  "wk.2": "Wed",
+  "wk.3": "Thu",
+  "wk.4": "Fri",
+  "wk.5": "Sat",
+  "wk.6": "Sun",
+  "chart.lastDays": "Last 7 days: {days}",
 };
 
 export default pcm;

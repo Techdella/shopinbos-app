@@ -8,7 +8,7 @@ import { dismissShopinbos, fetchShopinbos, type StatusAuthor, type StatusPost } 
 import { useT } from "@/lib/i18n";
 import { markShopinbosSeen, runShopinbosCta, seenHere, useShopinbosHere, watchOutside } from "@/lib/shopinbos";
 import { useLoad } from "@/lib/useLoad";
-import { colors } from "@/theme";
+import { colors, surfaceCard } from "@/theme";
 import { StoryViewer } from "./StoryViewer";
 
 // "Getting started" for new sellers, suppliers and delivery partners: Shopinbos's own getting-started posts
@@ -84,7 +84,7 @@ export function GettingStartedCard() {
   }
 
   return (
-    <View testID="getting-started" style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, paddingVertical: PAD, gap: 12 }}>
+    <View testID="getting-started" style={{ ...surfaceCard(), paddingVertical: PAD, gap: 12 }}>
       {/* The same header as "Get your shop ready" above it: title, "n of m done", X. */}
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingLeft: PAD, paddingRight: PAD - 6 }}>
         <T weight="extrabold" style={{ fontSize: 16, flex: 1 }} numberOfLines={1}>{t("start.title")}</T>

@@ -28,7 +28,7 @@ import {
 } from "@/lib/supplier";
 import { orderKindLabel, supplierOrderGroup, supplierOrderStage } from "@/lib/supplier-pure";
 import { useLoad } from "@/lib/useLoad";
-import { colors, fonts, radii } from "@/theme";
+import { colors, fonts, radii, surfaceCard } from "@/theme";
 
 // One supplier order ("Simple app, end to end" supplier prototype): the picture, "{shop} · {amount}", a Dropship
 // (orange) or Wholesale (teal) pill with what that means for the parcel, the three steps (Accept the order, Pack
@@ -319,7 +319,7 @@ export default function SupplierOrderScreen() {
       {stage === "new" ? <AcceptCountdown acceptBy={data.acceptBy} big /> : null}
 
       {badEnd ? null : (
-        <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 18 }}>
+        <View style={{ ...surfaceCard(), padding: 18 }}>
           <Timeline steps={steps} />
         </View>
       )}

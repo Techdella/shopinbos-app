@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { Pressable, ScrollView, View } from "react-native";
-import { Eyebrow } from "@/components/design";
 import { AppIcon } from "@/components/icons";
 import { ChipRow } from "@/components/kit";
 import { Sheet } from "@/components/Sheet";
@@ -44,11 +43,12 @@ export function FilterBar({ children, onMore, moreLabel, moreCount = 0, testID }
   );
 }
 
-/** One question in the Filters sheet: a small label over wrapping chips. */
+/** One question in the Filters sheet: a bold label over wrapping chips, a hairline under each group (the boards'
+ * Price / Colour / Size sheet). */
 export function FilterGroup({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <View style={{ gap: 8 }}>
-      <Eyebrow>{label}</Eyebrow>
+    <View style={{ gap: 10, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: colors.line }}>
+      <T weight="extrabold" accessibilityRole="header" style={{ fontSize: 16 }}>{label}</T>
       <ChipRow>{children}</ChipRow>
     </View>
   );

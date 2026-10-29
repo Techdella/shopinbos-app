@@ -8,7 +8,7 @@ import { PillButton, T, WithTip } from "@/components/ui";
 import { bioCardState, type BioPage } from "@/lib/paylinks-pure";
 import { shareText } from "@/lib/share";
 import { useT } from "@/lib/i18n";
-import { colors } from "@/theme";
+import { colors, surfaceCard } from "@/theme";
 
 // Home's "Link in bio" card: the seller's one link for their Instagram, TikTok and WhatsApp bio, with Copy and Share,
 // and Edit (app/link-in-bio.tsx). Before the page is saved: "Set it up", the onboarding step (onboarding/bio.tsx)
@@ -42,7 +42,7 @@ export function LinkInBioCard({ page, shopName }: { page: BioPage | null; shopNa
           </Pressable>
         ) : null}
       </View>
-      <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 16, gap: 12 }}>
+      <View style={{ ...surfaceCard(), padding: 16, gap: 12 }}>
         {state.kind === "setup" ? (
           <>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>

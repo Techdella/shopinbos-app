@@ -6,7 +6,7 @@ import { AppIcon } from "@/components/icons";
 import { BackButton, Chip, Mascot, T } from "@/components/ui";
 import { api } from "@/lib/api";
 import { openPath } from "@/lib/web";
-import { colors, fonts, radii } from "@/theme";
+import { colors, fonts, radii, surfaceCard } from "@/theme";
 import { HelpButton } from "@/components/Help";
 import { CallPeggyButton } from "@/components/CallPeggyButton";
 import { VoiceInput } from "@/components/VoiceInput";
@@ -113,7 +113,7 @@ export default function Peggy() {
                     accessibilityRole={action.href ? "link" : undefined}
                     disabled={!action.href}
                     onPress={() => action.href && void openPath(action.href)}
-                    style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 14, paddingVertical: 10 }}
+                    style={{ flexDirection: "row", alignItems: "center", gap: 10, ...surfaceCard(16), paddingHorizontal: 14, paddingVertical: 10 }}
                   >
                     <AppIcon name="sparkle" size={18} />
                     <View style={{ flex: 1 }}>

@@ -202,6 +202,12 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "link.privateShort": "Kada ka nuna wa kowa wannan link.",
   "signIn.linkHintShort": "Yi amfani da lambar da kamfaninka ya saka ka da ita.",
   "welcome.subShort": "Za ka riƙa samun ayyukan isarwa a nan.",
+  // v26 soft cards (components/visual.tsx)
+  "offer.earn": "Za ka samu",
+  "offer.distance": "Zuwa wurin ɗauka",
+  "offer.km": "{km} km",
+  "done.earned": "Ka samu",
+  "done.cash": "Kuɗin hannu da ka karɓa",
 };
 
 export default ha;

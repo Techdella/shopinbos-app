@@ -8,7 +8,7 @@ import { useT } from "@/lib/i18n";
 import type { Job, MarketConnectionRow, RiderRow } from "@/lib/logistics";
 import { initialsOf } from "@/lib/logistics-pure";
 import { timeAgo } from "@/lib/partner-pure";
-import { colors, fonts } from "@/theme";
+import { colors, fonts, surfaceCard } from "@/theme";
 
 // Small pieces of the "Delivery partner app" prototype that the shared design kit doesn't have: the company initials
 // circle, labelled inputs (`.lbl` + `.inp`), the narrow price box on rate rows, stat cards, a wrap of chips, a tinted
@@ -66,7 +66,7 @@ export function ChipWrap({ label, children }: { label?: string; children: ReactN
 /** One of the three numbers on Business (`★ 4.7` over "312 deliveries"). */
 export function StatCard({ value, label }: { value: string; label: string }) {
   return (
-    <View style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 16, gap: 2 }} accessible accessibilityLabel={`${value} ${label}`}>
+    <View style={{ flex: 1, ...surfaceCard(), padding: 16, gap: 2 }} accessible accessibilityLabel={`${value} ${label}`}>
       <T weight="bold" style={{ fontSize: 20 }}>{value}</T>
       <T weight="semibold" style={{ fontSize: 13, color: colors.inkSoft }}>{label}</T>
     </View>
@@ -173,7 +173,7 @@ export function PeggyButton({ label, onPress }: { label: string; onPress: () => 
  * and an orange dot, and one grey line (time, size, pay on delivery). */
 export function RouteCard({ shop, who, fee, from, to, sub, label, onPress }: { shop: string; who: string; fee: string; from: string; to: string; sub: string; label: string; onPress: () => void }) {
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={({ pressed }) => ({ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 18, gap: 10, opacity: pressed ? 0.9 : 1 })}>
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={({ pressed }) => ({ ...surfaceCard(), padding: 18, gap: 10, opacity: pressed ? 0.9 : 1 })}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
         <T weight="bold" numberOfLines={1} style={{ flex: 1, fontSize: 15 }}>
           {shop}

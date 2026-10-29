@@ -255,6 +255,8 @@ const en = {
   "markup.roundingTitle": "How prices round",
   "product.dropshipTitle": "How dropship works",
   "product.dropshipShort": "You buy nothing now. {name} sends it when a customer pays.",
+  // v26 soft cards (components/visual.tsx)
+  "packs.see": "See the pack",
 } satisfies Record<string, string>;
 
 export default en;

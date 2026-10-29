@@ -12,7 +12,7 @@ import { dayWord } from "@/lib/partner-pure";
 import { fetchQuoteRequests } from "@/lib/supplier";
 import { quoteRequestStage, countWord } from "@/lib/supplier-pure";
 import { useLoad } from "@/lib/useLoad";
-import { colors } from "@/theme";
+import { surfaceCard } from "@/theme";
 
 // Every price (quote) request, waiting and answered. Not a tab: waiting ones are Orders → Prices, and Orders →
 // Prices and Account → Price requests open this list. Tap one to send your price or see what you said.
@@ -35,7 +35,7 @@ export default function QuoteRequests() {
       {quotes.loading && !quotes.data ? <LoadingBlock label={t("loading")} /> : null}
       {quotes.error && !quotes.data ? <ErrorState message={quotes.error} onRetry={() => void quotes.reload()} /> : null}
       {quotes.data && !shown.length ? (
-        <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 18 }}>
+        <View style={{ ...surfaceCard(), padding: 18 }}>
           <Sub>{view === "waiting" ? t("orders.noPrices") : t("quotes.noneAnswered")}</Sub>
         </View>
       ) : null}

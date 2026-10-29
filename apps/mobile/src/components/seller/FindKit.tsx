@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { FlatList, Pressable, RefreshControl, ScrollView, View, type FlatListProps } from "react-native";
+import { FlatList, Pressable, RefreshControl, View, type FlatListProps } from "react-native";
 import { router } from "expo-router";
 import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -7,6 +7,7 @@ import { naira } from "@shared/onboarding";
 import { ScreenHeader } from "@/components/Screen";
 import { AppIcon } from "@/components/icons";
 import { T } from "@/components/ui";
+import { PromoCarousel, type PromoSlide } from "@/components/visual";
 import type { StarterPack } from "@/lib/quick-add";
 import { useT } from "@/lib/i18n";
 import { colors, fonts } from "@/theme";
@@ -84,9 +85,38 @@ export function PackStrip({ packs, onAll }: { packs: StarterPack[]; onAll: () =>
           <T weight="bold" style={{ color: colors.accentInk, fontSize: 14.5 }}>{t("packs.seeAll")}</T>
         </Pressable>
       </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20, flexGrow: 0 }} contentContainerStyle={{ gap: 10, paddingHorizontal: 20 }}>
-        {packs.map((pack) => <PackCard key={pack.id} pack={pack} />)}
-      </ScrollView>
+      {/* One promo banner per pack that swipes sideways, with dots under them. */}
+      <PromoCarousel
+        testID="pack-carousel"
+        label={t("packs.heading")}
+        slides={packs.map((pack, index): PromoSlide => {
+          const name = t.dynamic(`pack.${pack.id}`, pack.title);
+          return {
+            key: pack.id,
+            title: t("packs.title", { name, count: pack.count }),
+            body: t("packs.cardSub", { cost: naira(pack.totalCost), price: naira(pack.totalPrice) }),
+            cta: t("packs.see"),
+            tone: PACK_TONES[index % PACK_TONES.length],
+            art: <PackPhotos pack={pack} />,
+            onPress: () => router.push({ pathname: "/find/packs", params: { id: pack.id } }),
+          };
+        })}
+      />
+    </View>
+  );
+}
+
+const PACK_TONES = ["ink", "forest", "mint", "peach"] as const;
+
+/** Four of the pack's photos in a rounded 2×2 square (blank tiles when it has fewer). */
+function PackPhotos({ pack }: { pack: StarterPack }) {
+  const photos = pack.items.filter((item) => item.image).slice(0, 4);
+  return (
+    <View style={{ width: 84, height: 84, flexDirection: "row", flexWrap: "wrap", gap: 4 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      {Array.from({ length: 4 }, (_, index) => {
+        const photo = photos[index];
+        return photo ? <Image key={photo.id} source={{ uri: photo.image! }} style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: colors.lilac }} contentFit="cover" /> : <View key={`blank-${index}`} style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.18)" }} />;
+      })}
     </View>
   );
 }

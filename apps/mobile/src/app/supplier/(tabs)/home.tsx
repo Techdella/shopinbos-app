@@ -26,7 +26,7 @@ import { useSession } from "@/lib/session";
 import { fetchAgreements, fetchSupplierLevel, fetchSupplierOrders, fetchSupplierOverview, fetchUnreadMessages, type SupplierOrder } from "@/lib/supplier";
 import { countWord, greetingKey, supplierOrderGroup } from "@/lib/supplier-pure";
 import { useLoad } from "@/lib/useLoad";
-import { colors } from "@/theme";
+import { colors, surfaceCard } from "@/theme";
 
 // Supplier Home ("Familiar app" supplier prototype `home`): the level ring (Rewards), "Good morning" and the
 // business, the bell and the gear to Account; the Status row (delivery partners and shops posting for 24 hours);
@@ -266,7 +266,7 @@ export default function SupplierHome() {
                 {todo.map((item) => <Row key={item.key} lead={item.lead} title={item.title} sub={item.sub} onPress={item.go} />)}
               </List>
             ) : (
-              <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 18 }}>
+              <View style={{ ...surfaceCard(), padding: 18 }}>
                 <Sub>{t("home.caughtUp")}</Sub>
               </View>
             )}

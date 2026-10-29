@@ -13,7 +13,7 @@ import { PLATFORM_KEY, useConnectPage } from "@/components/familiar/ScheduleShee
 import { formatDate } from "@shared/i18n";
 import { useLoad } from "@/lib/useLoad";
 import { useLocale, useT } from "@/lib/i18n";
-import { colors, radii, themed } from "@/theme";
+import { colors, radii, themed, surfaceCard } from "@/theme";
 
 // The posts calendar ("Familiar app" prototype `calendar`): this week as a strip of days with dots, the picked
 // day's posts (Posted, Scheduled, Draft, Your turn, Didn't go out), the accounts and "Make a new post".
@@ -123,7 +123,7 @@ export default function Posts() {
             {week.loading && !data ? <LoadingBlock /> : null}
             {week.error && !data ? <ErrorState message={week.error} onRetry={() => void week.reload()} /> : null}
             {data && !shown.length ? (
-              <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 18 }}>
+              <View style={{ ...surfaceCard(), padding: 18 }}>
                 <T style={{ fontSize: 15, lineHeight: 22, color: colors.inkSoft }}>{t("posts.empty")}</T>
               </View>
             ) : null}

@@ -354,6 +354,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "sib.partner.viddone.title": "Fi ìfiránṣẹ́ tó parí hàn",
   "sib.partner.viddone.body": "Ya fídíò bí o ṣe ń fi ẹrù lé oníbàárà lọ́wọ́ ní ẹnu ọ̀nà. Títí dé ìṣẹ́jú-àáyá 30.",
   "sib.partner.viddone.cta": "Fi fídíò sí i",
+  // v26 soft cards (components/visual.tsx)
+  "peg.helpWith": "Kí ni mo lè ràn ọ́ lọ́wọ́ pẹ̀lú?",
 };
 
 export default yo;

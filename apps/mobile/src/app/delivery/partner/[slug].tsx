@@ -12,7 +12,7 @@ import { coverageParts, daysWords, routeWords } from "@/lib/delivery-pure";
 import { useRole } from "@/lib/role";
 import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
-import { colors, fonts } from "@/theme";
+import { colors, fonts, surfaceCard } from "@/theme";
 
 // A delivery partner's page (the prototype's dvPartner): verified, rating and in-app stats, coverage and services,
 // the public rate card with other fees and notes, pickup points, and Connect (instant, at their public rates) or
@@ -20,7 +20,7 @@ import { colors, fonts } from "@/theme";
 
 function Stat({ value, label }: { value: string; label: string }) {
   return (
-    <View accessible accessibilityLabel={`${value} ${label}`} style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 16, gap: 2 }}>
+    <View accessible accessibilityLabel={`${value} ${label}`} style={{ flex: 1, ...surfaceCard(), padding: 16, gap: 2 }}>
       <T style={{ fontFamily: fonts.display, fontSize: 20 }}>{value}</T>
       <Small>{label}</Small>
     </View>

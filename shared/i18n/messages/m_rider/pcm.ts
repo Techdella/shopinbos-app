@@ -202,6 +202,12 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "link.privateShort": "No show anybody this link.",
   "signIn.linkHintShort": "Use the number wey your company take add you.",
   "welcome.subShort": "You go dey get delivery jobs here.",
+  // v26 soft cards (components/visual.tsx)
+  "offer.earn": "You go earn",
+  "offer.distance": "Reach pickup",
+  "offer.km": "{km} km",
+  "done.earned": "You don earn",
+  "done.cash": "Cash wey you collect",
 };
 
 export default pcm;

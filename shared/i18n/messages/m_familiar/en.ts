@@ -354,6 +354,8 @@ const en = {
   "sib.partner.viddone.title": "Show a delivery done",
   "sib.partner.viddone.body": "Film a parcel handed over at the door. Up to 30 seconds.",
   "sib.partner.viddone.cta": "Post a video",
+  // v26 soft cards (components/visual.tsx)
+  "peg.helpWith": "What can I help you with?",
 } satisfies Record<string, string>;
 
 export default en;

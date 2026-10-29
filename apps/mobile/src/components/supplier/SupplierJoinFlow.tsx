@@ -42,7 +42,7 @@ import {
 import { usePeggyContinue, usePeggySaved } from "@/lib/peggy-call";
 import { useLoad } from "@/lib/useLoad";
 import { supplierReviewItems, type ReviewItemState } from "@/lib/supplier-pure";
-import { colors } from "@/theme";
+import { colors, surfaceCard } from "@/theme";
 import { livenessStartProblem } from "@shared/liveness-name";
 
 // Supplier onboarding on the phone, one question per screen (the web's /supplier/onboarding does the same;
@@ -509,7 +509,7 @@ export function SupplierJoinFlow() {
     const items = supplierReviewItems(current);
     body = (
       <View style={{ gap: 14 }}>
-        <View testID="supplier-review-items" style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 16 }}>
+        <View testID="supplier-review-items" style={{ ...surfaceCard(), paddingHorizontal: 16 }}>
           {items.map((item, position) => (
             <View key={item.key} style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 14, borderTopWidth: position ? 1 : 0, borderTopColor: colors.line }}>
               <View style={{ width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: item.state === "done" ? colors.successTint : colors.grayTint }}>

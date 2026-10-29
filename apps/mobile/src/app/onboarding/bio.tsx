@@ -12,7 +12,7 @@ import { finishOnboarding } from "@/lib/onboarding";
 import { fetchBio, saveBio } from "@/lib/paylinks";
 import { STARTER_SOCIALS, starterBioBlocks, type BioBlock, type BioPage, type StarterSocial } from "@/lib/paylinks-pure";
 import { useT } from "@/lib/i18n";
-import { colors, radii } from "@/theme";
+import { colors, radii, surfaceCard } from "@/theme";
 
 // "Your link in bio" (seller onboarding, after "Your store is live!"): one link for the Instagram, TikTok and
 // WhatsApp bio. It starts from the page the server suggests (GET /api/app/bio: "Shop now", new arrivals, top
@@ -125,7 +125,7 @@ export default function OnboardingBio() {
 
       {saved ? (
         <View style={{ marginTop: 20, gap: 14 }}>
-          <View style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 16, gap: 12 }}>
+          <View style={{ ...surfaceCard(), padding: 16, gap: 12 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <AppIcon name="check" size={18} color={colors.success} />
               <T weight="bold" style={{ color: colors.success, fontSize: 15 }}>{t("bio.live")}</T>
@@ -136,7 +136,7 @@ export default function OnboardingBio() {
       ) : page ? (
         <View style={{ marginTop: 20, gap: 16 }}>
           {/* A small picture of the page: the shop's name and what's on it, in order. */}
-          <View testID="bio-preview" style={{ backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.line, padding: 16, gap: 8 }}>
+          <View testID="bio-preview" style={{ ...surfaceCard(), padding: 16, gap: 8 }}>
             <View style={{ alignItems: "center", gap: 4, marginBottom: 4 }}>
               <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: colors.mintTint, alignItems: "center", justifyContent: "center" }}>
                 <T weight="extrabold" style={{ fontSize: 22, color: colors.forest }}>{(name.trim()[0] ?? "S").toUpperCase()}</T>

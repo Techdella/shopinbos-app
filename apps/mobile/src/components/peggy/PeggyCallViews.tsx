@@ -3,7 +3,8 @@ import { AccessibilityInfo, Animated, Easing, Modal, Pressable, ScrollView, View
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppIcon } from "@/components/icons";
 import { Sheet } from "@/components/Sheet";
-import { ButtonRow, LinkButton, Mascot, PillButton, T } from "@/components/ui";
+import { LinkButton, Mascot, PillButton, T } from "@/components/ui";
+import { RoundAction, RoundActions } from "@/components/visual";
 import { useT } from "@/lib/i18n";
 import type { CallPhase, SavedEntry } from "@/lib/peggy-call";
 import { callClock, savedKey, stepKey, type SetupView } from "@/lib/peggy-call-pure";
@@ -160,12 +161,11 @@ export function CallSheet({ call, onMinimize, onMute, onEnd }: { call: LiveCall;
           <SetupTicks status={call.status} dark />
         </ScrollView>
 
-        <ButtonRow labels={live ? [call.muted ? t("call.unmute") : t("call.mute"), t("call.end")] : [t("call.end")]} size="lg" icons gap={12} style={{ paddingHorizontal: 20, paddingTop: 8 }}>
-          {live ? (
-            <PillButton tone="white" style={{ flex: 1 }} accessibilityLabel={call.muted ? t("call.unmute") : t("call.mute")} onPress={onMute} icon="mic" title={call.muted ? t("call.unmute") : t("call.mute")} />
-          ) : null}
-          <PillButton style={{ flex: 1, backgroundColor: colors.dangerFill }} accessibilityLabel={t("call.end")} onPress={onEnd} icon="phone" title={t("call.end")} />
-        </ButtonRow>
+        {/* Call controls as round buttons (the call-screen look): Mute (white while muted) and a red End. */}
+        <RoundActions style={{ paddingHorizontal: 40, paddingTop: 8 }}>
+          {live ? <RoundAction onDark size={68} tone={call.muted ? "light" : "glass"} icon="mic" label={call.muted ? t("call.unmute") : t("call.mute")} onPress={onMute} /> : null}
+          <RoundAction onDark size={68} tone="decline" icon="phone" label={t("call.end")} onPress={onEnd} />
+        </RoundActions>
       </View>
     </Modal>
   );

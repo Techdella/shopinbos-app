@@ -19,7 +19,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Defs, Path, RadialGradient, Rect, Stop } from "react-native-svg";
 import { OTP_LENGTH, type DialCountry } from "@shared/phone";
 import { darkWashStops, washStops as lightWashStops } from "@shared/tokens";
-import { colors, currentScheme, fonts, radii, themed } from "@/theme";
+import { colors, currentScheme, fonts, radii, softShadow, surfaceCard, themed } from "@/theme";
 import { AppIcon, type AppIconName } from "@/components/icons";
 import { Mascot as SharedMascot, type MascotMood, type MascotWho } from "@/components/Mascot";
 import { useT } from "@/lib/i18n";
@@ -290,7 +290,7 @@ export function PhoneField({ country, onCountryPress, value, onChangeText }: { c
 
 export function Segmented<V extends string>({ options, value, onChange }: { options: { value: V; label: string }[]; value: V; onChange: (value: V) => void }) {
   return (
-    <View style={{ flexDirection: "row", backgroundColor: colors.surface, borderRadius: radii.pill, padding: 4 }} accessibilityRole="tablist">
+    <View style={{ flexDirection: "row", backgroundColor: colors.surface, borderRadius: radii.pill, padding: 4, ...softShadow() }} accessibilityRole="tablist">
       {options.map((option) => {
         const on = option.value === value;
         return (
@@ -378,7 +378,7 @@ export function Notice({ tone = "error", children, tip }: { tone?: "error" | "in
 export function Toggle({ on, onChange, label, tone = "success" }: { on: boolean; onChange: (on: boolean) => void; label: string; tone?: "success" | "accent" }) {
   return (
     <Pressable accessibilityRole="switch" accessibilityLabel={label} accessibilityState={{ checked: on }} onPress={() => onChange(!on)} hitSlop={6} style={{ width: 52, height: 32, borderRadius: 16, backgroundColor: on ? (tone === "accent" ? colors.accent : colors.successFill) : colors.toggleOff, justifyContent: "center" }}>
-      <View style={{ position: "absolute", left: on ? 23 : 3, width: 26, height: 26, borderRadius: 13, backgroundColor: "#FFFFFF" }} />
+      <View style={{ position: "absolute", left: on ? 23 : 3, width: 26, height: 26, borderRadius: 13, backgroundColor: "#FFFFFF", boxShadow: "0px 1px 3px rgba(14,42,56,0.25)" }} />
     </Pressable>
   );
 }
@@ -394,8 +394,9 @@ export function ProgressBars({ total, current }: { total: number; current: numbe
   );
 }
 
+/** A soft white card on the canvas (radius 24, a faint lift instead of a hard border, 18 padding). */
 export function Card({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
-  return <View style={[{ backgroundColor: colors.surface, borderRadius: radii.card, padding: 16 }, style]}>{children}</View>;
+  return <View style={[{ ...surfaceCard(), padding: 18 }, style]}>{children}</View>;
 }
 
 // Built again after a scheme change (Settings > Appearance), so not StyleSheet.create (built once).

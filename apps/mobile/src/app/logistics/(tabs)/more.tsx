@@ -155,7 +155,7 @@ export default function LogisticsBusiness() {
         ))}
       </List>
 
-      <Card style={{ paddingVertical: 2, borderRadius: 24, borderWidth: 1, borderColor: colors.line }}>
+      <Card style={{ paddingVertical: 2 }}>
         <LanguageRow first />
         <AppearanceRow />
         <TipsRow />

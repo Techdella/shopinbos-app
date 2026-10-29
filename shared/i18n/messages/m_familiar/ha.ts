@@ -354,6 +354,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "sib.partner.viddone.title": "Nuna isarwar da ka kammala",
   "sib.partner.viddone.body": "Ɗauki bidiyon miƙa kaya a bakin ƙofa. Har zuwa daƙiƙa 30.",
   "sib.partner.viddone.cta": "Saka bidiyo",
+  // v26 soft cards (components/visual.tsx)
+  "peg.helpWith": "Me zan taimaka maka da shi?",
 };
 
 export default ha;

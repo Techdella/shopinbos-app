@@ -262,6 +262,15 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "update.storeFailed": "Ba mu iya buɗe Google Play ba. Buɗe manhajar Play Store ka nemi Shopinbos.",
   "tip.more": "Ƙarin bayani",
   "tip.learnMore": "Ƙara koyo",
+  // v26 soft cards (components/visual.tsx)
+  "wk.0": "Lit",
+  "wk.1": "Tal",
+  "wk.2": "Lar",
+  "wk.3": "Alh",
+  "wk.4": "Jum",
+  "wk.5": "Asa",
+  "wk.6": "Lah",
+  "chart.lastDays": "Kwanaki 7 da suka wuce: {days}",
 };
 
 export default ha;

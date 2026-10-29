@@ -205,6 +205,12 @@ const en = {
   "link.privateShort": "Keep the link to yourself.",
   "signIn.linkHintShort": "Use the number your company added you with.",
   "welcome.subShort": "You'll get delivery jobs here.",
+  // v26 soft cards (components/visual.tsx)
+  "offer.earn": "You earn",
+  "offer.distance": "To the pickup",
+  "offer.km": "{km} km",
+  "done.earned": "Earned",
+  "done.cash": "Cash collected",
 } satisfies Record<string, string>;
 
 export default en;

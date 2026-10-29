@@ -161,10 +161,10 @@ export default function LogisticsJobs() {
   const checklist: ChecklistItem[] =
     data && market.data && data.partner.onboarded && !hideChecklist
       ? [
-          { key: "docs", label: t("fam.ck.docs"), done: ["verified", "pending"].includes(data.partner.verificationStatus), onPress: () => router.push("/logistics/verification") },
-          { key: "rates", label: t("fam.ck.rates"), done: (market.data.rateCard?.rows.length ?? 0) > 0, onPress: () => router.push("/logistics/rates") },
-          { key: "points", label: t("fam.ck.points"), done: market.data.pickupPoints.length > 0, onPress: () => router.push("/logistics/points") },
-          { key: "riders", label: t("fam.ck.riders"), done: data.riders.total > 0, onPress: () => router.push("/logistics/team") },
+          { key: "docs", icon: "shield", label: t("fam.ck.docs"), done: ["verified", "pending"].includes(data.partner.verificationStatus), onPress: () => router.push("/logistics/verification") },
+          { key: "rates", icon: "tag", label: t("fam.ck.rates"), done: (market.data.rateCard?.rows.length ?? 0) > 0, onPress: () => router.push("/logistics/rates") },
+          { key: "points", icon: "pin", label: t("fam.ck.points"), done: market.data.pickupPoints.length > 0, onPress: () => router.push("/logistics/points") },
+          { key: "riders", icon: "users", label: t("fam.ck.riders"), done: data.riders.total > 0, onPress: () => router.push("/logistics/team") },
         ]
       : [];
   const checklistShown = checklist.some((item) => !item.done);
@@ -213,7 +213,7 @@ export default function LogisticsJobs() {
         </View>
       ) : null}
 
-      {checklistShown ? <Checklist title={t("fam.ck.title")} items={checklist} onDismiss={() => setHideChecklist(true)} /> : null}
+      {checklistShown ? <Checklist variant="tiles" title={t("fam.ck.title")} items={checklist} onDismiss={() => setHideChecklist(true)} /> : null}
       <GettingStartedCard />
 
       {data && !data.partner.onboarded ? (
@@ -273,7 +273,7 @@ export default function LogisticsJobs() {
       {jobs.loading ? <LoadingBlock label={t("jobs.loading")} /> : null}
       {jobs.error && !jobs.data ? <ErrorState message={jobs.error} onRetry={() => void jobs.reload()} /> : null}
       {!jobs.loading && jobs.data && !jobs.data.jobs.length ? (
-        <Card style={{ padding: 20, borderRadius: 24, borderWidth: 1, borderColor: colors.line }}>
+        <Card style={{ padding: 20 }}>
           <Sub>{t("jobs.nothingHere")}</Sub>
         </Card>
       ) : null}
