@@ -80,6 +80,7 @@ const en = {
   "msg.autoReply": "Auto-reply",
   "panel.email": "Email",
   "panel.phone": "Phone",
+  "panel.whatsappThem": "WhatsApp them",
   "panel.handle": "Handle",
   "panel.firstMessageLabel": "First message",
   "panel.firstMessage": "First message {date}",

@@ -6,6 +6,8 @@ import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { aiText } from "@/lib/ai/text";
 import { createNotification } from "@/lib/notifications/create";
+import { notify } from "@/lib/notifications/notify.server";
+import { liveChatAlertText, startsLiveChat } from "@/lib/storefront/seller-alerts";
 import { PAID_ORDER_STATUSES } from "@/lib/insights";
 import { decryptJson } from "./crypto";
 import { sendInboxEmail } from "./channels/email";
@@ -154,18 +156,43 @@ export async function ingestInbound(input: IngestInput) {
     }
   };
 
-  if (input.notify !== false) later(() => notifySeller(input.storeId, conversation.id, input.channel, conversation.contactName ?? conversation.contactEmail ?? conversation.contactPhone, preview));
+  // A shopper starting a live chat gets its own alert (push, email and WhatsApp); later messages are ordinary ones.
+  const chatStart = input.channel === "livechat" && startsLiveChat({ isNew: !existing, lastInboundAt: existing?.lastInboundAt }, now)
+    ? { messageId: message.id, via: input.message.meta?.via === "whatsapp" ? ("whatsapp" as const) : ("chat" as const), page: typeof input.message.meta?.page === "string" ? input.message.meta.page : null }
+    : null;
+  if (input.notify !== false) later(() => notifySeller(input.storeId, conversation.id, input.channel, conversation.contactName ?? conversation.contactEmail ?? conversation.contactPhone, preview, chatStart));
   later(() => maybeAutoReply(conversation.id));
 
   return { conversationId: conversation.id, messageId: message.id, duplicate: false };
 }
 
-async function notifySeller(storeId: string, conversationId: string, channel: InboxChannelKey, who: string | null, preview: string) {
+async function notifySeller(storeId: string, conversationId: string, channel: InboxChannelKey, who: string | null, preview: string, chatStart: { messageId: string; via: "chat" | "whatsapp"; page: string | null } | null = null) {
   const store = await storeById(storeId);
   if (!store) return;
   const settings = await db.inboxSettings.findUnique({ where: { storeId }, select: { sellerLastSeenAt: true } });
+  const online = isSellerOnline(settings?.sellerLastSeenAt);
+  if (chatStart) {
+    // Settings › Notifications › "Live chat and visitors" (push, email and WhatsApp unless turned off). While the
+    // inbox is open the seller sees the chat arrive, so only the bell.
+    const text = liveChatAlertText({ who, preview, via: chatStart.via, page: chatStart.page });
+    await notify({
+      userId: store.userId,
+      event: "livechat.started",
+      type: "customers",
+      title: text.title,
+      description: text.description,
+      link: `/home/messages?c=${conversationId}`,
+      actionLabel: "Reply",
+      actionUrl: `/home/messages?c=${conversationId}`,
+      metadata: { source: "inbox", channel, conversationId, via: chatStart.via },
+      dedupeKey: `livechat.started:${chatStart.messageId}`,
+      email: true,
+      inAppOnly: online,
+    }).catch((error) => console.error("[inbox] live chat alert failed", error));
+    return;
+  }
   // No bell notification while the seller has the inbox open; the list updates by itself.
-  if (isSellerOnline(settings?.sellerLastSeenAt)) return;
+  if (online) return;
   await createNotification({
     userId: store.userId,
     type: "customers",

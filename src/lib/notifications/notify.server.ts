@@ -84,6 +84,7 @@ const TYPE_FOR_CATEGORY: Record<NotifyCategory, NotificationType> = {
   orders: "order",
   money: "payout",
   messages: "customers",
+  livechat: "customers",
   deliveries: "logistics",
   stock: "inventory",
   marketing: "marketing",
@@ -273,7 +274,9 @@ async function sendAlertWhatsApp(args: {
   if (config) {
     const business = args.user.role === "logistics_partner"
       ? (await db.logisticsPartner.findUnique({ where: { userId: args.input.userId }, select: { displayName: true } }).catch(() => null))?.displayName
-      : null;
+      : args.user.role === "seller"
+        ? (await db.store.findUnique({ where: { userId: args.input.userId }, select: { name: true } }).catch(() => null))?.name
+        : null;
     const status = typeof args.input.metadata?.status === "string" ? args.input.metadata.status : null;
     const { template, params } = notifyWhatsAppTemplate({
       event: args.input.event ?? "",
@@ -295,10 +298,16 @@ async function sendAlertWhatsApp(args: {
 
 /**
  * Where texts and WhatsApp messages go: the account's phone, else for a delivery partner the company's WhatsApp
- * number (partners sign up with it on the company profile, so the account often has no phone of its own).
+ * number (partners sign up with it on the company profile, so the account often has no phone of its own), and for a
+ * seller the WhatsApp number they put on their store's chat button.
  */
 export async function textPhoneFor(userId: string, phone: string | null, role?: string | null): Promise<string | null> {
   if (phone?.trim()) return phone;
+  if (role === "seller") {
+    const config = await db.liveChatConfig.findFirst({ where: { store: { userId } }, select: { whatsappNumber: true } }).catch(() => null);
+    const number = config?.whatsappNumber?.trim();
+    return number ? toE164(number) ?? number : null;
+  }
   if (role !== "logistics_partner") return null;
   const partner = await db.logisticsPartner.findUnique({ where: { userId }, select: { whatsappNumber: true } }).catch(() => null);
   const number = partner?.whatsappNumber?.trim();

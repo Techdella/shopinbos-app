@@ -4,7 +4,7 @@
 
 // ─── Categories and channels ─────────────────────────────────────────────────
 
-export const NOTIFY_CATEGORY_KEYS = ["orders", "money", "messages", "deliveries", "stock", "marketing", "account", "announcements"] as const;
+export const NOTIFY_CATEGORY_KEYS = ["orders", "money", "messages", "livechat", "deliveries", "stock", "marketing", "account", "announcements"] as const;
 export type NotifyCategory = (typeof NOTIFY_CATEGORY_KEYS)[number];
 
 export const NOTIFY_CHANNEL_KEYS = ["push", "email", "sms", "whatsapp"] as const;
@@ -24,6 +24,9 @@ export const NOTIFY_CATEGORIES: readonly CategoryInfo[] = [
   { key: "orders", label: "Orders", help: "New orders, supplier answers and order changes.", roles: ["seller", "supplier", "logistics_partner", "admin"] },
   { key: "money", label: "Payments and payouts", help: "Money received, payouts and cash to pay in.", roles: ["seller", "supplier", "logistics_partner", "admin"] },
   { key: "messages", label: "Messages", help: "Chats with customers, suppliers and delivery partners.", roles: ["seller", "supplier", "logistics_partner", "admin"] },
+  // A shopper starting a chat on the store (push, email and WhatsApp by default: the seller should answer while the
+  // shopper is still there) and people browsing the store right now (push and the bell only, at most every 15 minutes).
+  { key: "livechat", label: "Live chat and visitors", help: "A shopper starts a chat on your store, or someone is browsing it.", roles: ["seller"] },
   { key: "deliveries", label: "Deliveries", help: "Riders, pickups and delivery updates.", roles: ["seller", "supplier", "logistics_partner", "admin"] },
   { key: "stock", label: "Stock", help: "Products running low or sold out.", roles: ["seller", "supplier"] },
   { key: "marketing", label: "Marketing and tips", help: "Campaign results, new reviews and ideas to sell more.", roles: ["seller", "supplier"] },
@@ -86,6 +89,9 @@ export const NOTIFY_EVENTS = {
   "stock.out": { category: "stock", collapse: { key: "stock", one: "product needs restocking", many: "products need restocking" } },
   "message.new": { category: "messages", collapse: { key: "message.new", one: "new message", many: "new messages" } },
   "customer.message": { category: "messages", collapse: { key: "message.new", one: "new message", many: "new messages" } },
+  // Storefront (src/lib/storefront/seller-alerts.server.ts): a shopper opened a chat, someone is on the store now.
+  "livechat.started": { category: "livechat" },
+  "store.visitor": { category: "livechat" },
   "review.new": { category: "marketing", collapse: { key: "review.new", one: "new review", many: "new reviews" } },
   "campaign.finished": { category: "marketing" },
   // Seasonal campaigns (Marketing > Seasonal campaigns): went live, ending soon, ended with a summary.
@@ -186,6 +192,7 @@ export const DEFAULT_PREFERENCES: PreferenceMatrix = {
   orders: { push: true, email: true, sms: false, whatsapp: false },
   money: { push: true, email: true, sms: false, whatsapp: false },
   messages: { push: true, email: false, sms: false, whatsapp: false },
+  livechat: { push: true, email: true, sms: false, whatsapp: true },
   deliveries: { push: true, email: false, sms: false, whatsapp: false },
   stock: { push: true, email: false, sms: false, whatsapp: false },
   marketing: { push: true, email: false, sms: false, whatsapp: false },
@@ -540,6 +547,7 @@ export type AndroidChannelId = (typeof ANDROID_CHANNELS)[number]["id"];
 
 export function androidChannelFor(category: NotifyCategory): AndroidChannelId {
   if (category === "announcements") return "news";
+  if (category === "livechat") return "messages";
   if (category === "messages" || category === "money" || category === "deliveries" || category === "marketing") return category;
   return "orders";
 }

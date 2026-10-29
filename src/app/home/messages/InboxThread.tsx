@@ -142,7 +142,7 @@ function CustomerPanel({ data, onOpen, onSaveTags }: { data: ThreadData; onOpen:
       </div>
       <dl className="m-0 grid gap-2 text-[13.5px]">
         {c.contactEmail && <div className="flex min-w-0 gap-2"><dt className="sr-only">{t("panel.email")}</dt><Icon name="mail" size={15} className="mt-0.5 shrink-0 text-app-ink-soft" /><dd className="m-0 min-w-0 break-all">{c.contactEmail}</dd></div>}
-        {c.contactPhone && <div className="flex min-w-0 gap-2"><dt className="sr-only">{t("panel.phone")}</dt><Icon name="phone" size={15} className="mt-0.5 shrink-0 text-app-ink-soft" /><dd className="m-0"><a href={`tel:${c.contactPhone}`} className="text-app-ink">{c.contactPhone}</a></dd></div>}
+        {c.contactPhone && <div className="flex min-w-0 gap-2"><dt className="sr-only">{t("panel.phone")}</dt><Icon name="phone" size={15} className="mt-0.5 shrink-0 text-app-ink-soft" /><dd className="m-0"><a href={`tel:${c.contactPhone}`} className="text-app-ink">{c.contactPhone}</a>{c.channel === "livechat" && <> · <a href={`https://wa.me/${c.contactPhone.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer" className="font-semibold text-app-ink underline">{t("panel.whatsappThem")}</a></>}</dd></div>}
         {c.contactHandle && <div className="flex min-w-0 gap-2"><dt className="sr-only">{t("panel.handle")}</dt><Icon name="user" size={15} className="mt-0.5 shrink-0 text-app-ink-soft" /><dd className="m-0 truncate">{c.contactHandle}</dd></div>}
         <div className="flex gap-2 text-app-ink-soft"><dt className="sr-only">{t("panel.firstMessageLabel")}</dt><Icon name="calendar" size={15} className="mt-0.5 shrink-0" /><dd className="m-0">{t("panel.firstMessage", { date: formatStamp(c.createdAt, locale) })}</dd></div>
       </dl>

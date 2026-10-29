@@ -43,6 +43,7 @@ import { StoreLogo } from "@/components/storefront/StoreLogo";
 import { CampaignBadges } from "@/components/storefront/campaign/CampaignBadges";
 import { brandTagline, footerSummaryForShoppers, isPlaceholderCopy } from "@shared/placeholder-copy";
 import { englishText, type EditorText } from "./editor-text";
+import { openStoreWhatsApp } from "@/components/messaging/open-store-whatsapp";
 
 export interface SurfaceProduct {
   id: string;
@@ -1421,7 +1422,8 @@ function ClassicTemplateSurface({
       return;
     }
     if (nextAction === "whatsapp") {
-      if (mode === "live") window.open(`https://wa.me/?text=${encodeURIComponent(`Hello, I want to order from ${store.name}`)}`, "_blank", "noopener,noreferrer");
+      // The store's WhatsApp chat window on the page; WhatsApp itself only when the store has none.
+      if (mode === "live") openStoreWhatsApp(`https://wa.me/${shopperInfo.whatsappNumber ?? ""}?text=${encodeURIComponent(`Hello, I want to order from ${store.name}`)}`);
       return;
     }
     if (nextAction === "email") {
