@@ -12,6 +12,7 @@ import { paymentReadiness } from "@/lib/payment-links/service.server";
 import { ShareWhatsAppButton } from "@/components/products/ShareWhatsAppButton";
 import { storefrontProductUrl } from "@shared/product-codes";
 import { storeUrl } from "@/lib/marketing/brand";
+import { productChannels } from "@/lib/sales-channels/product-view.server";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +44,7 @@ export default async function ProductEditPage({
     notFound();
   }
 
-  const [categories, others, readiness] = await Promise.all([
+  const [categories, others, readiness, channels] = await Promise.all([
     db.category.findMany({
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       select: { id: true, name: true, slug: true },
@@ -56,6 +57,7 @@ export default async function ProductEditPage({
       select: { id: true, name: true, images: true, retailPrice: true },
     }),
     paymentReadiness(store.id),
+    productChannels(store.id),
   ]);
 
   return (
@@ -77,6 +79,7 @@ export default async function ProductEditPage({
         product={product as any}
         categories={categories}
         isEdit
+        channels={channels}
         storeOrigin={buildStorefrontOrigin({ slug: store.slug, customDomain: store.customDomain })}
         storeName={store.name}
         storeProducts={others.map((entry) => ({ id: entry.id, name: entry.name, image: entry.images[0] ?? null, price: entry.retailPrice }))}

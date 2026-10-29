@@ -268,7 +268,8 @@ export default async function ProductsPage({
             return (
               <ListRow
                 key={p.id}
-                href={`/products/${p.id}`}
+                // From the pre-orders list, open straight on the product's Preorder settings.
+                href={filter.key === "preorder" ? `/products/${p.id}#preorder` : `/products/${p.id}`}
                 // Share to WhatsApp, and a payment link to send in a chat (published products only: the pay page shows
                 // public products).
                 aside={
