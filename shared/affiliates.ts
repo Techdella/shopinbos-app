@@ -1,5 +1,7 @@
 // Creators and affiliates: a creator shares the store link with ?aff=<code>; orders from it earn them a share
-// once delivered. The seller pays them (usually Fridays) and marks it paid. Pure helpers, unit-tested.
+// once delivered. The seller pays them, on the payday the seller sets (a weekday, a date each month, or as agreed
+// with each creator), and marks it paid. Shopinbos keeps the count; it never pays creators or sets when they're
+// paid. Pure helpers, unit-tested.
 
 export const DEFAULT_COMMISSION_RATE = 10;
 export const AFFILIATE_WINDOW_DAYS = 30;
@@ -57,9 +59,34 @@ export function affiliateTotals(orders: AffiliateOrder[]) {
   return { pending, owed, paid, sales, deliveredOrders, orders: orders.filter((order) => !CLOSED.has(order.status)).length };
 }
 
-/** The next Friday (today if it's Friday), for "pay on Friday" copy. Lagos time. */
-export function nextPayday(now = new Date()) {
+/**
+ * When the seller pays their creators: every week on a weekday (0 Sunday … 6 Saturday), every month on a date
+ * (1-28, so every month has it), or as agreed with each creator (no fixed day). The seller sets it on the
+ * Affiliates page; a store that never did pays weekly on Friday.
+ */
+export type AffiliatePaySchedule = "weekly" | "monthly" | "agreed";
+export interface AffiliatePayday {
+  schedule: AffiliatePaySchedule;
+  day: number;
+}
+
+export const DEFAULT_AFFILIATE_PAYDAY: AffiliatePayday = { schedule: "weekly", day: 5 };
+
+/** A saved or submitted payday, made valid (unknown schedule → the default; day kept in range). */
+export function cleanAffiliatePayday(schedule: unknown, day: unknown): AffiliatePayday {
+  const n = Math.round(Number(day));
+  if (schedule === "agreed") return { schedule: "agreed", day: 0 };
+  if (schedule === "monthly") return { schedule: "monthly", day: Number.isFinite(n) && n >= 1 && n <= 28 ? n : 25 };
+  if (schedule === "weekly") return { schedule: "weekly", day: Number.isFinite(n) && n >= 0 && n <= 6 ? n : DEFAULT_AFFILIATE_PAYDAY.day };
+  return DEFAULT_AFFILIATE_PAYDAY;
+}
+
+/** The seller's next payday (today if it's today), Lagos time; null when they pay as agreed with each creator. */
+export function nextPayday(now = new Date(), payday: AffiliatePayday = DEFAULT_AFFILIATE_PAYDAY): Date | null {
   const lagos = new Date(now.getTime() + 3_600_000);
-  const days = (5 - lagos.getUTCDay() + 7) % 7;
-  return new Date(Date.UTC(lagos.getUTCFullYear(), lagos.getUTCMonth(), lagos.getUTCDate() + days, 12));
+  const [year, month, date] = [lagos.getUTCFullYear(), lagos.getUTCMonth(), lagos.getUTCDate()];
+  if (payday.schedule === "agreed") return null;
+  if (payday.schedule === "monthly") return new Date(Date.UTC(year, date <= payday.day ? month : month + 1, payday.day, 12));
+  const days = (payday.day - lagos.getUTCDay() + 7) % 7;
+  return new Date(Date.UTC(year, month, date + days, 12));
 }

@@ -72,6 +72,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "shots.undo": "Lo àwọn fọ́tò mi àtilẹ̀wá",
   "shots.cost": "Fọ́tò kọ̀ọ̀kan ń lo àwòrán kan nínú ìpín òní, lẹ́yìn náà kírẹ́dítì {credits}.",
   "style": "2. Ọ̀nà",
+  "styleFeel": "Ẹgbẹ́ àṣà",
+  "styleAll": "Gbogbo rẹ̀ ({count})",
   "tpl.float": "Float",
   "tpl.floatBlurb": "Ọjà rẹ ń léfòó lórí ẹ̀yìn àwọ̀ àmì rírọ̀ pẹ̀lú àkọlé ọ̀rọ̀ kan. Pẹ̀lẹ́ àti olówó.",
   "tpl.bold": "Big type",

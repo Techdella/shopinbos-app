@@ -72,6 +72,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "shots.undo": "Use my original photos",
   "shots.cost": "Each shot go use one picture from today free ones, then {credits} credits.",
   "style": "2. Style",
+  "styleFeel": "Style group",
+  "styleAll": "All ({count})",
   "tpl.float": "Float",
   "tpl.floatBlurb": "Your product go float for soft brand colour background with one-word captions. Calm and classy.",
   "tpl.bold": "Big type",

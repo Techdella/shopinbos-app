@@ -37,7 +37,7 @@ $groups = [
 		[ 'Instagram and Facebook ads', 'Click-to-WhatsApp and store visit ads', 'Connect' ],
 		[ 'TikTok ads', 'Spark ads from your product videos', 'Soon' ],
 		[ 'Google Shopping ads', 'Show up when people search', 'Soon' ],
-		[ 'Creators and affiliates', 'Links, codes and commission paid on Fridays', 'Built in' ],
+		[ 'Creators and affiliates', 'Links, codes and commission, paid on your schedule', 'Built in' ],
 	] ],
 	'bring' => [ 'Bring products from', [
 		[ 'Instagram posts', 'Turn posts into products with prices', 'Connect' ],
