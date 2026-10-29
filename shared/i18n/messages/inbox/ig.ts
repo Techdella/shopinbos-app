@@ -77,6 +77,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "msg.autoReply": "Auto-reply",
   "panel.email": "Email",
   "panel.phone": "Ekwentị",
+  "panel.whatsappThem": "Zitere ha WhatsApp",
   "panel.handle": "Handle",
   "panel.firstMessageLabel": "Ozi mbụ",
   "panel.firstMessage": "Ozi mbụ {date}",

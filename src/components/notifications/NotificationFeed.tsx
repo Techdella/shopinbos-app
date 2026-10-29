@@ -15,6 +15,7 @@ export const CATEGORY_ICON: Record<NotifyCategory, IconName> = {
   orders: "cart",
   money: "coin",
   messages: "chat",
+  livechat: "eye",
   deliveries: "truck",
   stock: "box",
   marketing: "megaphone",

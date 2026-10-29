@@ -77,6 +77,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "msg.autoReply": "Auto-reply",
   "panel.email": "Email",
   "panel.phone": "Fóònù",
+  "panel.whatsappThem": "Fi WhatsApp kàn wọ́n",
   "panel.handle": "Handle",
   "panel.firstMessageLabel": "Ìfiránṣẹ́ àkọ́kọ́",
   "panel.firstMessage": "Ìfiránṣẹ́ àkọ́kọ́ {date}",

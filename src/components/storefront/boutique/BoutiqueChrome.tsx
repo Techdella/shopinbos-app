@@ -12,6 +12,7 @@ import { brandTagline, footerSummaryForShoppers, isPlaceholderCopy, shopperCopy 
 import { englishText, type EditorText } from "../editor-text";
 import { StoreMenuBar, StoreMenuButton, type MenuColors, type ShownMenuItem } from "../StoreMenu";
 import type { MenuStyle, MobileMenuStyle } from "@/lib/storefront/menu";
+import { openStoreWhatsApp } from "@/components/messaging/open-store-whatsapp";
 
 export interface ChromeStore {
   name: string;
@@ -353,7 +354,20 @@ export function BoutiqueFooter({
             ) : (
               <div className="text-[22px]" style={{ fontFamily: look.logoFont, ...look.logoStyle }}>{store.name}</div>
             )}
-            {line ? <p className="mt-2 text-[13.5px]" style={{ color: t.muted }}>{shopper.whatsappNumber ? <a href={`https://wa.me/${shopper.whatsappNumber}`} target="_blank" rel="noopener noreferrer" className="underline-offset-4 hover:underline">{line}</a> : line}</p> : null}
+            {line ? <p className="mt-2 text-[13.5px]" style={{ color: t.muted }}>{shopper.whatsappNumber ? <a
+                  href={`https://wa.me/${shopper.whatsappNumber}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(event) => {
+                    // The store's WhatsApp chat window on the page when it has one; the link otherwise.
+                    if (editor) return;
+                    event.preventDefault();
+                    openStoreWhatsApp(event.currentTarget.href);
+                  }}
+                  className="underline-offset-4 hover:underline"
+                >
+                  {line}
+                </a> : line}</p> : null}
             {summaryHint ? (
               <p className="mt-2 rounded-[8px] border border-dashed px-2.5 py-1.5 text-[12.5px] leading-5" style={{ borderColor: t.border, color: t.muted }}>
                 {shown ? <><span style={{ opacity: 0.6 }}>{shown}</span><br />{say("Shoppers won't see this placeholder. Write your own line in the footer settings.")}</> : say("Add a line about your store in the footer settings. Until then shoppers see your store description.")}

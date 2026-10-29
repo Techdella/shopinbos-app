@@ -77,6 +77,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "msg.autoReply": "Auto-reply",
   "panel.email": "Email",
   "panel.phone": "Waya",
+  "panel.whatsappThem": "Tura musu WhatsApp",
   "panel.handle": "Handle",
   "panel.firstMessageLabel": "Saƙo na farko",
   "panel.firstMessage": "Saƙo na farko {date}",

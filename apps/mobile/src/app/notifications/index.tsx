@@ -25,6 +25,7 @@ const ICON: Record<NotifyCategory, AppIconName> = {
   orders: "bag",
   money: "coin",
   messages: "chat",
+  livechat: "users",
   deliveries: "truck",
   stock: "box",
   marketing: "megaphone",

@@ -59,7 +59,7 @@ export function notifyWhatsAppTemplate(input: {
   const name =
     input.event === "verification.update" ? (verified ? "shopinbos_account_approved" : "shopinbos_account_update")
     : input.event === "job.new" ? "shopinbos_new_job"
-    : input.category === "messages" ? "shopinbos_new_message"
+    : input.category === "messages" || input.category === "livechat" ? "shopinbos_new_message"
     : "shopinbos_update";
   const template = notifyTemplate(name)!;
   // The approval template already says "is now verified", so only the rest of the description goes in.

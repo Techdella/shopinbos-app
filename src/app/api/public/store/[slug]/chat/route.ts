@@ -107,6 +107,8 @@ const PostSchema = z.object({
   email: z.string().trim().max(160).optional(),
   phone: z.string().trim().max(30).optional(),
   page: z.string().trim().max(300).optional(),
+  /** "whatsapp": written in the store's WhatsApp chat window (shoppers stay on the store instead of going to wa.me). */
+  via: z.enum(["chat", "whatsapp"]).optional(),
 });
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
@@ -136,6 +138,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   // When nobody is online we need a way to get back to the shopper (unless the chatbot is answering live).
   const assistant = await activeAssistant(store.id, settings?.sellerLastSeenAt);
   const botAnswers = Boolean(assistant) && !existing?.tags.includes("needs-human");
+  // The WhatsApp window always asks for the shopper's WhatsApp number, so the seller can carry on there.
+  if (input.via === "whatsapp" && !phone && !existing?.contactPhone) {
+    return withCors(req, apiError("CONTACT_REQUIRED", "Add your WhatsApp number so the shop can reply to you there."), CORS);
+  }
   if (!botAnswers && !isSellerOnline(settings?.sellerLastSeenAt) && !email && !phone && !existing?.contactEmail && !existing?.contactPhone) {
     return withCors(req, apiError("CONTACT_REQUIRED", "We're away right now. Leave your email or phone number so we can reply."), CORS);
   }
@@ -146,7 +152,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     channel: "livechat",
     threadId: input.visitorKey,
     contact: { name: input.name || null, email, phone, visitorId: typeof visitorId === "string" ? visitorId : null },
-    message: { body: input.body, meta: input.page ? { page: input.page } : {} },
+    message: { body: input.body, meta: { ...(input.page ? { page: input.page } : {}), ...(input.via === "whatsapp" ? { via: "whatsapp" } : {}) } },
     visitorSeen: true,
   });
   return withCors(req, ok({ id: result.messageId }), CORS);
