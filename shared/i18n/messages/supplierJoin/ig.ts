@@ -128,8 +128,6 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "product.price": "Ọnụahịa otu (₦)",
   "product.add": "Tinye ngwaahịa",
   "product.added": "Etinyela {name}. Ị nwere ike itinye ndị ọzọ ma emechaa.",
-  "product.whatsapp": "Ziga anyị WhatsApp catalogue gị, anyị ga-edepụta ya maka gị",
-  "product.whatsappDone": "Anyị anụla. Anyị ga-ezitere gị ozi na WhatsApp maka catalogue gị.",
   "product.needPhoto": "See foto ngwaahịa ahụ.",
   "product.needName": "Dee ihe a na-akpọ ya.",
   "product.needPrice": "Dee ọnụahịa na naira.",
