@@ -2347,6 +2347,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "ed.Rises from the bottom, easy to reach": "E dey rise from bottom, e easy to reach",
   "ed.Rounded buttons, the current page filled": "Round buttons, the page wey you dey go full",
   "ed.Search products": "Search products",
+  "ed.In menu": "Dey menu already",
   "ed.Select all": "Select all",
   "ed.Side drawer": "Side drawer",
   "ed.Slides in from the left": "E dey slide enter from left",

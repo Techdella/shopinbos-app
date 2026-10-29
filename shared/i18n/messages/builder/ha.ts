@@ -2347,6 +2347,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "ed.Rises from the bottom, easy to reach": "Yana tasowa daga ƙasa, mai sauƙin kaiwa",
   "ed.Rounded buttons, the current page filled": "Maɓallai masu zagaye, shafin yanzu a cike",
   "ed.Search products": "Bincika kaya",
+  "ed.In menu": "Yana cikin menu",
   "ed.Select all": "Zaɓi duka",
   "ed.Side drawer": "Aljihu na gefe",
   "ed.Slides in from the left": "Yana zamewa daga hagu",
