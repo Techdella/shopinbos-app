@@ -12,6 +12,7 @@ import {
   MUSIC_MOODS,
   REEL_SHOT_LOOKS,
   REEL_TEMPLATE_CREDIT,
+  REEL_FEELS,
   REEL_TEMPLATES,
   defaultMood,
   isMusicMood,
@@ -19,6 +20,7 @@ import {
   type MusicMood,
   type ReelBrand,
   type ReelShotLook,
+  type ReelFeel,
   type ReelTemplateId,
   type VoiceGender,
   type VoiceSource,
@@ -121,6 +123,8 @@ export function VideoStudio({
   const [language, setLanguage] = useState<VideoLanguage>(() => (VIDEO_LANGUAGES.some((option) => option.key === saved?.language) ? (saved!.language as VideoLanguage) : "pidgin"));
   const [script, setScript] = useState<VideoScript | null>(saved?.script ?? null);
   const [template, setTemplate] = useState<ReelTemplateId>(saved?.template ?? defaults.template);
+  // Which group of styles the picker shows; the chosen style always stays visible.
+  const [feel, setFeel] = useState<ReelFeel | "all">("all");
   const [look, setLook] = useState<ReelShotLook>(() => ((REEL_SHOT_LOOKS as readonly string[]).includes(saved?.look ?? "") ? (saved!.look as ReelShotLook) : "cutout"));
   const [voiceSource, setVoiceSource] = useState<VoiceSource>(() => (saved?.voiceSource === "rex" || saved?.voiceSource === "elevenlabs" || saved?.voiceSource === "none" ? saved.voiceSource : "rex"));
   const [gender, setGender] = useState<VoiceGender>(saved?.gender === "male" ? "male" : "female");
@@ -635,8 +639,15 @@ export function VideoStudio({
 
         <section className={card}>
           <h2 className="m-0 text-[17px] font-extrabold">{t("style")}</h2>
+          <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label={t("styleFeel")}>
+            {[{ id: "all" as const, name: t("styleAll", { count: REEL_TEMPLATES.length }) }, ...REEL_FEELS.map((option) => ({ id: option.id, name: t.dynamic(`feel.${option.id}`, option.name) }))].map((option) => (
+              <button key={option.id} type="button" aria-pressed={feel === option.id} onClick={() => setFeel(option.id)} className={cx("min-h-[34px] rounded-full border px-3.5 text-[13px] font-bold", feel === option.id ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white")}>
+                {option.name}
+              </button>
+            ))}
+          </div>
           <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3" role="radiogroup" aria-label={t("style")}>
-            {REEL_TEMPLATES.map((option) => (
+            {REEL_TEMPLATES.filter((option) => feel === "all" || option.feel === feel || option.id === template).map((option) => (
               <button
                 key={option.id}
                 type="button"

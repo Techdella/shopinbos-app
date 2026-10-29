@@ -6,6 +6,7 @@
 export const REEL_TEMPLATES = [
   {
     id: "float",
+    feel: "clean",
     name: "Float",
     blurb: "Your product floats on a soft brand-colour backdrop with one-word captions. Calm and premium.",
     pace: 2.6,
@@ -13,6 +14,7 @@ export const REEL_TEMPLATES = [
   },
   {
     id: "bold",
+    feel: "bold",
     name: "Big type",
     blurb: "A giant word in your brand colour behind the product. Loud, simple, made for food and fashion.",
     pace: 2.2,
@@ -20,6 +22,7 @@ export const REEL_TEMPLATES = [
   },
   {
     id: "pop",
+    feel: "playful",
     name: "Colour pop",
     blurb: "Each shot on its own brand colour, the product on a card, with round wipes between. Fun and bright.",
     pace: 2.1,
@@ -27,6 +30,7 @@ export const REEL_TEMPLATES = [
   },
   {
     id: "words",
+    feel: "bold",
     name: "Word punch",
     blurb: "Fast cuts: one bold word on a colour block, then the photo. Great for sales and launches.",
     pace: 1.9,
@@ -34,6 +38,7 @@ export const REEL_TEMPLATES = [
   },
   {
     id: "grid",
+    feel: "playful",
     name: "Collage",
     blurb: "Opens on a grid of your photos, then each one fills the screen. Shows off a range or a collection.",
     pace: 2.4,
@@ -41,6 +46,7 @@ export const REEL_TEMPLATES = [
   },
   {
     id: "classic",
+    feel: "clean",
     name: "Slideshow",
     blurb: "Full-screen photos with a slow zoom and captions. Works with any photos.",
     pace: 2.6,
@@ -48,6 +54,7 @@ export const REEL_TEMPLATES = [
   },
   {
     id: "spotlight",
+    feel: "luxury",
     name: "Spotlight",
     blurb: "A dark stage where a sweeping spotlight reveals each product, with gold captions. Luxury, perfume, jewellery, launches.",
     pace: 2.8,
@@ -55,6 +62,7 @@ export const REEL_TEMPLATES = [
   },
   {
     id: "split",
+    feel: "clean",
     name: "Split screen",
     blurb: "A two-tone diagonal split in your brand colours; the product slides in under a big light headline. Clean and premium.",
     pace: 2.4,
@@ -62,6 +70,7 @@ export const REEL_TEMPLATES = [
   },
   {
     id: "zoom",
+    feel: "bold",
     name: "Zoom punch",
     blurb: "Hard zoom-ins on the beat, flashes and captions that pop word by word. High energy for TikTok and sales.",
     pace: 1.7,
@@ -69,6 +78,7 @@ export const REEL_TEMPLATES = [
   },
   {
     id: "magazine",
+    feel: "luxury",
     name: "Magazine cover",
     blurb: "Every photo as a glossy magazine cover with your store as the masthead and a price sticker. Fashion, beauty and hair.",
     pace: 2.6,
@@ -76,6 +86,7 @@ export const REEL_TEMPLATES = [
   },
   {
     id: "ticker",
+    feel: "bold",
     name: "Sale ticker",
     blurb: "Scrolling marquee bands of your words wrap around the product. Loud deals, flash sales and drops.",
     pace: 2.2,
@@ -83,12 +94,87 @@ export const REEL_TEMPLATES = [
   },
   {
     id: "polaroid",
+    feel: "playful",
     name: "Polaroid stack",
     blurb: "Photos drop in as instant prints, develop and pile up with handwritten captions. Warm, personal, handmade brands.",
     pace: 2.4,
     cutout: false,
   },
+  {
+    id: "gallery",
+    feel: "clean",
+    name: "Gallery",
+    blurb: "Your product on a white plinth in a bright gallery, slow push-in, quiet spaced captions. Calm, clean, expensive-looking.",
+    pace: 2.8,
+    cutout: true,
+  },
+  {
+    id: "frame",
+    feel: "clean",
+    name: "Editorial frame",
+    blurb: "Each photo framed on a soft page like a lookbook, with an italic caption and page numbers. Fashion, beauty, home.",
+    pace: 2.7,
+    cutout: false,
+  },
+  {
+    id: "swipe",
+    feel: "clean",
+    name: "Carousel swipe",
+    blurb: "Photos glide past as cards like an Instagram carousel, with dots and a caption under each. Shows a range neatly.",
+    pace: 2.3,
+    cutout: false,
+  },
+  {
+    id: "reveal",
+    feel: "clean",
+    name: "Story reveal",
+    blurb: "Full-screen photos opened by a smooth circle reveal, with story-style progress bars and a clean caption tag.",
+    pace: 2.4,
+    cutout: false,
+  },
+  {
+    id: "callout",
+    feel: "clean",
+    name: "Feature callout",
+    blurb: "The product in the middle with a line drawn out to each feature, like a product spec sheet. Gadgets, skincare, kitchen.",
+    pace: 2.7,
+    cutout: true,
+  },
+  {
+    id: "noir",
+    feel: "luxury",
+    name: "Black & gold",
+    blurb: "Jet black, a fine gold frame, a light shimmer across the product and spaced gold serif captions. Perfume, jewellery, watches.",
+    pace: 3,
+    cutout: true,
+  },
+  {
+    id: "silk",
+    feel: "luxury",
+    name: "Silk",
+    blurb: "Flowing silk waves in deep jewel tones, the product floating over a glossy reflection, italic serif captions.",
+    pace: 3,
+    cutout: true,
+  },
+  {
+    id: "cinema",
+    feel: "luxury",
+    name: "Cinematic",
+    blurb: "Letterbox bars, slow camera pans, film grain and subtitles, fading through black. Feels like a brand film.",
+    pace: 3,
+    cutout: false,
+  },
 ] as const;
+
+export type ReelFeel = (typeof REEL_TEMPLATES)[number]["feel"];
+
+/** How the template picker groups the styles. */
+export const REEL_FEELS: readonly { id: ReelFeel; name: string }[] = [
+  { id: "clean", name: "Clean" },
+  { id: "luxury", name: "Luxury" },
+  { id: "bold", name: "Bold" },
+  { id: "playful", name: "Playful" },
+];
 
 export type ReelTemplateId = (typeof REEL_TEMPLATES)[number]["id"];
 export const REEL_TEMPLATE_IDS = REEL_TEMPLATES.map((template) => template.id) as unknown as readonly [ReelTemplateId, ...ReelTemplateId[]];
@@ -167,8 +253,9 @@ export function isMusicMood(value: unknown): value is MusicMood {
 
 /** The music mood that suits a template, so a reel sounds right before the seller picks one. */
 export function defaultMood(template: ReelTemplateId): MusicMood {
-  if (template === "spotlight" || template === "magazine") return "luxury";
-  if (template === "float" || template === "classic" || template === "split" || template === "polaroid") return "chill";
+  if (reelTemplate(template).feel === "luxury") return "luxury";
+  if (template === "callout") return "upbeat";
+  if (reelTemplate(template).feel === "clean" || template === "polaroid") return "chill";
   if (template === "bold" || template === "words" || template === "zoom") return "afrobeats";
   return template === "pop" ? "upbeat" : "amapiano";
 }

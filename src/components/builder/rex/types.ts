@@ -14,7 +14,7 @@ export interface RexStudioProps {
   openPreview: boolean;
   fromOnboarding: boolean;
   store: SurfaceStore & { id: string; slug: string };
-  /** "adaeze.shopinbos.com" or the custom domain, for the publish toast. */
+  /** "adaeze.mybos.store" or the custom domain, for the publish toast. */
   storeHost: string;
   storeUrl: string;
   initialDraft: StoreEditorSnapshot;

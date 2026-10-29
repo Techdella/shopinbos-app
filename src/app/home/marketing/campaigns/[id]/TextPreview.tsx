@@ -12,7 +12,7 @@ export function smsParts(text: string) {
 
 export function TextPreview({ channel, message, storeName }: { channel: "sms" | "whatsapp"; message: string; storeName?: string }) {
   const t = useT("emailBuilder");
-  const text = fillVariables(message, { ...SAMPLE_VARIABLES, store: storeName ?? t("preview.yourShop"), store_url: "https://yourshop.shopinbos.com" }, "text");
+  const text = fillVariables(message, { ...SAMPLE_VARIABLES, store: storeName ?? t("preview.yourShop"), store_url: "https://yourshop.mybos.store" }, "text");
   return (
     <div className="grid gap-2">
       <div className={channel === "whatsapp" ? "rounded-[18px] bg-[#E7FFDB] p-4" : "rounded-[18px] bg-app-canvas p-4"}>

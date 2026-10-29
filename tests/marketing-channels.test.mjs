@@ -107,7 +107,7 @@ test("template components for Meta: samples for every variable, footer and butto
   const components = tc.toMetaComponents(preset.content, preset.variables, "4::aW1hZ2U=");
   assert.deepEqual(components[0], { type: "HEADER", format: "IMAGE", example: { header_handle: ["4::aW1hZ2U="] } });
   assert.equal(components[1].type, "BODY");
-  assert.deepEqual(components[1].example.body_text[0], ["Ada", "Adire House", "ADIRE-20", "https://adire.shopinbos.com"]);
+  assert.deepEqual(components[1].example.body_text[0], ["Ada", "Adire House", "ADIRE-20", "https://adire.mybos.store"]);
   assert.deepEqual(components.at(-1), { type: "BUTTONS", buttons: [{ type: "QUICK_REPLY", text: "Stop promotions" }] });
   const back = tc.fromMetaComponents(components);
   assert.equal(back.body, preset.content.body);

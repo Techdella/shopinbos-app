@@ -605,7 +605,7 @@ export function ChipBuilder({ userName, userAvatarUrl = null, existingStore, sel
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
         <p className="m-0 min-w-0 truncate text-[13px] font-bold text-app-ink-soft">
-          {t("chip.livePreview", { address: `${storeConfig.slug}.shopinbos.com` })}
+          {t("chip.livePreview", { address: `${storeConfig.slug}.mybos.store` })}
         </p>
         <DeviceToggle value={device} onChange={setDevice} size="sm" className="bg-white" />
       </div>
@@ -634,7 +634,7 @@ export function ChipBuilder({ userName, userAvatarUrl = null, existingStore, sel
               <span key={c} className="h-[9px] w-[9px] rounded-full opacity-70" style={{ background: c }} />
             ))}
           </div>
-          <div className="min-w-0 flex-1 truncate rounded-full bg-app-canvas px-3 py-1 text-[12px] text-app-ink-soft">{storeConfig.slug}.shopinbos.com</div>
+          <div className="min-w-0 flex-1 truncate rounded-full bg-app-canvas px-3 py-1 text-[12px] text-app-ink-soft">{storeConfig.slug}.mybos.store</div>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
           <StorePreview
@@ -1097,7 +1097,7 @@ export function ChipBuilder({ userName, userAvatarUrl = null, existingStore, sel
                 <PhaseHead eyebrow={stepEyebrow} title={t("chip.chooseAddress")} sub={t("chip.chooseAddressSub")} />
                 <StoreStrip>
                   <span>{t("chip.freeAddress")}</span>
-                  <span className="font-bold text-app-ink">{storeConfig.slug}.shopinbos.com</span>
+                  <span className="font-bold text-app-ink">{storeConfig.slug}.mybos.store</span>
                   <span>{t("chip.counts", { products: storeConfig.products.length, pages: selectedPages.length })}</span>
                 </StoreStrip>
                 <DomainSetup
@@ -1113,7 +1113,7 @@ export function ChipBuilder({ userName, userAvatarUrl = null, existingStore, sel
                 <PhaseHead eyebrow={stepEyebrow} title={t("chip.payDelivery")} sub={t("chip.payDeliverySub")} />
                 <StoreStrip>
                   <span className="font-bold text-app-ink">{storeConfig.name}</span>
-                  <span>· {customDomain ?? `${storeConfig.slug}.shopinbos.com`}</span>
+                  <span>· {customDomain ?? `${storeConfig.slug}.mybos.store`}</span>
                 </StoreStrip>
                 <div className="rounded-[22px] bg-white p-4 sm:p-5">
                   <LaunchSetup
