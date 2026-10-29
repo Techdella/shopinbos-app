@@ -1,5 +1,6 @@
 import { api, ApiError } from "./api";
 import { appLocale } from "./app-locale";
+import { uploadOnePhoto, type PhotoInput } from "./upload-photo";
 
 // API clients for the "Familiar app" features shared by sellers, suppliers and delivery partners: Status (24-hour
 // stories), Rewards, credits, Ask Peggy for every role, Create with Rex and the posts calendar. Shapes follow the
@@ -86,12 +87,8 @@ export const dismissShopinbos = (what: "status" | "start") =>
 export const postStatus = (input: { headline: string; caption?: string; imageUrl?: string; tone?: StatusTone; productId?: string; ctaKind?: StatusCtaKind }) =>
   api<{ post: StatusPost; reward: { points: number; streak: number } | null }>("/api/mobile/status", { method: "POST", json: input });
 
-export function uploadStatusImage(photo: { uri: string; mimeType?: string | null; fileName?: string | null }) {
-  const form = new FormData();
-  const type = photo.mimeType ?? "image/jpeg";
-  // React Native's FormData takes { uri, name, type } file parts.
-  form.append("file", { uri: photo.uri, name: photo.fileName ?? `status.${type.split("/")[1] ?? "jpg"}`, type } as unknown as Blob);
-  return api<{ url: string }>("/api/mobile/status/upload", { method: "POST", body: form });
+export function uploadStatusImage(photo: PhotoInput) {
+  return uploadOnePhoto<{ url: string }>("/api/mobile/status/upload", photo, {}, { base: "status" });
 }
 
 export const markStatusSeen = (id: string) => api<{ ok: true }>(`/api/mobile/status/${encodeURIComponent(id)}/view`, { method: "POST" }).catch(() => null);

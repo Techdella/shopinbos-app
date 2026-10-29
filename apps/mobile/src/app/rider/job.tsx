@@ -243,7 +243,7 @@ export default function RiderJob() {
     const asset = result.assets[0];
     setBusy("photo");
     try {
-      await uploadRiderProof(drop.id, { uri: asset.uri, mimeType: asset.mimeType, fileName: asset.fileName }, kind);
+      await uploadRiderProof(drop.id, { uri: asset.uri, mimeType: asset.mimeType, fileName: asset.fileName, width: asset.width, height: asset.height, fileSize: asset.fileSize }, kind);
       if (kind === "pickup") setPickupPhoto(true);
       else setPhotoDone(true);
     } catch (photoError) {

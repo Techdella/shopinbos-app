@@ -12,6 +12,7 @@ import { Card, Notice, PillButton, T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
 import { acceptTerms, checkNin, saveBase, saveIdDocument, sendPhoneCode, sendSelfie, submitKyc, verifyPhoneCode, type KycState } from "@/lib/kyc";
 import { birthDate, digitsUpTo, itemsWhereOpen, selfieDataUri } from "@/lib/kyc-pure";
+import { shrunkBase64 } from "@/lib/upload-photo";
 import { colors } from "@/theme";
 import { ItemStatus, Question, openOnWeb, useStepAction, type ScreenProps, type StepProps } from "./KycKit";
 import { LIVENESS_ON, useKoraLiveness, type LivenessPass } from "./KoraLiveness";
@@ -31,7 +32,8 @@ async function snap(front: boolean): Promise<{ uri: string; dataUri: string } | 
   const result = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], cameraType: front ? ImagePicker.CameraType.front : ImagePicker.CameraType.back, quality: 0.4, base64: true, ...(front ? { allowsEditing: true, aspect: [1, 1] as [number, number] } : {}) });
   if (result.canceled) return null;
   const asset = result.assets[0];
-  const dataUri = selfieDataUri(asset.base64, asset.mimeType);
+  // Too big as taken (a high-resolution camera): shrink it on the phone and try again.
+  const dataUri = selfieDataUri(asset.base64, asset.mimeType) ?? selfieDataUri(await shrunkBase64(asset), "image/jpeg");
   return dataUri ? { uri: asset.uri, dataUri } : "tooBig";
 }
 
