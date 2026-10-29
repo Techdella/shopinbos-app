@@ -267,7 +267,7 @@ export async function applyFault(input: ApplyInput): Promise<ApplyResult> {
 
     // 5. The customer's refund, through the refund route.
     if (outcome.refundKobo > 0) {
-      const refund = await refundFault({ orderId: facts.order.id, caseKey: input.key, refundKobo: outcome.refundKobo, fromShopinbosKobo: outcome.refundFromShopinbosKobo, why: `${FAULT_LABELS[outcome.event]}.`, customerLine: outcome.lines.customer });
+      const refund = await refundFault({ orderId: facts.order.id, caseKey: input.key, event: outcome.event, refundKobo: outcome.refundKobo, fromShopinbosKobo: outcome.refundFromShopinbosKobo, why: `${FAULT_LABELS[outcome.event]}.`, customerLine: outcome.lines.customer });
       await db.faultCase.update({ where: { id: caseId }, data: { refundStatus: refund.status } });
     }
 

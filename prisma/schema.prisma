@@ -1142,8 +1142,8 @@ model SupplierOrder {
   @@index([retailOrderId])
   @@index([storeId])
   @@index([status, acceptBy])
-  @@index([replacesId])
   @@index([status, shipBy])
+  @@index([replacesId])
 }
 
 /// What happened when a supplier didn't accept a shop's order in time: switched to another supplier, nobody
@@ -5544,4 +5544,45 @@ model PilotApplicant {
 
   @@unique([programId, leadId])
   @@index([programId, status])
+}
+
+/// A customer's refund (shared/order-refunds.ts, src/lib/commerce/order-refunds.server.ts). Shopinbos never holds
+/// money: the seller sends it from their own bank to the account the customer gave (checked with the bank), taps
+/// "Refund sent", and the customer confirms or says it didn't arrive (the team then steps in). When someone else
+/// caused it (a supplier out of stock, late or sending the wrong item), they owe the seller back (BusinessDebt).
+model OrderRefund {
+  id              String    @id @default(cuid())
+  /// Once per thing refunded: "supplier:<supplierOrderId>", "order:<retailOrderId>", "issue:<deliveryIssueId>".
+  sourceKey       String    @unique
+  retailOrderId   String
+  storeId         String
+  sellerId        String
+  /// out_of_stock | supplier_late | wrong_item | damaged | damaged_in_transit | cancelled | late_payment | other
+  reason          String
+  /// Who pays in the end: seller | supplier | partner | none.
+  fault           String    @default("seller")
+  supplierOrderId String?
+  amountKobo      Int
+  currency        String    @default("NGN")
+  /// awaiting_account | to_send | sent | confirmed | disputed | cancelled
+  status          String    @default("awaiting_account")
+  note            String?
+  bankName        String?
+  accountNumber   String?
+  accountName     String?
+  accountGivenAt  DateTime?
+  sentAt          DateTime?
+  sentReference   String?
+  confirmedAt     DateTime?
+  disputedAt      DateTime?
+  disputeNote     String?
+  remindedAt      DateTime?
+  /// The money owed back to the seller by whoever caused it (BusinessDebt.id), when there is one.
+  debtId          String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([retailOrderId])
+  @@index([storeId, status])
+  @@index([status, updatedAt])
 }

@@ -331,5 +331,14 @@ export async function runSupplierAcceptance(now = new Date(), limit = 200): Prom
   } catch (error) {
     console.error("[supplier acceptance] late sweep failed", error);
   }
+  // Guided refunds (shared/order-refunds.ts): a reminder to sellers who haven't sent one 2 days after the customer gave
+  // their account, and "Refund sent" a week ago with no answer counts as received.
+  try {
+    const { autoConfirmSentRefunds, remindRefundsToSend } = await import("@/lib/commerce/order-refunds.server");
+    await remindRefundsToSend(now);
+    await autoConfirmSentRefunds(now);
+  } catch (error) {
+    console.error("[supplier acceptance] refund reminders failed", error);
+  }
   return { reminded, expired, switched, late };
 }

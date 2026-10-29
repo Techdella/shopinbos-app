@@ -361,6 +361,21 @@ const en = {
   "preorders.shipsSoon": "Ships soon",
   "preorders.payError": "The payment couldn't start. Try again.",
   "preorders.notYet": "Not yet",
+  "refunds.title": "Refunds",
+  "refunds.sub": "You send refunds from your own bank. Whoever caused it pays you back from their next sales.",
+  "refunds.paysBackSupplier": "Your supplier pays you back.",
+  "refunds.paysBackPartner": "The delivery partner pays you back.",
+  "refunds.awaiting": "We've asked your customer for their bank account. You'll see it here.",
+  "refunds.sendTo": "Send {amount} from your bank to this account, then tap Refund sent.",
+  "refunds.reference": "Transfer reference (optional)",
+  "refunds.markSent": "Refund sent",
+  "refunds.sentWaiting": "Sent to {name}. Waiting for your customer to say it arrived.",
+  "refunds.disputed": "Your customer says it hasn't arrived. Check your bank; Shopinbos will be in touch.",
+  "refunds.status.awaiting_account": "Waiting for account",
+  "refunds.status.to_send": "To send",
+  "refunds.status.sent": "Sent",
+  "refunds.status.confirmed": "Received",
+  "refunds.status.disputed": "Not received",
 } satisfies Record<string, string>;
 
 export default en;

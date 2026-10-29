@@ -57,13 +57,16 @@ test("pay on delivery with a delivery partner needs the seller's own switch and 
   const settings = { methods: { card: true, cod: true }, paystackReady: true, korapayReady: false, transferReady: false, codLimit: 50_000, zones: [{ name: "Lagos", regions: ["Lagos"], pickupOnly: false }] };
   const within = { city: "Kano", state: "Kano", total: 30_000 };
   // The store's zones don't price partner deliveries, so an address outside them still gets pay on delivery.
-  assert.equal(pay.partnerPayOnDeliveryBlock(settings, within, true), null);
-  assert.match(pay.partnerPayOnDeliveryBlock(settings, within, false), /isn't available with this delivery option/, "the partner and shop must both opt in");
-  assert.match(pay.partnerPayOnDeliveryBlock({ ...settings, methods: { card: true, cod: false } }, within, true), /isn't available/, "the seller switched it off");
-  assert.match(pay.partnerPayOnDeliveryBlock({ ...settings, methods: null }, within, true), /isn't available/, "never chosen means off");
-  assert.match(pay.partnerPayOnDeliveryBlock(settings, { ...within, total: 80_000 }, true), /up to ₦50,000/, "the seller's cap still applies");
-  assert.equal(pay.partnerPayOnDeliveryBlock({ ...settings, codLimit: null }, { ...within, total: 80_000 }, true), null);
-  assert.deepEqual(pay.payOnDeliveryOption(), pay.checkoutPaymentOptions({ ...settings, methods: { cod: true }, zones: [] })[0]);
+  assert.equal(pay.partnerPayOnDeliveryRules(settings, within, true), null);
+  assert.match(pay.partnerPayOnDeliveryRules(settings, within, false), /isn't available with this delivery option/, "the partner and shop must both opt in");
+  assert.match(pay.partnerPayOnDeliveryRules({ ...settings, methods: { card: true, cod: false } }, within, true), /isn't available/, "the seller switched it off");
+  assert.match(pay.partnerPayOnDeliveryRules({ ...settings, methods: null }, within, true), /isn't available/, "never chosen means off");
+  assert.match(pay.partnerPayOnDeliveryRules(settings, { ...within, total: 80_000 }, true), /up to ₦50,000/, "the seller's cap still applies");
+  assert.equal(pay.partnerPayOnDeliveryRules({ ...settings, codLimit: null }, { ...within, total: 80_000 }, true), null);
+  assert.equal(pay.payOnDeliveryOption().key, "pay_on_delivery");
+  assert.deepEqual(pay.checkoutPaymentOptions({ ...settings, methods: { cod: true }, zones: [] }), [], "switched off: never listed");
+  // Switched off everywhere for now: the public check says so whatever the settings.
+  assert.equal(pay.partnerPayOnDeliveryBlock(settings, within, true), pay.PAY_ON_DELIVERY_OFF_MESSAGE);
   // The checkout page (partnerPaymentOptions) and the checkout API both decide with it.
   assert.match(read("src/components/storefront/checkout/PartnerDelivery.tsx"), /partnerPayOnDeliveryBlock\(settings, context, option\.pod === true\)/);
   assert.doesNotMatch(read("src/components/storefront/checkout/PartnerDelivery.tsx"), /methods: \{ cod: true \}/);

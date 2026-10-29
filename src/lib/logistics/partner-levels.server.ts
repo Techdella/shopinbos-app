@@ -1,6 +1,7 @@
 import "server-only";
 
 import { db } from "@/lib/db/client";
+import { PAY_ON_DELIVERY_OFF_MESSAGE, PAY_ON_DELIVERY_ON } from "@shared/checkout-payments";
 import { partnerRecord } from "@/lib/logistics/partner-tiers.server";
 import { tellInterstateTakenOff } from "@/lib/logistics/partner-reach.server";
 import {
@@ -99,6 +100,7 @@ export async function partnerLevelView(partnerId: string) {
 
 /** Why this partner can't switch pay on delivery on, or null: they must be verified, and not owe cash from older jobs. */
 export async function payOnDeliveryProblem(partnerId: string): Promise<string | null> {
+  if (!PAY_ON_DELIVERY_ON) return PAY_ON_DELIVERY_OFF_MESSAGE;
   await refreshPartnerLevel(partnerId);
   const partner = await db.logisticsPartner.findUnique({ where: { id: partnerId }, select: { codPaused: true, verificationStatus: true } });
   if (!partner || partner.verificationStatus !== "verified") return POD_LOCKED_MESSAGE;

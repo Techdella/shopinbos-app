@@ -363,6 +363,21 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "preorders.shipsSoon": "Za a aika nan ba da jimawa ba",
   "preorders.payError": "Biyan bai fara ba. Sake gwadawa.",
   "preorders.notYet": "Ba tukuna ba",
+  "refunds.title": "Mayar da kuɗi",
+  "refunds.sub": "Kai ne kake tura kuɗin mayarwa daga bankinka. Wanda ya jawo zai biya ka daga cinikinsa na gaba.",
+  "refunds.paysBackSupplier": "Mai kawo kayanka zai biya ka.",
+  "refunds.paysBackPartner": "Abokin isarwa zai biya ka.",
+  "refunds.awaiting": "Mun nemi lambar asusun bankin abokin cinikinka. Za ka gan shi a nan.",
+  "refunds.sendTo": "Tura {amount} daga bankinka zuwa wannan asusun, sannan ka danna Refund sent.",
+  "refunds.reference": "Lambar tura kuɗi (ba dole ba)",
+  "refunds.markSent": "Refund sent",
+  "refunds.sentWaiting": "An tura zuwa {name}. Ana jiran abokin cinikinka ya ce ya iso.",
+  "refunds.disputed": "Abokin cinikinka ya ce bai iso ba. Duba bankinka; Shopinbos za ta tuntuɓe ka.",
+  "refunds.status.awaiting_account": "Ana jiran asusu",
+  "refunds.status.to_send": "Za a tura",
+  "refunds.status.sent": "An tura",
+  "refunds.status.confirmed": "An karɓa",
+  "refunds.status.disputed": "Ba a karɓa ba",
 };
 
 export default ha;

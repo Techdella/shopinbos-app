@@ -363,6 +363,21 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "preorders.shipsSoon": "E go ship soon",
   "preorders.payError": "Payment no fit start. Try again.",
   "preorders.notYet": "No be now",
+  "refunds.title": "Refund",
+  "refunds.sub": "Na you go send refund from your own bank. Who cause am go pay you back from im next sales.",
+  "refunds.paysBackSupplier": "Your supplier go pay you back.",
+  "refunds.paysBackPartner": "The delivery partner go pay you back.",
+  "refunds.awaiting": "We don ask your customer for im bank account. You go see am here.",
+  "refunds.sendTo": "Send {amount} from your bank enter this account, then tap Refund sent.",
+  "refunds.reference": "Transfer reference (if you get am)",
+  "refunds.markSent": "Refund sent",
+  "refunds.sentWaiting": "E don go to {name}. We dey wait make your customer talk say e reach.",
+  "refunds.disputed": "Your customer talk say e never reach. Check your bank; Shopinbos go reach you.",
+  "refunds.status.awaiting_account": "Dey wait for account",
+  "refunds.status.to_send": "To send",
+  "refunds.status.sent": "Don send",
+  "refunds.status.confirmed": "E don reach",
+  "refunds.status.disputed": "E never reach",
 };
 
 export default pcm;

@@ -11,6 +11,7 @@ import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { formatStoreMoney } from "@/lib/storefront/shopper-info";
 import { ItemThumb, Panel, PrimaryButton, ShopperShell } from "@/components/storefront/shopper/ShopperShell";
 import { payAtDoor as startPayAtDoor, payOrderBalance } from "./actions";
+import { RefundsPanel, type CustomerRefund } from "./RefundsPanel";
 import { resolveShopperTheme, type ShopperTheme } from "@/components/storefront/shopper/theme";
 import { TransferInstructions, payByText, type TransferDetails } from "./TransferInstructions";
 import { OrderRewardsPanel, type OrderRewards } from "@/components/storefront/gamification/Rewards";
@@ -77,6 +78,9 @@ interface Props {
   payAtDoor?: PayAtDoorView | null;
   /** Who pays when things go wrong (src/lib/faults/customer.server.ts): late parts, outcomes, returns. */
   faults?: OrderFaults | null;
+  /** Refunds the store sends from its own bank, guided (shared/order-refunds.ts). */
+  refunds?: CustomerRefund[];
+  refundBanks?: string[];
 }
 
 export interface PayAtDoorView {
@@ -106,7 +110,7 @@ export interface BalanceView {
 
 const PAID = ["paid", "processing", "packed", "shipped", "delivered"];
 
-export function OrderConfirmation({ order, store, storeBasePath, transfer = null, deliveryCode = null, rewards = null, delivery = null, brandedTracking = true, balance = null, payAtDoor = null, faults = null }: Props) {
+export function OrderConfirmation({ order, store, storeBasePath, transfer = null, deliveryCode = null, rewards = null, delivery = null, brandedTracking = true, balance = null, payAtDoor = null, faults = null, refunds = [], refundBanks = [] }: Props) {
   const cart = useCart(store.slug);
   const theme = useMemo(() => resolveShopperTheme(store.brandSettings), [store.brandSettings]);
   const clearCart = cart.clear;
@@ -180,6 +184,7 @@ export function OrderConfirmation({ order, store, storeBasePath, transfer = null
 
           {faults?.late.length && order.status !== "cancelled" ? <LateParts theme={theme} slug={store.slug} orderId={order.id} late={faults.late} /> : null}
           {faults?.outcomes.length ? <OrderOutcomes theme={theme} outcomes={faults.outcomes} /> : null}
+          <RefundsPanel theme={theme} orderId={order.id} refunds={refunds} banks={refundBanks} money={money} />
 
           <NextSteps
             theme={theme}

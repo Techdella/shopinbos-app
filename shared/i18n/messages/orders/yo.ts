@@ -363,6 +363,21 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "preorders.shipsSoon": "A ó fi ránṣẹ́ láìpẹ́",
   "preorders.payError": "Ìsanwó kò lè bẹ̀rẹ̀. Tún gbìyànjú.",
   "preorders.notYet": "Kò tíì tó",
+  "refunds.title": "Ìdápadà owó",
+  "refunds.sub": "Ìwọ ni o máa fi owó ìdápadà ránṣẹ́ láti bánkì rẹ. Ẹni tó fà á yóò san án padà fún ọ láti inú títà rẹ̀ tó kàn.",
+  "refunds.paysBackSupplier": "Supplier rẹ yóò san án padà fún ọ.",
+  "refunds.paysBackPartner": "Delivery partner yóò san án padà fún ọ.",
+  "refunds.awaiting": "A ti béèrè àkáǹtì bánkì oníbàárà rẹ. Wà á rí i níbí.",
+  "refunds.sendTo": "Fi {amount} ránṣẹ́ láti bánkì rẹ sí àkáǹtì yìí, lẹ́yìn náà tẹ Refund sent.",
+  "refunds.reference": "Ìtọ́kasí ìfiránṣẹ́ (kò pọndandan)",
+  "refunds.markSent": "Refund sent",
+  "refunds.sentWaiting": "A ti fi ránṣẹ́ sí {name}. À ń dúró kí oníbàárà rẹ sọ pé ó dé.",
+  "refunds.disputed": "Oníbàárà rẹ sọ pé kò tíì dé. Ṣàyẹ̀wò bánkì rẹ; Shopinbos yóò kàn sí ọ.",
+  "refunds.status.awaiting_account": "Ń dúró de àkáǹtì",
+  "refunds.status.to_send": "Láti fi ránṣẹ́",
+  "refunds.status.sent": "A ti fi ránṣẹ́",
+  "refunds.status.confirmed": "Ó ti dé",
+  "refunds.status.disputed": "Kò tíì dé",
 };
 
 export default yo;

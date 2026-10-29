@@ -104,9 +104,9 @@ export async function refundLatePayment(orderId: string): Promise<RefundOutcome>
     if (refundRoute(order) === "manual") {
       const claimed = await db.retailOrder.updateMany({ where: { id: order.id, refundStatus: null }, data: { refundStatus: "manual" } });
       if (claimed.count !== 1) return "skipped";
-      await notifySeller(order, `Refund needed: order ${order.orderNumber}`, order.paymentSplit
-        ? "This order expired unpaid and its stock sold to someone else, then the payment came in. It went straight to your bank through your Shopinbos Wallet, so refund the buyer or offer a replacement."
-        : "This order expired unpaid and its stock sold to someone else, then the payment came in outside Paystack. Refund the buyer or offer a replacement.", "critical");
+      // The payment went to the seller's own bank: they send it back from there, guided (shared/order-refunds.ts).
+      const { openRefund } = await import("@/lib/commerce/order-refunds.server");
+      await openRefund({ sourceKey: `late-payment:${order.id}`, orderId: order.id, reason: "late_payment", fault: "none", amountKobo: Math.round(Number(order.total) * 100), note: "The payment came in after the order expired and its stock sold." });
       await emailBuyerOf(order, "by_store");
       return "manual";
     }
@@ -195,7 +195,10 @@ export async function refundCancelledOrder(orderId: string, why: string, options
     if (refundRoute(order) === "manual") {
       const claimed = await db.retailOrder.updateMany({ where: { id: order.id, refundStatus: null }, data: { refundStatus: "manual", paymentIssue: `${why} Refund the customer ${amount} by hand.`.slice(0, 500) } });
       if (claimed.count !== 1) return "skipped";
-      await notifySeller(order, `Refund your customer: order ${order.orderNumber}`, `You cancelled this order. The customer paid you directly, so send ${amount} back to them by transfer.`, "critical");
+      // The money went to the businesses' own banks: the seller sends it back from theirs, guided step by step
+      // (the customer's account on their order page, "Refund sent", the customer confirms). shared/order-refunds.ts.
+      const { onPaidOrderCancelled } = await import("@/lib/commerce/order-refunds.server");
+      await onPaidOrderCancelled(order.id, why, Math.round(paidNaira * 100));
       await emailBuyer(order, "by_store");
       return "manual";
     }
@@ -234,9 +237,10 @@ export async function refundCancelledOrder(orderId: string, why: string, options
  * A refund decided by "who pays when things go wrong" (src/lib/faults/resolve.server.ts), once per case: the part the
  * refund route sends through Paystack (a card payment not split at checkout, or Shopinbos's own take on a split one)
  * goes back with a partial Paystack refund; the rest the seller sends (their bank has it), and they're told exactly
- * how much. The order's own refund columns record the first one. Never throws.
+ * how much, and guided through sending it (shared/order-refunds.ts: the customer's account, "Refund sent", the
+ * customer confirms). The order's own refund columns record the first one. Never throws.
  */
-export async function refundFault(input: { orderId: string; caseKey: string; refundKobo: number; fromShopinbosKobo: number; why: string; customerLine: string }): Promise<{ status: "processed" | "processing" | "manual" | "failed" | "skipped"; paystackKobo: number; sellerKobo: number }> {
+export async function refundFault(input: { orderId: string; caseKey: string; event?: string; refundKobo: number; fromShopinbosKobo: number; why: string; customerLine: string }): Promise<{ status: "processed" | "processing" | "manual" | "failed" | "skipped"; paystackKobo: number; sellerKobo: number }> {
   const none = { status: "skipped" as const, paystackKobo: 0, sellerKobo: 0 };
   try {
     const order = await loadOrder(input.orderId);
@@ -264,7 +268,18 @@ export async function refundFault(input: { orderId: string; caseKey: string; ref
     if (sellerKobo > 0) {
       await db.retailOrder.updateMany({ where: { id: order.id, refundStatus: null }, data: { refundStatus: "manual" } });
       await db.retailOrder.update({ where: { id: order.id }, data: { paymentIssue: `${input.why} Send the customer ${naira(sellerKobo)}.`.slice(0, 500) } }).catch(() => null);
-      await notifySeller(order, `Refund your customer ${naira(sellerKobo)}: order ${order.orderNumber}`, `${input.why} The money is in your bank (the payment was split at checkout), so send ${naira(sellerKobo)} back to the customer.${paystackKobo > 0 ? ` Shopinbos is refunding its own ${naira(paystackKobo)} through Paystack.` : ""} What others owe you for it comes back from their next payments.`, "critical");
+      // The customer gives their account on their order page; the seller sends it and taps "Refund sent" (this tells
+      // the seller too, once per case).
+      const { openRefund } = await import("@/lib/commerce/order-refunds.server");
+      const { refundFaultFor, refundReasonForFault } = await import("@shared/order-refunds");
+      await openRefund({
+        sourceKey: `fault:${input.caseKey}`,
+        orderId: order.id,
+        reason: refundReasonForFault(input.event),
+        fault: refundFaultFor(input.event),
+        amountKobo: sellerKobo,
+        note: `${input.why}${paystackKobo > 0 ? ` Shopinbos is refunding its own ${naira(paystackKobo)} through Paystack.` : ""}`,
+      });
     } else {
       await notifySeller(order, `Refund started: order ${order.orderNumber}`, `${input.why} ${naira(paystackKobo)} is going back to your customer through Paystack.`, "info");
     }

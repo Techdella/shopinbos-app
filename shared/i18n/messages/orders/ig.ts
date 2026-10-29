@@ -363,6 +363,21 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "preorders.shipsSoon": "A ga-eziga ya n'oge na-adịghị anya",
   "preorders.payError": "Ịkwụ ụgwọ amaghị ịmalite. Nwaa ọzọ.",
   "preorders.notYet": "Ọ bụbeghị",
+  "refunds.title": "Nkwụghachi ego",
+  "refunds.sub": "Ị na-eziga nkwụghachi ego site n'ụlọ akụ gị. Onye kpatara ya ga-akwụghachi gị site n'ahịa ya ọzọ.",
+  "refunds.paysBackSupplier": "Onye na-eweta gị ngwa ga-akwụghachi gị.",
+  "refunds.paysBackPartner": "Onye na-ebuga ngwa ga-akwụghachi gị.",
+  "refunds.awaiting": "Anyị ajụọla onye ahịa gị maka akaụntụ ụlọ akụ ya. Ị ga-ahụ ya ebe a.",
+  "refunds.sendTo": "Zipu {amount} site n'ụlọ akụ gị gaa n'akaụntụ a, wee pịa Refund sent.",
+  "refunds.reference": "Ntụaka nnyefe (nhọrọ)",
+  "refunds.markSent": "Refund sent",
+  "refunds.sentWaiting": "Ezigara {name}. Na-eche ka onye ahịa gị kwuo na ọ rutere.",
+  "refunds.disputed": "Onye ahịa gị kwuru na o rubeghị. Lelee ụlọ akụ gị; Shopinbos ga-akpọtụrụ gị.",
+  "refunds.status.awaiting_account": "Na-eche akaụntụ",
+  "refunds.status.to_send": "Iji zipu",
+  "refunds.status.sent": "Ezigara",
+  "refunds.status.confirmed": "Ọ natara",
+  "refunds.status.disputed": "Ọ natabeghị",
 };
 
 export default ig;

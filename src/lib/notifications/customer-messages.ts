@@ -294,7 +294,7 @@ export const PAY_AT_DOOR_CODE_SMS = "{{store}}: payment received for order {{ord
  * template with the shop's name in it, src/lib/member-messaging/whatsapp-templates.ts). Transactional, never after
  * STOP; `refId` makes it once per thing and channel. WhatsApp is skipped quietly until Meta approves the template.
  */
-async function messageOrderCustomer(orderId: string, input: { event: string; refId: string; sms: string; values: Record<string, string>; whatsapp: { template: string; params: (order: { buyerName: string; orderNumber: string; storeName: string }) => string[] } }) {
+async function messageOrderCustomer(orderId: string, input: { event: string; refId: string; sms: string; values: Record<string, string>; whatsapp?: { template: string; params: (order: { buyerName: string; orderNumber: string; storeName: string }) => string[] } }) {
   const order = await db.retailOrder.findUnique({ where: { id: orderId }, select: { id: true, storeId: true, orderNumber: true, buyerName: true, buyerPhone: true } });
   const phone = normalizePhone(order?.buyerPhone);
   if (!order || !phone) return [];
@@ -302,7 +302,7 @@ async function messageOrderCustomer(orderId: string, input: { event: string; ref
   if (!store) return [];
   const optOuts = await loadOptOuts(store.id);
   const results: Array<{ channel: TextChannel; ok: boolean; error?: string }> = [];
-  for (const channel of ["sms", "whatsapp"] as const) {
+  for (const channel of input.whatsapp ? (["sms", "whatsapp"] as const) : (["sms"] as const)) {
     const recipient = { event: input.event as CustomerEvent, refId: input.refId, phone, name: order.buyerName, values: {}, smsVars: {} } satisfies Recipient;
     const id = await claim(store.id, recipient, channel);
     if (!id) continue;
@@ -321,9 +321,9 @@ async function messageOrderCustomer(orderId: string, input: { event: string; ref
       outcome = await send.sms(phone, body).catch((error): SendOutcome => ({ ok: false, error: String(error) }));
     } else {
       const { sendShopinbosTemplate } = await import("@/lib/member-messaging/send.server");
-      const params = input.whatsapp.params({ buyerName: firstName(order.buyerName) || "there", orderNumber: order.orderNumber, storeName: store.name });
-      const sent = await sendShopinbosTemplate(input.whatsapp.template, phone, params, order.id).catch(() => false);
-      outcome = sent ? { ok: true, externalId: null } : { ok: false, error: `WhatsApp ${input.whatsapp.template} not sent (not approved yet, or no WhatsApp on this number)` };
+      const params = input.whatsapp!.params({ buyerName: firstName(order.buyerName) || "there", orderNumber: order.orderNumber, storeName: store.name });
+      const sent = await sendShopinbosTemplate(input.whatsapp!.template, phone, params, order.id).catch(() => false);
+      outcome = sent ? { ok: true, externalId: null } : { ok: false, error: `WhatsApp ${input.whatsapp!.template} not sent (not approved yet, or no WhatsApp on this number)` };
     }
     await finish(id, outcome);
     results.push({ channel, ok: outcome.ok });
@@ -364,6 +364,31 @@ export async function textPayAtDoorCode(orderId: string, codes: string[]) {
     });
   } catch (error) {
     console.error(`[customer messages] pay-at-door code for order ${orderId} failed`, error);
+    return [];
+  }
+}
+
+/** Who pays when things go wrong (shared/order-refunds.ts): the customer's refund, and a late supplier. Shop's sender. */
+export const REFUND_ACCOUNT_SMS = "{{store}}: you're getting a refund of {{amount}} for order {{order_number}}. Add the bank account to send it to: {{order_url}}";
+export const REFUND_SENT_SMS = "{{store}}: your refund of {{amount}} for order {{order_number}} has been sent. Did it arrive? Tell us here: {{order_url}}";
+export const ORDER_LATE_SMS = "{{store}}: part of your order {{order_number}} is running late. You can wait, or cancel that part for a full refund: {{order_url}}";
+
+/** The customer's refund: "add your bank account", then "it's been sent, did it arrive?". Once each. Never throws. */
+export async function textOrderRefund(orderId: string, refundId: string, kind: "account" | "sent", amount: string) {
+  try {
+    return await messageOrderCustomer(orderId, { event: `order_refund_${kind}`, refId: `${refundId}:${kind}`, sms: kind === "account" ? REFUND_ACCOUNT_SMS : REFUND_SENT_SMS, values: { amount } });
+  } catch (error) {
+    console.error(`[customer messages] refund ${kind} for order ${orderId} failed`, error);
+    return [];
+  }
+}
+
+/** A supplier is late with part of the order: the customer may wait or cancel it for a full refund. Once. Never throws. */
+export async function textOrderLate(orderId: string, supplierOrderId: string) {
+  try {
+    return await messageOrderCustomer(orderId, { event: "order_late", refId: `${supplierOrderId}:late`, sms: ORDER_LATE_SMS, values: {} });
+  } catch (error) {
+    console.error(`[customer messages] late notice for order ${orderId} failed`, error);
     return [];
   }
 }

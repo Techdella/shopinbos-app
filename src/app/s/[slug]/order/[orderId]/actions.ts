@@ -65,3 +65,22 @@ export async function payAtDoor(orderId: string): Promise<{ ok: true; url: strin
   const started = await startPayAtDoor(orderId);
   return started.ok ? { ok: true, url: started.authorizationUrl } : { ok: false, error: started.error };
 }
+
+// ─── Guided refunds (shared/order-refunds.ts) ─────────────────────────────────
+// The order's unguessable id is the customer's access, as for the order page itself; each step is checked against it.
+
+const validId = (value: unknown) => typeof value === "string" && value.length > 0 && value.length <= 64;
+
+/** The customer gives the bank account for their refund (checked with the bank). */
+export async function giveRefundAccountAction(orderId: string, refundId: string, input: { bankName: string; accountNumber: string }) {
+  if (!validId(orderId) || !validId(refundId)) return { ok: false as const, error: "We couldn't find this refund." };
+  const { giveRefundAccount } = await import("@/lib/commerce/order-refunds.server");
+  return giveRefundAccount(orderId, refundId, { bankName: String(input?.bankName ?? ""), accountNumber: String(input?.accountNumber ?? "") });
+}
+
+/** The customer says the refund arrived, or that it didn't. */
+export async function answerRefund(orderId: string, refundId: string, received: boolean, note?: string) {
+  if (!validId(orderId) || !validId(refundId)) return { ok: false as const, error: "We couldn't find this refund." };
+  const { customerAnswersRefund } = await import("@/lib/commerce/order-refunds.server");
+  return customerAnswersRefund(orderId, refundId, received === true, typeof note === "string" ? note : undefined);
+}
