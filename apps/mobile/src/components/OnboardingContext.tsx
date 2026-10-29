@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { BRAND_LOOKS, BRAND_PALETTES, ONBOARDING_LANGUAGES, shopSlug, type BrandLook, type BrandPalette, type OnboardingLanguage } from "@shared/onboarding";
+import { BRAND_LOOKS, BRAND_PALETTES, LEGACY_LOOK_THEME_IDS, ONBOARDING_LANGUAGES, shopSlug, type BrandLook, type BrandPalette, type OnboardingLanguage } from "@shared/onboarding";
 import { localeFromName } from "@shared/i18n";
 import { useLocale } from "@/lib/i18n";
 import { tNow } from "@/lib/app-locale";
@@ -55,7 +55,8 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       if (memory.businessDescription) setDescription(memory.businessDescription);
       const savedPalette = BRAND_PALETTES.find((item) => item.key === memory.palette?.id);
       if (savedPalette) setPalette(savedPalette);
-      const savedLook = BRAND_LOOKS.find((item) => item.templateId === memory.templateId);
+      const savedId = memory.templateId ? LEGACY_LOOK_THEME_IDS[memory.templateId] ?? memory.templateId : undefined;
+      const savedLook = BRAND_LOOKS.find((item) => item.templateId === savedId);
       if (savedLook) setLook(savedLook);
     });
   }, [refresh]);

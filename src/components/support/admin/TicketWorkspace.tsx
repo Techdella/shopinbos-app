@@ -15,7 +15,7 @@ import {
   fillMacro,
   type SupportStatus,
 } from "@/lib/support/pure";
-import { whatsappWindowHoursLeft, whatsappWindowOpen } from "@/lib/support/whatsapp-pure";
+import { smsFallbackText, whatsappFailureText, whatsappWindowHoursLeft, whatsappWindowOpen } from "@/lib/support/whatsapp-pure";
 import { formatBytes } from "../client";
 import { deskSelect, relativeTime } from "./ui";
 
@@ -100,6 +100,8 @@ export function TicketWorkspace({
     endRef.current?.scrollIntoView({ block: "nearest" });
   }, [messages.length]);
 
+  // SMS copies of team WhatsApp messages that didn't arrive, so their "Send by SMS" button goes.
+  const textedBodies = new Set(messages.filter((message) => message.channel === "sms").map((message) => message.body));
   return (
     <div className="grid gap-5 xl:[grid-template-columns:minmax(0,1fr)_360px]">
       <div className="grid min-w-0 content-start gap-4">
@@ -118,7 +120,7 @@ export function TicketWorkspace({
           )}
           <ol className="m-0 grid list-none gap-4 p-4 sm:p-5">
             {messages.map((message) => (
-              <ThreadItem key={message.id} message={message} customer={ticket.name} now={now} />
+              <ThreadItem key={message.id} message={message} customer={ticket.name} now={now} ticketId={ticket.id} canText={Boolean(ticket.phone)} textedBodies={textedBodies} />
             ))}
           </ol>
           <div ref={endRef} />
@@ -133,7 +135,7 @@ export function TicketWorkspace({
   );
 }
 
-function ThreadItem({ message, customer, now }: { message: DeskMessage; customer: string; now: number }) {
+function ThreadItem({ message, customer, now, ticketId, canText, textedBodies }: { message: DeskMessage; customer: string; now: number; ticketId: string; canText: boolean; textedBodies: Set<string> }) {
   if (message.authorType === "system") {
     return (
       <li className="flex items-center gap-2 text-[12px] text-app-ink-faint">
@@ -159,7 +161,7 @@ function ThreadItem({ message, customer, now }: { message: DeskMessage; customer
         ) : null}
         <span className="text-app-ink-faint">
           {relativeTime(message.createdAt, now)}
-          {message.channel === "email" ? " · by email" : message.channel === "web" ? " · Stuck? form" : message.channel === "whatsapp" ? " · WhatsApp" : ""}
+          {message.channel === "email" ? " · by email" : message.channel === "web" ? " · Stuck? form" : message.channel === "whatsapp" ? " · WhatsApp" : message.channel === "sms" ? " · SMS" : ""}
         </span>
         {!fromCustomer && message.deliveryStatus && (
           <span className={cx("rounded-full px-2 py-0.5 text-[11px] font-bold", message.deliveryStatus === "failed" ? "bg-app-danger-tint text-app-danger" : message.deliveryStatus === "read" ? "bg-app-success-tint text-app-success" : "bg-app-canvas text-app-ink-soft")}>
@@ -168,7 +170,18 @@ function ThreadItem({ message, customer, now }: { message: DeskMessage; customer
         )}
       </div>
       {message.body && <div className="whitespace-pre-wrap break-words text-[14.5px] leading-[1.55] text-app-ink">{message.body}</div>}
-      {message.deliveryStatus === "failed" && message.deliveryError && <p className="m-0 mt-1.5 text-[12.5px] font-semibold text-app-danger">WhatsApp: {message.deliveryError}</p>}
+      {message.deliveryStatus === "failed" && (
+        <p className="m-0 mt-1.5 text-[12.5px] font-semibold text-app-danger">
+          {message.channel === "sms" ? `SMS: ${message.deliveryError ?? "The SMS didn't go."}` : `WhatsApp: ${whatsappFailureText(message.deliveryError)}`}
+        </p>
+      )}
+      {message.deliveryStatus === "failed" && message.channel === "whatsapp" && !message.internal && (
+        textedBodies.has(smsFallbackText(message.body)) ? (
+          <p className="m-0 mt-1 text-[12.5px] text-app-ink-soft">Sent by SMS instead (below).</p>
+        ) : canText ? (
+          <SmsFallbackButton ticketId={ticketId} messageId={message.id} />
+        ) : null
+      )}
       {message.attachments.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-2">
           {message.attachments.map((file) =>
@@ -514,6 +527,29 @@ function Field({ label, htmlFor, children }: { label: string; htmlFor: string; c
     <div>
       <label htmlFor={htmlFor} className="mb-1 block text-[12px] font-extrabold uppercase tracking-[0.06em] text-app-ink-soft">{label}</label>
       {children}
+    </div>
+  );
+}
+
+/** A team WhatsApp message that didn't arrive, sent again by SMS (the server skips it if a copy already went). */
+function SmsFallbackButton({ ticketId, messageId }: { ticketId: string; messageId: string }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const send = () =>
+    start(async () => {
+      setError(null);
+      const response = await fetch(`/api/admin/support/tickets/${ticketId}/messages/${messageId}/sms`, { method: "POST" }).catch(() => null);
+      const json = (await response?.json().catch(() => null)) as { error?: { message?: string } } | null;
+      if (!response?.ok) return setError(json?.error?.message ?? "The SMS didn't go. Try again.");
+      router.refresh();
+    });
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-2">
+      <button type="button" onClick={send} disabled={pending} className="inline-flex min-h-[34px] items-center rounded-full border border-app-line px-3.5 text-[12.5px] font-extrabold hover:border-app-line-strong disabled:opacity-60">
+        {pending ? "Sending…" : "Send by SMS"}
+      </button>
+      {error && <span role="alert" className="text-[12.5px] font-semibold text-app-danger">{error}</span>}
     </div>
   );
 }

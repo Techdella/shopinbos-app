@@ -47,6 +47,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
 
   "product.title": "Ƙara kayanka na farko.",
   "product.snap": "Buɗe kyamara",
+  "product.whatsappLater": "Kana da kundin WhatsApp? Idan ka gama saitawa, ƙara duka lokaci ɗaya daga screenshot: Kayayyaki › Ƙara da yawa tare da Peggy › Daga kundin WhatsApp ɗina.",
   "product.gallery": "Zaɓi daga gallery",
   "product.uploading": "Ana ɗora hotonka…",
   "product.photoReady": "Hoto mai kyau. Na gaba, sunansa da farashinsa.",

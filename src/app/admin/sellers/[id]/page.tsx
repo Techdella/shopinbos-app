@@ -4,24 +4,24 @@ import { PeggyCallNotes } from "@/components/admin/PeggyCallNotes";
 import { adminFrame, buttonClass, fieldClass, formatDate, formatMoney } from "@/components/admin/AdminKit";
 import { requireAdminSection } from "@/lib/admin-team/service.server";
 import { accessLogFor, activeReveal } from "@/lib/admin/data-access.server";
-import { sellerDetail } from "@/lib/admin/sellers.server";
+import { sellerDetail, sellerNotices } from "@/lib/admin/sellers.server";
 import { storeUrl } from "@/lib/marketing/brand";
 import { ACCESS_ACTION_LABELS, REVEAL_MINUTES, REVEAL_REASONS, SHOP_ACTION_REASONS, accessReasonLabel, maskAccount, maskEmail, maskPhone } from "@shared/privacy";
-import { revealSellerContact, setSellerShopStatus } from "../actions";
+import { revealSellerContact, sendSellerNoticeOnWhatsApp, setSellerShopStatus } from "../actions";
 
 // One shop in Admin › Sellers. The owner's email and phone are masked; "Show contact details" asks why (logged), then
 // shows them on this admin's screen only, for REVEAL_MINUTES. Bank: name and last 4 digits only. Customers: a count.
 
 const card = "mb-5 rounded-[18px] border border-app-line bg-white p-5";
 
-export default async function AdminSellerPage(props: { params: Promise<{ id: string }>; searchParams?: Promise<{ reveal?: string; error?: string; saved?: string }> }) {
+export default async function AdminSellerPage(props: { params: Promise<{ id: string }>; searchParams?: Promise<{ reveal?: string; error?: string; saved?: string; wa?: string }> }) {
   const admin = await requireAdminSection("partners");
   const { id } = await props.params;
   const params = await props.searchParams;
   const seller = await sellerDetail(id);
   if (!seller) notFound();
 
-  const [reveal, log] = await Promise.all([activeReveal(params?.reveal, admin.id, seller.userId), accessLogFor(seller.userId)]);
+  const [reveal, log, notices] = await Promise.all([activeReveal(params?.reveal, admin.id, seller.userId), accessLogFor(seller.userId), sellerNotices(seller.userId)]);
   const owner = seller.user;
   const wallet = owner.wallet;
   const live = seller.status === "active";
@@ -105,6 +105,41 @@ export default async function AdminSellerPage(props: { params: Promise<{ id: str
 
       <PeggyCallNotes userId={seller.userId} />
 
+      <section id="notices" aria-labelledby="notices-title" className={card}>
+        <h2 id="notices-title" className="m-0 flex flex-wrap items-center gap-2 text-[17px] font-extrabold">
+          Notices to the owner
+          {params?.saved === "whatsapp" && <Pill tone="success">Sent on WhatsApp</Pill>}
+        </h2>
+        <p className="m-0 mt-1 text-[14px] text-app-ink-soft">
+          The latest messages in their bell. Send one on WhatsApp when they might not see it, for example when they have no email.
+        </p>
+        {params?.wa && <p role="alert" className="m-0 mt-2 text-[13px] font-bold text-app-danger">WhatsApp: {params.wa}</p>}
+        {notices.length === 0 ? (
+          <p className="m-0 mt-3 text-[14px] text-app-ink-soft">No notices yet.</p>
+        ) : (
+          <ul className="m-0 mt-3 list-none divide-y divide-app-line p-0 text-[14px]">
+            {notices.map((notice) => (
+              <li key={notice.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-2.5">
+                <span className="min-w-0">
+                  <strong className="break-words">{notice.title}</strong>
+                  <span className="block text-[13px] text-app-ink-soft">
+                    {formatDate(notice.createdAt)}
+                    {notice.whatsapp ? ` · WhatsApp ${notice.whatsapp.status === "ok" ? "sent" : `failed${notice.whatsapp.error ? `: ${notice.whatsapp.error}` : ""}`}` : ""}
+                  </span>
+                </span>
+                {owner.phone && notice.whatsapp?.status !== "ok" && (
+                  <form action={sendSellerNoticeOnWhatsApp}>
+                    <input type="hidden" name="storeId" value={seller.id} />
+                    <input type="hidden" name="notificationId" value={notice.id} />
+                    <button type="submit" className={buttonClass("white", "sm")}>Send on WhatsApp</button>
+                  </form>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
       <section id="shop-status" aria-labelledby="shop-status-title" className={card}>
         <h2 id="shop-status-title" className="m-0 flex flex-wrap items-center gap-2 text-[17px] font-extrabold">
           {live ? "Pause this shop" : "Restore this shop"}
@@ -136,7 +171,7 @@ export default async function AdminSellerPage(props: { params: Promise<{ id: str
 
       <section aria-labelledby="access-log" className={card}>
         <h2 id="access-log" className="m-0 text-[17px] font-extrabold">Who looked at or changed this account</h2>
-        <p className="m-0 mt-1 text-[14px] text-app-ink-soft">Every time someone on the team views the owner&apos;s contact details or pauses the shop. Kept for accountability; it can&apos;t be edited.</p>
+        <p className="m-0 mt-1 text-[14px] text-app-ink-soft">Every time someone on the team views the owner&apos;s contact details, sends a notice to their WhatsApp or pauses the shop. Kept for accountability; it can&apos;t be edited.</p>
         {log.length === 0 ? (
           <p className="m-0 mt-3 text-[14px] text-app-ink-soft">Nobody yet.</p>
         ) : (

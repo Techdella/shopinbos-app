@@ -38,6 +38,10 @@ export function createProvider(
       // Termii is SMS only and goes through src/lib/sms (sendSms in ./service uses it with failover).
       throw new Error("Termii isn't a notification provider class; use sendSms from @/lib/notifications/service");
     }
+    case "meta": {
+      // WhatsApp Cloud goes straight through @/lib/lead-growth/whatsapp-meta.server (sendWhatsApp* in ./service).
+      throw new Error("WhatsApp Cloud isn't a notification provider class; use sendWhatsAppMessage from @/lib/notifications/service");
+    }
     default: {
       const _exhaustive: never = name;
       throw new Error(`Unknown provider: ${_exhaustive}`);

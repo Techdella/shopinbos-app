@@ -4,8 +4,8 @@ import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import {
   buildEditorEnvelope,
-  createBlankEditorSnapshot,
   createSnapshotFromTemplate,
+  fallbackDraftSnapshot,
   getCurrentTemplateMeta,
   getTemplateManifest,
   normalizeChrome,
@@ -54,7 +54,7 @@ export async function assertStoreDraftPublishable(where: { userId?: string; stor
   const manifest = selectedTemplate ? getTemplateManifest(selectedTemplate.templateId) : null;
   if (selectedTemplate && !manifest) throw new StorePublishError("Template not found.", "NOT_FOUND", 404);
 
-  const fallback = manifest ? createSnapshotFromTemplate(manifest) : createBlankEditorSnapshot(store.name);
+  const fallback = manifest ? createSnapshotFromTemplate(manifest) : fallbackDraftSnapshot(brandSettings, store.name);
   const resolved = resolveDraftSnapshot(brandSettings, fallback);
   if (!resolved) throw new StorePublishError("No draft snapshot to publish.", "BAD_REQUEST", 400);
   const draft = fillMissingPageSeo(resolved, store.name);
@@ -74,7 +74,7 @@ export async function publishStoreDraft(where: { userId?: string; storeId?: stri
   const manifest = selectedTemplate ? getTemplateManifest(selectedTemplate.templateId) : null;
   if (selectedTemplate && !manifest) throw new StorePublishError("Template not found.", "NOT_FOUND", 404);
 
-  const fallback = manifest ? createSnapshotFromTemplate(manifest) : createBlankEditorSnapshot(store.name);
+  const fallback = manifest ? createSnapshotFromTemplate(manifest) : fallbackDraftSnapshot(brandSettings, store.name);
   const resolved = resolveDraftSnapshot(brandSettings, fallback);
   if (!resolved) throw new StorePublishError("No draft snapshot to publish.", "BAD_REQUEST", 400);
   // One header, announcement bar and footer on every page (older drafts could differ per page; home's wins).
@@ -83,8 +83,10 @@ export async function publishStoreDraft(where: { userId?: string; storeId?: stri
   const blockers = publishBlockers(draft);
   if (blockers.length) throw new StorePublishError(blockers[0], "PUBLISH_BLOCKED", 400, blockers);
 
-  const published = manifest
-    ? publishDraftState(brandSettings, manifest, draft)
+  // A store with no theme chosen yet publishes the starter theme its draft was made from.
+  const draftManifest = manifest ?? getTemplateManifest(draft.templateId);
+  const published = draftManifest
+    ? publishDraftState(brandSettings, draftManifest, draft)
     : {
         brandSettings: {
           ...updateDraftFromSnapshot(brandSettings, draft),

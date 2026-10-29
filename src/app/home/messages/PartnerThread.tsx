@@ -107,7 +107,7 @@ export function PartnerThread({
               <div key={msg.id} className={cx("flex", mine ? "justify-end" : "justify-start")}>
                 <div className={cx("max-w-[85%] rounded-[18px] px-3.5 py-2.5 text-[14px] leading-[1.45] sm:max-w-[70%]", mine ? "rounded-br-[6px] bg-app-ink text-white" : "rounded-bl-[6px] border border-app-line bg-white")}>
                   <div className="whitespace-pre-wrap break-words">{msg.text}</div>
-                  <div className={cx("mt-1 text-right text-[11px]", mine ? "text-white/60" : "text-app-ink-faint")}>{formatWhen(msg.createdAt, locale)}</div>
+                  <div suppressHydrationWarning className={cx("mt-1 text-right text-[11px]", mine ? "text-white/60" : "text-app-ink-faint")}>{formatWhen(msg.createdAt, locale)}</div>
                 </div>
               </div>
             );

@@ -3,10 +3,7 @@ import "server-only";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import {
-  createBlankEditorSnapshot,
-  createSnapshotFromTemplate,
-  getCurrentTemplateMeta,
-  getTemplateManifest,
+  fallbackDraftSnapshot,
   isBoutiqueTheme,
   parseEditorState,
   resolveDraftSnapshot,
@@ -38,10 +35,7 @@ function asRecord(value: unknown): Record<string, unknown> {
 /** The draft the builder would open (the saved draft, else the published version, else the template's). */
 export function navigationDraft(brandSettings: unknown, storeName: string): StoreEditorSnapshot | null {
   const settings = asRecord(brandSettings) as StoreBrandSettingsLike;
-  const selected = getCurrentTemplateMeta(settings);
-  const manifest = selected ? getTemplateManifest(selected.templateId) : null;
-  const fallback = manifest ? createSnapshotFromTemplate(manifest) : createBlankEditorSnapshot(storeName);
-  return resolveDraftSnapshot(settings, fallback);
+  return resolveDraftSnapshot(settings, fallbackDraftSnapshot(settings, storeName));
 }
 
 export function navigationOf(snapshot: StoreEditorSnapshot | null) {

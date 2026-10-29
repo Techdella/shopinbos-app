@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { requireAdminSection } from "@/lib/admin-team/service.server";
 import { logDataAccess } from "@/lib/admin/data-access.server";
 import { setShopStatus } from "@/lib/admin/sellers.server";
+import { sendNotificationOnWhatsApp } from "@/lib/notifications/notify.server";
 import { db } from "@/lib/db/client";
 import { asRevealReason, asShopActionReason } from "@shared/privacy";
 
@@ -36,4 +37,20 @@ export async function setSellerShopStatus(formData: FormData) {
   revalidatePath("/admin/sellers");
   revalidatePath(`/admin/sellers/${storeId}`);
   redirect(`/admin/sellers/${storeId}?saved=shop#shop-status`);
+}
+
+/** Send one of the owner's notices on WhatsApp (WhatsApp Cloud), e.g. when they have no email. */
+export async function sendSellerNoticeOnWhatsApp(formData: FormData) {
+  const admin = await requireAdminSection("partners");
+  const storeId = String(formData.get("storeId") ?? "");
+  const notificationId = String(formData.get("notificationId") ?? "");
+  const store = await db.store.findUnique({ where: { id: storeId }, select: { userId: true } });
+  if (!store) redirect("/admin/sellers");
+  const notice = await db.notification.findUnique({ where: { id: notificationId }, select: { userId: true, title: true } });
+  if (!notice || notice.userId !== store.userId) redirect(`/admin/sellers/${storeId}#notices`);
+  // It goes to their phone number, so it's logged like a look at their contact details.
+  await logDataAccess({ adminId: admin.id, subjectUserId: store.userId, action: "whatsapp_notice", reason: "support", note: notice.title });
+  const result = await sendNotificationOnWhatsApp(notificationId);
+  revalidatePath(`/admin/sellers/${storeId}`);
+  redirect(`/admin/sellers/${storeId}?${result.ok ? "saved=whatsapp" : `wa=${encodeURIComponent(result.error.slice(0, 120))}`}#notices`);
 }

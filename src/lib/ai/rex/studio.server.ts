@@ -3,10 +3,9 @@ import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import {
   buildTemplateSelectionMeta,
-  createBlankEditorSnapshot,
   createSectionFromLibrary,
   createSnapshotFromTemplate,
-  getCurrentTemplateMeta,
+  fallbackDraftSnapshot,
   getTemplateManifest,
   isBoutiqueTheme,
   parseEditorState,
@@ -51,14 +50,12 @@ export function settingsOf(store: { brandSettings: unknown }): StoreBrandSetting
     : {}) as StoreBrandSettingsLike;
 }
 
-/** The draft Rex edits: the saved draft, else the published store, else the chosen template, else blank. */
+/** The draft Rex edits: the saved draft, else the published store, else the chosen template, else the starter theme. */
 export function studioDraft(store: StudioStore): { draft: StoreEditorSnapshot; saved: boolean } {
   const settings = settingsOf(store);
   const saved = resolveDraftSnapshot(settings, null);
   if (saved) return { draft: saved, saved: true };
-  const meta = getCurrentTemplateMeta(settings);
-  const manifest = meta ? getTemplateManifest(meta.templateId) : null;
-  return { draft: manifest ? createSnapshotFromTemplate(manifest) : createBlankEditorSnapshot(store.name), saved: false };
+  return { draft: fallbackDraftSnapshot(settings, store.name), saved: false };
 }
 
 export function themeNameFor(themeId: string | null | undefined, fallback?: string) {

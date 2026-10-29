@@ -24,7 +24,6 @@ import {
   type LeadStepType,
 } from "./pure";
 import { leadEmail, sendToLead, type SendOutcome } from "./send.server";
-import { metaWhatsAppConfig } from "./whatsapp-meta.server";
 import { SPACING, nextSendingTime } from "@/lib/member-messaging/spacing";
 
 // Lead growth: one-off campaigns and step-by-step automations that turn website leads into Shopinbos accounts.
@@ -48,7 +47,7 @@ function isMissingColumn(error: unknown) {
 }
 
 export function channelReadiness(): Record<LeadChannel, boolean> {
-  return { email: isEmailConfigured(), sms: platformSmsReady(), whatsapp: Boolean(metaWhatsAppConfig()) || platformWhatsAppReady() };
+  return { email: isEmailConfigured(), sms: platformSmsReady(), whatsapp: platformWhatsAppReady() };
 }
 
 const LEAD_SELECT = { id: true, name: true, email: true, phone: true, kind: true, optedOut: true } as const;

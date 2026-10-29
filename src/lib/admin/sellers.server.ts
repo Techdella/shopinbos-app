@@ -127,3 +127,14 @@ export async function sellerDetail(storeId: string, now = new Date()) {
 export async function setShopStatus(storeId: string, status: "active" | "suspended") {
   return db.store.update({ where: { id: storeId }, data: { status }, select: { id: true, userId: true } });
 }
+
+/** The owner's latest notices, and whether each reached them on WhatsApp (for "Send on WhatsApp" on the page). */
+export async function sellerNotices(userId: string, take = 8) {
+  const rows = await db.notification.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+    take,
+    select: { id: true, title: true, createdAt: true, deliveries: { where: { channel: "whatsapp" }, orderBy: { createdAt: "desc" }, take: 1, select: { status: true, error: true, createdAt: true } } },
+  });
+  return rows.map(({ deliveries, ...row }) => ({ ...row, whatsapp: deliveries[0] ?? null }));
+}

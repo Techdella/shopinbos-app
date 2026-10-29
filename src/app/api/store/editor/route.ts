@@ -10,7 +10,7 @@ import { forShoppers } from "@shared/product-stock";
 import {
   buildEditorEnvelope,
   createSnapshotFromTemplate,
-  createBlankEditorSnapshot,
+  fallbackDraftSnapshot,
   getCurrentTemplateMeta,
   getTemplateManifest,
   guessPageType,
@@ -159,7 +159,7 @@ export const PATCH = withSeller(async (req: NextRequest, { user }) => {
   const brandSettings = ((store.brandSettings as Record<string, unknown>) ?? {}) as StoreBrandSettingsLike;
   const selectedTemplate = getCurrentTemplateMeta(brandSettings);
   const selectedManifest = selectedTemplate ? getTemplateManifest(selectedTemplate.templateId) : null;
-  const fallbackDraft = selectedManifest ? createSnapshotFromTemplate(selectedManifest) : createBlankEditorSnapshot(store.name);
+  const fallbackDraft = selectedManifest ? createSnapshotFromTemplate(selectedManifest) : fallbackDraftSnapshot(brandSettings, store.name);
 
   let nextSettings = brandSettings;
   let draft = resolveDraftSnapshot(brandSettings, fallbackDraft);

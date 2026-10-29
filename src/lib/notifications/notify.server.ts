@@ -258,10 +258,11 @@ async function deliver(input: NotifyInput & { priority: NotifyPriority; type: No
 
 /**
  * WhatsApp for an alert: the approved template on our own number (Meta Cloud API) when it's connected, since WhatsApp
- * only lets a business start a chat with a template (lib/notifications/whatsapp-templates.ts). Not connected, or the
- * template isn't approved yet: the SMS provider's WhatsApp as plain text, as before.
+ * only lets a business start a chat with a template (lib/notifications/whatsapp-templates.ts). Template not approved
+ * yet: plain text on the same number, which reaches people who messaged us in the last 24 hours. Always WhatsApp
+ * Cloud, never an SMS provider.
  */
-async function sendAlertWhatsApp(args: {
+export async function sendAlertWhatsApp(args: {
   input: NotifyInput;
   category: NotifyCategory;
   to: string;
@@ -291,6 +292,34 @@ async function sendAlertWhatsApp(args: {
   }
   const result = await sendWhatsAppMessage({ to: [args.to], message: args.text });
   return { success: result.success, provider: result.provider, message: result.message };
+}
+
+export type WhatsAppResend = { ok: true; provider: string; to: string } | { ok: false; error: string };
+
+/**
+ * Sends a notice that's already in someone's bell on WhatsApp (Admin › Sellers › "Send on WhatsApp"), the way notify()
+ * would: the approved template on our number, else plain text. Recorded as a delivery; one already delivered on
+ * WhatsApp isn't sent again.
+ */
+export async function sendNotificationOnWhatsApp(notificationId: string): Promise<WhatsAppResend> {
+  if (!metaWhatsAppConfig()) return { ok: false, error: "WhatsApp Cloud isn't connected." };
+  const notice = await db.notification.findUnique({
+    where: { id: notificationId },
+    select: { id: true, userId: true, type: true, title: true, description: true, link: true, actionUrl: true, event: true, category: true, metadata: true, user: { select: { name: true, role: true, phone: true } } },
+  });
+  if (!notice) return { ok: false, error: "That notice is gone." };
+  const already = await db.notificationDelivery.findFirst({ where: { notificationId, channel: "whatsapp", status: "ok" }, select: { id: true } }).catch(() => null);
+  if (already) return { ok: false, error: "Already sent on WhatsApp." };
+  const to = await textPhoneFor(notice.userId, notice.user.phone, notice.user.role);
+  if (!to) return { ok: false, error: "No phone number on the account." };
+  const category = (notice.category ?? categoryForType(notice.type)) as NotifyCategory;
+  const target = notice.actionUrl ?? notice.link;
+  const url = target ? absoluteUrl(target) : null;
+  const text = `Shopinbos: ${notice.title.replace(/\.$/, "")}. ${notice.description}`.slice(0, 300) + (url ? ` ${url}` : "");
+  const input: NotifyInput = { userId: notice.userId, event: notice.event, type: notice.type, title: notice.title, description: notice.description, link: notice.link, metadata: (notice.metadata ?? {}) as Record<string, unknown> };
+  const result = await sendAlertWhatsApp({ input, category, to, url, user: { name: notice.user.name ?? "", role: notice.user.role }, text }).catch((error: Error) => ({ success: false, provider: "meta", message: error.message }));
+  await record({ notificationId, userId: notice.userId, channel: "whatsapp", provider: result.provider, status: result.success ? "ok" : "error", category, title: notice.title, error: result.success ? null : result.message ?? null });
+  return result.success ? { ok: true, provider: result.provider, to } : { ok: false, error: result.message || "WhatsApp didn't take it." };
 }
 
 /**
