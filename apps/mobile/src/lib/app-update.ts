@@ -3,7 +3,7 @@ import { Alert, Linking, Platform } from "react-native";
 import * as Application from "expo-application";
 import { API_URL } from "./api";
 import { tNow } from "./app-locale";
-import { parseAppRelease, parseSnooze, snoozeFor, storeUrls, type AppRelease, type AppReleasePlatform, type UpdateSnooze } from "@shared/app-release";
+import { IOS_APP_STORE_URL, parseAppRelease, parseSnooze, snoozeFor, storeUrls, type AppRelease, type AppReleasePlatform, type UpdateSnooze } from "@shared/app-release";
 
 // "Is there a newer app?" (shared/app-release.ts, components/UpdatePrompt.tsx): this phone's build, the release the
 // team set in Admin › App updates, "Later" remembered on this phone, and opening the store. Opening Google Play or
@@ -31,8 +31,8 @@ function write(key: string, value: string) {
   }
 }
 
-/** The App Store listing this build opens (EXPO_PUBLIC_IOS_APP_STORE_URL, set in EAS once the app record exists). */
-const IOS_STORE_URL = process.env.EXPO_PUBLIC_IOS_APP_STORE_URL;
+/** The App Store listing this build opens (shared IOS_APP_STORE_URL; EXPO_PUBLIC_IOS_APP_STORE_URL can override it). */
+const IOS_STORE_URL = process.env.EXPO_PUBLIC_IOS_APP_STORE_URL || IOS_APP_STORE_URL;
 
 /**
  * Which store this phone checks. iPhones only when the build knows its App Store link: a build without one couldn't

@@ -2,7 +2,7 @@ import type { ComponentProps } from "react";
 import { AppPage, Card, CardHead, EmptyState, ListCard, ListRow, Pill } from "@/components/app-kit";
 import { Field, buttonClass, fieldClass, formatDate } from "@/components/admin/AdminKit";
 import { saveAppReleaseAction } from "@/app/actions/app-release";
-import { APP_RELEASE_MESSAGE_MAX, PLAY_STORE_WEB_URL, parseAppRelease, type AppRelease, type AppReleasePlatform } from "@shared/app-release";
+import { APP_RELEASE_MESSAGE_MAX, IOS_APP_STORE_URL, PLAY_STORE_WEB_URL, parseAppRelease, type AppRelease, type AppReleasePlatform } from "@shared/app-release";
 
 // Admin › App updates, the page itself (src/app/admin/app-release/page.tsx loads the data and checks access).
 
@@ -24,9 +24,9 @@ const PLATFORMS: Record<AppReleasePlatform, { name: string; store: string; store
   ios: {
     name: "iPhone app",
     store: "the App Store",
-    storeUrl: "",
+    storeUrl: IOS_APP_STORE_URL,
     buildHint:
-      "Build numbers are the iOS build number (EAS counts them up; App Store Connect shows it in brackets after the version, e.g. 1.0.0 (12)). Only iPhone builds made with EXPO_PUBLIC_IOS_APP_STORE_URL set are asked to update.",
+      "Build numbers are the iOS build number (EAS counts them up; App Store Connect shows it in brackets after the version, e.g. 1.0.0 (12)).",
   },
 };
 
