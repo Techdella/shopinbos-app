@@ -124,6 +124,7 @@ const en = {
   "logistics.dashboard": "Today",
   "logistics.bookings": "Jobs",
   "logistics.couriers": "Riders",
+  "logistics.inbox": "Messages",
   "logistics.cash": "Cash on delivery",
   "logistics.jobs-all": "All jobs",
   "logistics.quotes": "Quote requests",

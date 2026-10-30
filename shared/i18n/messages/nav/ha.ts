@@ -122,6 +122,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "logistics.dashboard": "Yau",
   "logistics.bookings": "Ayyuka",
   "logistics.couriers": "Riders",
+  "logistics.inbox": "Saƙonni",
   "logistics.cash": "Kuɗi a lokacin delivery",
   "logistics.jobs-all": "Duk ayyuka",
   "logistics.quotes": "Quote requests",

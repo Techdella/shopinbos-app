@@ -1429,6 +1429,9 @@ model LogisticsTeamMember {
   /// Riders app shows delivery fees instead of earnings.
   payType            String?
   payRate            Float?
+  /// Riders app › Me › Notifications (shared/message-notifications.ts): { company, shops, quiet: { enabled, start,
+  /// end } }. Null: defaults (messages from both on, no quiet hours).
+  notifyPrefs        Json?
   invitedAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
 

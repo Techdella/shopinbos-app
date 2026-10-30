@@ -122,6 +122,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "logistics.dashboard": "Taa",
   "logistics.bookings": "Ọrụ",
   "logistics.couriers": "Riders",
+  "logistics.inbox": "Ozi",
   "logistics.cash": "Ego n'oge delivery",
   "logistics.jobs-all": "Ọrụ niile",
   "logistics.quotes": "Quote requests",

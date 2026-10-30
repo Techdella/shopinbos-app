@@ -22,6 +22,8 @@ export interface CreateNotificationInput {
   urgent?: boolean;
   /** The caller already texted them about this. */
   phoneHandled?: boolean;
+  /** New messages: who wrote (a delivery partner can turn push off per source). */
+  messageSource?: NotifyInput["messageSource"];
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -76,6 +78,7 @@ export async function createNotification(
     dedupeKey: input.dedupeKey,
     urgent: input.urgent,
     phoneHandled: input.phoneHandled,
+    messageSource: input.messageSource,
   });
   return notification;
 }

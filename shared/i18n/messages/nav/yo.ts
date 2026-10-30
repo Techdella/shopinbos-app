@@ -122,6 +122,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "logistics.dashboard": "Òní",
   "logistics.bookings": "Àwọn iṣẹ́",
   "logistics.couriers": "Àwọn rider",
+  "logistics.inbox": "Àwọn ìfiránṣẹ́",
   "logistics.cash": "Owó lórí delivery",
   "logistics.jobs-all": "Gbogbo iṣẹ́",
   "logistics.quotes": "Quote requests",

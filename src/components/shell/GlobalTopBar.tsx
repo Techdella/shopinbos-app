@@ -4,7 +4,7 @@ import { CreditsBadge } from "@/components/credits/CreditsBadge";
 import { PlanPrompts } from "@/components/plans/PlanPrompts";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
 import { Mascot } from "@/components/app-ui";
 import { navLinks, type Role } from "@/lib/nav";
@@ -74,6 +74,9 @@ export function GlobalTopBar({
   // Unread partner messages, polled while the app is open and refreshed when a chat is read.
   const messagesUnread = useUnreadMessages();
   const openChat = useCallback(() => setChatOpen(true), []);
+  // Delivery partners: the chat button opens the Messages page, which has their riders' chats too.
+  const router = useRouter();
+  const onChatButton = useCallback(() => (role === "logistics_partner" ? router.push("/logistics/inbox") : setChatOpen(true)), [role, router]);
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -129,7 +132,7 @@ export function GlobalTopBar({
         {/* Weekly updates from the Shopinbos team: shows only when there are some for this role. */}
         {role !== "admin" && <UpdatesRing role={role} />}
         {role !== "admin" && (
-          <button type="button" aria-label={messagesUnread ? t("shell.messagesUnread", { count: messagesUnread }) : t("shell.messages")} onClick={openChat} className="relative grid h-10 w-10 shrink-0 place-items-center rounded-full border border-app-line hover:border-app-line-strong sm:h-[42px] sm:w-[42px]">
+          <button type="button" aria-label={messagesUnread ? t("shell.messagesUnread", { count: messagesUnread }) : t("shell.messages")} onClick={onChatButton} className="relative grid h-10 w-10 shrink-0 place-items-center rounded-full border border-app-line hover:border-app-line-strong sm:h-[42px] sm:w-[42px]">
             <Icon name="chat" size={17} />
             {messagesUnread > 0 && (
               <span className="absolute -right-1 -top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-app-accent px-1 text-[10.5px] font-extrabold leading-none text-white ring-2 ring-white">

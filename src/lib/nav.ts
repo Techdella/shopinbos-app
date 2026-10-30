@@ -321,9 +321,10 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
           children: [
             { id: "jobs-all", label: "All jobs", href: "/logistics/bookings" },
             { id: "quotes", label: "Quote requests", href: "/logistics/quotes" },
-            { id: "inbox", label: "Inbox", href: "/logistics/inbox" },
           ],
         },
+        // Riders, shops and suppliers in one chat list; the badge counts unread from all of them.
+        { id: "inbox", label: "Messages", icon: "chat", href: "/logistics/inbox", core: true },
         { id: "couriers", label: "Riders", icon: "truck", href: "/logistics/couriers" },
         { id: "cash", label: "Cash on delivery", icon: "card", href: "/logistics/cash" },
       ],

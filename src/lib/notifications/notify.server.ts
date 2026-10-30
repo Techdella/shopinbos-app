@@ -27,6 +27,7 @@ import {
   type NotifyCategory,
   type QuietHours,
 } from "@shared/notifications";
+import { readRiderNotifyPrefs, riderMessagePush, sourcePushOn, type MessageSource, type RiderMessageSource } from "@shared/message-notifications";
 import { PUSH_DEVICE_SELECT, checkExpoReceipts, pushToDevices, type PushPayload } from "./push.server";
 import { sendSms, sendWhatsAppMessage } from "./service";
 import { toE164 } from "@shared/phone";
@@ -80,6 +81,11 @@ export interface NotifyInput {
   pushPlatforms?: ReadonlyArray<"app" | "web">;
   /** Stored as the push deliveries' collapseKey so a sender can count them (e.g. "push-campaign:<id>"). */
   trackKey?: string | null;
+  /**
+   * New messages: who wrote (shared/message-notifications.ts). A delivery partner can turn push off per source
+   * ("Messages from riders" / "from shops & suppliers"); the bell still gets it.
+   */
+  messageSource?: MessageSource | null;
 }
 
 export interface NotifyResult {
@@ -220,6 +226,9 @@ async function deliver(input: NotifyInput & { priority: NotifyPriority; type: No
   const prefs = resolvePreferences(rows, user.role);
   if (input.whatsapp && !rows.some((row) => row.eventKey === preferenceEventKey(category))) prefs[category] = { ...prefs[category], whatsapp: channelAllowedFor(category, "whatsapp") };
   const plan = planDelivery({ category, urgent, prefs, quiet: isQuietTime(now, quietHours), email: emailKind, phoneHandled: input.phoneHandled });
+  // Settings › Notifications › Messages: push off for this source (riders, shops & suppliers). Bell and texts follow
+  // the Messages switches as before.
+  if (category === "messages" && plan.push !== "off" && !sourcePushOn(rows, input.messageSource)) plan.push = "off";
   const target = input.actionUrl || input.link || null;
 
   const jobs: Array<Promise<unknown>> = [];
@@ -405,16 +414,33 @@ async function deliverPush(args: {
 
 // ─── Riders (no account: push only) ───────────────────────────────────────────
 
-/** A push to a rider's phone (riders sign in with their private link, so there's no bell). Sent once per key. */
-export async function notifyRider(input: { riderId: string; event: string; title: string; body: string; route?: string | null; dedupeKey?: string | null }) {
+/** The rider's own notification settings (Riders app › Me › Notifications); defaults until the column exists. */
+export async function riderNotifyPrefs(riderId: string) {
+  const row = await db.logisticsTeamMember.findUnique({ where: { id: riderId }, select: { notifyPrefs: true } }).catch(() => null);
+  return readRiderNotifyPrefs(row?.notifyPrefs ?? null);
+}
+
+/**
+ * A push to a rider's phone (riders sign in with their private link, so there's no bell). Sent once per key.
+ * `messageFrom` (new chat messages): the rider's switches for that side and their quiet hours decide; the message
+ * waits in the chat either way.
+ */
+export async function notifyRider(input: { riderId: string; event: string; title: string; body: string; route?: string | null; dedupeKey?: string | null; messageFrom?: RiderMessageSource | null }) {
   try {
     const key = input.dedupeKey ? `rider:${input.dedupeKey}`.slice(0, 190) : null;
     if (key) {
       const seen = await db.notificationDelivery.findFirst({ where: { riderId: input.riderId, collapseKey: key }, select: { id: true } });
       if (seen) return;
     }
-    const devices = await activeDevices({ riderId: input.riderId });
     const category = eventInfo(input.event)?.category ?? "deliveries";
+    if (input.messageFrom) {
+      const decision = riderMessagePush(await riderNotifyPrefs(input.riderId), input.messageFrom, new Date());
+      if (decision !== "send") {
+        await record({ riderId: input.riderId, channel: "push", status: "skipped", category, collapseKey: key, title: input.title, error: decision === "quiet" ? "Quiet hours" : "Turned off by the rider" });
+        return;
+      }
+    }
+    const devices = await activeDevices({ riderId: input.riderId });
     if (!devices.length) {
       if (key) await record({ riderId: input.riderId, channel: "push", status: "skipped", category, collapseKey: key, title: input.title, error: "No phone with notifications on" });
       return;

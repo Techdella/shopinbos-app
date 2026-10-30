@@ -20,6 +20,8 @@ export interface RiderMessageView {
   /** Who wrote it, from the reader's side. */
   mine: boolean;
   createdAt: string;
+  /** Your own message has been read by the other side (always true for theirs). Older servers leave it out. */
+  read?: boolean;
 }
 
 /** A rating from the review page: a whole 1-5, and a short comment or null. */
