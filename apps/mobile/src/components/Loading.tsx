@@ -61,10 +61,10 @@ export function LaunchView() {
     <View style={{ flex: 1, backgroundColor: colors.forestFill, alignItems: "center", justifyContent: "center" }} accessible accessibilityLabel={t("loading.starting")} accessibilityState={{ busy: true }}>
       <StatusBar style="light" />
       <Image source={images.markWhite} style={{ width: 76, height: 76 * MARK_RATIO }} contentFit="contain" />
-      {/* "Shopinbos Business": the logo, with "Business" beside it (never translated). */}
-      <View style={{ position: "absolute", bottom: Math.max(64, insets.bottom + 32), opacity: 0.85, flexDirection: "row", alignItems: "center", gap: 6 }}>
+      {/* "Shopinbos Business": the logo, with "Business" under it (never translated). */}
+      <View style={{ position: "absolute", bottom: Math.max(64, insets.bottom + 32), opacity: 0.85, alignItems: "center", gap: 5 }}>
         <Wordmark height={13} light />
-        <T weight="bold" style={{ color: "#FFFFFF", fontSize: 13, lineHeight: 15 }}>Business</T>
+        <T weight="bold" style={{ color: "#FFFFFF", fontSize: 11, lineHeight: 13, letterSpacing: 1.6, textTransform: "uppercase" }}>Business</T>
       </View>
     </View>
   );
