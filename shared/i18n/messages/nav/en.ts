@@ -191,6 +191,7 @@ const en = {
   "admin.pricing-prices": "Prices and fees",
   "admin.pricing-promotions": "Promotions",
   "admin.pricing-plans": "Subscription plans",
+  "admin.pricing-gifts": "Gifts and free plans",
   "admin.team": "Team",
   "admin.developers": "Developers",
   "admin.errors": "App errors",

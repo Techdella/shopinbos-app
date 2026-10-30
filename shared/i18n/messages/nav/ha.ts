@@ -189,6 +189,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "admin.pricing-prices": "Farashi da kuɗaɗe",
   "admin.pricing-promotions": "Tallace-tallace",
   "admin.pricing-plans": "Tsare-tsaren biyan kuɗi",
+  "admin.pricing-gifts": "Kyaututtuka da tsare-tsare kyauta",
   "admin.team": "Ƙungiya",
   "admin.developers": "Masu haɓakawa",
   "admin.errors": "Kurakuran app",

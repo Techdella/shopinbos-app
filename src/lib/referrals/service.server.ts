@@ -169,25 +169,40 @@ export async function grantPlanMonths(userId: string, role: ReferralRole, months
   return { months, endsAt: window.endsAt };
 }
 
-/** Puts one account on its free plan while a grant runs, and back on the free plan when it's over. */
-async function applyGrantMarker(userId: string, now = new Date()) {
+/**
+ * Puts one account on the best plan its running grants give (never a step down from a better plan they already
+ * have), and when no grant runs, takes back a plan that came from one: back to the plan they paid for if that's
+ * still paid up, else the free plan.
+ */
+export async function applyGrantMarker(userId: string, now = new Date()) {
   const user = await db.user.findUnique({ where: { id: userId }, select: { role: true, aiCredits: true, planStatus: true, planPaidUntil: true, subscriptionCode: true } });
   if (!user || isPaying(user, now)) return;
   const current = planKeyFor(user.role, user.aiCredits);
-  const running = await db.planGrant.findFirst({ where: { userId, startsAt: { lte: now }, endsAt: { gt: now } }, orderBy: { endsAt: "desc" } });
-  if (running && running.tier in PLAN_TIERS) {
-    const marker = PLAN_TIERS[running.tier as PlanTier].marker;
-    // Never step someone down from a better plan they already have.
-    if (current.endsWith("_free") && user.aiCredits !== marker) await db.user.update({ where: { id: userId }, data: { aiCredits: marker } });
+  const currentMarker = current.endsWith("_free") ? FREE_PLAN_MARKER : user.aiCredits;
+  const running = await db.planGrant.findMany({ where: { userId, startsAt: { lte: now }, endsAt: { gt: now } } });
+  const best = running
+    .map((grant) => (grant.tier in PLAN_TIERS ? PLAN_TIERS[grant.tier as PlanTier] : null))
+    .filter((tier): tier is (typeof PLAN_TIERS)[PlanTier] => Boolean(tier && tier.role === user.role))
+    .sort((a, b) => b.marker - a.marker)[0];
+  if (best) {
+    if (best.marker > currentMarker) await db.user.update({ where: { id: userId }, data: { aiCredits: best.marker } });
     return;
   }
-  // No grant running: only undo a plan that came from a grant, never one they paid for (a card subscription paid up,
-  // or a one-off plan payment made since the free time began).
-  if (current.endsWith("_free") || (user.planPaidUntil && user.planPaidUntil > now)) return;
+  // No grant running: only undo a plan that came from a grant, never one they paid for since the free time began.
+  if (current.endsWith("_free")) return;
   const granted = await db.planGrant.findFirst({ where: { userId, tier: current }, orderBy: { startsAt: "asc" } });
   if (!granted) return;
   const paid = await db.paymentReceipt.count({ where: { userId, purpose: current, createdAt: { gte: granted.startsAt } } });
-  if (!paid) await db.user.update({ where: { id: userId }, data: { aiCredits: FREE_PLAN_MARKER } });
+  if (paid) return;
+  let marker = FREE_PLAN_MARKER;
+  if (user.planPaidUntil && user.planPaidUntil > now) {
+    // Still paid up for a plan (a one-off payment): back to that one. Unknown which: leave it as it is.
+    const roleTiers = (Object.keys(PLAN_TIERS) as PlanTier[]).filter((tier) => PLAN_TIERS[tier].role === user.role);
+    const receipt = await db.paymentReceipt.findFirst({ where: { userId, purpose: { in: roleTiers } }, orderBy: { createdAt: "desc" } });
+    if (!receipt) return;
+    marker = PLAN_TIERS[receipt.purpose as PlanTier].marker;
+  }
+  if (marker !== user.aiCredits) await db.user.update({ where: { id: userId }, data: { aiCredits: marker } });
 }
 
 /** The hourly sweep: grants that just started or ended (a cancelled card subscription during a grant, too). */

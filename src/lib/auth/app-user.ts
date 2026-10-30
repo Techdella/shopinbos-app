@@ -130,6 +130,9 @@ export async function ensureAppUserForSupabaseUser(input: AppUserInput) {
   if (!existingUser) {
     const { onAccountCreated } = await import("@/lib/lead-growth/service.server");
     await onAccountCreated({ id: user.id, supabaseId: user.supabaseId, email: user.email, phone: user.phone, role: user.role, createdAt: user.createdAt }).catch(() => undefined);
+    // The join offer (Admin › Pricing): free months of the first paid plan, when one is on.
+    const { giveJoinOffer } = await import("@/lib/admin/gifts.server");
+    await giveJoinOffer(user.id, user.role);
   }
 
   if (role === "seller") {

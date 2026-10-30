@@ -14,7 +14,7 @@ export interface PromotionFormInitial {
   values: Record<string, string>;
 }
 
-const UNIT = { naira: "₦", percent: "%", credits: "credits", usd: "$", naira_per_usd: "₦ per $1" } as const;
+const UNIT = { naira: "₦", percent: "%", credits: "credits", usd: "$", naira_per_usd: "₦ per $1", months: "months" } as const;
 
 export function PromotionForm({ initial, base }: { initial: PromotionFormInitial; base: PriceBook }) {
   const [state, action, pending] = useActionState<PromoFormState, FormData>(savePromotion, { error: null, values: null, attempt: 0 });
