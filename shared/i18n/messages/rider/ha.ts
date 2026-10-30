@@ -120,6 +120,12 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "review.failed": "Bai tafi ba. Sake gwadawa.",
   "review.badTitle": "Wannan mahaɗin ba ya aiki",
   "review.badSub": "Wataƙila kayan ba su iso ba tukuna. Nemi sabo daga mai kawo kayan.",
+  "chat.messageCompany": "Aika wa {company} saƙo",
+  "chat.messageShop": "Aika wa shagon saƙo",
+  "chat.placeholder": "Rubuta saƙo",
+  "chat.send": "Aika",
+  "chat.empty": "Babu saƙo tukuna. Ka gaisa.",
+  "chat.failed": "Bai tafi ba. Sake gwadawa.",
 };
 
 export default ha;

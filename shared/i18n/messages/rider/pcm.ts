@@ -120,6 +120,12 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "review.failed": "E no send. Try again.",
   "review.badTitle": "This link no dey work",
   "review.badSub": "Maybe the delivery never finish. Ask your rider for new one.",
+  "chat.messageCompany": "Message {company}",
+  "chat.messageShop": "Message the shop",
+  "chat.placeholder": "Type message",
+  "chat.send": "Send",
+  "chat.empty": "No message yet. Say hello.",
+  "chat.failed": "E no send. Try again.",
 };
 
 export default pcm;

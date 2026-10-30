@@ -100,6 +100,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "list.stockHintShort": "Tap + or − when you sell or add more stock.",
   "list.stockTipTitle": "Keep your stock correct",
   "dropship.subShort": "You no dey buy these ones. Supplier go send dem.",
+  "list.bundle": "Bundle: stock na from the products inside",
 };
 
 export default pcm;

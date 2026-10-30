@@ -394,6 +394,11 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "refunds.status.sent": "Don send",
   "refunds.status.confirmed": "E don reach",
   "refunds.status.disputed": "E never reach",
+  "detail.messageRider": "Message {name}",
+  "detail.chatPlaceholder": "Type message",
+  "detail.chatSend": "Send",
+  "detail.chatEmpty": "No message yet. Say hello.",
+  "detail.chatFailed": "E no send. Try again.",
 };
 
 export default pcm;

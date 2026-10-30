@@ -783,6 +783,11 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "reach.day.4": "Ọjọ́bọ̀",
   "reach.day.5": "Ọjọ́ Ẹtì",
   "reach.day.6": "Ọjọ́ Àbámẹ́ta",
+  "riders.message": "Kọ ọ̀rọ̀ sí {name}",
+  "riders.chatPlaceholder": "Kọ ọ̀rọ̀ kan",
+  "riders.chatSend": "Fi ránṣẹ́",
+  "riders.chatEmpty": "Kò tíì sí ọ̀rọ̀. Kí wọn.",
+  "riders.chatFailed": "Kò lọ. Tún gbìyànjú.",
 };
 
 export default yo;

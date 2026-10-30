@@ -56,3 +56,21 @@ test("the migration adds both tables and only adds", () => {
   assert.match(sql, /CREATE TABLE IF NOT EXISTS "RiderReview"/);
   assert.doesNotMatch(sql, /\bDROP\b|\bDELETE\b|\bTRUNCATE\b/i);
 });
+
+test("the web has the same chats: the Riders web app, the company's Riders page and the shop's order", () => {
+  const app = read("src/app/rider/[token]/RiderApp.tsx");
+  assert.match(app, /extra=\{\{ with: "company" \}\}/);
+  assert.match(app, /extra=\{\{ with: "shop", job: drop\.id \}\}/);
+  // The customer's number shows on the web Riders app too.
+  assert.match(app, /\{drop\.buyerPhone\}<\/p>/);
+  const couriers = read("src/app/logistics/couriers/page.tsx");
+  assert.match(couriers, /\/api\/mobile\/logistics\/riders\/\$\{member\.id\}\/messages/);
+  // "<rider> sent a message" links here with ?chat=<rider>, which opens that rider's chat.
+  assert.match(couriers, /open=\{chat === member\.id\}/);
+  assert.match(read("src/app/home/orders/[id]/page.tsx"), /\/api\/mobile\/delivery\/jobs\/\$\{booking\.id\}\/messages/);
+});
+
+test("bundles are marked in the product lists and have no stock buttons of their own", () => {
+  assert.match(read("src/app/products/page.tsx"), /\/products\/bundles\/\$\{p\.id\}/);
+  assert.match(read("apps/mobile/src/components/seller/StockRows.tsx"), /const own = !bundle &&/);
+});

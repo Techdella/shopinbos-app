@@ -394,6 +394,11 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "refunds.status.sent": "An tura",
   "refunds.status.confirmed": "An karɓa",
   "refunds.status.disputed": "Ba a karɓa ba",
+  "detail.messageRider": "Aika wa {name} saƙo",
+  "detail.chatPlaceholder": "Rubuta saƙo",
+  "detail.chatSend": "Aika",
+  "detail.chatEmpty": "Babu saƙo tukuna. Ka gaisa.",
+  "detail.chatFailed": "Bai tafi ba. Sake gwadawa.",
 };
 
 export default ha;

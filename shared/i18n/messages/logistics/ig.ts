@@ -783,6 +783,11 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "reach.day.4": "Tọọzdee",
   "reach.day.5": "Fraịdee",
   "reach.day.6": "Satọdee",
+  "riders.message": "Zigara {name} ozi",
+  "riders.chatPlaceholder": "Dee ozi",
+  "riders.chatSend": "Zipu",
+  "riders.chatEmpty": "Enwebeghị ozi. Kelee.",
+  "riders.chatFailed": "O zighị. Nwaa ọzọ.",
 };
 
 export default ig;

@@ -311,6 +311,8 @@ const en = {
   "code.invalid": "A product code is 2 to 8 letters and numbers, like BAG2.",
   "code.taken": "Another product already uses {code}. Pick a different code.",
   "code.sub": "Code {code}. Edit details, visibility, stock and how the product page looks.",
+  "list.bundle": "Bundle",
+  "list.bundleStock": "Stock from its products",
 } satisfies Record<string, string>;
 
 export default en;

@@ -55,6 +55,8 @@ export interface ProductItem {
   preorderShipsAt?: string | null;
   preorderLimit?: number | null;
   preorderTaken?: number;
+  /** "bundle" marks a bundle (shared/bundles.ts): its stock comes from the products inside it. */
+  tags?: string[];
 }
 
 /** The newest 50 products, or the newest 50 in one category. */

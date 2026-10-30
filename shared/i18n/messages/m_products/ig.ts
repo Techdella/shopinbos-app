@@ -100,6 +100,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "list.stockHintShort": "Pịa + ma ọ bụ − mgbe ị rere ma ọ bụ tinyekwuo stock.",
   "list.stockTipTitle": "Idebe stock n'ụzọ ziri ezi",
   "dropship.subShort": "Ị naghị azụ ndị a. Onye na-ebubata na-eziga ha.",
+  "list.bundle": "Ngwakọta: ọnụ ọgụgụ si n'ngwa dị n'ime ya",
 };
 
 export default ig;

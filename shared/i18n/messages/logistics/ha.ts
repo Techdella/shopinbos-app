@@ -783,6 +783,11 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "reach.day.4": "Alhamis",
   "reach.day.5": "Juma'a",
   "reach.day.6": "Asabar",
+  "riders.message": "Aika wa {name} saƙo",
+  "riders.chatPlaceholder": "Rubuta saƙo",
+  "riders.chatSend": "Aika",
+  "riders.chatEmpty": "Babu saƙo tukuna. Ka gaisa.",
+  "riders.chatFailed": "Bai tafi ba. Sake gwadawa.",
 };
 
 export default ha;

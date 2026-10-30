@@ -100,6 +100,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "list.stockHintShort": "Tẹ + tàbí − nígbà tí o bá tà tàbí kó ọjà kún un.",
   "list.stockTipTitle": "Mímú iye ọjà tọ́",
   "dropship.subShort": "O kò ra àwọn wọ̀nyí. Olùpèsè ló ń fi wọ́n ránṣẹ́.",
+  "list.bundle": "Àkójọpọ̀: iye rẹ̀ wá láti inú àwọn ọjà inú rẹ̀",
 };
 
 export default yo;

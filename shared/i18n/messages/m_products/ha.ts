@@ -100,6 +100,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "list.stockHintShort": "Taɓa + ko − idan ka sayar ko ka ƙara kaya.",
   "list.stockTipTitle": "Daidaita yawan kaya",
   "dropship.subShort": "Ba ka saya waɗannan ba. Mai kawowa ne ke aika su.",
+  "list.bundle": "Haɗaɗɗe: yawansa daga kayan da ke ciki",
 };
 
 export default ha;

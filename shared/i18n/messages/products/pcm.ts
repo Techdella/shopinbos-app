@@ -313,6 +313,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "code.invalid": "Product code na 2 to 8 letters and numbers, like BAG2.",
   "code.taken": "Another product don already use {code}. Pick another code.",
   "code.sub": "Code {code}. Edit details, visibility, stock and how the product page dey look.",
+  "list.bundle": "Bundle",
+  "list.bundleStock": "Stock na from the products inside",
 };
 
 export default pcm;

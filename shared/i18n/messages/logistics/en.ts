@@ -803,6 +803,11 @@ const en = {
   "reach.day.4": "Thursday",
   "reach.day.5": "Friday",
   "reach.day.6": "Saturday",
+  "riders.message": "Message {name}",
+  "riders.chatPlaceholder": "Type a message",
+  "riders.chatSend": "Send",
+  "riders.chatEmpty": "No messages yet. Say hello.",
+  "riders.chatFailed": "That didn't send. Try again.",
 } satisfies Record<string, string>;
 
 export default en;

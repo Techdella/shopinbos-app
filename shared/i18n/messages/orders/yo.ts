@@ -394,6 +394,11 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "refunds.status.sent": "A ti fi ránṣẹ́",
   "refunds.status.confirmed": "Ó ti dé",
   "refunds.status.disputed": "Kò tíì dé",
+  "detail.messageRider": "Kọ ọ̀rọ̀ sí {name}",
+  "detail.chatPlaceholder": "Kọ ọ̀rọ̀ kan",
+  "detail.chatSend": "Fi ránṣẹ́",
+  "detail.chatEmpty": "Kò tíì sí ọ̀rọ̀. Kí wọn.",
+  "detail.chatFailed": "Kò lọ. Tún gbìyànjú.",
 };
 
 export default yo;

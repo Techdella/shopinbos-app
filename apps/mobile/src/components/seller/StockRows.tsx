@@ -67,13 +67,15 @@ export function useStockSaver(setProducts: SetProducts, onError: (message: strin
 export function StockRow({ product, onStock, section }: { product: ProductItem; onStock: (product: ProductItem, next: number) => void; section?: "preorder" }) {
   const t = useT("m_products", "common");
   const tUi = useT("m_ui");
-  const own = !product.inventoryType || product.inventoryType === "seller";
+  // A bundle has no stock of its own (it's counted from the products inside it), so no − and +.
+  const bundle = Boolean(product.tags?.includes("bundle"));
+  const own = !bundle && (!product.inventoryType || product.inventoryType === "seller");
   // Taking preorders: "Preorder · 12 Dec · 4 of 20 taken".
   const preorder = product.preorderEnabled
     ? [preorderPillText({ shipsOn: preorderDay(product.preorderShipsAt ?? null) }, new Date(), tUi), product.preorderLimit ? t("list.preorderTakenOf", { taken: product.preorderTaken ?? 0, limit: product.preorderLimit }) : t("list.preorderTaken", { count: product.preorderTaken ?? 0 })].filter(Boolean).join(" · ")
     : null;
   const low = product.currentStock <= (product.lowStockThreshold ?? 3);
-  const stock = product.currentStock <= 0 ? t("list.soldOut") : low ? t("list.runningLow", { count: product.currentStock }) : t("drafts.inStock", { count: product.currentStock });
+  const stock = bundle ? t("list.bundle") : product.currentStock <= 0 ? t("list.soldOut") : low ? t("list.runningLow", { count: product.currentStock }) : t("drafts.inStock", { count: product.currentStock });
   const words = [naira(Number(product.retailPrice)), stock, product.status !== "published" ? t("status.draft") : null].filter(Boolean).join(" · ");
   return (
     <Row

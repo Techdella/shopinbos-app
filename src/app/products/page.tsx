@@ -250,6 +250,8 @@ export default async function ProductsPage({
         <ListCard>
           {paged.rows.map((p) => {
             const dropship = isDropship(p);
+            // A bundle (shared/bundles.ts) is counted from the products inside it, and edits on its own page.
+            const bundle = p.tags.includes("bundle");
             const stock = !p.trackStock
               ? { low: false, label: t("stock.notTracked") }
               : {
@@ -257,7 +259,7 @@ export default async function ProductsPage({
                   label: p.currentStock <= 0 ? t("stock.soldOut") : p.currentStock <= p.lowStockThreshold ? t("stock.left", { count: p.currentStock }) : t("stock.inStock", { count: p.currentStock }),
                 };
             const variants = variantCount(p.variants);
-            const detail = [variants > 0 ? t("list.variants", { count: variants }) : p.category?.name ?? p.sku, dropship ? t("list.dropship") : t("list.ownStock")].filter(Boolean).join(" · ");
+            const detail = [variants > 0 ? t("list.variants", { count: variants }) : p.category?.name ?? p.sku, bundle ? t("list.bundle") : dropship ? t("list.dropship") : t("list.ownStock")].filter(Boolean).join(" · ");
             const statusPill = isLive(p) ? (
               <Pill tone="success">{t("status.live")}</Pill>
             ) : p.status === "archived" ? (
@@ -265,14 +267,16 @@ export default async function ProductsPage({
             ) : (
               <Pill tone="muted">{t("status.draft")}</Pill>
             );
-            const stockText = dropship
+            const stockText = bundle
+              ? t("list.bundleStock")
+              : dropship
               ? p.supplierStock ? t("list.atSupplier", { count: p.supplierStock }) : t("list.supplierStock")
               : stock.label;
             return (
               <ListRow
                 key={p.id}
                 // From the pre-orders list, open straight on the product's Preorder settings.
-                href={filter.key === "preorder" ? `/products/${p.id}#preorder` : `/products/${p.id}`}
+                href={bundle ? `/products/bundles/${p.id}` : filter.key === "preorder" ? `/products/${p.id}#preorder` : `/products/${p.id}`}
                 // Share to WhatsApp, and a payment link to send in a chat (published products only: the pay page shows
                 // public products).
                 aside={

@@ -8,6 +8,7 @@ import { naira } from "@shared/onboarding";
 import { markDelivered, markFailed, markStage, resendPayLink, setRiderOnline, startRun, type RiderActionResult } from "./actions";
 import { PAY_AT_DOOR_WAIT_MINUTES } from "@shared/pay-at-door";
 import { useT } from "@/components/i18n/I18nProvider";
+import { RiderChatBox } from "@/components/logistics/RiderChatBox";
 
 export interface RiderDrop {
   id: string;
@@ -234,7 +235,7 @@ export function RiderApp({
 
       {tab === "earnings" && <EarningsTab week={week} partnerName={rider.partnerName} />}
 
-      {tab === "me" && <MeTab rider={rider} online={online} />}
+      {tab === "me" && <MeTab token={token} rider={rider} online={online} />}
 
       <nav
         aria-label="Riders"
@@ -448,8 +449,9 @@ function EarningsTab({ week, partnerName }: { week: RiderWeek; partnerName: stri
   );
 }
 
-function MeTab({ rider, online }: { rider: { name: string; partnerName: string; partnerPhone: string | null; plate: string | null }; online: boolean }) {
+function MeTab({ token, rider, online }: { token: string; rider: { name: string; partnerName: string; partnerPhone: string | null; plate: string | null }; online: boolean }) {
   const t = useT("rider");
+  const [chat, setChat] = useState(false);
   const wa = rider.partnerPhone?.replace(/\D/g, "");
   const row = "flex min-h-[64px] items-center gap-3 px-4 py-3";
   return (
@@ -490,6 +492,18 @@ function MeTab({ rider, online }: { rider: { name: string; partnerName: string; 
           </>
         )}
       </ul>
+
+      {/* Chat with the company in the app (shared/rider-chat.ts); they answer from their app or the web. */}
+      <section className="grid gap-3 rounded-[22px] bg-white p-4">
+        <button type="button" onClick={() => setChat(!chat)} aria-expanded={chat} className="flex min-h-[44px] items-center gap-3 text-left">
+          <span aria-hidden className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px] bg-app-mint text-app-forest"><Icon name="chat" size={18} /></span>
+          <span className="min-w-0 flex-1 text-[15px] font-bold">{t("chat.messageCompany", { company: rider.partnerName })}</span>
+          <Icon name="chevRight" size={18} className={cx("text-app-ink-faint transition", chat && "rotate-90")} />
+        </button>
+        {chat ? (
+          <RiderChatBox url="/api/mobile/logistics/rider/messages" token={token} extra={{ with: "company" }} labels={{ placeholder: t("chat.placeholder"), send: t("chat.send"), empty: t("chat.empty"), failed: t("chat.failed") }} />
+        ) : null}
+      </section>
 
       <p className="m-0 flex items-start justify-center gap-2 px-2 text-center text-[13px] text-app-ink-soft">
         <Icon name="lock" size={14} className="mt-0.5 shrink-0" />
@@ -594,6 +608,7 @@ function DropRow({ token, drop, index, last }: { token: string; drop: RiderDrop;
   const onTheRoad = drop.status === "picked_up" || drop.status === "in_transit" || drop.status === "out_for_delivery";
   const canGoOut = !drop.toPickupPoint && (drop.status === "picked_up" || drop.status === "in_transit");
   const waNumber = drop.buyerPhone?.replace(/\D/g, "");
+  const [chat, setChat] = useState(false);
 
   function run(action: () => Promise<RiderActionResult>) {
     setError(null);
@@ -643,6 +658,8 @@ function DropRow({ token, drop, index, last }: { token: string; drop: RiderDrop;
           <p className="m-0 mt-0.5 text-[13.5px] text-app-ink-soft">
             {[drop.buyerName, drop.item].filter(Boolean).join(" · ")}
           </p>
+          {/* The customer's number, to call ahead or check the address. */}
+          {drop.buyerPhone ? <p className="m-0 mt-0.5 font-mono text-[13.5px] text-app-ink">{drop.buyerPhone}</p> : null}
           {drop.collect > 0 && (
             <p className="m-0 mt-1.5 inline-block rounded-full bg-app-peach px-3 py-1 text-[13px] font-extrabold text-app-accent-ink">{t("drop.collect", { amount: naira(drop.collect) })}</p>
           )}
@@ -668,6 +685,18 @@ function DropRow({ token, drop, index, last }: { token: string; drop: RiderDrop;
           {onTheRoad && <DirectionsLink address={drop.address} />}
         </div>
       </div>
+
+      {mode === "idle" ? (
+        <div className="mt-2">
+          <button type="button" onClick={() => setChat(!chat)} aria-expanded={chat} className="inline-flex min-h-[40px] items-center gap-1.5 text-[14px] font-bold text-app-accent-ink">
+            <Icon name="chat" size={16} />
+            {t("chat.messageShop")}
+          </button>
+          {chat ? (
+            <RiderChatBox url="/api/mobile/logistics/rider/messages" token={token} extra={{ with: "shop", job: drop.id }} labels={{ placeholder: t("chat.placeholder"), send: t("chat.send"), empty: t("chat.empty"), failed: t("chat.failed") }} />
+          ) : null}
+        </div>
+      ) : null}
 
       {onTheRoad && mode === "idle" && drop.payInApp && !drop.payInApp.paid && !drop.toPickupPoint && <PayAtDoorBox token={token} drop={drop} pay={drop.payInApp} />}
 

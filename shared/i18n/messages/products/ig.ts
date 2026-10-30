@@ -313,6 +313,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "code.invalid": "Koodu ngwaahịa bụ mkpụrụedemede na nọmba 2 ruo 8, dịka BAG2.",
   "code.taken": "Ngwaahịa ọzọ na-eji {code} ugbu a. Họrọ koodu ọzọ.",
   "code.sub": "Koodu {code}. Dezie nkọwa, ọhụhụ, ngwaahịa na otú peeji ngwaahịa si dị.",
+  "list.bundle": "Ngwakọta",
+  "list.bundleStock": "Ọnụ ọgụgụ ya si n'ngwa dị n'ime ya",
 };
 
 export default ig;

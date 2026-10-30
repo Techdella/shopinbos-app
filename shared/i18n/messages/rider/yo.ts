@@ -120,6 +120,12 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "review.failed": "Kò lọ. Tún gbìyànjú.",
   "review.badTitle": "Ìjápọ̀ yìí kò ṣiṣẹ́",
   "review.badSub": "Ó lè jẹ́ pé ẹrù náà kò tíì dé. Béèrè ìjápọ̀ tuntun lọ́wọ́ ẹni tó gbé e.",
+  "chat.messageCompany": "Kọ ọ̀rọ̀ sí {company}",
+  "chat.messageShop": "Kọ ọ̀rọ̀ sí ṣọ́ọ̀bù náà",
+  "chat.placeholder": "Kọ ọ̀rọ̀ kan",
+  "chat.send": "Fi ránṣẹ́",
+  "chat.empty": "Kò tíì sí ọ̀rọ̀. Kí wọn.",
+  "chat.failed": "Kò lọ. Tún gbìyànjú.",
 };
 
 export default yo;
