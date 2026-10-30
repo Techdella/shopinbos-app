@@ -430,6 +430,15 @@
 		});
 	})();
 
+	/* Gist: "See all stories" shows the rest of the cards. */
+	document.querySelectorAll('[data-gist-all]').forEach(function (b) {
+		b.addEventListener('click', function (e) {
+			e.preventDefault();
+			document.querySelectorAll('[data-gist-more]').forEach(function (c) { c.hidden = false; });
+			b.parentNode.remove();
+		});
+	});
+
 	/* CTA clicks to the app. */
 	document.addEventListener('click', function (e) {
 		var a = e.target.closest && e.target.closest('a[href*="app.shopinbos.com"], a[href*="/signup"]');

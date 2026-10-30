@@ -23,8 +23,8 @@
    {
     "type": "cta",
     "eyebrow": "",
-    "headline": "Get in first",
-    "text": "We open on November 1. Join the waitlist and we’ll save your spot, with free setup help for early sellers.",
+    "headline": "Start your shop",
+    "text": "We opened on November 1. Start your shop free, with setup help on WhatsApp for early sellers.",
     "items": [],
     "number": "",
     "do": "",
@@ -1356,6 +1356,799 @@
     "eyebrow": "",
     "headline": "Grow on TikTok",
     "text": "The Academy track Instagram, TikTok and ads shows you how to film and post.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   }
+  ]
+ },
+ {
+  "slug": "rex-builds-your-shop",
+  "title": "Let Rex build your shop",
+  "label": "Rex",
+  "bg": "#16141F",
+  "fg": "#FFFFFF",
+  "accent": "#FF6A2B",
+  "order": 1,
+  "img": "c/rex-side.webp",
+  "link": "/website-builder/",
+  "cta": "See the builder",
+  "slides": [
+   {
+    "type": "cover",
+    "eyebrow": "Gist · Rex",
+    "headline": "Tell Rex what you sell. Get a shop.",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "list",
+    "eyebrow": "",
+    "headline": "Rex sets up",
+    "text": "",
+    "items": [
+     "Your theme and colours",
+     "Your home page and sections",
+     "Product titles and descriptions from your photos",
+     "Your yourname.mybos.store address"
+    ],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "tip",
+    "eyebrow": "",
+    "headline": "You stay in charge",
+    "text": "Rex drafts. You check every page and tap publish when you are happy.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "do-dont",
+    "eyebrow": "",
+    "headline": "",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "Give Rex clear photos and your real prices",
+    "dont": "Publish without reading the descriptions"
+   },
+   {
+    "type": "cta",
+    "eyebrow": "",
+    "headline": "Your shop can be live tonight",
+    "text": "Start free. Rex uses a few credits to build, and every plan includes some each month.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   }
+  ]
+ },
+ {
+  "slug": "peggy-replies",
+  "title": "Peggy answers your chats",
+  "label": "Peggy",
+  "bg": "#8BE3D3",
+  "fg": "#16141F",
+  "accent": "#16141F",
+  "order": 2,
+  "img": "c/peggy-wave.webp",
+  "link": "/rex-and-peggy/",
+  "cta": "Meet Peggy",
+  "slides": [
+   {
+    "type": "cover",
+    "eyebrow": "Gist · Peggy",
+    "headline": "“How much?” at 11pm? Peggy has it.",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "list",
+    "eyebrow": "",
+    "headline": "Peggy drafts replies for",
+    "text": "",
+    "items": [
+     "Prices and sizes",
+     "Delivery areas and costs",
+     "How to pay, including pay on delivery",
+     "Order status"
+    ],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "myth",
+    "eyebrow": "",
+    "headline": "Myth: customers can tell it’s a bot and leave",
+    "text": "Truth: quick, correct answers keep buyers. You choose whether Peggy sends on her own or waits for your tap.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "tip",
+    "eyebrow": "",
+    "headline": "Switch on what you trust",
+    "text": "Start with drafts only. Turn on automatic replies for simple questions when you are ready.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "cta",
+    "eyebrow": "",
+    "headline": "One inbox, fewer missed orders",
+    "text": "WhatsApp, Instagram and TikTok chats in one place.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   }
+  ]
+ },
+ {
+  "slug": "pay-on-delivery-code",
+  "title": "Pay on delivery, safely",
+  "label": "Pay on delivery",
+  "bg": "#FFE27A",
+  "fg": "#16141F",
+  "accent": "#FF6A2B",
+  "order": 3,
+  "img": "c/f-bag.webp",
+  "link": "/payments/",
+  "cta": "How payments work",
+  "slides": [
+   {
+    "type": "cover",
+    "eyebrow": "Gist · Payments",
+    "headline": "Pay on delivery without the fear",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "list",
+    "eyebrow": "",
+    "headline": "How the 4-digit code works",
+    "text": "",
+    "items": [
+     "Your customer gets a code at checkout",
+     "The rider collects the money at the door",
+     "The customer gives the code only when the parcel is in their hands",
+     "The rider enters the code and the order is marked paid"
+    ],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "tip",
+    "eyebrow": "",
+    "headline": "No code, no handover",
+    "text": "If a customer won’t share the code, the rider keeps the parcel. You don’t lose your stock.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "do-dont",
+    "eyebrow": "",
+    "headline": "",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "Offer pay on delivery to new customers who don’t trust you yet",
+    "dont": "Promise delivery dates your rider can’t keep"
+   },
+   {
+    "type": "cta",
+    "eyebrow": "",
+    "headline": "Pay on delivery is on Growth and Pro",
+    "text": "Card and bank transfer work on every plan.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   }
+  ]
+ },
+ {
+  "slug": "find-stock-dropship",
+  "title": "Sell without buying stock",
+  "label": "Dropship",
+  "bg": "#E3F4EF",
+  "fg": "#0C4A44",
+  "accent": "#0C4A44",
+  "order": 4,
+  "img": "c/e-buds.webp",
+  "link": "/find-stock/",
+  "cta": "Find stock",
+  "slides": [
+   {
+    "type": "cover",
+    "eyebrow": "Gist · Find stock",
+    "headline": "No capital for stock? Dropship it.",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "list",
+    "eyebrow": "",
+    "headline": "How it works on Shopinbos",
+    "text": "",
+    "items": [
+     "Pick products from checked Nigerian suppliers",
+     "Add them to your shop in one tap",
+     "Set your own price",
+     "The supplier packs and ships with your shop’s name"
+    ],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "number",
+    "eyebrow": "",
+    "headline": "",
+    "text": "Every supplier is CAC registered and ships within 3 days.",
+    "items": [],
+    "number": "3 days",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "tip",
+    "eyebrow": "",
+    "headline": "Order a sample first",
+    "text": "See the quality yourself before you promise it to customers.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "cta",
+    "eyebrow": "",
+    "headline": "Find products for your shop",
+    "text": "Find stock is for registered sellers, at supplier prices.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   }
+  ]
+ },
+ {
+  "slug": "your-own-address",
+  "title": "Your shop, your address",
+  "label": "Your address",
+  "bg": "#EEEAFF",
+  "fg": "#5B3FD6",
+  "accent": "#5B3FD6",
+  "order": 5,
+  "img": "c/p-hero.webp",
+  "link": "/online-store/",
+  "cta": "See the online store",
+  "slides": [
+   {
+    "type": "cover",
+    "eyebrow": "Gist · Online store",
+    "headline": "yourname.mybos.store",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "tip",
+    "eyebrow": "",
+    "headline": "Free on every plan",
+    "text": "Every shop gets a mybos.store address. Paid plans can connect your own .com or .com.ng.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "list",
+    "eyebrow": "",
+    "headline": "Put your link everywhere",
+    "text": "",
+    "items": [
+     "Your WhatsApp Business profile",
+     "Your Instagram and TikTok bio",
+     "Your Status, once a day",
+     "Your receipts and packaging"
+    ],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "do-dont",
+    "eyebrow": "",
+    "headline": "",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "Keep the same shop name on every app",
+    "dont": "Change your handle every few months"
+   },
+   {
+    "type": "cta",
+    "eyebrow": "",
+    "headline": "Claim your address before someone else does",
+    "text": "It takes a few minutes.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   }
+  ]
+ },
+ {
+  "slug": "book-a-rider",
+  "title": "Book a rider from the order",
+  "label": "Delivery",
+  "bg": "#FFF1E8",
+  "fg": "#C2410C",
+  "accent": "#C2410C",
+  "order": 6,
+  "img": "c/h-room.webp",
+  "link": "/delivery/",
+  "cta": "How delivery works",
+  "slides": [
+   {
+    "type": "cover",
+    "eyebrow": "Gist · Delivery",
+    "headline": "Stop calling five riders for one parcel",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "list",
+    "eyebrow": "",
+    "headline": "From the order screen you can",
+    "text": "",
+    "items": [
+     "Compare delivery partners and prices",
+     "Book a bike in the city or a van between states",
+     "Print a label",
+     "Share a tracking link with your customer"
+    ],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "tip",
+    "eyebrow": "",
+    "headline": "Pickup points save money",
+    "text": "Let customers collect from a pickup point near them when doorstep delivery is too far.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "myth",
+    "eyebrow": "",
+    "headline": "Myth: nationwide delivery is only for big brands",
+    "text": "Truth: partners on Shopinbos deliver between states for small shops too.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "cta",
+    "eyebrow": "",
+    "headline": "Delivery partners, in your app",
+    "text": "Self-pickup and doorstep delivery work on every plan.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   }
+  ]
+ },
+ {
+  "slug": "trending-daily",
+  "title": "What’s selling today",
+  "label": "Trending",
+  "bg": "#16141F",
+  "fg": "#FFFFFF",
+  "accent": "#D4FF3A",
+  "order": 7,
+  "img": "c/s-sneak.webp",
+  "link": "/trending/",
+  "cta": "See today’s list",
+  "slides": [
+   {
+    "type": "cover",
+    "eyebrow": "Gist · Trending",
+    "headline": "A new trend list, every day",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "list",
+    "eyebrow": "",
+    "headline": "Each report gives you",
+    "text": "",
+    "items": [
+     "Products trending on TikTok right now",
+     "What they sell for in naira",
+     "Where to get stock",
+     "A video idea you can film today"
+    ],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "tip",
+    "eyebrow": "",
+    "headline": "Move early",
+    "text": "Trends fade. Test one product with a short video before you buy a lot.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "do-dont",
+    "eyebrow": "",
+    "headline": "",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "Check the report before you restock",
+    "dont": "Copy a trend that doesn’t fit your shop"
+   },
+   {
+    "type": "cta",
+    "eyebrow": "",
+    "headline": "Today’s list is up",
+    "text": "Free for everyone. No sign-up needed.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   }
+  ]
+ },
+ {
+  "slug": "templates-free",
+  "title": "Free templates, every plan",
+  "label": "Templates",
+  "bg": "#FCE4EC",
+  "fg": "#A0204F",
+  "accent": "#A0204F",
+  "order": 8,
+  "img": "c/p-fashion.webp",
+  "link": "/templates/",
+  "cta": "Browse templates",
+  "slides": [
+   {
+    "type": "cover",
+    "eyebrow": "Gist · Templates",
+    "headline": "Look like a brand from day one",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "list",
+    "eyebrow": "",
+    "headline": "Every template comes with",
+    "text": "",
+    "items": [
+     "Phone-first pages that load on slow data",
+     "Product, cart and checkout pages",
+     "Space for your story and reviews",
+     "Your colours and logo"
+    ],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "tip",
+    "eyebrow": "",
+    "headline": "Pick by product, not colour",
+    "text": "Choose the template made for what you sell. You can change the colours in a minute.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "cta",
+    "eyebrow": "",
+    "headline": "Try a template on your shop",
+    "text": "Switch any time. Your products stay the same.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   }
+  ]
+ },
+ {
+  "slug": "plans-explained",
+  "title": "Which plan is for you?",
+  "label": "Plans",
+  "bg": "#FFF7D6",
+  "fg": "#8A5A00",
+  "accent": "#8A5A00",
+  "order": 9,
+  "img": "c/d-jar.webp",
+  "link": "/pricing/",
+  "cta": "See all plans",
+  "slides": [
+   {
+    "type": "cover",
+    "eyebrow": "Gist · Pricing",
+    "headline": "Start free. Upgrade when it’s busy.",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "list",
+    "eyebrow": "",
+    "headline": "The plans",
+    "text": "",
+    "items": [
+     "Free: ₦0 a month, 3% per sale",
+     "Starter: ₦6,000 a month, 2% per sale",
+     "Growth: ₦18,000 a month, 1% per sale",
+     "Pro: ₦40,000 a month, 0.5% per sale"
+    ],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "tip",
+    "eyebrow": "",
+    "headline": "When to upgrade",
+    "text": "When your monthly sales are big enough that the lower fee pays for the plan.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "number",
+    "eyebrow": "",
+    "headline": "",
+    "text": "Pay yearly and get two months free on any paid plan.",
+    "items": [],
+    "number": "2 months free",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "cta",
+    "eyebrow": "",
+    "headline": "Every plan sells anywhere in Nigeria",
+    "text": "Change plans any time in the app.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   }
+  ]
+ },
+ {
+  "slug": "suppliers-join",
+  "title": "Suppliers: let shops sell your stock",
+  "label": "Suppliers",
+  "bg": "#E3EEFD",
+  "fg": "#1F5FBF",
+  "accent": "#1F5FBF",
+  "order": 10,
+  "img": "c/e-camera.webp",
+  "link": "/suppliers/",
+  "cta": "For suppliers",
+  "slides": [
+   {
+    "type": "cover",
+    "eyebrow": "Gist · Suppliers",
+    "headline": "Your warehouse, in hundreds of online shops",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "list",
+    "eyebrow": "",
+    "headline": "How it works",
+    "text": "",
+    "items": [
+     "Join and get verified for free",
+     "List your products once",
+     "Shops add them to their stores or ask for a bulk price",
+     "You pack, a rider picks up, you get paid to your bank"
+    ],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "tip",
+    "eyebrow": "",
+    "headline": "You pay only when it sells",
+    "text": "A small commission per marketplace order, and less on a paid plan.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "cta",
+    "eyebrow": "",
+    "headline": "Apply as a supplier",
+    "text": "You need a CAC-registered business and stock you can pack within 3 days.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   }
+  ]
+ },
+ {
+  "slug": "riders-join",
+  "title": "Riders: jobs near you",
+  "label": "Riders",
+  "bg": "#E2F5EA",
+  "fg": "#16794A",
+  "accent": "#16794A",
+  "order": 11,
+  "img": "c/h-arm.webp",
+  "link": "/delivery/",
+  "cta": "For delivery partners",
+  "slides": [
+   {
+    "type": "cover",
+    "eyebrow": "Gist · Delivery partners",
+    "headline": "Ride with Shopinbos",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "list",
+    "eyebrow": "",
+    "headline": "What you get",
+    "text": "",
+    "items": [
+     "Delivery jobs from shops near you",
+     "Pickup, drop-off and pay shown before you accept",
+     "Your delivery fee paid to your bank",
+     "Free verification and badge"
+    ],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "list",
+    "eyebrow": "",
+    "headline": "What you need",
+    "text": "",
+    "items": [
+     "A valid ID",
+     "A roadworthy bike or vehicle",
+     "A guarantor",
+     "A smartphone and a Nigerian bank account"
+    ],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "cta",
+    "eyebrow": "",
+    "headline": "Register as a rider or company",
+    "text": "Companies also need CAC registration and goods-in-transit insurance.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   }
+  ]
+ },
+ {
+  "slug": "app-pilot",
+  "title": "Try the Shopinbos app first",
+  "label": "App pilot",
+  "bg": "#FF6A2B",
+  "fg": "#16141F",
+  "accent": "#FFFFFF",
+  "order": 12,
+  "img": "c/e-phones.webp",
+  "link": "/app/",
+  "cta": "Join the pilot",
+  "slides": [
+   {
+    "type": "cover",
+    "eyebrow": "Gist · Mobile app",
+    "headline": "Android and iPhone apps are in pilot",
+    "text": "",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "list",
+    "eyebrow": "",
+    "headline": "Pilot testers",
+    "text": "",
+    "items": [
+     "Get the app before everyone else",
+     "Run their shop from their phone",
+     "Tell us what to fix",
+     "Help shape what we build next"
+    ],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "tip",
+    "eyebrow": "",
+    "headline": "It’s a test version",
+    "text": "Things may change or break. Your shop works the same on the web while you test.",
+    "items": [],
+    "number": "",
+    "do": "",
+    "dont": ""
+   },
+   {
+    "type": "cta",
+    "eyebrow": "",
+    "headline": "Join the pilot",
+    "text": "Free. Places are limited and we invite people in small groups.",
     "items": [],
     "number": "",
     "do": "",

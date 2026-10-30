@@ -271,3 +271,5 @@
 	.v9-sc-shots{padding:0 28px 28px 0}
 	.v9-sc-phone{border-radius:14px;box-shadow:0 20px 40px -20px rgba(22,20,31,.55),0 0 0 4px #16141F}
 }
+
+.v9-gist-grid [hidden]{display:none !important}

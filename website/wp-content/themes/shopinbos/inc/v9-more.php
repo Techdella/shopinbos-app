@@ -181,10 +181,18 @@ add_filter( 'sib_v9_fill', function ( string $html, string $slug ): string {
 		$html,
 		1
 	);
-	$cards = implode( '', array_map( 'sib_v9_gist_card', $groups ) );
+	// Two rows of cards, then "See all": the rest stay in the page (hidden) so the button needs no reload.
+	$cap   = 6;
+	$all   = ! empty( $_GET['all'] ); // phpcs:ignore WordPress.Security.NonceVerification
+	$cards = '';
+	foreach ( $groups as $i => $g ) {
+		$card   = sib_v9_gist_card( $g );
+		$cards .= ( ! $all && $i >= $cap ) ? (string) preg_replace( '/^<a /', '<a hidden data-gist-more ', $card ) : $card;
+	}
+	$more = ( ! $all && count( $groups ) > $cap ) ? '<div style="display:flex;justify-content:center;margin-top:32px"><a class="btn b-line" href="/gist/?all=1#all-gist" id="all-gist" data-gist-all>' . esc_html( sprintf( 'See all %d stories', count( $groups ) ) ) . '</a></div>' : '';
 	return (string) preg_replace_callback(
 		'#<div class="g3 rvs" style="display:grid;grid-template-columns:repeat\(3,1fr\);gap:20px;margin-top:40px">.*?</div></div></section>#s',
-		fn() => '<div class="g3 v9-gist-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:40px">' . $cards . '</div></div></section>',
+		fn() => '<div class="g3 v9-gist-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:40px">' . $cards . '</div>' . $more . '</div></section>',
 		$html,
 		1
 	);
