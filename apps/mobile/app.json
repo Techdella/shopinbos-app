@@ -95,7 +95,7 @@
           "isIosBackgroundLocationEnabled": false,
           "locationAlwaysAndWhenInUsePermission": false,
           "locationAlwaysPermission": false,
-          "motionUsagePermission": false
+          "motionUsagePermission": "Shopinbos doesn't use your motion and fitness activity. Your location is shared only while you're online or on a delivery."
         }
       ],
       [
