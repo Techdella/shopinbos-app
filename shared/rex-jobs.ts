@@ -24,6 +24,7 @@ export const REX_JOB_KINDS = [
   "reel_shots",
   "voiceover",
   "store_build",
+  "store_words",
 ] as const;
 export type RexJobKind = (typeof REX_JOB_KINDS)[number];
 

@@ -27,6 +27,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "kind.reel_shots": "Àwọn àwòrán reel",
   "kind.voiceover": "Ohùn",
   "kind.store_build": "Kíkọ́ ṣọ́ọ̀bù",
+  "kind.store_words": "Ọ̀rọ̀ ṣọ́ọ̀bù",
 };
 
 export default yo;

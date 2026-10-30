@@ -27,6 +27,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "kind.reel_shots": "Foto reel",
   "kind.voiceover": "Olu",
   "kind.store_build": "Iwu ụlọ ahịa",
+  "kind.store_words": "Okwu ụlọ ahịa",
 };
 
 export default ig;
