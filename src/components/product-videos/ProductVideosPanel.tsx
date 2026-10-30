@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useT } from "@/components/i18n/I18nProvider";
 import { Icon } from "@/components/ui/Icon";
+import { confirmDialog } from "@/components/ui/dialogs";
 import { clockLabel } from "@shared/status-video";
 import {
   CAPTION_MAX,
@@ -231,7 +232,7 @@ export function ProductVideosPanel({ ownerKind, productId }: { ownerKind: OwnerK
   };
 
   const remove = async (video: Video) => {
-    if (!window.confirm(t("removeConfirm"))) return;
+    if (!(await confirmDialog({ title: t("remove"), message: t("removeConfirm"), confirmLabel: t("removeYes"), cancelLabel: t("keep"), tone: "danger" }))) return;
     setBusy(video.id);
     try {
       await call(`/api/app/product-videos/${video.id}`, { method: "DELETE" });

@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmDialog } from "@/components/ui/dialogs";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardHead, Pill, StatGrid, StatTile, type Tone } from "@/components/app-kit";
@@ -87,7 +88,7 @@ export function FollowersClient({ overview }: { overview: Overview }) {
   async function send() {
     if (checked.problems.length) return setNote({ tone: "error", text: problemText(checked.problems[0]) });
     if (!channels.length) return setNote({ tone: "error", text: t("error.channels") });
-    if (!window.confirm(t("confirm", { count: reachable, left: Math.max(0, allowance.left - 1), cap: allowance.cap }))) return;
+    if (!(await confirmDialog(t("confirm", { count: reachable, left: Math.max(0, allowance.left - 1), cap: allowance.cap })))) return;
     setBusy("send");
     setNote(null);
     try {
