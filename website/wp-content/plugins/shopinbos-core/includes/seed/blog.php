@@ -177,7 +177,7 @@ function sib_seed_blog_posts(): array {
 		. $b( 'checklist', [ 'title' => 'Copy this setup', 'items' => "Add every product with clear photos, pack sizes and prices\nTrack stock for each pack size\nShare the store link on Status every morning\nOffer bundles and a wholesale price for shops\nLet Peggy answer the common questions" ] )
 		. $b( 'cta-inline', [ 'title' => 'Set up your food store', 'text' => 'Rex builds a food store from your product photos, with pack sizes, delivery and pay on delivery.', 'linkLabel' => 'See the Pantry template', 'linkUrl' => '/templates/pantry/' ] );
 
-	return [
+	$posts = [
 		[ 'how-to-get-your-first-10-orders-from-whatsapp-status', 'selling-on-whatsapp', 'How to get your first 10 orders from WhatsApp Status', 'No ad budget needed. Turn the people who already watch your Status into customers, one post at a time.', '2026-10-12 08:00', 'person-hero.webp', '#FFEDE4', 'contain', true, 420, 'turn-your-status-into-a-shop-window', $first10 ],
 		[ 'pay-on-delivery-without-the-stress', 'payments', 'Pay on delivery without the stress: codes, riders and refunds', 'How the 4-digit code stops “I never got it” arguments, and what to do when a buyer refuses at the gate.', '2026-10-09 08:00', 'tote-bag.webp', '#FDF0D5', 'cover', false, 380, '', $pod ],
 		[ 'dropshipping-in-nigeria-what-you-keep', 'find-stock', 'Dropshipping in Nigeria: what you keep and what you risk', 'Real numbers on a ₦28,000 tote bag, from supplier price to your bank account.', '2026-10-06 08:00', 'leather-slides.webp', '#E3EEFD', 'cover', false, 350, '', $drop ],
@@ -188,4 +188,79 @@ function sib_seed_blog_posts(): array {
 		[ 'when-a-delivery-goes-wrong', 'delivery', '“I didn’t order this”: what to do when a delivery goes wrong', 'A calm, step-by-step way to handle wrong items, no-shows and damaged parcels.', '2026-09-16 08:00', 'person-food.webp', '#FDF0D5', 'cover', false, 190, '', $notmine ],
 		[ 'snack-brand-40-orders-a-day', 'seller-stories', 'How a small snack brand takes 40 orders a day without missing one', 'One store link for WhatsApp, Instagram and TikTok, stock that stays right and pay on delivery. An example setup.', '2026-09-11 08:00', 'bread-rolls.webp', '#FFF4DA', 'cover', false, 120, '', $baker ],
 	];
+	// Answer-first opening, question headings, takeaways, FAQ and links (seed/blog-aeo.json).
+	return array_map( function ( array $row ): array {
+		$row[11] = sib_seed_blog_aeo( $row[0], $row[11] );
+		return $row;
+	}, $posts );
+}
+
+/* ---------- Search and answer-engine structure for blog posts (seed/blog-aeo.json) ---------- */
+
+/** The blog post data: per-post opening answer, takeaways, FAQ, question headings, links and search titles. */
+function sib_seed_blog_aeo_data(): array {
+	static $data = null;
+	if ( null === $data ) {
+		$data = (array) json_decode( (string) file_get_contents( __DIR__ . '/blog-aeo.json' ), true );
+	}
+	return $data;
+}
+
+/**
+ * A post's content with the blog structure added: an answer-first opening, question-style headings, a "Key
+ * takeaways" box before the first heading, an FAQ when the post has none, "Read next" links to related posts and
+ * the topic page, and copy fixes (payouts, rider cash, old feature links). Running it again changes nothing.
+ */
+function sib_seed_blog_aeo( string $slug, string $content ): string {
+	$all = sib_seed_blog_aeo_data();
+	$d   = $all['posts'][ $slug ] ?? null;
+	if ( $d && ! empty( $d['content'] ) && ! empty( $d['replace_if'] ) && str_contains( $content, $d['replace_if'] ) ) {
+		$content = $d['content']; // rewritten post
+	}
+	foreach ( array_merge( (array) ( $all['global'] ?? [] ), (array) ( $d['rep'] ?? [] ) ) as $r ) {
+		$content = empty( $r[2] ) ? str_replace( $r[0], $r[1], $content ) : (string) preg_replace( $r[0], $r[1], $content );
+	}
+	if ( ! $d ) {
+		return $content;
+	}
+	$norm = fn( string $t ): string => trim( str_replace( [ '’', '‘', '“', '”', '&#8217;', '&#8216;', '&#8220;', '&#8221;' ], [ "'", "'", '"', '"', "'", "'", '"', '"' ], html_entity_decode( wp_strip_all_tags( $t ), ENT_QUOTES, 'UTF-8' ) ) );
+	if ( ! empty( $d['h2'] ) ) {
+		$map = [];
+		foreach ( $d['h2'] as $from => $to ) {
+			$map[ $norm( $from ) ] = $to;
+		}
+		$content = (string) preg_replace_callback( '#(<h2\b[^>]*>)(.*?)(</h2>)#s', fn( $m ) => isset( $map[ $norm( $m[2] ) ] ) ? $m[1] . esc_html( $map[ $norm( $m[2] ) ] ) . $m[3] : $m[0], $content );
+	}
+	$block = fn( string $name, array $attrs ): string => serialize_block( [ 'blockName' => 'shopinbos/' . $name, 'attrs' => $attrs, 'innerBlocks' => [], 'innerHTML' => '', 'innerContent' => [] ] ) . "\n\n";
+	$para  = fn( string $class, string $html ): string => '<!-- wp:paragraph {"className":"' . $class . '"} -->' . "\n" . '<p class="' . $class . '">' . $html . "</p>\n<!-- /wp:paragraph -->\n\n";
+	// Insert before the first match of $marker (or append).
+	$before = function ( string $content, array $markers, string $insert ): string {
+		foreach ( $markers as $marker ) {
+			$at = strpos( $content, $marker );
+			if ( false !== $at ) {
+				return substr( $content, 0, $at ) . $insert . substr( $content, $at );
+			}
+		}
+		return rtrim( $content ) . "\n\n" . $insert;
+	};
+	if ( ! empty( $d['answer'] ) && ! str_contains( $content, 'sib-answer' ) ) {
+		$content = $para( 'sib-answer', esc_html( $d['answer'] ) ) . ltrim( $content );
+	}
+	if ( ! empty( $d['tk'] ) && ! str_contains( $content, 'wp:shopinbos/takeaways' ) ) {
+		$content = $before( $content, [ '<!-- wp:heading', '<!-- wp:shopinbos/steps' ], $block( 'takeaways', [ 'items' => implode( "\n", $d['tk'] ) ] ) );
+	}
+	if ( ! empty( $d['faq'] ) && ! str_contains( $content, 'wp:shopinbos/faq' ) ) {
+		$items   = implode( "\n", array_map( fn( $qa ) => $qa[0] . ' | ' . $qa[1], $d['faq'] ) );
+		$content = $before( $content, [ '<!-- wp:shopinbos/cta-inline' ], $block( 'faq', [ 'title' => 'Questions sellers ask', 'items' => $items, 'openFirst' => true ] ) );
+	}
+	if ( ! empty( $d['related'] ) && ! str_contains( $content, 'sib-related' ) ) {
+		$links = array_map( fn( $r ) => '<a href="' . esc_url( '/blog/' . $r[0] . '/' ) . '">' . esc_html( $r[1] ) . '</a>', $d['related'] );
+		$last  = array_pop( $links );
+		$html  = '<strong>Read next:</strong> ' . ( $links ? implode( ', ', $links ) . ' and ' : '' ) . $last . '.';
+		if ( ! empty( $d['topic'] ) ) {
+			$html .= ' See also <a href="' . esc_url( $d['topic'][0] ) . '">' . esc_html( $d['topic'][1] ) . '</a>.';
+		}
+		$content = $before( $content, [ '<!-- wp:shopinbos/faq', '<!-- wp:shopinbos/cta-inline' ], $para( 'sib-related', $html ) );
+	}
+	return $content;
 }

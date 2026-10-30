@@ -131,6 +131,7 @@ function sib_v9_redirects(): array {
 		// Sign-up waitlists end at launch: the waitlist goes to Shopinbos Plug, the ads landing page to the app pilot.
 		'#^/waitlist/?$#'                                           => '/plug/',
 		'#^/(join|lp/join)/?$#'                                     => '/app/',
+		'#^/blog/(page/\\d+|tag/[^/]+)/?$#'                        => '/blog/', // category and author pages: v9-blog.php
 		// V9 never names other companies: comparison pages that do go to the general comparison.
 		'#^/compare/(?!global-store-builder/?$)[^/]+/?$#'           => '/compare/',
 	];
@@ -312,3 +313,4 @@ require_once __DIR__ . '/v9-more.php';
 require_once __DIR__ . '/v9-for.php';
 require_once __DIR__ . '/v9-academy.php';
 require_once __DIR__ . '/v9-help.php';
+require_once __DIR__ . '/v9-blog.php';

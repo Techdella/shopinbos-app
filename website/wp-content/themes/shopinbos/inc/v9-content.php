@@ -74,31 +74,39 @@ function sib_v9_blog_post(): ?array {
 		return null;
 	}
 	[ $body, $toc ] = sib_v9_prose( $post );
-	$cat            = get_the_category( $post->ID );
-	$cat            = $cat ? $cat[0]->name : __( 'Guides', 'shopinbos' );
+	$body           = sib_v9_blog_insert_cta( $body, $post );
+	$cat            = sib_v9_blog_cat( $post );
 	$dek            = (string) ( get_post_meta( $post->ID, 'sib_dek', true ) ?: ( has_excerpt( $post ) ? get_the_excerpt( $post ) : '' ) );
 	$img            = get_the_post_thumbnail_url( $post, 'full' );
-	$share          = function_exists( 'sib_whatsapp_share_url' ) ? sib_whatsapp_share_url( get_the_title( $post ) . ' ' . get_permalink( $post ) ) : 'https://wa.me/?text=' . rawurlencode( get_permalink( $post ) );
+	[ $seo_title, $seo_desc ] = sib_v9_blog_seo( $post );
+	$tag            = $cat ? '<a class="tg og" href="' . esc_url( sib_v9_blog_cat_url( $cat ) ) . '">' . esc_html( $cat->name ) . '</a>' : '<span class="tg og">' . esc_html__( 'Guides', 'shopinbos' ) . '</span>';
+	$updated        = get_post_modified_time( 'U', true, $post ) - get_post_time( 'U', true, $post ) > DAY_IN_SECONDS ? ' · ' . sprintf( /* translators: %s: date */ __( 'Updated %s', 'shopinbos' ), get_the_modified_date( 'j F Y', $post ) ) : '';
 
 	$h  = '<section style="padding:72px 0 40px"><div class="wrap" style="max-width:980px"><a href="/blog/" class="more mutd" style="font-size:14px">← ' . esc_html__( 'Blog', 'shopinbos' ) . '</a>';
-	$h .= '<div style="display:flex;gap:10px;align-items:center;margin-top:28px"><span class="tg og">' . esc_html( $cat ) . '</span><span class="mutd" style="font-size:14px">' . esc_html( sprintf( '%d min read · %s', sib_v9_minutes( $post ), get_the_date( 'j F Y', $post ) ) ) . '</span></div>';
+	$h .= '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:28px">' . $tag . '<span class="mutd" style="font-size:14px">' . esc_html( sprintf( '%d min read · %s', sib_v9_minutes( $post ), get_the_date( 'j F Y', $post ) ) . $updated ) . '</span></div>';
 	$h .= '<h1 class="H up" style="font-size:clamp(40px,5vw,72px);line-height:1;margin-top:18px">' . esc_html( get_the_title( $post ) ) . '</h1>';
-	$h .= '<div style="display:flex;gap:12px;align-items:center;margin-top:28px"><img decoding="async" src="' . esc_url( get_theme_file_uri( 'v9/img/ca93d894250e7589d5b88c477d36f7d7.webp' ) ) . '" alt="" style="width:44px;height:44px;border-radius:99px;background:#FF6A2B;padding:8px"><div><b>' . esc_html__( 'Shopinbos team', 'shopinbos' ) . '</b><div class="mutd" style="font-size:13.5px">' . esc_html__( 'Guides for sellers', 'shopinbos' ) . '</div></div></div></div></section>';
+	$h .= sib_v9_blog_byline( $post ) . '</div></section>';
 	if ( $img ) {
-		$h .= '<section style="padding:0 0 40px"><div class="wrap"><div style="height:560px;border-radius:32px;overflow:hidden" class="grow v9-feat"><img fetchpriority="high" decoding="async" src="' . esc_url( $img ) . '" alt="' . esc_attr( get_the_title( $post ) ) . '" style="width:100%;height:100%;object-fit:cover"></div></div></section>';
+		$h .= '<section style="padding:0 0 40px"><div class="wrap"><div style="height:560px;border-radius:32px;overflow:hidden" class="grow v9-feat"><img fetchpriority="high" decoding="async" src="' . esc_url( $img ) . '" alt="' . esc_attr( sib_v9_blog_alt( $post ) ) . '" style="width:100%;height:100%;object-fit:cover"></div>' . sib_v9_blog_credit( $post ) . '</div></section>';
 	}
 	$h .= '<section style="padding:56px 0 120px"><div class="wrap g2" style="display:grid;grid-template-columns:260px 1fr;gap:72px;max-width:1120px">';
 	$h .= '<aside class="hm"><div style="position:sticky;top:24px;display:flex;flex-direction:column;gap:12px;font-size:14.5px">' . ( $toc ? '<span class="k mutd">' . esc_html__( 'On this page', 'shopinbos' ) . '</span>' . sib_v9_toc( $toc ) : '' );
-	$h .= '<div style="margin-top:20px;display:flex;gap:8px;flex-wrap:wrap"><a class="tg" href="' . esc_url( $share ) . '" target="_blank" rel="noopener">' . esc_html__( 'Share on WhatsApp', 'shopinbos' ) . '</a><a class="tg" href="' . esc_url( get_permalink( $post ) ) . '" data-copy>' . esc_html__( 'Copy link', 'shopinbos' ) . '</a></div></div></aside>';
-	$h .= '<article style="min-width:0;max-width:700px">' . ( $dek ? '<p class="lead" style="font-size:21px;color:#16141F">' . esc_html( $dek ) . '</p>' : '' ) . '<div class="v9-prose">' . $body . '</div></article></div></section>';
+	$h .= '<span class="k mutd" style="margin-top:20px">' . esc_html__( 'Share', 'shopinbos' ) . '</span>' . sib_v9_blog_share( $post, 'side' ) . '</div></aside>';
+	$h .= '<article style="min-width:0;max-width:700px">' . ( $dek ? '<p class="lead" style="font-size:21px;color:#16141F">' . esc_html( $dek ) . '</p>' : '' ) . '<div class="v9-prose">' . $body . '</div>' . sib_v9_blog_end( $post ) . '</article></div></section>';
 	$h .= sib_v9_related( $post );
 	$h .= sib_v9_section( 'blog-post', 'night' );
 
+	$crumbs = [ [ __( 'Blog', 'shopinbos' ), home_url( '/blog/' ) ] ];
+	if ( $cat ) {
+		$crumbs[] = [ $cat->name, sib_v9_blog_cat_url( $cat ) ];
+	}
+	$crumbs[] = [ get_the_title( $post ), get_permalink( $post ) ];
 	return [
-		'slug'   => 'blog-post',
-		'html'   => sib_v9_wrap( $h ),
-		'title'  => (string) ( get_post_meta( $post->ID, 'sib_meta_title', true ) ?: get_the_title( $post ) ) . ' · Shopinbos',
-		'crumbs' => [ [ __( 'Blog', 'shopinbos' ), home_url( '/blog/' ) ] ],
+		'slug'        => 'blog-post',
+		'html'        => sib_v9_wrap( $h ),
+		'title'       => $seo_title . ( str_contains( $seo_title, 'Shopinbos' ) || mb_strlen( $seo_title ) > 48 ? '' : ' · Shopinbos' ),
+		'description' => $seo_desc,
+		'crumbs'      => $crumbs,
 	];
 }
 
@@ -118,7 +126,7 @@ function sib_v9_related( WP_Post $post ): string {
 		$img    = get_the_post_thumbnail_url( $p, 'large' );
 		$dek    = (string) ( get_post_meta( $p->ID, 'sib_dek', true ) ?: get_the_excerpt( $p ) );
 		$cards .= '<a href="' . esc_url( get_permalink( $p ) ) . '" class="lift" style="min-width:0;display:flex;flex-direction:column">'
-			. '<div class="zm" style="height:240px;border-radius:24px;overflow:hidden;background:#EFEBE4">' . ( $img ? '<img decoding="async" loading="lazy" src="' . esc_url( $img ) . '" alt="" style="width:100%;height:100%;object-fit:cover">' : '' ) . '</div>'
+			. '<div class="zm" style="height:240px;border-radius:24px;overflow:hidden;background:#EFEBE4">' . ( $img ? '<img decoding="async" loading="lazy" src="' . esc_url( $img ) . '" alt="' . esc_attr( sib_v9_blog_alt( $p ) ) . '" style="width:100%;height:100%;object-fit:cover">' : '' ) . '</div>'
 			. '<div style="display:flex;gap:10px;align-items:center;margin-top:18px"><span class="tg og">' . esc_html( $cat ? $cat[0]->name : 'Guides' ) . '</span><span class="mutd" style="font-size:13px">' . esc_html( sib_v9_minutes( $p ) . ' min read' ) . '</span></div>'
 			. '<div class="H" style="font-size:24px;line-height:1.1;margin-top:12px">' . esc_html( get_the_title( $p ) ) . '</div>'
 			. '<p class="p mutd" style="margin-top:8px;font-size:15.5px">' . esc_html( wp_html_excerpt( $dek, 140, '…' ) ) . '</p></a>';
@@ -132,7 +140,7 @@ function sib_v9_card( WP_Post $p, bool $lazy = true ): string {
 	$img = get_the_post_thumbnail_url( $p, 'large' );
 	$dek = (string) ( get_post_meta( $p->ID, 'sib_dek', true ) ?: get_the_excerpt( $p ) );
 	return '<a href="' . esc_url( get_permalink( $p ) ) . '" class="lift" style="min-width:0;display:flex;flex-direction:column">'
-		. '<div class="zm" style="height:240px;border-radius:24px;overflow:hidden;background:#EFEBE4">' . ( $img ? '<img decoding="async"' . ( $lazy ? ' loading="lazy"' : '' ) . ' src="' . esc_url( $img ) . '" alt="" style="width:100%;height:100%;object-fit:cover">' : '' ) . '</div>'
+		. '<div class="zm" style="height:240px;border-radius:24px;overflow:hidden;background:#EFEBE4">' . ( $img ? '<img decoding="async"' . ( $lazy ? ' loading="lazy"' : '' ) . ' src="' . esc_url( $img ) . '" alt="' . esc_attr( sib_v9_blog_alt( $p ) ) . '" style="width:100%;height:100%;object-fit:cover">' : '' ) . '</div>'
 		. '<div style="display:flex;gap:10px;align-items:center;margin-top:18px"><span class="tg og">' . esc_html( $cat ? $cat[0]->name : 'Guides' ) . '</span><span class="mutd" style="font-size:13px">' . esc_html( sib_v9_minutes( $p ) . ' min read' ) . '</span></div>'
 		. '<div class="H" style="font-size:24px;line-height:1.1;margin-top:12px">' . esc_html( get_the_title( $p ) ) . '</div>'
 		. '<p class="p mutd" style="margin-top:8px;font-size:15.5px">' . esc_html( wp_html_excerpt( $dek, 140, '…' ) ) . '</p></a>';
@@ -163,7 +171,7 @@ add_filter( 'sib_v9_fill', function ( string $html, string $slug ): string {
 	// Topic chips: the categories that have posts.
 	$chips = '<a class="chip' . ( $topic ? '' : ' on' ) . '" href="/blog/">' . esc_html__( 'All', 'shopinbos' ) . '</a>';
 	foreach ( get_categories( [ 'hide_empty' => true, 'orderby' => 'count', 'order' => 'DESC', 'number' => 9, 'exclude' => [ (int) get_option( 'default_category' ) ] ] ) as $c ) {
-		$chips .= '<a class="chip' . ( $topic === $c->slug ? ' on' : '' ) . '" href="' . esc_url( add_query_arg( 'topic', $c->slug, '/blog/' ) ) . '">' . esc_html( $c->name ) . '</a>';
+		$chips .= '<a class="chip' . ( $topic === $c->slug ? ' on' : '' ) . '" href="' . esc_url( sib_v9_blog_cat_url( $c ) ) . '">' . esc_html( $c->name ) . '</a>';
 	}
 	$html = (string) preg_replace( '#(<div class="up d3"[^>]*>)(?:<span class="chip[^"]*">[^<]*</span>)+#', '$1' . str_replace( '$', '\\$', $chips ), $html, 1 );
 
@@ -174,9 +182,9 @@ add_filter( 'sib_v9_fill', function ( string $html, string $slug ): string {
 		$img  = get_the_post_thumbnail_url( $feat, 'full' );
 		$dek  = (string) ( get_post_meta( $feat->ID, 'sib_dek', true ) ?: get_the_excerpt( $feat ) );
 		$card = '<a href="' . esc_url( get_permalink( $feat ) ) . '" class="g2 lift rv" style="display:grid;grid-template-columns:1.2fr 1fr;gap:56px;align-items:center">'
-			. '<div class="zm" style="height:520px;border-radius:32px;overflow:hidden;background:#EFEBE4">' . ( $img ? '<img decoding="async" fetchpriority="high" src="' . esc_url( $img ) . '" alt="" style="width:100%;height:100%;object-fit:cover">' : '' ) . '</div>'
+			. '<div class="zm" style="height:520px;border-radius:32px;overflow:hidden;background:#EFEBE4">' . ( $img ? '<img decoding="async" fetchpriority="high" src="' . esc_url( $img ) . '" alt="' . esc_attr( sib_v9_blog_alt( $feat ) ) . '" style="width:100%;height:100%;object-fit:cover">' : '' ) . '</div>'
 			. '<div style="display:flex;flex-direction:column;gap:16px"><span class="k orgd">' . esc_html( 'Featured · ' . ( $cat ? $cat[0]->name : 'Guides' ) ) . '</span><div class="H" style="font-size:clamp(34px,3.6vw,54px);line-height:1.02">' . esc_html( get_the_title( $feat ) ) . '</div>'
-			. '<p class="lead" style="font-size:18px">' . esc_html( wp_html_excerpt( $dek, 200, '…' ) ) . '</p><span class="mutd" style="font-size:14px">' . esc_html( sib_v9_minutes( $feat ) . ' min read · Shopinbos team' ) . '</span><span class="more">' . esc_html__( 'Read the guide', 'shopinbos' ) . ' →</span></div></a>';
+			. '<p class="lead" style="font-size:18px">' . esc_html( wp_html_excerpt( $dek, 200, '…' ) ) . '</p><span class="mutd" style="font-size:14px">' . esc_html( sib_v9_minutes( $feat ) . ' min read · ' . ( get_the_author_meta( 'display_name', (int) $feat->post_author ) ?: 'Shopinbos team' ) ) . '</span><span class="more">' . esc_html__( 'Read the guide', 'shopinbos' ) . ' →</span></div></a>';
 		$html = (string) preg_replace_callback( '#<a href="/blog/" class="g2 lift rv".*?</a>#s', fn() => $card, $html, 1 );
 	} else {
 		$html = (string) preg_replace( '#<section class="sec" style="background:\#fff;"><div class="wrap"><a href="/blog/" class="g2 lift rv".*?</section>#s', '', $html, 1 );

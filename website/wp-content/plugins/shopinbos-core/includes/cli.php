@@ -143,6 +143,7 @@ class Sib_CLI {
 		sib_build_sitemap();
 		$this->text_fixes(); // before the search fields, which are built from the (now fixed) excerpts
 		$this->seo_meta();
+		$this->blog_refresh();
 		[ $webp, $alts ] = sib_media_optimise();
 		WP_CLI::log( "Images: {$webp} WebP copies made, {$alts} alt texts filled in" );
 		WP_CLI::success( 'Shopinbos is set up. Front page: ' . get_permalink( $home ) );
@@ -1013,6 +1014,107 @@ class Sib_CLI {
 			update_post_meta( $post->ID, 'sib_last_checked', get_the_modified_date( 'Y-m-d', $post ) );
 			WP_CLI::log( "Moved blog post {$slug} to /compare/{$slug}/" );
 		}
+	}
+
+	/**
+	 * Blog posts: their own featured photo each (seed/blog-media, credits in credits.json), the answer-first
+	 * structure, takeaways, FAQ, links and search titles from seed/blog-aeo.json, topic descriptions and the
+	 * team author's byline. Text is only changed in posts nobody has edited (setup's fingerprint, or never edited
+	 * since setup created them); photos only replace setup's own images or photos shared by several posts; search
+	 * titles only replace empty fields or values setup wrote. Safe to run again.
+	 */
+	private function blog_refresh(): void {
+		require_once SIB_CORE_DIR . '/includes/seed/blog.php';
+		$data    = sib_seed_blog_aeo_data();
+		$dir     = SIB_CORE_DIR . '/includes/seed/blog-media';
+		$credits = (array) json_decode( (string) @file_get_contents( $dir . '/credits.json' ), true ); // phpcs:ignore
+		$team    = $this->team_author();
+		$user    = get_userdata( $team );
+		if ( $user && str_contains( (string) $user->description, 'checked with sellers in Lagos' ) ) {
+			wp_update_user( [ 'ID' => $team, 'description' => 'Plain, practical guides on selling online in Nigeria, written by the people who build Shopinbos: stores, payments, delivery and finding stock.' ] );
+		}
+		if ( ! get_user_meta( $team, 'sib_author_role', true ) ) {
+			update_user_meta( $team, 'sib_author_role', 'Editorial team' );
+		}
+		foreach ( [
+			'how-to-sell'   => 'Practical guides on selling online in Nigeria: bundles, blogging, AI tools and getting your store ready for busy seasons.',
+			'what-to-sell'  => 'Product ideas for Nigerian online sellers, from handmade goods to gadgets, and how to check demand before you buy stock.',
+			'where-to-sell' => 'Where to sell online in Nigeria: your own store, WhatsApp, Instagram, TikTok and Facebook, and how to bring them together.',
+			'start-a-shop'  => 'Starting an online shop in Nigeria: what to sell, how to set up your store and how to get your first orders.',
+		] as $slug => $about ) {
+			$term = get_term_by( 'slug', $slug, 'category' );
+			if ( $term && '' === trim( $term->description ) ) {
+				wp_update_term( $term->term_id, 'category', [ 'description' => $about ] );
+			}
+		}
+		$shared = [];
+		foreach ( get_posts( [ 'post_type' => 'post', 'post_status' => [ 'publish', 'future', 'draft' ], 'numberposts' => -1, 'fields' => 'ids' ] ) as $id ) {
+			$shared[ (int) get_post_thumbnail_id( $id ) ][] = $id;
+		}
+		$done = [ 0, 0, 0 ];
+		foreach ( (array) ( $data['posts'] ?? [] ) as $slug => $d ) {
+			$post = get_page_by_path( $slug, OBJECT, 'post' ) ?: ( empty( $d['new_slug'] ) ? null : get_page_by_path( $d['new_slug'], OBJECT, 'post' ) );
+			if ( ! $post || 'post' !== $post->post_type ) {
+				continue;
+			}
+			if ( ! get_userdata( (int) $post->post_author ) ) {
+				wp_update_post( [ 'ID' => $post->ID, 'post_author' => $team ] );
+			}
+			$untouched = $this->replaceable( $post ) || ( ! get_post_meta( $post->ID, '_sib_seed_hash', true ) && $post->post_modified_gmt === $post->post_date_gmt );
+			if ( $untouched ) {
+				$new = sib_seed_blog_aeo( $slug, $post->post_content );
+				$set = [];
+				if ( $new !== $post->post_content ) {
+					$set['post_content'] = $new;
+				}
+				if ( ! empty( $d['new_slug'] ) && $post->post_name !== $d['new_slug'] ) {
+					$set += [ 'post_name' => $d['new_slug'], 'post_title' => $d['title'], 'post_excerpt' => $d['excerpt'] ?? $post->post_excerpt ];
+				} elseif ( ! empty( $d['title'] ) && $post->post_title !== $d['title'] && empty( $d['new_slug'] ) ) {
+					$set += [ 'post_title' => $d['title'], 'post_excerpt' => $d['excerpt'] ?? $post->post_excerpt ];
+				}
+				if ( $set ) {
+					wp_update_post( wp_slash( [ 'ID' => $post->ID ] + $set ) );
+					$this->fingerprint( $post->ID );
+					$done[0]++;
+				}
+				if ( ! empty( $d['category'] ) && ! has_category( $d['category'], $post ) && ( $cat = get_term_by( 'slug', $d['category'], 'category' ) ) ) {
+					wp_set_object_terms( $post->ID, [ $cat->term_id ], 'category' );
+				}
+			}
+			// Search title and description: fill empty fields or replace what setup wrote before.
+			$was = array_merge( (array) ( $d['was'] ?? [] ), array_values( (array) get_post_meta( $post->ID, '_sib_seo_auto', true ) ), (array) get_post_meta( $post->ID, '_sib_blog_seo', true ) );
+			foreach ( [ 'mt' => [ 'rank_math_title', '_yoast_wpseo_title' ], 'md' => [ 'rank_math_description', '_yoast_wpseo_metadesc' ] ] as $k => $keys ) {
+				foreach ( empty( $d[ $k ] ) ? [] : $keys as $key ) {
+					$cur = (string) get_post_meta( $post->ID, $key, true );
+					if ( $cur !== $d[ $k ] && ( '' === $cur || in_array( $cur, $was, true ) ) ) {
+						update_post_meta( $post->ID, $key, $d[ $k ] );
+					}
+				}
+			}
+			if ( ! empty( $d['kw'] ) ) {
+				update_post_meta( $post->ID, 'rank_math_focus_keyword', $d['kw'] );
+			}
+			update_post_meta( $post->ID, '_sib_blog_seo', array_values( array_filter( [ $d['mt'] ?? '', $d['md'] ?? '' ] ) ) );
+			// Featured photo.
+			$c = $credits[ $d['new_slug'] ?? '' ] ?? $credits[ $slug ] ?? null;
+			if ( $c && is_readable( $dir . '/' . $c['file'] ) ) {
+				$att = $this->media_from( $dir . '/' . $c['file'], (string) ( $d['title'] ?? $post->post_title ) );
+				if ( $att ) {
+					update_post_meta( $att, '_wp_attachment_image_alt', $c['alt'] );
+					update_post_meta( $att, 'sib_credit', [ 'name' => $c['photographer'], 'url' => $c['unsplash_url'], 'profile' => $c['photographer_url'] ] );
+					$cur = (int) get_post_thumbnail_id( $post->ID );
+					$ours = ! $cur || get_post_meta( $cur, '_sib_source', true ) || count( $shared[ $cur ] ?? [] ) > 1;
+					if ( $cur !== $att && $ours ) {
+						set_post_thumbnail( $post->ID, $att );
+						update_post_meta( $post->ID, 'sib_cover_fit', 'cover' );
+						delete_post_meta( $post->ID, 'sib_cover' );
+						$done[1]++;
+					}
+				}
+			}
+			$done[2]++;
+		}
+		WP_CLI::log( "Blog: {$done[0]} posts updated, {$done[1]} featured photos set, {$done[2]} posts checked" );
 	}
 
 	/** "Shopinbos team" author for posts written by the team. */

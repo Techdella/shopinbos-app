@@ -1,0 +1,1727 @@
+{
+ "global": [
+  [
+   "riders pay cash in by 6pm the same day",
+   "the delivery partner pays the cash in by a 6pm deadline"
+  ],
+  [
+   "riders pay the cash in by 6pm the same day",
+   "the delivery partner pays the cash in by a 6pm deadline"
+  ],
+  [
+   "riders paying cash in by 6pm the same day",
+   "the delivery partner paying the cash in by a 6pm deadline"
+  ],
+  [
+   "Riders pay the cash in by 6pm the same day, so your money isn't sitting with someone for a week",
+   "Delivery partners pay the cash in by a 6pm deadline, so cash is not left sitting with a rider"
+  ],
+  [
+   "Riders pay the cash in by 6pm the same day, so your money isn’t sitting with someone for a week",
+   "Delivery partners pay the cash in by a 6pm deadline, so cash is not left sitting with a rider"
+  ],
+  [
+   "Riders pay the cash in by 6pm the same day",
+   "Delivery partners pay the cash in by a 6pm deadline"
+  ],
+  [
+   "Riders pass the cash on by 6pm the same day",
+   "Delivery partners pay the cash in by a 6pm deadline"
+  ],
+  [
+   "6pm | Riders pay in cash the same evening",
+   "6pm | Deadline for delivery partners to pay the cash in"
+  ],
+  [
+   "go straight to your Shopinbos balance",
+   "are paid out to your bank through Paystack"
+  ],
+  [
+   "matched to the order and added to your balance",
+   "matched to the order and paid out to your bank through Paystack"
+  ],
+  [
+   "#(href=\"[^\"]*?)\\?srsltid=[A-Za-z0-9_-]+#",
+   "$1",
+   true
+  ],
+  [
+   "href=\"/features/storefront/\"",
+   "href=\"/online-store/\""
+  ],
+  [
+   "href=\"/features/sell-on-whatsapp/\"",
+   "href=\"/social-selling/\""
+  ],
+  [
+   "href=\"/features/social-selling/\"",
+   "href=\"/social-selling/\""
+  ],
+  [
+   "href=\"/features/payments/\"",
+   "href=\"/payments/\""
+  ],
+  [
+   "href=\"/features/pay-on-delivery/\"",
+   "href=\"/payments/\""
+  ],
+  [
+   "href=\"/features/logistics/\"",
+   "href=\"/delivery/\""
+  ],
+  [
+   "href=\"/features/dropshipping/\"",
+   "href=\"/find-stock/\""
+  ],
+  [
+   "href=\"/features/peggy-ai/\"",
+   "href=\"/rex-and-peggy/\""
+  ],
+  [
+   "href=\"/marketplace/\"",
+   "href=\"/find-stock/\""
+  ],
+  [
+   "#href=\"/solutions/(fashion|food|beauty|electronics)/\"#",
+   "href=\"/online-store/\"",
+   true
+  ],
+  [
+   "href=\"/blog/product-description-examples-templates-that-convert/\"",
+   "href=\"/academy/\""
+  ],
+  [
+   "href=\"/blog/product-pricing-strategy/\"",
+   "href=\"/blog/pricing-when-the-naira-moves/\""
+  ],
+  [
+   "href=\"/blog/reduce-cart-abandonment\"",
+   "href=\"/blog/\""
+  ],
+  [
+   "Each order has a 4-digit code that the customer gives the rider, and the delivery partner pays the cash in by a 6pm deadline.",
+   "The customer pays your shop at the door by transfer, card or USSD, then gets a 4-digit code to give the rider, so riders never handle cash."
+  ],
+  [
+   "On Shopinbos, each order has a 4-digit code the customer gives the rider, and the delivery partner pays the cash in by a 6pm deadline.",
+   "On Shopinbos, the customer pays your shop at the door by transfer, card or USSD, then gets a 4-digit code to give the rider, so riders never handle cash."
+  ],
+  [
+   "If you offer pay on delivery, each order has a 4-digit code the customer gives the rider, and the delivery partner pays the cash in by a 6pm deadline.",
+   "If you offer pay on delivery, the customer pays your shop at the door by transfer, card or USSD, then gets a 4-digit code to give the rider, so riders never handle cash."
+  ],
+  [
+   "Each order has a 4-digit code the customer gives the rider, and the delivery partner pays the cash in by a 6pm deadline.",
+   "The customer pays your shop at the door by transfer, card or USSD, then gets a 4-digit code to give the rider, so riders never handle cash."
+  ],
+  [
+   "The customer gives the rider a 4-digit code, and the delivery partner pays the cash in by a 6pm deadline.",
+   "The customer pays your shop at the door by transfer, card or USSD, then gets a 4-digit code to give the rider, so riders never handle cash."
+  ],
+  [
+   "The customer gives the rider a 4-digit code and the delivery partner pays the cash in by a 6pm deadline.",
+   "The customer pays your shop at the door by transfer, card or USSD, then gets a 4-digit code to give the rider, so riders never handle cash."
+  ],
+  [
+   "with a 4-digit code for each order and the delivery partner paying the cash in by a 6pm deadline",
+   "where the customer pays your shop at the door by transfer, card or USSD, then gives the rider a 4-digit code"
+  ],
+  [
+   "with a 4-digit code the customer gives the rider, and the delivery partner pays the cash in by a 6pm deadline.",
+   "where the customer pays your shop at the door by transfer, card or USSD, then gives the rider a 4-digit code."
+  ],
+  [
+   "The customer pays the rider when the item arrives, by cash or transfer.",
+   "The customer pays your shop when the item arrives, by transfer, card or USSD, from a link sent to their phone or the rider’s QR code."
+  ],
+  [
+   "The risk moves to you: the rider might be stuck with an unwanted item, or cash might go missing.",
+   "The risk moves to you: a buyer might change their mind at the door, and the parcel comes back."
+  ],
+  [
+   "Each order has a <strong>4-digit code</strong>. The customer gives the code to the rider when they receive and pay for the item.",
+   "At the door the customer pays your shop by transfer, card or USSD, from a link sent to their phone or the rider’s QR code. Then they get a <strong>4-digit code</strong> to give the rider."
+  ],
+  [
+   "#<strong>Delivery partners pay the cash in by a 6pm deadline</strong>, so your money isn.t sitting with someone for a week\\.#u",
+   "<strong>Riders never handle cash.</strong> The rider types in the code, the app shows Paid, and only then is the parcel handed over.",
+   true
+  ],
+  [
+   "Option 4: Pay on delivery without the cash headache",
+   "Option 4: Pay on delivery, paid to your shop at the door"
+  ],
+  [
+   "You record pay on delivery cash separately until it is paid in",
+   "You check each pay on delivery order shows Paid before the parcel is handed over"
+  ],
+  [
+   "#<strong>Leaving cash with riders for days\\.</strong> Same-day cash-in protects you\\.#u",
+   "<strong>Letting buyers pay a rider in cash.</strong> On Shopinbos the customer pays your shop at the door, so there is no cash to chase.",
+   true
+  ],
+  [
+   "#It.s safer when each order has a confirmation code and riders pay cash in the same day\\.#u",
+   "It’s safer when the customer pays your shop at the door before they get the delivery code, so riders never hold cash.",
+   true
+  ],
+  [
+   "Card, transfer, USSD, or cash to the rider with a 4-digit code.",
+   "Card, transfer or USSD now, or pay on delivery: they pay your shop at the door, then give the rider a 4-digit code."
+  ],
+  [
+   "18:00 | Pay on delivery cash confirmed with codes and paid in.",
+   "18:00 | Pay on delivery orders checked: each one paid at the door before the code was given."
+  ],
+  [
+   "Please check your item before you pay the rider and give your delivery code.",
+   "Please check your item when it arrives, before you give the rider your delivery code."
+  ],
+  [
+   "That means less cash floating around with riders and fewer disputes",
+   "That means no cash with riders and fewer disputes"
+  ],
+  [
+   "Delivery partners pay the cash in by a 6pm deadline",
+   "Customers pay your shop at the door, so riders never handle cash"
+  ]
+ ],
+ "posts": {
+  "snack-brand-40-orders-a-day": {
+   "mt": "How a snack business handles 40 orders a day (example)",
+   "md": "An example snack business takes 40 orders a day from WhatsApp, Instagram and TikTok with one store link, stock that stays right and pay on delivery.",
+   "answer": "This is an example setup, not a real customer’s results. A snack business can handle 40 orders a day without missing one by sending every buyer to one store link, keeping orders and stock in one list, and letting Peggy answer the common questions. The owner then spends the day packing, not typing.",
+   "tk": [
+    "Share one store link instead of a price list picture",
+    "Keep orders from every channel in one list",
+    "Let stock go down with each sale, so you never sell what is not on the shelf",
+    "Let Peggy answer repeat questions and step in for bulk orders"
+   ],
+   "h2": {
+    "1. A store link, not a price list picture": "Why send a store link instead of a price list picture?",
+    "2. Every order in one list": "How do you keep every order in one list?",
+    "3. Fewer chats, more selling": "How do you spend less time in chats?"
+   },
+   "faq": [
+    [
+     "How many orders a day can one person handle?",
+     "It depends on packing and delivery more than chats. When orders, payments and stock sit in one list, one person can focus on packing while the store link takes the orders."
+    ],
+    [
+     "Can customers still order on WhatsApp?",
+     "Yes. Share the store link in chats and on Status. Customers pick items and pay, or choose pay on delivery, and the order lands in the same list."
+    ],
+    [
+     "Can I offer pay on delivery for snacks?",
+     "Yes, on the Growth and Pro plans. The customer pays your shop at the door by transfer, card or USSD, then gives the rider a 4-digit code before the parcel is handed over."
+    ]
+   ],
+   "rep": [
+    [
+     "Yes, on the Growth and Pro plans. Each order has a 4-digit code the customer gives the rider, so you know the parcel was received.",
+     "Yes, on the Growth and Pro plans. The customer pays your shop at the door by transfer, card or USSD, then gives the rider a 4-digit code before the parcel is handed over."
+    ]
+   ],
+   "related": [
+    [
+     "pay-on-delivery-without-the-stress",
+     "Pay on delivery without the stress: codes, riders and refunds"
+    ],
+    [
+     "how-to-get-your-first-10-orders-from-whatsapp-status",
+     "How to get your first 10 orders from WhatsApp Status"
+    ],
+    [
+     "product-photo-tips-phone-and-window",
+     "10 product photo tips using only your phone and a window"
+    ]
+   ],
+   "topic": [
+    "/online-store/",
+    "how to build your online store"
+   ],
+   "cat": "seller-stories",
+   "was": [
+    "How a small snack brand takes 40 orders a day without…",
+    "One store link for WhatsApp, Instagram and TikTok, stock that stays right and pay on delivery. An example setup. A plain-word guide for people selling…"
+   ]
+  },
+  "when-a-delivery-goes-wrong": {
+   "mt": "Delivery gone wrong? What sellers should do next",
+   "md": "Wrong item, no-show or damaged parcel? A calm, step-by-step way for online sellers to handle a delivery that goes wrong and keep the customer.",
+   "answer": "When a delivery goes wrong, stay calm, check the order and ask the customer for a photo before you reply. Then fix it in a way that keeps the customer: swap a wrong item, rebook a no-show once, and replace or refund a damaged parcel. Most problems are mix-ups, not lies.",
+   "tk": [
+    "Check what was ordered, packed and delivered before you reply",
+    "Ask for a photo, then offer one clear fix",
+    "Rebook a no-show once and agree a time",
+    "Photograph every parcel before it leaves"
+   ],
+   "h2": {
+    "1. Stay calm and get the facts": "What should you do first when a delivery goes wrong?",
+    "2. Wrong item": "What if the customer got the wrong item?",
+    "3. Customer not around": "What if the customer is not around?",
+    "4. Damaged parcel": "What if the parcel arrives damaged?"
+   },
+   "related": [
+    [
+     "pay-on-delivery-without-the-stress",
+     "Pay on delivery without the stress: codes, riders and refunds"
+    ],
+    [
+     "dropshipping-in-nigeria-what-you-keep",
+     "Dropshipping in Nigeria: what you keep and what you risk"
+    ],
+    [
+     "how-to-get-your-first-10-orders-from-whatsapp-status",
+     "How to get your first 10 orders from WhatsApp Status"
+    ]
+   ],
+   "topic": [
+    "/delivery/",
+    "how delivery works on Shopinbos"
+   ],
+   "cat": "delivery",
+   "was": [
+    "A calm, step-by-step way to handle wrong items, no-shows and damaged parcels. A plain-word guide for people selling online in Nigeria.",
+    "“I didn’t order this”: what to do when a delivery goes wrong"
+   ]
+  },
+  "from-a-yaba-stall-to-selling-across-lagos": {
+   "mt": "From market stall to online shop: an example story",
+   "md": "An example story of a Yaba bag seller moving from a notebook to one store link, with pay on delivery and riders across Lagos. What to copy.",
+   "answer": "This is an example story, not a real customer. It shows how a market stall can start selling online: photograph your best sellers, put them in one store with prices and pay on delivery, share the link everywhere, and book riders so you can sell beyond your area.",
+   "tk": [
+    "Start with your 20 best sellers, not everything",
+    "One store link saves you answering “price?” by hand",
+    "Booking riders from the order lets you sell outside your area",
+    "Pay on delivery, paid to the shop at the door, helps new customers trust you"
+   ],
+   "h2": {
+    "1. The notebook problem": "What goes wrong when you run a shop from a notebook?",
+    "2. One link instead of fifty chats": "How does one store link replace fifty chats?",
+    "3. Delivery across Lagos": "How do you start delivering across Lagos?",
+    "4. What Tola would do again": "What would Tola do again?"
+   },
+   "faq": [
+    [
+     "Can a market trader sell online without a website?",
+     "Yes. A Shopinbos store link works as your website: buyers see photos and prices and order from their phone."
+    ],
+    [
+     "Do I need to close my stall to sell online?",
+     "No. Many sellers keep their stall and use the store link for customers who order by phone."
+    ],
+    [
+     "How do I get my products into an online store?",
+     "Take clear photos of your best sellers. Rex builds a first version of your store from them, then you check the prices and details."
+    ]
+   ],
+   "rep": [
+    [
+     "Pay on delivery with codes helps new customers trust you",
+     "Pay on delivery, paid to the shop at the door, helps new customers trust you"
+    ]
+   ],
+   "related": [
+    [
+     "snack-brand-40-orders-a-day",
+     "How a small snack brand takes 40 orders a day without missing one"
+    ],
+    [
+     "how-to-get-your-first-10-orders-from-whatsapp-status",
+     "How to get your first 10 orders from WhatsApp Status"
+    ],
+    [
+     "best-products-to-sell-online-nigeria-2026",
+     "Best products to sell online in Nigeria in 2026, by category (and how to check demand first)"
+    ]
+   ],
+   "topic": [
+    "/online-store/",
+    "how to build your online store"
+   ],
+   "cat": "seller-stories",
+   "was": [
+    "From a Yaba stall to selling across Lagos: a bag seller’s…",
+    "What changed when the shop moved from a notebook to one app. An example story. A plain-word guide for people selling online in Nigeria."
+   ]
+  },
+  "product-photo-tips-phone-and-window": {
+   "mt": "Product photo tips: just your phone and a window",
+   "md": "10 product photo tips for online sellers using only a phone and a window: soft daylight, a plain background, a white card and a steady hand.",
+   "answer": "You can take good product photos with just your phone and a window. Shoot in soft daylight beside the window, put the product on something plain, bounce light back with a white card, and hold the phone steady at the product’s level. Take a few shots and post the sharpest one.",
+   "tk": [
+    "Use daylight from a window, not the ceiling bulb",
+    "Keep the background plain so the product stands out",
+    "A white card fills in dark shadows",
+    "Wipe the lens and tap to focus before every shot"
+   ],
+   "faq": [
+    [
+     "What is the best time of day for product photos?",
+     "Mid-morning or afternoon, when daylight is bright but not shining straight onto the product."
+    ],
+    [
+     "Do I need a ring light?",
+     "No. A window and a white card are enough for most products. A light helps at night or in a dark room."
+    ],
+    [
+     "What background works best?",
+     "A plain sheet, wall or card in white or a soft colour. Busy patterns pull the eye away from the product."
+    ],
+    [
+     "Should I edit my product photos?",
+     "Light edits are fine: crop, straighten and brighten a little. Don’t change the product’s colour, or customers will be disappointed when it arrives."
+    ]
+   ],
+   "related": [
+    [
+     "selling-on-tiktok-short-videos",
+     "Selling on TikTok: short videos that make people ask “how much?”"
+    ],
+    [
+     "how-to-sell-on-instagram-in-nigeria",
+     "How to sell on Instagram in Nigeria: a step-by-step guide for 2026"
+    ],
+    [
+     "how-to-sell-on-tiktok-in-nigeria",
+     "How to sell on TikTok in Nigeria: from first video to paid order"
+    ]
+   ],
+   "topic": [
+    "/social-selling/",
+    "how Shopinbos helps you sell on Instagram, TikTok and WhatsApp"
+   ],
+   "cat": "instagram-and-tiktok",
+   "was": [
+    "10 product photo tips using only your phone and a window",
+    "Daylight, a plain sheet and one trick with a white cardboard. That is all. A plain-word guide for people selling online in Nigeria."
+   ]
+  },
+  "selling-on-tiktok-short-videos": {
+   "mt": "TikTok video ideas that make people ask “how much?”",
+   "md": "Five short TikTok video ideas Nigerian sellers can shoot on a phone in ten minutes, and how to turn “how much?” comments into orders.",
+   "answer": "The TikTok videos that sell are short, real and useful: an unboxing, three ways to use the product, a before and after, packing an order, or an answer to a real question. Shoot them on your phone, show the product in the first second, and reply to every “how much?” comment.",
+   "tk": [
+    "Show the product in the first second",
+    "Keep videos short and real, no big production",
+    "Post a few times a week to learn what works",
+    "Reply to comments quickly and share your store link"
+   ],
+   "h2": {
+    "1. The unboxing": "Why does an unboxing video work?",
+    "2. Three ways to wear or use it": "How do you show three ways to use one product?",
+    "3. Before and after": "When should you post a before and after?",
+    "4. Packing an order": "Why film yourself packing an order?",
+    "5. Answer a real question": "How do you turn a customer’s question into a video?"
+   },
+   "related": [
+    [
+     "how-to-sell-on-tiktok-in-nigeria",
+     "How to sell on TikTok in Nigeria: from first video to paid order"
+    ],
+    [
+     "product-photo-tips-phone-and-window",
+     "10 product photo tips using only your phone and a window"
+    ],
+    [
+     "how-to-sell-on-instagram-in-nigeria",
+     "How to sell on Instagram in Nigeria: a step-by-step guide for 2026"
+    ]
+   ],
+   "topic": [
+    "/social-selling/",
+    "how Shopinbos helps you sell on Instagram, TikTok and WhatsApp"
+   ],
+   "cat": "instagram-and-tiktok",
+   "was": [
+    "Five video ideas you can shoot on your phone in under ten minutes. A plain-word guide for people selling online in Nigeria.",
+    "Selling on TikTok: short videos that make people ask “how…"
+   ]
+  },
+  "product-bundles-increase-average-order-value": {
+   "mt": "Product bundles that increase average order value",
+   "md": "How product bundles raise your average order value: bundle ideas, how to price them so you keep your margin, and how to show them in your store.",
+   "answer": "Product bundles increase average order value by selling items that belong together as one package at a small saving. Pick two to four products customers already buy together, give the bundle a clear name, price it so you still keep a good margin, and show it next to the single items.",
+   "tk": [
+    "Bundle products people already buy together",
+    "Two to four items is usually enough",
+    "Check your margin before you set the bundle discount",
+    "Name the bundle after the result, like “Complete hair care”"
+   ],
+   "h2": {
+    "What Is Product Bundling and Why It’s Needed for Your Store": "What is product bundling, and why does your store need it?",
+    "5 Product Bundling Strategies That Work for eCommerce": "Which bundling strategies work for online stores?",
+    "How to Create Bundles That Actually Sell": "How do you create bundles that actually sell?",
+    "How Shopinbos Can Help You Build Profitable Bundles": "How can Shopinbos help you sell bundles?"
+   },
+   "rep": [
+    [
+     "#Here’s why this matters: Studies show that customers spend 20-30% more when they buy bundles compared to individual items\\. Your average order value jumps, #u",
+     "Here’s why this matters: when a bundle makes sense, your average order value goes up, ",
+     true
+    ],
+    [
+     "#Here's why this matters: Studies show that customers spend 20-30% more when they buy bundles compared to individual items\\. Your average order value jumps, #u",
+     "Here's why this matters: when a bundle makes sense, your average order value goes up, ",
+     true
+    ],
+    [
+     "Individual purchase would be $80. Bundle price: $65 (18% off). AOV jumps from $45 to $65.",
+     "Bought one by one, the items cost ₦48,000. The bundle is ₦40,000, so a customer who came for one ₦25,000 sweater now spends ₦40,000."
+    ]
+   ],
+   "related": [
+    [
+     "ecommerce-blog-ideas",
+     "25+ eCommerce Blog Ideas That Drive Traffic and Sales (With Examples)"
+    ],
+    [
+     "ai-tools-to-build-your-store",
+     "AI Tools to Build Your Store Faster: A Beginner's Guide"
+    ],
+    [
+     "back-to-school-online-store",
+     "How to Prepare Your Online Store for the Back-to-School Rush"
+    ]
+   ],
+   "topic": [
+    "/online-store/",
+    "how to build your online store"
+   ],
+   "cat": "how-to-sell",
+   "was": [
+    "Learn how product bundling boosts average order value. Discover 5 bundle strategies with real examples for eCommerce beginners.",
+    "Product Bundles That Increase Average Order Value (+…",
+    "Product Bundles for eCommerce: How to Increase AOV"
+   ]
+  },
+  "pricing-when-the-naira-moves": {
+   "mt": "How to price your products when the naira moves",
+   "md": "A simple pricing rule for Nigerian sellers: use a margin, check costs every week and change prices on a schedule so regular customers keep trusting you.",
+   "answer": "When the naira moves, price with a percentage margin instead of a fixed profit, check your supplier cost every week, and change prices on a set day rather than every time the rate moves. That keeps your profit safe and gives regular customers prices they can trust.",
+   "h2": {
+    "1. Know your cost every week": "How often should you check your costs?",
+    "2. Use a margin, not a fixed profit": "Why use a margin instead of a fixed profit?",
+    "3. Change prices on a schedule": "When should you change your prices?",
+    "4. Protect your best sellers": "How do you protect your best sellers?"
+   },
+   "faq": [
+    [
+     "How often should I change my prices?",
+     "Check your costs every week, but change prices on a fixed day, such as the first of the month, unless a cost jumps a lot."
+    ],
+    [
+     "What margin should I use?",
+     "One that covers your costs, payment fees and a fair profit. Then keep the same margin as costs change. The example in this guide uses 35%."
+    ],
+    [
+     "Should I tell regular customers before prices go up?",
+     "Yes. A short message a few days before lets them buy at the old price and keeps their trust."
+    ]
+   ],
+   "related": [
+    [
+     "dropshipping-in-nigeria-what-you-keep",
+     "Dropshipping in Nigeria: what you keep and what you risk"
+    ],
+    [
+     "pay-on-delivery-without-the-stress",
+     "Pay on delivery without the stress: codes, riders and refunds"
+    ],
+    [
+     "product-bundles-increase-average-order-value",
+     "Product Bundles That Increase Average Order Value (+ Examples)"
+    ]
+   ],
+   "topic": [
+    "/payments/",
+    "how payments work on Shopinbos"
+   ],
+   "cat": "payments",
+   "was": [
+    "A simple rule for updating prices without scaring your regular customers. A plain-word guide for people selling online in Nigeria.",
+    "Pricing your products when the naira moves every week"
+   ]
+  },
+  "what-to-sell-on-etsy": {
+   "new_slug": "handmade-products-to-sell-online",
+   "title": "Handmade products to sell online: ideas that sell in 2026",
+   "excerpt": "Handmade and made-to-order ideas that sell online, how to price your time, and how to start with five products and one store link.",
+   "mt": "Handmade products to sell online: ideas that sell",
+   "md": "Handmade and made-to-order products to sell online in Nigeria: jewellery, home décor, custom gifts and more, with pricing tips and a simple start plan.",
+   "kw": "handmade products to sell online",
+   "category": "what-to-sell",
+   "replace_if": "Etsy",
+   "tk": [
+    "Sell something you can make well, again and again",
+    "Personalised and made-to-order items earn better prices",
+    "Price your time and materials, not only the materials",
+    "Start with five products, good photos and one store link"
+   ],
+   "related": [
+    [
+     "product-photo-tips-phone-and-window",
+     "10 product photo tips using only your phone and a window"
+    ],
+    [
+     "best-products-to-sell-online-nigeria-2026",
+     "Best products to sell online in Nigeria in 2026, by category (and how to check demand first)"
+    ],
+    [
+     "how-to-sell-on-instagram-in-nigeria",
+     "How to sell on Instagram in Nigeria: a step-by-step guide for 2026"
+    ]
+   ],
+   "topic": [
+    "/trending/",
+    "products trending in Nigeria right now"
+   ],
+   "cat": "what-to-sell",
+   "was": [
+    "Starting your Etsy journey can feel overwhelming, especially when you're wondering what to sell on Etsy that will actually generate income. The good news? Etsy…",
+    "Starting your Etsy journey can feel overwhelming, especially when you're wondering what to sell on Etsy that will actually generate income. The good…",
+    "What to Sell on Etsy in 2026 — Handmade & POD Ideas That…"
+   ],
+   "content": "<!-- wp:paragraph -->\n<p>Handmade products sell well online when they are useful, look good in a photo and can be made the same way every time. Good places to start are beaded jewellery, custom home décor, personalised gifts, Ankara accessories, candles and skincare made in small batches, and made-to-order stationery for weddings and events.</p>\n<!-- /wp:paragraph -->\n\n<!-- wp:paragraph -->\n<p>You don’t need a big workshop to begin. You need a product you can make well, clear photos, a fair price that pays for your time, and one store link you can share on WhatsApp, Instagram and TikTok.</p>\n<!-- /wp:paragraph -->\n\n<!-- wp:heading -->\n<h2 class=\"wp-block-heading\">What makes a handmade product sell online?</h2>\n<!-- /wp:heading -->\n\n<!-- wp:paragraph -->\n<p>The best sellers share a few traits: they solve a problem, suit a clear group of buyers, or can be personalised. Buyers pay more for something that feels made for them than for something they can find in any market.</p>\n<!-- /wp:paragraph -->\n\n<!-- wp:list -->\n<ul class=\"wp-block-list\"><!-- wp:list-item -->\n<li>Personalised home décor and name art</li>\n<!-- /wp:list-item --><!-- wp:list-item -->\n<li>Handmade jewellery and statement pieces</li>\n<!-- /wp:list-item --><!-- wp:list-item -->\n<li>Custom items for weddings, birthdays and owambes</li>\n<!-- /wp:list-item --><!-- wp:list-item -->\n<li>Gift boxes and hampers you put together yourself</li>\n<!-- /wp:list-item --><!-- wp:list-item -->\n<li>Small-batch skincare, candles and soaps</li>\n<!-- /wp:list-item --><!-- wp:list-item -->\n<li>Ankara bags, headwraps and accessories</li>\n<!-- /wp:list-item --></ul>\n<!-- /wp:list -->\n\n<!-- wp:heading -->\n<h2 class=\"wp-block-heading\">Which handmade products are good for beginners?</h2>\n<!-- /wp:heading -->\n\n<!-- wp:paragraph -->\n<p><strong>1. Beaded jewellery.</strong> Necklaces, bracelets and waist beads are light to deliver and easy to show in photos. Pick one style, such as bold statement pieces or simple everyday beads, so your page looks like a real brand.</p>\n<!-- /wp:paragraph -->\n\n<!-- wp:paragraph -->\n<p><strong>2. Custom home décor.</strong> Name signs, framed prints and wall art made to order sell well as gifts. Show one finished example and let buyers choose the name, colour or size.</p>\n<!-- /wp:paragraph -->\n\n<!-- wp:paragraph -->\n<p><strong>3. Event stationery.</strong> Invitations, thank-you cards and labels for weddings and parties have clear deadlines, so buyers order early and pay a fair price.</p>\n<!-- /wp:paragraph -->\n\n<!-- wp:paragraph -->\n<p><strong>4. Small-batch skincare and candles.</strong> These sell again and again when customers like them. Label every batch clearly and keep the recipe the same.</p>\n<!-- /wp:paragraph -->\n\n<!-- wp:heading -->\n<h2 class=\"wp-block-heading\">What about made-to-order and printed products?</h2>\n<!-- /wp:heading -->\n\n<!-- wp:paragraph -->\n<p>If you don’t want to hold much stock, sell made-to-order items: printed T-shirts, tote bags, mugs or phone cases with your own designs. You make or print each one after the customer pays, so you only buy materials for real orders. Tell buyers clearly how long making and delivery take.</p>\n<!-- /wp:paragraph -->\n\n<!-- wp:heading -->\n<h2 class=\"wp-block-heading\">How do you price handmade products?</h2>\n<!-- /wp:heading -->\n\n<!-- wp:paragraph -->\n<p>Add up materials, packaging and your time, then add your profit. If a necklace uses ₦2,500 of beads and packaging and takes you an hour, and you value your hour at ₦2,000, your cost is ₦4,500. With a 40% margin, your price is about ₦4,500 ÷ 0.6, which is ₦7,500. Many makers forget to pay themselves for their time.</p>\n<!-- /wp:paragraph -->\n\n<!-- wp:heading -->\n<h2 class=\"wp-block-heading\">How do you get your first handmade sales?</h2>\n<!-- /wp:heading -->\n\n<!-- wp:list {\"ordered\":true} -->\n<ol class=\"wp-block-list\"><!-- wp:list-item -->\n<li>Make five to ten products you are proud of.</li>\n<!-- /wp:list-item --><!-- wp:list-item -->\n<li>Photograph them in daylight on a plain background.</li>\n<!-- /wp:list-item --><!-- wp:list-item -->\n<li>Put them in one store with prices, sizes and delivery details.</li>\n<!-- /wp:list-item --><!-- wp:list-item -->\n<li>Share the link on your WhatsApp Status, Instagram and TikTok.</li>\n<!-- /wp:list-item --><!-- wp:list-item -->\n<li>Ask your first buyers for a photo of the product in use, and share it with their permission.</li>\n<!-- /wp:list-item --></ol>\n<!-- /wp:list -->\n\n<!-- wp:shopinbos/faq {\"title\": \"Questions sellers ask\", \"items\": \"What handmade products sell best online? | Items people buy as gifts or use every day: jewellery, personalised décor, event stationery, skincare and accessories. Personalised items usually earn better prices.\\nDo I need a lot of money to start a handmade business? | No. Start with materials for five to ten products and make more as orders come in. Made-to-order items let you buy materials only after a customer pays.\\nHow do I stop handmade orders from being late? | Say how many days making takes, add delivery time, and only accept as many custom orders as you can finish each week.\\nWhere can I sell handmade products online in Nigeria? | Sell from your own store link and share it on WhatsApp, Instagram, TikTok and Facebook, so buyers can order and pay in one place.\", \"openFirst\": true} /-->\n\n<!-- wp:heading -->\n<h2 class=\"wp-block-heading\">Start with one product this week</h2>\n<!-- /wp:heading -->\n\n<!-- wp:paragraph -->\n<p>Pick the product you make best, photograph it well and put it in a store you can share. With Shopinbos, Rex builds your store from your photos, and buyers can pay by card, transfer or USSD.</p>\n<!-- /wp:paragraph -->\n\n"
+  },
+  "ecommerce-blog-ideas": {
+   "mt": "25+ ecommerce blog ideas that bring traffic and sales",
+   "md": "Ecommerce blog ideas for small online stores: how-to guides, buying guides, seasonal posts and stories that bring customers from Google.",
+   "answer": "The best ecommerce blog ideas answer the questions your customers already ask: how to use your product, which one to choose, what to buy for a season or occasion, and how to fix a common problem. Start with five posts built around your best sellers and link each one to the product it mentions.",
+   "tk": [
+    "Write about questions customers already ask you",
+    "Buying guides and how-tos link naturally to your products",
+    "Plan seasonal posts a month ahead",
+    "Track which posts bring visitors and write more like them"
+   ],
+   "h2": {
+    "Identifying the Right eCommerce Blog Ideas": "How do you find the right ecommerce blog ideas?",
+    "Educational \"How-To\" eCommerce Blog Ideas": "Which how-to posts should you write?",
+    "Educational “How-To” eCommerce Blog Ideas": "Which how-to posts should you write?",
+    "Problem-Solving eCommerce Blog Ideas": "Which problem-solving posts work?",
+    "Buying Guide eCommerce Blog Ideas": "How do buying guides help you sell?",
+    "Implementing These eCommerce Blog Ideas Successfully": "How do you put these blog ideas to work?"
+   },
+   "related": [
+    [
+     "product-bundles-increase-average-order-value",
+     "Product Bundles That Increase Average Order Value (+ Examples)"
+    ],
+    [
+     "ai-tools-to-build-your-store",
+     "AI Tools to Build Your Store Faster: A Beginner's Guide"
+    ],
+    [
+     "back-to-school-online-store",
+     "How to Prepare Your Online Store for the Back-to-School Rush"
+    ]
+   ],
+   "topic": [
+    "/online-store/",
+    "how to build your online store"
+   ],
+   "cat": "how-to-sell",
+   "was": [
+    "25+ eCommerce Blog Ideas That Drive Traffic and Sales…",
+    "Discover proven eCommerce blog ideas that attract customers and boost sales. Beginner-friendly strategies with real examples to grow your online store."
+   ]
+  },
+  "dropshipping-in-nigeria-what-you-keep": {
+   "mt": "Dropshipping in Nigeria: what you keep per sale",
+   "md": "Dropshipping in Nigeria with naira numbers: a ₦28,000 tote bag from supplier price and fees to what you keep, plus the risks to plan for.",
+   "answer": "With dropshipping in Nigeria you keep the difference between your selling price and the supplier price, minus payment and plan fees. On a ₦28,000 tote bag with a ₦17,500 supplier price, that is about ₦9,420 on the Starter plan. You buy no stock up front, but you rely on the supplier for quality and stock.",
+   "tk": [
+    "You pay the supplier only after a customer orders",
+    "Count supplier price, payment fee and plan fee before you set a price",
+    "Pick products that travel well and rarely break",
+    "When a product sells every week, consider buying a few pieces wholesale"
+   ],
+   "h2": {
+    "1. Where the ₦28,000 goes": "Where does the ₦28,000 go?",
+    "2. What you risk": "What do you risk with dropshipping?",
+    "3. Pick products that travel well": "Which products are best for dropshipping?",
+    "4. When to switch to wholesale": "When should you switch to wholesale?"
+   },
+   "faq": [
+    [
+     "Do I need money to start dropshipping in Nigeria?",
+     "Very little. You don’t buy stock first. Your main costs are data and your time, and the Free plan is ₦0 a month with a 3% fee per sale."
+    ],
+    [
+     "Who packs and delivers a dropshipped order?",
+     "The supplier packs it for your customer and a rider delivers it, so you never handle the stock."
+    ],
+    [
+     "Where do I find dropshipping suppliers?",
+     "Registered sellers on Shopinbos can use Find stock to source from suppliers and add their products to their store."
+    ],
+    [
+     "When should I stop dropshipping a product?",
+     "When it sells steadily every week. Buying a few pieces wholesale usually gives you a better margin and faster delivery."
+    ]
+   ],
+   "related": [
+    [
+     "start-online-business-nigeria-little-capital",
+     "How to start an online business in Nigeria with little capital: a realistic plan"
+    ],
+    [
+     "best-products-to-sell-online-nigeria-2026",
+     "Best products to sell online in Nigeria in 2026, by category (and how to check demand first)"
+    ],
+    [
+     "snack-brand-40-orders-a-day",
+     "How a small snack brand takes 40 orders a day without missing one"
+    ]
+   ],
+   "topic": [
+    "/find-stock/",
+    "Find stock for registered sellers"
+   ],
+   "cat": "find-stock",
+   "was": [
+    "Dropshipping in Nigeria: what you keep and what you risk",
+    "Real numbers on a ₦28,000 tote bag, from supplier price to your bank account. A plain-word guide for people selling online in Nigeria."
+   ]
+  },
+  "ai-tools-to-build-your-store": {
+   "mt": "AI tools to build your online store faster",
+   "md": "AI tools for ecommerce beginners: what to use for product copy, customer replies, marketing and stock, and how to choose without overspending.",
+   "answer": "AI tools help you build your online store faster by doing the repetitive work: writing product descriptions, answering common customer questions, drafting posts and spotting what sells. Start with one tool for your biggest bottleneck, check its output before it goes live, and add more only when it saves you real time.",
+   "tk": [
+    "Start with your biggest time-waster, not every tool",
+    "Always check AI-written copy before you publish",
+    "Many tools have free plans, so test before you pay",
+    "On Shopinbos, Rex builds your store and Peggy helps you answer chats"
+   ],
+   "h2": {
+    "Why Your Ecommerce Business Need AI Tools": "Why does your online store need AI tools?",
+    "Customer Experience and Support AI Tools": "Which AI tools help with customer support?",
+    "Sales and Marketing AI Tools": "Which AI tools help with sales and marketing?",
+    "How to Choose the Right AI Tools for Your Store": "How do you choose the right AI tools for your store?",
+    "Get Started Today": "How do you get started?"
+   },
+   "rep": [
+    [
+     "#Here’s what’s happening in the industry: over <a[^>]*>50% of ecommerce businesses</a> are already using AI solutions\\. Those who aren’t are falling behind\\. AI-driven personalization can increase conversion rates by 15-20%, while smart automation can reduce customer acquisition costs by up to 50%\\.#u",
+     "Here’s what’s changing: tools that used to need a developer now work from a phone, and many have free plans. You can try one this week without risking much.",
+     true
+    ],
+    [
+     "#Here's what's happening in the industry: over <a[^>]*>50% of ecommerce businesses</a> are already using AI solutions\\. Those who aren't are falling behind\\. AI-driven personalization can increase conversion rates by 15-20%, while smart automation can reduce customer acquisition costs by up to 50%\\.#u",
+     "Here's what's changing: tools that used to need a developer now work from a phone, and many have free plans. You can try one this week without risking much.",
+     true
+    ],
+    [
+     "If you're using Shopify, WooCommerce, or another platform, make sure",
+     "Whichever platform your store runs on, make sure"
+    ],
+    [
+     "If you’re using Shopify, WooCommerce, or another platform, make sure",
+     "Whichever platform your store runs on, make sure"
+    ]
+   ],
+   "related": [
+    [
+     "back-to-school-online-store",
+     "How to Prepare Your Online Store for the Back-to-School Rush"
+    ],
+    [
+     "product-bundles-increase-average-order-value",
+     "Product Bundles That Increase Average Order Value (+ Examples)"
+    ],
+    [
+     "ecommerce-blog-ideas",
+     "25+ eCommerce Blog Ideas That Drive Traffic and Sales (With Examples)"
+    ]
+   ],
+   "topic": [
+    "/online-store/",
+    "how to build your online store"
+   ],
+   "cat": "how-to-sell",
+   "was": [
+    "AI Tools to Build Your Store Faster: A Beginner’s Guide",
+    "Starting an online store can feel overwhelming. Between writing product descriptions, managing customer inquiries, tracking inventory, and marketing your products,…",
+    "Starting an online store can feel overwhelming. Between writing product descriptions, managing customer inquiries, tracking inventory, and marketing your…"
+   ]
+  },
+  "best-ai-gadgets-for-home": {
+   "title": "Best AI gadgets for home: smart devices worth buying",
+   "excerpt": "Smart speakers, security cameras, robot vacuums, smart lighting and more: which AI gadgets are worth having at home, and how to choose.",
+   "mt": "Best AI gadgets for home: smart devices worth buying",
+   "md": "The best AI gadgets for home: smart speakers, security cameras, robot vacuums, smart lighting and more, and how to choose the right one for you.",
+   "answer": "The best AI gadgets for home are the ones that save you time every day: a smart speaker you control by voice, a security camera that can tell people from pets, a robot vacuum, smart climate control and smart bulbs. Choose by the problem you want solved, check it works with your phone, and buy from a seller who offers a warranty.",
+   "tk": [
+    "Choose a gadget for a problem you have, not for the hype",
+    "Check it works with the phone and apps you already use",
+    "Look for privacy controls on cameras and speakers",
+    "Buy from a seller who offers a warranty"
+   ],
+   "h2": {
+    "Top Best AI Gadgets to Upgrade Your Home in 2025": "Which AI gadgets are worth having at home?",
+    "Robot Vacuums: Automated Cleaning Made Smart": "Are robot vacuums worth it?",
+    "Making the Right Choice for Your Home": "How do you choose the right AI gadget for your home?"
+   },
+   "rep": [
+    [
+     "#The latest models from <a[^>]*>Amazon</a>, <a[^>]*>Google</a>, and <a[^>]*>Apple</a> feature#u",
+     "The latest models feature",
+     true
+    ],
+    [
+     "#<a href=\"https://www\\.amazon\\.com[^\"]*\">(.*?)</a>#u",
+     "$1",
+     true
+    ],
+    [
+     "These devices can reduce energy bills by up to 23% while maintaining perfect comfort levels.",
+     "These devices can help cut energy use while keeping your home comfortable."
+    ],
+    [
+     "and 2025 is shaping up to be the year where intelligent devices become essential household items",
+     "and intelligent devices are fast becoming everyday household items"
+    ]
+   ],
+   "related": [
+    [
+     "best-products-to-sell-online-nigeria-2026",
+     "Best products to sell online in Nigeria in 2026, by category (and how to check demand first)"
+    ],
+    [
+     "ai-tools-to-build-your-store",
+     "AI Tools to Build Your Store Faster: A Beginner's Guide"
+    ],
+    [
+     "start-online-business-nigeria-little-capital",
+     "How to start an online business in Nigeria with little capital: a realistic plan"
+    ]
+   ],
+   "topic": [
+    "/trending/",
+    "products trending in Nigeria right now"
+   ],
+   "cat": "what-to-sell",
+   "was": [
+    "Best AI Gadgets for Home 2025: Your Complete Buyer’s Guide",
+    "Best AI Gadgets to Use at Home in 2025 | Shopinbos",
+    "Discover the best AI gadgets for your smart home in 2025. From voice assistants to robot vacuums, find the perfect intelligent devices to upgrade your lifestyle.",
+    "Discover the best AI gadgets for your smart home in 2025. From voice assistants to robot vacuums, find the perfect intelligent devices to upgrade your…"
+   ]
+  },
+  "pay-on-delivery-without-the-stress": {
+   "mt": "Pay on delivery without the stress: codes and riders",
+   "md": "How Nigerian sellers can offer pay on delivery without losses: confirm before dispatch, use a 4-digit delivery code and plan for refusals.",
+   "answer": "You can offer pay on delivery without the stress by confirming every order before the rider leaves and letting the buyer pay your shop at the door by transfer, card or USSD. Only then do they get the 4-digit code to give the rider. Decide in advance what happens when a buyer refuses. On Shopinbos, pay on delivery is on the Growth and Pro plans.",
+   "tk": [
+    "Confirm the order, address and time before dispatch",
+    "The buyer pays your shop at the door, then gets a 4-digit code",
+    "Riders never handle cash",
+    "Set a clear rule for refusals, and remember pay on delivery is on Growth and Pro"
+   ],
+   "h2": {
+    "1. Confirm before the rider leaves": "Why confirm before the rider leaves?",
+    "2. Use a delivery code": "How does a delivery code stop disputes?",
+    "3. Decide what happens when a buyer refuses": "What happens when a buyer refuses?",
+    "4. Know your money": "How do you get your money?"
+   },
+   "rep": [
+    [
+     "#<p class=\"sib-answer\">You can offer pay on delivery without the stress by confirming every order before the rider leaves, using a 4-digit delivery code that only the buyer has.*?</p>#us",
+     "<p class=\"sib-answer\">You can offer pay on delivery without the stress by confirming every order before the rider leaves and letting the buyer pay your shop at the door by transfer, card or USSD. Only then do they get the 4-digit code to give the rider. Decide in advance what happens when a buyer refuses. On Shopinbos, pay on delivery is on the Growth and Pro plans.</p>",
+     true
+    ],
+    [
+     "Confirm the order, address and time before dispatch\\nA 4-digit code proves the buyer received the parcel\\nSet a clear rule for refusals and who pays delivery\\nPay on delivery is on the Growth and Pro plans",
+     "Confirm the order, address and time before dispatch\\nThe buyer pays your shop at the door, then gets a 4-digit code\\nRiders never handle cash\\nSet a clear rule for refusals, and remember pay on delivery is on Growth and Pro"
+    ],
+    [
+     "The buyer pays the rider in cash or by transfer, then gives the code.",
+     "When the parcel arrives, the buyer pays your shop by transfer, card or USSD, from a link sent to their phone or the rider’s QR code. Only then do they get the code to give the rider."
+    ],
+    [
+     "The rider types it in, and only then is the order marked delivered.",
+     "The rider types it in, the app shows Paid, and only then is the parcel handed over."
+    ],
+    [
+     "The buyer gets a code on WhatsApp | It arrives with the rider’s name and live tracking.",
+     "The buyer gets a payment link | It arrives on WhatsApp, SMS and email, with the rider’s name and live tracking."
+    ],
+    [
+     "The rider arrives and hands over the parcel | The buyer checks the item first.",
+     "The rider arrives at the door | The buyer can also pay by scanning the rider’s QR code."
+    ],
+    [
+     "The buyer pays and shares the code | Cash or transfer to the rider.",
+     "The buyer pays your shop and gets the code | Transfer, card or USSD. The rider never handles cash."
+    ],
+    [
+     "The order is marked delivered | You see it at once. The rider pays the cash in the same evening.",
+     "The rider types in the code | The app shows Paid, the parcel is handed over and the order is marked delivered."
+    ],
+    [
+     "6pm | Deadline for delivery partners to pay the cash in",
+     "No cash | Riders never collect money"
+    ],
+    [
+     "With pay on delivery, the payment is confirmed when the rider enters the customer’s 4-digit code, and your money is then paid out to your bank account.",
+     "With pay on delivery, the customer pays your shop at the door by transfer, card or USSD, the same way as an online order. Your money is then paid out to your bank account through Paystack."
+    ],
+    [
+     "There is no payment fee on cash paid to the rider. You pay the delivery price you agreed with the rider or partner.",
+     "The customer pays at the door by transfer, card or USSD, so the usual payment fee applies, as on any online order. You also pay the delivery price shown when you book."
+    ],
+    [
+     "What if the rider loses the cash? | Delivery partners on Shopinbos are responsible for the cash they collect. Report it in the app and we follow it up with the partner.",
+     "Does the rider ever collect cash? | No. The customer pays your shop at the door by transfer, card or USSD, and the parcel is only handed over once the app shows Paid."
+    ],
+    [
+     "Included on the Growth and Pro plans. Customers pay your shop at the door, so riders never handle cash.",
+     "Included on the Growth and Pro plans. Customers pay your shop at the door, so riders never handle cash."
+    ]
+   ],
+   "related": [
+    [
+     "pricing-when-the-naira-moves",
+     "Pricing your products when the naira moves every week"
+    ],
+    [
+     "snack-brand-40-orders-a-day",
+     "How a small snack brand takes 40 orders a day without missing one"
+    ],
+    [
+     "when-a-delivery-goes-wrong",
+     "“I didn’t order this”: what to do when a delivery goes wrong"
+    ]
+   ],
+   "topic": [
+    "/payments/",
+    "how payments work on Shopinbos"
+   ],
+   "cat": "payments",
+   "was": [
+    "How the 4-digit code stops “I never got it” arguments, and what to do when a buyer refuses at the gate. A plain-word guide for people selling online in…",
+    "Pay on delivery without the stress: codes, riders and…"
+   ]
+  },
+  "back-to-school-online-store": {
+   "mt": "Back-to-school rush: get your online store ready",
+   "md": "How to prepare your online store for the back-to-school rush in Nigeria: restock early, get WhatsApp ready, sort delivery and run a simple promo.",
+   "tk": [
+    "Start marketing in June or July, before the August peak",
+    "Restock best sellers early and buy small top-ups",
+    "Sort delivery before orders pile up",
+    "Offer bundles like a full school kit"
+   ],
+   "h2": {
+    "Bringing It All Together": "What should you do first?"
+   },
+   "rep": [
+    [
+     "#According to a Worldremit report, Nigerian households spend an average of \\$196 on back-to-school supplies, with over 45 million children in primary school alone driving that demand\\. #u",
+     "Millions of Nigerian families shop for school items in the same few weeks. ",
+     true
+    ],
+    [
+     "#Spending during this period tends to break down like this: roughly 56% on uniforms, 26% on stationery, 11% on sporting kits, and the rest split across other school items\\.#u",
+     "Uniforms usually take the biggest share, followed by stationery, bags, shoes and sports kits.",
+     true
+    ]
+   ],
+   "related": [
+    [
+     "ai-tools-to-build-your-store",
+     "AI Tools to Build Your Store Faster: A Beginner's Guide"
+    ],
+    [
+     "product-bundles-increase-average-order-value",
+     "Product Bundles That Increase Average Order Value (+ Examples)"
+    ],
+    [
+     "ecommerce-blog-ideas",
+     "25+ eCommerce Blog Ideas That Drive Traffic and Sales (With Examples)"
+    ]
+   ],
+   "topic": [
+    "/online-store/",
+    "how to build your online store"
+   ],
+   "cat": "how-to-sell",
+   "was": [
+    "How to Prepare Your Online Store for the Back-to-School Rush",
+    "To prepare your online store for the back-to-school rush, restock your bestselling school items early, tidy up your WhatsApp or Instagram storefront, sort out…",
+    "To prepare your online store for the back-to-school rush, restock your bestselling school items early, tidy up your WhatsApp or Instagram storefront…"
+   ]
+  },
+  "how-to-get-your-first-10-orders-from-whatsapp-status": {
+   "mt": "How to get your first 10 orders from WhatsApp Status",
+   "md": "Get your first 10 orders from WhatsApp Status with no ad budget: post products with prices, post at busy times and make ordering one tap.",
+   "answer": "To get your first 10 orders from WhatsApp Status, post products, not just pictures: show the price, size and how to order in every post. Post when people are looking, make ordering one tap with a store link, and reply to everyone who messages you the same day.",
+   "tk": [
+    "Every Status post needs a price and a way to order",
+    "Post at your contacts’ busy times",
+    "One store link makes ordering one tap",
+    "Reply to every message the same day"
+   ],
+   "h2": {
+    "1. Post products, not just pictures": "What should you post on WhatsApp Status?",
+    "2. Post at the times people look": "When should you post on Status?",
+    "3. Make ordering one tap": "How do you make ordering easy?",
+    "4. Let your customers sell for you": "How can your customers help you sell?",
+    "5. Follow up the same day": "Why follow up the same day?"
+   },
+   "related": [
+    [
+     "whatsapp-business-catalogue-setup-guide",
+     "WhatsApp Business catalogue: how to set it up and sell from it every day"
+    ],
+    [
+     "snack-brand-40-orders-a-day",
+     "How a small snack brand takes 40 orders a day without missing one"
+    ],
+    [
+     "from-a-yaba-stall-to-selling-across-lagos",
+     "From a Yaba stall to selling across Lagos: a bag seller’s first year online"
+    ]
+   ],
+   "topic": [
+    "/social-selling/",
+    "how Shopinbos helps you sell on WhatsApp and social media"
+   ],
+   "cat": "selling-on-whatsapp",
+   "was": [
+    "How to get your first 10 orders from WhatsApp Status",
+    "No ad budget needed. Turn the people who already watch your Status into customers, one post at a time. A plain-word guide for people selling online in…"
+   ]
+  },
+  "online-store-for-business-in-nigeria": {
+   "mt": "How to create an online store for business in Nigeria",
+   "md": "Create an online store for your business in Nigeria: turn WhatsApp, Instagram and TikTok selling into one store with payments and delivery.",
+   "answer": "To create an online store for your business in Nigeria, get your product photos, prices and delivery areas ready, choose a store that takes naira payments and pay on delivery, then share your store link on WhatsApp, Instagram, Facebook and TikTok. Customers order and pay in one place, and you manage every order from your phone.",
+   "tk": [
+    "Get photos, prices and delivery areas ready first",
+    "Choose a store that takes card, transfer, USSD and pay on delivery",
+    "Put one store link on every social page",
+    "Manage orders from all channels in one list"
+   ],
+   "h2": {
+    "An Easier Way to Manage Social Media Orders in One Place": "Is there an easier way to manage social media orders?",
+    "Final Thoughts": "What should you do next?"
+   },
+   "related": [
+    [
+     "how-to-sell-on-instagram-in-nigeria",
+     "How to sell on Instagram in Nigeria: a step-by-step guide for 2026"
+    ],
+    [
+     "whatsapp-business-catalogue-setup-guide",
+     "WhatsApp Business catalogue: how to set it up and sell from it every day"
+    ],
+    [
+     "start-online-business-nigeria-little-capital",
+     "How to start an online business in Nigeria with little capital: a realistic plan"
+    ]
+   ],
+   "topic": [
+    "/online-store/",
+    "how to build your online store"
+   ],
+   "cat": "where-to-sell",
+   "was": [
+    "How to Create an Online Store for Business in Nigeria",
+    "Looking for an online store for business in Nigeria? Learn how to turn your WhatsApp, Instagram, Facebook, and TikTok business into one online store for easier payments, order management, and delivery tracking.",
+    "Looking for an online store for business in Nigeria? Learn how to turn your WhatsApp, Instagram, Facebook, and TikTok business into one online store for…"
+   ]
+  },
+  "how-to-sell-on-instagram-in-nigeria": {
+   "tk": [
+    "Switch to a business account and pick one clear thing to sell",
+    "Show the product in real use, with the price visible",
+    "Reply to DMs fast and send a link where buyers can pay",
+    "Offer pay on delivery to buyers who don’t know you yet"
+   ],
+   "h2": {
+    "Why Instagram still works for Nigerian sellers": "Does Instagram still work for Nigerian sellers?",
+    "Mistakes that slow Instagram sales": "What mistakes slow Instagram sales?",
+    "Growing beyond your first sales": "How do you grow beyond your first sales?"
+   },
+   "related": [
+    [
+     "product-photo-tips-phone-and-window",
+     "10 product photo tips using only your phone and a window"
+    ],
+    [
+     "selling-on-tiktok-short-videos",
+     "Selling on TikTok: short videos that make people ask “how much?”"
+    ],
+    [
+     "how-to-sell-on-tiktok-in-nigeria",
+     "How to sell on TikTok in Nigeria: from first video to paid order"
+    ]
+   ],
+   "topic": [
+    "/social-selling/",
+    "how Shopinbos helps you sell on Instagram, TikTok and WhatsApp"
+   ],
+   "cat": "instagram-and-tiktok"
+  },
+  "whatsapp-business-catalogue-setup-guide": {
+   "tk": [
+    "Set it up in Business tools, then Catalogue",
+    "Every item needs a clear photo, a price and a short description",
+    "Share catalogue links in chats and on Status",
+    "Use a store link when you need checkout, payment and delivery"
+   ],
+   "h2": {
+    "What the WhatsApp Business catalogue does (and does not do)": "What does the WhatsApp Business catalogue do?",
+    "How to set up your WhatsApp Business catalogue": "How do you set up a WhatsApp Business catalogue?",
+    "When the catalogue is not enough": "When is the catalogue not enough?",
+    "Common WhatsApp catalogue mistakes": "What are common catalogue mistakes?"
+   },
+   "related": [
+    [
+     "how-to-get-your-first-10-orders-from-whatsapp-status",
+     "How to get your first 10 orders from WhatsApp Status"
+    ],
+    [
+     "how-to-sell-on-instagram-in-nigeria",
+     "How to sell on Instagram in Nigeria: a step-by-step guide for 2026"
+    ],
+    [
+     "online-store-for-business-in-nigeria",
+     "How to Create an Online Store for Business in Nigeria"
+    ]
+   ],
+   "topic": [
+    "/social-selling/",
+    "how Shopinbos helps you sell on WhatsApp and social media"
+   ],
+   "cat": "selling-on-whatsapp"
+  },
+  "start-online-business-nigeria-little-capital": {
+   "tk": [
+    "Start with one product people already buy",
+    "Dropship or buy small, so your cash isn’t stuck in stock",
+    "Work out your numbers before your first sale",
+    "Put early profit back into stock, not loans"
+   ],
+   "h2": {
+    "What \"little capital\" really means": "How much capital do you really need?",
+    "What “little capital” really means": "How much capital do you really need?",
+    "Mistakes that eat small capital": "Which mistakes eat small capital?"
+   },
+   "related": [
+    [
+     "dropshipping-in-nigeria-what-you-keep",
+     "Dropshipping in Nigeria: what you keep and what you risk"
+    ],
+    [
+     "best-products-to-sell-online-nigeria-2026",
+     "Best products to sell online in Nigeria in 2026, by category (and how to check demand first)"
+    ],
+    [
+     "online-store-for-business-in-nigeria",
+     "How to Create an Online Store for Business in Nigeria"
+    ]
+   ],
+   "topic": [
+    "/find-stock/",
+    "Find stock for registered sellers"
+   ],
+   "cat": "find-stock"
+  },
+  "best-products-to-sell-online-nigeria-2026": {
+   "tk": [
+    "Everyday items people buy often sell best",
+    "Light, sturdy products cost less to deliver",
+    "Test demand with a few pieces before you buy a full load",
+    "Source from trusted suppliers, or Find stock if you are a registered seller"
+   ],
+   "h2": {
+    "What makes the best products to sell online in Nigeria": "What makes a product good to sell online in Nigeria?",
+    "How to validate demand before you buy stock": "How do you check demand before you buy stock?",
+    "Matching products to how you want to sell": "Which products fit how you want to sell?"
+   },
+   "related": [
+    [
+     "dropshipping-in-nigeria-what-you-keep",
+     "Dropshipping in Nigeria: what you keep and what you risk"
+    ],
+    [
+     "start-online-business-nigeria-little-capital",
+     "How to start an online business in Nigeria with little capital: a realistic plan"
+    ],
+    [
+     "from-a-yaba-stall-to-selling-across-lagos",
+     "From a Yaba stall to selling across Lagos: a bag seller’s first year online"
+    ]
+   ],
+   "topic": [
+    "/find-stock/",
+    "Find stock for registered sellers"
+   ],
+   "cat": "find-stock"
+  },
+  "how-to-sell-on-tiktok-in-nigeria": {
+   "tk": [
+    "Use a business account with a store or WhatsApp link in your bio",
+    "Show the product in real use, no dancing needed",
+    "Reply to every “how much?” comment",
+    "Send buyers to a checkout with payment and delivery"
+   ],
+   "h2": {
+    "Why TikTok is worth it for Nigerian sellers": "Is TikTok worth it for Nigerian sellers?",
+    "Mistakes that keep TikTok views from becoming sales": "Why don’t TikTok views turn into sales?",
+    "Using TikTok with your other channels": "How do you use TikTok with your other channels?"
+   },
+   "related": [
+    [
+     "selling-on-tiktok-short-videos",
+     "Selling on TikTok: short videos that make people ask “how much?”"
+    ],
+    [
+     "product-photo-tips-phone-and-window",
+     "10 product photo tips using only your phone and a window"
+    ],
+    [
+     "how-to-sell-on-instagram-in-nigeria",
+     "How to sell on Instagram in Nigeria: a step-by-step guide for 2026"
+    ]
+   ],
+   "topic": [
+    "/social-selling/",
+    "how Shopinbos helps you sell on Instagram, TikTok and WhatsApp"
+   ],
+   "cat": "instagram-and-tiktok"
+  },
+  "how-to-write-product-descriptions-that-sell": {
+   "tk": [
+    "Answer buyers’ questions before they ask",
+    "Cover what it is, who it is for, the benefit, the details and the next step",
+    "Write short lines that read well on a phone",
+    "Include price and delivery so nobody has to DM"
+   ],
+   "h2": {
+    "Why product descriptions matter more than you think": "Why do product descriptions matter so much?",
+    "The five-part formula for descriptions that sell": "What is the formula for descriptions that sell?",
+    "Writing descriptions for each channel": "How do you write descriptions for each channel?",
+    "Common mistakes to avoid": "What mistakes should you avoid?"
+   },
+   "related": [
+    [
+     "product-photo-tips-phone-and-window",
+     "10 product photo tips using only your phone and a window"
+    ],
+    [
+     "selling-on-tiktok-short-videos",
+     "Selling on TikTok: short videos that make people ask “how much?”"
+    ],
+    [
+     "product-bundles-increase-average-order-value",
+     "Product Bundles That Increase Average Order Value (+ Examples)"
+    ]
+   ],
+   "topic": [
+    "/social-selling/",
+    "how Shopinbos helps you sell on Instagram, TikTok and WhatsApp"
+   ],
+   "cat": "instagram-and-tiktok"
+  },
+  "whatsapp-broadcast-message-for-business": {
+   "tk": [
+    "Only message people who saved your number and agreed",
+    "Keep each broadcast short, useful and easy to reply to",
+    "Send sparingly, a few times a month at most",
+    "Remove anyone who asks you to stop"
+   ],
+   "h2": {
+    "How WhatsApp broadcast lists work": "How do WhatsApp broadcast lists work?",
+    "How to create a broadcast list": "How do you create a broadcast list?",
+    "How to grow your opt-in list": "How do you grow your opt-in list?",
+    "When to send and how often": "When should you send, and how often?"
+   },
+   "related": [
+    [
+     "whatsapp-business-catalogue-setup-guide",
+     "WhatsApp Business catalogue: how to set it up and sell from it every day"
+    ],
+    [
+     "how-to-get-your-first-10-orders-from-whatsapp-status",
+     "How to get your first 10 orders from WhatsApp Status"
+    ],
+    [
+     "online-store-for-business-in-nigeria",
+     "How to Create an Online Store for Business in Nigeria"
+    ]
+   ],
+   "topic": [
+    "/social-selling/",
+    "how Shopinbos helps you sell on WhatsApp and social media"
+   ],
+   "cat": "selling-on-whatsapp"
+  },
+  "how-to-accept-payments-online-in-nigeria": {
+   "tk": [
+    "Use a checkout link for card, transfer and USSD",
+    "Offer pay on delivery to buyers who don’t trust paying first",
+    "Match every payment to an order",
+    "On Shopinbos, your money is paid out to your bank through Paystack"
+   ],
+   "h2": {
+    "How to accept payments online in Nigeria: the main options": "What are the main ways to accept payments online in Nigeria?",
+    "How to set up online payments step by step": "How do you set up online payments?",
+    "Keeping records and avoiding mistakes": "How do you keep payment records clean?"
+   },
+   "related": [
+    [
+     "pay-on-delivery-without-the-stress",
+     "Pay on delivery without the stress: codes, riders and refunds"
+    ],
+    [
+     "pricing-when-the-naira-moves",
+     "Pricing your products when the naira moves every week"
+    ],
+    [
+     "online-store-for-business-in-nigeria",
+     "How to Create an Online Store for Business in Nigeria"
+    ]
+   ],
+   "topic": [
+    "/payments/",
+    "how payments work on Shopinbos"
+   ],
+   "cat": "payments"
+  },
+  "logistics-companies-in-nigeria-for-small-business": {
+   "mt": "Logistics companies in Nigeria for small business",
+   "tk": [
+    "Pick the partner that reaches your customers, not the biggest",
+    "Ask how they handle cash, damage and failed deliveries",
+    "Test with a few orders before you commit",
+    "Track every parcel and settle problems in writing"
+   ],
+   "h2": {
+    "Why your delivery partner matters more than you think": "Why does your delivery partner matter so much?",
+    "The types of logistics options for small sellers": "What logistics options do small sellers have?",
+    "Questions to ask before you sign up": "What should you ask before you sign up?",
+    "How to test a partner before you commit": "How do you test a partner before you commit?"
+   },
+   "related": [
+    [
+     "when-a-delivery-goes-wrong",
+     "“I didn’t order this”: what to do when a delivery goes wrong"
+    ],
+    [
+     "pay-on-delivery-without-the-stress",
+     "Pay on delivery without the stress: codes, riders and refunds"
+    ],
+    [
+     "how-to-accept-payments-online-in-nigeria",
+     "How to accept payments online in Nigeria: a setup guide for small sellers"
+    ]
+   ],
+   "topic": [
+    "/delivery/",
+    "how delivery works on Shopinbos"
+   ],
+   "cat": "delivery",
+   "was": [
+    "Choosing logistics companies in Nigeria for small business? Use these questions, checks and a trial plan to pick a partner you can trust.",
+    "Logistics companies in Nigeria for small business: choose well"
+   ]
+  },
+  "how-to-price-your-products-for-profit": {
+   "tk": [
+    "Count every cost per unit, not just the supplier price",
+    "Price = total cost ÷ (1 − your target margin)",
+    "Check your price against the market",
+    "Review prices whenever your costs change"
+   ],
+   "h2": {
+    "Why \"cost plus something\" isn't enough": "Why isn’t “cost plus something” enough?",
+    "Why “cost plus something” isn’t enough": "Why isn’t “cost plus something” enough?",
+    "How delivery, fees and discounts affect profit": "How do delivery, fees and discounts affect profit?",
+    "Find your break-even point": "What is your break-even point?",
+    "When to review your prices": "When should you review your prices?"
+   },
+   "related": [
+    [
+     "pricing-when-the-naira-moves",
+     "Pricing your products when the naira moves every week"
+    ],
+    [
+     "dropshipping-in-nigeria-what-you-keep",
+     "Dropshipping in Nigeria: what you keep and what you risk"
+    ],
+    [
+     "how-to-accept-payments-online-in-nigeria",
+     "How to accept payments online in Nigeria: a setup guide for small sellers"
+    ]
+   ],
+   "topic": [
+    "/payments/",
+    "how payments work on Shopinbos"
+   ],
+   "cat": "payments"
+  },
+  "interstate-delivery-in-nigeria": {
+   "tk": [
+    "Pack for a long, bumpy journey",
+    "Promise delivery times you can keep, with a buffer",
+    "Price in every cost, including packaging",
+    "Share tracking and keep customers updated"
+   ],
+   "h2": {
+    "How interstate delivery in Nigeria works": "How does interstate delivery in Nigeria work?",
+    "Packing for a long journey": "How should you pack for a long journey?",
+    "Timelines: what to promise customers": "What delivery time should you promise?",
+    "Costs to plan for": "What costs should you plan for?"
+   },
+   "related": [
+    [
+     "when-a-delivery-goes-wrong",
+     "“I didn’t order this”: what to do when a delivery goes wrong"
+    ],
+    [
+     "logistics-companies-in-nigeria-for-small-business",
+     "Logistics companies in Nigeria for small business: how to choose the right partner"
+    ],
+    [
+     "pay-on-delivery-without-the-stress",
+     "Pay on delivery without the stress: codes, riders and refunds"
+    ]
+   ],
+   "topic": [
+    "/delivery/",
+    "how delivery works on Shopinbos"
+   ],
+   "cat": "delivery"
+  },
+  "how-to-register-a-business-name-in-nigeria": {
+   "tk": [
+    "Registration is done online on the CAC portal",
+    "Check your name is available before you pay",
+    "Have your ID, address and business details ready",
+    "Open a business bank account once you are registered"
+   ],
+   "h2": {
+    "Why online sellers should register a business name": "Why should online sellers register a business name?",
+    "What to prepare before you start": "What do you need before you start?",
+    "After registration: what to do next": "What should you do after registration?"
+   },
+   "related": [
+    [
+     "start-online-business-nigeria-little-capital",
+     "How to start an online business in Nigeria with little capital: a realistic plan"
+    ],
+    [
+     "how-to-accept-payments-online-in-nigeria",
+     "How to accept payments online in Nigeria: a setup guide for small sellers"
+    ],
+    [
+     "online-store-for-business-in-nigeria",
+     "How to Create an Online Store for Business in Nigeria"
+    ]
+   ],
+   "topic": [
+    "/online-store/",
+    "how to build your online store"
+   ],
+   "cat": "seller-stories"
+  },
+  "black-friday-sales-ideas-for-small-business": {
+   "tk": [
+    "Pick a few products you can restock",
+    "Make offers that still leave you a profit",
+    "Tell customers early and often",
+    "Only promise as many deliveries as you can handle"
+   ],
+   "h2": {
+    "Why Black Friday matters for small sellers": "Why does Black Friday matter for small sellers?",
+    "Quick wins and what to do after": "What can you still do if Black Friday is today?"
+   },
+   "related": [
+    [
+     "product-bundles-increase-average-order-value",
+     "Product Bundles That Increase Average Order Value (+ Examples)"
+    ],
+    [
+     "how-to-price-your-products-for-profit",
+     "How to price your products for profit: a simple formula with naira examples"
+    ],
+    [
+     "whatsapp-broadcast-message-for-business",
+     "WhatsApp broadcast message for business: rules, opt-in and 10 templates you can copy"
+    ]
+   ],
+   "topic": [
+    "/payments/",
+    "how payments work on Shopinbos"
+   ],
+   "cat": "payments"
+  },
+  "return-and-refund-policy-for-online-store": {
+   "tk": [
+    "Say what can be returned, and within how many days",
+    "Say who pays delivery for returns",
+    "Explain how and when refunds are paid",
+    "Keep the rules the same for every customer"
+   ],
+   "h2": {
+    "Why your online store needs a returns policy": "Why does your online store need a returns policy?",
+    "What to include in a return and refund policy": "What should a return and refund policy include?",
+    "How refunds work for online and pay on delivery orders": "How do refunds work for online and pay on delivery orders?",
+    "Where to put your policy": "Where should you put your policy?"
+   },
+   "related": [
+    [
+     "when-a-delivery-goes-wrong",
+     "“I didn’t order this”: what to do when a delivery goes wrong"
+    ],
+    [
+     "logistics-companies-in-nigeria-for-small-business",
+     "Logistics companies in Nigeria for small business: how to choose the right partner"
+    ],
+    [
+     "interstate-delivery-in-nigeria",
+     "Interstate delivery in Nigeria: packing, timelines, costs and tracking for online sellers"
+    ]
+   ],
+   "topic": [
+    "/delivery/",
+    "how delivery works on Shopinbos"
+   ],
+   "cat": "delivery"
+  },
+  "christmas-sales-ideas-for-small-business": {
+   "tk": [
+    "Sell ready-made gifts and bundles, not just products",
+    "Publish clear last order dates",
+    "Make ordering and payment easy on WhatsApp and your store",
+    "Plan stock and riders before mid-December"
+   ],
+   "h2": {
+    "Why Christmas selling is different for online sellers": "Why is Christmas selling different for online sellers?",
+    "Set clear Christmas order deadlines": "How do you set Christmas order deadlines?",
+    "Common Christmas selling mistakes": "Which Christmas selling mistakes should you avoid?"
+   },
+   "related": [
+    [
+     "black-friday-sales-ideas-for-small-business",
+     "Black Friday sales ideas for small business in Nigeria: offers, stock and delivery"
+    ],
+    [
+     "product-bundles-increase-average-order-value",
+     "Product Bundles That Increase Average Order Value (+ Examples)"
+    ],
+    [
+     "whatsapp-broadcast-message-for-business",
+     "WhatsApp broadcast message for business: rules, opt-in and 10 templates you can copy"
+    ]
+   ],
+   "topic": [
+    "/online-store/",
+    "how to build your online store"
+   ],
+   "cat": "seller-stories"
+  },
+  "how-to-get-repeat-customers": {
+   "tk": [
+    "Make the first order easy and on time",
+    "Follow up on WhatsApp after delivery",
+    "Keep a simple list of your customers",
+    "Reward the third order, not only the first"
+   ],
+   "h2": {
+    "Why repeat customers matter more than new ones": "Why do repeat customers matter more than new ones?",
+    "How to follow up on WhatsApp after a sale": "How do you follow up on WhatsApp after a sale?",
+    "Simple loyalty ideas that work for small sellers": "Which loyalty ideas work for small sellers?",
+    "Measure whether it is working": "How do you know it is working?"
+   },
+   "related": [
+    [
+     "how-to-get-your-first-10-orders-from-whatsapp-status",
+     "How to get your first 10 orders from WhatsApp Status"
+    ],
+    [
+     "whatsapp-business-catalogue-setup-guide",
+     "WhatsApp Business catalogue: how to set it up and sell from it every day"
+    ],
+    [
+     "whatsapp-broadcast-message-for-business",
+     "WhatsApp broadcast message for business: rules, opt-in and 10 templates you can copy"
+    ]
+   ],
+   "topic": [
+    "/social-selling/",
+    "how Shopinbos helps you sell on WhatsApp and social media"
+   ],
+   "cat": "selling-on-whatsapp"
+  },
+  "dropshipping-vs-inventory": {
+   "tk": [
+    "Dropshipping protects your cash; inventory protects your margin",
+    "Test new products by dropshipping",
+    "Buy wholesale once a product sells steadily",
+    "Many sellers mix both"
+   ],
+   "h2": {
+    "What dropshipping and inventory mean": "What do dropshipping and inventory mean?",
+    "When dropshipping makes the most sense": "When does dropshipping make the most sense?",
+    "When holding inventory makes the most sense": "When does holding inventory make the most sense?",
+    "The hybrid model: the best of both": "Can you mix dropshipping and inventory?"
+   },
+   "related": [
+    [
+     "dropshipping-in-nigeria-what-you-keep",
+     "Dropshipping in Nigeria: what you keep and what you risk"
+    ],
+    [
+     "start-online-business-nigeria-little-capital",
+     "How to start an online business in Nigeria with little capital: a realistic plan"
+    ],
+    [
+     "best-products-to-sell-online-nigeria-2026",
+     "Best products to sell online in Nigeria in 2026, by category (and how to check demand first)"
+    ]
+   ],
+   "topic": [
+    "/find-stock/",
+    "Find stock for registered sellers"
+   ],
+   "cat": "find-stock"
+  },
+  "facebook-ads-for-small-business-in-nigeria": {
+   "tk": [
+    "One product, one offer, one phone-made video",
+    "Run about ₦5,000 a day for at least a week before you judge",
+    "Send people somewhere they can order easily",
+    "Stop ads that bring no messages or sales"
+   ],
+   "h2": {
+    "How the ₦5,000 a day budget works": "How does a ₦5,000 a day budget work?",
+    "Choosing the right campaign goal": "Which campaign goal should you choose?",
+    "Targeting: who should see your ad": "Who should see your ad?",
+    "When to stop, adjust or scale": "When should you stop, adjust or scale?"
+   },
+   "related": [
+    [
+     "how-to-sell-on-instagram-in-nigeria",
+     "How to sell on Instagram in Nigeria: a step-by-step guide for 2026"
+    ],
+    [
+     "how-to-write-product-descriptions-that-sell",
+     "How to write product descriptions that sell: a simple formula with Nigerian before and after examples"
+    ],
+    [
+     "selling-on-tiktok-short-videos",
+     "Selling on TikTok: short videos that make people ask “how much?”"
+    ]
+   ],
+   "topic": [
+    "/social-selling/",
+    "how Shopinbos helps you sell on Instagram, TikTok and WhatsApp"
+   ],
+   "cat": "instagram-and-tiktok"
+  },
+  "how-to-find-reliable-suppliers-in-nigeria": {
+   "tk": [
+    "Start in the market that specialises in your product",
+    "Buy small first and check the quality",
+    "Never send a large payment to a supplier you haven’t checked",
+    "Keep records of every order and payment"
+   ],
+   "h2": {
+    "What \"reliable\" actually means": "What does a reliable supplier look like?",
+    "What “reliable” actually means": "What does a reliable supplier look like?",
+    "Where to find suppliers in Nigeria: the main markets": "Where can you find suppliers in Nigeria?",
+    "How to avoid supplier scams": "How do you avoid supplier scams?",
+    "Questions to ask a new supplier": "What should you ask a new supplier?"
+   },
+   "related": [
+    [
+     "best-products-to-sell-online-nigeria-2026",
+     "Best products to sell online in Nigeria in 2026, by category (and how to check demand first)"
+    ],
+    [
+     "dropshipping-in-nigeria-what-you-keep",
+     "Dropshipping in Nigeria: what you keep and what you risk"
+    ],
+    [
+     "start-online-business-nigeria-little-capital",
+     "How to start an online business in Nigeria with little capital: a realistic plan"
+    ]
+   ],
+   "topic": [
+    "/find-stock/",
+    "Find stock for registered sellers"
+   ],
+   "cat": "find-stock"
+  },
+  "detty-december-business-ideas": {
+   "tk": [
+    "Sell to people who are going out, hosting and travelling",
+    "Set delivery cut-offs early and tell customers",
+    "Keep cash safe and your records clear",
+    "Stock up before the last week of December"
+   ],
+   "h2": {
+    "What makes Detty December different": "What makes Detty December different?",
+    "Plan your delivery cut-offs": "How do you plan delivery cut-offs?",
+    "Handle cash safely": "How do you handle cash safely?",
+    "Plan your stock so you do not run out": "How do you avoid running out of stock?"
+   },
+   "related": [
+    [
+     "christmas-sales-ideas-for-small-business",
+     "Christmas sales ideas for small business: 14 ways Nigerian online sellers can sell more this December"
+    ],
+    [
+     "interstate-delivery-in-nigeria",
+     "Interstate delivery in Nigeria: packing, timelines, costs and tracking for online sellers"
+    ],
+    [
+     "logistics-companies-in-nigeria-for-small-business",
+     "Logistics companies in Nigeria for small business: how to choose the right partner"
+    ]
+   ],
+   "topic": [
+    "/delivery/",
+    "how delivery works on Shopinbos"
+   ],
+   "cat": "delivery"
+  },
+  "online-business-plan-for-2027": {
+   "tk": [
+    "Keep the plan to one page",
+    "Review 2026 with a few real numbers",
+    "Pick three goals: sales, customers and how you run the business",
+    "Turn the goals into a 90-day table with weekly actions"
+   ],
+   "h2": {
+    "Why a simple plan beats a big one": "Why does a simple plan beat a big one?",
+    "Common planning mistakes to avoid": "What planning mistakes should you avoid?"
+   },
+   "related": [
+    [
+     "how-to-get-repeat-customers",
+     "How to get repeat customers for your online store: WhatsApp follow-ups, loyalty and simple habits"
+    ],
+    [
+     "how-to-price-your-products-for-profit",
+     "How to price your products for profit: a simple formula with naira examples"
+    ],
+    [
+     "facebook-ads-for-small-business-in-nigeria",
+     "Facebook ads for small business in Nigeria: a ₦5,000 a day plan that you can actually follow"
+    ]
+   ],
+   "topic": [
+    "/online-store/",
+    "how to build your online store"
+   ],
+   "cat": "seller-stories"
+  }
+ }
+}
