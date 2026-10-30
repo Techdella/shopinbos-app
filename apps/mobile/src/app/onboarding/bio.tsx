@@ -31,7 +31,7 @@ function previewLines(blocks: BioBlock[], words: { shop: string; arrivals: strin
     if (block.type === "shop") lines.push({ icon: "store", text: block.label || words.shop });
     else if (block.type === "arrivals") lines.push({ icon: "grid", text: block.label || words.arrivals });
     else if (block.type === "product") products += 1;
-    else if (block.type === "whatsapp") lines.push({ icon: "chat", text: words.whatsapp });
+    else if (block.type === "whatsapp") lines.push({ icon: "whatsapp", text: words.whatsapp });
     else if (block.type === "socials") lines.push({ icon: "users", text: words.socials });
     else if (block.type === "track") lines.push({ icon: "truck", text: block.label || words.track });
     else if (block.type === "link") lines.push({ icon: "link", text: block.label });

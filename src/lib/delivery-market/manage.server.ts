@@ -478,7 +478,7 @@ export async function findPartners(owner: { id: string; role: string }, filters:
       ...(filters.badge ? { badges: { has: filters.badge } } : {}),
     },
     select: {
-      id: true, slug: true, displayName: true, logoUrl: true, rating: true, ratingCount: true, verificationStatus: true, services: true, pickupAreas: true, deliveryAreas: true, offersPayOnDelivery: true, badges: true, vehicleTypes: true,
+      id: true, slug: true, displayName: true, logoUrl: true, rating: true, ratingCount: true, verificationStatus: true, services: true, pickupAreas: true, deliveryAreas: true, offersPayOnDelivery: true, badges: true, vehicleTypes: true, basePrice: true,
       // Reach tiers (shared/partner-reach.ts): higher tiers rank higher, featured Top partners first with a badge.
       level: true, featuredStatus: true,
       rateCards: { where: { ownerUserId: null, status: "active" }, take: 1, orderBy: { createdAt: "desc" }, select: { rows: true } },
@@ -489,9 +489,12 @@ export async function findPartners(owner: { id: string; role: string }, filters:
   const stats = await statsForPartners(partners.map((partner) => partner.id));
   const state = filters.state ? canonicalState(filters.state) : null;
   const rows = partners
-    .map((partner) => {
+    .map((listed) => {
+      // Sign-up saves only where a partner delivers: until they set pickup areas, they pick up where they deliver.
+      const partner = listed.pickupAreas.length ? listed : { ...listed, pickupAreas: listed.deliveryAreas };
       const rows = readRateRows(partner.rateCards[0]?.rows);
-      const from = startingPrice(rows);
+      // No public rate card yet: the flat fee from sign-up, else null ("ask for a quote").
+      const from = startingPrice(rows) ?? (partner.basePrice > 0 ? partner.basePrice : null);
       const stat = stats.get(partner.id) ?? { completed: 0, onTimeRate: null, failedRate: null };
       const target = state ? [state] : settings.sellArea === "nationwide" ? [] : settings.sellStates;
       const match = Math.max(0, coverScore(partner.pickupAreas, origin)) + (target.length ? Math.max(...target.map((name) => coverScore(partner.deliveryAreas, placeOf({ state: name })))) : 1);
@@ -509,7 +512,7 @@ export async function findPartners(owner: { id: string; role: string }, filters:
         score: rankScore({ stats: stat, rating: partner.rating, ratingCount: partner.ratingCount, match, verified: partner.verificationStatus === "verified", registered: partner.badges.includes("registered_business"), level: partner.level, featured }),
       };
     })
-    .filter((row) => row.matchesShop && row.startingPrice !== null)
+    .filter((row) => row.matchesShop)
     .filter((row) => !filters.maxPrice || (row.startingPrice ?? Infinity) <= filters.maxPrice)
     .filter((row) => !filters.pickupPoints || row.pickupPointCount > 0)
     // Featured Top partners take the top places, then everyone by score (which includes the tier's boost).

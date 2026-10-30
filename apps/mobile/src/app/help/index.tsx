@@ -33,7 +33,7 @@ export default function Help() {
   return (
     <Screen title={t("sheet.title")} refreshing={tickets.refreshing} onRefresh={() => void tickets.refresh()}>
       <CallPeggyButton style={{ marginBottom: 6 }} />
-      <ChoiceRow testID="help-person" icon="chat" tint={colors.successTint} iconColor={colors.success} title={SUPPORT_WHATSAPP ? t("sheet.personWhatsApp") : t("sheet.person")} sub={SUPPORT_WHATSAPP ? t("sheet.personWhatsAppSub") : t("sheet.personAppSub")} onPress={() => void person()} />
+      <ChoiceRow testID="help-person" icon={SUPPORT_WHATSAPP ? "whatsapp" : "chat"} tint={colors.successTint} iconColor={colors.success} title={SUPPORT_WHATSAPP ? t("sheet.personWhatsApp") : t("sheet.person")} sub={SUPPORT_WHATSAPP ? t("sheet.personWhatsAppSub") : t("sheet.personAppSub")} onPress={() => void person()} />
       <ChoiceRow icon="sparkle" tint={colors.mintTint} iconColor={colors.forest} title={t("sheet.askPeggy")} sub={t("sheet.askPeggySub")} onPress={() => router.push(!role || role === "seller" ? "/peggy" : "/ask-peggy")} />
       <ChoiceRow icon="settings" tint={colors.peach} iconColor={colors.accentInk} title={t("sheet.askUs")} sub={t("help.askUsSub")} onPress={() => router.push("/ask-us")} />
 

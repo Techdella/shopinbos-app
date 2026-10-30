@@ -96,3 +96,15 @@ test("phone sign-in: crypto.getRandomValues exists before Supabase runs (email c
   assert.ok(client.indexOf('import "./crypto-polyfill";') !== -1 && client.indexOf('import "./crypto-polyfill";') < client.indexOf("createClient("), "the polyfill loads before the Supabase client");
   assert.match(read("apps/mobile/package.json"), /"expo-crypto"/);
 });
+
+test("Sign in with Apple is on the log-in and sign-up screens themselves, not only in 'Other ways'", () => {
+  const form = read("apps/mobile/src/components/AuthForm.tsx");
+  const buttons = form.match(/<AppleAuthentication\.AppleAuthenticationButton/g) ?? [];
+  assert.equal(buttons.length, 1, "one Apple button");
+  const apple = form.indexOf("<AppleAuthentication.AppleAuthenticationButton");
+  const sheet = form.indexOf("<Sheet visible={others}");
+  const primary = form.indexOf("onPress={() => void submit()}");
+  assert.ok(primary < apple && apple < sheet, "under the main button, outside the Other ways sheet");
+  assert.match(form, /scheme === "dark" \? AppleAuthentication\.AppleAuthenticationButtonStyle\.WHITE : AppleAuthentication\.AppleAuthenticationButtonStyle\.BLACK/);
+  assert.match(form, /\(mode === "login" \|\| role\) && apple && \(/);
+});

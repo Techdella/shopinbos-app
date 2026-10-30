@@ -1,3 +1,4 @@
+import { Platform } from "react-native";
 import { supabase } from "./supabase";
 import { tNow } from "./app-locale";
 import { APP_CLIENT_HEADER, APP_CLIENT_VALUE, storeSafeKind } from "@shared/store-payments";
@@ -50,11 +51,40 @@ export async function authHeader(): Promise<Record<string, string>> {
   return { [APP_CLIENT_HEADER]: APP_CLIENT_VALUE, ...(data.session ? { Authorization: `Bearer ${data.session.access_token}` } : {}) };
 }
 
+/**
+ * fetch, except for file uploads. The global fetch is expo/fetch (Expo SDK 57), which can't send React Native's
+ * { uri, name, type } file parts: it throws "Unsupported FormDataPart implementation" before the request leaves the
+ * phone, which looked like being offline (product photos, Rex video photos, voice notes, documents). Multipart bodies
+ * go through XMLHttpRequest instead, React Native's own networking, which reads the file from disk (as Add many's
+ * uploads always did, lib/bulk-add.ts). Never set Content-Type for these: XHR adds the multipart boundary itself.
+ */
+export function send(url: string, init: RequestInit = {}): Promise<Response> {
+  if (Platform.OS === "web" || !(init.body instanceof FormData)) return fetch(url, init);
+  const body = init.body;
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open(init.method ?? "POST", url);
+    for (const [name, value] of Object.entries((init.headers ?? {}) as Record<string, string>)) {
+      if (name.toLowerCase() !== "content-type") xhr.setRequestHeader(name, value);
+    }
+    xhr.timeout = 120_000;
+    xhr.onload = () => {
+      // Response only takes 200–599; anything else is a connection problem.
+      if (xhr.status < 200 || xhr.status > 599) return reject(new TypeError("Network request failed"));
+      const empty = xhr.status === 204 || xhr.status === 205 || xhr.status === 304;
+      resolve(new Response(empty ? null : xhr.responseText, { status: xhr.status, headers: { "Content-Type": xhr.getResponseHeader("Content-Type") ?? "application/json" } }));
+    };
+    xhr.onerror = () => reject(new TypeError("Network request failed"));
+    xhr.ontimeout = () => reject(new TypeError("Network request timed out"));
+    xhr.send(body);
+  });
+}
+
 export async function api<T>(path: string, init: RequestInit & { json?: unknown } = {}): Promise<T> {
   const { json, headers, ...rest } = init;
   let response: Response;
   try {
-    response = await fetch(`${API_URL}${path}`, {
+    response = await send(`${API_URL}${path}`, {
       ...rest,
       headers: {
         Accept: "application/json",
@@ -83,7 +113,7 @@ export async function apiBody<T>(path: string, init: RequestInit & { json?: unkn
   const { json, headers, ...rest } = init;
   let response: Response;
   try {
-    response = await fetch(`${API_URL}${path}`, {
+    response = await send(`${API_URL}${path}`, {
       ...rest,
       headers: {
         Accept: "application/json",

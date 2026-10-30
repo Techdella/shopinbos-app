@@ -96,7 +96,7 @@ export default function Automations() {
             <Card key={preset.key} style={{ gap: 8 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                 <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: colors.mintTint, alignItems: "center", justifyContent: "center" }}>
-                  <AppIcon name={preset.key.includes("whatsapp") ? "chat" : preset.key === "review" ? "star" : preset.key === "birthday" ? "sparkle" : "mail"} size={18} color={colors.forest} />
+                  <AppIcon name={preset.key.includes("whatsapp") ? "whatsapp" : preset.key === "review" ? "star" : preset.key === "birthday" ? "sparkle" : "mail"} size={18} color={colors.forest} />
                 </View>
                 <T weight="extrabold" style={{ flex: 1, fontSize: 15.5 }}>{t.dynamic(`preset.${preset.key}.name`, preset.name)}</T>
                 {used.has(preset.key) ? <Badge label={t("presets.added")} bg={colors.successTint} fg={colors.success} /> : null}

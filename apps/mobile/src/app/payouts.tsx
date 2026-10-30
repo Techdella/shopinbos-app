@@ -3,10 +3,10 @@ import { View } from "react-native";
 import { router } from "expo-router";
 import { naira } from "@shared/onboarding";
 import { PAYMENT_METHOD_LABEL } from "@shared/sales";
-import { AppIcon } from "@/components/icons";
-import { Badge, ChipRow, EmptyState, ErrorState, LinkRow, LoadingBlock, SectionTitle } from "@/components/kit";
+import { DarkCard, List, Row, Tile } from "@/components/design";
+import { Badge, ChipRow, EmptyState, ErrorState, LoadingBlock, SectionTitle } from "@/components/kit";
 import { Screen } from "@/components/Screen";
-import { Card, Chip, Notice, PillButton, T } from "@/components/ui";
+import { Chip, Notice, PillButton, T } from "@/components/ui";
 import { TONE_COLORS } from "@/lib/dashboard";
 import { friendlyDay } from "@/lib/friendly";
 import { fetchPayouts } from "@/lib/money";
@@ -36,38 +36,34 @@ export default function Payouts() {
 
       {data ? (
         <>
-          <Card style={{ gap: 6 }}>
-            <T style={{ color: colors.inkSoft, fontSize: 15 }}>{t("po.paidOnline")}</T>
-            <T weight="extrabold" style={{ fontSize: 34, letterSpacing: -0.8, lineHeight: 40 }}>{naira(data.online.total)}</T>
-            <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21 }}>{`${t("count.orders", { count: data.online.count })} · ${t("po.paidOnlineHint")}`}</T>
-            <View style={{ marginTop: 8, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 10, flexDirection: "row", alignItems: "center", gap: 12 }}>
-              <View style={{ flex: 1 }}>
-                <T weight="semibold" style={{ fontSize: 15 }}>{t("po.collected")}</T>
-                <T style={{ color: colors.inkSoft, fontSize: 14 }}>{`${t("count.orders", { count: data.offline.count })} · ${t("po.collectedHint")}`}</T>
-              </View>
-              <T weight="extrabold" style={{ fontSize: 16 }}>{naira(data.offline.total)}</T>
-            </View>
-          </Card>
+          {/* Same look as Money (wallet.tsx): the dark card for card money, soft lists with icon tiles below. */}
+          <DarkCard eyebrow={t("po.paidOnline")} amount={naira(data.online.total)} line={`${t("count.orders", { count: data.online.count })} · ${t("po.paidOnlineHint")}`} />
+
+          <List>
+            <Row
+              lead={<Tile icon="coin" tone="ok" />}
+              title={t("po.collected")}
+              sub={`${t("count.orders", { count: data.offline.count })} · ${t("po.collectedHint")}`}
+              right={<T weight="extrabold" style={{ fontSize: 16 }}>{naira(data.offline.total)}</T>}
+            />
+          </List>
 
           <SectionTitle tip={{ text: t("po.auto") }}>{t("po.bank")}</SectionTitle>
-          <Card style={{ gap: 12 }}>
-            {data.bank ? (
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-                <View style={{ width: 46, height: 46, borderRadius: 14, backgroundColor: colors.canvas, alignItems: "center", justifyContent: "center" }}>
-                  <AppIcon name="wallet" size={22} />
-                </View>
-                <View style={{ flex: 1, gap: 2 }}>
-                  <T weight="extrabold" style={{ fontSize: 16 }} numberOfLines={1}>{data.bank.bankName}</T>
-                  <T style={{ color: colors.inkSoft, fontSize: 15 }} numberOfLines={2}>
-                    {data.bank.accountName}{data.bank.accountEnding ? ` · ${t("po.ending", { digits: data.bank.accountEnding })}` : ""}
-                  </T>
-                </View>
-              </View>
-            ) : (
+          {data.bank ? (
+            <List>
+              <Row
+                lead={<Tile icon="wallet" tone="ok" />}
+                title={data.bank.bankName}
+                sub={`${data.bank.accountName}${data.bank.accountEnding ? ` · ${t("po.ending", { digits: data.bank.accountEnding })}` : ""}`}
+                right={<PillButton title={t("po.changeBank")} tone="white" size="sm" onPress={() => router.push("/wallet")} />}
+              />
+            </List>
+          ) : (
+            <View style={{ gap: 10 }}>
               <Notice tone="info">{t("po.noBank")}</Notice>
-            )}
-            <PillButton title={data.bank ? t("po.changeBank") : t("po.addBank")} tone={data.bank ? "white" : "ink"} size="md" onPress={() => router.push("/wallet")} />
-          </Card>
+              <PillButton title={t("po.addBank")} tone="ink" size="md" onPress={() => router.push("/wallet")} />
+            </View>
+          )}
 
           {orders.length ? (
             <ChipRow>
@@ -81,21 +77,26 @@ export default function Payouts() {
           {orders.length && !shown.length ? <EmptyState icon="coin" title={t("po.emptyFilter")} /> : null}
 
           {shown.length ? (
-            <Card style={{ paddingVertical: 2 }}>
-              {shown.map((order, index) => {
+            <List>
+              {shown.map((order) => {
                 const tone = TONE_COLORS[orderStatusTone(order.status)];
                 return (
-                  <LinkRow
+                  <Row
                     key={order.id}
-                    first={index === 0}
-                    label={`${order.buyerName || t("customer")} · ${naira(order.total)}`}
-                    hint={`${order.online ? t("po.onlineToBank") : t("po.keptByYou", { method: method(order.paymentMethod) })} · ${friendlyDay(order.createdAt, new Date(), t)}`}
-                    right={<Badge label={t.dynamic(`status.${order.status}`, order.status)} bg={tone.bg} fg={tone.fg} />}
+                    lead={<Tile icon={order.online ? "wallet" : "coin"} tone={order.online ? "ok" : "gray"} />}
+                    title={order.buyerName || t("customer")}
+                    sub={`${order.online ? t("po.onlineToBank") : t("po.keptByYou", { method: method(order.paymentMethod) })} · ${friendlyDay(order.createdAt, new Date(), t)}`}
+                    right={
+                      <View style={{ alignItems: "flex-end", gap: 4 }}>
+                        <T weight="extrabold" style={{ fontSize: 15.5 }}>{naira(order.total)}</T>
+                        <Badge label={t.dynamic(`status.${order.status}`, order.status)} bg={tone.bg} fg={tone.fg} />
+                      </View>
+                    }
                     onPress={() => router.push({ pathname: "/order/[id]", params: { id: order.id } })}
                   />
                 );
               })}
-            </Card>
+            </List>
           ) : null}
 
           <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{t("po.note")}</T>

@@ -14,7 +14,7 @@ import { colors } from "@/theme";
 
 const LOOK: Record<ShareTarget, { icon: AppIconName; tone: TileTone }> = {
   whatsapp_status: { icon: "phone", tone: "mint" },
-  whatsapp_chat: { icon: "chat", tone: "mint" },
+  whatsapp_chat: { icon: "whatsapp", tone: "mint" },
   tiktok: { icon: "play", tone: "ink" },
   instagram: { icon: "camera", tone: "lilac" },
   facebook: { icon: "users", tone: "sky" },

@@ -462,7 +462,7 @@ export default function RiderJob() {
         <List>
           <Row lead={<Tile icon="user" tone="mint" />} title={drop.buyerName ? say("drop.customer", { name: drop.buyerName }) : t.customer} sub={drop.address} />
           {drop.buyerPhone ? <Row lead={<Tile icon="phone" />} title={t.call} onPress={() => void Linking.openURL(`tel:${drop.buyerPhone}`)} chevron={false} /> : null}
-          {drop.buyerPhone ? <Row lead={<Tile icon="chat" />} title={t.whatsapp} onPress={() => void Linking.openURL(`https://wa.me/${drop.buyerPhone!.replace(/\D/g, "")}`)} chevron={false} /> : null}
+          {drop.buyerPhone ? <Row lead={<Tile icon="whatsapp" />} title={t.whatsapp} onPress={() => void Linking.openURL(`https://wa.me/${drop.buyerPhone!.replace(/\D/g, "")}`)} chevron={false} /> : null}
           <Row lead={<Tile icon="pin" />} title={say("openMaps")} onPress={() => void Linking.openURL(mapUrl(drop.address))} chevron={false} />
         </List>
         {drop.collect > 0 ? (

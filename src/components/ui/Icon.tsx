@@ -1,4 +1,5 @@
 import type { SVGProps } from "react";
+import { BRAND_MARKS } from "@shared/brand-icons";
 
 export type IconName =
   | "home" | "chip" | "bag" | "box" | "truck" | "card" | "chart"
@@ -54,10 +55,11 @@ const paths: Record<IconName, React.ReactNode> = {
   moon:      <><path d="M21 13a8 8 0 11-9-10 6 6 0 009 10z"/></>,
   chevron:   <path d="M9 6l6 6-6 6"/>,
   dot:       <circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/>,
-  instagram: <><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.8" fill="currentColor" stroke="none"/></>,
-  tiktok:    <><path d="M14 4v10a4 4 0 11-4-4"/><path d="M14 4c0 3 2 5 5 5"/></>,
-  whatsapp:  <><path d="M21 12a9 9 0 11-3.5-7.1L21 4l-1 4"/><path d="M8 11c.6 2 2 3.4 4 4l2-2c1 .4 2 .6 3 .6"/></>,
-  facebook:  <path d="M14 21v-7h2.5l.5-3H14V9c0-1 .5-1.5 1.6-1.5H17V5h-2.4C12 5 11 6 11 8.5V11H8.5v3H11v7z"/>,
+  // The real brand logos (shared/brand-icons.ts, Simple Icons), filled in the icon's colour.
+  instagram: <path d={BRAND_MARKS.instagram.path} fill="currentColor" stroke="none"/>,
+  tiktok:    <path d={BRAND_MARKS.tiktok.path} fill="currentColor" stroke="none"/>,
+  whatsapp:  <path d={BRAND_MARKS.whatsapp.path} fill="currentColor" stroke="none"/>,
+  facebook:  <path d={BRAND_MARKS.facebook.path} fill="currentColor" stroke="none"/>,
   edit:      <><path d="M4 20h4l11-11-4-4L4 16z"/><path d="M14 5l4 4"/></>,
   star:      <path d="M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7L2 9l7-1z"/>,
   people:    <><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><path d="M16 3.13a4 4 0 010 7.75"/><path d="M21 21v-2a4 4 0 00-3-3.85"/></>,
@@ -137,6 +139,8 @@ export function Icon({ name, size = 18, color = "currentColor", strokeWidth = 1.
       viewBox="0 0 24 24"
       fill="none"
       stroke={color}
+      // Filled marks (brand logos, dots) use currentColor: the same colour as the stroke.
+      color={color}
       strokeWidth={strokeWidth}
       strokeLinecap="round"
       strokeLinejoin="round"

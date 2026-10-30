@@ -162,7 +162,7 @@ export default function JobScreen() {
         {current.buyer?.phone ? (
           <>
             <RoundAction tone="primary" icon="phone" label={t("job.callCustomer")} onPress={() => void Linking.openURL(`tel:${current.buyer!.phone}`)} />
-            <RoundAction tone="whatsapp" icon="chat" label="WhatsApp" onPress={() => void Linking.openURL(`https://wa.me/${current.buyer!.phone!.replace(/\D/g, "")}`)} />
+            <RoundAction tone="whatsapp" icon="whatsapp" label="WhatsApp" onPress={() => void Linking.openURL(`https://wa.me/${current.buyer!.phone!.replace(/\D/g, "")}`)} />
           </>
         ) : null}
         <RoundAction icon="send" label={t("job.messageShop", { shop: current.shop })} onPress={() => router.push({ pathname: "/logistics/chat/[id]", params: { id: current.sellerUserId, name: current.shop } })} />

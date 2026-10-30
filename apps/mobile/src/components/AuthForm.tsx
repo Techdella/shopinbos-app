@@ -19,6 +19,7 @@ import { LanguageButton } from "@/components/LanguagePicker";
 import { useT } from "@/lib/i18n";
 import { PRIVACY_URL, TERMS_URL } from "@/lib/support";
 import { KeyboardShift } from "@/components/KeyboardShift";
+import { useScheme } from "@/lib/appearance";
 
 const legalLink = () => ({ color: colors.ink, textDecorationLine: "underline" } as const);
 
@@ -79,6 +80,7 @@ function prefillParams(method: Method, phone: string, country: DialCountry, emai
  */
 export function AuthForm({ mode, initialMethod = "phone", initialRole = null, prefill }: { mode: Mode; initialMethod?: Method; initialRole?: SignupRole | null; prefill?: Prefill }) {
   const t = useT("m_auth");
+  const scheme = useScheme();
   const tLegal = useT("auth");
   const prefilledPhone = prefill?.phone ? splitE164(prefill.phone) : null;
   const prefilledEmail = prefill?.email && isValidEmail(prefill.email) ? prefill.email : "";
@@ -368,7 +370,19 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = null, pr
           {step === "name" ? (
             <PillButton tone="accent" disabled={!givenName.trim() || !familyName.trim()} onPress={goToContact} title={t("code.continue")} testID="signup-name-continue" />
           ) : (
-            <PillButton tone="accent" busy={busy === "send"} disabled={Boolean(busy)} onPress={() => void submit()} icon={method === "phone" && whatsapp ? "chat" : undefined} title={primary} />
+            <PillButton tone="accent" busy={busy === "send"} disabled={Boolean(busy)} onPress={() => void submit()} icon={method === "phone" && whatsapp ? "whatsapp" : undefined} title={primary} />
+          )}
+          {(mode === "login" || role) && apple && (
+            // Sign in with Apple on the screen itself, under the main button (iPhone only: appleSignInAvailable). Apple's
+            // own button: black on light, white on dark, as Apple's design rules ask. key: the native button redraws.
+            <AppleAuthentication.AppleAuthenticationButton
+              key={scheme}
+              buttonType={mode === "signup" ? AppleAuthentication.AppleAuthenticationButtonType.SIGN_UP : AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+              buttonStyle={scheme === "dark" ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+              cornerRadius={999}
+              style={{ height: 52, opacity: busy ? 0.6 : 1 }}
+              onPress={() => !busy && void signInApple()}
+            />
           )}
         </View>
       </KeyboardShift>
@@ -377,15 +391,6 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = null, pr
           <ChoiceRow icon="mail" title={t("form.useEmail")} sub={t("other.emailSub")} onPress={() => { setOthers(false); setError(null); setMethod("email"); }} />
         ) : (
           <ChoiceRow icon="phone" title={t("form.usePhone")} sub={t("other.phoneSub")} onPress={() => { setOthers(false); setError(null); setMethod("phone"); }} />
-        )}
-        {(mode === "login" || role) && apple && (
-          <AppleAuthentication.AppleAuthenticationButton
-            buttonType={mode === "signup" ? AppleAuthentication.AppleAuthenticationButtonType.SIGN_UP : AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-            buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-            cornerRadius={999}
-            style={{ height: 52, opacity: busy ? 0.6 : 1 }}
-            onPress={() => !busy && fromSheet(() => void signInApple())}
-          />
         )}
         {(mode === "login" || role) && (
           <PillButton tone="white" size="md" busy={busy === "google"} disabled={Boolean(busy)} onPress={() => fromSheet(() => void google())}>

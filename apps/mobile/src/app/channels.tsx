@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Alert, AppState, Linking, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { AppIcon } from "@/components/icons";
+import Svg, { Path } from "react-native-svg";
+import { BRAND_MARKS, type BrandMark } from "@shared/brand-icons";
 import { ErrorState, LoadingBlock, SectionTitle } from "@/components/kit";
 import { ChoiceRow } from "@/components/Sheet";
 import { Screen } from "@/components/Screen";
@@ -22,11 +24,12 @@ import { colors, themed } from "@/theme";
 // the website's Sell everywhere page. Each card then shows what it brought in (the number, the Page, the Instagram)
 // and Disconnect. Channels that can't be connected yet are left out (no "Coming soon"); posting is the Posts calendar.
 
-const MARK: Record<LivePlatform, { letter: string; bg: string }> = themed(() => ({
-  whatsapp: { letter: "W", bg: colors.whatsapp },
-  meta: { letter: "f", bg: "#1877F2" },
-  tiktok: { letter: "T", bg: "#111111" },
-  google: { letter: "G", bg: "#4285F4" },
+// Each platform's real logo (shared/brand-icons.ts) in white on its brand colour.
+const MARK: Record<LivePlatform, { brand: BrandMark; bg: string }> = themed(() => ({
+  whatsapp: { brand: "whatsapp", bg: colors.whatsapp },
+  meta: { brand: "facebook", bg: "#1877F2" },
+  tiktok: { brand: "tiktok", bg: "#111111" },
+  google: { brand: "google", bg: "#4285F4" },
 }));
 
 type Note = { tone: "success" | "error"; text: string };
@@ -35,7 +38,9 @@ function Mark({ platform, faded }: { platform: LivePlatform; faded?: boolean }) 
   const mark = MARK[platform];
   return (
     <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: faded ? colors.lineStrong : mark.bg, alignItems: "center", justifyContent: "center" }}>
-      <T weight="extrabold" style={{ color: "#FFFFFF", fontSize: 20 }}>{mark.letter}</T>
+      <Svg width={22} height={22} viewBox="0 0 24 24" accessibilityLabel={BRAND_MARKS[mark.brand].title}>
+        <Path d={BRAND_MARKS[mark.brand].path} fill="#FFFFFF" />
+      </Svg>
     </View>
   );
 }

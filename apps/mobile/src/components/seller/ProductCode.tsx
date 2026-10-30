@@ -58,6 +58,6 @@ export function ShareProductButton({ product }: { product: SharedProduct }) {
   const share = useShareProduct();
   if (!product.url) return null;
   return (
-    <PillButton tone="forest" accessibilityLabel={t("product.shareWhatsapp")} onPress={() => share(product)} icon="chat" title={t("product.shareWhatsapp")} />
+    <PillButton tone="forest" accessibilityLabel={t("product.shareWhatsapp")} onPress={() => share(product)} icon="whatsapp" title={t("product.shareWhatsapp")} />
   );
 }

@@ -482,7 +482,7 @@ export default function OrderScreen() {
           {/* The number, then WhatsApp and Call as two big round buttons (the call-screen look). */}
           <T weight="bold" style={{ fontSize: 18, textAlign: "center" }} selectable>{phone}</T>
           <RoundActions style={{ paddingVertical: 8 }}>
-            <RoundAction tone="whatsapp" size={64} icon="chat" label={t("order.whatsapp")} onPress={() => { setContact(false); void Linking.openURL(`https://wa.me/${whatsappNumber(phone)}`); }} />
+            <RoundAction tone="whatsapp" size={64} icon="whatsapp" label={t("order.whatsapp")} onPress={() => { setContact(false); void Linking.openURL(`https://wa.me/${whatsappNumber(phone)}`); }} />
             <RoundAction tone="primary" size={64} icon="phone" label={t("order.call")} onPress={() => { setContact(false); void Linking.openURL(`tel:${phone.replace(/[^\d+]/g, "")}`); }} />
           </RoundActions>
         </Sheet>

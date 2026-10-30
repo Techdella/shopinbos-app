@@ -20,7 +20,7 @@ import { colors } from "@/theme";
 
 type Draft = Pick<BioPage, "published" | "title" | "bio" | "avatarUrl" | "theme" | "blocks">;
 
-const BLOCK_ICON = { product: "bag", link: "link", collection: "grid", socials: "users", whatsapp: "chat", signup: "mail", text: "doc", shop: "store", arrivals: "grid", track: "truck" } as const;
+const BLOCK_ICON = { product: "bag", link: "link", collection: "grid", socials: "users", whatsapp: "whatsapp", signup: "mail", text: "doc", shop: "store", arrivals: "grid", track: "truck" } as const;
 
 export default function LinkInBio() {
   const t = useT("m_paylinks", "m_ui");

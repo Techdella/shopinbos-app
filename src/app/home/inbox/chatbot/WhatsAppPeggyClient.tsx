@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Card, Pill } from "@/components/app-kit";
 import { Notice, PillButton, Segmented, Toggle } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
@@ -12,7 +12,7 @@ import { Fold } from "@/components/simple/Fold";
 import { plainMetaError } from "@/components/simple/plain";
 import type { WhatsAppHealth } from "@/lib/inbox/whatsapp-bot.server";
 import { useT } from "@/components/i18n/I18nProvider";
-import { EmbeddedSignupError, runEmbeddedSignup } from "@/components/meta/embedded-signup";
+import { EmbeddedSignupError, preloadFacebookSdk, runEmbeddedSignup } from "@/components/meta/embedded-signup";
 import { ConnectGuide } from "../channels/ConnectGuide";
 import { friendlyError } from "@/lib/errors/report-client";
 
@@ -74,6 +74,11 @@ export function WhatsAppPeggyClient({
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<Message>(null);
 
+  // Facebook's SDK loads with the page, so Connect opens Facebook's window at once (not blocked as a popup).
+  useEffect(() => {
+    if (signup) preloadFacebookSdk(signup.appId);
+  }, [signup]);
+
   async function connect() {
     if (!signup) return;
     setConnecting(true);
@@ -85,7 +90,7 @@ export function WhatsAppPeggyClient({
       setConnectMessage({ tone: "success", text: t("wa.connectedEmbedded") });
     } catch (error) {
       const code = error instanceof EmbeddedSignupError ? error.code : null;
-      setConnectMessage({ tone: code === "closed" ? "info" : "error", text: code === "closed" ? t("wa.signupClosed") : code === "no_number" ? t("wa.noNumber") : plainMetaError(friendlyError(error)) });
+      setConnectMessage({ tone: code === "closed" ? "info" : "error", text: code === "closed" ? t("wa.signupClosed") : code === "no_number" ? t("wa.noNumber") : code === "blocked" || code === "timeout" ? (error as Error).message : plainMetaError(friendlyError(error)) });
     } finally {
       setConnecting(false);
     }

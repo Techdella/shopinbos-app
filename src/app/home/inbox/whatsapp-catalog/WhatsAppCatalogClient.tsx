@@ -2,13 +2,13 @@
 
 import { confirmDialog } from "@/components/ui/dialogs";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, Pill, StatGrid, StatTile } from "@/components/app-kit";
 import { Notice, PillButton } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { plainMetaError } from "@/components/simple/plain";
 import { formatStamp, inboxApi } from "@/components/messaging/inbox-ui";
-import { EmbeddedSignupError, runEmbeddedSignup } from "@/components/meta/embedded-signup";
+import { EmbeddedSignupError, preloadFacebookSdk, runEmbeddedSignup } from "@/components/meta/embedded-signup";
 import type { CatalogView, SyncSummary } from "@/lib/whatsapp-catalog/server";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import type { TFunction } from "@shared/i18n";
@@ -75,6 +75,11 @@ export function WhatsAppCatalogClient({ initial, storeName, signup }: { initial:
       setBusy(null);
     }
   }
+
+  // Facebook's SDK loads with the page, so the tap opens Facebook's window at once (not blocked as a popup).
+  useEffect(() => {
+    if (signup) preloadFacebookSdk(signup.appId);
+  }, [signup]);
 
   /** The one click: connect WhatsApp (or reconnect for the catalog permissions) when needed, then set up the catalog. */
   const setUp = (reconnect: boolean) =>

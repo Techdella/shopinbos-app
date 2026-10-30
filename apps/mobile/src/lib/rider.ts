@@ -1,5 +1,5 @@
 import "expo-sqlite/localStorage/install";
-import { ApiError, API_URL } from "./api";
+import { ApiError, API_URL, send } from "./api";
 import { filePart, preparePhoto, type PhotoInput } from "./upload-photo";
 
 // The Riders app inside the mobile app. Riders don't have a Shopinbos account: their dispatcher shares a private
@@ -146,7 +146,7 @@ async function riderFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (!token) throw new ApiError("Open the Riders app link your dispatcher sent you.", 401);
   let response: Response;
   try {
-    response = await fetch(`${API_URL}/api/mobile/logistics/rider${path}`, { ...init, headers: { Accept: "application/json", "X-Rider-Token": token, ...(init.headers as Record<string, string> | undefined) } });
+    response = await send(`${API_URL}/api/mobile/logistics/rider${path}`, { ...init, headers: { Accept: "application/json", "X-Rider-Token": token, ...(init.headers as Record<string, string> | undefined) } });
   } catch {
     throw new ApiError("We couldn't reach Shopinbos. Check your connection and try again.", 0);
   }

@@ -59,7 +59,8 @@ export default function Popups() {
       sub={t("pop.sub")}
       refreshing={data.refreshing}
       onRefresh={() => void data.refresh()}
-      headerRight={<PillButton testID="popup-new" size="sm" icon="plus" title={t("pop.new")} onPress={() => router.push({ pathname: "/marketing/popup/[id]" as never, params: { id: "new" } })} />}
+      // Pinned at the bottom: in the header it covered the screen's title on iPhones.
+      footer={<PillButton testID="popup-new" tone="accent" icon="plus" title={t("pop.new")} onPress={() => router.push({ pathname: "/marketing/popup/[id]" as never, params: { id: "new" } })} />}
     >
       {problem ? <Notice>{problem}</Notice> : null}
       {data.loading && !overview ? <LoadingBlock /> : null}
