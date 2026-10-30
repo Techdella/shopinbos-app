@@ -194,6 +194,7 @@ const en = {
   "admin.developers": "Developers",
   "admin.errors": "App errors",
   "admin.app-release": "App updates",
+  "admin.pilot-features": "Pilot features",
   "admin.referrals": "Referrals",
   "admin.member-tips": "Member tips",
   "admin.member-stories": "Member stories",

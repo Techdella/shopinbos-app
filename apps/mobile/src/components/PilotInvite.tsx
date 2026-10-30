@@ -9,7 +9,7 @@ import { colors } from "@/theme";
 // "Have a pilot invite code?" (Settings): the code from the Shopinbos team turns on the pilot features it gives
 // (Admin › Pilot features › Invite codes; POST /api/app/features/invite). The features show once their switches allow.
 
-const CODE_KEYS: Record<string, string> = {
+const CODE_KEYS: Record<string, "pilot.notFound" | "pilot.expired" | "pilot.usedUp" | "pilot.tooMany"> = {
   INVITE_NOT_FOUND: "pilot.notFound",
   INVITE_EXPIRED: "pilot.expired",
   INVITE_USED_UP: "pilot.usedUp",

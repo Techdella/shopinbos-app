@@ -32,7 +32,8 @@ import { DeleteAccountButton } from "@/components/DeleteAccountButton";
 // Automations ("3 ON"); a search over every tool; then every other tool the seller had, in four short groups (Sell;
 // Money and delivery; Look; You), titles only, each tool once: anything already on the grids (ON_SCREEN) isn't
 // repeated, and Help is the button in the corner. Every path is a screen in the app ("app:"); nothing here opens the
-// web app. Web address is app/domain.tsx and Packaging is app/packaging.tsx. "Sell everywhere" (/channels) isn't in
+// web app. Web address is app/domain.tsx, Packaging is app/packaging.tsx and Your shop link & QR (the @handle, short
+// link and QR code; also the link icon beside Share) is app/shop-link.tsx. "Sell everywhere" (/channels) isn't in
 // the phone app's shop. The board's "Import from China" isn't open yet, so it isn't here.
 // Words are translated at render: m_shop "group.<key>", "link.<id>.label" and "link.<id>.hint", m_grow "tool.<id>"
 // (English here is the fallback).
@@ -76,6 +77,7 @@ export const SHOP_GROUPS: { key: string; title: string; links: ShopLink[] }[] = 
       { id: "packaging", label: "Packaging and labels", icon: "box", path: "app:/packaging", hint: "Boxes and stickers with your name", tone: "peach" },
       { id: "themes", label: "Shop looks", icon: "image", path: "app:/templates", hint: "Pick a look, or let Rex build one" },
       { id: "linkInBio", label: "Link in bio", icon: "share", path: "app:/link-in-bio", hint: "One page for your Instagram and TikTok bio" },
+      { id: "shopLink", label: "Your shop link & QR", icon: "link", path: "app:/shop-link", hint: "Your @handle, short link and a QR code to print", tone: "mint" },
       { id: "storePages", label: "Store pages", icon: "doc", path: "app:/store-pages", hint: "Pages, collections and content" },
       { id: "video", label: "Video studio", icon: "play", path: "app:/video", hint: "Reels for ads, products and social media" },
       { id: "posts", label: "Posts calendar", icon: "image", path: "app:/posts", hint: "Posts already made and planned, day by day" },
@@ -271,6 +273,7 @@ export default function Menu() {
               <T weight="extrabold" style={{ fontSize: 18 }} numberOfLines={1}>{store.name}</T>
               <T style={{ fontSize: 14, color: colors.inkSoft }} numberOfLines={1}>{store.url ? t("menu.seeStore") : t("linkLater")}</T>
             </Pressable>
+            {store.url ? <IconButton testID="shop-link-qr" icon="link" label={t("link.shopLink.label")} onPress={() => router.push("/shop-link")} /> : null}
             {store.url ? <IconButton testID="share-shop" icon="share" label={t("share")} onPress={() => void share()} /> : null}
           </View>
           {shareNote ? <T style={{ color: colors.danger, fontSize: 15 }}>{shareNote}</T> : null}
