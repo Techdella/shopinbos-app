@@ -41,7 +41,7 @@ function sib_seed_legal_core(): array {
    [
     "Who we are",
     [
-     "Shopinbos is run by Tech Della Solutions Ltd (RC 7038770), a company registered with the Corporate Affairs Commission in Nigeria, with its office in Lagos. “We” and “us” in these terms means Tech Della Solutions Ltd, which runs Shopinbos.",
+     "Shopinbos is run by Tech Della Solutions Ltd (RC 7038770), a company registered with the Corporate Affairs Commission in Nigeria, with its office in Ibadan, Oyo State. “We” and “us” in these terms means Tech Della Solutions Ltd, which runs Shopinbos.",
      "By creating an account or using Shopinbos, you agree to these terms. If you use Shopinbos for a business, you agree on behalf of that business."
     ],
     "This is an agreement between you and our company in Lagos."

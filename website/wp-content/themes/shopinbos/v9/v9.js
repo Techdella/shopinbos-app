@@ -180,6 +180,20 @@
 		inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') go(e); });
 	});
 
+	/* Blog "Copy link". */
+	document.querySelectorAll('a[data-copy]').forEach(function (a) {
+		a.addEventListener('click', function (e) {
+			if (!navigator.clipboard) return;
+			e.preventDefault();
+			navigator.clipboard.writeText(a.href).then(function () { var t = a.textContent; a.textContent = 'Copied'; setTimeout(function () { a.textContent = t; }, 1600); });
+		});
+	});
+
+	/* Checklists inside posts: tap to tick. */
+	document.querySelectorAll('.v9-prose .chkrow').forEach(function (b) {
+		b.addEventListener('click', function () { b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') === 'true' ? 'false' : 'true'); });
+	});
+
 	/* CTA clicks to the app. */
 	document.addEventListener('click', function (e) {
 		var a = e.target.closest && e.target.closest('a[href*="app.shopinbos.com"], a[href*="/signup"]');

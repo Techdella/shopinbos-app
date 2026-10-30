@@ -5,7 +5,7 @@
  *   v9/v9.js           forms, menus and small behaviours
  *   v9/img/            images
  *   v9/pages/*.html    page markup, built by website/tools/v9_build.py
- *   v9/templates/*.php fill the blog, help, academy, legal, compare and trending pages with real content
+ *   inc/v9-content.php  blog posts, help articles and legal pages: real content in the V9 designs
  *
  * Staging: V9 replaces the old pages from launch (sib_launch_ts(), 1 November 00:00 Lagos). Before that only
  * browsers holding the preview cookie see it: open any page with ?v9=<preview key> (`wp shopinbos v9-link`
@@ -105,11 +105,6 @@ function sib_v9_routes(): array {
 		'/help/'                         => 'help',
 		'/about/'                        => 'about',
 		'/contact/'                      => 'contact',
-		'/legal/terms/'                  => 'legal-terms',
-		'/legal/privacy/'                => 'legal-privacy',
-		'/legal/refunds/'                => 'legal-refunds',
-		'/legal/seller-rules/'           => 'legal-seller-rules',
-		'/legal/cookies/'                => 'legal-cookies',
 	];
 }
 
@@ -216,6 +211,9 @@ function sib_v9_render( string $slug, string $html, array $meta = [] ): void {
 	}
 	$title = (string) ( $meta['title'] ?? $title );
 	$desc  = (string) ( $meta['description'] ?? $desc );
+	if ( '' === $desc && is_singular() && function_exists( 'sib_meta_description' ) ) {
+		$desc = sib_meta_description();
+	}
 	if ( '' === $desc && preg_match( '#<p class="lead[^"]*"[^>]*>(.*?)</p>#s', $html, $m ) ) {
 		$desc = wp_html_excerpt( trim( wp_strip_all_tags( $m[1] ) ), 155, '…' );
 	}
@@ -270,6 +268,7 @@ add_action( 'wp_enqueue_scripts', function () {
 	}
 	$css = get_theme_file_path( 'v9/v9.css' );
 	wp_enqueue_style( 'sib-v9', get_theme_file_uri( 'v9/v9.css' ), [], (string) filemtime( $css ) );
+	wp_enqueue_style( 'sib-v9-prose', get_theme_file_uri( 'v9/prose.css' ), [ 'sib-v9' ], (string) filemtime( get_theme_file_path( 'v9/prose.css' ) ) );
 	$js = get_theme_file_path( 'v9/v9.js' );
 	if ( is_readable( $js ) ) {
 		wp_enqueue_script( 'sib-v9', get_theme_file_uri( 'v9/v9.js' ), [], (string) filemtime( $js ), [ 'strategy' => 'defer', 'in_footer' => true ] );
@@ -283,3 +282,5 @@ add_action( 'wp_enqueue_scripts', function () {
 	wp_dequeue_style( 'wp-block-library' );
 	wp_dequeue_style( 'classic-theme-styles' );
 }, 999 );
+
+require_once __DIR__ . '/v9-content.php';
