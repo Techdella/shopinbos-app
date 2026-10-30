@@ -254,7 +254,6 @@ export default async function SupplierDashboardPage({ searchParams }: { searchPa
             <PillLink href={`/suppliers/${supplier.slug}`}>{t("dashboard.publicPage")}</PillLink>
             {/* New → Trusted → Established (shared/dropship-rules.ts): the goals left and what the next level unlocks. */}
             <PillLink href="/supplier/level" icon="star">Your level: {SUPPLIER_LEVEL_LABELS[isSupplierLevel(supplier.level) ? supplier.level : "new"]}</PillLink>
-            <PillLink href="/supplier/branding" icon="palette">Branding you offer</PillLink>
           </div>
           <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4">
             <StatTile label={t("dashboard.tileToShip")} value={toShipCount.toLocaleString("en-NG")} />

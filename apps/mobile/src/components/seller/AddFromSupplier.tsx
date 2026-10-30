@@ -6,7 +6,7 @@ import { Image } from "expo-image";
 import { AppIcon } from "@/components/icons";
 import { BoardChip, BoardChips, PriceInput } from "@/components/supplier/DropshipKit";
 import { T } from "@/components/ui";
-import { amountOf, brandingLabel, groupDigits, deliveryLine, listingView, naira, payerLabel, supplierBadgeLine, wordsOf } from "@/lib/dropship-pure";
+import { amountOf, groupDigits, deliveryLine, listingView, naira, payerLabel, supplierBadgeLine, wordsOf } from "@/lib/dropship-pure";
 import { useT } from "@/lib/i18n";
 import type { FindProduct } from "@/lib/marketplace";
 import { colors, fonts, radii } from "@/theme";
@@ -15,10 +15,10 @@ import { colors, fonts, radii } from "@/theme";
 // it's from and where it ships from, the options ("Ships 1 piece · Packs in 1 day · 86 in stock") and the trusted-
 // supplier line; YOU PAY (the supplier's dropship price), YOUR PRICE (typed) and YOU EARN, live and exactly as the web's
 // Find products panel works it out (lib/dropship-pure.ts listingMoney: on the dearest delivery the seller could cover,
-// less the branding fee and the card payment fee), with the web's lines under them ("On each order"); the lowest price
-// allowed; delivery to the seller's customers with who
-// pays it (the customer, the seller as free delivery, or a flat fee they type); the branding the supplier offers with
-// its fee; and "Your SKU or barcode". listingProblem gives the same refusal as the server (409 PRICE_PROBLEM).
+// less the card payment fee), with the web's lines under them ("On each order"); the lowest price allowed; delivery to
+// the seller's customers with who pays it (the customer, the seller as free delivery, or a flat fee they type); and
+// "Your SKU or barcode". Suppliers don't offer seller branding: every parcel is packed plain, and the seller's name is
+// on tracking and the invoice. listingProblem gives the same refusal as the server (409 PRICE_PROBLEM).
 
 export type Payer = (typeof DELIVERY_PAYERS)[number];
 
@@ -26,14 +26,13 @@ export interface ListingDraft {
   price: string;
   payer: Payer;
   flatFee: string;
-  branding: string;
   sku: string;
 }
 
-export const listingDraftFrom = (terms: DropshipTerms): ListingDraft => ({ price: String(Math.round(terms.suggestedPrice)), payer: "customer", flatFee: "", branding: terms.branding[0]?.choice ?? "blind", sku: "" });
+export const listingDraftFrom = (terms: DropshipTerms): ListingDraft => ({ price: String(Math.round(terms.suggestedPrice)), payer: "customer", flatFee: "", sku: "" });
 
 /** The choices as the server and the margin check read them. */
-export const listingChoiceOf = (draft: ListingDraft) => ({ retailPrice: amountOf(draft.price) ?? 0, payer: draft.payer, flatFee: draft.payer === "flat" ? amountOf(draft.flatFee) ?? (draft.flatFee.trim() === "0" ? 0 : null) : null, brandingChoice: draft.branding });
+export const listingChoiceOf = (draft: ListingDraft) => ({ retailPrice: amountOf(draft.price) ?? 0, payer: draft.payer, flatFee: draft.payer === "flat" ? amountOf(draft.flatFee) ?? (draft.flatFee.trim() === "0" ? 0 : null) : null });
 
 /** One of the three tiles (`.m`): YOU PAY, YOUR PRICE (ringed, typed) and YOU EARN (green, red at a loss). */
 function Money({ label, value, tone, children }: { label: string; value?: string; tone?: "edit" | "earn" | "loss"; children?: React.ReactNode }) {
@@ -82,8 +81,6 @@ export function AddFromSupplier({ product, terms, draft, onChange, place }: { pr
   const badge = supplierBadgeLine(product.supplier, words);
   const stockWord = terms.stockState === "out" ? words("add.outOfStock", "Out of stock") : words("add.inStock", "{count} in stock", { count: terms.stock });
   const options = [...terms.options.map((option) => words(`option.${option}`, option)), stockWord].join(" · ");
-  const picked = terms.branding.find((entry) => entry.choice === draft.branding) ?? terms.branding[0];
-  const brandNote = picked?.choice === "stickers" ? words("add.stickerNote", "Send {name} a sticker pack", { name: product.supplier.name }) : picked?.choice === "packing_slip" ? words("add.slipNote", "{name} prints your slip", { name: product.supplier.name }) : words("add.brandFree", "Free");
   const shipsFrom = terms.shipsFrom ?? product.supplier.city;
 
   return (
@@ -126,7 +123,6 @@ export function AddFromSupplier({ product, terms, draft, onChange, place }: { pr
         <Line label={words("add.lineYourPrice", "Your price")} value={naira(money.price)} />
         <Line label={words("add.linePay", "You pay {name}", { name: product.supplier.name })} value={`−${naira(money.cost)}`} />
         <Line label={money.customerPays ? words("add.lineDelivery", "Delivery") : words("add.lineDeliveryYou", "Delivery you cover (up to)")} value={money.customerPays ? words("add.lineCustomerPays", "Customer pays") : `−${naira(money.deliveryShare)}`} />
-        {money.brandingFee > 0 ? <Line label={words("add.lineBranding", "Branding per parcel")} value={`−${naira(money.brandingFee)}`} /> : null}
         <Line label={words("add.lineCardFee", "Card payment fee")} value={`−${naira(money.cardFee)}`} />
         <View style={{ borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 8 }}>
           <Line strong label={words("add.lineEarn", "You earn")} value={signed(money.earn)} tone={money.earn > 0 ? colors.success : colors.danger} />
@@ -144,10 +140,8 @@ export function AddFromSupplier({ product, terms, draft, onChange, place }: { pr
         {draft.payer !== "customer" ? <T style={{ fontSize: 12, lineHeight: 17, color: colors.inkSoft }}>{words("add.payerNote", "You cover the rest of delivery from your margin. You earn is worked out on the dearest delivery.")}</T> : null}
       </Section>
 
-      <Section title={words("add.branding", "Your branding")} note={brandNote}>
-        <BoardChips gap={6}>
-          {terms.branding.map((entry) => <BoardChip small key={entry.choice} label={brandingLabel({ label: words(`brandChoice.${entry.choice}`, entry.label), fee: entry.fee })} on={draft.branding === entry.choice} onPress={() => set({ branding: entry.choice })} />)}
-        </BoardChips>
+      <Section title={words("add.packing", "Packing")}>
+        <T style={{ fontSize: 12, lineHeight: 17, color: colors.inkSoft }}>{words("add.packedPlain", "Packed plain: your shop's name is on tracking and the invoice.")}</T>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <T weight="bold" style={{ fontSize: 13, color: colors.grayInk }}>{words("add.sku", "Your SKU or barcode")}</T>
           <TextInput

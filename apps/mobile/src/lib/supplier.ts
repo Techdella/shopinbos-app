@@ -4,7 +4,7 @@ import type { ContractDocument } from "@shared/contracts";
 import { api, apiBody } from "./api";
 import { uploadOnePhoto, type PhotoInput } from "./upload-photo";
 import type { PreorderBody } from "./preorder-pure";
-import type { BrandingChoice, BrandingOffer, LevelGoal, RateSource, SupplierLevel, SupplierPerks, ZoneRates } from "@shared/dropship-rules";
+import type { LevelGoal, RateSource, SupplierLevel, SupplierPerks, ZoneRates } from "@shared/dropship-rules";
 
 // The supplier side of the app. Reads and writes go to the same backend as the web supplier portal:
 //   /api/mobile/supplier/overview · orders · orders/[id] · quotes/[id] · products/[id] · upload  (made for the app)
@@ -497,30 +497,18 @@ export const fetchDeliveryRates = () => api<DeliveryRatesView>("/api/supplier/de
 /** "own" is checked like the web (400 invalid_rates with the reason). */
 export const saveDeliveryRates = (input: { rateSource: RateSource; zoneRates?: ZoneRates }) => api<DeliveryRatesView>("/api/supplier/delivery-rates", { method: "PUT", json: input });
 
-/** The branding offered to sellers who dropship (packing slips and stickers unlock at Trusted: `allowed`). */
-export interface BrandingView {
-  offer: BrandingOffer;
-  level: SupplierLevel;
-  allowed: boolean;
-}
-
-export const fetchBranding = () => api<BrandingView>("/api/supplier/branding");
-
-export const saveBranding = (offer: Partial<BrandingOffer>) => api<BrandingView>("/api/supplier/branding", { method: "PUT", json: offer });
-
 /**
- * Pack it the seller's way on one dropship order (GET/POST /api/supplier/orders/[id]/pack), or a bulk order's two
+ * Pack it plain (always blind) on one dropship order (GET/POST /api/supplier/orders/[id]/pack), or a bulk order's two
  * packing photos (?kind=wholesale): the item in the open box (contentsPhotoUrl) and the sealed parcel (photoUrl).
  */
 export interface PackView {
   orderId: string;
   kind?: "dropship" | "wholesale";
-  branding: { sellerName: string; logoUrl: string | null; choice: BrandingChoice; fee: number; skus: string[] };
-  steps: Array<{ id: "contents" | "plain" | "slip" | "sticker" | "code" | "photo"; text: string; detail: string; done: boolean }>;
+  branding: { sellerName: string; logoUrl: string | null; skus: string[] };
+  steps: Array<{ id: "contents" | "plain" | "code" | "photo"; text: string; detail: string; done: boolean }>;
   packSteps: string[];
   photoUrl: string | null;
   contentsPhotoUrl?: string | null;
-  stickersLeft: number | null;
   packed: boolean;
   /** Why it can't be marked packed yet, or null. */
   problem: string | null;

@@ -6,7 +6,7 @@ import { createNotification } from "@/lib/notifications/create";
 import { acceptByFor, messageSupplierPhone } from "./deadline.server";
 import { makeDeliveryCode } from "@/lib/logistics/job-rules";
 import { readDeliveryPlan, supplierSelfShipments } from "@shared/delivery-market";
-import { brandingOfferFor, dropshipUnitPrice, effectiveBranding, readBrandingOffer, type BrandingChoice } from "@shared/dropship-rules";
+import { BLIND_PACKING, dropshipUnitPrice } from "@shared/dropship-rules";
 import {
   groupDropshipLines,
   plainText,
@@ -63,7 +63,7 @@ export async function ensureSupplierOrders(retailOrderId: string): Promise<{ cre
   const products = await db.storeProduct.findMany({
     where: { storeId: order.storeId, id: { in: productIds }, fulfillmentType: "dropship", supplierProductId: { not: null } },
     select: {
-      id: true, sku: true, barcode: true, brandingChoice: true,
+      id: true, sku: true, barcode: true,
       supplierProduct: { select: { id: true, supplierId: true, wholesalePrice: true, priceMode: true, dropshipPrice: true, images: true } },
     },
   });
@@ -91,25 +91,20 @@ export async function ensureSupplierOrders(retailOrderId: string): Promise<{ cre
   // Each supplier has a deadline to accept (4 hours unless set otherwise): see acceptance.server.ts.
   const supplierRows = await db.supplier.findMany({
     where: { id: { in: groups.map((group) => group.supplierId) } },
-    select: { id: true, userId: true, acceptHoursDropship: true, acceptHoursWholesale: true, level: true, brandingOffer: true },
+    select: { id: true, userId: true, acceptHoursDropship: true, acceptHoursWholesale: true, level: true },
   });
   const now = new Date();
   const deadlines = new Map(supplierRows.map((row) => [row.id, acceptByFor("dropship", row, now)]));
-  // Pack it the seller's way (shared/dropship-rules.ts): the shop's name and logo, the branding the seller chose for
-  // these products (falling back to blind when the supplier doesn't offer it) and the seller's own SKUs.
+  // Pack it plain (shared/dropship-rules.ts): suppliers don't offer seller branding, so every parcel goes out blind.
+  // The snapshot keeps the shop's name and logo and the seller's own SKUs for the pack screens.
   const storeBrand = await db.store.findUnique({ where: { id: order.storeId }, select: { logoUrl: true } }).catch(() => null);
-  const brandingFor = (supplierId: string, lines: SupplierOrderLine[]) => {
-    const supplier = supplierRows.find((row) => row.id === supplierId);
-    const offer = brandingOfferFor(supplier?.level, readBrandingOffer(supplier?.brandingOffer));
+  const brandingFor = (_supplierId: string, lines: SupplierOrderLine[]) => {
     const chosen = lines.map((line) => products.find((product) => product.id === line.storeProductId)).filter((product) => product !== undefined);
-    const rank: Record<string, number> = { stickers: 2, packing_slip: 1 };
-    const wanted = chosen.map((product) => product.brandingChoice as BrandingChoice).sort((a, b) => (rank[b] ?? 0) - (rank[a] ?? 0))[0];
-    const { choice, fee } = effectiveBranding(wanted, offer);
     return {
       sellerName: plainText(order.store.name, 80) || "The shop",
       logoUrl: storeBrand?.logoUrl ?? null,
-      choice,
-      fee,
+      choice: BLIND_PACKING,
+      fee: 0,
       skus: [...new Set(chosen.map((product) => (product.sku || product.barcode || "").trim()).filter(Boolean))].slice(0, 20),
     };
   };
@@ -300,8 +295,6 @@ export async function moveSupplierOrder(input: MoveInput): Promise<ServiceResult
   // Out of stock after payment (shared/fault-matrix.ts row 1): the customer gets that part back in full, the supplier's
   // pay goes back to the shop from its next payments, and a strike.
   if (next === "rejected") await import("@/lib/faults/customer.server").then((faults) => faults.onSupplierRejected(order.id)).catch((error) => console.error(`[supplier orders] out-of-stock outcome for ${order.id}`, error));
-  // Sent without "I've packed it" (the supplier delivers it itself): the seller's sticker is used here instead.
-  if (next === "shipped" && !order.packedAt) await import("@/lib/supplier-dropship.server").then((pack) => pack.useSellerSticker(order.id)).catch(() => undefined);
   // A delivered order counts towards the supplier's level (New → Trusted → Established).
   if (next === "delivered") void import("@/lib/supplier-levels.server").then((levels) => levels.refreshSupplierLevel(input.supplierId)).catch(() => undefined);
 

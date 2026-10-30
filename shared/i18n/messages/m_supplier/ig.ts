@@ -168,7 +168,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "order.step3": "Rider ga-abịa were ya n'oge ị họọrọ. Ị gaghị akwụ ụgwọ delivery.",
   "order.whiteLabel": "Ọ na-aga n'aka onye ahịa {shop} dị ka order {shop}. Erela ha ozugbo. Otú ahụ ka ụlọ ahịa ga-esi na-azụta n'aka gị.",
   "order.howLabel": "Kedu ka ị chọrọ label ahụ?",
-  "order.slip": "Packing slip",
+  "order.slip": "In the parcel",
   "order.mixed": "Order ụlọ ahịa ahụ nwekwara ihe ndị ọzọ. Ziga naanị ndị a.",
   "order.note": "Ndetu: {note}",
   "order.sendTo": "Ziga ya nye",

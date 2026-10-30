@@ -29,7 +29,7 @@ import { colors } from "@/theme";
 // wholesale price tiers, the business profile and notifications, all in the app. "Familiar app": Rewards, the posts calendar,
 // and the Rex and Peggy credit balance (shown only: never sold or pointed to in the app).
 // Supplier & Dropship Rules: Your level (New → Trusted → Established), Delivery prices (partner rates or your own
-// card by zone) and Seller branding (packing slips, stickers, custom packaging).
+// card by zone). Suppliers don't offer seller branding: every dropship parcel is packed plain.
 
 export default function SupplierAccount() {
   const t = useT("m_supplier", "m_partner", "common", "settings");
@@ -72,7 +72,6 @@ export default function SupplierAccount() {
         <Row lead={<Tile icon="pin" tone="gray" />} title={t("account.sendFrom")} sub={setup ? [setup.address, setup.city].filter(Boolean).join(", ") || t("account.addAddress") : undefined} onPress={() => router.push({ pathname: "/supplier/setup", params: { edit: "pickup" } })} />
         <Row lead={<Tile icon="truck" tone="gray" />} title={t("account.delivery")} sub={t("account.deliverySub")} onPress={() => router.push("/delivery")} />
         <Row lead={<Tile icon="coin" tone="sky" />} title={words("rates.title", "Delivery prices")} sub={words("rates.row", "You never pay for delivery. Partner rates or your own.")} onPress={() => router.push("/supplier/delivery-prices")} />
-        <Row lead={<Tile icon="tag" tone="lilac" />} title={words("brand.title", "Seller branding")} sub={words("brand.row", "Blind packing, packing slips and stickers")} onPress={() => router.push("/supplier/branding")} />
         {level.data ? <Row lead={<Tile icon="star" tone="peach" />} title={words("level.title", "Your level")} sub={levelName(level.data.level, words)} onPress={() => router.push("/supplier/level")} /> : null}
         <Row lead={<Tile icon="wallet" tone="gray" />} title={t("account.bank")} sub={bank ? `${bank.bankName} ${bank.account}` : t("account.addBank")} onPress={() => router.push(bank ? "/supplier/wallet" : { pathname: "/supplier/setup", params: { edit: "bank" } })} />
         {team.data ? <Row lead={<Tile icon="users" tone="gray" />} title={t("account.people")} sub={t("team.count", { count: team.data.members.length })} onPress={() => router.push("/supplier/team")} /> : null}

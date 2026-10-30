@@ -351,7 +351,6 @@ export const ROUTE_NAMESPACES: ReadonlyArray<readonly [string, readonly string[]
   ["/supplier", ["common","nav","shell","ui"]],
   ["/supplier/agreements", ["auth","common","contracts","glossary","help","introTitles","learn","nav","notifications","payments","rex","settings","shell","supplier","support","tour","ui","verification"]],
   ["/supplier/analytics", ["auth","common","glossary","help","introTitles","learn","nav","notifications","payments","rex","settings","shell","support","tour","ui","verification"]],
-  ["/supplier/branding", ["auth","common","glossary","help","introTitles","learn","nav","notifications","payments","rex","settings","shell","support","tour","ui","verification"]],
   ["/supplier/buyers", ["auth","common","glossary","help","introTitles","learn","nav","notifications","payments","rex","settings","shell","supplier","support","tour","ui","verification"]],
   ["/supplier/contracts", ["auth","common","contracts","glossary","help","introTitles","learn","nav","notifications","payments","rex","settings","shell","support","tour","ui","verification"]],
   ["/supplier/contracts/[id]", ["auth","common","contracts","glossary","help","introTitles","learn","nav","notifications","payments","rex","settings","shell","support","tour","ui","verification"]],

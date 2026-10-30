@@ -10,19 +10,19 @@ import { Meter } from "./dropship-ui";
 
 /** What reaching each level unlocks (the "Established unlocks" card). */
 export const UNLOCKS: Record<string, string[]> = {
-  trusted: ["No limit on open orders", "Offer sellers packing slips and stickers", "Paid 2 days after delivery, not 3", "“Trusted” badge"],
+  trusted: ["No limit on open orders", "Paid 2 days after delivery, not 3", "“Trusted” badge"],
   established: ["Pre-orders, with up to 30% advance for materials", "Paid 1 day after delivery, not 2", "Apply to be featured to sellers", "“Established” badge"],
 };
 
 /** What each level has now. */
 export const HAVE: Record<string, string[]> = {
   new: ["Dropship and wholesale", "Up to 20 open orders at once", "Paid 3 days after delivery"],
-  trusted: ["Dropship and wholesale", "No limit on open orders", "Packing slips and stickers for sellers", "Paid 2 days after delivery", "“Trusted” badge"],
-  established: ["Dropship, wholesale and pre-orders", "No limit on open orders", "Packing slips and stickers for sellers", "Paid 1 day after delivery", "Apply to be featured to sellers", "“Established” badge"],
+  trusted: ["Dropship and wholesale", "No limit on open orders", "Paid 2 days after delivery", "“Trusted” badge"],
+  established: ["Dropship, wholesale and pre-orders", "No limit on open orders", "Paid 1 day after delivery", "Apply to be featured to sellers", "“Established” badge"],
 };
 
 const lineIcon = (line: string): IconName =>
-  /pre-order/i.test(line) ? "calendar" : /paid/i.test(line) ? "card" : /featured/i.test(line) ? "star" : /badge/i.test(line) ? "shield" : /slip|sticker/i.test(line) ? "tag" : "box";
+  /pre-order/i.test(line) ? "calendar" : /paid/i.test(line) ? "card" : /featured/i.test(line) ? "star" : /badge/i.test(line) ? "shield" : "box";
 
 export function goalValue(goal: LevelGoal) {
   if (goal.kind === "count") return `${goal.have.toLocaleString("en-NG")} / ${goal.need.toLocaleString("en-NG")}`;
@@ -53,7 +53,7 @@ export function SupplierLevelView({ view }: { view: SupplierLevelViewProps }) {
         </ol>
         <h2 id="level-now" className="m-0 font-app-display text-[26px] font-extrabold leading-[1.1] tracking-[-0.02em] sm:text-[32px]">You&apos;re {SUPPLIER_LEVEL_LABELS[view.level]}</h2>
         <p className="m-0 max-w-[560px] text-[14px] leading-[1.45] text-[#D9D6E2] sm:text-[15px]">
-          {view.next === "established" ? "Keep delivering well to reach Established and unlock pre-orders." : view.next === "trusted" ? "Deliver well to reach Trusted: no open-order limit and branding for sellers." : "You've reached the top level. Keep your record clean to stay here."}
+          {view.next === "established" ? "Keep delivering well to reach Established and unlock pre-orders." : view.next === "trusted" ? "Deliver well to reach Trusted: no open-order limit and faster pay." : "You've reached the top level. Keep your record clean to stay here."}
         </p>
       </section>
 

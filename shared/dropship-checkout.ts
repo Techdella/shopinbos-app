@@ -10,13 +10,10 @@
 // (src/lib/wallet/rules.ts buildSplitPlan), so the seller's share is lower by exactly the part of delivery they cover.
 
 import {
-  BRANDING_CHOICE_LABELS,
   DEFAULT_ZONE_RATES,
   DELIVERY_ZONES,
   ZONE_LABELS,
   arrivalWords,
-  brandingChoicesFor,
-  brandingOfferFor,
   cleanDropshipMinQty,
   cleanHandlingDays,
   customerDeliveryCharge,
@@ -24,14 +21,12 @@ import {
   dropshipOptionWords,
   dropshipUnitPrice,
   isDeliveryPayer,
-  readBrandingOffer,
   readZoneRates,
   retailFloor,
   sellerPriceProblem,
   supplierStockState,
   zoneQuote,
   zoneRatesEmpty,
-  type BrandingChoice,
   type ChannelPrices,
   type DeliveryPayer,
   type DeliveryZone,
@@ -180,15 +175,13 @@ export interface DropshipTerms {
   dearestDelivery: number;
   /** dearestDelivery is Shopinbos's starting rate card, since partner prices depend on the route. */
   dearestIsEstimate: boolean;
-  /** Branding the supplier offers (blind is always there), with the per-parcel fee of each. */
-  branding: Array<{ choice: BrandingChoice; label: string; fee: number }>;
   stock: number;
   stockState: "out" | "low" | "ok";
 }
 
 export interface DropshipTermsInput {
   product: ChannelPrices & { dropshipMinQty?: number | null; handlingDays?: number | null; sizeBand?: string | null; sampleAvailable?: boolean | null; stockQuantity?: number | null };
-  supplier: { city?: string | null; level?: string | null; brandingOffer?: unknown };
+  supplier: { city?: string | null; level?: string | null };
   /** The supplier's DeliverySettings (rateSource, zoneRates, origin). */
   delivery?: { rateSource?: string | null; zoneRates?: unknown } | null;
   origin?: Place | null;
@@ -204,7 +197,6 @@ export function dropshipTerms(input: DropshipTermsInput): DropshipTerms {
   const handlingDays = cleanHandlingDays(product.handlingDays);
   const own = input.delivery?.rateSource === "own" && !zoneRatesEmpty(readZoneRates(input.delivery?.zoneRates));
   const quote = own && input.origin && input.sellerPlace ? zoneQuote(readZoneRates(input.delivery?.zoneRates), input.origin, input.sellerPlace, sizeBand, handlingDays) : null;
-  const offer = brandingOfferFor(supplier.level, readBrandingOffer(supplier.brandingOffer));
   return {
     cost,
     suggestedPrice: Math.max(product.suggestedRetailPrice ?? 0, floor),
@@ -219,32 +211,32 @@ export function dropshipTerms(input: DropshipTermsInput): DropshipTerms {
     deliveryToYou: quote ? { zone: quote.zone, zoneLabel: ZONE_LABELS[quote.zone], price: quote.price, minDays: quote.minDays, maxDays: quote.maxDays } : null,
     dearestDelivery: dearestZoneFee(own ? input.delivery?.zoneRates : DEFAULT_ZONE_RATES, sizeBand),
     dearestIsEstimate: !own,
-    branding: brandingChoicesFor(offer).map((entry) => ({ ...entry, label: BRANDING_CHOICE_LABELS[entry.choice] })),
     stock: Math.max(0, Math.floor(product.stockQuantity ?? 0)),
     stockState: supplierStockState(product.stockQuantity),
   };
 }
 
-/** The seller's choices when adding it: price, who pays delivery, the flat fee and the branding. */
+/**
+ * The seller's choices when adding it: price, who pays delivery and the flat fee. Every dropship parcel is packed
+ * plain (blind), so there is no branding choice or fee.
+ */
 export interface ListingChoice {
   retailPrice: number;
   payer?: string | null;
   flatFee?: number | null;
-  brandingChoice?: string | null;
 }
 
-/** The choices cleaned: an unknown payer is the customer, a flat fee only with "flat", branding the supplier offers. */
-export function cleanListingChoice(terms: Pick<DropshipTerms, "branding">, choice: ListingChoice): { payer: DeliveryPayer; flatFee: number | null; brandingChoice: BrandingChoice; brandingFee: number } {
+/** The choices cleaned: an unknown payer is the customer, a flat fee only with "flat". */
+export function cleanListingChoice(_terms: unknown, choice: ListingChoice): { payer: DeliveryPayer; flatFee: number | null } {
   const payer: DeliveryPayer = isDeliveryPayer(choice.payer) ? choice.payer : "customer";
   const flat = Number(choice.flatFee);
-  const branding = terms.branding.find((entry) => entry.choice === choice.brandingChoice) ?? terms.branding[0] ?? { choice: "blind" as const, fee: 0 };
-  return { payer, flatFee: payer === "flat" && Number.isFinite(flat) && flat >= 0 ? money(flat) : null, brandingChoice: branding.choice, brandingFee: branding.fee };
+  return { payer, flatFee: payer === "flat" && Number.isFinite(flat) && flat >= 0 ? money(flat) : null };
 }
 
 /** "You earn" per order at this price and these choices, on the dearest delivery the seller could cover. */
 export function listingEarn(terms: DropshipTerms, choice: ListingChoice): number {
   const clean = cleanListingChoice(terms, choice);
-  return dropshipMargin({ retailPrice: choice.retailPrice, unitCost: terms.cost, payer: clean.payer, flatFee: clean.flatFee, deliveryFee: terms.dearestDelivery, brandingFee: clean.brandingFee });
+  return dropshipMargin({ retailPrice: choice.retailPrice, unitCost: terms.cost, payer: clean.payer, flatFee: clean.flatFee, deliveryFee: terms.dearestDelivery });
 }
 
 /** Why the seller can't add it at this price with these choices, or null (the supplier's floor, or a loss). */
@@ -252,6 +244,6 @@ export function listingProblem(terms: DropshipTerms, choice: ListingChoice): str
   if (!(choice.retailPrice > 0)) return "Enter your price.";
   const clean = cleanListingChoice(terms, choice);
   if (clean.payer === "flat" && clean.flatFee === null) return "Enter the flat delivery fee your customers pay.";
-  return sellerPriceProblem({ retailPrice: choice.retailPrice, unitCost: terms.cost, payer: clean.payer, flatFee: clean.flatFee, deliveryFee: terms.dearestDelivery, brandingFee: clean.brandingFee, floor: terms.floor });
+  return sellerPriceProblem({ retailPrice: choice.retailPrice, unitCost: terms.cost, payer: clean.payer, flatFee: clean.flatFee, deliveryFee: terms.dearestDelivery, floor: terms.floor });
 }
 

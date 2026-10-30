@@ -1,7 +1,7 @@
 // Supplier & Dropship Rules, the supplier's side on the web and its JSON API: channel prices are checked together
 // on every way a product is saved, pre-orders only switch on at Established, the delivery rate card is checked,
-// branding extras unlock at Trusted, and a dropship order is packed the seller's way (checklist + sealed-parcel
-// photo) before a rider can have it.
+// suppliers offer no seller branding (every dropship parcel is packed plain), and a dropship order is packed plain
+// (checklist + sealed-parcel photo) before a rider can have it.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
@@ -64,36 +64,34 @@ test("delivery rate card: partner rates or the supplier's own zone prices, check
   assert.match(read("src/app/supplier/delivery/page.tsx"), /<DeliveryRateCard initial=\{rates\} \/>/);
 });
 
-test("branding you offer and your level have pages, APIs and links", () => {
+test("your level has a page, an API and a link; there is no branding-you-offer page", () => {
   const server = read("src/lib/supplier-dropship.server.ts");
-  assert.match(server, /brandingOfferFor\(supplier\?\.level, readBrandingOffer\(input\)\)/, "New suppliers can't save slips or stickers");
-  assert.match(read("src/app/api/supplier/branding/route.ts"), /saveSupplierBranding\(supplierId, body\)/);
-  assert.match(read("src/components/supplier/BrandingOfferForm.tsx"), /UNLOCKS AT TRUSTED/);
+  assert.doesNotMatch(server, /saveSupplierBranding|supplierBrandingView|brandingOffer/, "suppliers don't offer seller branding");
   assert.match(read("src/app/api/supplier/level/route.ts"), /supplierLevelView\(supplier\.id\)/);
   assert.ok(existsSync(new URL("../src/app/supplier/level/page.tsx", import.meta.url)));
-  assert.ok(existsSync(new URL("../src/app/supplier/branding/page.tsx", import.meta.url)));
-  // Linked from the dashboard and the delivery page (a sidebar item needs an intro and nav words in every language).
+  assert.equal(existsSync(new URL("../src/app/supplier/branding/page.tsx", import.meta.url)), false);
+  // Linked from the dashboard (a sidebar item needs an intro and nav words in every language).
   const dashboard = read("src/app/supplier/dashboard/page.tsx");
   assert.match(dashboard, /href="\/supplier\/level"/);
-  assert.match(dashboard, /href="\/supplier\/branding"/);
-  assert.match(read("src/app/supplier/delivery/page.tsx"), /href="\/supplier\/branding"/);
+  assert.doesNotMatch(dashboard, /\/supplier\/branding/);
+  assert.doesNotMatch(read("src/app/supplier/delivery/page.tsx"), /\/supplier\/branding/);
 });
 
-test("dropship orders are packed the seller's way before a rider has them", () => {
+test("dropship orders are packed plain before a rider has them", () => {
   const service = read("src/lib/supplier-orders/service.server.ts");
   assert.match(service, /branding: brandingFor\(group\.supplierId, group\.items\)/, "the snapshot is saved on the order");
-  assert.match(service, /effectiveBranding\(wanted, offer\)/);
+  assert.match(service, /choice: BLIND_PACKING,\s*fee: 0,/, "always blind, no fee");
+  assert.doesNotMatch(service, /effectiveBranding|brandingChoice|useSellerSticker/);
   assert.match(service, /unitCost: dropshipUnitPrice\(product\.supplierProduct\)/);
   assert.match(service, /dropshipPackProblem\(order\.id\)/, "sending without packing needs the checklist too");
 
   const pickup = read("src/lib/supplier-orders/pickup.server.ts");
   assert.match(pickup, /dropshipPackProblem\(order\.id\)/);
-  assert.match(pickup, /useSellerSticker\(order\.id\)/);
+  assert.doesNotMatch(pickup, /useSellerSticker/, "no sticker packs to count");
 
   const server = read("src/lib/supplier-dropship.server.ts");
   assert.match(server, /packReadyProblem\(steps, done, row\.packPhotoUrl, row\.contentsPhotoUrl\)/);
-  assert.match(server, /stickersAfterUse\(left\)/);
-  assert.match(server, /createNotification\(/, "the seller hears when the sticker pack is low");
+  assert.doesNotMatch(server, /stickersAfterUse|stickerPackLeft|useSellerSticker/);
 
   const route = read("src/app/api/supplier/orders/[id]/pack/route.ts");
   assert.match(route, /export const POST = withSupplier/);
@@ -114,8 +112,8 @@ test("pure rules the pages rely on", async () => {
   const rules = await import("../shared/dropship-rules.ts");
   assert.equal(rules.channelPriceProblem({ priceMode: "per_channel", wholesalePrice: 8000, dropshipPrice: 9500, suggestedRetailPrice: 9000 }) !== null, true);
   assert.equal(rules.channelPriceProblem({ priceMode: "per_channel", wholesalePrice: 8000, dropshipPrice: 9500, suggestedRetailPrice: 14000, minRetailPrice: 12000 }), null);
-  const steps = rules.packChecklist({ sellerName: "Ada's Kloset", choice: "stickers", orderCode: "SB-4821", stickersLeft: 12 });
-  assert.match(rules.packReadyProblem(steps, ["plain", "sticker", "code"], null), /photo/);
-  assert.equal(rules.packReadyProblem(steps, ["plain", "sticker", "code"], "https://x.test/p.jpg", "https://x.test/c.jpg"), null);
+  const steps = rules.packChecklist({ orderCode: "SB-4821" });
+  assert.match(rules.packReadyProblem(steps, ["plain", "code"], null), /photo/);
+  assert.equal(rules.packReadyProblem(steps, ["plain", "code"], "https://x.test/p.jpg", "https://x.test/c.jpg"), null);
   assert.equal(rules.cleanZoneRates({ same_city: { small: 2000 }, rest: { small: 1000 } }).ok, false, "farther can't cost less");
 });

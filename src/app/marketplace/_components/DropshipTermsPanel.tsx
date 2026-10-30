@@ -10,19 +10,19 @@ import { timeframeWords } from "@shared/delivery-market";
 
 // The dropship side of a supplier's product page in Find products (the owner's "Supplier & Dropship Rules"): what you
 // pay, your price and what you earn on each order (live as the price and choices change), the lowest price allowed,
-// where it ships from and what delivery costs to your state, who pays delivery, the branding the supplier offers and
-// your own SKU or barcode. The add check on the server (src/lib/marketplace/dropship-listing.server.ts) is the same.
+// where it ships from and what delivery costs to your state, who pays delivery and your own SKU or barcode. Suppliers
+// don't offer seller branding: every parcel is packed plain, with your shop's name on tracking and the invoice.
+// The add check on the server (src/lib/marketplace/dropship-listing.server.ts) is the same.
 
 const CARD = "rounded-[18px] bg-white";
 
 export interface ListingChoiceState {
   payer: DeliveryPayer;
   flatFee: string;
-  branding: string;
   sku: string;
 }
 
-export const START_CHOICE: ListingChoiceState = { payer: "customer", flatFee: "", branding: "blind", sku: "" };
+export const START_CHOICE: ListingChoiceState = { payer: "customer", flatFee: "", sku: "" };
 
 export function DropshipTermsPanel({
   terms,
@@ -49,12 +49,11 @@ export function DropshipTermsPanel({
   /** The price stepper, shown in the YOUR PRICE tile (else the price as text). */
   priceControl?: ReactNode;
 }) {
-  const clean = cleanListingChoice(terms, { retailPrice: price, payer: choice.payer, flatFee: choice.flatFee === "" ? null : Number(choice.flatFee), brandingChoice: choice.branding });
+  const clean = cleanListingChoice(terms, { retailPrice: price, payer: choice.payer, flatFee: choice.flatFee === "" ? null : Number(choice.flatFee) });
   const deliveryShare = clean.payer === "seller" ? terms.dearestDelivery : clean.payer === "flat" ? Math.max(0, terms.dearestDelivery - (clean.flatFee ?? 0)) : 0;
-  const earn = price - terms.cost - deliveryShare - clean.brandingFee - paymentFee;
+  const earn = price - terms.cost - deliveryShare - paymentFee;
   const set = (patch: Partial<ListingChoiceState>) => onChange({ ...choice, ...patch });
 
-  const chosenBranding = terms.branding.find((option) => option.choice === choice.branding);
   const tile = "min-w-0 rounded-[16px] px-2.5 py-2 text-[11px] font-extrabold uppercase tracking-[0.04em] text-app-ink-soft";
   const figure = "mt-0.5 block font-app-display text-[18px] font-extrabold normal-case tracking-normal text-app-ink";
 
@@ -90,7 +89,6 @@ export function DropshipTermsPanel({
               <dt className="text-app-ink-soft">{clean.payer === "customer" ? "Delivery" : "Delivery you cover (up to)"}</dt>
               <dd className="m-0 font-bold">{clean.payer === "customer" ? "Customer pays" : `−${money(deliveryShare)}`}</dd>
             </div>
-            {clean.brandingFee > 0 ? <div className="flex justify-between gap-3"><dt className="text-app-ink-soft">Branding per parcel</dt><dd className="m-0 font-bold">−{money(clean.brandingFee)}</dd></div> : null}
             <div className="flex justify-between gap-3"><dt className="text-app-ink-soft">Card payment fee</dt><dd className="m-0 font-bold">−{money(paymentFee)}</dd></div>
           </dl>
         </details>
@@ -146,23 +144,9 @@ export function DropshipTermsPanel({
         </fieldset>
       </section>
 
-      <section className={cx(CARD, "grid gap-2 px-3 py-[11px] text-[14px]")} aria-labelledby="dropship-branding">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-          <h2 id="dropship-branding" className="m-0 text-[14px] font-extrabold">Your branding</h2>
-          <span className="text-[12px] font-bold text-app-gray-ink">{chosenBranding && chosenBranding.choice !== "blind" ? `Send ${supplierName} your pack` : "Packed plain, your name on tracking"}</span>
-        </div>
-        {terms.branding.length > 1 ? (
-          <fieldset className="m-0 border-0 p-0" disabled={disabled}>
-            <legend className="sr-only">Branding on each parcel</legend>
-            <ChipRow className="gap-1.5">
-              {terms.branding.map((option) => (
-                <ChipChoice key={option.choice} size="sm" name="dropship-branding" value={option.choice} checked={choice.branding === option.choice} onChange={() => set({ branding: option.choice })} label={option.fee > 0 ? `${option.label} +${money(option.fee)}` : option.label} />
-              ))}
-            </ChipRow>
-          </fieldset>
-        ) : (
-          <p className="m-0 text-[12.5px] text-app-ink-soft">Every parcel is packed plain with no supplier name or price inside, and tracking shows your shop&apos;s name.</p>
-        )}
+      <section className={cx(CARD, "grid gap-2 px-3 py-[11px] text-[14px]")} aria-labelledby="dropship-packing">
+        <h2 id="dropship-packing" className="m-0 text-[14px] font-extrabold">Packing</h2>
+        <p className="m-0 text-[12.5px] text-app-ink-soft">Packed plain: your shop&apos;s name is on tracking and the invoice.</p>
         <label className="flex flex-wrap items-center gap-2 text-[13px] font-bold text-app-gray-ink">
           <span>Your SKU or barcode</span>
           <input
@@ -175,7 +159,7 @@ export function DropshipTermsPanel({
             className="h-9 min-w-[150px] flex-1 rounded-[10px] border-2 border-app-line px-2.5 text-[13px] font-bold text-app-ink outline-none placeholder:font-semibold placeholder:text-app-ink-faint focus:border-app-ink"
           />
         </label>
-        <span id="dropship-sku-help" className="text-[11.5px] text-app-ink-soft">Printed on the packing slip and shown in the supplier&apos;s order list.</span>
+        <span id="dropship-sku-help" className="text-[11.5px] text-app-ink-soft">Shown in the supplier&apos;s order list.</span>
       </section>
     </>
   );

@@ -114,19 +114,18 @@ test("adding a supplier's product: lowest price allowed, and no price that loses
   assert.equal(terms.floor, 12000);
   assert.equal(terms.deliveryToYou.price, 4500);
   assert.equal(terms.dearestDelivery, 4500);
-  assert.deepEqual(terms.branding.map((entry) => entry.choice), ["blind", "packing_slip", "stickers"]);
+  assert.equal("branding" in terms, false, "a supplier's old branding offer is never read: every parcel is packed plain");
   assert.match(dc.listingProblem(terms, { retailPrice: 11000 }), /lowest price for this is ₦12,000/);
   assert.equal(dc.listingProblem(terms, { retailPrice: 14000 }), null, "customer pays delivery");
   assert.match(dc.listingProblem(terms, { retailPrice: 13000, payer: "seller" }), /lose ₦1,000/);
   assert.equal(dc.listingProblem(terms, { retailPrice: 14000, payer: "seller" }), null, "₦14,000 − ₦9,500 − ₦4,500 = 0");
-  assert.match(dc.listingProblem(terms, { retailPrice: 14000, payer: "seller", brandingChoice: "stickers" }), /lose ₦200/);
+  assert.equal(dc.listingProblem(terms, { retailPrice: 14000, payer: "seller", brandingChoice: "stickers" }), null, "an old brandingChoice adds no fee");
   assert.match(dc.listingProblem(terms, { retailPrice: 14000, payer: "flat" }), /flat delivery fee/);
   assert.equal(dc.listingEarn(terms, { retailPrice: 15000, payer: "flat", flatFee: 2000 }), 15000 - 9500 - 2500);
-  // A New supplier offers blind packing only; partner rates use Shopinbos's starting card for the margin check.
+  // Partner rates use Shopinbos's starting card for the margin check.
   const fresh = dc.dropshipTerms({ product: { wholesalePrice: 5000, suggestedRetailPrice: 9000 }, supplier: { level: "new", brandingOffer: { stickers: true, stickerFee: 200 } }, delivery: { rateSource: "partners" } });
-  assert.deepEqual(fresh.branding.map((entry) => entry.choice), ["blind"]);
   assert.ok(fresh.dearestIsEstimate);
-  assert.equal(dc.cleanListingChoice(fresh, { retailPrice: 9000, brandingChoice: "stickers" }).brandingChoice, "blind");
+  assert.deepEqual(dc.cleanListingChoice(fresh, { retailPrice: 9000, brandingChoice: "stickers" }), { payer: "customer", flatFee: null }, "no branding choice or fee");
 });
 
 test("checkout enforces the supplier's dropship minimum and adds supplier parcels on a store's own zones", () => {

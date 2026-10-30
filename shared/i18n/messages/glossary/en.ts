@@ -153,7 +153,7 @@ const en = {
   "invoices.example": "Invoice #014 for 20 cartons, due Friday.",
   "taxes.short": "VAT and other taxes added to prices or set aside from sales.",
   "taxes.example": "7.5% VAT shown at checkout for buyers who need a receipt.",
-  "cod.short": "Pay on delivery: the buyer pays the shop when the parcel arrives (never the rider), then gives the rider the code they get.",
+  "cod.short": "Pay on delivery: the buyer pays the shop (never the rider) when it arrives, then gives the rider the code.",
   "cod.example": "The parcel reaches Surulere; Bola pays the shop ₦12,000 with the link and reads the code to the rider.",
   "pay-ins.short": "Cash your riders collected that your company sends back to Shopinbos for the seller.",
   "pay-ins.example": "Riders collected ₦85,000 today; pay it in by tomorrow 6pm.",

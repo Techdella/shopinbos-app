@@ -7,12 +7,12 @@ import { markPacked } from "@/lib/supplier-orders/pickup.server";
 
 export const dynamic = "force-dynamic";
 
-// Pack it the seller's way, on one of the supplier's dropship orders (web portal and the phone app); ?kind=wholesale
-// for a bulk order (only the two packing photos).
-//   GET  → { data: PackView } the seller's name and logo, the branding (blind | packing_slip | stickers, fee), the
-//          seller's SKUs, the checklist steps (each { id, text, detail, done }), the photos, stickers left, problem.
+// Pack it plain (always blind: suppliers don't offer seller branding), on one of the supplier's dropship orders (web
+// portal and the phone app); ?kind=wholesale for a bulk order (only the two packing photos).
+//   GET  → { data: PackView } the seller's name and logo and SKUs (branding.choice is always "blind"), the checklist
+//          steps (each { id, text, detail, done }), the photos, problem.
 //   POST { steps?: string[], contentsPhotoUrl?: string | null, photoUrl?: string | null, packed?: true } ticks steps
-//          ("plain" | "slip" | "sticker" | "code") and saves the packing photos (upload them first: POST
+//          ("plain" | "code") and saves the packing photos (upload them first: POST
 //          /api/app/media): the item in the open box (contentsPhotoUrl) and the sealed parcel (photoUrl). With
 //          packed: true it then marks the order packed; that refuses with 400 (packReadyProblem's words) until every
 //          step is ticked and both photos exist (shared/fault-matrix.ts: the packing photos decide most disputes).

@@ -63,11 +63,11 @@ export async function setDropshipPausedFor(sellerId: string, relationshipId: str
 async function stillLoses(sellerId: string, storeProductId: string): Promise<boolean> {
   const listing = await db.storeProduct.findUnique({
     where: { id: storeProductId },
-    select: { retailPrice: true, deliveryPayer: true, deliveryFlatFee: true, brandingChoice: true, supplierProduct: { select: { id: true, supplierId: true, wholesalePrice: true, suggestedRetailPrice: true, priceMode: true, dropshipPrice: true, preorderPrice: true, pricingTiers: true, minRetailPrice: true, dropshipMinQty: true, handlingDays: true, sizeBand: true, sampleAvailable: true, stockQuantity: true } } },
+    select: { retailPrice: true, deliveryPayer: true, deliveryFlatFee: true, supplierProduct: { select: { id: true, supplierId: true, wholesalePrice: true, suggestedRetailPrice: true, priceMode: true, dropshipPrice: true, preorderPrice: true, pricingTiers: true, minRetailPrice: true, dropshipMinQty: true, handlingDays: true, sizeBand: true, sampleAvailable: true, stockQuantity: true } } },
   });
   if (!listing?.supplierProduct) return false;
   const terms = (await dropshipTermsFor([listing.supplierProduct], sellerId)).get(listing.supplierProduct.id);
-  return terms ? listingVerdict(terms, { retailPrice: listing.retailPrice, payer: listing.deliveryPayer, flatFee: listing.deliveryFlatFee, brandingChoice: listing.brandingChoice }).loses : false;
+  return terms ? listingVerdict(terms, { retailPrice: listing.retailPrice, payer: listing.deliveryPayer, flatFee: listing.deliveryFlatFee }).loses : false;
 }
 
 /**
@@ -78,9 +78,9 @@ async function stillLoses(sellerId: string, storeProductId: string): Promise<boo
 export async function dropshipPriceProblem(sellerId: string, storeProductId: string, retailPrice: number): Promise<string | null> {
   const listing = await db.storeProduct.findUnique({
     where: { id: storeProductId },
-    select: { deliveryPayer: true, deliveryFlatFee: true, brandingChoice: true, supplierProduct: { select: { id: true, supplierId: true, wholesalePrice: true, suggestedRetailPrice: true, priceMode: true, dropshipPrice: true, preorderPrice: true, pricingTiers: true, minRetailPrice: true, dropshipMinQty: true, handlingDays: true, sizeBand: true, sampleAvailable: true, stockQuantity: true } } },
+    select: { deliveryPayer: true, deliveryFlatFee: true, supplierProduct: { select: { id: true, supplierId: true, wholesalePrice: true, suggestedRetailPrice: true, priceMode: true, dropshipPrice: true, preorderPrice: true, pricingTiers: true, minRetailPrice: true, dropshipMinQty: true, handlingDays: true, sizeBand: true, sampleAvailable: true, stockQuantity: true } } },
   });
   if (!listing?.supplierProduct) return null;
   const terms = (await dropshipTermsFor([listing.supplierProduct], sellerId)).get(listing.supplierProduct.id);
-  return terms ? listingProblem(terms, { retailPrice, payer: listing.deliveryPayer, flatFee: listing.deliveryFlatFee, brandingChoice: listing.brandingChoice }) : null;
+  return terms ? listingProblem(terms, { retailPrice, payer: listing.deliveryPayer, flatFee: listing.deliveryFlatFee }) : null;
 }

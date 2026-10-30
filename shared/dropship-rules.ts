@@ -11,8 +11,8 @@
 //                        rest of Nigeria). Sellers and customers never type a delivery price.
 //   Who pays delivery    never the supplier: the customer (default), the seller (free delivery) or a flat fee the
 //                        seller charges and tops up. A price that would lose the seller money can't be saved.
-//   Seller branding      blind packing and the seller's name on tracking are always on; packing slips, the seller's
-//                        stickers and custom packaging are extras the supplier offers.
+//   Blind packing        every dropship parcel is packed plain (no supplier name, price or receipt, and no seller
+//                        branding from the supplier); the seller's brand shows on their tracking page and invoice.
 //   Supplier levels      New → Trusted → Established, from the delivery record. Pre-orders open at Established.
 //   Partner tiers        1 Verified → 2 Trusted → 3 Top partner, from the delivery record. They control reach
 //                        (interstate, place in shops' lists, high-value parcels, featured: shared/partner-reach.ts), not
@@ -321,18 +321,16 @@ export interface MarginInput {
   flatFee?: number | null;
   /** The dearest delivery the seller could have to cover (worst zone), when they pay any of it. */
   deliveryFee: number;
-  /** Per-parcel branding fee the supplier charges (stickers). */
-  brandingFee?: number;
   /** Shopinbos's fee on the seller's share, as a fraction (0 while undecided). */
   sellerFeeRate?: number;
 }
 
-/** "You earn" on one order: price minus supplier price, the seller's part of delivery, branding and fees. */
+/** "You earn" on one order: price minus supplier price, the seller's part of delivery and fees. */
 export function dropshipMargin(input: MarginInput): number {
   const quantity = Math.max(1, Math.floor(input.quantity ?? 1));
   const gross = (input.retailPrice - input.unitCost) * quantity;
   const fee = Math.max(0, gross) * Math.max(0, input.sellerFeeRate ?? 0);
-  return money(gross - fee - sellerDeliveryShare(input.payer, input.deliveryFee, input.flatFee) - Math.max(0, input.brandingFee ?? 0));
+  return money(gross - fee - sellerDeliveryShare(input.payer, input.deliveryFee, input.flatFee));
 }
 
 /** Why the seller can't save this price, or null (below the supplier's floor, or it would lose money). */
@@ -343,62 +341,16 @@ export function sellerPriceProblem(input: MarginInput & { floor: number }): stri
   return null;
 }
 
-// ─── Seller branding on dropship parcels ─────────────────────────────────────
+// ─── Blind packing on dropship parcels ───────────────────────────────────────
+//
+// Suppliers don't offer branding for sellers (no packing slips, stickers or branded bags): like the big dropship
+// marketplaces, every parcel goes out plain, and the seller's name is on the tracking page and the invoice.
+// SupplierOrder.branding still holds the seller's name, logo and SKUs for the pack screens, always with choice "blind".
 
-export interface BrandingOffer {
-  packingSlip: boolean;
-  packingSlipFee: number;
-  stickers: boolean;
-  stickerFee: number;
-  custom: boolean;
-}
-
-export const BRANDING_FEE_MAX = 5000;
-export const NO_BRANDING_OFFER: BrandingOffer = { packingSlip: false, packingSlipFee: 0, stickers: false, stickerFee: 0, custom: false };
-
-export function readBrandingOffer(value: unknown): BrandingOffer {
-  const source = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
-  const fee = (raw: unknown) => {
-    const n = num(raw);
-    return n > 0 ? Math.min(BRANDING_FEE_MAX, money(n)) : 0;
-  };
-  return {
-    packingSlip: source.packingSlip === true,
-    packingSlipFee: source.packingSlip === true ? fee(source.packingSlipFee) : 0,
-    stickers: source.stickers === true,
-    stickerFee: source.stickers === true ? fee(source.stickerFee) : 0,
-    custom: source.custom === true,
-  };
-}
-
-/** What the seller picks per product. Blind packing and their name on tracking are always on. */
-export const BRANDING_CHOICES = ["blind", "packing_slip", "stickers"] as const;
-export type BrandingChoice = (typeof BRANDING_CHOICES)[number];
-export const isBrandingChoice = (value: unknown): value is BrandingChoice => (BRANDING_CHOICES as readonly string[]).includes(String(value));
-
-export const BRANDING_CHOICE_LABELS: Record<BrandingChoice, string> = {
-  blind: "Blind + my name on tracking",
-  packing_slip: "My packing slip",
-  stickers: "My stickers or bags",
-};
-
-/** The choices this supplier offers (blind always), and the per-parcel fee of each. */
-export function brandingChoicesFor(offer: BrandingOffer): Array<{ choice: BrandingChoice; fee: number }> {
-  return [
-    { choice: "blind", fee: 0 },
-    ...(offer.packingSlip ? [{ choice: "packing_slip" as const, fee: offer.packingSlipFee }] : []),
-    ...(offer.stickers ? [{ choice: "stickers" as const, fee: offer.stickerFee }] : []),
-  ];
-}
-
-/** A seller's choice, falling back to blind when the supplier stopped offering it. */
-export function effectiveBranding(choice: string | null | undefined, offer: BrandingOffer): { choice: BrandingChoice; fee: number } {
-  const options = brandingChoicesFor(offer);
-  return options.find((option) => option.choice === choice) ?? options[0];
-}
+export const BLIND_PACKING = "blind" as const;
 
 export interface PackStep {
-  id: "contents" | "plain" | "slip" | "sticker" | "code" | "photo";
+  id: "contents" | "plain" | "code" | "photo";
   text: string;
   detail: string;
 }
@@ -407,18 +359,13 @@ export interface PackStep {
 export const PACK_PHOTO_STEPS = ["contents", "photo"] as const;
 
 /**
- * The supplier's checklist on a dropship order: pack it the seller's way. It starts with a photo of the item in the
+ * The supplier's checklist on a dropship order: pack it plain (blind). It starts with a photo of the item in the
  * open box and ends with the sealed parcel: the two photos that decide most disputes.
  */
-export function packChecklist(input: { sellerName: string; choice: string | null | undefined; orderCode: string; stickersLeft?: number | null; skus?: readonly string[] }): PackStep[] {
-  const skus = (input.skus ?? []).filter(Boolean);
+export function packChecklist(input: { orderCode: string }): PackStep[] {
   return [
     { id: "contents", text: "Snap the item in the open box", detail: "Shows exactly what you sent, before you seal it" },
     { id: "plain", text: "Pack plain, no price tag", detail: "Nothing with your name, price or receipt inside" },
-    ...(input.choice === "packing_slip" ? [{ id: "slip" as const, text: `Print ${input.sellerName}'s packing slip`, detail: skus.length ? `Shows ${skus.join(", ")}` : "Their logo and a thank-you note" }] : []),
-    ...(input.choice === "stickers"
-      ? [{ id: "sticker" as const, text: `Use ${input.sellerName}'s sticker or bag`, detail: typeof input.stickersLeft === "number" ? `${Math.max(0, input.stickersLeft)} left in their pack` : "From the pack they sent you" }]
-      : []),
     { id: "code", text: `Write ${input.orderCode} on the parcel`, detail: "The rider reads it at pickup" },
     { id: "photo", text: "Snap the sealed parcel", detail: "Protects you if there's a dispute" },
   ];
@@ -433,15 +380,6 @@ export function packReadyProblem(steps: readonly PackStep[], done: readonly stri
   if (!photoUrl) return "Snap a photo of the sealed parcel first.";
   const left = steps.filter((step) => step.id !== "photo" && step.id !== "contents" && !done.includes(step.id));
   return left.length ? `${left.length} step${left.length === 1 ? "" : "s"} left: ${left[0].text}.` : null;
-}
-
-export const STICKERS_LOW = 10;
-
-/** The seller's sticker pack at a supplier after one parcel used one. */
-export function stickersAfterUse(left: number | null | undefined): { left: number | null; low: boolean } {
-  if (typeof left !== "number") return { left: null, low: false };
-  const next = Math.max(0, left - 1);
-  return { left: next, low: next <= STICKERS_LOW };
 }
 
 // ─── Supplier levels: pre-orders unlock at Established ───────────────────────
@@ -553,16 +491,14 @@ export interface SupplierPerks {
   openOrderLimit: number | null;
   /** Days after delivery before the supplier is paid (the return window). */
   payoutDelayDays: number;
-  /** Packing slips and stickers for sellers. */
-  branding: boolean;
   /** Share of a pre-order deposit paid to the supplier at the start, to buy materials. */
   preorderAdvancePct: number;
 }
 
 export function supplierPerks(level: string | null | undefined): SupplierPerks {
-  if (level === "established") return { preorders: true, openOrderLimit: null, payoutDelayDays: 1, branding: true, preorderAdvancePct: 30 };
-  if (level === "trusted") return { preorders: false, openOrderLimit: null, payoutDelayDays: 2, branding: true, preorderAdvancePct: 0 };
-  return { preorders: false, openOrderLimit: 20, payoutDelayDays: 3, branding: false, preorderAdvancePct: 0 };
+  if (level === "established") return { preorders: true, openOrderLimit: null, payoutDelayDays: 1, preorderAdvancePct: 30 };
+  if (level === "trusted") return { preorders: false, openOrderLimit: null, payoutDelayDays: 2, preorderAdvancePct: 0 };
+  return { preorders: false, openOrderLimit: 20, payoutDelayDays: 3, preorderAdvancePct: 0 };
 }
 
 export const canTakePreorders = (level: string | null | undefined) => supplierPerks(level).preorders;
@@ -574,11 +510,6 @@ export const PREORDER_LOCKED_MESSAGE =
 export function openOrderProblem(level: string | null | undefined, openOrders: number): string | null {
   const limit = supplierPerks(level).openOrderLimit;
   return limit !== null && openOrders >= limit ? `New suppliers can have ${limit} open orders at once. Ship some to take more.` : null;
-}
-
-/** The branding a supplier at this level can offer (New suppliers offer blind packing only). */
-export function brandingOfferFor(level: string | null | undefined, offer: BrandingOffer): BrandingOffer {
-  return supplierPerks(level).branding ? offer : { ...NO_BRANDING_OFFER, custom: offer.custom };
 }
 
 // ─── Delivery partner tiers: reach, not cash ─────────────────────────────────

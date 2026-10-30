@@ -30,9 +30,9 @@ import { ratingSummary } from "@/lib/visual-pure";
 // order (POST /api/app/wholesale/request); the supplier confirms it and the seller pays them on Wholesale.
 // Dropship (Supplier & Dropship Rules, A-Seller-AddSupplier): with the product's dropship terms (GET
 // /api/mobile/marketplace?productId=), "Add to your store" shows You pay / Your price / You earn live, the lowest
-// price allowed, delivery to the seller's customers and who pays it (+ a flat fee), the branding choices with fees
-// and "Your SKU or barcode"; those go with the POST, and a price the server refuses (409 PRICE_PROBLEM) shows its
-// words. Older servers without terms keep the price stepper.
+// price allowed, delivery to the seller's customers and who pays it (+ a flat fee) and "Your SKU or barcode" (every
+// parcel is packed plain: suppliers don't offer seller branding); those go with the POST, and a price the server
+// refuses (409 PRICE_PROBLEM) shows its words. Older servers without terms keep the price stepper.
 // Also (spec gap C4c/C6): "12 shops selling", the shops' rating of the supplier with their latest words, and "Order 1
 // sample · ₦X" (one per product at the dropship price, shared/samples.ts; paid on Wholesale once the supplier accepts).
 
@@ -103,7 +103,7 @@ function ProductView({ product, listing, context, terms, refreshing, onRefresh }
   // A preorder placed here: the button becomes "Preorder placed", so a second tap can't order twice.
   const [preordered, setPreordered] = useState(false);
   const [photo, setPhoto] = useState(0);
-  // Add to your store with the supplier's dropship terms: the price, who pays delivery, the branding and the SKU.
+  // Add to your store with the supplier's dropship terms: the price, who pays delivery and the SKU.
   const [draft, setDraft] = useState<ListingDraft | null>(() => (terms ? listingDraftFrom(terms) : null));
   const width = Dimensions.get("window").width - 36;
 
@@ -127,7 +127,6 @@ function ProductView({ product, listing, context, terms, refreshing, onRefresh }
           ? {
               deliveryPayer: draft.payer,
               ...(draft.payer === "flat" && choice.flatFee !== null ? { deliveryFlatFee: choice.flatFee } : {}),
-              brandingChoice: draft.branding as "blind" | "packing_slip" | "stickers",
               ...(draft.sku.trim() ? { sku: draft.sku.trim() } : {}),
             }
           : {}),

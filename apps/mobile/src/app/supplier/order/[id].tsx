@@ -36,7 +36,7 @@ import { colors, fonts, radii, surfaceCard } from "@/theme";
 // order: Accept or "I don't have it"; "It's packed, ready for pickup" (and the shop's label for dropship); then
 // "When can a rider pick it up?" and "Book the rider" (/api/supplier/orders/[id]/pickup), until the rider comes
 // with the pickup code. A new order counts down the time left to accept it.
-// A dropship order is packed the seller's way first (Supplier & Dropship Rules): "Pack it {shop}'s way" opens the
+// A dropship order is packed plain first (Supplier & Dropship Rules): "Pack it plain for {shop}" opens the
 // checklist with the sealed-parcel photo (supplier/order/pack, P-Order), which marks it packed when every step is done.
 // Screen words are in the app language (m_supplier "order.*"). The parcel label itself stays in English: it goes on
 // the parcel for the rider and the shop's customer, and is shared or printed as is.
@@ -259,10 +259,10 @@ export default function SupplierOrderScreen() {
       </>
     );
   } else if (dropship && stage === "label") {
-    // Pack it the seller's way: the checklist and the sealed-parcel photo, then it's packed.
+    // Pack it plain (blind): the checklist and the sealed-parcel photo, then it's packed.
     footer = (
       <>
-        <PillButton title={words("pack.cta", "Pack it {shop}'s way", { shop: data.shop })} tone="accent" icon="box" onPress={() => router.push({ pathname: "/supplier/order/pack", params: { id: data.id } })} />
+        <PillButton title={words("pack.cta", "Pack it plain for {shop}", { shop: data.shop })} tone="accent" icon="box" onPress={() => router.push({ pathname: "/supplier/order/pack", params: { id: data.id } })} />
         <PillButton title={t("order.seeLabel")} tone="white" onPress={() => setLabelOpen(true)} />
       </>
     );

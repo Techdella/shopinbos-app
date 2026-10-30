@@ -21,7 +21,6 @@ function unlockLines(now: SupplierPerks, next: SupplierPerks, words: ReturnType<
   const lines: { icon: AppIconName; text: string }[] = [];
   if (next.preorders && !now.preorders) lines.push({ icon: "clock", text: words("unlock.preorders", "Pre-orders, with up to {pct}% advance for materials", { pct: next.preorderAdvancePct }) });
   if (next.openOrderLimit === null && now.openOrderLimit !== null) lines.push({ icon: "box", text: words("unlock.noLimit", "No limit on open orders (now {limit})", { limit: now.openOrderLimit }) });
-  if (next.branding && !now.branding) lines.push({ icon: "tag", text: words("unlock.branding", "Offer packing slips and stickers to sellers") });
   if (next.payoutDelayDays < now.payoutDelayDays) lines.push({ icon: "wallet", text: words("unlock.payout", "Paid {next} day after delivery, not {now}", { next: next.payoutDelayDays, now: now.payoutDelayDays }) });
   if (next.preorders && !now.preorders) lines.push({ icon: "star", text: words("unlock.featured", "Apply to be featured to sellers") });
   return lines;
@@ -45,7 +44,7 @@ export default function SupplierLevelScreen() {
               {data.next === "established"
                 ? words("level.toEstablished", "Keep delivering well to reach Established and unlock pre-orders.")
                 : data.next === "trusted"
-                  ? words("level.toTrusted", "Deliver well to reach Trusted: no open-order limit, branding for sellers and faster pay.")
+                  ? words("level.toTrusted", "Deliver well to reach Trusted: no open-order limit and faster pay.")
                   : words("level.top", "You're at the top level. Pre-orders are open to you.")}
             </T>
           </View>
