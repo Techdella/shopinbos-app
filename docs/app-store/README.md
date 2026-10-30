@@ -36,9 +36,9 @@ Then note two numbers:
 
 | Where | Setting | Value |
 | --- | --- | --- |
-| Vercel (Production) | `APPLE_TEAM_ID` | the Team ID. Serves https://app.shopinbos.com/.well-known/apple-app-site-association, so app.shopinbos.com links open the app (`shared/app-links.ts`). |
-| expo.dev › Environment variables (`production`, and `preview` for test builds) | `EXPO_PUBLIC_IOS_APP_STORE_URL` | `https://apps.apple.com/app/id<Apple ID>`. iPhone builds made with it check Admin › App updates and open the App Store from "Update now". |
-| `apps/mobile/eas.json` › `submit.production.ios` | `ascAppId`, `appleTeamId` | the Apple ID and the Team ID, so `eas submit` doesn't ask. Commit them (they aren't secrets). |
+| Vercel (Production) | `APPLE_TEAM_ID` | `WV64KZXVML` (still to set). Serves https://app.shopinbos.com/.well-known/apple-app-site-association, so app.shopinbos.com links open the app (`shared/app-links.ts`). |
+| `shared/app-release.ts` | `IOS_APP_STORE_ID` | **Done:** `6828637131`. The App Store link for "Update now" (Admin › App updates). `EXPO_PUBLIC_IOS_APP_STORE_URL` on expo.dev can override it; there's no need to set it. |
+| `apps/mobile/eas.json` › `submit.production.ios` | `ascAppId`, `appleTeamId` | **Done:** `6828637131` and `WV64KZXVML`, so `eas submit` doesn't ask. |
 
 ```json
 "submit": {

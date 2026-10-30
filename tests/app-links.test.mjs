@@ -71,3 +71,16 @@ test("route, app settings and native intent", () => {
   assert.match(intent, /if \(webPath === null\) return path;/);
   assert.match(intent, /catch \{\s*return "\/";/);
 });
+
+test("iPhone privacy texts: every one Apple checks for at upload is filled in (App Store Connect error 90683)", () => {
+  const app = JSON.parse(read("apps/mobile/app.json")).expo;
+  const plugin = (name) => app.plugins.find((entry) => Array.isArray(entry) && entry[0] === name)?.[1] ?? {};
+  const filled = (value) => typeof value === "string" && value.trim().length > 20;
+  assert.ok(filled(app.ios.infoPlist.NSCameraUsageDescription));
+  assert.ok(filled(app.ios.infoPlist.NSPhotoLibraryUsageDescription));
+  assert.ok(filled(plugin("expo-audio").microphonePermission));
+  assert.ok(filled(plugin("expo-location").locationWhenInUsePermission));
+  // expo-location's iOS code includes motion activity (CMMotionActivityManager). The app never asks for it, but
+  // Apple rejects the upload unless NSMotionUsageDescription is there; `false` removes it.
+  assert.ok(filled(plugin("expo-location").motionUsagePermission), "expo-location motionUsagePermission must be a sentence, not false");
+});

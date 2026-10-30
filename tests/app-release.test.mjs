@@ -56,7 +56,8 @@ test("validateAppReleaseInput: whole numbers, minimum ≤ latest, empty is 0", (
 
 test("store links: the Play Store app, then its website; iOS does nothing until listed", () => {
   assert.deepEqual(ar.storeUrls("android"), ["market://details?id=com.shopinbos.app", "https://play.google.com/store/apps/details?id=com.shopinbos.app"]);
-  assert.deepEqual(ar.storeUrls("ios"), []);
+  assert.deepEqual(ar.storeUrls("ios"), ["https://apps.apple.com/app/id6828637131"]);
+  assert.equal(ar.IOS_APP_STORE_URL, `https://apps.apple.com/app/id${ar.IOS_APP_STORE_ID}`);
   assert.deepEqual(ar.storeUrls("ios", "javascript:alert(1)"), []);
   assert.deepEqual(ar.storeUrls("ios", "https://apps.apple.com/app/id123"), ["https://apps.apple.com/app/id123"]);
   assert.deepEqual(ar.storeUrls("web"), []);
@@ -125,7 +126,10 @@ test("phone app: the prompt is mounted, waits for launch and calls, and reads th
 
 test("phone app: iPhones ask only when the build knows its App Store link", () => {
   const lib = read("apps/mobile/src/lib/app-update.ts");
-  assert.match(lib, /EXPO_PUBLIC_IOS_APP_STORE_URL/);
+  assert.match(lib, /const IOS_STORE_URL = process\.env\.EXPO_PUBLIC_IOS_APP_STORE_URL \|\| IOS_APP_STORE_URL;/);
+  // eas submit uses the same App Store Connect app and team.
+  const ios = JSON.parse(read("apps/mobile/eas.json")).submit.production.ios;
+  assert.deepEqual(ios, { ascAppId: ar.IOS_APP_STORE_ID, appleTeamId: "WV64KZXVML" });
   assert.match(lib, /Platform\.OS === "ios" && storeUrls\("ios", IOS_STORE_URL\)\.length/);
   assert.match(lib, /"update\.storeFailedIos"/);
 });

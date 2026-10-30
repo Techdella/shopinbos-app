@@ -7,7 +7,7 @@
 // Build numbers are Android's versionCode and iOS's build number (CFBundleVersion); EAS counts both up remotely and
 // the app reads them with expo-application's nativeBuildVersion. The phone asks GET /api/mobile/app-release?platform=
 // android|ios on launch and when it comes back to the front (at most once an hour). iPhones ask only when their build
-// knows the App Store link (EXPO_PUBLIC_IOS_APP_STORE_URL). Opening the store is not a purchase.
+// knows the App Store link (IOS_APP_STORE_URL below). Opening the store is not a purchase.
 
 export const APP_RELEASE_PLATFORMS = ["android", "ios"] as const;
 export type AppReleasePlatform = (typeof APP_RELEASE_PLATFORMS)[number];
@@ -93,12 +93,14 @@ export function updateState(currentBuild: number | string | null | undefined, re
 export const ANDROID_PACKAGE = "com.shopinbos.app";
 export const PLAY_STORE_MARKET_URL = `market://details?id=${ANDROID_PACKAGE}`;
 export const PLAY_STORE_WEB_URL = `https://play.google.com/store/apps/details?id=${ANDROID_PACKAGE}`;
-/** The App Store listing, once the iOS app is live (the phone app gets it from EXPO_PUBLIC_IOS_APP_STORE_URL). */
-export const IOS_APP_STORE_URL = "";
+/** App Store Connect's Apple ID for the iPhone app (apps/mobile/eas.json submit.production.ios.ascAppId). */
+export const IOS_APP_STORE_ID = "6828637131";
+/** The App Store listing (opens the App Store app on iPhones). EXPO_PUBLIC_IOS_APP_STORE_URL can override it. */
+export const IOS_APP_STORE_URL = `https://apps.apple.com/app/id${IOS_APP_STORE_ID}`;
 
 /**
  * The links to try in order: the Play Store app first, then the Play Store website. iOS: the App Store link (it opens
- * the App Store app), or none (the phone does nothing) until one is set.
+ * the App Store app), or none (the phone does nothing) for a link that isn't an App Store one.
  */
 export function storeUrls(platform: string, iosUrl: string | null | undefined = IOS_APP_STORE_URL): string[] {
   if (platform === "android") return [PLAY_STORE_MARKET_URL, PLAY_STORE_WEB_URL];
