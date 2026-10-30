@@ -259,7 +259,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "photo.cutting": "Rex ń yọ ẹ̀yìn kúrò…",
   "photo.undoEdit": "Dá a padà",
   "crop.removeBg": "Yọ ẹ̀yìn",
-  "crop.removeBgNote": "Ẹ̀yìn máa kúrò nígbà tí o bá tẹ Done (kírẹ́dítì àwòrán 1).",
+  "crop.removeBgNote": "Ẹ̀yìn máa kúrò nígbà tí o bá tẹ Done (kírẹ́dítì 3).",
   "schedule.button": "Ṣètò rẹ̀ fún ìgbà míì",
   "schedule.title": "Ṣètò rẹ̀ fún ìgbà míì",
   "schedule.body": "Yan ìgbà tí àwọn àyípadà rẹ máa hàn. Àkókò Èkó ni.",

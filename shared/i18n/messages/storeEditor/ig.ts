@@ -259,7 +259,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "photo.cutting": "Rex na-ewepụ azụ…",
   "photo.undoEdit": "Weghachi",
   "crop.removeBg": "Wepụ azụ",
-  "crop.removeBgNote": "Azụ ga-apụ mgbe ị pịrị Done (kredit foto 1).",
+  "crop.removeBgNote": "Azụ ga-apụ mgbe ị pịrị Done (credits 3).",
   "schedule.button": "Hazie ya maka oge ọzọ",
   "schedule.title": "Hazie ya maka oge ọzọ",
   "schedule.body": "Họrọ mgbe mgbanwe gị ga-apụta. Oge Lagos ka ọ bụ.",

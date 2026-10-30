@@ -304,7 +304,7 @@ const en = {
   "photo.cutting": "Rex is removing the background…",
   "photo.undoEdit": "Undo",
   "crop.removeBg": "Remove bg",
-  "crop.removeBgNote": "The background comes off when you tap Done (1 picture credit).",
+  "crop.removeBgNote": "The background comes off when you tap Done (3 credits).",
   "schedule.button": "Schedule for later",
   "schedule.title": "Schedule for later",
   "schedule.body": "Pick when your changes go live. Times are Lagos time.",

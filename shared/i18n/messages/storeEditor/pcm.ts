@@ -259,7 +259,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "photo.cutting": "Rex dey comot the background…",
   "photo.undoEdit": "Undo",
   "crop.removeBg": "Comot bg",
-  "crop.removeBgNote": "The background go comot when you tap Done (1 picture credit).",
+  "crop.removeBgNote": "The background go comot when you tap Done (3 credits).",
   "schedule.button": "Schedule am for later",
   "schedule.title": "Schedule am for later",
   "schedule.body": "Choose when your changes go show for customers. Na Lagos time.",

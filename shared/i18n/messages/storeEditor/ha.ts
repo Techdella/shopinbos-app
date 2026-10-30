@@ -259,7 +259,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "photo.cutting": "Rex yana cire bangon…",
   "photo.undoEdit": "Mayar",
   "crop.removeBg": "Cire bango",
-  "crop.removeBgNote": "Bangon zai tafi idan ka danna Done (kiredit ɗin hoto 1).",
+  "crop.removeBgNote": "Bangon zai tafi idan ka danna Done (credits 3).",
   "schedule.button": "Tsara shi don wani lokaci",
   "schedule.title": "Tsara shi don wani lokaci",
   "schedule.body": "Zaɓi lokacin da canje-canjenka za su fito. Lokacin Legas ne.",
