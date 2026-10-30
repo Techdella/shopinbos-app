@@ -5660,6 +5660,7 @@ model Shopper {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @default(now()) @updatedAt
   stores      ShopperStore[]
+  follows     ShopFollower[]
 
   @@index([lastSeenAt])
 }
@@ -5791,4 +5792,49 @@ model ProductVideo {
   @@index([supplierId, createdAt])
   @@index([productId])
   @@index([showOnDiscover, status, createdAt])
+}
+
+// ─── Notify my followers ──────────────────────────────────────────────────────
+/// docs/migrations/2026-12-14-shop-followers.sql. A shopper following a store (shared/follower-blasts.ts). Until Plug,
+/// everyone who bought from a shop follows it (source "order"). WhatsApp news only with whatsappOptIn (or an existing
+/// marketing WhatsApp consent); email only while they haven't unsubscribed; push once Plug has their device.
+model ShopFollower {
+  id              String    @id @default(cuid())
+  storeId         String
+  shopperId       String // Shopper.id
+  source          String    @default("order") // order | link | qr | plug
+  followedAt      DateTime  @default(now())
+  unfollowedAt    DateTime?
+  whatsappOptIn   Boolean   @default(false)
+  whatsappOptInAt DateTime?
+  shopper         Shopper   @relation(fields: [shopperId], references: [id], onDelete: Cascade)
+
+  @@unique([storeId, shopperId])
+  @@index([storeId, unfollowedAt])
+  @@index([shopperId])
+}
+
+/// One "Notify my followers" message (drop | preorder | live). At most 3 queued/sending/sent per store in any 7 days.
+/// Each follower's message is a CustomerMessage (event "follower_blast", refId "<blastId>:<shopperId>").
+model FollowerBlast {
+  id            String    @id @default(cuid())
+  storeId       String
+  kind          String // drop | preorder | live
+  title         String
+  body          String
+  productId     String? // StoreProduct.id
+  link          String
+  channels      String[]  @default([]) // whatsapp | email | push
+  audienceCount Int       @default(0)
+  sentCount     Int       @default(0)
+  failedCount   Int       @default(0)
+  status        String    @default("queued") // queued | sending | sent | failed
+  error         String?
+  createdBy     String // User.id
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now()) @updatedAt
+  sentAt        DateTime?
+
+  @@index([storeId, createdAt])
+  @@index([status, updatedAt])
 }
