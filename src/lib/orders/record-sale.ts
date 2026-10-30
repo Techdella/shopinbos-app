@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server";
+import { recordShopperOrder } from "@/lib/shoppers.server";
 import { RECORDED_SALE_CHANNELS } from "@shared/channels";
 import { SALE_DELIVERY_KEYS, SALE_PAYMENT_KEYS, saleStatus, saleTotals, type SaleLine } from "@shared/sales";
 import { itemVariant, readBundle } from "@shared/bundles";
@@ -118,5 +119,7 @@ export async function recordSale(storeId: string, input: RecordSaleInput) {
   // Dropship items in a sale to deliver go to their supplier straight away, the same as a storefront order (paid, or
   // pay on delivery). Handed over in person means the seller already had it, so nothing is sent.
   if (input.delivery === "deliver") await ensureSupplierOrdersSafely(order.id);
+  // The customer's phone-keyed record (shared/shoppers.ts); never fails the sale.
+  await recordShopperOrder(order);
   return order;
 }

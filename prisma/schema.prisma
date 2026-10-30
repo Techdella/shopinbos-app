@@ -5641,3 +5641,39 @@ model RiderReview {
 
   @@index([riderId, createdAt])
 }
+
+/// A customer, keyed by phone number (E.164) across Shopinbos, for the customer app (Plug). Created or updated by
+/// every order a seller takes (src/lib/shoppers.server.ts). Never shown to sellers across stores.
+model Shopper {
+  id          String         @id @default(cuid())
+  phone       String         @unique
+  name        String?
+  area        String?
+  state       String?
+  email       String?
+  firstSeenAt DateTime       @default(now())
+  lastSeenAt  DateTime       @default(now())
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @default(now()) @updatedAt
+  stores      ShopperStore[]
+
+  @@index([lastSeenAt])
+}
+
+/// A shopper's orders at one store: counts once per order (lastOrderId guards repeats).
+model ShopperStore {
+  id           String   @id @default(cuid())
+  shopperId    String
+  storeId      String
+  firstOrderAt DateTime @default(now())
+  lastOrderAt  DateTime @default(now())
+  lastOrderId  String?
+  orderCount   Int      @default(0)
+  totalSpent   Float    @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+  shopper      Shopper  @relation(fields: [shopperId], references: [id], onDelete: Cascade)
+
+  @@unique([shopperId, storeId])
+  @@index([storeId, lastOrderAt])
+}

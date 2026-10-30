@@ -45,6 +45,7 @@ import { cancelUnstartedOrder } from "@/lib/commerce/order-expiry.server";
 import { partnerShipments, planFromOption, supplierSelfShipments } from "@shared/delivery-market";
 import { zoneParcelsPlan } from "@shared/dropship-checkout";
 import { checkCheckoutPhoneToken } from "@/lib/commerce/phone-verify.server";
+import { recordShopperOrder } from "@/lib/shoppers.server";
 
 const CHECKOUT_CORS = { methods: ["POST", "OPTIONS"], headers: ["Content-Type"] };
 
@@ -408,6 +409,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   if (paymentMethod === "pay_on_delivery" && podFeeNow === 0) await ensureSupplierOrdersSafely(order.id);
   // A payment link placed as pay on delivery counts now (a one-time link closes); card and transfer once paid.
   if (paymentMethod === "pay_on_delivery" && podFeeNow === 0 && link) await settlePaymentLinkForOrder(order.id);
+
+  // The customer's phone-keyed record (shared/shoppers.ts), once the order is live (orders cancelled above because the
+  // payment couldn't start aren't counted). Covers payment links too; never fails the checkout.
+  await recordShopperOrder(order);
 
   const money = (amount: number) => new Intl.NumberFormat("en-NG", { style: "currency", currency: store.currency, maximumFractionDigits: 0 }).format(amount);
   const depositText = deposit ? ` Pre-order deposit: ${money(deposit.payNowKobo / 100)} now, ${money(deposit.balanceKobo / 100)} when you say the stock is ready.` : "";
