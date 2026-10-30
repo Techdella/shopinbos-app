@@ -29,6 +29,7 @@ import { WHOLESALE_PAY_PREFIX, confirmWholesalePayment } from "@/lib/supplier-or
 import { DEBT_PAYMENT_PREFIX, confirmDebtPayment } from "@/lib/money-owed/money-owed.server";
 import { confirmStoreBalancePayment } from "@/lib/commerce/store-balance.server";
 import { STORE_BALANCE_PREFIX } from "@shared/preorder";
+import { confirmTogetherPayment, isTogetherReference } from "@/lib/pay-together/payments.server";
 import { PAID_RETAIL_STATUSES } from "@/lib/supplier-orders/pure";
 import { isDedicatedCharge } from "@/lib/logistics/payin-rules";
 import { handleDedicatedAccountAssign, handleDedicatedAccountCharge } from "@/lib/logistics/payins.server";
@@ -218,6 +219,16 @@ export async function POST(req: NextRequest) {
     const result = await confirmPayAtDoor(event.data.reference).catch((error) => ({ ok: false as const, error: String(error), retry: true }));
     if (!result.ok && "retry" in result && result.retry) return new NextResponse("Retry later", { status: 500 });
     if (!result.ok) console.warn(`[paystack webhook] pay at door ${event.data.reference} not applied: ${result.error}`);
+    return new NextResponse("OK", { status: 200 });
+  }
+
+  // ── Pay small small parts, ajo contributions, group-buy card checks and payments (src/lib/pay-together) ──
+  // Each split straight to the seller's own bank at checkout. Idempotent on the reference (verified with Paystack), so a
+  // replay or the shopper's return page confirming it first records nothing twice; a 500 is safe for Paystack to retry.
+  if (eventType === "charge.success" && isTogetherReference(event.data?.reference)) {
+    const result = await confirmTogetherPayment(event.data.reference).catch((error) => ({ ok: false as const, error: String(error), retry: true }));
+    if (!result.ok && "retry" in result && result.retry) return new NextResponse("Retry later", { status: 500 });
+    if (!result.ok) console.warn(`[paystack webhook] pay-together ${event.data.reference} not applied: ${result.error}`);
     return new NextResponse("OK", { status: 200 });
   }
 

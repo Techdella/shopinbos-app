@@ -135,6 +135,12 @@ export async function chargePaystackAuthorization(input: {
   authorizationCode: string;
   reference: string;
   metadata: Record<string, unknown>;
+  /**
+   * Who the charge is settled to, as for initialize (src/lib/wallet/rules.ts paystackSplitParams). Only the single
+   * subaccount form (subaccount + transaction_charge + bearer) is accepted by charge_authorization; leave it out for
+   * Shopinbos's own charges (domain renewals, AI credits).
+   */
+  split?: { subaccount: string; transaction_charge?: number; bearer?: string };
 }) {
   const response = await fetch(`${PAYSTACK_BASE}/transaction/charge_authorization`, {
     method: "POST",
@@ -149,6 +155,7 @@ export async function chargePaystackAuthorization(input: {
       authorization_code: input.authorizationCode,
       reference: input.reference,
       metadata: input.metadata,
+      ...(input.split ?? {}),
     }),
     cache: "no-store",
     signal: AbortSignal.timeout(30_000),
