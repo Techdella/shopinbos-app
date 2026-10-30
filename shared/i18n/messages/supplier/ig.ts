@@ -694,6 +694,10 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "orders.sampleTag": "Ihe nlele",
   "agr.subShort": "Ụlọ ahịa chọrọ ire ngwaahịa gị.",
   "agr.noneSubShort": "Mgbe ụlọ ahịa chọrọ ire ngwaahịa gị, ọ ga-egosi ebe a.",
+  "imp.template": "Budata ndebiri ahụ",
+  "imp.sheet": "Ma ọ bụ jiri Google Sheet",
+  "imp.sheetGo": "Bulite site na sheet",
+  "imp.sheetHint": "Na Google Sheets pịa Share, họrọ \"Anyone with the link\", wee mado njikọ ahụ ebe a. Ahịrị mbụ bụ aha kọlụm.",
 };
 
 export default ig;

@@ -712,6 +712,10 @@ const en = {
   "orders.sampleTag": "Sample",
   "agr.subShort": "Shops that want to sell your products.",
   "agr.noneSubShort": "When a shop wants to sell your products, it shows here.",
+  "imp.template": "Download the template",
+  "imp.sheet": "Or use a Google Sheet",
+  "imp.sheetGo": "Upload from the sheet",
+  "imp.sheetHint": "In Google Sheets tap Share, choose \"Anyone with the link\", then paste the link here. The first row names the columns.",
 } satisfies Record<string, string>;
 
 export default en;

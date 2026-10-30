@@ -694,6 +694,10 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "orders.sampleTag": "Sample",
   "agr.subShort": "Shops wey wan sell your products.",
   "agr.noneSubShort": "When shop wan sell your products, e go show here.",
+  "imp.template": "Download the template",
+  "imp.sheet": "Or use Google Sheet",
+  "imp.sheetGo": "Upload from the sheet",
+  "imp.sheetHint": "For Google Sheets tap Share, choose \"Anyone with the link\", then paste the link here. The first row na the column names.",
 };
 
 export default pcm;

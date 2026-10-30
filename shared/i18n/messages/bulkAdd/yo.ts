@@ -135,6 +135,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "grid.photo": "Fọ́tò",
   "pick.subShort": "Tó 300 lẹ́ẹ̀kan. Fọ́tò kan, ọjà kan.",
   "other.csvSubShort": "Ṣé o ní àkójọ? Gbé fáìlì CSV tàbí Excel sókè.",
+  "entry.sheet": "Gbé e sókè láti CSV tàbí Google Sheet",
 } satisfies Record<string, string>;
 
 export default yo;

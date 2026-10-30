@@ -694,6 +694,10 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "orders.sampleTag": "Samfuri",
   "agr.subShort": "Shagunan da ke son sayar da kayanka.",
   "agr.noneSubShort": "Idan shago yana son sayar da kayanka, zai bayyana a nan.",
+  "imp.template": "Sauke samfurin",
+  "imp.sheet": "Ko yi amfani da Google Sheet",
+  "imp.sheetGo": "Loda daga sheet",
+  "imp.sheetHint": "A Google Sheets taɓa Share, zaɓi \"Anyone with the link\", sannan ka liƙa mahaɗin nan. Layin farko sunayen ginshiƙai ne.",
 };
 
 export default ha;
