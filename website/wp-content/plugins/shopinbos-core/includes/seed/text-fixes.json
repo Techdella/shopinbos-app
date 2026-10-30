@@ -434,5 +434,29 @@
  [
   "\"headline\":\"Get in first\"",
   "\"headline\":\"Start your shop\""
+ ],
+ [
+  "Your customer gets a code at checkout",
+  "When the parcel arrives, your customer pays you from their link or the rider’s QR code"
+ ],
+ [
+  "The rider collects the money at the door",
+  "Then they get a 4-digit code"
+ ],
+ [
+  "The customer gives the code only when the parcel is in their hands",
+  "The rider types the code in and the app shows Paid"
+ ],
+ [
+  "The rider enters the code and the order is marked paid",
+  "Only then is the parcel handed over"
+ ],
+ [
+  "No code, no handover",
+  "Riders never handle cash"
+ ],
+ [
+  "If a customer won’t share the code, the rider keeps the parcel. You don’t lose your stock.",
+  "The customer pays you by transfer, card or USSD at the door. If they don’t pay, the rider brings the parcel back, so you don’t lose your stock."
  ]
 ]

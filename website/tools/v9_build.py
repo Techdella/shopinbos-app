@@ -152,7 +152,17 @@ TEXT = [
     ('>Pack each order with the shop’s branded label. Their customer gets a great experience, and you get repeat orders.<',
      '>Pack each dropship order in its own packaging with the shop’s delivery label, and no flyers or your number. The customer gets the shop’s order, and the shop keeps buying from you.<'),
     ('>Deliver the order<', '>Pick up and drop off<'),
-    ('>Hand it over and collect the payment if it’s pay on delivery.<', '>Enter the pickup code at the shop, then hand the parcel over at the door. Collect the cash if it’s pay on delivery.<'),
+    # Pay on delivery (app shared/pay-at-door.ts): the customer pays the SHOP at the door from their link or the rider's
+    # QR code (Paystack transfer, card or USSD), then gets the 4-digit code; riders never handle cash.
+    ('>Hand it over and collect the payment if it’s pay on delivery.<', '>Enter the pickup code at the shop. At the door, the customer pays the shop from their link or your QR code, then you hand the parcel over.<'),
+    ('>Collect the payment, then enter the customer’s 4-digit code to confirm the handover. Everything is tracked in the app.<',
+     '>You never handle cash. The customer pays the shop from their link or your QR code, then gives you their 4-digit code. Type it in, and the app shows Paid before you hand the parcel over.<'),
+    ('>Your customer pays the rider, then gives a 4-digit code to confirm the order is in their hands.<',
+     '>At the door, your customer pays you by transfer, card or USSD from their link or the rider’s QR code, then gives the rider a 4-digit code.<'),
+    ('>The customer gets a 4-digit code and only gives it to the rider when the order is in their hands. The payment and handover are recorded in the app.<',
+     '>When the parcel arrives, the customer pays the shop from their link or the rider’s QR code. Only then do they get the 4-digit code, and the rider hands the parcel over once the app shows Paid. Riders never handle cash.<'),
+    ('>Your customer gets a 4-digit code when they order. They give it to the rider only when the order is in their hands, and the payment is recorded in the app.<',
+     '>When the parcel arrives, your customer pays you from their link or the rider’s QR code. Then they get a 4-digit code, the rider types it in, and the app shows Paid before the parcel is handed over.<'),
     ('>Sellers print waybills with the shop’s name, the delivery code and a barcode, so pickups are quick and nothing gets mixed up.<',
      '>Sellers print labels with their logo, the customer’s address and a QR code that opens the order’s tracking page, plus a packing slip for the parcel.<'),
     ('>A6 and thermal printers<', '>4 × 6 label printers or A4 paper<'),
