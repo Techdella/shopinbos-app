@@ -1,0 +1,30 @@
+<!doctype html><html><head><meta charset="utf-8">
+<!-- iPhone Duo screenshots: two iPhone screenshots side by side under a headline. render.js opens this page with
+     ?pair=N at each Duo size (the layout scales to the viewport). -->
+<link rel="stylesheet" href="header.css">
+<style>
+html,body{width:100vw;height:100vh}
+body{display:flex;flex-direction:column;padding:0 2.4vw 2.4vw}
+.top{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.2vw;position:relative}
+.top img{height:3.4vw}
+h1{position:static;font-size:6.4vw;line-height:1.05}
+.shots{display:flex;gap:2.4vw;position:relative}
+.shots img{flex:1;min-width:0;border-radius:3.2vw;box-shadow:0 1vw 3vw rgba(0,0,0,.3)}
+.lime{width:40vw;height:40vw;right:-14vw;bottom:auto;top:-22vw}
+.lime2{width:26vw;height:26vw;left:-12vw;top:-13vw}
+</style></head><body>
+<div class="dots"></div><div class="lime"></div><div class="lime2"></div>
+<div class="top"><img src="../../../public/brand/logos/shopinbos-logo-light.png"><h1 id="t"></h1></div>
+<div class="shots"><img id="a"><img id="b"></div>
+<script>
+const PAIRS = [
+  ['01-onb', '03-products', 'Build your shop <span>with AI.</span>'],
+  ['02-home', '04-chats', 'Sell and reply <span>in one place.</span>'],
+  ['05-orders', '08-delivery', 'Pack, send <span>and deliver.</span>'],
+];
+const [a, b, title] = PAIRS[Number(new URLSearchParams(location.search).get('pair') || 0)];
+document.getElementById('a').src = `../screenshots/iphone-6.9/${a}.jpg`;
+document.getElementById('b').src = `../screenshots/iphone-6.9/${b}.jpg`;
+document.getElementById('t').innerHTML = title;
+</script>
+</body></html>

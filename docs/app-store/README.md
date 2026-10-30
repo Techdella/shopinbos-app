@@ -102,7 +102,8 @@ App Store Connect › the app › the version:
 | Search Results asset (optional) | `creative/search-results-3840x2560.png` (image) or `creative/search-results-1920x1280.mp4` (13.5 s loop) |
 | Screenshots, iPhone with Dynamic Island (medium display), **required** | `screenshots/iphone-6.3/` (7 at 1206×2622, in order) |
 | Screenshots, iPhone with Dynamic Island (large display) | `screenshots/iphone-6.9/` (7 at 1320×2868, in order) |
-| Screenshots, iPhone Duo, iPad, Apple Watch | Leave empty. Duo is optional until April 2027 (then required for apps built with the iOS 27.1 SDK); the app is iPhone-only (`supportsTablet: false`) and has no Watch app. |
+| Screenshots, iPhone Duo | `screenshots/iphone-duo-inner/` (3 at 2007×2853) or `screenshots/iphone-duo-outer/` (3 at 1398×2034), in order. Optional until April 2027 (then required for apps built with the iOS 27.1 SDK). Adding them shows an "optimized for iPhone Duo" badge, so check the TestFlight build on a Duo first. Made by `creative/render.js` (`creative/duo.html`). |
+| Screenshots, iPad, Apple Watch | Leave empty: the app is iPhone-only (`supportsTablet: false`) and has no Watch app. |
 | App previews | Optional. They should be screen recordings of the app (886×1920, 15–30 s, 30 fps), so record them from the TestFlight build rather than from the screenshots. |
 | App Review information | `review-notes.txt`: create the demo seller account first and put its email and password there. |
 | App Privacy | `app-privacy.md` |
@@ -137,6 +138,7 @@ python3 docs/app-store/make-screenshots.py docs/play-store/listing/screenshots d
 | `listing/` | Name, subtitle, keywords, promotional text, description |
 | `screenshots/iphone-6.9/` | 7 screenshots, 1320×2868 |
 | `screenshots/iphone-6.3/` | The same 7 at 1206×2622 (the required medium-display size) |
+| `screenshots/iphone-duo-inner/`, `iphone-duo-outer/` | iPhone Duo: the screenshots in pairs under a headline |
 | `review-notes.txt` | App Review notes and demo account |
 | `app-privacy.md` | App Privacy answers |
 | `creative/` | Header and Search Results images and videos; the `.html` pages and `render.js` make them (`node docs/app-store/creative/render.js`, about 3 minutes). Apple's rules for these: no prices, URLs or © symbols, key content centred, one clear idea in the header, real app screens in search results. |

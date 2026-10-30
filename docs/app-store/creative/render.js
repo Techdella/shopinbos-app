@@ -1,7 +1,7 @@
 // Makes the App Store creative assets (App Store Connect › the version › Header / Search Results) from the HTML pages
 // next to this file. Run from the repo root after changing a page or the screenshots:
 //   node docs/app-store/creative/render.js            images and videos
-//   node docs/app-store/creative/render.js images     images only
+//   node docs/app-store/creative/render.js images     images only (header, search results, iPhone Duo screenshots)
 // Images are RGB PNGs (Apple rejects alpha channels). Videos are H.264 MP4 at 30 fps with a silent audio track; the
 // pages loop seamlessly, so each video is exactly one loop, stepped frame by frame for smooth motion.
 const { chromium } = require('playwright');
@@ -11,6 +11,11 @@ const path = require('path');
 const IMAGES = [
   ['header.html', 3840, 1646, 'header-3840x1646.png'],
   ['search-results.html', 3840, 2560, 'search-results-3840x2560.png'],
+  // iPhone Duo screenshots (App Store Connect › the version › iPhone Duo): inner display, then outer display
+  ...[0, 1, 2].flatMap((pair) => [
+    [`duo.html?pair=${pair}`, 2007, 2853, `../screenshots/iphone-duo-inner/0${pair + 1}.png`],
+    [`duo.html?pair=${pair}`, 1398, 2034, `../screenshots/iphone-duo-outer/0${pair + 1}.png`],
+  ]),
 ];
 const VIDEOS = [
   // page, width, height, seconds (one loop), output
