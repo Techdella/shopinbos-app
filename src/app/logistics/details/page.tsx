@@ -19,7 +19,7 @@ export default async function LogisticsDetailsPage() {
   const [partner, details] = await Promise.all([getLogisticsPartnerForUser(user), myDetails(user)]);
   return (
     <PartnerPage frame={{ user, partner }} title={t("title")} sub={t("sub")}>
-      <div className="max-w-[760px]">
+      <div className="w-full">
         <MyDetailsForm initial={details} />
       </div>
     </PartnerPage>

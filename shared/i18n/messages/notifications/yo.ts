@@ -89,6 +89,19 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "channel.whatsapp": "WhatsApp",
   "category.announcements": "Ìròyìn Shopinbos",
   "help.announcements": "Àwọn ohun tuntun, ìfilọ̀ àti ìmọ̀ràn láti ọ̀dọ̀ ẹgbẹ́ Shopinbos.",
+  "messages.title": "Àwọn ìfiránṣẹ́",
+  "messages.text": "Yan àwọn ìfiránṣẹ́ tuntun tí yóò mú fóònù rẹ dún. Wọ́n máa ń hàn nínú Messages àti lábẹ́ agogo nígbà gbogbo.",
+  "messages.pushOff": "Push fún Messages ti wà ní pípa lókè, nítorí náà ìfiránṣẹ́ tuntun yóò hàn nínú áàpù nìkan. Tàn án láti yan níbí.",
+  "messages.fromRiders": "Ìfiránṣẹ́ láti ọ̀dọ̀ àwọn rider",
+  "messages.fromRidersHelp": "Àwọn rider rẹ tí ń kọ̀wé láti Riders app.",
+  "messages.fromBusiness": "Ìfiránṣẹ́ láti ọ̀dọ̀ ṣọ́ọ̀bù àti olùpèsè",
+  "messages.fromBusinessHelp": "Ìjíròrò pẹ̀lú ṣọ́ọ̀bù, olùpèsè àti àwọn iléeṣẹ́ míì.",
+  "messages.fromCustomers": "Ìfiránṣẹ́ láti ọ̀dọ̀ oníbàárà",
+  "messages.fromCustomersHelp": "WhatsApp, live chat àti ìfiránṣẹ́ oníbàárà míì.",
+  "messages.pushFor": "Push fún {source}",
+  "messages.unreadEmail": "Fi ímeèlì ránṣẹ́ sí mi tí mi ò bá kà á láàárín ìṣẹ́jú 15",
+  "messages.unreadEmailHelp": "Fún ìjíròrò pẹ̀lú ṣọ́ọ̀bù, olùpèsè àti iléeṣẹ́ ìfijíṣẹ́. Ímeèlì kan fún gbogbo ohun tí ń dúró.",
+  "messages.quietNote": "Wákàtí ìdákẹ́jẹ́ kan ìfiránṣẹ́ náà: wọ́n ṣì máa wọ inú áàpù láìdún, o sì máa gba àkópọ̀ kan ní òwúrọ̀.",
 };
 
 export default yo;

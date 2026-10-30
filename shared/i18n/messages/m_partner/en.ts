@@ -728,6 +728,12 @@ const en = {
   "rider.message": "Message {name}",
   "rider.rating": "Customer rating",
   "rider.ratingValue": "{average} stars from {count, plural, one {# customer} other {# customers}}",
+  "chats.filter.rider": "Riders",
+  "chat.role.rider": "Rider",
+  "chat.you": "You:",
+  "home.chats": "Messages",
+  "home.chatsAll": "See all",
+  "home.chatsUnread": "{count, plural, one {# unread} other {# unread}}",
 } satisfies Record<string, string>;
 
 export default en;

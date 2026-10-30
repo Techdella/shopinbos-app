@@ -1,5 +1,6 @@
 import type { VerificationDoc } from "@shared/verification-docs";
 import type { TakingBlock } from "@shared/taking-jobs";
+import type { RiderChatSummary } from "@shared/logistics-chats";
 import { api, apiBody } from "./api";
 import { uploadOnePhoto, type PhotoInput } from "./upload-photo";
 import { DOC_MAX_SIDE } from "./upload-photo-pure";
@@ -398,6 +399,9 @@ export interface RiderChatMessage {
 
 export const riderCompanyMessages = (riderId: string) =>
   api<{ messages: RiderChatMessage[]; rating: { average: number; count: number } | null }>(`/api/mobile/logistics/riders/${encodeURIComponent(riderId)}/messages`);
+
+/** Every rider's chat with the company: last message and unread count (the Chats tab, the Jobs "Messages" card). */
+export const fetchRiderChats = () => api<RiderChatSummary[]>("/api/mobile/logistics/rider-chats");
 
 export const sendRiderCompanyMessage = async (riderId: string, body: string) =>
   (await api<{ message: RiderChatMessage }>(`/api/mobile/logistics/riders/${encodeURIComponent(riderId)}/messages`, { method: "POST", json: { body } })).message;

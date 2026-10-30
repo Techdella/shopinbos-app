@@ -126,6 +126,22 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "chat.send": "Fi ránṣẹ́",
   "chat.empty": "Kò tíì sí ọ̀rọ̀. Kí wọn.",
   "chat.failed": "Kò lọ. Tún gbìyànjú.",
+  "notify.title": "Ìkìlọ̀",
+  "notify.sub": "Yan àwọn ìfiránṣẹ́ tí yóò mú fóònù rẹ dún. Ìfiránṣẹ́ máa ń dúró nínú chat nígbà gbogbo.",
+  "notify.company": "Ìfiránṣẹ́ láti ọ̀dọ̀ {company}",
+  "notify.companyHint": "Dispatcher rẹ àti ọ́fíìsì.",
+  "notify.shops": "Ìfiránṣẹ́ láti ọ̀dọ̀ ṣọ́ọ̀bù",
+  "notify.shopsHint": "Àwọn ṣọ́ọ̀bù lórí iṣẹ́ tí o ń gbé.",
+  "notify.quiet": "Wákàtí ìdákẹ́jẹ́",
+  "notify.quietOn": "Kò sí dídún láti {start} sí {end} (àkókò Lagos). Ìfiránṣẹ́ ṣì máa dúró nínú chat.",
+  "notify.quietOff": "Ó wà ní pípa. Ìfiránṣẹ́ lè dún nígbàkúùgbà.",
+  "notify.saveFailed": "A kò lè fi pamọ́. Tún gbìyànjú.",
+  "notify.loadFailed": "A kò rí ètò ìkìlọ̀ rẹ gbé jáde.",
+  "notify.phoneNote": "Ètò wọ̀nyí wà fún Riders app lórí fóònù rẹ. Iṣẹ́ tuntun máa ń dún nígbà gbogbo.",
+  "msgs.title": "Àwọn ìfiránṣẹ́",
+  "msgs.new": "{count, plural, one {Ìfiránṣẹ́ tuntun #} other {Ìfiránṣẹ́ tuntun #}}",
+  "msgs.company": "Ilé-iṣẹ́ rẹ",
+  "msgs.shop": "Ṣọ́ọ̀bù",
 };
 
 export default yo;

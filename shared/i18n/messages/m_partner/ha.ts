@@ -715,6 +715,12 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "rider.message": "Aika wa {name} saƙo",
   "rider.rating": "Makin abokan ciniki",
   "rider.ratingValue": "Taurari {average} daga abokan ciniki {count}",
+  "chats.filter.rider": "Mahaya",
+  "chat.role.rider": "Mahayi",
+  "chat.you": "Kai:",
+  "home.chats": "Saƙonni",
+  "home.chatsAll": "Duba duka",
+  "home.chatsUnread": "{count, plural, one {# ba a karanta ba} other {# ba a karanta ba}}",
 };
 
 export default ha;

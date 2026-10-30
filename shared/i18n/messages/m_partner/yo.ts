@@ -715,6 +715,12 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "rider.message": "Kọ ọ̀rọ̀ sí {name}",
   "rider.rating": "Ìdíyelé oníbàárà",
   "rider.ratingValue": "Ìràwọ̀ {average} látọ̀dọ̀ oníbàárà {count}",
+  "chats.filter.rider": "Àwọn rider",
+  "chat.role.rider": "Rider",
+  "chat.you": "Ìwọ:",
+  "home.chats": "Àwọn ìfiránṣẹ́",
+  "home.chatsAll": "Wo gbogbo rẹ̀",
+  "home.chatsUnread": "{count, plural, one {# tí a kò kà} other {# tí a kò kà}}",
 };
 
 export default yo;

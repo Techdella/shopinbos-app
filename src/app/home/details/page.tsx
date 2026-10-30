@@ -19,7 +19,7 @@ export default async function SellerDetailsPage() {
   const [workspace, details] = await Promise.all([getSellerWorkspace(user.id), myDetails(user)]);
   return (
     <SellerPage user={user} store={storeSummary(workspace?.store ?? null)} title={t("title")} sub={t("sub")}>
-      <div className="max-w-[760px]">
+      <div className="w-full">
         <MyDetailsForm initial={details} />
       </div>
     </SellerPage>

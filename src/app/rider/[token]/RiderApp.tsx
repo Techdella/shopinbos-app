@@ -9,6 +9,8 @@ import { markDelivered, markFailed, markStage, resendPayLink, setRiderOnline, st
 import { PAY_AT_DOOR_WAIT_MINUTES } from "@shared/pay-at-door";
 import { useT } from "@/components/i18n/I18nProvider";
 import { RiderChatBox } from "@/components/logistics/RiderChatBox";
+import { RiderNotifySettings } from "@/components/logistics/RiderNotifySettings";
+import { RiderMessagesCard } from "@/components/logistics/chats/RiderMessagesCard";
 
 export interface RiderDrop {
   id: string;
@@ -121,6 +123,18 @@ export function RiderApp({
     window.scrollTo({ top: 0 });
   }
 
+  // "Messages" on Today: the company's chat lives on Me, a shop's on its job's drop.
+  const [companyChat, setCompanyChat] = useState(false);
+  const [shopChat, setShopChat] = useState<string | null>(null);
+  function openCompanyChat() {
+    setCompanyChat(true);
+    choose("me");
+  }
+  function openShopChat(jobId: string) {
+    setShopChat(jobId);
+    window.requestAnimationFrame(() => document.getElementById(`drop-${jobId}`)?.scrollIntoView({ behavior: "smooth", block: "center" }));
+  }
+
   const drops = runs.reduce((sum, run) => sum + run.drops.length, 0);
   const earnedLabel = t(paySet ? "app.earnedToday" : "app.feesToday");
 
@@ -161,6 +175,9 @@ export function RiderApp({
         <div className="mt-2 grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:items-start">
           <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4 lg:sticky lg:top-[76px]">
             <MapHero online={online} pending={pending} onToggle={toggleOnline} earned={earnedToday} earnedLabel={earnedLabel} partnerName={rider.partnerName} />
+
+            {/* Unread messages from the company or a shop (hidden when there are none). */}
+            <RiderMessagesCard token={token} jobIds={runs.flatMap((run) => run.drops.map((drop) => drop.id))} onOpenCompany={openCompanyChat} onOpenShop={openShopChat} />
 
             <section aria-label={t("app.today")} className="grid grid-cols-3 gap-2.5">
               <Stat label={earnedLabel} value={naira(earnedToday)} />
@@ -219,7 +236,7 @@ export function RiderApp({
               </div>
             ) : (
               <div className="mt-3 grid gap-4">
-                {runs.map((run) => <RunCard key={run.key} token={token} run={run} paySet={paySet} onError={setError} />)}
+                {runs.map((run) => <RunCard key={run.key} token={token} run={run} paySet={paySet} onError={setError} chatJob={shopChat} />)}
               </div>
             )}
 
@@ -235,7 +252,7 @@ export function RiderApp({
 
       {tab === "earnings" && <EarningsTab week={week} partnerName={rider.partnerName} />}
 
-      {tab === "me" && <MeTab token={token} rider={rider} online={online} />}
+      {tab === "me" && <MeTab token={token} rider={rider} online={online} chatOpen={companyChat} />}
 
       <nav
         aria-label="Riders"
@@ -449,9 +466,9 @@ function EarningsTab({ week, partnerName }: { week: RiderWeek; partnerName: stri
   );
 }
 
-function MeTab({ token, rider, online }: { token: string; rider: { name: string; partnerName: string; partnerPhone: string | null; plate: string | null }; online: boolean }) {
+function MeTab({ token, rider, online, chatOpen = false }: { token: string; rider: { name: string; partnerName: string; partnerPhone: string | null; plate: string | null }; online: boolean; chatOpen?: boolean }) {
   const t = useT("rider");
-  const [chat, setChat] = useState(false);
+  const [chat, setChat] = useState(chatOpen);
   const wa = rider.partnerPhone?.replace(/\D/g, "");
   const row = "flex min-h-[64px] items-center gap-3 px-4 py-3";
   return (
@@ -505,6 +522,9 @@ function MeTab({ token, rider, online }: { token: string; rider: { name: string;
         ) : null}
       </section>
 
+      {/* Which messages buzz the Riders app on the phone, and quiet hours (shared/message-notifications.ts). */}
+      <RiderNotifySettings token={token} company={rider.partnerName} />
+
       <p className="m-0 flex items-start justify-center gap-2 px-2 text-center text-[13px] text-app-ink-soft">
         <Icon name="lock" size={14} className="mt-0.5 shrink-0" />
         {t("me.linkNote")}
@@ -513,7 +533,7 @@ function MeTab({ token, rider, online }: { token: string; rider: { name: string;
   );
 }
 
-function RunCard({ token, run, paySet, onError }: { token: string; run: RiderRun; paySet: boolean; onError: (error: string | null) => void }) {
+function RunCard({ token, run, paySet, onError, chatJob = null }: { token: string; run: RiderRun; paySet: boolean; onError: (error: string | null) => void; chatJob?: string | null }) {
   const router = useRouter();
   const t = useT("rider");
   const [pending, startTransition] = useTransition();
@@ -572,7 +592,7 @@ function RunCard({ token, run, paySet, onError }: { token: string; run: RiderRun
         )}
 
         <ol className="m-0 mt-5 grid list-none gap-4 p-0">
-          {run.drops.map((drop, index) => <DropRow key={drop.id} token={token} drop={drop} index={index} last={index === run.drops.length - 1} />)}
+          {run.drops.map((drop, index) => <DropRow key={drop.id} token={token} drop={drop} index={index} last={index === run.drops.length - 1} openChat={chatJob === drop.id} />)}
         </ol>
       </div>
     </article>
@@ -594,7 +614,7 @@ function DirectionsLink({ address }: { address: string }) {
   );
 }
 
-function DropRow({ token, drop, index, last }: { token: string; drop: RiderDrop; index: number; last: boolean }) {
+function DropRow({ token, drop, index, last, openChat = false }: { token: string; drop: RiderDrop; index: number; last: boolean; openChat?: boolean }) {
   const router = useRouter();
   const t = useT("rider");
   const [mode, setMode] = useState<"idle" | "deliver" | "fail">("idle");
@@ -608,7 +628,11 @@ function DropRow({ token, drop, index, last }: { token: string; drop: RiderDrop;
   const onTheRoad = drop.status === "picked_up" || drop.status === "in_transit" || drop.status === "out_for_delivery";
   const canGoOut = !drop.toPickupPoint && (drop.status === "picked_up" || drop.status === "in_transit");
   const waNumber = drop.buyerPhone?.replace(/\D/g, "");
-  const [chat, setChat] = useState(false);
+  const [chat, setChat] = useState(openChat);
+  // "Messages" on Today asked for this shop's chat.
+  useEffect(() => {
+    if (openChat) setChat(true);
+  }, [openChat]);
 
   function run(action: () => Promise<RiderActionResult>) {
     setError(null);
@@ -646,7 +670,7 @@ function DropRow({ token, drop, index, last }: { token: string; drop: RiderDrop;
   const fieldClass = "h-12 w-full min-w-0 rounded-[14px] border border-app-line bg-white px-3.5 text-[17px] text-app-ink outline-none focus:border-app-ink";
 
   return (
-    <li className="relative flex gap-3">
+    <li id={`drop-${drop.id}`} className="relative flex scroll-mt-24 gap-3">
       {!last && <span aria-hidden className="absolute bottom-[-18px] left-[23px] top-10 border-l-2 border-dashed border-app-line-strong" />}
       <span aria-hidden className="relative grid w-12 shrink-0 justify-items-center pt-1">
         <span className={cx("grid h-8 w-8 place-items-center rounded-full text-[13px] font-extrabold", onTheRoad ? "bg-app-forest text-white" : "bg-app-canvas text-app-ink")}>{index + 1}</span>

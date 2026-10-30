@@ -63,10 +63,13 @@ test("the web has the same chats: the Riders web app, the company's Riders page 
   assert.match(app, /extra=\{\{ with: "shop", job: drop\.id \}\}/);
   // The customer's number shows on the web Riders app too.
   assert.match(app, /\{drop\.buyerPhone\}<\/p>/);
+  // The company's Riders page has a "Message" button per rider that opens the Messages page on that rider; old
+  // ?chat=<rider> links redirect there (tests/logistics-chats.test.mjs has the page itself).
   const couriers = read("src/app/logistics/couriers/page.tsx");
-  assert.match(couriers, /\/api\/mobile\/logistics\/riders\/\$\{member\.id\}\/messages/);
-  // "<rider> sent a message" links here with ?chat=<rider>, which opens that rider's chat.
-  assert.match(couriers, /open=\{chat === member\.id\}/);
+  assert.match(couriers, /href=\{riderInboxHref\(member\.id\)\}/);
+  assert.match(couriers, /legacyRiderChatRedirect\(chat\)/);
+  assert.doesNotMatch(couriers, /RiderChatToggle/);
+  assert.match(read("src/components/logistics/chats/RiderThread.tsx"), /\/api\/mobile\/logistics\/riders\/\$\{encodeURIComponent\(rider\.riderId\)\}\/messages/);
   assert.match(read("src/app/home/orders/[id]/page.tsx"), /\/api\/mobile\/delivery\/jobs\/\$\{booking\.id\}\/messages/);
 });
 

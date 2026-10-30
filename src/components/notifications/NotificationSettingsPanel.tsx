@@ -4,13 +4,15 @@ import { useEffect, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { Notice, PillButton, Spinner, Toggle, cx } from "@/components/app-ui";
 import type { NotifyCategory, NotifyChannel } from "@shared/notifications";
+import type { MessageSource } from "@shared/message-notifications";
 import { CATEGORY_ICON } from "./NotificationFeed";
 import { BrowserPushSwitch } from "./PushToggle";
 import { categoryName, type NotificationsT } from "./client";
 import { useT } from "@/components/i18n/I18nProvider";
 
 // Settings › Notifications: which alerts reach you where (push to your phone and browser, email, SMS, WhatsApp)
-// for each kind of update, quiet hours, and "Send me a test notification". Saves each switch straight away.
+// for each kind of update, new messages (push per source for delivery partners, the unread-message email), quiet
+// hours, and "Send me a test notification". Saves each switch straight away.
 
 interface Settings {
   categories: Array<{ key: NotifyCategory; label: string; help: string; channels: Record<NotifyChannel, boolean>; textAllowed: boolean; emailAllowed?: boolean }>;
@@ -18,6 +20,14 @@ interface Settings {
   available: { webPush: boolean; email: boolean; sms: boolean; whatsapp: boolean };
   contact: { email: string | null; phone: string | null };
   devices: number;
+  /** shared/message-notifications.ts; older servers leave it out. unreadEmail null: no partner chat (admins). */
+  messages?: { push: boolean; sources: Array<{ key: MessageSource; push: boolean }>; unreadEmail: boolean | null };
+}
+
+function sourceWords(key: MessageSource, t: NotificationsT) {
+  if (key === "riders") return { label: t("messages.fromRiders"), help: t("messages.fromRidersHelp") };
+  if (key === "business") return { label: t("messages.fromBusiness"), help: t("messages.fromBusinessHelp") };
+  return { label: t("messages.fromCustomers"), help: t("messages.fromCustomersHelp") };
 }
 
 const CHANNELS: Array<{ key: NotifyChannel }> = [{ key: "push" }, { key: "email" }, { key: "sms" }, { key: "whatsapp" }];
@@ -72,6 +82,19 @@ export function NotificationSettingsPanel({ className }: { className?: string })
     save({ categories: { [category]: { [channel]: on } } }, (current) => ({
       ...current,
       categories: current.categories.map((row) => (row.key === category ? { ...row, channels: { ...row.channels, [channel]: on } } : row)),
+    }));
+
+  const setSourcePush = (source: MessageSource, on: boolean) =>
+    save({ messages: { sources: { [source]: { push: on } } } }, (current) => ({
+      ...current,
+      messages: current.messages ? { ...current.messages, sources: current.messages.sources.map((row) => (row.key === source ? { ...row, push: on } : row)) } : current.messages,
+    }));
+
+  const setUnreadEmail = (on: boolean) =>
+    save({ messages: { unreadEmail: on } }, (current) => ({
+      ...current,
+      messages: current.messages ? { ...current.messages, unreadEmail: on } : current.messages,
+      categories: current.categories.map((row) => (row.key === "messages" ? { ...row, channels: { ...row.channels, email: on } } : row)),
     }));
 
   const setQuiet = (change: Partial<Settings["quietHours"]>) => save({ quietHours: change }, (current) => ({ ...current, quietHours: { ...current.quietHours, ...change } }));
@@ -166,6 +189,41 @@ export function NotificationSettingsPanel({ className }: { className?: string })
         </div>
         <p className="mb-0 mt-3 text-[13px] leading-[1.5] text-app-ink-soft">{t("settings.alwaysArrive")}</p>
       </section>
+
+      {settings.messages && (settings.messages.sources.length > 0 || settings.messages.unreadEmail !== null) && (
+        <section className="rounded-[22px] border border-app-line bg-white p-5">
+          <h2 className="m-0 text-[17px] font-extrabold">{t("messages.title")}</h2>
+          <p className="m-0 mt-1 text-[14px] text-app-ink-soft">{settings.messages.push ? t("messages.text") : t("messages.pushOff")}</p>
+          <div className="mt-2 divide-y divide-app-line">
+            {settings.messages.sources.map((row) => {
+              const words = sourceWords(row.key, t);
+              return (
+                <div key={row.key} className="flex items-center gap-3 py-3">
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[14.5px] font-bold">{words.label}</span>
+                    <span className="block text-[13px] leading-[1.4] text-app-ink-soft">{words.help}</span>
+                  </span>
+                  {settings.messages?.push ? (
+                    <Toggle on={row.push} label={t("messages.pushFor", { source: words.label })} onChange={(on) => void setSourcePush(row.key, on)} />
+                  ) : (
+                    <span className="text-[13px] text-app-ink-faint">–</span>
+                  )}
+                </div>
+              );
+            })}
+            {settings.messages.unreadEmail !== null && (
+              <div className="flex items-center gap-3 py-3">
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[14.5px] font-bold">{t("messages.unreadEmail")}</span>
+                  <span className="block text-[13px] leading-[1.4] text-app-ink-soft">{settings.contact.email ? t("messages.unreadEmailHelp") : t("settings.needEmail")}</span>
+                </span>
+                {settings.contact.email ? <Toggle on={settings.messages.unreadEmail} label={t("messages.unreadEmail")} onChange={(on) => void setUnreadEmail(on)} /> : <span className="text-[13px] text-app-ink-faint">–</span>}
+              </div>
+            )}
+          </div>
+          <p className="mb-0 mt-2 text-[13px] leading-[1.5] text-app-ink-soft">{t("messages.quietNote")}</p>
+        </section>
+      )}
 
       <section className="rounded-[22px] border border-app-line bg-white p-5">
         <div className="flex items-start gap-3">

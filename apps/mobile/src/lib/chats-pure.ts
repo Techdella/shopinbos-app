@@ -122,10 +122,11 @@ export function sellerChatMatches(chat: MergedChat, filter: SellerChatFilter, q 
 }
 
 /** Suppliers and delivery partners: the filter chips, by the other side's role. */
-export type RoleChatFilter = "all" | "seller" | "supplier" | "logistics_partner" | "unread";
+/** "rider": a delivery partner's own riders (their chats sit in the same list, role "rider"). */
+export type RoleChatFilter = "all" | "rider" | "seller" | "supplier" | "logistics_partner" | "unread";
 
 export function roleChatFilters(viewer: "supplier" | "logistics_partner"): RoleChatFilter[] {
-  return viewer === "supplier" ? ["all", "seller", "logistics_partner", "unread"] : ["all", "seller", "supplier", "unread"];
+  return viewer === "supplier" ? ["all", "seller", "logistics_partner", "unread"] : ["all", "rider", "seller", "supplier", "unread"];
 }
 
 export function roleChatMatches(contact: { name: string; role: string; unread: number; lastMessage: string | null }, filter: RoleChatFilter, q = ""): boolean {

@@ -28,6 +28,7 @@ import * as WebBrowser from "expo-web-browser";
 import { API_URL } from "@/lib/api";
 import { colors, fonts } from "@/theme";
 import { FilterBar } from "@/components/FilterBar";
+import { LogisticsChatsCard } from "@/components/LogisticsChatsCard";
 
 // Jobs ("Familiar app" prototype F-Delivery `jobs`): the level ring (Rewards), "Good morning" over the company, Peggy
 // and the bell; the Status row of sellers and suppliers; the "Get set up" checklist for the first days; a dark card
@@ -281,6 +282,9 @@ export default function LogisticsJobs() {
           ))}
         </Card>
       ) : null}
+
+      {/* Messages: the latest chats with riders, shops and suppliers (unread first); "See all" opens Chats. */}
+      {data ? <LogisticsChatsCard /> : null}
 
       <PushPromptCard who="logistics" when={Boolean(data)} />
       {data?.overdue ? <PayInOverdueCard overdue={data.overdue} onChecked={() => void overview.reload()} /> : null}

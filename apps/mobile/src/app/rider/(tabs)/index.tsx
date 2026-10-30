@@ -13,7 +13,7 @@ import { Sheet } from "@/components/Sheet";
 import { TabScreen } from "@/components/TabScreen";
 import { ButtonRow, Notice, PillButton, T, Toggle } from "@/components/ui";
 import { MiniStat } from "@/components/visual";
-import { fetchRider, forgetRiderToken, markJobTaken, riderAction, riderWelcomed, takenJobs, type RiderDrop, type RiderRun } from "@/lib/rider";
+import { fetchRider, fetchRiderMessageSummary, forgetRiderToken, markJobTaken, riderAction, riderWelcomed, takenJobs, type RiderDrop, type RiderRun } from "@/lib/rider";
 import { useOwnPosition, useRiderLocation } from "@/lib/rider-location";
 import { activeJob, initials, routeLine, waitingOffer } from "@/lib/rider-pure";
 import { useRiderStrings } from "@/lib/rider-strings";
@@ -28,6 +28,8 @@ import { colors, surfaceCard } from "@/theme";
 export default function RiderToday() {
   const params = useLocalSearchParams<{ drop?: string }>();
   const rider = useLoad(fetchRider);
+  // Unread messages from the company or a shop: the "Messages" card (older servers: no card).
+  const inbox = useLoad(() => fetchRiderMessageSummary().catch(() => null));
   const { t, say } = useRiderStrings();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -96,7 +98,14 @@ export default function RiderToday() {
   );
 
   return (
-    <TabScreen header={header} refreshing={rider.refreshing} onRefresh={() => void rider.refresh()}>
+    <TabScreen
+      header={header}
+      refreshing={rider.refreshing}
+      onRefresh={() => {
+        void rider.refresh();
+        void inbox.refresh();
+      }}
+    >
       {rider.loading && !data ? <LoadingBlock label={t.loading} /> : null}
       {rider.error && !data ? (
         <ErrorState
@@ -177,6 +186,31 @@ export default function RiderToday() {
             <View style={{ ...surfaceCard(), padding: 20 }}>
               <Sub>{say("idle")}</Sub>
             </View>
+          ) : null}
+
+          {inbox.data && inbox.data.unread > 0 ? (
+            // "Messages": who wrote and hasn't been read yet; each opens that chat.
+            <List>
+              {inbox.data.company.unread > 0 ? (
+                <Row
+                  lead={<Tile icon="chat" tone="mint" />}
+                  title={`${inbox.data.company.name || say("msgs.company")} · ${say("msgs.new", { count: inbox.data.company.unread })}`}
+                  sub={inbox.data.company.last?.text}
+                  onPress={() => router.push({ pathname: "/rider/chat", params: { with: "company", name: inbox.data?.company.name ?? "" } })}
+                />
+              ) : null}
+              {inbox.data.shops
+                .filter((shop) => shop.unread > 0)
+                .map((shop) => (
+                  <Row
+                    key={shop.jobId}
+                    lead={<Tile icon="store" tone="peach" />}
+                    title={`${shop.name || say("msgs.shop")} · ${say("msgs.new", { count: shop.unread })}`}
+                    sub={shop.last?.text}
+                    onPress={() => router.push({ pathname: "/rider/chat", params: { with: "shop", job: shop.jobId, name: shop.name } })}
+                  />
+                ))}
+            </List>
           ) : null}
 
           {data.cashInHand > 0 ? <Banner title={`${t.cashWithYou}: ${naira(data.cashInHand)}`} icon="wallet">{t.cashWithYouHint}</Banner> : null}

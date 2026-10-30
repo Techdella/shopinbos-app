@@ -126,6 +126,22 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "chat.send": "Zipu",
   "chat.empty": "Enwebeghị ozi. Kelee.",
   "chat.failed": "O zighị. Nwaa ọzọ.",
+  "notify.title": "Ọkwa",
+  "notify.sub": "Họrọ ozi ndị ga-eme ka ekwentị gị kpọọ. Ozi na-echere mgbe niile n'ime chat.",
+  "notify.company": "Ozi sitere n'aka {company}",
+  "notify.companyHint": "Onye dispatcher gị na ọfịs.",
+  "notify.shops": "Ozi sitere n'ụlọ ahịa",
+  "notify.shopsHint": "Ụlọ ahịa nke ọrụ ị na-ebu.",
+  "notify.quiet": "Oge nkịtị",
+  "notify.quietOn": "Enweghị ụda site na {start} ruo {end} (oge Lagos). Ozi ka na-echere n'ime chat.",
+  "notify.quietOff": "Gbanyụrụ. Ozi nwere ike ịkpọ oge ọ bụla.",
+  "notify.saveFailed": "Echekwaghị ya. Nwaa ọzọ.",
+  "notify.loadFailed": "Anyị enweghị ike ibulite ntọala ọkwa gị.",
+  "notify.phoneNote": "Ntọala ndị a bụ maka Riders app na ekwentị gị. Ọrụ ọhụrụ na-akpọ mgbe niile.",
+  "msgs.title": "Ozi",
+  "msgs.new": "{count, plural, one {Ozi ọhụrụ #} other {Ozi ọhụrụ #}}",
+  "msgs.company": "Ụlọ ọrụ gị",
+  "msgs.shop": "Ụlọ ahịa",
 };
 
 export default ig;

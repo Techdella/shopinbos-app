@@ -79,9 +79,12 @@ export function MyDetailsForm({ initial }: { initial: MyDetails }) {
   });
 
   return (
-    <div className="grid gap-5">
+    // Full width: on wide screens you (photo, name, email, phone) on the left and the business on the right.
+    <div className="grid w-full gap-5">
       {note ? <Notice tone={note.tone}>{note.text}</Notice> : null}
 
+      <div className="grid items-start gap-5 lg:grid-cols-2">
+      <div className="grid gap-5">
       <Card className="p-5">
         <CardHead title={t("you")} />
         <div className="mt-4 grid gap-4">
@@ -95,6 +98,7 @@ export function MyDetailsForm({ initial }: { initial: MyDetails }) {
 
       <EmailCard details={saved} onChanged={(pendingEmail) => setSaved((current) => ({ ...current, me: { ...current.me, pendingEmail } }))} />
       <PhoneCard details={saved} onChanged={(phone) => setSaved((current) => ({ ...current, me: { ...current.me, phone } }))} />
+      </div>
 
       {kind ? (
         <Card className="p-5">
@@ -129,6 +133,7 @@ export function MyDetailsForm({ initial }: { initial: MyDetails }) {
           ) : null}
         </Card>
       ) : null}
+      </div>
 
       <div className="sticky bottom-3 z-10 flex justify-end">
         <PillButton tone="ink" size="md" busy={saving} disabled={!dirty} onClick={() => void save()}>{t("save")}</PillButton>

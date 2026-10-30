@@ -20,7 +20,7 @@ export default async function SupplierDetailsPage() {
   const [supplier, details] = await Promise.all([getSupplierForUser(user), myDetails(user)]);
   return (
     <AppPage frame={supplierFrame(user, supplier)} title={t("title")} sub={t("sub")}>
-      <div className="max-w-[760px]">
+      <div className="w-full">
         <MyDetailsForm initial={details} />
       </div>
     </AppPage>

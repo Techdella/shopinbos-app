@@ -122,6 +122,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "logistics.dashboard": "Today",
   "logistics.bookings": "Jobs",
   "logistics.couriers": "Riders",
+  "logistics.inbox": "Messages",
   "logistics.cash": "Cash on delivery",
   "logistics.jobs-all": "All the jobs",
   "logistics.quotes": "Quote requests",

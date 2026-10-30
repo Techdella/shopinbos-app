@@ -715,6 +715,12 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "rider.message": "Zigara {name} ozi",
   "rider.rating": "Akara ndị ahịa",
   "rider.ratingValue": "Kpakpando {average} site n'aka ndị ahịa {count}",
+  "chats.filter.rider": "Ndị rider",
+  "chat.role.rider": "Rider",
+  "chat.you": "Gị:",
+  "home.chats": "Ozi",
+  "home.chatsAll": "Hụ ha niile",
+  "home.chatsUnread": "{count, plural, one {# agụbeghị} other {# agụbeghị}}",
 };
 
 export default ig;

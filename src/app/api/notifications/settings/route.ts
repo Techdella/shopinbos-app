@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import type { Role } from "@prisma/client";
 import { z } from "zod";
 import { withAuth } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/client";
@@ -10,6 +11,7 @@ import { webPushPublicKey } from "@/lib/notifications/push.server";
 import { platformSmsReady } from "@/lib/sms";
 import {
   DEFAULT_QUIET_HOURS,
+  LEGACY_MESSAGE_EVENT_KEY,
   NOTIFY_CATEGORY_KEYS,
   categoriesFor,
   categoryLabel,
@@ -19,10 +21,13 @@ import {
   resolvePreferences,
   type NotifyCategory,
 } from "@shared/notifications";
+import { messageSourceEventKey, messageSourceSwitches, messageSourcesFor, unreadEmailOn, type MessageSource } from "@shared/message-notifications";
 
 // Settings › Notifications: for each category (orders, payments, messages…) which channels are on (push, email,
 // SMS, WhatsApp), and quiet hours. The bell always gets everything. Saved as NotificationPreference rows
-// ("notify.<category>") and one NotificationSetting row.
+// ("notify.<category>") and one NotificationSetting row. Messages also has its own section
+// (shared/message-notifications.ts): push per source for delivery partners ("notify.messages.<source>" rows) and the
+// "email me if I haven't read it in 15 minutes" switch (the older "message_received" row the email sweep reads).
 
 async function load(user: { id: string; role: string }) {
   const [rows, setting, account, devices] = await Promise.all([
@@ -32,15 +37,19 @@ async function load(user: { id: string; role: string }) {
     db.pushDevice.count({ where: { userId: user.id, disabledAt: null } }).catch(() => 0),
   ]);
   const prefs = resolvePreferences(rows, user.role);
+  // For Messages, "Email" is the unread-message email (the only email messages send), so both places agree.
+  const unreadEmail = unreadEmailOn(rows);
   return {
     categories: categoriesFor(user.role).map((category) => ({
       key: category.key,
       label: categoryLabel(category.key, user.role),
       help: category.help,
-      channels: prefs[category.key],
+      channels: category.key === "messages" ? { ...prefs.messages, email: unreadEmail } : prefs[category.key],
       textAllowed: channelAllowedFor(category.key, "sms"),
       emailAllowed: channelAllowedFor(category.key, "email"),
     })),
+    // Admins have no partner chat, so no unread-message email.
+    messages: { push: prefs.messages.push, sources: messageSourceSwitches(rows, user.role), unreadEmail: user.role === "admin" ? null : unreadEmail },
     quietHours: setting ? { enabled: setting.quietHoursEnabled, start: setting.quietStart, end: setting.quietEnd, timezone: setting.timezone } : DEFAULT_QUIET_HOURS,
     available: { webPush: Boolean(webPushPublicKey()), email: isEmailConfigured(), sms: platformSmsReady(), whatsapp: platformWhatsAppReady() },
     contact: { email: account?.email ?? null, phone: (await textPhoneFor(user.id, account?.phone ?? null, user.role)) ?? null },
@@ -55,12 +64,27 @@ const Clock = z.string().refine((value) => parseClock(value) !== null, "Use a ti
 const SaveSchema = z.object({
   categories: z.partialRecord(z.enum(NOTIFY_CATEGORY_KEYS), Switches).optional(),
   quietHours: z.object({ enabled: z.boolean(), start: Clock, end: Clock }).partial().optional(),
+  messages: z
+    .object({
+      sources: z.partialRecord(z.enum(["riders", "business", "customers"]), z.object({ push: z.boolean() })).optional(),
+      unreadEmail: z.boolean().optional(),
+    })
+    .optional(),
 });
+
+/** The unread-message email switch, on the older "message_received" row (inApp and SMS kept as they are). */
+async function saveUnreadEmail(user: { id: string; role: Role }, on: boolean) {
+  await db.notificationPreference.upsert({
+    where: { userId_eventKey_category: { userId: user.id, eventKey: LEGACY_MESSAGE_EVENT_KEY, category: "marketplace" } },
+    create: { userId: user.id, role: user.role, eventKey: LEGACY_MESSAGE_EVENT_KEY, category: "marketplace", inApp: true, email: on },
+    update: { email: on },
+  });
+}
 
 export const PUT = withAuth(async (req: NextRequest, { user }) => {
   const parsed = SaveSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Check your choices.");
-  const { categories, quietHours } = parsed.data;
+  const { categories, quietHours, messages } = parsed.data;
 
   if (categories) {
     const rows = await db.notificationPreference.findMany({ where: { userId: user.id }, select: { eventKey: true, push: true, email: true, sms: true, whatsapp: true, inApp: true } });
@@ -77,7 +101,22 @@ export const PUT = withAuth(async (req: NextRequest, { user }) => {
         create: { userId: user.id, role: user.role, eventKey, category: "system", inApp: true, ...next },
         update: { ...next },
       });
+      if (key === "messages" && change.email !== undefined) await saveUnreadEmail(user, change.email);
     }
+  }
+
+  if (messages) {
+    const allowed = messageSourcesFor(user.role);
+    for (const [source, change] of Object.entries(messages.sources ?? {}) as Array<[MessageSource, { push: boolean } | undefined]>) {
+      if (!change || !allowed.includes(source)) continue;
+      const eventKey = messageSourceEventKey(source);
+      await db.notificationPreference.upsert({
+        where: { userId_eventKey_category: { userId: user.id, eventKey, category: "system" } },
+        create: { userId: user.id, role: user.role, eventKey, category: "system", inApp: true, push: change.push },
+        update: { push: change.push },
+      });
+    }
+    if (messages.unreadEmail !== undefined) await saveUnreadEmail(user, messages.unreadEmail);
   }
 
   if (quietHours) {

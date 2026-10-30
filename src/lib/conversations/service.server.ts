@@ -476,6 +476,8 @@ async function notifyRecipient(viewer: Viewer, access: { id: string; otherId: st
     // The older chat SMS above already texted them; otherwise their Messages switches decide (WhatsApp is on by
     // default for delivery partners).
     phoneHandled: Boolean(preference?.sms),
+    // A delivery partner can turn off push for "Messages from shops & suppliers" (the bell still gets it).
+    messageSource: "business",
   });
 }
 

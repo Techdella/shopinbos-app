@@ -58,7 +58,8 @@ test("seller chat filters: All, Customers, Riders, Suppliers, Unread (board A-Se
 
 test("supplier and delivery partner chats filter by the other side's role", () => {
   assert.deepEqual(chats.roleChatFilters("supplier"), ["all", "seller", "logistics_partner", "unread"]);
-  assert.deepEqual(chats.roleChatFilters("logistics_partner"), ["all", "seller", "supplier", "unread"]);
+  // Delivery partners also see their riders' chats in the same list.
+  assert.deepEqual(chats.roleChatFilters("logistics_partner"), ["all", "rider", "seller", "supplier", "unread"]);
   const contact = { name: "Ada Shop", role: "seller", unread: 0, lastMessage: "50 pairs" };
   assert.equal(chats.roleChatMatches(contact, "seller"), true);
   assert.equal(chats.roleChatMatches(contact, "supplier"), false);

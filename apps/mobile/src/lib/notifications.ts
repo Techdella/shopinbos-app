@@ -1,5 +1,6 @@
 import { router } from "expo-router";
 import { appRouteFor, type NotifyCategory, type NotifyChannel } from "@shared/notifications";
+import type { MessageSource } from "@shared/message-notifications";
 import { sellsDigitalGoods } from "@shared/store-payments";
 import { api } from "./api";
 import { openPath } from "./web";
@@ -49,11 +50,19 @@ export interface NotificationSettings {
   quietHours: { enabled: boolean; start: string; end: string; timezone: string };
   available: { webPush: boolean; email: boolean; sms: boolean; whatsapp: boolean };
   devices: number;
+  /** New messages (shared/message-notifications.ts): per-source push (delivery partners) and the unread email. Older servers leave it out. */
+  messages?: { push: boolean; sources: { key: MessageSource; push: boolean }[]; unreadEmail: boolean | null };
+}
+
+export interface NotificationSettingsChange {
+  categories?: Partial<Record<NotifyCategory, Partial<Record<NotifyChannel, boolean>>>>;
+  quietHours?: { enabled?: boolean; start?: string; end?: string };
+  messages?: { sources?: Partial<Record<MessageSource, { push: boolean }>>; unreadEmail?: boolean };
 }
 
 export const fetchNotificationSettings = () => api<NotificationSettings>("/api/notifications/settings");
 
-export const saveNotificationSettings = (body: { categories?: Partial<Record<NotifyCategory, Partial<Record<NotifyChannel, boolean>>>>; quietHours?: { enabled?: boolean; start?: string; end?: string } }) =>
+export const saveNotificationSettings = (body: NotificationSettingsChange) =>
   api<NotificationSettings>("/api/notifications/settings", { method: "PUT", json: body });
 
 export const sendTestNotification = () => api<{ sent: boolean; devices: number }>("/api/notifications/test", { method: "POST", json: {} });
