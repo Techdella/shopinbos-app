@@ -45,6 +45,7 @@ function sib_settings_fields(): array {
 				'social_x'             => [ __( 'X page', 'shopinbos' ), '', 'url', '' ],
 				'social_youtube'       => [ __( 'YouTube channel', 'shopinbos' ), '', 'url', '' ],
 				'social_linkedin'      => [ __( 'LinkedIn page', 'shopinbos' ), '', 'url', '' ],
+				'v9_fills'             => [ __( 'Website text to fill in', 'shopinbos' ), '', 'textarea', __( 'The new website has [placeholders] for facts only you can confirm. One per line, like: [support email] => hello@shopinbos.com. Leave the right side empty to remove a note. Run "wp shopinbos v9-placeholders" to see what is still open.', 'shopinbos' ) ],
 			],
 		],
 		'pricing' => [
@@ -129,6 +130,8 @@ function sib_sanitize_settings( $input ): array {
 			} elseif ( 'select' === $type ) {
 				$options     = $section['fields'][ $key ][4] ?? [];
 				$out[ $key ] = isset( $options[ (string) $v ] ) ? (string) $v : (string) $section['fields'][ $key ][1];
+			} elseif ( 'textarea' === $type ) {
+				$out[ $key ] = sanitize_textarea_field( (string) $v );
 			} elseif ( 'password' === $type && '' === $v ) {
 				$prev        = (array) get_option( 'sib_settings', [] );
 				$out[ $key ] = $prev[ $key ] ?? ''; // empty field keeps the saved secret
@@ -177,6 +180,8 @@ function sib_settings_page(): void {
 											<option value="<?php echo esc_attr( $opt ); ?>" <?php selected( $value ?: $default, $opt ); ?>><?php echo esc_html( $opt_label ); ?></option>
 										<?php endforeach; ?>
 									</select>
+								<?php elseif ( 'textarea' === $type ) : ?>
+									<textarea class="large-text code" rows="12" id="sib-<?php echo esc_attr( $key ); ?>" name="sib_settings[<?php echo esc_attr( $key ); ?>]"><?php echo esc_textarea( $value ); ?></textarea>
 								<?php elseif ( 'checkbox' === $type ) : ?>
 									<input type="checkbox" id="sib-<?php echo esc_attr( $key ); ?>" name="sib_settings[<?php echo esc_attr( $key ); ?>]" value="1" <?php checked( '1', $value ?: $default ); ?>>
 								<?php else : ?>

@@ -103,6 +103,62 @@ def rewrite_images(body):
     return re.sub(r'<img\b[^>]*>', img, body)
 
 
+# Copy changes on top of the design. Payouts go through Paystack and can take from a few hours to a few days,
+# so the site never promises a payout speed: it says money is paid to the seller's bank, without "instant".
+TEXT = [
+    ('>Instant payouts to a Nigerian bank<', '>Payouts to a Nigerian bank<'),
+    ('>Instant payouts to your bank<', '>Payouts to your bank<'),
+    ('>Instant payouts.<', '>Paid to your bank.<'),
+    ('>Instant payouts<', '>Payouts to your bank<'),
+    ('>How do instant payouts work?<', '>How do payouts work?<'),
+    ('>Money goes straight to your bank<', '>Paid out to your bank account<'),
+    ('>Pick jobs, get paid instantly<', '>Pick jobs, get paid to your bank<'),
+    ('>Jobs near you, paid instantly<', '>Jobs near you, paid to your bank<'),
+    ('>Instant<', '>To your bank<'),
+    ('>Straight to your bank as each order is paid.<', '>Paid out to your bank through Paystack.<'),
+    ('>Your money, straight away<', '>Your money, in your bank<'),
+    ('>Payments go straight to your bank as each order is paid.<', '>Payments are paid out to your own bank account through Paystack.<'),
+    ('get paid instantly.<', 'get paid to your bank.<'),
+    ('Get paid instantly after each delivery.<', 'Get paid to your bank for each delivery.<'),
+    ('>Your delivery fee is paid instantly. On to the next one.<', '>Your delivery fee is paid to your bank. On to the next one.<'),
+    ('>paid instantly<', '>paid to your bank<'),
+    ('>Instantly, to your bank account, once the delivery is confirmed.<', '>To your bank account, once the delivery is confirmed. Paystack usually pays out within a few working days.<'),
+    ('You get paid instantly.<', 'You get paid to your bank.<'),
+    ('and yours goes straight to your bank.<', 'and yours is paid out to your bank.<'),
+    ('>When a customer pays, the money goes to your bank account as soon as the payment is confirmed. There’s no weekly payout day to wait for.<',
+     '>When a customer pays, the payment is confirmed in the app and the money is paid out to your bank account through Paystack.<'),
+    ('>It’s sent to the bank account in Settings → Money as soon as the payment is confirmed.<', '>Paystack pays it out to the bank account in Settings → Money.<'),
+    ('riders deliver, and you get paid instantly.<', 'riders deliver, and you get paid.<'),
+    ('The money goes straight to your bank.<', 'The money is paid out to your bank.<'),
+    ('>✓ Sent instantly<', '>✓ Paid out<'),
+    ('>Instantly. When a customer pays, the money goes straight to your bank account, and you can see every payment and fee in the app.<',
+     '>Payments are paid out to your bank account through Paystack, usually within a few working days. You can see every payment and fee in the app.<'),
+    ('Money goes straight to your bank as each order is paid.<', 'Money is paid out to your bank through Paystack.<'),
+    ('and the money goes straight to your bank.<', 'and the money is paid out to your bank.<'),
+    ('>Straight to your bank.<', '>Paid to your bank.<'),
+    ('>When a customer pays, the money goes straight to your bank account. You see every payment and fee in the app.<',
+     '>When a customer pays, the money is paid out to your bank account through Paystack. You see every payment and fee in the app.<'),
+    ('>Instantly<', '>To your bank<'),
+    ('>Instantly. Money goes straight to your bank as each order is paid.<', '>Payments are paid out to your bank account through Paystack, usually within a few working days.<'),
+    ('>Straight to your bank after a one-time ID check. [Payout timing to confirm.]<', '>To your bank after a one-time ID check.<'),
+    ('>Instantly. Money goes straight to your bank account as each order is paid.<', '>Payments are paid out to your bank account through Paystack, usually within a few working days.<'),
+    ('get paid straight to your bank.<', 'get paid to your bank.<'),
+    ('and you get paid instantly.<', 'and you get paid to your bank.<'),
+    ('>From shop orders, sent to your bank instantly<', '>From shop orders, paid to your bank<'),
+    ('>Paid instantly to your business account.<', '>Paid to your business account.<'),
+    ('>Instantly, to your bank, as orders are paid.<', '>To your bank, through Paystack, usually within a few working days.<'),
+    ('>How do instant payouts work? <', '>How do payouts work? <'),
+    ('>Instant payouts. <span', '>Your money. <span'),
+    ('>Instantly. Money is paid out to your bank through Paystack.<', '>Money is paid out to your bank through Paystack, usually within a few working days.<'),
+]
+
+
+def fix_text(body):
+    for a, b in TEXT:
+        body = body.replace(a, b)
+    return body
+
+
 def fix_forms(body):
     """Make the drawn form controls real: the message box becomes a textarea, the label buttons that flip the
     success state (label for="sent") get keyboard focus. v9.js sends the form before the state flips."""
@@ -171,7 +227,7 @@ def main():
         if name not in PAGES:
             continue
         _, body, title = extract(f)
-        body = fix_forms(rewrite_images(rewrite_links(body)))
+        body = fix_text(fix_forms(rewrite_images(rewrite_links(body))))
         open(os.path.join(OUT, 'pages', PAGES[name] + '.html'), 'w', encoding='utf-8').write(body + '\n')
         titles[PAGES[name]] = title
     with open(os.path.join(OUT, 'pages', 'titles.json'), 'w', encoding='utf-8') as fh:

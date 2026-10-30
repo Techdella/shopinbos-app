@@ -96,6 +96,8 @@
 .v9-prose .lgl-sum .av{width:36px;height:36px;border-radius:99px;display:grid;place-items:center}
 
 @media (max-width:1000px){
+	.v9-tbl{overflow-x:auto;-webkit-overflow-scrolling:touch}
+	.v9-tbl .tr{grid-template-columns:1.5fr repeat(var(--cols),minmax(72px,1fr)) !important;min-width:calc(150px + var(--cols) * 80px)}
 	.v9-prose{font-size:17px}
 	.v9-prose h2{font-size:28px}
 	.v9-prose .dd{grid-template-columns:1fr}

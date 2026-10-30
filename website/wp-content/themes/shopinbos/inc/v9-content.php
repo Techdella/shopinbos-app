@@ -126,6 +126,75 @@ function sib_v9_related( WP_Post $post ): string {
 	return '<section class="sec" style="background:#F6F3EE;"><div class="wrap"><div style="display:flex;flex-direction:column;gap:20px;max-width:980px;"><h2 class="H h2">' . esc_html__( 'Keep reading', 'shopinbos' ) . '</h2></div><div class="g3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:48px">' . $cards . '</div></div></section>';
 }
 
+/** A post card in the design's "Latest" style. */
+function sib_v9_card( WP_Post $p, bool $lazy = true ): string {
+	$cat = get_the_category( $p->ID );
+	$img = get_the_post_thumbnail_url( $p, 'large' );
+	$dek = (string) ( get_post_meta( $p->ID, 'sib_dek', true ) ?: get_the_excerpt( $p ) );
+	return '<a href="' . esc_url( get_permalink( $p ) ) . '" class="lift" style="min-width:0;display:flex;flex-direction:column">'
+		. '<div class="zm" style="height:240px;border-radius:24px;overflow:hidden;background:#EFEBE4">' . ( $img ? '<img decoding="async"' . ( $lazy ? ' loading="lazy"' : '' ) . ' src="' . esc_url( $img ) . '" alt="" style="width:100%;height:100%;object-fit:cover">' : '' ) . '</div>'
+		. '<div style="display:flex;gap:10px;align-items:center;margin-top:18px"><span class="tg og">' . esc_html( $cat ? $cat[0]->name : 'Guides' ) . '</span><span class="mutd" style="font-size:13px">' . esc_html( sib_v9_minutes( $p ) . ' min read' ) . '</span></div>'
+		. '<div class="H" style="font-size:24px;line-height:1.1;margin-top:12px">' . esc_html( get_the_title( $p ) ) . '</div>'
+		. '<p class="p mutd" style="margin-top:8px;font-size:15.5px">' . esc_html( wp_html_excerpt( $dek, 140, '…' ) ) . '</p></a>';
+}
+
+/* Blog index: the design's featured post, topic chips and "Latest" grid, with real posts. ?topic=<category>&pg=<n> */
+add_filter( 'sib_v9_fill', function ( string $html, string $slug ): string {
+	if ( 'blog' !== $slug ) {
+		return $html;
+	}
+	$topic = sanitize_title( wp_unslash( $_GET['topic'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification
+	$page  = max( 1, absint( $_GET['pg'] ?? 1 ) ); // phpcs:ignore WordPress.Security.NonceVerification
+	$per   = 12;
+	$args  = [ 'post_type' => 'post', 'post_status' => 'publish', 'posts_per_page' => $per + 1, 'paged' => $page, 'ignore_sticky_posts' => true ];
+	if ( $topic ) {
+		$args['category_name'] = $topic;
+	}
+	$q     = new WP_Query( $args );
+	$posts = $q->posts;
+	if ( ! $posts && $topic ) { // unknown topic: show everything
+		unset( $args['category_name'] );
+		$topic = '';
+		$posts = ( new WP_Query( $args ) )->posts;
+	}
+	if ( ! $posts ) {
+		return $html;
+	}
+	// Topic chips: the categories that have posts.
+	$chips = '<a class="chip' . ( $topic ? '' : ' on' ) . '" href="/blog/">' . esc_html__( 'All', 'shopinbos' ) . '</a>';
+	foreach ( get_categories( [ 'hide_empty' => true, 'orderby' => 'count', 'order' => 'DESC', 'number' => 9, 'exclude' => [ (int) get_option( 'default_category' ) ] ] ) as $c ) {
+		$chips .= '<a class="chip' . ( $topic === $c->slug ? ' on' : '' ) . '" href="' . esc_url( add_query_arg( 'topic', $c->slug, '/blog/' ) ) . '">' . esc_html( $c->name ) . '</a>';
+	}
+	$html = (string) preg_replace( '#(<div class="up d3"[^>]*>)(?:<span class="chip[^"]*">[^<]*</span>)+#', '$1' . str_replace( '$', '\\$', $chips ), $html, 1 );
+
+	// Featured: the newest post on page one.
+	$feat = 1 === $page ? array_shift( $posts ) : null;
+	if ( $feat ) {
+		$cat  = get_the_category( $feat->ID );
+		$img  = get_the_post_thumbnail_url( $feat, 'full' );
+		$dek  = (string) ( get_post_meta( $feat->ID, 'sib_dek', true ) ?: get_the_excerpt( $feat ) );
+		$card = '<a href="' . esc_url( get_permalink( $feat ) ) . '" class="g2 lift rv" style="display:grid;grid-template-columns:1.2fr 1fr;gap:56px;align-items:center">'
+			. '<div class="zm" style="height:520px;border-radius:32px;overflow:hidden;background:#EFEBE4">' . ( $img ? '<img decoding="async" fetchpriority="high" src="' . esc_url( $img ) . '" alt="" style="width:100%;height:100%;object-fit:cover">' : '' ) . '</div>'
+			. '<div style="display:flex;flex-direction:column;gap:16px"><span class="k orgd">' . esc_html( 'Featured · ' . ( $cat ? $cat[0]->name : 'Guides' ) ) . '</span><div class="H" style="font-size:clamp(34px,3.6vw,54px);line-height:1.02">' . esc_html( get_the_title( $feat ) ) . '</div>'
+			. '<p class="lead" style="font-size:18px">' . esc_html( wp_html_excerpt( $dek, 200, '…' ) ) . '</p><span class="mutd" style="font-size:14px">' . esc_html( sib_v9_minutes( $feat ) . ' min read · Shopinbos team' ) . '</span><span class="more">' . esc_html__( 'Read the guide', 'shopinbos' ) . ' →</span></div></a>';
+		$html = (string) preg_replace_callback( '#<a href="/blog/" class="g2 lift rv".*?</a>#s', fn() => $card, $html, 1 );
+	} else {
+		$html = (string) preg_replace( '#<section class="sec" style="background:\#fff;"><div class="wrap"><a href="/blog/" class="g2 lift rv".*?</section>#s', '', $html, 1 );
+	}
+
+	$more  = count( $posts ) > $per - ( $feat ? 1 : 0 );
+	$posts = array_slice( $posts, 0, $per - ( $feat ? 1 : 0 ) );
+	$cards = implode( '', array_map( 'sib_v9_card', $posts ) );
+	$nav   = '';
+	if ( $page > 1 || $more ) {
+		$base = $topic ? add_query_arg( 'topic', $topic, '/blog/' ) : '/blog/';
+		$nav  = '<div style="display:flex;gap:12px;justify-content:center;margin-top:48px">'
+			. ( $page > 1 ? '<a class="btn b-line" href="' . esc_url( $page > 2 ? add_query_arg( 'pg', $page - 1, $base ) : $base ) . '">← ' . esc_html__( 'Newer', 'shopinbos' ) . '</a>' : '' )
+			. ( $more ? '<a class="btn b-ink" href="' . esc_url( add_query_arg( 'pg', $page + 1, $base ) ) . '">' . esc_html__( 'More guides', 'shopinbos' ) . ' →</a>' : '' ) . '</div>';
+	}
+	return (string) preg_replace_callback( '#(<div class="g3 rvs"[^>]*>).*?</div></div></section>#s', fn( $m ) => $m[1] . $cards . '</div>' . $nav . '</div></section>', $html, 1 );
+}, 10, 2 );
+
 /* ---------- Help article (V9-HelpArticle) ---------- */
 
 function sib_v9_help_article(): ?array {
@@ -157,7 +226,7 @@ function sib_v9_help_article(): ?array {
 	$cat = $term ? $term->name : __( 'Help', 'shopinbos' );
 
 	$h  = '<section style="background:#F6F3EE;padding:40px 0"><div class="wrap" style="display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap"><div style="font-size:14px" class="mutd"><a href="/help/">' . esc_html__( 'Help centre', 'shopinbos' ) . '</a> / ' . esc_html( $cat ) . '</div>';
-	$h .= '<form action="' . esc_url( home_url( '/' ) ) . '" method="get" role="search" style="flex:1;max-width:480px"><input type="hidden" name="post_type" value="sib_help"><div style="display:flex;align-items:center;gap:8px;background:#fff;border-radius:999px;padding:6px 6px 6px 22px;box-shadow:inset 0 0 0 1.5px #E3E0E8"><input type="search" name="s" placeholder="' . esc_attr__( 'Search help', 'shopinbos' ) . '" aria-label="' . esc_attr__( 'Search help', 'shopinbos' ) . '" style="flex:1;min-width:0;border:0;outline:0;font-size:16px;background:transparent"><button class="btn b-ink" style="height:46px;font-size:15px">' . esc_html__( 'Search', 'shopinbos' ) . '</button></div></form></div></section>';
+	$h .= '<form action="/help/" method="get" role="search" style="flex:1;max-width:480px"><div style="display:flex;align-items:center;gap:8px;background:#fff;border-radius:999px;padding:6px 6px 6px 22px;box-shadow:inset 0 0 0 1.5px #E3E0E8"><input type="search" name="q" placeholder="' . esc_attr__( 'Search help', 'shopinbos' ) . '" aria-label="' . esc_attr__( 'Search help', 'shopinbos' ) . '" style="flex:1;min-width:0;border:0;outline:0;font-size:16px;background:transparent"><button class="btn b-ink" style="height:46px;font-size:15px">' . esc_html__( 'Search', 'shopinbos' ) . '</button></div></form></div></section>';
 	$h .= '<section style="padding:72px 0 120px"><div class="wrap g2" style="display:grid;grid-template-columns:280px 1fr;gap:64px;max-width:1180px">';
 	$h .= '<aside class="hm"><span class="k mutd" style="padding:0 12px">' . esc_html( $cat ) . '</span><div style="margin-top:12px;display:grid;gap:2px">' . $side . '</div></aside>';
 	$h .= '<article style="min-width:0;max-width:720px"><h1 class="H" style="font-size:clamp(36px,4vw,56px);line-height:1.05">' . esc_html( get_the_title( $post ) ) . '</h1><p class="mutd" style="font-size:14px;margin-top:14px">' . esc_html( sprintf( 'Updated %s · %d min read', get_the_modified_date( 'j F Y', $post ), sib_v9_minutes( $post ) ) ) . '</p>';

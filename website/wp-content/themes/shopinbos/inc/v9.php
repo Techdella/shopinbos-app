@@ -183,7 +183,8 @@ add_action( 'template_redirect', function () {
 	}
 	$routes = sib_v9_routes();
 	if ( isset( $routes[ $path ] ) ) {
-		sib_v9_render( $routes[ $path ], sib_v9_page( $routes[ $path ] ) );
+		// Index pages (blog, help) swap the design's sample cards for real posts.
+		sib_v9_render( $routes[ $path ], (string) apply_filters( 'sib_v9_fill', sib_v9_page( $routes[ $path ] ), $routes[ $path ] ) );
 	}
 	// Real content in V9 templates (blog posts, help, academy, compare, trending).
 	foreach ( (array) apply_filters( 'sib_v9_content_templates', [] ) as $match => $render ) {
@@ -284,3 +285,4 @@ add_action( 'wp_enqueue_scripts', function () {
 }, 999 );
 
 require_once __DIR__ . '/v9-content.php';
+require_once __DIR__ . '/v9-fill.php';
