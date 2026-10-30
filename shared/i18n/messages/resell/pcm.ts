@@ -59,6 +59,13 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "market.paidNote": "Each shop dey owe their own resellers. Payout dey happen every Friday.",
   "market.linkFailed": "We no fit get your link. Try again.",
   "market.shareText": "{name}: {link}",
+
+  "ledger.title": "Your payouts",
+  "ledger.owed": "Wetin dem owe you",
+  "ledger.paid": "Wetin dem don pay you",
+  "ledger.airtime": "Airtime reward: {amount}",
+  "ledger.lastPaid": "Last payment {date}",
+  "ledger.note": "E come from the Friday payout list: sales wey don deliver and rewards. Shops dey pay their resellers; e go show say dem don pay once the money don move.",
 };
 
 export default pcm;

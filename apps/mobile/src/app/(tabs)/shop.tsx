@@ -23,6 +23,7 @@ import { PublishButton, ShopLiveSheet } from "@/components/seller/PublishShop";
 import type { PublishedShop } from "@/lib/publish";
 import { useT } from "@/lib/i18n";
 import { useFeature } from "@/lib/features";
+import { usePilotNumbersOn } from "@/lib/pilot-numbers";
 import { colors, surfaceCard } from "@/theme";
 import { DeleteAccountButton } from "@/components/DeleteAccountButton";
 
@@ -176,6 +177,8 @@ export default function Menu() {
   // Resell (pilot): the shop's resell sales and reselling other shops' products, only while it is on.
   const resellOn = useFeature("resell");
   const tResell = useT("resell");
+  const pilotNumbersOn = usePilotNumbersOn();
+  const tPilot = useT("pilotNumbers");
   const [notSeller, setNotSeller] = useState(false);
   const [setup, setSetup] = useState<SetupOverview | null>(null);
   // Held here, not in the button: once the shop is live the button (and anything inside it) goes away.
@@ -310,6 +313,7 @@ export default function Menu() {
             {group.key === "sell" ? <Row testID="shop-bulk-add" lead={<Tile icon="sparkle" tone="lilac" />} title={tBulk("entry.title")} onPress={() => router.push("/bulk-add")} /> : null}
             {group.key === "sell" && resellOn ? <Row testID="shop-resell-sales" lead={<Tile icon="link" tone="mint" />} title={tResell("sales.title")} onPress={() => router.push("/resell-sales")} /> : null}
             {group.key === "sell" && resellOn ? <Row testID="shop-resell" lead={<Tile icon="share" tone="sky" />} title={tResell("sales.resellYourself")} onPress={() => router.push("/resell")} /> : null}
+            {group.key === "sell" && pilotNumbersOn ? <Row testID="shop-pilot-numbers" lead={<Tile icon="chart" tone="lime" />} title={tPilot("open")} onPress={() => router.push("/pilot-numbers")} /> : null}
             {group.links
               .filter((link) => !ON_SCREEN.has(link.id))
               .map((link) => (

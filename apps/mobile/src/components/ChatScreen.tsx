@@ -23,8 +23,11 @@ export function ChatScreen({
   scrollKey,
   help = true,
   backTo = "/chats",
+  context,
 }: {
   header: ReactNode;
+  /** Under the header, outside the scroll: the order or delivery the chat belongs to (ChatContextBar). */
+  context?: ReactNode;
   children: ReactNode;
   composer?: ReactNode;
   refreshing?: boolean;
@@ -51,6 +54,7 @@ export function ChatScreen({
           {header}
           {help ? <HelpButton /> : null}
         </View>
+        {context}
         <ScrollView
           ref={scroll}
           keyboardShouldPersistTaps="handled"

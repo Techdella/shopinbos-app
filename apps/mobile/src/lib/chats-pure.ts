@@ -1,14 +1,16 @@
-// The Chats tab's list, with no imports so tests can run it in Node. A seller's customer conversations
-// (/api/app/inbox/conversations) and their supplier and delivery-partner chats (/api/conversations) become one list,
-// newest first, filtered All / Customers / Partners / Unread. Suppliers and delivery partners filter by the other
-// side's role ("Shops", "Delivery partners", "Suppliers").
+// The Chats tab's list, with no imports so tests can run it in Node. A seller's one chat inbox (founder's plan item 8,
+// the same list as the web's /home/messages, shared/seller-inbox.ts): customer conversations
+// (/api/app/inbox/conversations), supplier and delivery-partner chats (/api/conversations) and the riders carrying the
+// shop's parcels (/api/mobile/delivery/rider-chats) become one list, newest first, filtered All / Customers /
+// Suppliers / Delivery / Riders / Unread (Creators once there are creator chats). Suppliers and delivery partners
+// filter by the other side's role ("Shops", "Delivery partners", "Suppliers").
 
-export type ChatKind = "customer" | "partner";
+export type ChatKind = "customer" | "partner" | "rider" | "creator";
 
 export interface MergedChat {
   key: string;
   kind: ChatKind;
-  /** Customer chats: the inbox conversation id. Partner chats: the other person's user id. */
+  /** Customer chats: the inbox conversation id. Partner chats: the other person's user id. Rider chats: the delivery job id. */
   id: string;
   name: string;
   preview: string;
@@ -21,6 +23,20 @@ export interface MergedChat {
   role: string | null;
   status: "open" | "snoozed" | "closed";
   subject: string | null;
+  /** Rider chats: the order the delivery carries and the delivery's status (the chat's context). */
+  order?: { id: string; number: string } | null;
+  deliveryStatus?: string | null;
+}
+
+/** One rider chat on one of the shop's deliveries (GET /api/mobile/delivery/rider-chats, shared/seller-inbox.ts). */
+export interface RiderChatLike {
+  jobId: string;
+  riderName: string;
+  deliveryStatus: string;
+  order: { id: string; number: string } | null;
+  last: { text: string } | null;
+  unread: number;
+  at: string;
 }
 
 interface InboxLike {
@@ -52,7 +68,7 @@ const newest = (a: { at: string | null }, b: { at: string | null }) => (b.at ?? 
 
 /** One list from the inbox and the partner conversations. A partner chat in both keeps the newer message and the
  * partner API's unread count (it counts every unread message, the inbox only the last one). */
-export function mergeSellerChats(inbox: InboxLike[] | null, contacts: ContactLike[] | null): MergedChat[] {
+export function mergeSellerChats(inbox: InboxLike[] | null, contacts: ContactLike[] | null, riders: RiderChatLike[] | null = null): MergedChat[] {
   const out: MergedChat[] = [];
   const partners = new Map<string, MergedChat>();
   for (const item of inbox ?? []) {
@@ -96,16 +112,45 @@ export function mergeSellerChats(inbox: InboxLike[] | null, contacts: ContactLik
       subject: null,
     });
   }
+  for (const rider of riders ?? []) {
+    out.push({
+      key: `r:${rider.jobId}`,
+      kind: "rider",
+      id: rider.jobId,
+      name: rider.riderName,
+      preview: rider.last?.text ?? "",
+      at: rider.at,
+      unread: rider.unread,
+      avatarUrl: null,
+      channel: "rider",
+      role: "rider",
+      status: "open",
+      subject: null,
+      order: rider.order ? { id: rider.order.id, number: rider.order.number } : null,
+      deliveryStatus: rider.deliveryStatus,
+    });
+  }
   return [...out, ...partners.values()].sort(newest);
 }
 
-/** The chips (canvas board A-Seller-Chats): All, Customers, Riders (delivery partners), Suppliers, Unread. "partners"
- * (both kinds) is no chip any more but still opens from old links (?filter=partners). */
-export type SellerChatFilter = "all" | "customers" | "riders" | "suppliers" | "partners" | "unread";
-export const SELLER_CHAT_FILTERS: readonly SellerChatFilter[] = ["all", "customers", "riders", "suppliers", "unread"];
+/** The chips: All, Customers, Suppliers, Delivery (delivery partners), Riders (the riders carrying your parcels),
+ * Unread; Creators only once there are creator chats. "partners" (suppliers and delivery partners) is no chip any more
+ * but still opens from old links (?filter=partners). */
+export type SellerChatFilter = "all" | "customers" | "suppliers" | "delivery" | "riders" | "creators" | "partners" | "unread";
+export const SELLER_CHAT_FILTERS: readonly SellerChatFilter[] = ["all", "customers", "suppliers", "delivery", "riders", "unread"];
 
 export function asSellerChatFilter(value: unknown): SellerChatFilter | null {
-  return typeof value === "string" && ([...SELLER_CHAT_FILTERS, "partners"] as readonly string[]).includes(value) ? (value as SellerChatFilter) : null;
+  return typeof value === "string" && ([...SELLER_CHAT_FILTERS, "creators", "partners"] as readonly string[]).includes(value) ? (value as SellerChatFilter) : null;
+}
+
+/** The chips to show: the usual ones, Creators once a creator chat exists, and the picked old-link chip. */
+export function sellerChatFilters(chats: { kind: ChatKind }[] | null | undefined, active: SellerChatFilter = "all"): SellerChatFilter[] {
+  const list = [...SELLER_CHAT_FILTERS];
+  const extra: SellerChatFilter[] = [];
+  if ((chats ?? []).some((chat) => chat.kind === "creator") || active === "creators") extra.push("creators");
+  if (active === "partners") extra.push("partners");
+  list.splice(list.indexOf("unread"), 0, ...extra);
+  return list;
 }
 
 /** Done (closed) customer chats stay out of the list but a search still finds them. */
@@ -114,10 +159,12 @@ export function sellerChatMatches(chat: MergedChat, filter: SellerChatFilter, q 
   if (chat.status === "closed" && !query) return false;
   if (filter === "customers" && chat.kind !== "customer") return false;
   if (filter === "partners" && chat.kind !== "partner") return false;
-  if (filter === "riders" && !(chat.kind === "partner" && chat.role === "logistics_partner")) return false;
+  if (filter === "delivery" && !(chat.kind === "partner" && chat.role === "logistics_partner")) return false;
+  if (filter === "riders" && chat.kind !== "rider") return false;
+  if (filter === "creators" && chat.kind !== "creator") return false;
   if (filter === "suppliers" && !(chat.kind === "partner" && chat.role !== "logistics_partner")) return false;
   if (filter === "unread" && !(chat.unread > 0 && chat.status !== "closed")) return false;
-  if (query && ![chat.name, chat.preview, chat.subject ?? ""].join(" ").toLowerCase().includes(query)) return false;
+  if (query && ![chat.name, chat.preview, chat.subject ?? "", chat.order?.number ?? ""].join(" ").toLowerCase().includes(query)) return false;
   return true;
 }
 

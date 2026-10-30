@@ -97,18 +97,27 @@ export function repeatBuyers(rows: readonly { orderCount: number }[]) {
 
 // ─── Followers ────────────────────────────────────────────────────────────────
 
-/** Followers still following, and how many came from the link, the QR code or Plug (not just from buying). */
-export function followerTotals(rows: readonly { source: string; unfollowedAt: Date | string | null }[]) {
+/**
+ * Followers still following, and how many came from the link, the QR code or Plug (not just from buying). A row is
+ * one follower, or a group of `count` followers with the same source (a database group-by).
+ */
+export function followerTotals(rows: readonly { source: string; unfollowedAt: Date | string | null; count?: number }[]) {
   const out = { total: 0, fromLink: 0, fromQr: 0, fromPlug: 0, fromOrders: 0 };
   for (const row of rows) {
     if (row.unfollowedAt) continue;
-    out.total += 1;
-    if (row.source === "link") out.fromLink += 1;
-    else if (row.source === "qr") out.fromQr += 1;
-    else if (row.source === "plug") out.fromPlug += 1;
-    else out.fromOrders += 1;
+    const n = row.count === undefined ? 1 : Math.max(0, Math.floor(Number(row.count) || 0));
+    out.total += n;
+    if (row.source === "link") out.fromLink += n;
+    else if (row.source === "qr") out.fromQr += n;
+    else if (row.source === "plug") out.fromPlug += n;
+    else out.fromOrders += n;
   }
   return out;
+}
+
+/** Customers who joined Plug from the shop's link or QR: followers whose source is Plug, counted only once Plug is live. */
+export function plugJoins(followers: { fromPlug: number }, plugLive: boolean): number {
+  return plugLive ? followers.fromPlug : 0;
 }
 
 // ─── Resell ───────────────────────────────────────────────────────────────────
@@ -218,7 +227,7 @@ export function pilotCsv(rows: readonly { shopName: string; handle: string | nul
     out.push(
       [
         row.shopName,
-        row.handle ? `@${row.handle}` : "",
+        row.handle ?? "", // without the "@" (a leading "@" reads as a formula in spreadsheets)
         n.visits.link7,
         n.visits.qr7,
         n.visits.link30,

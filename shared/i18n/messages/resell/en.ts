@@ -57,6 +57,13 @@ const en = {
   "market.paidNote": "Each shop owes its own resellers. Payouts are made on Fridays.",
   "market.linkFailed": "Couldn't get your link. Try again.",
   "market.shareText": "{name}: {link}",
+
+  "ledger.title": "Your payouts",
+  "ledger.owed": "Owed to you",
+  "ledger.paid": "Paid to you",
+  "ledger.airtime": "Airtime rewards: {amount}",
+  "ledger.lastPaid": "Last paid {date}",
+  "ledger.note": "From the Friday payout list: delivered sales and rewards. Shops pay their resellers; it shows as paid once the money has moved.",
 } satisfies Record<string, string>;
 
 export default en;

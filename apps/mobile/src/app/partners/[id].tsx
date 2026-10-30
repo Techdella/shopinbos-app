@@ -2,16 +2,19 @@ import { useState } from "react";
 import { View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { Bubble, ChatScreen, Composer } from "@/components/ChatScreen";
+import { ChatContextBar } from "@/components/ChatContextBar";
 import { ErrorState, Initials, LoadingBlock } from "@/components/kit";
 import { Notice, T } from "@/components/ui";
 import { shortTime } from "@/lib/inbox-pure";
 import { fetchPartnerMessages, sendPartnerMessage } from "@/lib/partners";
 import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
+import { chatLinkedContext } from "@shared/seller-inbox";
 import { colors } from "@/theme";
 
 // A chat with one supplier or delivery partner (?name= is shown while the messages load; ?draft= starts the reply box
-// with a message to check and send, e.g. "Ask for a price" on a supplier's page).
+// with a message to check and send, e.g. "Ask for a price" on a supplier's page). The bar at the top is the latest
+// order, wholesale order or delivery linked in the chat (shared/seller-inbox.ts chatLinkedContext).
 
 export default function PartnerChat() {
   const t = useT("m_chats", "m_ui");
@@ -21,6 +24,7 @@ export default function PartnerChat() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const title = name || t("partners.partner");
+  const linked = chatLinkedContext(messages.data ?? []);
 
   async function send(spoken?: string) {
     const text = (spoken ?? draft).trim();
@@ -48,6 +52,16 @@ export default function PartnerChat() {
             <T style={{ color: colors.inkSoft, fontSize: 12.5 }}>{t("partners.onShopinbos")}</T>
           </View>
         </>
+      }
+      context={
+        linked ? (
+          <ChatContextBar
+            order={linked.kind === "order" ? { id: linked.id, number: linked.label.replace(/^Order\s+/i, "") } : null}
+            label={linked.label}
+            sub={linked.sub ?? null}
+            delivery={linked.kind === "booking"}
+          />
+        ) : null
       }
       refreshing={messages.refreshing}
       onRefresh={() => void messages.refresh()}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { View } from "react-native";
 import { Bubble, ChatScreen, Composer } from "@/components/ChatScreen";
 import { Small } from "@/components/design";
@@ -26,6 +26,8 @@ export function RiderChat({
   load,
   send,
   backTo,
+  context,
+  voice = false,
 }: {
   title: string;
   subtitle: string;
@@ -33,6 +35,10 @@ export function RiderChat({
   load: () => Promise<RiderChatLine[]>;
   send: (body: string) => Promise<RiderChatLine>;
   backTo: string;
+  /** Under the header: the order and delivery (the shop's chat with its rider). */
+  context?: ReactNode;
+  /** The mic (speak, and the words are sent). Off for riders: they have no account to write it down with. */
+  voice?: boolean;
 }) {
   const t = useT("m_ui");
   const messages = useLoad(load, loadKey);
@@ -60,6 +66,7 @@ export function RiderChat({
     <ChatScreen
       help={false}
       backTo={backTo}
+      context={context}
       header={
         <>
           <Initials name={title} size={40} bg={colors.mintTint} fg={colors.forest} />
@@ -78,7 +85,7 @@ export function RiderChat({
           onChange={setDraft}
           onSend={(text) => void submit(text?.trim() ?? draft.trim())}
           busy={sending}
-          voice={false}
+          voice={voice}
           placeholder={t("riderChat.placeholder", { name: title })}
           above={error ? <Notice>{error}</Notice> : null}
         />

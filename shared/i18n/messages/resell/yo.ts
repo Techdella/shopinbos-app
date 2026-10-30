@@ -59,6 +59,13 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "market.paidNote": "Ṣọ́ọ̀bù kọ̀ọ̀kan ló jẹ àwọn reseller tirẹ̀. Payout máa ń wáyé ní ọjọ́ Ẹtì.",
   "market.linkFailed": "A kò rí link yín gbà. Ẹ tún gbìyànjú.",
   "market.shareText": "{name}: {link}",
+
+  "ledger.title": "Àwọn ìsanwó rẹ",
+  "ledger.owed": "Ohun tí wọ́n jẹ ọ́",
+  "ledger.paid": "Ohun tí wọ́n ti san fún ọ",
+  "ledger.airtime": "Ẹ̀bùn airtime: {amount}",
+  "ledger.lastPaid": "Ìsanwó tó kẹ́yìn: {date}",
+  "ledger.note": "Láti inú àkọsílẹ̀ ìsanwó ọjọ́ Ẹtì: àwọn ọjà tí wọ́n ti fi jíṣẹ́ àti àwọn ẹ̀bùn. Àwọn ṣọ́ọ̀bù ló ń san fún àwọn reseller wọn; yóò fi hàn pé wọ́n ti san nígbà tí owó bá ti dé.",
 };
 
 export default yo;

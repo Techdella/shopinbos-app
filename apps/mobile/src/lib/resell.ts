@@ -22,6 +22,9 @@ export type ResellSale = {
 
 export type ResellTotals = { owed: number; ready: number; paid: number; count: number; value: number };
 
+/** The person's payout ledger totals (Admin › Payouts): owed to them on the Friday list and paid, airtime included. */
+export type ResellLedger = { owed: number; paid: number; airtime: number; lastPaidAt: string | null };
+
 export type ResellableProduct = {
   productId: string;
   name: string;
@@ -48,7 +51,7 @@ export function fetchResellSales() {
 }
 
 export function fetchResellMarket() {
-  return api<{ products: ResellableProduct[]; sales: ResellSale[]; totals: ResellTotals }>("/api/app/resell/market", { headers: appHeaders() });
+  return api<{ products: ResellableProduct[]; sales: ResellSale[]; totals: ResellTotals; ledger?: ResellLedger | null }>("/api/app/resell/market", { headers: appHeaders() });
 }
 
 export function getResellLink(productId: string) {

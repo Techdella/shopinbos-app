@@ -3,14 +3,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { Card, EmptyState, ListCard, ListRow, Pill, StatGrid, StatTile, Thumb, type Tone } from "@/components/app-kit";
-import { formatMoney } from "@shared/i18n";
+import { formatDate, formatMoney } from "@shared/i18n";
 
 // The reseller's page (/resell): what they may resell, "Get my link" (POST /api/app/resell/links, made once, then the
 // same link), copy / share, and their sales with what the shops owe them. Data: GET /api/app/resell/market.
 
 type Product = { productId: string; name: string; image: string | null; price: number; currency: string; commissionPct: number; commissionEach: number; storeName: string; link: string | null; clicks: number };
 type Sale = { id: string; orderNumber: string | null; productName: string; storeName: string; quantity: number; lineTotal: number; commissionPct: number; commissionAmount: number; status: string; createdAt: string };
-type Market = { products: Product[]; sales: Sale[]; totals: { owed: number; ready: number; paid: number; count: number; value: number } };
+type Ledger = { owed: number; paid: number; airtime: number; lastPaidAt: string | null };
+type Market = { products: Product[]; sales: Sale[]; totals: { owed: number; ready: number; paid: number; count: number; value: number }; ledger?: Ledger | null };
 
 const STATUS_TONE: Record<string, Tone> = { pending: "warning", approved: "accent", paid: "success", void: "muted" };
 
@@ -89,6 +90,18 @@ export function ResellMarket() {
         <StatTile tone="card" label={t("sales.amount")} value={money(data.totals.value)} />
       </StatGrid>
       <p className="m-0 text-[13.5px] text-app-ink-soft">{t("market.paidNote")}</p>
+
+      {data.ledger ? (
+        <Card className="grid gap-3 p-5">
+          <h2 className="m-0 text-[18px] font-extrabold">{t("ledger.title")}</h2>
+          <StatGrid>
+            <StatTile tone="plain" label={t("ledger.owed")} value={money(data.ledger.owed)} />
+            <StatTile tone="plain" label={t("ledger.paid")} value={money(data.ledger.paid)} hint={data.ledger.lastPaidAt ? t("ledger.lastPaid", { date: formatDate(new Date(data.ledger.lastPaidAt), locale, { day: "numeric", month: "short" }) }) : undefined} />
+          </StatGrid>
+          {data.ledger.airtime > 0 ? <p className="m-0 text-[13.5px] font-bold">{t("ledger.airtime", { amount: money(data.ledger.airtime) })}</p> : null}
+          <p className="m-0 text-[13px] text-app-ink-soft">{t("ledger.note")}</p>
+        </Card>
+      ) : null}
 
       <section className="grid gap-3">
         <h2 className="m-0 text-[18px] font-extrabold">{t("market.products")}</h2>

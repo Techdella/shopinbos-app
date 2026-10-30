@@ -171,6 +171,8 @@ const en = {
   "admin.logistics-partners": "Logistics",
   "admin.wallets": "Wallets",
   "admin.money-owed": "Money owed",
+  "admin.payouts": "Payouts",
+  "admin.pilot-numbers": "Pilot numbers",
   "admin.marketplace": "Marketplace",
   "admin.suppliers-all": "Suppliers",
   "admin.supplier-products": "Supplier products",

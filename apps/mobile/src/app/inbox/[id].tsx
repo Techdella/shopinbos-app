@@ -3,6 +3,8 @@ import { Pressable, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
 import { Bubble, ChatScreen, Composer } from "@/components/ChatScreen";
+import { ChatContextBar, VoiceNoteBubble } from "@/components/ChatContextBar";
+import { chatOrder } from "@shared/seller-inbox";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { ButtonRow, Chip, Mascot, Notice, PillButton, T } from "@/components/ui";
 import { fetchThread, sendInboxMessage, setConversationStatus, suggestReply, type InboxMessage } from "@/lib/inbox";
@@ -15,7 +17,8 @@ import { colors, radii } from "@/theme";
 
 // One customer conversation (web /home/messages?c=…): the messages, "Peggy wrote a reply" for the newest customer
 // message (Send it as it is, or Edit it in the box), a reply on the conversation's own channel (or a private note),
-// and Done / Snooze.
+// and Done / Snooze. The bar at the top is the customer's order in progress (else their latest); customers' voice
+// notes (WhatsApp/Telegram audio, voicemails) play in the bubble.
 
 // Labels are m_chats keys.
 const SNOOZE: Array<{ label: "thread.snooze.1h" | "thread.snooze.3h" | "thread.snooze.tomorrow" | "thread.snooze.week"; hours: number }> = [
@@ -83,6 +86,7 @@ export default function InboxThread() {
   const [snoozing, setSnoozing] = useState(false);
   const data = thread.data;
   const conversation = data?.conversation;
+  const contextOrder = chatOrder(data?.customer?.orders);
   const canReply = conversation ? !NO_REPLY_CHANNELS.includes(conversation.channel) : false;
   // Email (and contact-form) replies go out as an email from the seller's address, with "Re: <subject>".
   const byEmail = conversation ? repliesByEmail(conversation.channel) : false;
@@ -148,6 +152,7 @@ export default function InboxThread() {
       refreshing={thread.refreshing}
       onRefresh={() => void thread.refresh()}
       scrollKey={data?.messages.length}
+      context={contextOrder ? <ChatContextBar order={{ id: contextOrder.id, number: contextOrder.orderNumber, status: contextOrder.status, total: contextOrder.total }} /> : null}
       composer={
         data ? (
           <Composer
@@ -245,7 +250,10 @@ export default function InboxThread() {
               .map((attachment, index) => (
                 <Image key={index} source={{ uri: attachment.url! }} style={{ width: 200, height: 200, borderRadius: 12 }} contentFit="cover" accessibilityLabel={attachment.name ?? t("thread.photo")} />
               ))}
-            {message.attachments.some((attachment) => !(attachment.url && (attachment.type === "image" || attachment.contentType?.startsWith("image/")))) ? (
+            {message.attachments.map((attachment, index) =>
+              attachment.type === "audio" || attachment.contentType?.startsWith("audio/") ? <VoiceNoteBubble key={`a${index}`} messageId={message.id} index={index} mine={message.direction === "outbound"} /> : null,
+            )}
+            {message.attachments.some((attachment) => !(attachment.url && (attachment.type === "image" || attachment.contentType?.startsWith("image/"))) && !(attachment.type === "audio" || attachment.contentType?.startsWith("audio/"))) ? (
               <T style={{ fontSize: 14, color: message.direction === "outbound" ? "rgba(255,255,255,0.8)" : colors.inkSoft }}>{t("thread.file")}</T>
             ) : null}
             {message.body ? <T style={{ fontSize: 15, lineHeight: 21, color: message.direction === "outbound" ? "#FFFFFF" : message.direction === "note" ? "#5C3D00" : colors.ink }}>{message.body}</T> : null}

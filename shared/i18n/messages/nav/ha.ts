@@ -169,6 +169,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "admin.logistics-partners": "Logistics",
   "admin.wallets": "Walat-walat",
   "admin.money-owed": "Bashin kuɗi",
+  "admin.payouts": "Biyan kuɗi",
+  "admin.pilot-numbers": "Lambobin gwaji",
   "admin.marketplace": "Marketplace",
   "admin.suppliers-all": "Suppliers",
   "admin.supplier-products": "Kayan suppliers",
