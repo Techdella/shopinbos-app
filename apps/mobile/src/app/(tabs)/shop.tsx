@@ -76,6 +76,7 @@ export const SHOP_GROUPS: { key: string; title: string; links: ShopLink[] }[] = 
       { id: "packaging", label: "Packaging and labels", icon: "box", path: "app:/packaging", hint: "Boxes and stickers with your name", tone: "peach" },
       { id: "themes", label: "Shop looks", icon: "image", path: "app:/templates", hint: "Pick a look, or let Rex build one" },
       { id: "linkInBio", label: "Link in bio", icon: "share", path: "app:/link-in-bio", hint: "One page for your Instagram and TikTok bio" },
+      { id: "storePages", label: "Store pages", icon: "doc", path: "app:/store-pages", hint: "Pages, collections and content" },
       { id: "video", label: "Video studio", icon: "play", path: "app:/video", hint: "Reels for ads, products and social media" },
       { id: "posts", label: "Posts calendar", icon: "image", path: "app:/posts", hint: "Posts already made and planned, day by day" },
     ],
