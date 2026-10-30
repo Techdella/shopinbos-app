@@ -282,6 +282,9 @@ const en = {
   // Preorder lists, Stock is ready and deposits (shared/preorder.ts)
   "orders-preorders": "Preorders",
   "supplier.preorders": "Preorders",
+  "studio-videos": "Videos",
+  "studio-designs": "Flyers and posts",
+  "studio-packaging": "Packaging and labels",
 } satisfies Record<string, string>;
 
 export default en;

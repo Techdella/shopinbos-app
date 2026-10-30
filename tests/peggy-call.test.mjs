@@ -200,7 +200,7 @@ test("notes: stored per person with source peggy_call (no new table), kept out o
 
 test("admin: Peggy call notes (English) on the seller, supplier and delivery partner pages", () => {
   const view = read("src/components/admin/PeggyCallNotes.tsx");
-  assert.match(view, /Peggy call notes \(English\)/);
+  assert.match(view, /Peggy notes \(English\)/);
   assert.match(view, /if \(!notes\.length\) return null;/);
   assert.match(view, /peggyNotes\(userId\)/);
   assert.match(read("src/app/admin/sellers/[id]/page.tsx"), /<PeggyCallNotes userId=\{seller\.userId\} \/>/);

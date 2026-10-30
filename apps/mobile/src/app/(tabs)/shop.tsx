@@ -27,7 +27,7 @@ import { DeleteAccountButton } from "@/components/DeleteAccountButton";
 
 // Menu (canvas board M-Menu, "Seller app · sell, grow"; this tab was My shop, the route stays /shop): the shop's logo
 // and name with "See your store as customers do" and Share (and Put my shop live while it isn't); the Grow tools
-// (Ads, Rex videos, Email, Automations, Popups, Insights) and the Store tools (Orders, Products, Edit store, Find
+// (Ads, Rex Studio, Email, Automations, Popups, Insights) and the Store tools (Orders, Products, Edit store, Find
 // stock, Delivery, Customers, Payouts, Settings) as two grids of tiles, with live counts on Ads ("1 LIVE") and
 // Automations ("3 ON"); a search over every tool; then every other tool the seller had, in four short groups (Sell;
 // Money and delivery; Look; You), titles only, each tool once: anything already on the grids (ON_SCREEN) isn't
@@ -76,6 +76,7 @@ export const SHOP_GROUPS: { key: string; title: string; links: ShopLink[] }[] = 
       { id: "packaging", label: "Packaging and labels", icon: "box", path: "app:/packaging", hint: "Boxes and stickers with your name", tone: "peach" },
       { id: "themes", label: "Shop looks", icon: "image", path: "app:/templates", hint: "Pick a look, or let Rex build one" },
       { id: "linkInBio", label: "Link in bio", icon: "share", path: "app:/link-in-bio", hint: "One page for your Instagram and TikTok bio" },
+      { id: "storePages", label: "Store pages", icon: "doc", path: "app:/store-pages", hint: "Pages, collections and content" },
       { id: "video", label: "Video studio", icon: "play", path: "app:/video", hint: "Reels for ads, products and social media" },
       { id: "posts", label: "Posts calendar", icon: "image", path: "app:/posts", hint: "Posts already made and planned, day by day" },
     ],
@@ -99,7 +100,7 @@ type GridTool = { id: string; label: string; icon: AppIconName; tone: TileTone; 
 
 export const GROW_TOOLS: GridTool[] = [
   { id: "ads", label: "Ads", icon: "megaphone", tone: "mint", path: "app:/ads", count: "live" },
-  { id: "video", label: "Rex videos", icon: "play", tone: "ink", path: "app:/video" },
+  { id: "studio", label: "Rex Studio", icon: "sparkle", tone: "ink", path: "app:/studio" },
   { id: "email", label: "Email", icon: "mail", tone: "butter", path: "app:/marketing/email" },
   { id: "automations", label: "Automations", icon: "zap", tone: "lilac", path: "app:/marketing/automations", count: "on" },
   { id: "popups", label: "Popups", icon: "popup", tone: "peach", path: "app:/marketing/popups" },

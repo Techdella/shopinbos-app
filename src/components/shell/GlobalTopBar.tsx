@@ -1,6 +1,7 @@
 "use client";
 
 import { CreditsBadge } from "@/components/credits/CreditsBadge";
+import { PlanPrompts } from "@/components/plans/PlanPrompts";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -117,6 +118,7 @@ export function GlobalTopBar({
           <Icon name="search" size={17} />
         </button>
         {(role === "seller" || role === "supplier" || role === "logistics_partner") && <CreditsBadge manageHref={creditsUrlFor(role)} />}
+        {(role === "seller" || role === "supplier" || role === "logistics_partner") && <PlanPrompts role={role} />}
         {role === "seller" && (
           <Link href="/peggy" data-tour="ask-peggy" className="hidden h-[42px] items-center gap-2 rounded-full border border-app-line bg-white pl-1.5 pr-4 text-[14px] font-extrabold text-app-ink no-underline hover:border-app-line-strong sm:flex">
             <Mascot name="peggy" className="h-8 w-8" alt="" /> {t("shell.askPeggy")}

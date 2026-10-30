@@ -26,8 +26,13 @@ export interface ToolResult {
   status: SetupView | null;
 }
 
-export const fetchCallInfo = () => api<{ ready: boolean }>("/api/mobile/peggy-call");
-export const startCallSession = () => api<CallStart>("/api/mobile/peggy-call", { method: "POST", json: {} });
+export const fetchCallInfo = () => api<{ ready: boolean; callsLeft?: number | null }>("/api/mobile/peggy-call");
+export const startCallSession = () =>
+  api<CallStart>("/api/mobile/peggy-call", { method: "POST", json: {} }).then((session) => {
+    // One of this month's free calls is used (free plans).
+    if (state.callsLeft !== null) patchCall({ callsLeft: Math.max(0, state.callsLeft - 1) });
+    return session;
+  });
 export const runCallTool = (tool: string, params: unknown, conversationId: string | null) =>
   api<ToolResult>("/api/mobile/peggy-call/action", { method: "POST", json: { tool, params: params && typeof params === "object" ? params : {}, ...(conversationId ? { conversationId } : {}) } });
 
@@ -50,6 +55,8 @@ export interface SavedEntry extends SavedItem {
 export interface CallState {
   /** null while unknown; false when calls aren't switched on or can't run on this build. */
   available: boolean | null;
+  /** Free plans: calls left this month (shared/plans.ts FREE_PEGGY_CALLS_PER_MONTH); null when there's no cap. */
+  callsLeft: number | null;
   /** The call engine is loaded in this build (components/peggy/PeggyCallHost.tsx). */
   engine: boolean;
   phase: CallPhase;
@@ -63,7 +70,7 @@ export interface CallState {
   openedAt: number | null;
 }
 
-const INITIAL: CallState = { available: null, engine: false, phase: "idle", minimized: false, saved: [], status: null, error: null, endedBy: null, openedAt: null };
+const INITIAL: CallState = { available: null, callsLeft: null, engine: false, phase: "idle", minimized: false, saved: [], status: null, error: null, endedBy: null, openedAt: null };
 let state: CallState = INITIAL;
 const listeners = new Set<() => void>();
 const saveListeners = new Set<(item: SavedItem) => void>();
@@ -187,7 +194,7 @@ export function checkCallsAvailable(force = false) {
   if (!force && Date.now() - checkedAt < 5 * 60_000 && state.available !== null) return;
   checkedAt = Date.now();
   fetchCallInfo()
-    .then((info) => patchCall({ available: Boolean(info.ready) }))
+    .then((info) => patchCall({ available: Boolean(info.ready), callsLeft: typeof info.callsLeft === "number" ? info.callsLeft : null }))
     .catch(() => {
       checkedAt = 0;
     });

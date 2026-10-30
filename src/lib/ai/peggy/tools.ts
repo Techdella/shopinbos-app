@@ -25,6 +25,7 @@ import { PRODUCTS_TOOL_RUNNERS } from "./products-tools";
 import { CATALOG_TOOL_RUNNERS } from "./catalog-tools";
 import { PAYLINKS_TOOL_RUNNERS } from "./paylinks-tools";
 import { saveMarkdownPost } from "@/lib/cms/server";
+import { savePeggyNote } from "@/lib/onboarding/peggy-notes.server";
 import {
   aggregateCustomers,
   lowStockProducts,
@@ -469,7 +470,23 @@ async function writeCopy(ctx: PeggyToolContext, input: PeggyToolInput<"write_cop
 
 type Runner<N extends PeggyToolName> = (ctx: PeggyToolContext, input: PeggyToolInput<N>) => Promise<ToolOutput>;
 
+const TEAM_TOPIC: Record<PeggyToolInput<"note_to_team">["topic"], string> = {
+  problem: "Problem",
+  feature_request: "Feature request",
+  account: "Account",
+  payments: "Payments",
+  complaint: "Complaint",
+  other: "Note",
+};
+
+/** A note from Peggy's chat to the team, read in Admin › Peggy notes and on the seller's admin page. */
+async function noteToTeam(ctx: PeggyToolContext, input: PeggyToolInput<"note_to_team">): Promise<ToolOutput> {
+  await savePeggyNote({ userId: ctx.userId, role: "seller", kind: "note", via: "chat", text: `${TEAM_TOPIC[input.topic]} (${ctx.store.name}): ${input.note}` });
+  return { content: "Sent to the Shopinbos team. They read these notes and follow up.", action: { summary: "Passed your note to the Shopinbos team" } };
+}
+
 export const PEGGY_TOOL_RUNNERS: { [N in PeggyToolName]: Runner<N> } = {
+  note_to_team: noteToTeam,
   sales_summary: salesSummary,
   list_orders: listOrders,
   get_order: getOrder,

@@ -65,13 +65,14 @@ export function CallPeggyButton({ style, note = true, variant = "button" }: { st
   }
 
   if (variant === "row") {
-    return <Row lead={<Tile icon="phone" tone="mint" />} title={title} sub={failed ?? t("call.note")} onPress={press} accessibilityLabel={t("call.label")} />;
+    return <Row lead={<Tile icon="phone" tone="mint" />} title={title} sub={failed ?? (call.callsLeft !== null ? t("call.left", { count: call.callsLeft }) : t("call.note"))} onPress={press} accessibilityLabel={t("call.label")} />;
   }
 
   return (
     <View style={style}>
       <PillButton tone="forest" busy={busy} disabled={busy} onPress={press} accessibilityLabel={t("call.label")} icon="phone" title={title} />
       {note ? <T style={{ marginTop: 8, textAlign: "center", fontSize: 13, color: colors.inkSoft }}>{t("call.note")}</T> : null}
+      {call.callsLeft !== null ? <T style={{ marginTop: 4, textAlign: "center", fontSize: 13, color: colors.inkSoft }}>{t("call.left", { count: call.callsLeft })}</T> : null}
       {failed ? <T style={{ marginTop: 6, textAlign: "center", fontSize: 13, color: colors.danger }}>{failed || t("call.failed")}</T> : null}
     </View>
   );

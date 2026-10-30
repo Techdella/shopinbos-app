@@ -281,6 +281,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   // Preorder lists, Stock is ready and deposits (shared/preorder.ts)
   "orders-preorders": "Ịtụ n'ihu oge",
   "supplier.preorders": "Ịtụ n'ihu oge",
+  "studio-videos": "Vidiyo",
+  "studio-designs": "Akwụkwọ mgbasa na posts",
+  "studio-packaging": "Ngwugwu na akara",
 };
 
 export default ig;

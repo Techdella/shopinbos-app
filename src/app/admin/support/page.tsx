@@ -77,6 +77,7 @@ export default async function AdminSupportPage(props: { searchParams?: Promise<S
           <PillLink href="/admin/support/new" tone="ink" icon="plus">New conversation</PillLink>
           <MoreActions>
             <PillLink href="/admin/support/macros" icon="list">Saved replies</PillLink>
+            <PillLink href="/admin/support/peggy-notes" icon="chat">Peggy notes</PillLink>
             <PillLink href={withParams("/admin/support", { assignee: "me" })} icon="user">My tickets · {queue.counts.mine}</PillLink>
           </MoreActions>
         </>

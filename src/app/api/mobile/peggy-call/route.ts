@@ -2,7 +2,7 @@ import { withAuth } from "@/lib/auth/middleware";
 import { apiError, ok } from "@/lib/api/response";
 import { getPublicEnv } from "@/lib/env";
 import { checkRateLimitShared, rateLimitKey } from "@/lib/rate-limit";
-import { PeggyVoiceError, VOICE_CALLS_PER_DAY, callToken, peggyVoiceReady, startPeggyAppCall } from "@/lib/ai/peggy-voice.server";
+import { PeggyVoiceError, VOICE_CALLS_PER_DAY, noCallsLeftMessage, peggyCallsLeftFor, callToken, peggyVoiceReady, startPeggyAppCall } from "@/lib/ai/peggy-voice.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,7 +17,7 @@ const ROLES = ["seller", "supplier", "logistics_partner"] as const;
 //          VOICE_CALLS_PER_DAY as the web call.
 export const GET = withAuth(async (_req, { user }) => {
   const base = getPublicEnv().appUrl.replace(/\/$/, "");
-  return ok({ ready: peggyVoiceReady(), inApp: true, url: `${base}/call-peggy?t=${encodeURIComponent(callToken(user.id))}` });
+  return ok({ ready: peggyVoiceReady(), callsLeft: await peggyCallsLeftFor(user.id), inApp: true, url: `${base}/call-peggy?t=${encodeURIComponent(callToken(user.id))}` });
 }, [...ROLES]);
 
 export const POST = withAuth(async (_req, { user }) => {
@@ -25,6 +25,8 @@ export const POST = withAuth(async (_req, { user }) => {
   if (!(await checkRateLimitShared(rateLimitKey("peggy-call", user.id), { maxRequests: VOICE_CALLS_PER_DAY, windowMs: 86_400_000 })).allowed) {
     return apiError("RATE_LIMITED", "You've called Peggy a few times today. Chat with her instead, or message us on WhatsApp.", 429);
   }
+  // Free plans: {FREE_PEGGY_CALLS_PER_MONTH} calls a month (shared/plans.ts).
+  if ((await peggyCallsLeftFor(user.id)) === 0) return apiError("PLAN_LIMIT", noCallsLeftMessage(true), 402);
   try {
     return ok(await startPeggyAppCall(user.id));
   } catch (error) {

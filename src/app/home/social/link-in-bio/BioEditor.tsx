@@ -188,6 +188,11 @@ export function BioEditor({
     setBlocks((prev) => [...prev, block]);
     touch();
   }
+  function addWebsite() {
+    if (blocks.length >= MAX_BIO_BLOCKS) return;
+    setBlocks((prev) => [...prev, { id: newBlockId(), type: "link", label: t("bio.websiteLabel"), url: initial.storeUrl }]);
+    touch();
+  }
   function fill() {
     setBlocks(starterBlocks({ productIds: products.slice(0, 5).map((product) => product.id), whatsapp, buyNow: true, shopButtons: true }));
     touch();
@@ -384,6 +389,15 @@ export function BioEditor({
           <div className="mt-4">
             <p className="mb-2 mt-0 text-[13px] font-bold text-app-ink-soft">{t("bio.addBlock")}</p>
             <div className="flex flex-wrap gap-2">
+              {/* The shop's own address as a link, and a new product (made on the products page, then added here). */}
+              <button type="button" onClick={() => addWebsite()} disabled={blocks.length >= MAX_BIO_BLOCKS} className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-app-line bg-white px-3.5 text-[13.5px] font-bold disabled:opacity-40">
+                <Icon name="shop" size={14} />
+                {t("bio.addWebsite")}
+              </button>
+              <a href="/products/new" className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-app-line bg-white px-3.5 text-[13.5px] font-bold text-app-ink no-underline">
+                <Icon name="plus" size={14} />
+                {t("bio.addNewProduct")}
+              </a>
               {ADDABLE.map((type) => (
                 <button key={type} type="button" onClick={() => add(type)} disabled={blocks.length >= MAX_BIO_BLOCKS || (NEEDS_PRODUCTS.has(type) && !products.length) || (type === "collection" && !collections.length)} title={NEEDS_PRODUCTS.has(type) && !products.length ? t("block.noProducts") : type === "collection" && !collections.length ? t("block.noCollections") : undefined} className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-app-line bg-white px-3.5 text-[13.5px] font-bold disabled:opacity-40">
                   <Icon name={BLOCK_ICON[type]} size={14} />

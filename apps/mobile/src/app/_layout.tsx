@@ -10,6 +10,7 @@ import { RoleGuard } from "@/components/RoleGuard";
 import { LearnHost } from "@/components/learn/LearnHost";
 import { PushManager } from "@/components/PushManager";
 import { UpdatePrompt } from "@/components/UpdatePrompt";
+import { PlanPrompt } from "@/components/PlanPrompt";
 import { CallSpace, PeggyCallHost } from "@/components/peggy/PeggyCallHost";
 import { useIntroAudioGuard } from "@/lib/intro-audio";
 import { SessionProvider, useSession } from "@/lib/session";
@@ -72,6 +73,7 @@ function ThemedApp() {
       <PushManager />
       {/* "A new version of Shopinbos is ready" (Admin › App updates): after the launch screen, never during a call. */}
       <UpdatePrompt />
+      <PlanPrompt />
       {/* "Call Peggy": the in-app call, full screen or minimized to a bar across the app. */}
       <PeggyCallHost />
       {/* 60-second feature intros: a small Tips button on screens that have one, after setup; never during a call. */}

@@ -281,6 +281,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   // Preorder lists, Stock is ready and deposits (shared/preorder.ts)
   "orders-preorders": "Àwọn àṣẹ ṣáájú",
   "supplier.preorders": "Àwọn àṣẹ ṣáájú",
+  "studio-videos": "Fídíò",
+  "studio-designs": "Ìwé ìpolówó àti ìfiranṣẹ́",
+  "studio-packaging": "Àpò àti àmì",
 };
 
 export default yo;

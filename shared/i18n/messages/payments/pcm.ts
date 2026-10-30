@@ -431,6 +431,18 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "bo.badge": "Your plan get the featured badge for your listing.",
   "bo.kind.supplier_boost": "Featured supplier",
   "bo.kind.product_boost": "Boosted product",
+  "lock.title": "Upgrade make you fit use this one",
+  "lock.notOnPlan": "This one no dey your plan",
+  "lock.body": "Your plan never get this one. Choose plan wey get am, e go open sharp sharp.",
+  "lock.bodyApp": "Your plan no get this one.",
+  "lock.creditsTitle": "Your AI credits don finish",
+  "lock.creditsBody": "Top up make you continue, or wait make your plan credits refill for next month.",
+  "lock.creditsBodyApp": "Your plan credits go refill for next month.",
+  "lock.topUp": "Top up credits",
+  "lock.seePlans": "See plans",
+  "lock.notNow": "No be now",
+  "lock.close": "Close am",
+  "lock.badge": "Upgrade",
 };
 
 export default pcm;

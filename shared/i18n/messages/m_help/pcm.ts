@@ -185,6 +185,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "call.screen.popups": "Popups",
   "call.screen.link_in_bio": "Link in bio",
   "call.screen.connect_accounts": "Connect accounts",
+  "call.left": "{count, plural, =0 {No free call remain this month} one {# free call remain this month} other {# free calls remain this month}}",
 };
 
 export default pcm;

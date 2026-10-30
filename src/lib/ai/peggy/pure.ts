@@ -190,6 +190,17 @@ export const PEGGY_TOOL_SPECS = {
     description: "Write marketing text (a WhatsApp status, an Instagram caption or a product description). Returns text only; changes nothing in the shop.",
     schema: z.object({ kind: z.enum(["whatsapp_status", "instagram_caption", "product_description"]), about: z.string().trim().min(3).max(1000) }).strict(),
   },
+  note_to_team: {
+    write: true,
+    description:
+      "Send a note to the Shopinbos team (people, not AI), who read it in the admin portal: something you can't do or fix for the seller, a bug they hit, a feature they asked for, a complaint, or anything the team should follow up on. Write it in English, in one to five sentences, with the details the team needs (what happened, where, what they want). Tell the seller you've passed it on and that the team will follow up; don't promise a time.",
+    schema: z
+      .object({
+        topic: z.enum(["problem", "feature_request", "account", "payments", "complaint", "other"]),
+        note: z.string().trim().min(5).max(2000),
+      })
+      .strict(),
+  },
   ...SETUP_TOOL_SPECS,
   ...INBOX_TOOL_SPECS,
   ...SOCIAL_TOOL_SPECS,

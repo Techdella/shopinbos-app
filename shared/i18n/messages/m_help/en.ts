@@ -187,6 +187,7 @@ const en = {
   "call.screen.popups": "Popups",
   "call.screen.link_in_bio": "Link in bio",
   "call.screen.connect_accounts": "Connect accounts",
+  "call.left": "{count, plural, =0 {No free calls left this month} one {# free call left this month} other {# free calls left this month}}",
 } satisfies Record<string, string>;
 
 export default en;

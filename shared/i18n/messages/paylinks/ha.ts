@@ -170,6 +170,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "dialog.deliveryFee": "Kuɗin isarwa (₦)",
   "dialog.deliveryFeeHint": "Bar shi babu komai ko 0 don isarwa kyauta. Ana ƙara shi a kan abin da abokin ciniki zai biya.",
   "dialog.deliveryIncomplete": "Ƙara titi, unguwa da jiha don isarwa, da kuɗin a matsayin lamba. Ko kashe isarwa.",
+  "bio.addWebsite": "Gidan yanar gizon shago na",
+  "bio.addNewProduct": "Ƙara sabon kaya",
+  "bio.websiteLabel": "Ziyarci shagon mu",
 };
 
 export default ha;

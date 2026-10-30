@@ -170,6 +170,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "dialog.deliveryFee": "Owó delivery (₦)",
   "dialog.deliveryFeeHint": "Fi sílẹ̀ ní òfo tàbí 0 fún delivery ọ̀fẹ́. A máa fi kún ohun tí oníbàárà máa san.",
   "dialog.deliveryIncomplete": "Fi òpópónà, agbègbè àti ìpínlẹ̀ fún delivery kún un, àti owó ní nọ́ńbà. Tàbí pa delivery.",
+  "bio.addWebsite": "Ìkànnì ṣọ́ọ̀bù mi",
+  "bio.addNewProduct": "Fi ọjà tuntun kún un",
+  "bio.websiteLabel": "Ṣàbẹ̀wò sí ṣọ́ọ̀bù wa",
 };
 
 export default yo;

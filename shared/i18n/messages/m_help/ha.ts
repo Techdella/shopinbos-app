@@ -185,6 +185,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "call.screen.popups": "Popups",
   "call.screen.link_in_bio": "Link in bio",
   "call.screen.connect_accounts": "Haɗa asusu",
+  "call.left": "{count, plural, =0 {Babu sauran kiran kyauta a wannan wata} other {Kiran kyauta # ya rage a wannan wata}}",
 };
 
 export default ha;
