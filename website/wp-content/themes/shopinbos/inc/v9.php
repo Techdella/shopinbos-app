@@ -121,7 +121,11 @@ function sib_v9_redirects(): array {
 		'#^/features/(social-selling|sell-on-whatsapp)/?$#'         => '/social-selling/',
 		'#^/features/peggy-ai/?$#'                                  => '/rex-and-peggy/',
 		'#^/features/dropshipping/?$#'                              => '/find-stock/',
-		'#^/solutions(/.*)?$#'                                      => '/start/',
+		'#^/solutions/fashion/?$#'                                  => '/for/fashion-and-beauty/',
+		'#^/solutions/beauty/?$#'                                   => '/for/fashion-and-beauty/',
+		'#^/solutions/food/?$#'                                     => '/for/food-and-drinks/',
+		'#^/solutions/electronics/?$#'                              => '/for/gadgets-and-electronics/',
+		'#^/solutions(/.*)?$#'                                      => '/for/',
 		'#^/integrations(/.*)?$#'                                   => '/social-selling/',
 		'#^/legal/?$#'                                              => '/legal/terms/',
 		// Sign-up waitlists end at launch: the waitlist goes to Shopinbos Plug, the ads landing page to the app pilot.
@@ -215,6 +219,10 @@ function sib_v9_render( string $slug, string $html, array $meta = [] ): void {
 	if ( '' === $html ) {
 		return;
 	}
+	// Every page's header gets the same menu, including pages built from real content.
+	if ( function_exists( 'sib_v9_for_menu' ) ) {
+		$html = sib_v9_for_menu( $html );
+	}
 	[ $title, $desc ] = sib_v9_meta( $slug );
 	$path             = (string) wp_parse_url( add_query_arg( [] ), PHP_URL_PATH );
 	$map              = function_exists( 'sib_seo_map' ) ? sib_seo_map() : [];
@@ -303,3 +311,4 @@ require_once __DIR__ . '/v9-fill.php';
 require_once __DIR__ . '/v9-pages.php';
 require_once __DIR__ . '/v9-tools.php';
 require_once __DIR__ . '/v9-more.php';
+require_once __DIR__ . '/v9-for.php';

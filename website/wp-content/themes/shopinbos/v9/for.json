@@ -138,7 +138,7 @@
           [ "Closing", "Emeka books delivery for the Abuja parcel and checks the day’s sales on the dashboard." ]
         ]
       },
-      "links": [ "suppliers", "WhatsApp Status", "delivery" ],
+      "links": [ "stall", "market", "WhatsApp Status", "stock" ],
       "faq": [
         [ "Do I need to put all my goods online?", "No. Start with your best sellers. The Free plan holds up to 20 products; Starter holds 200." ],
         [ "Can I record cash sales at my stall?", "Yes. Use Record a sale for stall, phone or WhatsApp sales, so stock and your sales numbers stay right." ],
@@ -223,7 +223,7 @@
           [ "Next day", "The buyer pays and gives the rider the code. The order shows as delivered and paid." ]
         ]
       },
-      "links": [ "gadget", "phone", "pricing" ],
+      "links": [ "gadget", "phone", "electronics" ],
       "faq": [
         [ "Can I show if a phone is new or used?", "Yes. Phones and gadgets have a condition field, plus battery health, storage, RAM and warranty." ],
         [ "Can buyers pay when the phone arrives?", "Yes, on Growth and Pro. The buyer pays the shop when it arrives, never the rider, then gives the rider a code." ],
@@ -265,7 +265,7 @@
           [ "Evening", "Orders from Lagos and Enugu go out with a partner whose rate card fits bulky parcels." ]
         ]
       },
-      "links": [ "home", "kitchen", "bundles" ],
+      "links": [ "home", "kitchen", "bundle" ],
       "faq": [
         [ "Can I group my products by room?", "Yes. Collections let you show groups of products together on your shop, like shelves." ],
         [ "Can I sell sets at one price?", "Yes. Make a bundle from two or more products and set one price." ],
@@ -307,7 +307,7 @@
           [ "A month later", "An automation reminds parents who bought diapers that it may be time to restock." ]
         ]
       },
-      "links": [ "back-to-school", "toys", "repeat customers" ],
+      "links": [ "back-to-school", "toys", "kids", "repeat customers" ],
       "faq": [
         [ "Can I show the age range for a toy?", "Yes. Baby and kids products have an age range field and a place for safety notes." ],
         [ "Can I remind parents to buy again?", "Yes. Automations can send messages by themselves, for example some weeks after a customer’s last order." ],
@@ -346,7 +346,7 @@
         "steps": [
           [ "Morning", "She adds a new bone straight unit with lengths from 12 to 24 inches as variants, each with its price." ],
           [ "Afternoon", "A customer wants a custom colour. They agree in the inbox and Adaeze sends a payment link with the agreed price." ],
-          [ "Friday", "Finished units are marked packed and go out with her delivery partner, with tracking for each buyer." ]
+          [ "Later that week", "Finished units are marked packed and go out with her delivery partner, with tracking for each buyer." ]
         ]
       },
       "links": [ "beauty", "TikTok", "pay on delivery" ],
@@ -391,7 +391,7 @@
           [ "Evening", "One order came in while he was in class. The supplier ships it to the buyer and Musa keeps the difference between his price and theirs, minus fees." ]
         ]
       },
-      "links": [ "little capital", "dropshipping", "first order" ],
+      "links": [ "little capital", "dropship", "first order" ],
       "faq": [
         [ "Is it really free?", "The Free plan is ₦0 a month. You pay 3% on each sale through your shop." ],
         [ "Can I sell without buying stock?", "Yes. Dropship lets you sell a supplier’s product without buying it first. The Free plan allows 5 dropship products; Starter allows 50." ],
@@ -430,10 +430,10 @@
         "steps": [
           [ "Monday", "She sets her logo and colours in the brand kit. Her shop, posts and invoices pick them up." ],
           [ "Wednesday", "She requests a quote from a supplier for 100 diffusers to sell under her own label." ],
-          [ "Friday", "Her helper packs orders with a staff account that can’t see payouts." ]
+          [ "Later that week", "Her helper packs orders with a staff account that can’t see payouts." ]
         ]
       },
-      "links": [ "brand", "packaging", "CAC" ],
+      "links": [ "brand", "packaging", "label", "CAC" ],
       "faq": [
         [ "What is white label?", "A supplier’s product sold under your own brand name and packaging." ],
         [ "Can I get branded packaging?", "You can design labels and tags in the app, use the packaging designer, and request custom packaging." ],
@@ -476,7 +476,7 @@
           [ "Landing day", "The goods arrive. He sets the stock, posts a video, and orders start." ]
         ]
       },
-      "links": [ "China", "suppliers", "pricing" ],
+      "links": [ "China", "import", "supplier" ],
       "faq": [
         [ "How does import from China work?", "Paste a 1688 link or send a photo of what you want. Our sourcing partner sends a quote with a landed price in naira, shipping and duty included. You pay, and track it to your door." ],
         [ "Which plan do I need?", "Starter or above. The Free plan can browse only. Pro gets priority imports." ],
@@ -561,7 +561,7 @@
           [ "Next day", "The supplier packs and sends the bag to her customer. Blessing follows the order status in Orders." ]
         ]
       },
-      "links": [ "dropshipping", "suppliers", "price" ],
+      "links": [ "dropship", "supplier", "wholesale" ],
       "faq": [
         [ "What is dropshipping?", "You sell a supplier’s product without buying stock first. When it sells, the supplier sends it to your customer." ],
         [ "How many products can I dropship?", "5 on Free, 50 on Starter, and no limit on Growth and Pro." ],
@@ -604,7 +604,7 @@
           [ "Evening", "Peggy has answered delivery questions. Zainab packs the day’s orders and books delivery." ]
         ]
       },
-      "links": [ "influencer", "TikTok", "Instagram" ],
+      "links": [ "influencer", "TikTok", "link in bio" ],
       "faq": [
         [ "What is a link in bio page?", "One page with your products, Buy now buttons and WhatsApp, made for your Instagram or TikTok bio." ],
         [ "Can I earn from other shops’ products?", "Some shops run affiliate programmes you can join. Resell links, where you share a shop’s product with your own link, are being tested with pilot shops now." ],
