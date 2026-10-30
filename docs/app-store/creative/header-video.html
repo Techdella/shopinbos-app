@@ -1,0 +1,22 @@
+<!doctype html><html><head><meta charset="utf-8">
+<!-- The header, animated: a seamless 12-second loop (every animation's period divides 12 s). render.js steps through it frame by frame. -->
+<link rel="stylesheet" href="header.css">
+<style>
+@keyframes bob{0%,100%{translate:0 0}50%{translate:0 -36px}}
+@keyframes sway{0%,100%{rotate:-2deg}50%{rotate:2deg}}
+@keyframes spin{to{rotate:360deg}}
+@keyframes pulse{0%,100%{opacity:1;scale:1}50%{opacity:.7;scale:1.06}}
+@keyframes drift{0%,100%{translate:0 0}50%{translate:60px 40px}}
+#rex{animation:bob 3s ease-in-out infinite,sway 6s ease-in-out infinite;transform-origin:50% 100%}
+#peg{animation:bob 2s ease-in-out infinite -.5s,sway 4s ease-in-out infinite reverse}
+.glow{animation:pulse 4s ease-in-out infinite}
+.ring{border-style:dashed;animation:spin 12s linear infinite}
+.lime{animation:drift 6s ease-in-out infinite}
+.lime2{animation:drift 4s ease-in-out infinite reverse}
+.dots{animation:dots 12s linear infinite}
+@keyframes dots{to{background-position:54px 54px}}
+</style></head><body>
+<div class="dots"></div><div class="glow"></div><div class="ring"></div><div class="lime"></div><div class="lime2"></div>
+<h1>Start easy, <span>sell smarter.</span></h1>
+<img class="m" id="rex" src="mascots/rex.png"><img class="m" id="peg" src="mascots/peggy.png">
+</body></html>
