@@ -1155,6 +1155,8 @@ function ClassicTemplateSurface({
     const isHovered = hoveredSectionId === sectionId && !isSelected;
     return (
       <div
+        // The phone editor's canvas (src/app/store-canvas) finds each section by it, as the boutique themes' are.
+        data-section-id={sectionId}
         onClick={(e) => { e.stopPropagation(); onSelectSection?.(sectionId); }}
         onMouseEnter={() => setHoveredSectionId(sectionId)}
         onMouseLeave={() => setHoveredSectionId(null)}
