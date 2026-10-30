@@ -84,3 +84,15 @@ test("iPhone privacy texts: every one Apple checks for at upload is filled in (A
   // Apple rejects the upload unless NSMotionUsageDescription is there; `false` removes it.
   assert.ok(filled(plugin("expo-location").motionUsagePermission), "expo-location motionUsagePermission must be a sentence, not false");
 });
+
+test("phone sign-in: crypto.getRandomValues exists before Supabase runs (email codes and Google use PKCE)", () => {
+  // @livekit/react-native's registerGlobals (via @elevenlabs/react-native) creates global.crypto = { randomUUID } only;
+  // Supabase then called the missing crypto.getRandomValues: "undefined is not a function" on "Email me a code".
+  const polyfill = read("apps/mobile/src/lib/crypto-polyfill.ts");
+  assert.match(polyfill, /import \{ getRandomValues \} from "expo-crypto";/);
+  assert.match(polyfill, /if \(typeof scope\.crypto\?\.getRandomValues !== "function"\)/);
+  assert.match(polyfill, /target\.getRandomValues = getRandomValues;/);
+  const client = read("apps/mobile/src/lib/supabase.ts");
+  assert.ok(client.indexOf('import "./crypto-polyfill";') !== -1 && client.indexOf('import "./crypto-polyfill";') < client.indexOf("createClient("), "the polyfill loads before the Supabase client");
+  assert.match(read("apps/mobile/package.json"), /"expo-crypto"/);
+});

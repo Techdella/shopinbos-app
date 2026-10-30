@@ -1,4 +1,6 @@
 import "expo-sqlite/localStorage/install";
+// Before the client: Supabase's sign-in needs crypto.getRandomValues, which phones lack (crypto-polyfill.ts).
+import "./crypto-polyfill";
 import { AppState, Platform } from "react-native";
 import { createClient } from "@supabase/supabase-js";
 
