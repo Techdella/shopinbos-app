@@ -47,7 +47,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function QuickButton({ label, icon, onPress, tint, color }: { label: string; icon: "phone" | "chat"; onPress: () => void; tint: string; color: string }) {
+function QuickButton({ label, icon, onPress, tint, color }: { label: string; icon: "phone" | "chat" | "whatsapp"; onPress: () => void; tint: string; color: string }) {
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => ({ flex: 1, minHeight: 50, borderRadius: 999, backgroundColor: tint, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, opacity: pressed ? 0.8 : 1 })}>
       <AppIcon name={icon} size={20} color={color} />
@@ -247,7 +247,7 @@ export default function CustomerScreen() {
       {call || whatsapp ? (
         <View style={{ flexDirection: "row", gap: 10 }}>
           {call ? <QuickButton label={t("call")} icon="phone" tint={colors.surface} color={colors.ink} onPress={() => void Linking.openURL(call)} /> : null}
-          {whatsapp ? <QuickButton label={t("whatsapp")} icon="chat" tint={colors.mintTint} color={colors.forest} onPress={() => void Linking.openURL(whatsapp)} /> : null}
+          {whatsapp ? <QuickButton label={t("whatsapp")} icon="whatsapp" tint={colors.mintTint} color={colors.forest} onPress={() => void Linking.openURL(whatsapp)} /> : null}
         </View>
       ) : null}
 

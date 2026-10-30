@@ -42,7 +42,7 @@ export function LinkShareButtons({ url, message, whatsappTo, showWhatsapp = true
         <PillButton size="md" tone="white" style={{ flex: 1 }} onPress={() => void shareText(message)} accessibilityLabel={t("share")} icon="share" title={t("share")} />
       </ButtonRow>
       {showWhatsapp ? (
-        <PillButton size="md" tone="forest" onPress={() => void Linking.openURL(whatsappShareUrl(message, whatsappTo)).catch(() => undefined)} accessibilityLabel={t("whatsapp")} icon="chat" title={t("whatsapp")} />
+        <PillButton size="md" tone="forest" onPress={() => void Linking.openURL(whatsappShareUrl(message, whatsappTo)).catch(() => undefined)} accessibilityLabel={t("whatsapp")} icon="whatsapp" title={t("whatsapp")} />
       ) : null}
     </View>
   );

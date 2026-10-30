@@ -50,7 +50,8 @@ export default function EmailCampaigns() {
       title={t("email.title")}
       refreshing={data.refreshing}
       onRefresh={() => void data.refresh()}
-      headerRight={<PillButton testID="email-new" size="sm" icon="plus" title={t("email.new")} onPress={() => router.push("/marketing/email/new" as never)} />}
+      // Pinned at the bottom: in the header it covered the screen's title on iPhones.
+      footer={<PillButton testID="email-new" tone="accent" icon="plus" title={t("email.new")} onPress={() => router.push("/marketing/email/new" as never)} />}
     >
       {data.loading && !overview ? <LoadingBlock /> : null}
       {data.error && !overview ? <ErrorState message={data.error} onRetry={() => void data.reload()} /> : null}

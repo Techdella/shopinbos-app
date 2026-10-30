@@ -8,7 +8,7 @@ import { buttonClass, inputClass } from "@/components/growth/kit";
 import { cx } from "@/components/app-ui/cx";
 import { useT } from "@/components/i18n/I18nProvider";
 import { PlatformLogo, type LogoPlatform } from "@/components/channels/PlatformLogo";
-import { EmbeddedSignupError, runEmbeddedSignup } from "@/components/meta/embedded-signup";
+import { EmbeddedSignupError, preloadFacebookSdk, runEmbeddedSignup } from "@/components/meta/embedded-signup";
 import type { CardState, ComingSoonPlatform, LivePlatform } from "@/lib/sales-channels/pure";
 import { connectWhatsAppAction, disconnectAction, notifyMeAction, retryAction } from "./actions";
 
@@ -109,25 +109,37 @@ export function ConnectCard({
     });
   }
 
+  // WhatsApp: Facebook's SDK loads with the page, so the tap can open Facebook's window at once.
+  useEffect(() => {
+    if (platform === "whatsapp" && signup) preloadFacebookSdk(signup.appId);
+  }, [platform, signup]);
+
+  async function signUpWhatsApp(details: { appId: string; configId: string }) {
+    const info = await runEmbeddedSignup(details);
+    const res = await fetch("/api/app/inbox/whatsapp", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "embedded_signup", ...info }), signal: AbortSignal.timeout(90_000) });
+    if (!res.ok) throw new Error("signup");
+    // The number is saved; the catalog and the WhatsApp store set themselves up on the server (the card shows
+    // Syncing… meanwhile), so no second setup from here.
+  }
+
   async function connectWhatsApp() {
     setBusy(true);
     setError(null);
     try {
+      // No number yet: open Facebook first, while the tap still counts (asking the server first got Facebook's
+      // window blocked as a popup, and the button then said "Connecting…" forever).
+      if (!accounts?.whatsapp && signup) return await signUpWhatsApp(signup);
       let result = await connectWhatsAppAction();
       if (!result.ok && "needsSignup" in result) {
         if (!signup) throw new Error(t("card.waFailed"));
-        const info = await runEmbeddedSignup(signup);
-        const res = await fetch("/api/app/inbox/whatsapp", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "embedded_signup", ...info }) });
-        if (!res.ok) throw new Error("signup");
-        // The number is saved; the catalog and the WhatsApp store set themselves up on the server (the card shows
-        // Syncing… meanwhile), so no second setup from here.
-        return;
+        return await signUpWhatsApp(signup);
       }
       // Number connected but no catalog permission: the card itself says so, so no red line.
       if (!result.ok && !("permission" in result && result.permission)) setError(t("card.waFailed"));
     } catch (caught) {
       // Closing Facebook's window isn't a problem worth a red line.
-      if (!(caught instanceof EmbeddedSignupError && caught.code === "closed")) setError(t("card.waFailed"));
+      if (caught instanceof EmbeddedSignupError && (caught.code === "blocked" || caught.code === "timeout" || caught.code === "sdk")) setError(caught.message);
+      else if (!(caught instanceof EmbeddedSignupError && caught.code === "closed")) setError(t("card.waFailed"));
     } finally {
       setBusy(false);
       router.refresh();

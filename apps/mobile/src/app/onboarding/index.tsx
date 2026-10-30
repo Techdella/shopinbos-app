@@ -807,7 +807,7 @@ export default function SellerQuestions() {
         </View>
         <T weight="bold" style={{ fontSize: 15, marginTop: 28, marginBottom: 10 }}>{t("live.share")}</T>
         <View style={{ gap: 10 }}>
-          <PillButton size="md" tone="forest" icon="chat" title={t("live.whatsapp")} onPress={() => void share("whatsapp")} />
+          <PillButton size="md" tone="forest" icon="whatsapp" title={t("live.whatsapp")} onPress={() => void share("whatsapp")} />
           <View style={{ flexDirection: "row", gap: 10 }}>
             <PillButton size="md" tone="white" style={{ flex: 1 }} title={t("live.instagram")} onPress={() => void share("instagram")} />
             <PillButton size="md" tone="white" style={{ flex: 1 }} title={t("live.tiktok")} onPress={() => void share("tiktok")} />

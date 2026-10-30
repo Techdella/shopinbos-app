@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { buttonClass } from "@/components/growth/kit";
 import { useT } from "@/components/i18n/I18nProvider";
 import { PlatformLogo } from "@/components/channels/PlatformLogo";
-import { EmbeddedSignupError, runEmbeddedSignup } from "@/components/meta/embedded-signup";
+import { EmbeddedSignupError, preloadFacebookSdk, runEmbeddedSignup } from "@/components/meta/embedded-signup";
 
 // The phone app's "Connect WhatsApp" (page.tsx): one button that runs Meta's Embedded Signup (Facebook's popup needs
 // a tap to open), saves the number with POST /api/app/inbox/whatsapp like the web's WhatsApp card, then goes back
@@ -14,13 +14,17 @@ export function WhatsAppAppConnect({ signup, links }: { signup: { appId: string;
   const t = useT("social");
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
+  // Facebook's SDK loads now, so the tap opens Facebook's window at once (a late window is blocked as a popup).
+  useEffect(() => {
+    preloadFacebookSdk(signup.appId);
+  }, [signup.appId]);
 
   async function connect() {
     setBusy(true);
     setProblem(null);
     try {
       const info = await runEmbeddedSignup(signup);
-      const res = await fetch("/api/app/inbox/whatsapp", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "embedded_signup", ...info }) });
+      const res = await fetch("/api/app/inbox/whatsapp", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "embedded_signup", ...info }), signal: AbortSignal.timeout(90_000) });
       if (!res.ok) {
         const body = (await res.json().catch(() => null)) as { error?: { message?: string } } | null;
         throw new Error(body?.error?.message || t("card.waFailed"));
@@ -30,7 +34,7 @@ export function WhatsAppAppConnect({ signup, links }: { signup: { appId: string;
       setBusy(false);
       // Closing Facebook's window isn't a problem worth a red line: they can tap again or go back.
       if (caught instanceof EmbeddedSignupError && caught.code === "closed") return;
-      setProblem(caught instanceof EmbeddedSignupError ? (caught.code === "sdk" ? caught.message : t("card.waFailed")) : caught instanceof Error ? caught.message : t("card.waFailed"));
+      setProblem(caught instanceof EmbeddedSignupError ? (caught.code === "sdk" || caught.code === "blocked" || caught.code === "timeout" ? caught.message : t("card.waFailed")) : caught instanceof Error ? caught.message : t("card.waFailed"));
     }
   }
 

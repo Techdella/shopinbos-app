@@ -370,7 +370,7 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = null, pr
           {step === "name" ? (
             <PillButton tone="accent" disabled={!givenName.trim() || !familyName.trim()} onPress={goToContact} title={t("code.continue")} testID="signup-name-continue" />
           ) : (
-            <PillButton tone="accent" busy={busy === "send"} disabled={Boolean(busy)} onPress={() => void submit()} icon={method === "phone" && whatsapp ? "chat" : undefined} title={primary} />
+            <PillButton tone="accent" busy={busy === "send"} disabled={Boolean(busy)} onPress={() => void submit()} icon={method === "phone" && whatsapp ? "whatsapp" : undefined} title={primary} />
           )}
           {(mode === "login" || role) && apple && (
             // Sign in with Apple on the screen itself, under the main button (iPhone only: appleSignInAvailable). Apple's

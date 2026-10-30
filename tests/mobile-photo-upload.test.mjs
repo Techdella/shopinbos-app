@@ -93,3 +93,17 @@ test("every photo upload on the phone goes through the shrinking helper", () => 
   }
   assert.match(read("apps/mobile/src/components/VerificationScreen.tsx"), /uploadOnePhoto/);
 });
+
+test("file uploads skip expo/fetch: multipart bodies go through XMLHttpRequest (photos, voice notes, documents)", () => {
+  // expo/fetch (Expo SDK 57's global fetch) throws "Unsupported FormDataPart implementation" on React Native's
+  // { uri, name, type } parts, before the request leaves the phone: product photos and Rex video photos failed as
+  // "offline" while Add many (XHR) worked.
+  const api = readFileSync(new URL("../apps/mobile/src/lib/api.ts", import.meta.url), "utf8");
+  assert.match(api, /export function send\(url: string, init: RequestInit = \{\}\): Promise<Response> \{\s*if \(Platform\.OS === "web" \|\| !\(init\.body instanceof FormData\)\) return fetch\(url, init\);/);
+  assert.match(api, /const xhr = new XMLHttpRequest\(\);/);
+  assert.match(api, /if \(name\.toLowerCase\(\) !== "content-type"\) xhr\.setRequestHeader\(name, value\);/);
+  assert.equal((api.match(/response = await send\(`\$\{API_URL\}\$\{path\}`/g) ?? []).length, 2, "api() and apiBody() both use send");
+  assert.doesNotMatch(api, /response = await fetch\(`\$\{API_URL\}\$\{path\}`/);
+  const rider = readFileSync(new URL("../apps/mobile/src/lib/rider.ts", import.meta.url), "utf8");
+  assert.match(rider, /response = await send\(`\$\{API_URL\}\/api\/mobile\/logistics\/rider\$\{path\}`/);
+});

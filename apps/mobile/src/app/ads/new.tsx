@@ -239,7 +239,7 @@ export default function NewAdCampaign() {
           <Label>{t("c.goal")}</Label>
           {AD_OBJECTIVES.map((value) => {
             const off = value === "whatsapp" && !overview.hasWhatsapp;
-            return <RadioCard key={value} icon={value === "whatsapp" ? "chat" : value === "awareness" ? "megaphone" : "store"} title={t(`c.obj.${value}`)} sub={off ? t("dest.addWhatsApp") : t(`c.obj.${value}Hint`)} on={objective === value} disabled={off} onPress={() => setObjective(value)} />;
+            return <RadioCard key={value} icon={value === "whatsapp" ? "whatsapp" : value === "awareness" ? "megaphone" : "store"} title={t(`c.obj.${value}`)} sub={off ? t("dest.addWhatsApp") : t(`c.obj.${value}Hint`)} on={objective === value} disabled={off} onPress={() => setObjective(value)} />;
           })}
           <Label>{t("c.where")}</Label>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
