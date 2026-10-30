@@ -65,7 +65,7 @@ def link_for(target, text):
         return '%%SOCIAL:' + t.lower() + '%%'
     if t.startswith('Nigeria · English'):
         return '#'
-    if t == 'Careers':
+    if t == 'Careers' or t.startswith('Careers '):
         return '/careers/'
     return ROUTES.get(target, '/')
 
