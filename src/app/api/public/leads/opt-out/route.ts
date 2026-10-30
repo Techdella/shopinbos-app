@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 //   POST opts the lead out of that channel. Email clients' one-click unsubscribe (RFC 8058) posts here too.
 
 function page(title: string, body: string, status = 200) {
-  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} · Shopinbos</title>
+  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} · Shopinbos Business</title>
 <style>body{margin:0;font-family:'Space Grotesk','Segoe UI',Helvetica,Arial,sans-serif;background:#FAF7F1;color:#0E2A38;display:flex;min-height:100vh;align-items:center;justify-content:center;padding:16px}
 main{max-width:440px;width:100%;background:#fff;border:1px solid rgba(14,42,56,.08);border-radius:18px;padding:28px}h1{font-size:24px;margin:0 0 10px;letter-spacing:-.02em}p{margin:0 0 18px;line-height:1.5;color:#41545E}
 button{border:0;border-radius:999px;background:#0E2A38;color:#F4F1EA;font:inherit;font-weight:600;padding:12px 22px;cursor:pointer}</style></head>

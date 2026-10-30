@@ -3,7 +3,7 @@ import type en from "./en.ts";
 
 const ha: Partial<Record<keyof typeof en, string>> = {
   askPeggy: "Tambayi Peggy komai",
-  "loading.starting": "Shopinbos yana farawa",
+  "loading.starting": "Shopinbos Business yana farawa",
   "loading.openingName": "Ana buɗe {name}",
   "loading.opening": "Ana buɗe shagonka",
   "loading.checkingOrders": "Ana duba sababbin oda",

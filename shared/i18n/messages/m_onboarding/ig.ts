@@ -135,8 +135,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "checklist.labels.label": "Bipụta akara ọnụahịa mbụ gị",
   "checklist.labels.hint": "Mpị abụọ site na ngwaahịa gị",
   // Welcome before Rex's first run (components/OnboardingWelcome.tsx)
-  "welcome.title": "Nnọọ na Shopinbos, {name}",
-  "welcome.titleNoName": "Nnọọ na Shopinbos",
+  "welcome.title": "Nnọọ na Shopinbos Business, {name}",
+  "welcome.titleNoName": "Nnọọ na Shopinbos Business",
   "welcome.sub": "Rex na-akwado iso gị wuo ụlọ ahịa gị.",
   "welcome.progress": "Anyị na-akwado ụlọ ahịa gị",
   "welcome.start": "Malite ugbu a",

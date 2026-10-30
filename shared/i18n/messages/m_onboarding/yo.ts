@@ -135,8 +135,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "checklist.labels.label": "Tẹ àwọn àmì owó àkọ́kọ́ rẹ jáde",
   "checklist.labels.hint": "Títẹ̀ méjì láti inú àwọn ọjà rẹ",
   // Welcome before Rex's first run (components/OnboardingWelcome.tsx)
-  "welcome.title": "Ẹ kú àbọ̀ sí Shopinbos, {name}",
-  "welcome.titleNoName": "Ẹ kú àbọ̀ sí Shopinbos",
+  "welcome.title": "Ẹ kú àbọ̀ sí Shopinbos Business, {name}",
+  "welcome.titleNoName": "Ẹ kú àbọ̀ sí Shopinbos Business",
   "welcome.sub": "Rex ń múra láti kọ́ ṣọ́ọ̀bù rẹ pẹ̀lú rẹ.",
   "welcome.progress": "A ń ṣètò ṣọ́ọ̀bù rẹ",
   "welcome.start": "Bẹ̀rẹ̀ báyìí",

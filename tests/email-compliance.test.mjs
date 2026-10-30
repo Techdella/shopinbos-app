@@ -64,7 +64,7 @@ test("platform (A) transactional email: Shopinbos logo, light/dark, legal footer
   const html = shell.platformEmail({ appUrl: APP, kind: "transactional", heading: "Your password was changed", bodyHtml: shell.html.p("It was <you>?"), reason: "this is your Shopinbos account's email address", legal: LEGAL, cta: { label: "Reset", url: `${APP}/forgot-password` } });
   assertShell(html, "security");
   assertPlatformLogo(html, "security");
-  assert.match(html, /Shopinbos, a product of Tech Della Solutions LTD \(RC 7038770\)/);
+  assert.match(html, /Shopinbos Business, a product of Tech Della Solutions LTD \(RC 7038770\)/);
   assert.match(html, /Office 7B, Yemtob Plaza, Elewure, Off Akala Express, Oluyole, Ibadan, Oyo State, Nigeria, 200257/);
   assert.match(html, /This is a service message about your Shopinbos account/);
   assert.match(html, /You&#39;re receiving this because this is your Shopinbos account/);

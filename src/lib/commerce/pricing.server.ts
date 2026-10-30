@@ -13,7 +13,7 @@ import { spreadAgreedAmount } from "@/lib/payment-links/pure";
 import { marketChoiceForStore, supplierParcelsForZones } from "@/lib/delivery-market/market.server";
 import { chooseMarketOption, timeframeWords, type MarketOption, type OptionPart } from "@shared/delivery-market";
 import { dropshipQuantityProblem } from "@shared/dropship-rules";
-import { bundleAvailable, bundleStockQuantities, readBundle, type BundleItem } from "@shared/bundles";
+import { bundleAvailable, bundleStockQuantities, bundleVariantQuantities, itemVariant, readBundle, type BundleItem } from "@shared/bundles";
 import { parcelLines, partCharge, type ParcelLine } from "@shared/dropship-checkout";
 import {
   chooseDelivery,
@@ -175,7 +175,8 @@ export async function priceOrder(input: PricingInput): Promise<PricedOrder | { o
 
   // A bundle holds no stock of its own: its sale is only counted (as an untracked product) and its items give their
   // units instead (quantity each × bundles), taken by the same stock holds, so nothing oversells and each item's
-  // sold count stays right. Every item must still be for sale: published, the seller's own, no versions or pre-orders.
+  // sold count stays right. Every item must still be for sale: published, the seller's own, no pre-orders, and the
+  // size / option it names (for a product with versions) still there and switched on.
   const bundles = new Map<string, BundleItem[]>();
   for (const row of rows) {
     const items = readBundle(row.productDetails);
@@ -192,7 +193,7 @@ export async function priceOrder(input: PricingInput): Promise<PricedOrder | { o
   for (const [bundleId, items] of bundles) {
     const usable = items.every((item) => {
       const part = stockById.get(item.productId);
-      return part && !bundles.has(part.id) && !readBundle(part.productDetails) && !isDropshipProduct(part) && part.fulfillmentType !== "dropship" && !part.preorderEnabled && !normalizeVariants(part.variants).some((variant) => variant.enabled);
+      return part && !bundles.has(part.id) && !readBundle(part.productDetails) && !isDropshipProduct(part) && part.fulfillmentType !== "dropship" && !part.preorderEnabled && itemVariant(part, item.variantId) !== undefined;
     });
     if (!usable) return { ok: false, message: `${rows.find((row) => row.id === bundleId)!.name} isn't available right now. Remove it from your bag and try again.` };
   }
@@ -250,6 +251,25 @@ export async function priceOrder(input: PricingInput): Promise<PricedOrder | { o
     });
   }
 
+  // A bundle's items with a size / option counted on its own take that version's units too, in the same holds as the
+  // size bought alone (so they're checked, taken, and given back when an unpaid order expires, the same way). Items
+  // are strict inside a bundle (stockProducts above), so these versions never go below 0 either.
+  const bundleLines = new Map([...bundles.keys()].map((bundleId) => [bundleId, quantities.get(bundleId) ?? 0] as const));
+  for (const [productId, versions] of bundleVariantQuantities(bundleLines, bundles, (id) => stockById.get(id))) {
+    const part = stockById.get(productId)!;
+    if (storeStockMode(part) === "off") continue;
+    const all = normalizeVariants(part.variants);
+    const list = variantHolds.get(productId) ?? [];
+    for (const [variantId, quantity] of versions) {
+      const variant = all.find((entry) => entry.id === variantId);
+      if (!variant || variant.stock === null) continue;
+      const held = list.find((entry) => entry.id === variantId);
+      if (held) held.quantity += quantity;
+      else list.push({ id: variantId, quantity, name: `${part.name} · ${variant.name}` });
+    }
+    if (list.length) variantHolds.set(productId, list);
+  }
+
   // Tracked products can't sell more than is left (in stock minus set aside); dropship ones more than the supplier has.
   // An item that is short only inside a bundle names the bundle, with how many bundles are left.
   const partNames = new Map(parts.map((part) => [part.name, part.id]));
@@ -260,14 +280,21 @@ export async function priceOrder(input: PricingInput): Promise<PricedOrder | { o
       .filter(([, items]) => items.some((item) => item.productId === partId))
       .map(([bundleId, items]) => ({ name: byId.get(bundleId)!.name, available: bundleAvailable(items, (id) => stockById.get(id)) ?? 0 }));
   }).filter((entry, index, all) => all.findIndex((other) => other.name === entry.name) === index);
-  // A size or colour counted on its own needs enough of that version too (unless the product keeps selling at 0).
+  // A size or colour counted on its own needs enough of that version too (unless the product keeps selling at 0; an
+  // item of a bundle never does). A version short only inside a bundle names the bundle, with how many are left.
   for (const [productId, holds] of variantHolds) {
-    const product = byId.get(productId)!;
+    const product = stockById.get(productId)!;
     if (storeStockMode(product) !== "strict") continue;
     const variants = resolveStock(product.variants);
     for (const hold of holds) {
       const left = variants.get(hold.id);
-      if (left !== undefined && left !== null && left < hold.quantity && !short.some((entry) => entry.name === hold.name)) short.push({ name: hold.name, available: Math.max(0, left) });
+      if (left === undefined || left === null || left >= hold.quantity) continue;
+      const entries = quantities.has(productId)
+        ? [{ name: hold.name, available: Math.max(0, left) }]
+        : [...bundles]
+            .filter(([, items]) => items.some((item) => item.productId === productId && itemVariant(product, item.variantId)?.id === hold.id))
+            .map(([bundleId, items]) => ({ name: byId.get(bundleId)!.name, available: bundleAvailable(items, (id) => stockById.get(id)) ?? 0 }));
+      for (const entry of entries) if (!short.some((other) => other.name === entry.name)) short.push(entry);
     }
   }
   if (short.length) return { ok: false, message: stockShortfallMessage(short) };

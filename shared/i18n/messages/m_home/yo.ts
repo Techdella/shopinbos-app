@@ -3,7 +3,7 @@ import type en from "./en.ts";
 
 const yo: Partial<Record<keyof typeof en, string>> = {
   askPeggy: "Béèrè ohunkóhun lọ́wọ́ Peggy",
-  "loading.starting": "Shopinbos ń bẹ̀rẹ̀",
+  "loading.starting": "Shopinbos Business ń bẹ̀rẹ̀",
   "loading.openingName": "A ń ṣí {name}",
   "loading.opening": "A ń ṣí ṣọ́ọ̀bù rẹ",
   "loading.checkingOrders": "A ń wo àwọn order tuntun",

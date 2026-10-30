@@ -12,6 +12,8 @@ import { ProductPickSheet } from "@/components/ProductPickSheet";
 import { Screen } from "@/components/Screen";
 import { Card, Chip, Field, InfoTip, Label, LinkButton, Notice, PillButton, Segmented, T, WithTip } from "@/components/ui";
 import { uploadProductPhoto } from "@/lib/products";
+import { uploadMediaPhoto } from "@/lib/supplier";
+import { useRole } from "@/lib/role";
 import { createVideo, fetchStudioProducts, fetchVideo, makeReelShots, patchVideo, writeVideoScript } from "@/lib/video";
 import {
   addPhotos,
@@ -36,6 +38,8 @@ import {
   type VideoPurpose,
   type VideoRow,
   type VideoStatus,
+  videoPurposesFor,
+  videoWithoutShop,
 } from "@/lib/video-pure";
 import { WebButtonLabel } from "@/components/WebBadge";
 import { openWeb } from "@/lib/web";
@@ -46,21 +50,30 @@ import { FunLoader } from "@/components/FunLoader";
 // The phone's video studio (web /home/video/studio): photos from a product or the phone, Rex's shots, a style,
 // the words (Rex writes them), the voice and music. Everything saves itself as a draft (the web studio's
 // VideoConfig). The reel itself is drawn in a browser, so "Finish on the web" opens this draft there to make it.
+// Delivery partners use the same screen (their video belongs to their LogisticsPartner, shared/video-owner.ts): no
+// products, photos go through their media library (POST /api/app/media, which every role may use; /api/upload is
+// seller-only) and "Finish on the web" opens /logistics/video/studio.
 
 type NoticeState = { tone: "error" | "info" | "success"; text: string };
 
 export default function VideoStudioScreen() {
   const t = useT("m_video", "m_ui");
   const params = useLocalSearchParams<{ id?: string; purpose?: string; product?: string }>();
-  // The draft gets its id after the first save; the screen keeps what it opened with.
-  const [start] = useState(() => ({ id: params.id ?? null, purpose: readPurpose(params.purpose), product: params.product ?? null }));
+  const { role } = useRole();
+  const partner = videoWithoutShop(role);
+  // The draft gets its id after the first save; the screen keeps what it opened with. A partner has no products, so a
+  // "product" link starts a social video.
+  const [start] = useState(() => {
+    const purpose = readPurpose(params.purpose);
+    return { id: params.id ?? null, purpose: videoPurposesFor(role).includes(purpose) ? purpose : "social", product: partner ? null : params.product ?? null };
+  });
   const [loaded, setLoaded] = useState<{ products: StudioProduct[]; project: VideoRow | null } | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([fetchStudioProducts().catch(() => [] as StudioProduct[]), start.id ? fetchVideo(start.id) : Promise.resolve(null)])
+    Promise.all([partner ? Promise.resolve([] as StudioProduct[]) : fetchStudioProducts().catch(() => [] as StudioProduct[]), start.id ? fetchVideo(start.id) : Promise.resolve(null)])
       .then(([products, project]) => !cancelled && setLoaded({ products, project }))
       .catch((error) => !cancelled && setProblem(error instanceof Error ? error.message : t("load.problem")));
     return () => {
@@ -79,10 +92,10 @@ export default function VideoStudioScreen() {
       </Screen>
     );
   }
-  return <Studio products={loaded.products} project={loaded.project} startPurpose={start.purpose} startProduct={start.product} />;
+  return <Studio products={loaded.products} project={loaded.project} startPurpose={start.purpose} startProduct={start.product} partner={partner} role={role} />;
 }
 
-function Studio({ products, project, startPurpose, startProduct }: { products: StudioProduct[]; project: VideoRow | null; startPurpose: VideoPurpose; startProduct: string | null }) {
+function Studio({ products, project, startPurpose, startProduct, partner, role }: { products: StudioProduct[]; project: VideoRow | null; startPurpose: VideoPurpose; startProduct: string | null; partner: boolean; role: string | null }) {
   const t = useT("m_video", "video", "m_ui");
   const purpose = project ? readPurpose(project.purpose) : startPurpose;
   const initialProduct = products.find((item) => item.id === (project?.productId ?? startProduct)) ?? null;
@@ -181,7 +194,9 @@ function Studio({ products, project, startPurpose, startProduct }: { products: S
     setStep("photos");
     try {
       for (const asset of result.assets.slice(0, room)) {
-        const url = await uploadProductPhoto({ uri: asset.uri, mimeType: asset.mimeType, fileName: asset.fileName, width: asset.width, height: asset.height, fileSize: asset.fileSize });
+        const photo = { uri: asset.uri, mimeType: asset.mimeType, fileName: asset.fileName, width: asset.width, height: asset.height, fileSize: asset.fileSize };
+        // Partners can't use the shop's product upload (/api/upload is seller-only): their media library takes it.
+        const url = partner ? await uploadMediaPhoto(photo) : await uploadProductPhoto(photo);
         update((current) => ({ ...current, photos: addPhotos(current.photos, [url]) }));
       }
     } catch (error) {
@@ -238,7 +253,7 @@ function Studio({ products, project, startPurpose, startProduct }: { products: S
       const id = await saveNow();
       if (!id) return setNotice({ tone: "error", text: t("err.photo") });
       setAutosave("saved");
-      await openWeb(webStudioPath(id));
+      await openWeb(webStudioPath(id, role));
     } catch (error) {
       setNotice({ tone: "error", text: error instanceof Error ? error.message : t("save.problem") });
     } finally {
@@ -364,8 +379,8 @@ function Studio({ products, project, startPurpose, startProduct }: { products: S
       <Card style={{ gap: 10 }}>
         <T weight="extrabold" style={{ fontSize: 17 }} accessibilityRole="header">{t("whatPeggySays")}</T>
         <View>
-          <Label>{t("product")}</Label>
-          <Field value={state.name} onChangeText={(name) => update((current) => ({ ...current, name }))} maxLength={160} accessibilityLabel={t("product")} />
+          <Label>{partner ? t("partner.about") : t("product")}</Label>
+          <Field value={state.name} onChangeText={(name) => update((current) => ({ ...current, name }))} placeholder={partner ? t("partner.aboutPh") : undefined} maxLength={160} accessibilityLabel={partner ? t("partner.about") : t("product")} />
         </View>
         <View>
           <Label>{t("priceOnScreen")}</Label>

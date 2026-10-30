@@ -12,7 +12,7 @@ import { ROLE_ICON, SIGNUP_ROLES, type SignupRole } from "@/lib/partner-pure";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
-// First screen ("Simple app, end to end" prototype, E2E-Start): Rex, "Shopinbos" and one line, then "Get started"
+// First screen ("Simple app, end to end" prototype, E2E-Start): Rex, "Shopinbos Business" and one line, then "Get started"
 // or "I already have an account". Get started is sign up, one question per screen (Shopinbos Onboarding —
 // Simplified): name → phone → code → "What brings you to Shopinbos?" (AuthForm, verify). Riders have no account:
 // "I'm a rider" opens their own sign-in. /welcome?step=role (older links) still shows the cards, and a card there
@@ -105,7 +105,7 @@ export default function Welcome() {
           <View style={{ width: 76, height: 76, borderRadius: 38, borderWidth: 4, borderColor: colors.forest, backgroundColor: colors.mintTint, overflow: "hidden", alignItems: "center", justifyContent: "center" }}>
             <Mascot who="rex" size={68} decorative />
           </View>
-          <Title size={40} style={{ textAlign: "center" }}>Shopinbos</Title>
+          <Title size={36} style={{ textAlign: "center" }}>Shopinbos Business</Title>
           <Sub style={{ textAlign: "center" }}>{t("start.tagline")}</Sub>
         </View>
       </ScrollView>

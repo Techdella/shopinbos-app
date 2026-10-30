@@ -148,7 +148,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "set.tips": "Ndụmọdụ na nkọwa nta",
   "set.tipsHint": "Nkọwa okwu na mmalite na-emepe onwe ha",
   "set.appearance": "Ọdịdị",
-  "set.appearanceChoose": "Kedu ka ị chọrọ ka Shopinbos dị?",
+  "set.appearanceChoose": "Kedu ka ị chọrọ ka Shopinbos Business dị?",
   "set.appearanceAuto": "Akpaaka",
   "set.appearanceAutoSub": "Ọ na-eso ntọala ìhè ma ọ bụ ọchịchịrị nke ekwentị gị",
   "set.appearanceLight": "Ìhè",

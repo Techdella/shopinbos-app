@@ -23,8 +23,8 @@ class Sib_CLI {
 	 * @param array $assoc
 	 */
 	public function setup( $args, $assoc ) {
-		update_option( 'blogname', 'Shopinbos' );
-		update_option( 'blogdescription', 'Sell online and reach your customers. Find products, sell everywhere, run your store, talk to customers and get paid, in one app.' );
+		update_option( 'blogname', 'Shopinbos Business' );
+		update_option( 'blogdescription', 'Everything you need to sell online: find products, sell everywhere, run your store, talk to customers and get paid, in one app.' );
 		update_option( 'timezone_string', 'Africa/Lagos' );
 		update_option( 'date_format', 'j F Y' );
 		update_option( 'default_comment_status', 'closed' );

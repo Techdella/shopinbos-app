@@ -20,7 +20,8 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getT("rider");
   return {
-    title: "Shopinbos Riders",
+    // "Riders · Shopinbos Business" through the root title template.
+    title: "Riders",
     description: t("meta.description"),
     robots: { index: false, follow: false },
     // The link itself is the credential: never send it to the sites a rider opens from here (WhatsApp, maps).

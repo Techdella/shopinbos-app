@@ -18,8 +18,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "persona.rex.line": "Mai kula da shagonka, bidiyo da design ɗinka 🦖",
   "persona.peggy.line": "Kwastomomi, chat da support. Ina tare da kai 💛",
   "persona.team.name": "Ƙungiyar Shopinbos",
-  "persona.from": "{name} daga Shopinbos",
-  "persona.signature": "{name}, daga Shopinbos",
+  "persona.from": "{name} daga Shopinbos Business",
+  "persona.signature": "{name}, daga Shopinbos Business",
   "proverb.title": "Karin maganar mako",
   "notify.viewDetails": "Duba bayani",
 
@@ -80,7 +80,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "j.fromPeggy": "Daga Peggy",
   "j.fromRex": "Daga Rex",
   "j.fromBoth": "Daga Rex da Peggy",
-  "j.openShopinbos": "Buɗe Shopinbos",
+  "j.openShopinbos": "Buɗe Shopinbos Business",
 
   "j.setup.progress": "Ka gama mataki {done} cikin {total}.",
   "j.setup.next": "Mataki na gaba: {step}. {hint}",

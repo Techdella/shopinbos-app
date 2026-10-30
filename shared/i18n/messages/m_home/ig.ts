@@ -3,7 +3,7 @@ import type en from "./en.ts";
 
 const ig: Partial<Record<keyof typeof en, string>> = {
   askPeggy: "Jụọ Peggy ihe ọ bụla",
-  "loading.starting": "Shopinbos na-amalite",
+  "loading.starting": "Shopinbos Business na-amalite",
   "loading.openingName": "Anyị na-emepe {name}",
   "loading.opening": "Anyị na-emepe ụlọ ahịa gị",
   "loading.checkingOrders": "Anyị na-elele order ọhụrụ",

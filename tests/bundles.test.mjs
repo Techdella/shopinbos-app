@@ -38,12 +38,14 @@ test("items belong to the same store; no bundle inside a bundle, no supplier, ve
   const nested = part("x", { productDetails: { bundle: { items: [{ productId: "soap", quantity: 1 }] } } });
   assert.deepEqual(b.checkBundle(input(two), [...parts, nested]), { ok: false, problem: "nested", product: "X" });
   assert.equal(b.checkBundle(input(two), [...parts, part("x", { fulfillmentType: "dropship" })]).problem, "dropship");
-  assert.equal(b.checkBundle(input(two), [...parts, part("x", { variants: [{ id: "v1", name: "Red" }] })]).problem, "versions");
-  assert.equal(b.checkBundle(input(two), [...parts, part("x", { variants: [{ id: "v1", enabled: false }] })]).ok, true, "only switched-off versions");
+  // A product with sizes needs one named (see the sizes tests below); one whose sizes are all switched off can't go in.
+  assert.deepEqual(b.checkBundle(input(two), [...parts, part("x", { variants: [{ id: "v1", name: "Red" }] })]), { ok: false, problem: "variant", product: "X" });
+  assert.equal(b.checkBundle(input(two), [...parts, part("x", { variants: [{ id: "v1", name: "Red", enabled: false }] })]).problem, "versions");
+  assert.equal(b.checkBundle(input(two), [...parts, part("x", { variants: [{ id: "v1", enabled: false }] })]).ok, true, "unreadable versions don't count");
   assert.equal(b.checkBundle(input(two), [...parts, part("x", { preorderEnabled: true })]).problem, "preorder");
   assert.equal(b.checkBundle(input(two), [...parts, part("x", { status: "archived" })]).problem, "archived");
   assert.equal(b.checkBundle(input([{ productId: "soap", quantity: 1 }, { productId: "me", quantity: 1 }], { selfId: "me" }), [...parts, part("me")]).problem, "self");
-  for (const problem of ["name", "price", "too_few", "too_many", "quantity", "missing", "self", "nested", "dropship", "versions", "preorder", "archived"]) assert.ok(b.bundleProblemMessage(problem, "Soap").length > 5);
+  for (const problem of ["name", "price", "too_few", "too_many", "quantity", "missing", "self", "nested", "dropship", "versions", "variant", "preorder", "archived"]) assert.ok(b.bundleProblemMessage(problem, "Soap").length > 5);
 });
 
 test("the bundle is saved in productDetails and survives the product form", () => {
@@ -119,4 +121,123 @@ test("checkout and the storefront use the bundle rules", () => {
   assert.match(page, /bundleForProductPage/);
   const helper = readFileSync(new URL("../src/lib/products/bundles.server.ts", import.meta.url), "utf8");
   assert.match(helper, /bundleForShoppers\(/);
+});
+
+// ─── Sizes and options (shared/product-variants.ts) ──────────────────────────
+
+const dress = part("dress", {
+  name: "Ankara dress",
+  retailPrice: 10000,
+  images: ["dress.jpg"],
+  variants: [
+    { id: "v-s", options: { Size: "S" }, name: "S", price: null, stock: 4 },
+    { id: "v-m", options: { Size: "M" }, name: "M", price: 12000, stock: 3, imageUrl: "m.jpg" },
+    { id: "v-l", options: { Size: "L" }, name: "L", price: null, stock: null },
+    { id: "v-xl", options: { Size: "XL" }, name: "XL", price: null, stock: 9, enabled: false },
+  ],
+});
+
+test("sizes: a product with sizes names one of its switched-on sizes; one without names none", () => {
+  const ok = b.checkBundle(input([{ productId: "dress", variantId: "v-m", quantity: 1 }, { productId: "soap", quantity: 1 }]), [...parts, dress]);
+  assert.deepEqual(ok, { ok: true, items: [{ productId: "dress", variantId: "v-m", quantity: 1 }, { productId: "soap", quantity: 1 }] });
+  assert.equal(b.checkBundle(input([{ productId: "dress", quantity: 1 }, { productId: "soap", quantity: 1 }]), [...parts, dress]).problem, "variant", "no size picked");
+  assert.equal(b.checkBundle(input([{ productId: "dress", variantId: "v-zz", quantity: 1 }, { productId: "soap", quantity: 1 }]), [...parts, dress]).problem, "variant", "unknown size");
+  assert.equal(b.checkBundle(input([{ productId: "dress", variantId: "v-xl", quantity: 1 }, { productId: "soap", quantity: 1 }]), [...parts, dress]).problem, "variant", "switched-off size");
+  assert.equal(b.checkBundle(input([{ productId: "soap", variantId: "v-m", quantity: 1 }, { productId: "cream", quantity: 1 }]), parts).problem, "variant", "a product without sizes names none");
+  // null / empty variantId means none (what forms may send).
+  assert.equal(b.checkBundle(input([{ productId: "soap", variantId: null, quantity: 1 }, { productId: "cream", variantId: "", quantity: 1 }]), parts).ok, true);
+  // Still refused with sizes: supplier, pre-order, unpublished-for-sale checks and bundles inside bundles.
+  const sized = { variants: dress.variants };
+  const two = [{ productId: "soap", quantity: 1 }, { productId: "x", variantId: "v-m", quantity: 1 }];
+  assert.equal(b.checkBundle(input(two), [...parts, part("x", { ...sized, fulfillmentType: "dropship" })]).problem, "dropship");
+  assert.equal(b.checkBundle(input(two), [...parts, part("x", { ...sized, preorderEnabled: true })]).problem, "preorder");
+  assert.equal(b.checkBundle(input(two), [...parts, part("x", { ...sized, status: "archived" })]).problem, "archived");
+  assert.equal(b.checkBundle(input(two), [...parts, part("x", { ...sized, productDetails: { bundle: { items: [{ productId: "soap", quantity: 1 }] } } })]).problem, "nested");
+  assert.equal(b.partProblem(dress), null, "the pickers offer products with sizes");
+});
+
+test("sizes: the same product twice with different sizes is two lines; the same size twice is one", () => {
+  const two = b.checkBundle(input([{ productId: "dress", variantId: "v-s", quantity: 1 }, { productId: "dress", variantId: "v-m", quantity: 2 }]), [...parts, dress]);
+  assert.deepEqual(two, { ok: true, items: [{ productId: "dress", variantId: "v-s", quantity: 1 }, { productId: "dress", variantId: "v-m", quantity: 2 }] });
+  assert.equal(b.checkBundle(input([{ productId: "dress", variantId: "v-m", quantity: 1 }, { productId: "dress", variantId: "v-m", quantity: 2 }]), [...parts, dress]).problem, "too_few");
+  assert.deepEqual(b.mergeBundleItems([{ productId: "dress", variantId: "v-m", quantity: 1 }, { productId: "dress", variantId: "v-m", quantity: 2 }, { productId: "soap", variantId: null, quantity: 1 }]), [{ productId: "dress", variantId: "v-m", quantity: 3 }, { productId: "soap", quantity: 1 }]);
+  assert.equal(b.bundleItemKey({ productId: "dress", variantId: "v-m" }), "dress::v-m");
+  assert.equal(b.bundleItemKey({ productId: "soap" }), b.bundleItemKey({ productId: "soap", variantId: null }));
+});
+
+test("sizes: saved and read back with the size; older items without one still read", () => {
+  const details = b.bundleDetails({}, [{ productId: "dress", variantId: "v-m", quantity: 1 }, { productId: "soap", quantity: 2 }]);
+  assert.deepEqual(details.bundle.items, [{ productId: "dress", variantId: "v-m", quantity: 1 }, { productId: "soap", quantity: 2 }]);
+  assert.deepEqual(b.readBundle(details), [{ productId: "dress", variantId: "v-m", quantity: 1 }, { productId: "soap", quantity: 2 }]);
+  assert.deepEqual(b.readBundle({ bundle: { items: [{ productId: "soap", quantity: 2, variantId: "" }, { productId: "cream", quantity: 1, variantId: 5 }] } }), [{ productId: "soap", quantity: 2 }, { productId: "cream", quantity: 1 }]);
+  assert.deepEqual(b.keepBundle(details, { colour: "Brown" }).bundle.items[0], { productId: "dress", variantId: "v-m", quantity: 1 });
+});
+
+test("sizes: the saving uses a size's own price when it has one", () => {
+  assert.equal(b.bundleItemPrice(dress, { variantId: "v-m" }), 12000);
+  assert.equal(b.bundleItemPrice(dress, { variantId: "v-s" }), 10000, "no own price: the product's");
+  assert.equal(b.bundleItemPrice(part("soap"), {}), 1000);
+  const items = [{ productId: "dress", variantId: "v-m", quantity: 1 }, { productId: "soap", quantity: 2 }];
+  const rows = new Map([["dress", dress], ["soap", part("soap")]]);
+  const total = b.partsTotal(items, (id, item) => b.bundleItemPrice(rows.get(id), item));
+  assert.equal(total, 14000);
+  assert.deepEqual(b.bundleSaving(total, 12600), { amount: 1400, percent: 10 });
+});
+
+test("sizes: availability is the lowest of the product's count and the size's own count, over items sharing them", () => {
+  const tracked = { ...dress, trackStock: true, currentStock: 7, reservedStock: 0 };
+  const of = (id) => (id === "dress" ? tracked : id === "soap" ? { status: "published", trackStock: false } : undefined);
+  assert.equal(b.partLimit(tracked, 1, "v-m"), 3, "size M has 3");
+  assert.equal(b.partLimit(tracked, 2, "v-s"), 2, "size S has 4");
+  assert.equal(b.partLimit(tracked, 1, "v-l"), 7, "L isn't counted on its own: the product's 7");
+  assert.equal(b.partLimit(tracked, 1, "v-xl"), 0, "switched off");
+  assert.equal(b.partLimit(tracked, 1, "v-zz"), 0, "gone");
+  assert.equal(b.partLimit(tracked, 1), 0, "no size named and more than one");
+  assert.equal(b.partLimit({ ...tracked, trackStock: false }, 1, "v-m"), null, "stock not tracked");
+  assert.equal(b.bundleAvailable([{ productId: "dress", variantId: "v-m", quantity: 1 }, { productId: "soap", quantity: 1 }], of), 3);
+  // S and L together share the product's 7: 2 S + 2 L per bundle = 4 units → 1 bundle.
+  assert.equal(b.bundleAvailable([{ productId: "dress", variantId: "v-s", quantity: 2 }, { productId: "dress", variantId: "v-l", quantity: 2 }], of), 1, "7 / 4 = 1");
+  assert.equal(b.bundleAvailable([{ productId: "dress", variantId: "v-s", quantity: 1 }, { productId: "dress", variantId: "v-l", quantity: 1 }], of), 3, "7 / 2 = 3, S allows 4");
+  assert.equal(b.bundleAvailable([{ productId: "dress", variantId: "v-xl", quantity: 1 }, { productId: "soap", quantity: 1 }], of), 0, "a switched-off size: none");
+  // Older rows (no sizes) work as before.
+  assert.equal(b.partLimit({ trackStock: true, currentStock: 5 }, 2), 2);
+});
+
+test("sizes: checkout takes each size's units from the bundles in the bag, added up across bundles", () => {
+  const bundles = new Map([
+    ["kit", [{ productId: "dress", variantId: "v-m", quantity: 1 }, { productId: "soap", quantity: 2 }]],
+    ["pair", [{ productId: "dress", variantId: "v-m", quantity: 1 }, { productId: "dress", variantId: "v-s", quantity: 1 }]],
+  ]);
+  const lines = new Map([["kit", 2], ["pair", 1], ["soap", 1]]);
+  const rows = new Map([["dress", dress], ["soap", part("soap")]]);
+  const variants = b.bundleVariantQuantities(lines, bundles, (id) => rows.get(id));
+  assert.deepEqual([...variants.keys()], ["dress"], "products without sizes give no size units");
+  assert.deepEqual(Object.fromEntries(variants.get("dress")), { "v-m": 3, "v-s": 1 });
+  // The product's own count takes every size's units.
+  assert.deepEqual(Object.fromEntries(b.bundleStockQuantities(lines, bundles)), { dress: 4, soap: 5 });
+});
+
+test("storefront: What's inside names the size, with its price and photo", () => {
+  const rows = [
+    { ...dress, trackStock: true, currentStock: 7 },
+    { id: "soap", name: "Black soap", images: ["s.jpg"], retailPrice: 1000, trackStock: false },
+  ];
+  const { summary, stock } = b.bundleForShoppers([{ productId: "dress", variantId: "v-m", quantity: 1 }, { productId: "soap", quantity: 1 }], 12000, rows);
+  assert.deepEqual(summary.items, [
+    { id: "dress", name: "Ankara dress", variant: "M", image: "m.jpg", quantity: 1, price: 12000 },
+    { id: "soap", name: "Black soap", image: "s.jpg", quantity: 1, price: 1000 },
+  ]);
+  assert.equal(summary.partsTotal, 13000);
+  assert.deepEqual(summary.saving, { amount: 1000, percent: 8 });
+  assert.equal(stock.left, 3);
+  const kit = { id: "kit", productDetails: { bundle: { items: [{ productId: "dress", variantId: "v-s", quantity: 2 }] } } };
+  assert.equal(b.bundleStocks([...rows, kit]).get("kit").left, 2, "size S: 4 / 2");
+});
+
+test("checkout and record-sale take a bundle's size stock through the same paths", () => {
+  const pricing = readFileSync(new URL("../src/lib/commerce/pricing.server.ts", import.meta.url), "utf8");
+  assert.match(pricing, /bundleVariantQuantities\(/);
+  assert.match(pricing, /itemVariant\(part, item\.variantId\)/);
+  const sale = readFileSync(new URL("../src/lib/orders/record-sale.ts", import.meta.url), "utf8");
+  assert.match(sale, /adjustVariantStock/);
 });

@@ -6,6 +6,11 @@
 
 import { fallbackScript, MAX_PHOTOS, VIDEO_LANGUAGES, type VideoLanguage, type VideoScript } from "../../../../shared/video.ts";
 import { defaultMood, isMusicMood, isReelTemplate, REEL_SHOT_LOOKS, type MusicMood, type ReelShotLook, type ReelTemplateId } from "../../../../shared/video-style.ts";
+import { videoPlacesFor, videoPurposesFor, videoWithoutShop, webVideoStudioPath } from "../../../../shared/video-owner.ts";
+
+// Delivery partners make videos too: their projects belong to their LogisticsPartner (shared/video-owner.ts), they
+// start "ad" or "social" videos only, and finish them on the web at /logistics/video/studio.
+export { videoPlacesFor, videoPurposesFor, videoWithoutShop };
 
 export { MAX_PHOTOS };
 export type { VideoLanguage, VideoScript };
@@ -259,9 +264,9 @@ export function voiceChoices(current: VoiceChoice): VoiceChoice[] {
   return (PHONE_VOICES as readonly VoiceChoice[]).includes(current) ? [...PHONE_VOICES] : [...PHONE_VOICES, current];
 }
 
-/** The web studio for one project, where the reel is made ("Finish on the web"). */
-export function webStudioPath(id: string) {
-  return `/home/video/studio?id=${encodeURIComponent(id)}`;
+/** The web studio for one project, where the reel is made ("Finish on the web"): /logistics/video/studio for a partner. */
+export function webStudioPath(id: string, role?: string | null) {
+  return webVideoStudioPath(role ?? "seller", id);
 }
 
 /** A Rex Studio video card as a new project: his words for the product, ready in the studio. */

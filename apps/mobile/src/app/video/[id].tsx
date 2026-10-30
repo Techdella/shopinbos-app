@@ -12,13 +12,14 @@ import { saveProduct } from "@/lib/products";
 import { ShareSheet } from "@/components/familiar/ShareSheet";
 import { useLoad } from "@/lib/useLoad";
 import { deleteVideo, fetchVideo, patchVideo } from "@/lib/video";
-import { publishedKinds, readConfig, readPurpose, readStatus } from "@/lib/video-pure";
+import { publishedKinds, readConfig, readPurpose, readStatus, videoWithoutShop } from "@/lib/video-pure";
+import { useRole } from "@/lib/role";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
 // One saved video (web /home/video, a saved card): play it, share it, keep it on the phone, put it on the
 // product's page or mark it posted, change it in the studio, boost the product with an ad (app/ads/new.tsx), or
-// delete it.
+// delete it. A delivery partner's video has no product, so only sharing, saving and "mark posted" show for them.
 
 function Player({ url }: { url: string }) {
   const player = useVideoPlayer(url, (created) => {
@@ -38,6 +39,8 @@ function Player({ url }: { url: string }) {
 export default function VideoDetail() {
   const t = useT("m_video", "video", "m_ui");
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { role } = useRole();
+  const shop = !videoWithoutShop(role);
   const video = useLoad(() => fetchVideo(id), id);
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ tone: "error" | "success" | "info"; text: string } | null>(null);
@@ -127,7 +130,7 @@ export default function VideoDetail() {
           }}
         />
         <T style={{ color: colors.inkSoft, fontSize: 13.5, lineHeight: 19 }}>{t("watch.saveHint")}</T>
-        {row.productId ? (
+        {shop && row.productId ? (
           <PillButton
             size="md"
             tone="white"
@@ -160,7 +163,7 @@ export default function VideoDetail() {
         />
         <PillButton size="md" tone="white" title={t("watch.change")} disabled={Boolean(busy)} onPress={() => router.push({ pathname: "/video/studio", params: { id: row.id } })} />
         {/* "Post or boost" (board M-RexVideo): an ad for the video's product, in the app's own ads flow. */}
-        {row.productId ? (
+        {shop && row.productId ? (
           <PillButton testID="video-boost" size="md" tone="white" icon="megaphone" title={t("watch.boost")} disabled={Boolean(busy)} onPress={() => router.push({ pathname: "/ads/new", params: { product: row.productId! } })} />
         ) : null}
       </Card>

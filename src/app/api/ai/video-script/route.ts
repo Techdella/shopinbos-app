@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { withSeller } from "@/lib/auth/middleware";
+import { withVideoMaker } from "@/lib/video/owner.server";
 import { apiError, ok } from "@/lib/api/response";
 import { aiText, firstJsonObject } from "@/lib/ai/text";
 import { meterAi } from "@/lib/ai/usage";
@@ -26,13 +26,15 @@ const LANGUAGE_NOTE: Record<string, string> = {
   hausa: "Hausa with correct hooked letters (ɓ, ɗ, ƙ).",
 };
 
-// Video studio: captions, a voiceover and an end-card line for a short product reel.
-export const POST = withSeller(async (req, { user }) => {
+// Video studio: captions, a voiceover and an end-card line for a short product reel. Delivery partners get a reel
+// about their delivery business instead ("name" is what the video is about, e.g. "Same-day delivery in Lagos").
+export const POST = withVideoMaker(async (req, { user }) => {
   const parsed = Schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Check the details");
   const { name, price, description, language, photos } = parsed.data;
   const fallback = fallbackScript(name, price, language as never, photos);
 
+  const partner = user.role === "logistics_partner";
   const limited = await meterAi(user.id, "text");
   if (limited) return limited;
 
@@ -41,10 +43,12 @@ export const POST = withSeller(async (req, { user }) => {
     fast: true,
     prefer: "anthropic",
     prompt: [
-      `Write a ${photos}-shot vertical product reel for a small Nigerian online shop.`,
-      `Product: ${name}${price ? `, ${price}` : ""}.${description ? ` Details: ${description}` : ""}`,
+      partner
+        ? `Write a ${photos}-shot vertical promo reel for a Nigerian delivery business that wants online shops to book it.`
+        : `Write a ${photos}-shot vertical product reel for a small Nigerian online shop.`,
+      `${partner ? "About" : "Product"}: ${name}${price ? `, ${price}` : ""}.${description ? ` Details: ${description}` : ""}`,
       `Language: ${LANGUAGE_NOTE[language]}`,
-      `Return JSON only: {"captions": [${photos} on-screen lines, max 6 words each, one per photo], "voiceover": "2-3 short sentences, under 40 words, ends by telling viewers to tap the link", "cta": "end card line, max 5 words"}.`,
+      `Return JSON only: {"captions": [${photos} on-screen lines, max 6 words each, one per photo], "voiceover": "2-3 short sentences, under 40 words, ${partner ? "ends by telling shops how to book the delivery" : "ends by telling viewers to tap the link"}", "cta": "end card line, max 5 words"}.`,
       "No emojis, no hashtags, no prices other than the one given, no claims you can't know (materials, origin) unless in the details.",
     ].join("\n"),
   }))?.text ?? null;

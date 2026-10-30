@@ -8,7 +8,8 @@ import { BundleSaveError, BundleSaveSchema, bundleChoices, saveBundle, sellerBun
 
 // Bundles ("Buy together", shared/bundles.ts) for the web's /products/bundles and the phone's "Make a bundle":
 //   GET  → { bundles, choices }: the store's bundles and the products a bundle can hold
-//   POST { name, price, items: [{ productId, quantity }], image?, description?, publish? } → the new bundle
+//   POST { name, price, items: [{ productId, variantId?, quantity }], image?, description?, publish? } → the new bundle
+//        (variantId: the size / option picked for a product that has them; choices list each product's `variants`)
 // Changing one: PATCH /api/store/products/bundles/[id]; removing one archives it like any product (DELETE
 // /api/store/products/[id]).
 

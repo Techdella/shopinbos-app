@@ -21,7 +21,7 @@ export interface SettingCheck {
 export const SETTING_CHECKS: SettingCheck[] = [
   // Email
   { group: "Email", label: "Resend API key", keys: ["RESEND_API_KEY"], level: "required", missing: "No email leaves the app: orders, sign-up, product news, campaigns.", where: "resend.com → API Keys" },
-  { group: "Email", label: "From address", keys: ["RESEND_FROM_EMAIL"], level: "required", missing: "Emails go from a default address that may not be verified in Resend.", where: "e.g. Shopinbos <hello@shopinbos.com> (domain verified in Resend)" },
+  { group: "Email", label: "From address", keys: ["RESEND_FROM_EMAIL"], level: "required", missing: "Emails go from a default address that may not be verified in Resend.", where: "e.g. Shopinbos Business <hello@shopinbos.com> (domain verified in Resend; the name shown is always Shopinbos Business)" },
   { group: "Email", label: "Resend webhook secret", keys: ["RESEND_WEBHOOK_SECRET"], level: "recommended", missing: "Bounces and complaints aren't recorded, so bad addresses keep getting mail.", where: "resend.com → Webhooks → signing secret" },
 
   // Scheduled jobs

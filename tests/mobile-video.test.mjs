@@ -143,6 +143,6 @@ test("the app's screens, links and Rex card use the phone studio", () => {
   // The studio says plainly that the last step is on the web, and nothing on the phone asks with window dialogs.
   const studio = read("apps/mobile/src/app/video/studio.tsx");
   assert.match(studio, /t\("finish\.button"\)/);
-  assert.match(studio, /webStudioPath\(id\)/);
+  assert.match(studio, /webStudioPath\(id, role\)/); // a partner finishes at /logistics/video/studio (tests/partner-videos.test.mjs)
   for (const screen of ["index", "studio", "[id]"]) assert.doesNotMatch(read(`apps/mobile/src/app/video/${screen}.tsx`), /window\.|Alert\.alert|confirm\(/);
 });

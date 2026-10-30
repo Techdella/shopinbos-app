@@ -30,7 +30,7 @@ function sib_seed_legal_core(): array {
  [
   "terms",
   "Terms of service",
-  "These terms are the agreement between you and Shopinbos when you use our app and website to sell.",
+  "These terms are the agreement between you and Shopinbos when you use Shopinbos Business, our app and website to sell.",
   [
    "You own your shop, your products and your customers.",
    "You pay the plan you choose. Your customers’ card payments go straight to your bank.",
@@ -41,8 +41,8 @@ function sib_seed_legal_core(): array {
    [
     "Who we are",
     [
-     "Shopinbos is run by Tech Della Solutions Ltd (RC 7038770), a company registered with the Corporate Affairs Commission in Nigeria, with its office in Lagos. “We” and “us” in these terms means Tech Della Solutions Ltd, which runs Shopinbos.",
-     "By creating an account or using Shopinbos, you agree to these terms. If you use Shopinbos for a business, you agree on behalf of that business."
+     "Shopinbos Business, the Shopinbos app and website for sellers, suppliers and delivery partners, is run by Tech Della Solutions Ltd (RC 7038770), a company registered with the Corporate Affairs Commission in Nigeria, with its office in Lagos. “We” and “us” in these terms means Tech Della Solutions Ltd, which runs Shopinbos. These terms cover Shopinbos Business. Shopinbos Plug, a separate app for shoppers run by the same company, may be covered later; if it is, we will say so here.",
+     "By creating an account or using Shopinbos Business, you agree to these terms. If you use Shopinbos Business for a business, you agree on behalf of that business."
     ],
     "This is an agreement between you and our company in Lagos."
    ],
@@ -135,7 +135,7 @@ function sib_seed_legal_core(): array {
    [
     "Who is responsible for your data",
     [
-     "Tech Della Solutions Ltd (RC 7038770) is the data controller for information about you as a seller, supplier or delivery partner. For your customers’ details, you are the controller and we process them for you, under these terms and the Nigeria Data Protection Act 2023 (NDPA).",
+     "Tech Della Solutions Ltd (RC 7038770) runs Shopinbos Business and is the data controller for information about you as a seller, supplier or delivery partner. This policy covers Shopinbos Business. Shopinbos Plug, a separate app for shoppers run by the same company, may be covered later; if it is, we will say so here. For your customers’ details, you are the controller and we process them for you, under these terms and the Nigeria Data Protection Act 2023 (NDPA).",
      "You can reach our Data Protection Officer at privacy@shopinbos.com."
     ],
     "We look after your data. You look after your customers’ data, and we help."

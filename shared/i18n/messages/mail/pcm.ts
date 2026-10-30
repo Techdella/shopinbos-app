@@ -18,8 +18,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "persona.rex.line": "Your guy for store, videos and design 🦖",
   "persona.peggy.line": "Customers, chats and support. I dey for you anytime 💛",
   "persona.team.name": "The Shopinbos team",
-  "persona.from": "{name} from Shopinbos",
-  "persona.signature": "{name}, from Shopinbos",
+  "persona.from": "{name} from Shopinbos Business",
+  "persona.signature": "{name}, from Shopinbos Business",
   "proverb.title": "Wise word for dis week",
   "notify.viewDetails": "See details",
 
@@ -80,7 +80,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "j.fromPeggy": "From Peggy",
   "j.fromRex": "From Rex",
   "j.fromBoth": "From Rex & Peggy",
-  "j.openShopinbos": "Open Shopinbos",
+  "j.openShopinbos": "Open Shopinbos Business",
 
   "j.setup.progress": "You don do {done} out of {total} steps.",
   "j.setup.next": "Next step: {step}. {hint}",

@@ -22,6 +22,9 @@ const OWNER_SHARED = ["/delivery"];
  * posting a status, and My details (name, email, phone and the business's address). Signed-in sellers, suppliers and
  * delivery partners only (not admins, not signed out). */
 const BUSINESS_SHARED = ["/rewards", "/ask-peggy", "/create", "/posts", "/status", "/my-details"];
+/** Rex videos (app/video): sellers and delivery partners (a partner's videos belong to their LogisticsPartner, see
+ * shared/video-owner.ts). Not suppliers: the video API is for sellers and partners only. */
+const VIDEO_SHARED = ["/video"];
 
 const under = (path: string, list: readonly string[]) => list.some((shared) => path === shared || path.startsWith(`${shared}/`));
 
@@ -48,6 +51,7 @@ export function canVisit(role: AppRole | null | undefined, pathname: string): bo
   const path = (pathname.split(/[?#]/)[0] || "/").replace(/\/+$/, "") || "/";
   if (role === "supplier" && under(path, OWNER_SHARED)) return true;
   if ((role === "seller" || role === "supplier" || role === "logistics_partner") && under(path, BUSINESS_SHARED)) return true;
+  if (role === "logistics_partner" && under(path, VIDEO_SHARED)) return true;
   if (area === "admin") return role === "admin";
   return Boolean(role) && AREA_ROLE[area] === role;
 }

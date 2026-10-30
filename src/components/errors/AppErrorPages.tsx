@@ -186,7 +186,7 @@ export function AppError({ error, retry }: { error: Error & { digest?: string };
 /** global-error's <title>, in the person's language. */
 export function GlobalErrorTitle() {
   const t = useErrorsT();
-  return <title>{`${t("error.pageTitle")} | Shopinbos`}</title>;
+  return <title>{`${t("error.pageTitle")} · Shopinbos Business`}</title>;
 }
 
 /** When the root layout itself failed (app/global-error.tsx): Rex is fixing, Peggy is looking. */

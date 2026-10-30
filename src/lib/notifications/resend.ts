@@ -31,7 +31,16 @@ function getResendClient(): Resend | null {
   return new Resend(apiKey);
 }
 
-const DEFAULT_FROM = process.env.RESEND_FROM_EMAIL ?? "Shopinbos <noreply@shopinbos.com>";
+/**
+ * The name Shopinbos's own emails (to sellers, suppliers, delivery partners and admins) go out under. A store's
+ * emails to its customers carry the store's name instead (formatFromAddress). RESEND_FROM_EMAIL only supplies the
+ * verified sending address; any display name in it is replaced by this one, so the product name is set in code.
+ */
+export const PLATFORM_SENDER_NAME = "Shopinbos Business";
+
+const FROM_ENV = process.env.RESEND_FROM_EMAIL?.trim();
+const SENDING_ADDRESS = FROM_ENV?.match(/<([^>]+)>/)?.[1]?.trim() || FROM_ENV || "noreply@shopinbos.com";
+const DEFAULT_FROM = `${PLATFORM_SENDER_NAME} <${SENDING_ADDRESS}>`;
 
 export async function sendEmail(options: EmailOptions): Promise<EmailSendResult> {
   const resend = getResendClient();
@@ -64,8 +73,7 @@ export function isEmailConfigured() {
 export function formatFromAddress(senderName?: string | null) {
   if (!senderName) return DEFAULT_FROM;
   // Keep the verified sending address; only the display name changes per store.
-  const address = DEFAULT_FROM.match(/<([^>]+)>/)?.[1] ?? DEFAULT_FROM;
-  return `${senderName.replace(/["<>]/g, "")} <${address}>`;
+  return `${senderName.replace(/["<>]/g, "")} <${SENDING_ADDRESS}>`;
 }
 
 export interface BatchEmail {

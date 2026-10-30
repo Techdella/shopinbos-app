@@ -13,8 +13,8 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "Shopinbos",
-    template: "%s | Shopinbos",
+    default: "Shopinbos Business",
+    template: "%s · Shopinbos Business",
   },
   description: "AI commerce operating system for African businesses. Build your store, source products, and grow with AI.",
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://app.shopinbos.com"),

@@ -1,26 +1,26 @@
 {
   "confirmation": {
-    "subject": "Your Shopinbos code: {{ .Token }}",
+    "subject": "Your Shopinbos Business code: {{ .Token }}",
     "file": "confirmation.html"
   },
   "magic_link": {
-    "subject": "Your Shopinbos sign-in code: {{ .Token }}",
+    "subject": "Your Shopinbos Business sign-in code: {{ .Token }}",
     "file": "magic_link.html"
   },
   "recovery": {
-    "subject": "Reset your Shopinbos password",
+    "subject": "Reset your Shopinbos Business password",
     "file": "recovery.html"
   },
   "invite": {
-    "subject": "You're invited to Shopinbos",
+    "subject": "You're invited to Shopinbos Business",
     "file": "invite.html"
   },
   "email_change": {
-    "subject": "Confirm your new Shopinbos email",
+    "subject": "Confirm your new Shopinbos Business email",
     "file": "email_change.html"
   },
   "reauthentication": {
-    "subject": "Your Shopinbos confirmation code: {{ .Token }}",
+    "subject": "Your Shopinbos Business confirmation code: {{ .Token }}",
     "file": "reauthentication.html"
   }
 }

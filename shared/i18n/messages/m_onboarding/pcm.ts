@@ -135,8 +135,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "checklist.labels.label": "Print your first price tags",
   "checklist.labels.hint": "Two taps from your products",
   // Welcome before Rex's first run (components/OnboardingWelcome.tsx)
-  "welcome.title": "Welcome to Shopinbos, {name}",
-  "welcome.titleNoName": "Welcome to Shopinbos",
+  "welcome.title": "Welcome to Shopinbos Business, {name}",
+  "welcome.titleNoName": "Welcome to Shopinbos Business",
   "welcome.sub": "Rex dey get ready to build your shop with you.",
   "welcome.progress": "We dey prepare your shop",
   "welcome.start": "Start now",

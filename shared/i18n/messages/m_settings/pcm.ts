@@ -148,7 +148,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "set.tips": "Tips and tooltips",
   "set.tipsHint": "Word explanations and intros wey dey open by demself",
   "set.appearance": "How e dey look",
-  "set.appearanceChoose": "How you want Shopinbos to look?",
+  "set.appearanceChoose": "How you want Shopinbos Business to look?",
   "set.appearanceAuto": "Auto",
   "set.appearanceAutoSub": "E go follow your phone light or dark setting",
   "set.appearanceLight": "Light",

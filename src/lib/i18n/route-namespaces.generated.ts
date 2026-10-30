@@ -264,6 +264,8 @@ export const ROUTE_NAMESPACES: ReadonlyArray<readonly [string, readonly string[]
   ["/logistics/story", ["auth","common","details","glossary","help","introTitles","learn","nav","notifications","payments","rex","settings","shell","support","tour","ui","verification"]],
   ["/logistics/terms", ["auth","common","details","glossary","help","introTitles","learn","nav","notifications","payments","rex","settings","shell","support","tour","ui","verification"]],
   ["/logistics/verification", ["auth","common","details","glossary","handoff","help","introTitles","learn","nav","notifications","partnerKyc","payments","rex","settings","shell","support","tour","ui","verification"]],
+  ["/logistics/video", ["auth","common","details","glossary","help","introTitles","learn","nav","notifications","payments","rex","settings","shell","support","tour","ui","verification","video"]],
+  ["/logistics/video/studio", ["auth","common","details","glossary","help","introTitles","learn","media","nav","notifications","payments","rex","settings","shell","support","tour","ui","verification","video"]],
   ["/logistics/wallet", ["auth","common","details","glossary","help","introTitles","learn","nav","notifications","payments","rex","settings","shell","support","tour","ui","verification","wallet"]],
   ["/marketplace", ["auth","common","details","glossary","help","introTitles","learn","marketplace","nav","notifications","payments","rex","settings","shell","support","tour","ui","verification"]],
   ["/marketplace/logistics", ["auth","common","details","glossary","help","introTitles","learn","marketplace","nav","notifications","payments","rex","settings","shell","support","tour","ui","verification"]],

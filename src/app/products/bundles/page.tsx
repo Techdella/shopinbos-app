@@ -56,7 +56,7 @@ export default async function BundlesPage() {
                     <div className="min-w-0">
                       <span className="line-clamp-1 text-[15px] font-extrabold">{bundle.name}</span>
                       <div className="truncate text-[13px] text-app-ink-soft">
-                        {t("row.items", { count: bundle.items.length })} · {bundle.items.map((item) => `${item.quantity > 1 ? `${item.quantity} × ` : ""}${item.name}`).join(", ")}
+                        {t("row.items", { count: bundle.items.length })} · {bundle.items.map((item) => `${item.quantity > 1 ? `${item.quantity} × ` : ""}${item.name}${item.variant ? ` (${item.variant})` : ""}`).join(", ")}
                       </div>
                     </div>
                     <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5 text-[13.5px]">

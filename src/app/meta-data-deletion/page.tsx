@@ -3,7 +3,7 @@ import { deletionRequestStatus } from "@/lib/meta/user-data.server";
 import { isConfirmationCode } from "@/lib/meta/signed-request";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Facebook data deletion | Shopinbos", robots: { index: false } };
+export const metadata: Metadata = { title: "Facebook data deletion · Shopinbos Business", robots: { index: false } };
 
 // The status URL Meta shows someone who removed Shopinbos from Facebook and asked for their data to be deleted
 // (POST /api/webhooks/meta/data-deletion hands it back with the confirmation code). Public: no sign-in.

@@ -170,6 +170,11 @@ const en = {
   "downloadSaved": "Download the saved video",
   "hub.pages": "Video pages",
   "hub.subShort": "Make reels for ads, products and social media.",
+  "partner.about": "What the video is about",
+  "partner.aboutPh": "Same-day delivery in Lagos",
+  "partner.hubSub": "Short videos about your delivery business, for your WhatsApp status, Instagram and TikTok.",
+  "partner.adHint": "A punchy reel that tells shops why they should book you.",
+  "partner.emptyPublished": "Nothing posted yet. Share a saved video, then mark it posted.",
 } satisfies Record<string, string>;
 
 export default en;

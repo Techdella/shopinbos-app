@@ -51,7 +51,7 @@ export const ACCENT_FONT = "Fraunces,Georgia,'Times New Roman',serif";
 
 /** The legal footer for Shopinbos's own emails. SHOPINBOS_LEGAL_NAME / SHOPINBOS_POSTAL_ADDRESS override it. */
 export const SHOPINBOS_LEGAL_DEFAULTS = {
-  name: "Shopinbos, a product of Tech Della Solutions LTD (RC 7038770)",
+  name: "Shopinbos Business, a product of Tech Della Solutions LTD (RC 7038770)",
   address: "Office 7B, Yemtob Plaza, Elewure, Off Akala Express, Oluyole, Ibadan, Oyo State, Nigeria, 200257",
 } as const;
 
