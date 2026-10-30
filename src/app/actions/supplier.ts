@@ -735,6 +735,8 @@ export async function importSupplierProductsCsv(csvText: string): Promise<Suppli
  * CSV export (shared/sheets-link.ts), then exactly as a CSV file.
  */
 export async function importSupplierProductsSheet(link: string): Promise<SupplierImportResult> {
+  const { supplier } = await getSupplierActor();
+  assertOnboardedSupplier(supplier);
   const { sheetsCsvUrl } = await import("@shared/sheets-link");
   const url = typeof link === "string" ? sheetsCsvUrl(link) : null;
   if (!url) return { ok: false, created: 0, errors: [], message: "Paste the link to a Google Sheet (it starts with https://docs.google.com/spreadsheets/)." };
