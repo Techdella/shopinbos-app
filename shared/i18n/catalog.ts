@@ -75,6 +75,7 @@ import packaging from "./messages/packaging/index.ts";
 import video from "./messages/video/index.ts";
 import affiliates from "./messages/affiliates/index.ts";
 import resell from "./messages/resell/index.ts";
+import together from "./messages/together/index.ts";
 import analytics from "./messages/analytics/index.ts";
 import traffic from "./messages/traffic/index.ts";
 import reviews from "./messages/reviews/index.ts";
@@ -188,6 +189,7 @@ export const CATALOGS = {
   video,
   affiliates,
   resell,
+  together,
   analytics,
   traffic,
   reviews,
