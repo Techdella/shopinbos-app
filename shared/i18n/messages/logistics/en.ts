@@ -536,7 +536,7 @@ const en = {
   "jobErrors.quoteAnswered": "You've already answered this quote request.",
   "jobErrors.checkQuote": "Check the quote details.",
   "jobs.pages": "Job pages",
-  "fees.subOn": "Shopinbos takes {rate}% of each in-app delivery fee on your plan, from your share. Lower it with a paid plan.",
+  "fees.subOn": "Shopinbos takes {rate}% of each in-app delivery fee on your plan, from your delivery fee. Lower it with a paid plan.",
   "fees.subOff": "No job fee for now: you keep the whole delivery fee. When it starts it will be {rate}% on your plan.",
   "fees.offNow": "0% for now ({rate}% later)",
   "fees.usageStates": "States covered",

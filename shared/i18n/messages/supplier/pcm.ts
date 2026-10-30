@@ -339,7 +339,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "order.step1": "Accept the order",
   "order.step2Wholesale": "Pack am and make am ready.",
   "order.step3": "Rider go come collect am for the time you pick. You no go pay for delivery.",
-  "order.shopPaysFirst": "The shop dey pay first, with card. Your share go enter your bank straight after delivery. Shopinbos no dey hold the money.",
+  "order.shopPaysFirst": "The shop dey pay first, with card. Your money go enter your bank straight after delivery. Shopinbos no dey hold the money.",
   "order.acceptOrder": "Accept order",
   "order.whyNot": "Why not? The shop go see this.",
   "order.sayNo": "Say no to this order",

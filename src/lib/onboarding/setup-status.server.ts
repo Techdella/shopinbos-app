@@ -62,7 +62,7 @@ export async function setupStatus(userId: string): Promise<SetupStatus | null> {
       { id: "pickup", label: "Pickup address", done: pickup, href: "/supplier/delivery", hint: "Where riders collect orders from you" },
       { id: "documents", label: "Verification documents", done: docs.done, href: "/supplier/verification", hint: docs.done ? "Uploaded" : `Still needed: ${docs.missing.join(", ")}` },
       { id: "products", label: "First products", done: s._count.products > 0, href: "/supplier/products/new", hint: "Add products sellers can stock or dropship" },
-      { id: "bank", label: "Bank for payments", done: bank, href: "/supplier/wallet", hint: "Where your share of each sale is paid" },
+      { id: "bank", label: "Bank for payments", done: bank, href: "/supplier/wallet", hint: "Where the money for each sale is paid" },
       { id: "verified", label: "Verified by Shopinbos", done: s.verificationStatus === "verified", href: "/supplier/verification", hint: s.verificationStatus === "rejected" ? "Not approved yet: check what to fix" : "The team reviews your documents" },
     ]);
   }

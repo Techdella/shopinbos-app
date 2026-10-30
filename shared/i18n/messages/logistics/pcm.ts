@@ -511,7 +511,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "jobErrors.checkQuote": "Check the quote details.",
   "kit.to": " to ",
   "jobs.pages": "Job pages",
-  "fees.subOn": "Shopinbos dey take {rate}% of every in-app delivery fee for your plan, from your share. Paid plan go reduce am.",
+  "fees.subOn": "Shopinbos dey take {rate}% of every in-app delivery fee for your plan, from your delivery fee. Paid plan go reduce am.",
   "fees.subOff": "No job fee for now: you go keep the whole delivery fee. When e start, e go be {rate}% for your plan.",
   "fees.offNow": "0% for now ({rate}% later)",
   "fees.usageStates": "States wey you cover",

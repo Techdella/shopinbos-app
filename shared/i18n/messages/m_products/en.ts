@@ -49,7 +49,7 @@ const en = {
   "dropship.sub": "You don't buy these. When a customer pays, the supplier sends it straight to them.",
   "dropship.emptyTitle": "No dropship products yet",
   "dropship.findToSell": "Find products to sell",
-  "dropship.emptyBody": "Pick products from suppliers and put them in your shop. You pay nothing until a customer pays you, and your share goes straight to your bank.",
+  "dropship.emptyBody": "Pick products from suppliers and put them in your shop. You pay nothing until a customer pays you, and your profit goes straight to your bank.",
   "dropship.attention": "{count} low or out of stock at the supplier. Pause them so customers don't order what can't be sent.",
   "dropship.nothing": "Nothing here right now. Tap \"All\" to see everything.",
   "dropship.findMore": "Find more products",

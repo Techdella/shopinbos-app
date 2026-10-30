@@ -20,7 +20,7 @@ const en = {
   "pack.photosTitle": "Packing photos",
   "pack.contentsPhoto": "Photo of the item in the open box",
   "pack.why": "The two photos (the item in the open box, then the sealed parcel) decide most disputes. They protect you if a customer says the wrong item came.",
-  "pack.paidNextDay": "Your share is paid to your bank the next working day after the customer pays.",
+  "pack.paidNextDay": "Your money is paid to your bank the next working day after the customer pays.",
 
   "money.toBePaid": "To be paid",
   "money.paidOn": "Reaches your bank {day}",

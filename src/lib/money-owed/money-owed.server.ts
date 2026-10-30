@@ -631,7 +631,7 @@ export async function runMoneyOwedSweep(now = new Date()) {
       debt.debtorUserId,
       overdue ? `Overdue: you owe ${who} ${naira(left)}` : `Due tomorrow: ${naira(left)} to ${who}`,
       overdue
-        ? `Until it's paid, part of your share of each sale goes to it. If it's still owed on ${pausesAt(debt.dueAt!).toLocaleDateString("en-NG", { day: "numeric", month: "short", timeZone: "Africa/Lagos" })}, you'll be paused from new business. Pay it in your Shopinbos Wallet.`
+        ? `Until it's paid, part of the money from each sale goes to it. If it's still owed on ${pausesAt(debt.dueAt!).toLocaleDateString("en-NG", { day: "numeric", month: "short", timeZone: "Africa/Lagos" })}, you'll be paused from new business. Pay it in your Shopinbos Wallet.`
         : `For ${debtReasonLabel(debt.reason).toLowerCase()}. Pay it in your Shopinbos Wallet; after the due date it comes out of your next sales.`,
       overdue ? "critical" : "warning",
       `money-owed:${debt.id}:${now.toISOString().slice(0, 10)}`,

@@ -14,7 +14,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "inbox.chatbot": "Peggy dey answer shoppers from your own products, prices and delivery settings, so make sure say those ones correct first. Try am yourself before you switch am on.",
   "inbox.whatsappStore": "Customers fit shop and pay without commot for WhatsApp. Their orders go show here and for Orders, so you go pack and send dem like any other order.",
   "connections": "Start with WhatsApp and Google: one sign-in each, nothing to copy or paste. Connect one time and e go work for your whole shop.",
-  "wallet": "Add your bank one time. When customers pay with card, your share go enter that bank straight, usually the next working day. Shopinbos no dey hold your money.",
+  "wallet": "Add your bank one time. When customers pay with card, your money go enter that bank straight, usually the next working day. Shopinbos no dey hold your money.",
   "labels": "Print shipping label for every parcel: e get customer address and QR code to track am. For pouch, box and tag, start with the packaging designer.",
   "labels.packaging": "Pick template, add your words and picture, then download the print file. Or tap Order prints and we go print am and deliver am give you.",
   "labels.studio": "Choose wetin you wan make, like price tag or thank-you card, and pick your products. Print for A4 for house, or download the file for print shop.",

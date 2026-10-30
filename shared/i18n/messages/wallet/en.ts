@@ -34,8 +34,8 @@ const en = {
   "setup.who.seller": "your customers",
   "setup.who.supplier": "shops selling your products",
   "setup.who.logistics_partner": "the shops you deliver for",
-  "setup.never": "Shopinbos never holds your money. When {who} pay by card, the payment is split at checkout and your share settles straight to this bank, usually the next working day. Paystack's fee comes off your share. Shopinbos takes nothing.",
-  "setup.neverFee": "Shopinbos never holds your money. When {who} pay by card, the payment is split at checkout and your share settles straight to this bank, usually the next working day. Paystack's fee comes off your share, and so does Shopinbos's fee of {fee} on each sale for your plan (not on delivery, and not on dropship items: the supplier's commission covers those).",
+  "setup.never": "Shopinbos never holds your money. When {who} pay by card, your money settles straight to this bank, usually the next working day. Paystack's fee comes off it. Shopinbos takes nothing.",
+  "setup.neverFee": "Shopinbos never holds your money. When {who} pay by card, your money settles straight to this bank, usually the next working day. Paystack's fee comes off it, and so does Shopinbos's fee of {fee} on each sale for your plan (not on delivery, and not on dropship items: the supplier's commission covers those).",
   "fee.limits": "{rate}% (at least {min}, at most {max})",
   "fee.min": "{rate}% (at least {min})",
   "fee.max": "{rate}% (at most {max})",
@@ -152,7 +152,7 @@ const en = {
   "claim.chooseOrder": "Choose the order this is about.",
   "claim.none": "There are no recent orders from a supplier or delivery partner to claim on. Claims can be made within {days} days of delivery.",
   "claim.sent": "Claim sent.",
-  "setup.neverCommission": "Shopinbos never holds your money. When {who} pay by card for your products, your share settles straight to this bank, usually the next working day. Shopinbos's commission of {pct}% of the wholesale value comes off each marketplace order for your plan, and your share of Paystack's fee.",
+  "setup.neverCommission": "Shopinbos never holds your money. When {who} pay by card for your products, your money settles straight to this bank, usually the next working day. Shopinbos's commission of {pct}% of the wholesale value comes off each marketplace order for your plan, and part of Paystack's fee.",
   "claim.promptShort": "Wrong, damaged or lost goods? Claim within {days} days.",
 } satisfies Record<string, string>;
 

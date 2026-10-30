@@ -20,7 +20,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "pack.photosTitle": "Packing photos",
   "pack.contentsPhoto": "Photo of the item inside the open box",
   "pack.why": "The two photos (the item inside open box, then the sealed parcel) na dem dey settle most wahala. Dem go protect you if customer talk say na wrong item come.",
-  "pack.paidNextDay": "Dem go pay your share enter your bank the next working day after customer pay.",
+  "pack.paidNextDay": "Dem go pay your money enter your bank the next working day after customer pay.",
 
   "money.toBePaid": "Money wey dey come",
   "money.paidOn": "E go reach your bank {day}",
