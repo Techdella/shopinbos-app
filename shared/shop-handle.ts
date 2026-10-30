@@ -118,3 +118,19 @@ export function handleFromShortPath(pathname: string) {
   const match = /^\/(?:@|%40)([A-Za-z0-9_]{1,40})\/?$/i.exec(pathname);
   return match ? match[1].toLowerCase() : null;
 }
+
+/** The query the QR code adds to the short link, so a scan counts as a QR visit (src/app/h/[handle]/route.ts). */
+export const SHOP_QR_PARAM = "src";
+export const SHOP_QR_VALUE = "qr";
+
+/**
+ * The address the QR code holds: the short link with ?src=qr ("https://app.shopinbos.com/@kemibags?src=qr"). The
+ * printed and shared link stays plain; only the code carries the marker. String-only (React Native's URL has no
+ * working searchParams); a link that already has a src keeps it.
+ */
+export function shopQrUrl(shortUrl: string) {
+  const [base, hash = ""] = shortUrl.split("#", 2);
+  if (!base || new RegExp(`[?&]${SHOP_QR_PARAM}=`).test(base)) return shortUrl;
+  const joined = `${base}${base.includes("?") ? "&" : "?"}${SHOP_QR_PARAM}=${SHOP_QR_VALUE}`;
+  return hash ? `${joined}#${hash}` : joined;
+}

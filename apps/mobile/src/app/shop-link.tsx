@@ -13,7 +13,7 @@ import { openShop } from "@/lib/share";
 import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
 import { colors, fonts, radii } from "@/theme";
-import { handleProblem, normaliseHandle, PLUG_LIVE } from "@shared/shop-handle";
+import { handleProblem, normaliseHandle, PLUG_LIVE, shopQrUrl } from "@shared/shop-handle";
 
 // Your shop link & QR (Menu › Look; web /home/store/share): the shop's @handle (the owner can change it), the QR
 // code of its short link to show at a stall or screenshot for a flyer, and the short link with Copy, Share and Send
@@ -33,7 +33,7 @@ export function ShopQrCard({ name, logoUrl, handle, shortUrl, shortHost, plug = 
       <T weight="bold" style={{ fontSize: 14, color: colors.inkSoft }}>{plug ? t("card.follow") : t("card.shopWith")}</T>
       {/* Always dark on white, in dark mode too, so any camera reads it. */}
       <View accessible accessibilityRole="image" accessibilityLabel={t("qr.alt", { name })} style={{ padding: 10, backgroundColor: "#FFFFFF", borderRadius: radii.field }}>
-        <QRCode value={shortUrl} size={220} color="#16141F" backgroundColor="#FFFFFF" quietZone={4} />
+        <QRCode value={shopQrUrl(shortUrl)} size={220} color="#16141F" backgroundColor="#FFFFFF" quietZone={4} />
       </View>
       <T weight="extrabold" style={{ fontSize: 24 }} selectable>@{handle}</T>
       <T style={{ fontFamily: fonts.mono, fontSize: 13.5, color: colors.inkSoft }} numberOfLines={1}>{shortHost}</T>
