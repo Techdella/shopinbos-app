@@ -6,7 +6,7 @@ import * as WebBrowser from "expo-web-browser";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { DEFAULT_DIAL_COUNTRY, DIAL_COUNTRIES, isValidEmail, splitE164, toE164, type DialCountry } from "@shared/phone";
-import { AccountCheckError, appleSignInAvailable, explainSignupConflict, fetchWhatsAppCodes, sendCode, signInWithApple, signInWithGoogle, signInWithPassword, signOutNow, syncAccount, type CodeTarget } from "@/lib/auth";
+import { AccountCheckError, appleSignInAvailable, explainSignupConflict, fetchWhatsAppCodes, sendCode, signInWithApple, signInWithGoogle, peekAccount, signInWithPassword, signOutNow, syncAccount, type CodeTarget } from "@/lib/auth";
 import { BackButton, BUTTON_TEXT, Field, Label, LinkButton, Notice, OneLine, PillButton, T } from "@/components/ui";
 import { Sub, Title } from "@/components/design";
 import { ChoiceRow, Sheet } from "@/components/Sheet";
@@ -62,7 +62,8 @@ export function signupSteps(roleKnown: boolean) {
 }
 
 /** The phone or email typed on the other screen, from its "Sign up now" / "Log in" button. */
-export type Prefill = { phone?: string; email?: string };
+/** What came back to the form: the contact typed on log in, or (after "Use a different email") the name and step. */
+export type Prefill = { phone?: string; email?: string; name?: string; step?: "contact" };
 
 /** Route params for that button: the typed phone (E.164) or email, when it's valid. */
 function prefillParams(method: Method, phone: string, country: DialCountry, email: string): Prefill {
@@ -89,7 +90,9 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = null, pr
   const role = initialRole;
   const signupRole: SignupRole = role ?? "seller";
   // Sign up opens on the name, then the phone (or email).
-  const [step, setStep] = useState<"name" | "contact">(mode === "signup" ? "name" : "contact");
+  // Back from "Use a different email": the name is kept and it opens on the email or phone step.
+  const [keptGiven, ...keptFamily] = (prefill?.name ?? "").trim().split(/\s+/).filter(Boolean);
+  const [step, setStep] = useState<"name" | "contact">(mode === "signup" && !(prefill?.step === "contact" && keptGiven) ? "name" : "contact");
   // Phone codes go on WhatsApp when the server has it on (GET /api/auth/otp), else SMS; null while asking.
   const [whatsapp, setWhatsapp] = useState<boolean | null>(null);
   // Sign in with Apple: iPhone only (see appleSignInAvailable).
@@ -104,8 +107,8 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = null, pr
   }, []);
   const via = whatsapp ? ("whatsapp" as const) : ("sms" as const);
   const [emailMode, setEmailMode] = useState<"code" | "password">("code");
-  const [givenName, setGivenName] = useState("");
-  const [familyName, setFamilyName] = useState("");
+  const [givenName, setGivenName] = useState(keptGiven ?? "");
+  const [familyName, setFamilyName] = useState(keptFamily.join(" "));
   const name = `${givenName.trim()} ${familyName.trim()}`.trim();
   const [country, setCountry] = useState<DialCountry>(prefilledPhone?.country ?? DEFAULT_DIAL_COUNTRY);
   const [picking, setPicking] = useState(false);
@@ -147,6 +150,25 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = null, pr
     }
     // Each role opens its own tabs: the launch gate sends sellers home, suppliers to /supplier, delivery to /logistics.
     router.replace("/");
+  }
+
+  /**
+   * After Google or Apple: a log in goes straight in; a login with no account yet sets one up ("What brings you to
+   * Shopinbos?" unless a link already said); signing up with one that already has an account says to log in.
+   */
+  async function afterOAuth(fullName?: string) {
+    const peek = await peekAccount();
+    if (mode === "signup" && peek?.exists) {
+      await signOutNow();
+      setError(t("exists.email"));
+      setNextStep("login");
+      return;
+    }
+    if (peek && !peek.exists && !role) {
+      router.replace({ pathname: "/verify", params: { mode: "signup", oauth: "1", name: name || fullName || "" } });
+      return;
+    }
+    await finish(mode === "signup" || Boolean(peek && !peek.exists), undefined, fullName);
   }
 
   function goToContact() {
@@ -206,7 +228,7 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = null, pr
     setBusy("apple");
     try {
       const result = await signInWithApple();
-      if (result?.session) await finish(mode === "signup", undefined, result.fullName);
+      if (result?.session) await afterOAuth(result.fullName ?? undefined);
     } catch (appleError) {
       setError(appleError instanceof Error ? appleError.message : t("form.appleFailed"));
     } finally {
@@ -219,7 +241,7 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = null, pr
     setBusy("google");
     try {
       const session = await signInWithGoogle();
-      if (session) await finish(mode === "signup");
+      if (session) await afterOAuth();
     } catch (googleError) {
       setError(googleError instanceof Error ? googleError.message : t("form.googleFailed"));
     } finally {
@@ -372,7 +394,7 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = null, pr
           ) : (
             <PillButton tone="accent" busy={busy === "send"} disabled={Boolean(busy)} onPress={() => void submit()} icon={method === "phone" && whatsapp ? "whatsapp" : undefined} title={primary} />
           )}
-          {(mode === "login" || role) && apple && (
+          {apple && (
             // Sign in with Apple on the screen itself, under the main button (iPhone only: appleSignInAvailable). Apple's
             // own button: black on light, white on dark, as Apple's design rules ask. key: the native button redraws.
             <AppleAuthentication.AppleAuthenticationButton
@@ -392,7 +414,7 @@ export function AuthForm({ mode, initialMethod = "phone", initialRole = null, pr
         ) : (
           <ChoiceRow icon="phone" title={t("form.usePhone")} sub={t("other.phoneSub")} onPress={() => { setOthers(false); setError(null); setMethod("phone"); }} />
         )}
-        {(mode === "login" || role) && (
+        {(
           <PillButton tone="white" size="md" busy={busy === "google"} disabled={Boolean(busy)} onPress={() => fromSheet(() => void google())}>
             <GoogleMark />
             <OneLine text={t("form.google")} size={BUTTON_TEXT.md} />

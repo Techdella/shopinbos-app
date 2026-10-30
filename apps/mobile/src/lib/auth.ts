@@ -128,15 +128,20 @@ export async function signInWithPassword(email: string, password: string) {
   return data.session;
 }
 
-/** Google sign-in in the system browser, returning to shopinbos://auth/callback (PKCE). */
+/**
+ * Google sign-in in the system browser, returning to shopinbos://auth/callback (PKCE). Supabase is sent back to
+ * the web's /api/mobile/auth-return (always on its allow-list), which hands the code to the app's own address;
+ * returning straight to shopinbos:// left people on the web app whenever that address wasn't on the list.
+ */
 export async function signInWithGoogle() {
-  const redirectTo = makeRedirectUri({ scheme: "shopinbos", path: "auth/callback" });
+  const appReturn = makeRedirectUri({ scheme: "shopinbos", path: "auth/callback" });
+  const redirectTo = `${API_URL}/api/mobile/auth-return?to=${encodeURIComponent(appReturn)}`;
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: { redirectTo, skipBrowserRedirect: true, queryParams: { prompt: "select_account" } },
   });
   if (error || !data.url) throw new Error(friendly(error?.message ?? tNow("m_auth")("error.googleOpen")));
-  const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+  const result = await WebBrowser.openAuthSessionAsync(data.url, appReturn);
   if (result.type !== "success") return null;
   const code = new URL(result.url).searchParams.get("code");
   if (!code) throw new Error(tNow("m_auth")("error.googleUnfinished"));
@@ -188,6 +193,11 @@ export async function sendPasswordReset(email: string) {
  * keeps its own role, and the server puts the login's saved role in line. (This used to write the role into the
  * login's metadata from the phone, which could tag an existing seller as a supplier.)
  */
+/** Whether the signed-in login (Google or Apple) already has a Shopinbos account; null when that couldn't be checked. */
+export async function peekAccount() {
+  return api<{ exists: boolean; role: AppRole | null }>("/api/auth/sync-user", { method: "POST", json: { peek: true } }).catch(() => null);
+}
+
 export async function syncAccount(payload: { fullName?: string; phone?: string; signup?: boolean; role?: Exclude<AppRole, "admin"> }) {
   const role = payload.role ?? "seller";
   const data = await api<{ role?: AppRole }>("/api/auth/sync-user", {

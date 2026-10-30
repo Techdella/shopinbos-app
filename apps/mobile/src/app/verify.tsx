@@ -25,7 +25,8 @@ const TONE: Record<SignupRole, TileTone> = { seller: "peach", supplier: "blue", 
 
 export default function Verify() {
   const t = useT("m_auth");
-  const params = useLocalSearchParams<{ target: string; mode: string; name?: string; role?: string; channel?: string }>();
+  // oauth=1: signed in with Google or Apple and there's no account yet, so only "What brings you" is left to ask.
+  const params = useLocalSearchParams<{ target: string; mode: string; name?: string; role?: string; channel?: string; oauth?: string }>();
   const initialTarget = useMemo(() => JSON.parse(params.target ?? "{}") as CodeTarget, [params.target]);
   const signup = params.mode === "signup";
   // The role the link or card picked; null on a plain sign up, which asks it after the code.
@@ -39,7 +40,7 @@ export default function Verify() {
   const [seconds, setSeconds] = useState(OTP_RESEND_SECONDS);
   const [resent, setResent] = useState(false);
   // The code is right and the account is signed in; the role is all that's left to ask.
-  const [askRole, setAskRole] = useState(false);
+  const [askRole, setAskRole] = useState(params.oauth === "1");
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   function startCountdown() {
@@ -61,9 +62,10 @@ export default function Verify() {
     await rememberSignedInRole(actual);
     // This email or phone already has another kind of account (a seller signing up as a supplier): nothing was
     // changed. "Use a different email" logs out and goes back to the form; otherwise their own account opens.
-    if (signup && actual && actual !== role && (await explainSignupConflict(actual, role, target.kind)) === "different") {
+    if (signup && actual && actual !== role && (await explainSignupConflict(actual, role, target.kind ?? "email")) === "different") {
       await signOutNow();
-      router.replace({ pathname: "/signup", params: { ...(linkRole ? { role } : {}), method: target.kind } });
+      // Back to the email or phone step with the name and the role kept: nothing to type again but the new address.
+      router.replace({ pathname: "/signup", params: { role, method: target.kind ?? "email", name: params.name ?? "", step: "contact" } });
       return;
     }
     // Each role opens its own tabs: the launch gate sends sellers home, suppliers to /supplier, delivery to /logistics.
