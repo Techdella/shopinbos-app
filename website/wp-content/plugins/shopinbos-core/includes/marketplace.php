@@ -170,7 +170,7 @@ add_action( 'template_redirect', function () {
 	if ( $ctx['status'] >= 400 ) {
 		nocache_headers();
 	}
-	add_filter( 'pre_get_document_title', fn() => $ctx['title'] . ' | Shopinbos' );
+	add_filter( 'pre_get_document_title', fn() => $ctx['title'] . ' | Shopinbos Business' );
 	add_filter( 'body_class', fn( $c ) => array_merge( array_diff( $c, [ 'error404', 'home', 'blog' ] ), [ 'sib-virtual', 'sib-' . $ctx['view'] ] ) );
 
 	echo sib_view( 'layout', [ 'ctx' => $ctx ] ); // phpcs:ignore WordPress.Security.EscapeOutput

@@ -22,7 +22,7 @@ App Store Connect › Apps › + › New App:
 | Field | Value |
 | --- | --- |
 | Platform | iOS |
-| Name | `listing/name.txt` (Shopinbos: Sell Online) |
+| Name | `listing/name.txt` (Shopinbos Business). The name under the icon stays "Shopinbos" (`apps/mobile/app.json` `expo.name`). |
 | Primary language | English (U.K.) |
 | Bundle ID | com.shopinbos.app (register it first under Certificates, IDs & Profiles › Identifiers if it isn't listed; `eas build` also registers it) |
 | SKU | shopinbos-ios |

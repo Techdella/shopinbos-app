@@ -37,7 +37,7 @@ add_filter( 'wp_robots', function ( $robots ) {
 $sib_v = fn( string $k ) => fn( $value ) => ( $v = sib_virtual() ) && isset( $v[ $k ] ) ? $v[ $k ] : $value;
 add_filter( 'rank_math/frontend/canonical', $sib_v( 'canonical' ) );
 add_filter( 'rank_math/frontend/description', $sib_v( 'description' ) );
-add_filter( 'rank_math/frontend/title', fn( $t ) => ( $v = sib_virtual() ) ? $v['title'] . ' | Shopinbos' : $t );
+add_filter( 'rank_math/frontend/title', fn( $t ) => ( $v = sib_virtual() ) ? $v['title'] . ' | Shopinbos Business' : $t );
 add_filter( 'rank_math/frontend/robots', function ( $r ) {
 	if ( sib_is_noindex() ) {
 		$r['index'] = 'noindex';
@@ -46,7 +46,7 @@ add_filter( 'rank_math/frontend/robots', function ( $r ) {
 } );
 add_filter( 'wpseo_canonical', $sib_v( 'canonical' ) );
 add_filter( 'wpseo_metadesc', $sib_v( 'description' ) );
-add_filter( 'wpseo_title', fn( $t ) => ( $v = sib_virtual() ) ? $v['title'] . ' | Shopinbos' : $t );
+add_filter( 'wpseo_title', fn( $t ) => ( $v = sib_virtual() ) ? $v['title'] . ' | Shopinbos Business' : $t );
 add_filter( 'wpseo_robots', fn( $r ) => sib_is_noindex() ? 'noindex, follow' : $r );
 unset( $sib_v );
 
@@ -87,7 +87,7 @@ add_action( 'wp_head', function () {
 	if ( $v && $url ) {
 		echo '<link rel="canonical" href="' . esc_url( $url ) . "\">\n"; // core prints it for singular pages
 	}
-	echo '<meta property="og:site_name" content="Shopinbos">' . "\n";
+	echo '<meta property="og:site_name" content="Shopinbos Business">' . "\n";
 	echo '<meta property="og:type" content="' . ( is_singular( 'post' ) ? 'article' : 'website' ) . "\">\n";
 	echo '<meta property="og:title" content="' . esc_attr( $title ) . "\">\n";
 	if ( $desc ) {
@@ -116,14 +116,14 @@ add_filter( 'language_attributes', fn( $out ) => preg_replace( '/lang="[^"]*"/',
 /** Title and description for the home page and the main hubs, used when the editor hasn't set their own. */
 function sib_seo_defaults(): array {
 	return [
-		'home'      => [ 'Shopinbos: sell online in Nigeria from one app', 'Build your online store, sell on WhatsApp, Instagram and TikTok, take card, transfer and pay on delivery, book riders and get paid straight to your bank. Start free.' ],
-		'blog'      => [ 'Online selling tips for Nigeria | Shopinbos blog', 'Plain-word guides on selling online in Nigeria: WhatsApp, Instagram and TikTok, pricing, payments, delivery, suppliers and getting repeat customers.' ],
-		'academy'   => [ 'Free online selling course for Nigerians | Shopinbos Academy', 'Short free lessons in English and Pidgin: start your shop, sell on WhatsApp, Instagram and TikTok, get paid, deliver and grow. No sign-up needed.' ],
-		'help'      => [ 'Help centre | Shopinbos', 'Step-by-step answers for your Shopinbos shop: orders, payments and payouts, delivery and pay on delivery, your store and design, and your account.' ],
-		'resources' => [ 'Free PDFs and templates for online sellers in Nigeria | Shopinbos', 'Free guides, workbooks, checklists and templates for Nigerian online sellers, from the Online Seller’s Starter Kit to pricing and launch checklists.' ],
-		'tools'     => [ 'Free tools for online sellers in Nigeria | Shopinbos', 'Free calculators and generators for Nigerian sellers: profit margin, selling price, Paystack fees, break-even, discounts, ad budget, business names and more.' ],
-		'templates' => [ 'Online store templates for Nigerian shops | Shopinbos', 'Mobile-first store templates for fashion, shoes, food, beauty, gadgets and home shops, with pay on delivery and WhatsApp ordering built in.' ],
-		'compare'   => [ 'Compare Shopinbos with other platforms | Shopinbos', 'Honest comparisons of Shopinbos with Shopify, WooCommerce, Bumpa, Selar, Wix, Paystack Storefront, Jumia and selling only on Instagram.' ],
+		'home'      => [ 'Shopinbos Business: everything you need to sell online', 'Shopinbos Business is everything you need to sell online in Nigeria: build your online store, sell on WhatsApp, Instagram and TikTok, take card, transfer and pay on delivery, book riders and get paid straight to your bank. Start free.' ],
+		'blog'      => [ 'Online selling tips for Nigeria | Shopinbos Business blog', 'Plain-word guides on selling online in Nigeria: WhatsApp, Instagram and TikTok, pricing, payments, delivery, suppliers and getting repeat customers.' ],
+		'academy'   => [ 'Free online selling course for Nigerians | Shopinbos Business Academy', 'Short free lessons in English and Pidgin: start your shop, sell on WhatsApp, Instagram and TikTok, get paid, deliver and grow. No sign-up needed.' ],
+		'help'      => [ 'Help centre | Shopinbos Business', 'Step-by-step answers for your Shopinbos Business shop: orders, payments and payouts, delivery and pay on delivery, your store and design, and your account.' ],
+		'resources' => [ 'Free PDFs and templates for online sellers in Nigeria | Shopinbos Business', 'Free guides, workbooks, checklists and templates for Nigerian online sellers, from the Online Seller’s Starter Kit to pricing and launch checklists.' ],
+		'tools'     => [ 'Free tools for online sellers in Nigeria | Shopinbos Business', 'Free calculators and generators for Nigerian sellers: profit margin, selling price, Paystack fees, break-even, discounts, ad budget, business names and more.' ],
+		'templates' => [ 'Online store templates for Nigerian shops | Shopinbos Business', 'Mobile-first store templates for fashion, shoes, food, beauty, gadgets and home shops, with pay on delivery and WhatsApp ordering built in.' ],
+		'compare'   => [ 'Compare Shopinbos Business with other platforms | Shopinbos Business', 'Honest comparisons of Shopinbos Business with Shopify, WooCommerce, Bumpa, Selar, Wix, Paystack Storefront, Jumia and selling only on Instagram.' ],
 	];
 }
 

@@ -1,4 +1,4 @@
-Shopinbos store listing translations
+Shopinbos Business store listing translations
 Source language: English (en-US). Each block below is one language, with the app name, short description and full description.
 
 ==================================================
@@ -6,7 +6,7 @@ Language: French (France) – fr-FR
 ==================================================
 
 App name:
-Shopinbos
+Shopinbos Business
 
 Short description:
 Créez votre boutique en ligne avec l'IA, vendez, encaissez et livrez facilement
@@ -64,7 +64,7 @@ Language: Portuguese (Portugal) – pt-PT
 ==================================================
 
 App name:
-Shopinbos
+Shopinbos Business
 
 Short description:
 Crie a sua loja online com IA, venda, receba pagamentos e entregue encomendas
@@ -122,7 +122,7 @@ Language: Swahili – sw
 ==================================================
 
 App name:
-Shopinbos
+Shopinbos Business
 
 Short description:
 Jenga duka lako la mtandaoni kwa AI, uza, pokea malipo na fikisha oda
@@ -180,7 +180,7 @@ Language: Arabic – ar
 ==================================================
 
 App name:
-Shopinbos
+Shopinbos Business
 
 Short description:
 أنشئ متجرك الإلكتروني بالذكاء الاصطناعي، وبِع واستلم المدفوعات ووصّل الطلبات
