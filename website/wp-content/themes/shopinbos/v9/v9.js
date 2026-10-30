@@ -510,12 +510,22 @@
 	document.querySelectorAll('.nv').forEach(function (nv) {
 		var mega = nv.querySelector('.mega');
 		if (!mega) return;
-		nv.addEventListener('focusin', function () { mega.classList.add('open'); });
-		nv.addEventListener('focusout', function (e) { if (!nv.contains(e.relatedTarget)) mega.classList.remove('open'); });
+		var btn = nv.querySelector('.nvb');
+		function set(on) { mega.classList.toggle('open', on); if (btn) btn.setAttribute('aria-expanded', on ? 'true' : 'false'); }
+		nv.addEventListener('focusin', function (e) {
+			// A mouse click focuses the heading too; let the click handler decide, so it doesn't open then close.
+			if (e.target === btn && btn.matches && !btn.matches(':focus-visible')) return;
+			set(true);
+		});
+		nv.addEventListener('focusout', function (e) { if (!nv.contains(e.relatedTarget)) set(false); });
+		// Tap or click the heading (touch screens, keyboard): open or close its menu; it goes to no page.
+		if (btn) btn.addEventListener('click', function () { set(!mega.classList.contains('open')); });
+		nv.addEventListener('mouseleave', function () { if (document.activeElement !== btn) set(false); });
 	});
 	document.addEventListener('keydown', function (e) {
 		if (e.key !== 'Escape') return;
 		document.querySelectorAll('.mega.open').forEach(function (m) { m.classList.remove('open'); });
+		document.querySelectorAll('.nvb[aria-expanded="true"]').forEach(function (b) { b.setAttribute('aria-expanded', 'false'); });
 		document.querySelectorAll('details.mnav[open]').forEach(function (d) { d.removeAttribute('open'); });
 		if (document.activeElement && document.activeElement.closest && document.activeElement.closest('.nv')) document.activeElement.blur();
 	});

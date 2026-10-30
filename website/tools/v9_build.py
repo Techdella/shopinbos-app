@@ -206,6 +206,9 @@ LEARN_LINKS = [
 
 
 def fix_text(body):
+    # Menu headings that open a mega menu (Products, Solutions, Learn) are buttons, not links to a page.
+    body = re.sub(r'<div class="nv"><a href="[^"]*">(Products|Solutions|Learn)(<svg.*?</svg>)</a>',
+                  r'<div class="nv"><button type="button" class="nvb" aria-haspopup="true" aria-expanded="false">\1\2</button>', body)
     for a, b in LEARN_LINKS:
         body = body.replace(a, b, 1)
     for a, b in STORE_BADGES:

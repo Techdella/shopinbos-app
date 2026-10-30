@@ -427,3 +427,10 @@
 .v9-side-pdf img{width:44px;height:62px;object-fit:cover;border-radius:4px;box-shadow:0 6px 14px -8px rgba(22,20,31,.5);flex:none}
 .v9-side-pdf small{display:block;font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#C2410C;font-weight:500;margin-bottom:2px}
 @media (max-height:820px){.v9-side-video{aspect-ratio:4/5}}
+
+/* Menu headings with a mega menu are buttons (no page behind them); same look as the link items. */
+.nv>.nvb{display:inline-flex;align-items:center;gap:4px;padding:9px 14px;border:0;border-radius:99px;background:none;color:inherit;font:inherit;cursor:default;transition:background .2s}
+.hdr.dk .nv:hover>.nvb,.hdr.dk .nv>.nvb[aria-expanded="true"]{background:rgba(255,255,255,.12)}
+.hdr.lt .nv:hover>.nvb,.hdr.lt .nv>.nvb[aria-expanded="true"]{background:#F4F3F7}
+.nv>.nvb svg{transition:transform .3s}
+.nv:hover>.nvb svg,.nv>.nvb[aria-expanded="true"] svg{transform:rotate(180deg)}
