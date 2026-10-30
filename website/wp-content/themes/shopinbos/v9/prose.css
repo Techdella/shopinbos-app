@@ -356,3 +356,10 @@
 .v9-author{flex-direction:column;gap:14px}
 .v9-pager .btn{flex:1 1 100%}
 }
+
+/* App store badges (footer) */
+.sb{display:inline-flex;align-items:center;gap:10px;height:46px;padding:0 16px 0 12px;border-radius:12px;background:#000;color:#fff;text-decoration:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.28);transition:transform .2s,box-shadow .2s}
+.sb:hover{transform:translateY(-2px);box-shadow:inset 0 0 0 1px rgba(255,255,255,.6)}
+.sb span{display:flex;flex-direction:column;line-height:1.05;font-family:"Plus Jakarta Sans",system-ui,sans-serif;font-size:17px;font-weight:600;letter-spacing:-.01em}
+.sb small{font-size:10px;font-weight:500;letter-spacing:.02em;opacity:.9}
+.sb .sb-ic{flex:none}

@@ -173,7 +173,24 @@ TEXT = [
 ]
 
 
+# Footer app buttons: store badges (logo + store name) instead of text. Links are filled in at render time from
+# Settings (Google Play / App Store links), falling back to the app pilot page while the apps are in pilot.
+PLAY_SVG = ('<svg class="sb-ic" width="22" height="24" viewBox="0 0 24 26" aria-hidden="true"><path fill="#00D7FE" d="M1.2.6C.9.9.7 1.4.7 2v22c0 .6.2 1.1.5 1.4l.1.1L13.6 13v-.3L1.3.5z"/>'
+            '<path fill="#FFCE00" d="M17.7 17.2 13.6 13v-.3l4.1-4.1.1.1 4.9 2.8c1.4.8 1.4 2.1 0 2.9l-4.9 2.8z"/>'
+            '<path fill="#FF3A44" d="M17.8 17.1 13.6 12.9 1.2 25.4c.5.5 1.2.5 2.1.1l14.5-8.4"/>'
+            '<path fill="#00F076" d="M17.8 8.7 3.3.4C2.4-.1 1.7 0 1.2.5l12.4 12.4z"/></svg>')
+APPLE_SVG = ('<svg class="sb-ic" width="20" height="24" viewBox="0 0 17 20" aria-hidden="true"><path fill="#fff" d="M14.2 10.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9-1.7 0-3.3 1-4.2 2.6-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8 1.6 0 2 .8 3.4.8 1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9 0 0-2.7-1-2.7-4.1zM11.7 3c.7-.9 1.2-2 1-3.2-1 0-2.3.7-3 1.6-.7.8-1.2 2-1.1 3.1 1.2.1 2.3-.6 3.1-1.5z"/></svg>')
+STORE_BADGES = [
+    ('<a class="btn b-gh" href="/app/" style="height:42px;font-size:13.5px;padding:0 16px">Android app</a>',
+     '<a class="sb" href="%%ANDROID%%" aria-label="Get the Shopinbos app on Google Play">' + PLAY_SVG + '<span><small>GET IT ON</small>Google Play</span></a>'),
+    ('<a class="btn b-gh" href="/app/" style="height:42px;font-size:13.5px;padding:0 16px">iPhone app</a>',
+     '<a class="sb" href="%%IOS%%" aria-label="Download the Shopinbos app on the App Store">' + APPLE_SVG + '<span><small>Download on the</small>App Store</span></a>'),
+]
+
+
 def fix_text(body):
+    for a, b in STORE_BADGES:
+        body = body.replace(a, b)
     for a, b in TEXT:
         body = body.replace(a, b)
     return body

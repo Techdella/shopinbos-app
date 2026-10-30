@@ -147,6 +147,9 @@ function sib_v9_tokens( string $html ): string {
 		'%%ADD%%'      => $app . '/signup?source=website&amp;intent=add_product',
 		'%%SUPPLIER%%' => $app . '/supplier/signup?source=website',
 		'%%PARTNER%%'  => $app . '/logistics/signup?source=website',
+		// Store badges in the footer: the store pages once set in Settings, the app pilot page until then.
+		'%%ANDROID%%'  => esc_url( ( function_exists( 'sib_setting' ) ? (string) sib_setting( 'android_url' ) : '' ) ?: home_url( '/app/' ) ),
+		'%%IOS%%'      => esc_url( ( function_exists( 'sib_setting' ) ? (string) sib_setting( 'ios_url' ) : '' ) ?: home_url( '/app/' ) ),
 	];
 	foreach ( [ 'instagram', 'tiktok', 'x', 'youtube', 'linkedin' ] as $s ) {
 		$url                          = function_exists( 'sib_setting' ) ? (string) sib_setting( 'social_' . $s ) : '';
