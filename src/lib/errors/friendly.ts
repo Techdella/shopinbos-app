@@ -16,7 +16,8 @@ export const DEFAULT_FRIENDLY = "Something went wrong. Please try again.";
 
 const RULES: Array<[ErrorKind, RegExp]> = [
   ["storage", /SecurityError|Access is denied for this document|(session|local)Storage|indexedDB|QuotaExceeded|The operation is insecure/i],
-  ["update", /ChunkLoadError|Loading (CSS )?chunk|dynamically imported module|Importing a module script failed|Server Action .* was not found/i],
+  // "reading 'call'": webpack asked for a module the page's (older) chunk list doesn't have.
+  ["update", /ChunkLoadError|Loading (CSS )?chunk|dynamically imported module|Importing a module script failed|Server Action .* was not found|Cannot read properties of undefined \(reading 'call'\)|undefined is not an object \(evaluating '[\w$.]+\[[\w$]+\]\.call'\)/i],
   ["network", /Failed to fetch|Network ?Error|Network request failed|Load failed|ERR_[A-Z_]+|timed? ?out|AbortError|signal is aborted|The operation was aborted|ECONNRESET|ETIMEDOUT|socket hang up/i],
   ["permission", /NotAllowedError|Permission denied|permission was denied/i],
   [

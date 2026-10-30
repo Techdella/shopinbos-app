@@ -14,6 +14,7 @@ test("friendly errors: technical messages become plain words", () => {
   // Chrome, when a response body is cut off (the tab went to the background mid-request).
   assert.equal(f.errorKind(new TypeError("network error")), "network");
   assert.equal(f.errorKind(new Error("Loading chunk 9114 failed.")), "update");
+  assert.equal(f.errorKind(new TypeError("Cannot read properties of undefined (reading 'call')")), "update");
   assert.equal(f.errorKind(new Error("NotAllowedError: Permission denied")), "permission");
   assert.equal(f.errorKind(new TypeError("Cannot read properties of undefined (reading 'id')")), "code");
   assert.equal(f.errorKind(new SyntaxError("Unexpected token '<', \"<!DOCTYPE \"... is not valid JSON")), "code");
