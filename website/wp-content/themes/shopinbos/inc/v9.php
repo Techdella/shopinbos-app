@@ -300,3 +300,4 @@ require_once __DIR__ . '/v9-content.php';
 require_once __DIR__ . '/v9-fill.php';
 require_once __DIR__ . '/v9-pages.php';
 require_once __DIR__ . '/v9-tools.php';
+require_once __DIR__ . '/v9-more.php';

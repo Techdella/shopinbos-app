@@ -204,7 +204,7 @@
 .v9-gp .gv-av img{width:100%;height:100%;object-fit:cover}
 .v9-gp .gv-name{font-size:14px}
 .v9-gp .gv-brand{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;opacity:.7}
-.v9-gp .gs-blob{position:absolute;border-radius:99px;background:var(--g-ac);opacity:.22;animation:v9gFloat 7s ease-in-out infinite}
+.v9-gp .gs-blob{position:absolute;border-radius:50%;background:var(--g-ac);opacity:.22;animation:v9gFloat 7s ease-in-out infinite}
 .v9-gp .gs-b1{width:260px;height:260px;right:-90px;top:-60px}
 .v9-gp .gs-b2{width:180px;height:180px;left:-70px;bottom:-50px;animation-delay:-3s;opacity:.14}
 @keyframes v9gFloat{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-14px,18px) scale(1.08)}}

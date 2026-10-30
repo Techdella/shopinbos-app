@@ -250,6 +250,186 @@
 		if (n) p.textContent = n + ' of ' + ids.length + ' done';
 	});
 
+	/* Gist stories, template filters and the investor form (inc/v9-more.php). */
+	(function () {
+		var SEEN = 'sib-gist-seen', seen = {};
+		try { seen = JSON.parse(localStorage.getItem(SEEN) || '{}') || {}; } catch (e) {}
+		document.querySelectorAll('[data-gist-slug]').forEach(function (a) { a.classList.toggle('is-seen', !!seen[a.getAttribute('data-gist-slug')]); });
+		// Old share links (/gist/#slug) open that story's page.
+		if (page === 'gist' && location.hash.length > 1) {
+			var want = decodeURIComponent(location.hash.slice(1));
+			[].some.call(document.querySelectorAll('[data-gist-slug]'), function (a) {
+				if (a.getAttribute('data-gist-slug') !== want) return false;
+				location.replace(a.href);
+				return true;
+			});
+		}
+
+		/* Story player: swipe or tap right/left, hold to pause, arrow keys; slides move on by themselves. */
+		document.querySelectorAll('[data-gp]').forEach(function (gp) {
+			var track = gp.querySelector('.v9-gp-track');
+			var slides = [].slice.call(track.children);
+			var bars = gp.querySelectorAll('.gv-bar');
+			var ctl = gp.nextElementSibling && gp.nextElementSibling.classList.contains('v9-gp-ctl') ? gp.nextElementSibling : null;
+			var count = ctl && ctl.querySelector('.gp-count');
+			var pauseBtn = ctl && ctl.querySelector('.gp-pause');
+			var reads = document.querySelectorAll('[data-go]');
+			var nextStory = document.querySelector('[data-gist-next]');
+			var DUR = 5200, i = -1, t0 = 0, elapsed = 0, held = false, stopped = false, away = false, muted = true, done = false, settle = 0;
+			var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+			if (!slides.length) return;
+			gp.classList.add('js');
+			if (ctl) ctl.hidden = false;
+			seen[gp.getAttribute('data-slug')] = 1;
+			try { localStorage.setItem(SEEN, JSON.stringify(seen)); } catch (e) {}
+
+			slides.forEach(function (s) {
+				var v = s.querySelector('video');
+				if (!v) return;
+				v.removeAttribute('controls');
+				v.muted = true;
+				var mb = s.querySelector('.gs-mute');
+				if (mb) {
+					mb.hidden = false;
+					mb.addEventListener('click', function (e) {
+						e.stopPropagation();
+						muted = !muted; v.muted = muted;
+						mb.classList.toggle('is-on', !muted);
+						mb.setAttribute('aria-label', muted ? 'Turn sound on' : 'Turn sound off');
+						if (v.paused) v.play().catch(function () {});
+					});
+				}
+				v.addEventListener('ended', function () { if (slides[i] === s) step(1, true); });
+				v.addEventListener('error', function () { v.classList.add('is-failed'); t0 = performance.now(); elapsed = 0; });
+			});
+			function vid() { var v = slides[i] && slides[i].querySelector('video'); return v && !v.classList.contains('is-failed') ? v : null; }
+			function activate(n) {
+				if (n === i) return;
+				var old = vid(); if (old) old.pause();
+				i = n; elapsed = 0; t0 = performance.now(); done = false;
+				slides.forEach(function (s, k) { s.classList.toggle('on', k === i); s.setAttribute('aria-hidden', k === i ? 'false' : 'true'); });
+				[].forEach.call(bars, function (b, k) { b.classList.toggle('done', k < i); b.firstChild.style.width = k < i ? '100%' : '0'; });
+				[].forEach.call(reads, function (r) { r.classList.toggle('on', +r.getAttribute('data-go') === i); });
+				if (count) count.textContent = (i + 1) + ' / ' + slides.length;
+				var v = vid();
+				if (v) {
+					v.muted = muted; delete v.dataset.started;
+					try { v.currentTime = 0; } catch (e) {}
+					if (!stopped && !away) v.play().catch(function () { muted = true; v.muted = true; v.play().catch(function () {}); });
+				}
+			}
+			function go(n) {
+				n = Math.max(0, Math.min(slides.length - 1, n));
+				track.scrollTo({ left: n * track.clientWidth, behavior: reduce ? 'auto' : 'smooth' });
+				activate(n);
+			}
+			// Past the last slide: a tap goes on to the next story; the timer just stops there.
+			function step(d, auto) {
+				if (d > 0 && i >= slides.length - 1) {
+					done = true;
+					if (!auto && nextStory) location.href = nextStory.href;
+					return;
+				}
+				go(i + d);
+			}
+			// Swipes: the slide that ends up in view becomes the current one.
+			track.addEventListener('scroll', function () {
+				clearTimeout(settle);
+				settle = setTimeout(function () { activate(Math.round(track.scrollLeft / Math.max(1, track.clientWidth))); }, 120);
+			}, { passive: true });
+			track.addEventListener('click', function (e) {
+				if (e.target.closest('a, button')) return;
+				var r = track.getBoundingClientRect();
+				step(e.clientX < r.left + r.width / 3 ? -1 : 1);
+			});
+			track.addEventListener('pointerdown', function () { held = true; });
+			['pointerup', 'pointercancel', 'pointerleave'].forEach(function (ev) { track.addEventListener(ev, function () { held = false; }); });
+			track.addEventListener('keydown', function (e) {
+				if (e.key === 'ArrowRight') { e.preventDefault(); step(1); }
+				else if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); }
+				else if (e.key === ' ' && e.target === track) { e.preventDefault(); toggle(); }
+			});
+			function toggle() {
+				stopped = !stopped;
+				if (pauseBtn) { pauseBtn.classList.toggle('is-paused', stopped); pauseBtn.setAttribute('aria-label', stopped ? 'Play' : 'Pause'); }
+				var v = vid(); if (v && !stopped && v.paused && !v.ended) v.play().catch(function () {});
+			}
+			if (ctl) {
+				ctl.querySelector('.gp-prev').addEventListener('click', function () { step(-1); });
+				ctl.querySelector('.gp-next').addEventListener('click', function () { step(1); });
+				if (pauseBtn) pauseBtn.addEventListener('click', toggle);
+			}
+			[].forEach.call(reads, function (r) {
+				r.addEventListener('click', function () {
+					go(+r.getAttribute('data-go'));
+					var b = gp.getBoundingClientRect();
+					if (b.top < 0 || b.bottom > innerHeight) gp.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
+				});
+			});
+			if ('IntersectionObserver' in window) new IntersectionObserver(function (es) { away = !es[0].isIntersecting; }, { threshold: 0.35 }).observe(gp);
+			window.addEventListener('resize', function () { track.scrollLeft = i * track.clientWidth; });
+			function tick(now) {
+				var bar = bars[i], v = vid(), paused = held || stopped || away || document.hidden;
+				if (v) {
+					if (paused && !v.paused) v.pause();
+					else if (!paused && v.paused && !v.ended && v.dataset.started) v.play().catch(function () {});
+					if (!v.paused) v.dataset.started = '1';
+					if (bar && v.duration) bar.firstChild.style.width = Math.min(100, v.currentTime / v.duration * 100) + '%';
+				} else if (!done) {
+					if (paused) t0 = now - elapsed; else elapsed = now - t0;
+					if (bar) bar.firstChild.style.width = Math.min(100, elapsed / DUR * 100) + '%';
+					if (elapsed >= DUR) step(1, true);
+				}
+				requestAnimationFrame(tick);
+			}
+			activate(0);
+			requestAnimationFrame(tick);
+		});
+
+		/* Template filters. */
+		document.querySelectorAll('[data-tpl-filter]').forEach(function (g) {
+			var grid = document.getElementById(g.getAttribute('data-tpl-filter'));
+			if (!grid) return;
+			g.querySelectorAll('button[data-kind]').forEach(function (b) {
+				b.addEventListener('click', function () {
+					var k = b.getAttribute('data-kind');
+					g.querySelectorAll('button[data-kind]').forEach(function (x) { var on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+					grid.querySelectorAll('[data-kind]').forEach(function (c) { c.hidden = !!k && c.getAttribute('data-kind') !== k; });
+				});
+			});
+		});
+
+		/* Real <form data-v9-lead> forms (investor enquiries): sent without leaving the page. */
+		document.querySelectorAll('form[data-v9-lead]').forEach(function (f) {
+			f.addEventListener('submit', function (e) {
+				e.preventDefault();
+				if (f.dataset.busy) return;
+				var btn = f.querySelector('[type="submit"]');
+				var data = {};
+				new FormData(f).forEach(function (v, k) { if (k !== 'action' && k !== 'back') data[k] = v; });
+				var msg = f.querySelector('.v9-lead-msg');
+				if (!msg) { msg = document.createElement('p'); f.insertBefore(msg, btn); }
+				f.dataset.busy = '1';
+				btn.style.opacity = '.6';
+				post(data).then(function (r) {
+					delete f.dataset.busy;
+					btn.style.opacity = '';
+					var ok = r && r.ok;
+					msg.className = 'v9-lead-msg' + (ok ? ' is-ok' : '');
+					msg.setAttribute('role', ok ? 'status' : 'alert');
+					msg.textContent = ok ? (r.message || 'Thank you. We’ll be in touch.') : ((r && r.message) || 'That didn’t go through. Check the details and try again.');
+					msg.hidden = false;
+					if (ok) {
+						// Hide the fields and button (inline display styles beat the hidden attribute).
+						[].forEach.call(f.children, function (c) { if (c !== msg && c.tagName !== 'DIV' && c.type !== 'hidden') c.style.display = 'none'; });
+						f.querySelectorAll('.g2, label').forEach(function (c) { c.style.display = 'none'; });
+						track('lead', { kind: data.kind, form: page, path: location.pathname });
+					}
+				});
+			});
+		});
+	})();
+
 	/* CTA clicks to the app. */
 	document.addEventListener('click', function (e) {
 		var a = e.target.closest && e.target.closest('a[href*="app.shopinbos.com"], a[href*="/signup"]');
