@@ -26,6 +26,8 @@ export interface VoiceInputButtonProps {
   variant?: "full" | "icon";
   className?: string;
   disabled?: boolean;
+  /** Chats: send what was said straight away (with the merged words), instead of only filling the box. */
+  onSpoken?: (text: string) => void;
 }
 
 const MIME_CANDIDATES = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus", "audio/ogg"];
@@ -53,7 +55,7 @@ function fillTarget(id: string, spoken: string, mode: "append" | "replace", maxL
   return true;
 }
 
-export function VoiceInputButton({ value, onChange, targetId, mode = "append", maxLength, context, variant = "full", className = "", disabled }: VoiceInputButtonProps) {
+export function VoiceInputButton({ value, onChange, targetId, mode = "append", maxLength, context, variant = "full", className = "", disabled, onSpoken }: VoiceInputButtonProps) {
   const t = useT("rex", "common");
   /** VOICE_COPY's English (shared with the API and the phone app) in the person's language; other text as sent. */
   const say = (text: string) => {
@@ -96,9 +98,11 @@ export function VoiceInputButton({ value, onChange, targetId, mode = "append", m
   const deliver = useCallback(
     (spoken: string) => {
       if (targetId && fillTarget(targetId, spoken, mode, maxLength)) return;
-      onChange?.(mergeVoiceText(valueRef.current, spoken, mode, maxLength));
+      const merged = mergeVoiceText(valueRef.current, spoken, mode, maxLength);
+      if (onSpoken) onSpoken(merged);
+      else onChange?.(merged);
     },
-    [targetId, mode, maxLength, onChange],
+    [targetId, mode, maxLength, onChange, onSpoken],
   );
 
   const send = useCallback(

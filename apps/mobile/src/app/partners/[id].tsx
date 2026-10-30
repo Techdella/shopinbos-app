@@ -22,8 +22,8 @@ export default function PartnerChat() {
   const [error, setError] = useState<string | null>(null);
   const title = name || t("partners.partner");
 
-  async function send() {
-    const text = draft.trim();
+  async function send(spoken?: string) {
+    const text = (spoken ?? draft).trim();
     if (!text || sending) return;
     setSending(true);
     setError(null);
@@ -52,7 +52,7 @@ export default function PartnerChat() {
       refreshing={messages.refreshing}
       onRefresh={() => void messages.refresh()}
       scrollKey={messages.data?.length}
-      composer={<Composer value={draft} onChange={setDraft} onSend={() => void send()} busy={sending} placeholder={t("partners.messageTo", { name: title })} above={error ? <Notice>{error}</Notice> : null} />}
+      composer={<Composer value={draft} onChange={setDraft} onSend={(text) => void send(text)} busy={sending} placeholder={t("partners.messageTo", { name: title })} above={error ? <Notice>{error}</Notice> : null} />}
     >
       {messages.loading && !messages.data ? <LoadingBlock /> : null}
       {messages.error && !messages.data ? <ErrorState message={messages.error} onRetry={() => void messages.reload()} /> : null}

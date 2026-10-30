@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -288,23 +289,40 @@ export function PhoneField({ country, onCountryPress, value, onChangeText }: { c
   );
 }
 
-export function Segmented<V extends string>({ options, value, onChange }: { options: { value: V; label: string }[]; value: V; onChange: (value: V) => void }) {
+/**
+ * Tabs in a pill. By default each tab takes an equal share (a long label shrinks a little to fit). `fitContent`
+ * sizes each tab to its label and scrolls sideways when they don't all fit, so every label keeps the same size.
+ */
+export function Segmented<V extends string>({ options, value, onChange, fitContent = false }: { options: { value: V; label: string }[]; value: V; onChange: (value: V) => void; fitContent?: boolean }) {
+  const tabs = options.map((option) => {
+    const on = option.value === value;
+    return (
+      <Pressable
+        key={option.value}
+        accessibilityRole="tab"
+        accessibilityState={{ selected: on }}
+        onPress={() => onChange(option.value)}
+        style={{ ...(fitContent ? { flexGrow: 1 } : { flex: 1 }), minHeight: 42, borderRadius: radii.pill, backgroundColor: on ? colors.inkFill : "transparent", alignItems: "center", justifyContent: "center", paddingHorizontal: fitContent ? 6 : 0 }}
+      >
+        {fitContent ? (
+          <T weight="bold" numberOfLines={1} style={{ color: on ? "#FFFFFF" : colors.ink, paddingHorizontal: 8 }}>{option.label}</T>
+        ) : (
+          <T weight="bold" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ color: on ? "#FFFFFF" : colors.ink, paddingHorizontal: 8 }}>{option.label}</T>
+        )}
+      </Pressable>
+    );
+  });
+  const frame = { backgroundColor: colors.surface, borderRadius: radii.pill, padding: 4, ...softShadow() };
+  if (fitContent) {
+    return (
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[frame, { flexGrow: 0 }]} contentContainerStyle={{ flexGrow: 1, flexDirection: "row" }} accessibilityRole="tablist">
+        {tabs}
+      </ScrollView>
+    );
+  }
   return (
-    <View style={{ flexDirection: "row", backgroundColor: colors.surface, borderRadius: radii.pill, padding: 4, ...softShadow() }} accessibilityRole="tablist">
-      {options.map((option) => {
-        const on = option.value === value;
-        return (
-          <Pressable
-            key={option.value}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: on }}
-            onPress={() => onChange(option.value)}
-            style={{ flex: 1, minHeight: 42, borderRadius: radii.pill, backgroundColor: on ? colors.inkFill : "transparent", alignItems: "center", justifyContent: "center" }}
-          >
-            <T weight="bold" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ color: on ? "#FFFFFF" : colors.ink, paddingHorizontal: 8 }}>{option.label}</T>
-          </Pressable>
-        );
-      })}
+    <View style={{ flexDirection: "row", ...frame }} accessibilityRole="tablist">
+      {tabs}
     </View>
   );
 }

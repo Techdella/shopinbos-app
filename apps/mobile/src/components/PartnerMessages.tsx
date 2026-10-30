@@ -156,7 +156,7 @@ export function ConversationScreen({ base, quickReplies }: { base: Base; quickRe
         <Composer
           value={draft}
           onChange={setDraft}
-          onSend={() => void send()}
+          onSend={(text) => void send(text?.trim() ?? draft.trim())}
           busy={sending}
           placeholder={t("chat.messageTo", { name: title })}
           above={

@@ -153,7 +153,7 @@ export default function InboxThread() {
           <Composer
             value={draft}
             onChange={setDraft}
-            onSend={() => void send()}
+            onSend={(text) => void send(text ?? draft)}
             busy={sending}
             placeholder={!canReply || mode === "note" ? t("thread.notePlaceholder") : byEmail ? t("thread.emailPlaceholder") : channelName ? t("thread.replyOn", { channel: channelName }) : t("thread.replyHere")}
             above={

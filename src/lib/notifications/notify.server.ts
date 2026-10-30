@@ -135,7 +135,8 @@ export async function notify(input: NotifyInput): Promise<NotifyResult> {
     actionLabel: input.actionLabel ?? null,
     actionUrl: input.actionUrl ?? null,
     imageUrl: input.imageUrl ?? null,
-    metadata: (input.metadata ?? {}) as Prisma.InputJsonValue,
+    // The app screen it opens (push centre campaigns), kept so a tap on the row in the bell opens it too.
+    metadata: { ...(input.metadata ?? {}), ...(input.appRoute ? { appRoute: input.appRoute } : {}) } as Prisma.InputJsonValue,
   };
 
   // Already sent (a retry, or the same alert twice in its window): return it without asking the database to refuse a

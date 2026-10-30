@@ -113,9 +113,9 @@ export function RexChat({
   const handlers: RexCardHandlers = { onAsk: (prompt) => void onSend(prompt, []), onOpenPreview, onUndo, busy: blocked };
   const column = wide ? "mx-auto w-full max-w-[880px]" : "w-full";
 
-  async function submit(event?: FormEvent) {
+  async function submit(event?: FormEvent, spoken?: string) {
     event?.preventDefault();
-    const message = text.trim();
+    const message = (spoken ?? text).trim();
     if (!message || blocked || uploading) return;
     setText("");
     const attached = photos;
@@ -431,7 +431,7 @@ export function RexChat({
                 >
                   <Icon name="link" size={17} />
                 </button>
-                <VoiceInputButton variant="icon" value={text} onChange={setText} maxLength={2000} context="a request for Rex" disabled={blocked} />
+                <VoiceInputButton variant="icon" value={text} onChange={setText} onSpoken={(spoken) => void submit(undefined, spoken)} maxLength={2000} context="a request for Rex" disabled={blocked} />
                 <button
                   type="submit"
                   disabled={!text.trim() || blocked || uploading}

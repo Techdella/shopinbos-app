@@ -429,7 +429,12 @@ const SIMPLE_SCREENS: Array<[RegExp, string]> = [
   [/^\/marketplace(\/.*)?$/, "/find"],
   [/^\/home\/notifications(\/.*)?$/, "/notifications"],
   [/^\/home\/(payments|payouts)(\/.*)?$/, "/payments"],
-  [/^\/home\/(shipping|logistics)$/, "/delivery"],
+  [/^\/home\/(shipping|logistics)(\/.*)?$/, "/delivery"],
+  [/^\/home\/start$/, "/start"],
+  [/^\/refer$/, "/rewards"],
+  [/^\/supplier\/products\/bulk$/, "/supplier/products"],
+  [/^\/supplier\/level$/, "/supplier/level"],
+  [/^\/logistics\/level$/, "/logistics/level"],
   [/^\/home\/wallet$/, "/wallet"],
   [/^\/home\/settings(\/.*)?$/, "/settings"],
   [/^\/channels$/, "/channels"],
@@ -501,7 +506,8 @@ export function appRouteFor(link: string | null | undefined): AppRoute | null {
   if ((match = /^\/supplier\/(?:quotes|quote-requests)\/([\w-]+)$/.exec(pathname))) return { pathname: "/supplier/quote/[id]", params: { id: match[1] } };
   const quote = queryParam(query, "quote");
   if (/^\/supplier\/(quotes|quote-requests)$/.test(pathname) && quote) return { pathname: "/supplier/quote/[id]", params: { id: quote } };
-  if ((match = /^\/supplier\/products\/([\w-]+)$/.exec(pathname)) && match[1] !== "new") return { pathname: "/supplier/product/[id]", params: { id: match[1] } };
+  if ((match = /^\/supplier\/products\/([\w-]+)$/.exec(pathname)) && !["new", "bulk"].includes(match[1])) return { pathname: "/supplier/product/[id]", params: { id: match[1] } };
+  if ((match = /^\/suppliers\/([\w-]+)$/.exec(pathname))) return { pathname: "/suppliers/[slug]", params: { slug: match[1] } };
   if ((match = /^\/logistics\/(?:bookings|jobs)\/([\w-]+)$/.exec(pathname))) return { pathname: "/logistics/job/[id]", params: { id: match[1] } };
   const job = queryParam(query, "job");
   if (/^\/logistics\/(bookings|jobs)$/.test(pathname) && job) return { pathname: "/logistics/job/[id]", params: { id: job } };

@@ -28,6 +28,7 @@ export function VoiceInput({
   style,
   disabled,
   testID = "voice-input",
+  onSpoken,
 }: {
   value: string;
   onChange: (next: string) => void;
@@ -41,6 +42,8 @@ export function VoiceInput({
   style?: StyleProp<ViewStyle>;
   disabled?: boolean;
   testID?: string;
+  /** Chats: send what was said straight away (with the merged words), instead of only filling the box. */
+  onSpoken?: (text: string) => void;
 }) {
   const t = useT("m_ui");
   /** VOICE_COPY in the app language (m_ui "voice.*"); other text (the server's own words) as it is. */
@@ -119,7 +122,11 @@ export function VoiceInput({
       }
       const text = await transcribeRecording({ uri, durationMs, language, context });
       if (!text) setMessage(copy("nothingHeard"));
-      else onChange(mergeVoiceText(latest.current, text, mode, maxLength));
+      else {
+        const merged = mergeVoiceText(latest.current, text, mode, maxLength);
+        if (onSpoken) onSpoken(merged);
+        else onChange(merged);
+      }
     } catch (error) {
       setMessage(error instanceof Error ? translated(error.message) : copy("failed"));
     } finally {

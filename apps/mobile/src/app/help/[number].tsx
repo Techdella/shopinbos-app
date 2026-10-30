@@ -20,12 +20,13 @@ export default function SupportChat() {
   const [error, setError] = useState<string | null>(null);
   const data = ticket.data;
 
-  async function send() {
-    if (!draft.trim() || sending) return;
+  async function send(spoken?: string) {
+    const text = (spoken ?? draft).trim();
+    if (!text || sending) return;
     setSending(true);
     setError(null);
     try {
-      ticket.setData(await replySupportChat(String(number), draft.trim()));
+      ticket.setData(await replySupportChat(String(number), text));
       setDraft("");
     } catch (sendError) {
       setError(sendError instanceof Error ? sendError.message : t("chat.sendFailed"));
@@ -45,7 +46,7 @@ export default function SupportChat() {
       refreshing={ticket.refreshing}
       onRefresh={() => void ticket.refresh()}
       scrollKey={data?.messages.length}
-      composer={data && data.status !== "closed" ? <Composer value={draft} onChange={setDraft} onSend={() => void send()} busy={sending} placeholder={t("ticket.write")} above={error ? <Notice>{error}</Notice> : null} /> : null}
+      composer={data && data.status !== "closed" ? <Composer value={draft} onChange={setDraft} onSend={(text) => void send(text)} busy={sending} placeholder={t("ticket.write")} above={error ? <Notice>{error}</Notice> : null} /> : null}
     >
       {ticket.loading && !data ? <LoadingBlock /> : null}
       {ticket.error && !data ? <ErrorState message={ticket.error} onRetry={() => void ticket.reload()} /> : null}
