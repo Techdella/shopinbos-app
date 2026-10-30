@@ -231,7 +231,7 @@ export const FEATURE_INTROS: FeatureIntro[] = [
     scenes: [
       { art: "phone-store", caption: "A customer pays you.", sub: "By card, bank transfer, USSD or cash on delivery.", durationMs: S, value: "₦24,000" },
       { art: "money-flow", caption: "Every payment shows in Money.", sub: "Every sale shows up in Money, with who paid and how.", durationMs: S, value: "₦64,000" },
-      { art: "cash-collect", caption: "It’s split the moment they pay.", sub: "Your share goes to your bank and each supplier’s to theirs. Shopinbos never holds your money.", durationMs: S, label: "Split at checkout" },
+      { art: "cash-collect", caption: "It’s split the moment they pay.", sub: "Your money goes to your bank and each supplier’s cost to theirs. Shopinbos never holds your money.", durationMs: S, label: "Split at checkout" },
       { art: "money-flow", caption: "A payout sends it to your bank.", sub: "Settlement is when it clears, usually the next working day.", durationMs: S, label: "GTBank •• 4821", value: "₦64,000" },
       { art: "chart-grow", caption: "Add your bank once.", sub: "Then every payout lands on its own. You’ll get a message each time.", durationMs: S },
     ],
@@ -822,7 +822,7 @@ export const FEATURE_INTROS: FeatureIntro[] = [
     scenes: [
       { art: "badge-verify", caption: "Set up in minutes.", sub: "No ID check for shops. Suppliers verify their CAC or BN registration.", durationMs: S, label: "Ready" },
       { art: "money-flow", caption: "Add the bank you get paid in.", sub: "We check the name on it with Paystack.", durationMs: S, label: "GTBank •• 4821" },
-      { art: "phone-store", caption: "A customer pays by card.", sub: "Paystack splits the payment: your share, and each supplier's cost.", durationMs: S, value: "₦30,000" },
+      { art: "phone-store", caption: "A customer pays by card.", sub: "Paystack sends each part where it belongs: your money to you, and each supplier's cost to them.", durationMs: S, value: "₦30,000" },
       { art: "money-flow", caption: "It goes straight to your bank.", sub: "Usually the next working day. Shopinbos never holds your money.", durationMs: S, value: "₦30,000" },
       { art: "chart-grow", caption: "See every payment.", sub: "Each order's share and Paystack's settlements, in one list.", durationMs: S },
     ],
@@ -864,7 +864,7 @@ export const FEATURE_INTROS: FeatureIntro[] = [
     helpTopic: "get_paid",
     scenes: [
       { art: "phone-store", caption: "Every order earns you money.", sub: "Your price for each piece, for every shop that sells it.", durationMs: S, value: "₦9,000" },
-      { art: "cash-collect", caption: "Your price is split off at checkout.", sub: "When the customer pays, your share goes straight to your bank. Shopinbos never holds it.", durationMs: S, label: "Split at checkout" },
+      { art: "cash-collect", caption: "Your price is split off at checkout.", sub: "When the customer pays, your money goes straight to your bank. Shopinbos never holds it.", durationMs: S, label: "Split at checkout" },
       { art: "money-flow", caption: "Payouts go to your bank.", sub: "Settled money is sent to the bank account you added.", durationMs: S, label: "Access •• 1093", value: "₦186,000" },
       { art: "chart-grow", caption: "See every naira.", sub: "Fees, orders and payouts, line by line.", durationMs: S },
       { art: "chat-bubbles", caption: "Get a message each time.", sub: "“₦186,000 is on its way to your bank.”", durationMs: S, label: "₦186,000 sent" },
