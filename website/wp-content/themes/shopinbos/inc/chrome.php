@@ -90,8 +90,8 @@ function sib_theme_render_header( array $attrs ): string {
 	?>
 	<header class="site-header">
 		<div class="wrap hdr">
-			<a href="<?php echo esc_url( home_url( '/' ) ); ?>" aria-label="<?php esc_attr_e( 'Shopinbos home', 'shopinbos' ); ?>" style="display:flex;align-items:center">
-				<img src="<?php echo sib_theme_img( 'logo-dark.png' ); ?>" alt="Shopinbos" class="hlogo" width="178" height="17">
+			<a href="<?php echo esc_url( home_url( '/' ) ); ?>" aria-label="<?php esc_attr_e( 'Shopinbos Business home', 'shopinbos' ); ?>" style="display:flex;align-items:center;gap:7px">
+				<img src="<?php echo sib_theme_img( 'logo-dark.png' ); ?>" alt="Shopinbos" class="hlogo" width="178" height="17"><span aria-hidden="true" style="font-size:15px;font-weight:700;line-height:1;color:#6B6779">Business</span>
 			</a>
 			<?php if ( empty( $attrs['minimal'] ) ) : ?>
 				<nav aria-label="<?php esc_attr_e( 'Main', 'shopinbos' ); ?>">
@@ -137,7 +137,7 @@ function sib_theme_render_footer( array $attrs ): string {
 		if ( $pop && function_exists( 'sib_popup_contact_mode' ) ) {
 			$pop = sib_popup_contact_mode( $pop );
 		}
-		return '<footer class="cs-foot cv"><div class="wrap"><span>© ' . esc_html( $year ) . ' ' . esc_html__( 'Shopinbos is a product of Tech Della Solutions Ltd (RC 7038770).', 'shopinbos' ) . '</span>'
+		return '<footer class="cs-foot cv"><div class="wrap"><span>© ' . esc_html( $year ) . ' ' . esc_html__( 'Shopinbos Business is a product of Tech Della Solutions Ltd (RC 7038770).', 'shopinbos' ) . '</span>'
 			. '<span><a href="' . esc_url( home_url( '/legal/privacy/' ) ) . '">' . esc_html__( 'Privacy', 'shopinbos' ) . '</a> · <a href="' . esc_url( home_url( '/legal/terms/' ) ) . '">' . esc_html__( 'Terms', 'shopinbos' ) . '</a></span></div></footer>'
 			. '<div class="cv-pops cv">' . $pop . '</div>';
 	}
@@ -146,7 +146,7 @@ function sib_theme_render_footer( array $attrs ): string {
 	}
 	if ( ! empty( $attrs['minimal'] ) ) {
 		return '<footer class="foot"><div class="wrap foot-base" style="border:0;padding:28px 32px">'
-			. '<span>© ' . esc_html( $year ) . ' Shopinbos.</span>'
+			. '<span>© ' . esc_html( $year ) . ' Shopinbos Business.</span>'
 			. '<span><a href="' . esc_url( home_url( '/legal/privacy/' ) ) . '">' . esc_html__( 'Privacy', 'shopinbos' ) . '</a></span></div></footer>';
 	}
 	$cols = [
@@ -187,7 +187,7 @@ function sib_theme_render_footer( array $attrs ): string {
 			<div class="foot-grid">
 				<div class="foot-col" style="gap:14px">
 					<img src="<?php echo sib_theme_img( 'logo-light.png' ); ?>" alt="Shopinbos" width="168" height="16" style="height:16px;width:auto;align-self:flex-start">
-					<p style="margin:0;color:var(--fog);font-size:14px;line-height:1.6"><?php esc_html_e( 'The commerce app for Nigerian businesses. Made in Lagos.', 'shopinbos' ); ?></p>
+					<p style="margin:0;color:var(--fog);font-size:14px;line-height:1.6"><?php esc_html_e( 'Shopinbos Business: the commerce app for Nigerian businesses. Made in Lagos.', 'shopinbos' ); ?></p>
 				</div>
 				<?php foreach ( $cols as [ $title, $location, $defaults ] ) : ?>
 					<nav class="foot-col" aria-label="<?php echo esc_attr( $title ); ?>">
@@ -198,7 +198,7 @@ function sib_theme_render_footer( array $attrs ): string {
 					</nav>
 				<?php endforeach; ?>
 				<div class="foot-col">
-					<b><?php esc_html_e( 'Get the app', 'shopinbos' ); ?></b>
+					<b><?php esc_html_e( 'Get the Shopinbos Business app', 'shopinbos' ); ?></b>
 					<?php foreach ( [ [ 'iPhone', $apps[0] ], [ 'Android', $apps[1] ] ] as [ $label, $url ] ) : ?>
 						<a class="row" style="gap:8px" href="<?php echo esc_url( $url ?: sib_theme_go( '', [ 'place' => 'footer_app' ] ) ); ?>">
 							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9C6D3" stroke-width="1.8" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/></svg><?php echo esc_html( $label ); ?>
@@ -207,7 +207,7 @@ function sib_theme_render_footer( array $attrs ): string {
 				</div>
 			</div>
 			<div class="foot-base">
-				<span>© <?php echo esc_html( $year ); ?> Shopinbos is a product of Tech Della Solutions Ltd (RC 7038770). <?php esc_html_e( 'All rights reserved.', 'shopinbos' ); ?></span>
+				<span>© <?php echo esc_html( $year ); ?> Shopinbos Business is a product of Tech Della Solutions Ltd (RC 7038770). <?php esc_html_e( 'All rights reserved.', 'shopinbos' ); ?></span>
 			</div>
 		</div>
 	</footer>

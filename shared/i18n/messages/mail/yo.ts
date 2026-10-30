@@ -18,8 +18,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "persona.rex.line": "Ọ̀rẹ́ rẹ fún store, fídíò àti design 🦖",
   "persona.peggy.line": "Àwọn oníbàárà, chat àti support. Mo wà fún ọ 💛",
   "persona.team.name": "Ẹgbẹ́ Shopinbos",
-  "persona.from": "{name} láti Shopinbos",
-  "persona.signature": "{name}, láti Shopinbos",
+  "persona.from": "{name} láti Shopinbos Business",
+  "persona.signature": "{name}, láti Shopinbos Business",
   "proverb.title": "Òwe ọ̀sẹ̀ yìí",
   "notify.viewDetails": "Wo àlàyé",
 
@@ -80,7 +80,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "j.fromPeggy": "Láti ọ̀dọ̀ Peggy",
   "j.fromRex": "Láti ọ̀dọ̀ Rex",
   "j.fromBoth": "Láti ọ̀dọ̀ Rex àti Peggy",
-  "j.openShopinbos": "Ṣí Shopinbos",
+  "j.openShopinbos": "Ṣí Shopinbos Business",
 
   "j.setup.progress": "O ti ṣe ìgbésẹ̀ {done} nínú {total}.",
   "j.setup.next": "Ìgbésẹ̀ tó kàn: {step}. {hint}",

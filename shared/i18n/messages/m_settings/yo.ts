@@ -148,7 +148,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "set.tips": "Àwọn ìmọ̀ràn àti àlàyé kékeré",
   "set.tipsHint": "Àlàyé ọ̀rọ̀ àti ìfihàn tí ó ń ṣí fúnra rẹ̀",
   "set.appearance": "Ìrísí",
-  "set.appearanceChoose": "Báwo ni o ṣe fẹ́ kí Shopinbos rí?",
+  "set.appearanceChoose": "Báwo ni o ṣe fẹ́ kí Shopinbos Business rí?",
   "set.appearanceAuto": "Aládàáṣe",
   "set.appearanceAutoSub": "Yóò tẹ̀lé ètò ìmọ́lẹ̀ tàbí òkùnkùn fóònù rẹ",
   "set.appearanceLight": "Ìmọ́lẹ̀",

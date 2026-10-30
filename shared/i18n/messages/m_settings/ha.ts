@@ -148,7 +148,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "set.tips": "Shawarwari da bayanai",
   "set.tipsHint": "Bayanin kalmomi da gabatarwa da ke buɗewa da kansu",
   "set.appearance": "Kamanni",
-  "set.appearanceChoose": "Yaya kake so Shopinbos ya yi kama?",
+  "set.appearanceChoose": "Yaya kake so Shopinbos Business ya yi kama?",
   "set.appearanceAuto": "Kai tsaye",
   "set.appearanceAutoSub": "Yana bin saitin haske ko duhu na wayarka",
   "set.appearanceLight": "Haske",

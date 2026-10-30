@@ -124,10 +124,12 @@ async function main() {
       process.exit(1);
     }
 
-    const resendFromEmail = process.env.RESEND_FROM_EMAIL ?? "Shopinbos <noreply@shopinbos.com>";
+    const resendFromEmail = process.env.RESEND_FROM_EMAIL ?? "Shopinbos Business <noreply@shopinbos.com>";
     const senderMatch = resendFromEmail.match(/<?([^<\s]+@[^>\s]+)>?/);
     const senderEmail = senderMatch ? senderMatch[1] : "noreply@shopinbos.com";
-    const senderName = resendFromEmail.match(/^([^<]+)</)?.[1]?.trim() ?? "Shopinbos";
+    // Same name as the app's own emails (PLATFORM_SENDER_NAME in src/lib/notifications/resend.ts): RESEND_FROM_EMAIL
+    // only supplies the address.
+    const senderName = "Shopinbos Business";
 
     console.log(`   SMTP:     smtp.resend.com:587`);
     console.log(`   From:     ${senderName} <${senderEmail}>`);

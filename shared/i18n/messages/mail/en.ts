@@ -18,8 +18,8 @@ const en = {
   "persona.rex.line": "Your store, videos and designs guy 🦖",
   "persona.peggy.line": "Customers, chats and support. I dey for you 💛",
   "persona.team.name": "The Shopinbos team",
-  "persona.from": "{name} from Shopinbos",
-  "persona.signature": "{name}, from Shopinbos",
+  "persona.from": "{name} from Shopinbos Business",
+  "persona.signature": "{name}, from Shopinbos Business",
   "proverb.title": "Proverb of the week",
   "notify.viewDetails": "View details",
 
@@ -80,7 +80,7 @@ const en = {
   "j.fromPeggy": "From Peggy",
   "j.fromRex": "From Rex",
   "j.fromBoth": "From Rex & Peggy",
-  "j.openShopinbos": "Open Shopinbos",
+  "j.openShopinbos": "Open Shopinbos Business",
 
   "j.setup.progress": "You've done {done} of {total} steps.",
   "j.setup.next": "Next step: {step}. {hint}",

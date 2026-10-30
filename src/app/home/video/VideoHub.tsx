@@ -8,6 +8,7 @@ import { PHONE_SCROLL_ROW, Spinner, cx } from "@/components/app-ui";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import type { VideoPurpose, VideoStatus } from "@shared/video-projects";
+import { videoPurposesFor, webVideoBase } from "@shared/video-owner";
 import type { PageWindow } from "@/lib/pagination";
 import { Pagination } from "@/components/seller/Pagination";
 
@@ -26,9 +27,14 @@ export interface HubVideo {
 const PURPOSE_ICON: Record<VideoPurpose, IconName> = { ad: "megaphone", product: "tag", social: "instagram" };
 const card = "rounded-[22px] border border-app-line bg-white";
 
-/** Start a video for an ad, a product or social media; then the seller's drafts, saved and published videos. */
-export function VideoHub({ videos, tab, counts, paging }: { videos: HubVideo[]; tab: VideoStatus; counts: Record<VideoStatus, number>; paging: PageWindow }) {
+/**
+ * Start a video for an ad, a product or social media; then the seller's drafts, saved and published videos.
+ * `partner`: a delivery partner's videos (/logistics/video): no product videos and no "Use in an ad" (shop-only).
+ */
+export function VideoHub({ videos, tab, counts, paging, partner = false }: { videos: HubVideo[]; tab: VideoStatus; counts: Record<VideoStatus, number>; paging: PageWindow; partner?: boolean }) {
   const t = useT("video");
+  const role = partner ? "logistics_partner" : "seller";
+  const base = webVideoBase(role);
   const locale = useLocale();
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
@@ -39,7 +45,7 @@ export function VideoHub({ videos, tab, counts, paging }: { videos: HubVideo[]; 
 
   async function start(purpose: VideoPurpose) {
     setBusy(purpose);
-    router.push(`/home/video/studio?purpose=${purpose}`);
+    router.push(`${base}/studio?purpose=${purpose}`);
   }
 
   async function remove(video: HubVideo) {
@@ -61,8 +67,8 @@ export function VideoHub({ videos, tab, counts, paging }: { videos: HubVideo[]; 
       <section className={cx(card, "p-5")}>
         <h2 className="m-0 text-[18px] font-extrabold">{t("hub.create")}</h2>
         <p className="m-0 mt-1 text-[13.5px] text-app-ink-soft">{t("hub.createHint")}</p>
-        <div className="mt-4 grid gap-3 sm:grid-cols-3">
-          {(["ad", "product", "social"] as const).map((purpose) => (
+        <div className={cx("mt-4 grid gap-3", partner ? "sm:grid-cols-2" : "sm:grid-cols-3")}>
+          {videoPurposesFor(role).map((purpose) => (
             <button
               key={purpose}
               type="button"
@@ -72,7 +78,7 @@ export function VideoHub({ videos, tab, counts, paging }: { videos: HubVideo[]; 
             >
               <span className="grid h-11 w-11 place-items-center rounded-[14px] bg-app-peach">{busy === purpose ? <Spinner className="h-5 w-5" /> : <Icon name={PURPOSE_ICON[purpose]} size={20} />}</span>
               <span className="text-[16px] font-extrabold">{t(`hub.purpose.${purpose}`)}</span>
-              <span className="text-[13px] leading-[1.45] text-app-ink-soft">{t(`hub.purpose.${purpose}Hint`)}</span>
+              <span className="text-[13px] leading-[1.45] text-app-ink-soft">{partner && purpose === "ad" ? t("partner.adHint") : t(`hub.purpose.${purpose}Hint`)}</span>
             </button>
           ))}
         </div>
@@ -83,7 +89,7 @@ export function VideoHub({ videos, tab, counts, paging }: { videos: HubVideo[]; 
           {(["draft", "saved", "published"] as const).map((key) => (
             <Link
               key={key}
-              href={`/home/video?tab=${key}`}
+              href={`${base}?tab=${key}`}
               aria-current={tab === key ? "page" : undefined}
               className={cx("inline-flex min-h-[40px] shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-4 text-[14px] font-bold no-underline", tab === key ? "border-app-ink bg-app-ink text-white" : "border-app-line bg-white text-app-ink")}
             >
@@ -93,12 +99,12 @@ export function VideoHub({ videos, tab, counts, paging }: { videos: HubVideo[]; 
         </nav>
 
         {shown.length === 0 ? (
-          <p className="m-0 mt-5 rounded-[16px] bg-app-canvas px-4 py-6 text-center text-[14px] text-app-ink-soft">{t(`hub.empty.${tab}`)}</p>
+          <p className="m-0 mt-5 rounded-[16px] bg-app-canvas px-4 py-6 text-center text-[14px] text-app-ink-soft">{partner && tab === "published" ? t("partner.emptyPublished") : t(`hub.empty.${tab}`)}</p>
         ) : (
           <ul className="m-0 mt-4 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-3 lg:grid-cols-4">
             {shown.map((video) => (
               <li key={video.id} className="flex flex-col overflow-hidden rounded-[18px] border border-app-line">
-                <Link href={`/home/video/studio?id=${video.id}`} className="relative block aspect-[9/16] bg-app-ink">
+                <Link href={`${base}/studio?id=${video.id}`} className="relative block aspect-[9/16] bg-app-ink">
                   {video.cover ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={video.cover} alt="" className="h-full w-full object-cover" loading="lazy" />
@@ -111,8 +117,8 @@ export function VideoHub({ videos, tab, counts, paging }: { videos: HubVideo[]; 
                   <p className="m-0 truncate text-[13.5px] font-extrabold">{video.title}</p>
                   <p className="m-0 text-[11.5px] text-app-ink-soft">{when(video.updatedAt)}{video.publishedTo.length ? ` · ${video.publishedTo.map((kind) => t(`hub.on.${kind}`)).join(", ")}` : ""}</p>
                   <div className="mt-1 flex flex-wrap gap-1.5">
-                    <Link href={`/home/video/studio?id=${video.id}`} className="rounded-full border border-app-line px-2.5 py-1 text-[12px] font-bold text-app-ink no-underline">{video.status === "draft" ? t("hub.continue") : t("hub.open")}</Link>
-                    {video.videoUrl ? (
+                    <Link href={`${base}/studio?id=${video.id}`} className="rounded-full border border-app-line px-2.5 py-1 text-[12px] font-bold text-app-ink no-underline">{video.status === "draft" ? t("hub.continue") : t("hub.open")}</Link>
+                    {video.videoUrl && !partner ? (
                       <Link href={`/home/ads/new?video=${video.id}`} className="rounded-full bg-app-ink px-2.5 py-1 text-[12px] font-bold text-white no-underline">{t("hub.useInAd")}</Link>
                     ) : null}
                     <button type="button" disabled={busy === video.id} onClick={() => void remove(video)} aria-label={t("hub.delete", { title: video.title })} className="ml-auto grid h-7 w-7 place-items-center rounded-full text-app-ink-soft hover:text-app-danger">
@@ -124,7 +130,7 @@ export function VideoHub({ videos, tab, counts, paging }: { videos: HubVideo[]; 
             ))}
           </ul>
         )}
-        <Pagination {...paging} base="/home/video" params={{ tab }} label={t("hub.pages")} />
+        <Pagination {...paging} base={base} params={{ tab }} label={t("hub.pages")} />
       </section>
     </div>
   );

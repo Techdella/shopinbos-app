@@ -3,7 +3,7 @@ import type en from "./en.ts";
 
 const pcm: Partial<Record<keyof typeof en, string>> = {
   askPeggy: "Ask Peggy anything",
-  "loading.starting": "Shopinbos dey start",
+  "loading.starting": "Shopinbos Business dey start",
   "loading.openingName": "We dey open {name}",
   "loading.opening": "We dey open your shop",
   "loading.checkingOrders": "We dey check new orders",

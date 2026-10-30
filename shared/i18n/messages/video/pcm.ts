@@ -170,6 +170,11 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "downloadSaved": "Download the saved video",
   "hub.pages": "Video pages",
   "hub.subShort": "Make reels for ads, products and social media.",
+  "partner.about": "Wetin the video dey talk about",
+  "partner.aboutPh": "Same-day delivery for Lagos",
+  "partner.hubSub": "Short videos about your delivery business, for your WhatsApp status, Instagram and TikTok.",
+  "partner.adHint": "Strong reel wey go tell shops why dem suppose book you.",
+  "partner.emptyPublished": "You never post anything yet. Share one saved video, then mark am as posted.",
 };
 
 export default pcm;

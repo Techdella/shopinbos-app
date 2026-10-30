@@ -34,9 +34,9 @@ export const PERSONAS: Record<EmailPersona, { name: string; image: string | null
   team: { name: "The Shopinbos team", image: null, line: "Built in Lagos for businesses across Africa", avatarBg: CREAM },
 };
 
-/** The sender name for the From line: "Rex from Shopinbos". */
+/** The sender name for the From line: "Rex from Shopinbos Business". */
 export function personaSender(persona: EmailPersona) {
-  return persona === "team" ? null : `${PERSONAS[persona].name} from Shopinbos`;
+  return persona === "team" ? null : `${PERSONAS[persona].name} from Shopinbos Business`;
 }
 
 export interface LookInput {

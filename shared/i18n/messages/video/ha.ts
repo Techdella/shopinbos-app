@@ -170,6 +170,11 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "downloadSaved": "Sauke bidiyon da aka ajiye",
   "hub.pages": "Shafukan bidiyo",
   "hub.subShort": "Yi reels don talla, kayayyaki da social media.",
+  "partner.about": "Abin da bidiyon ya shafa",
+  "partner.aboutPh": "Isar da kaya a rana ɗaya a Legas",
+  "partner.hubSub": "Gajerun bidiyo game da kasuwancin isar da kaya naka, don WhatsApp status, Instagram da TikTok ɗinka.",
+  "partner.adHint": "Reel mai ƙarfi da ke gaya wa shaguna dalilin da ya sa za su ɗauke ka.",
+  "partner.emptyPublished": "Ba ka saka komai ba tukuna. Raba bidiyon da ka ajiye, sannan ka nuna ka saka shi.",
 };
 
 export default ha;

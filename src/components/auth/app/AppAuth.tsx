@@ -953,7 +953,11 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
     <div className="min-h-dvh bg-white font-app text-app-ink lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.08fr)] lg:gap-4 lg:p-4">
       <div className="flex min-h-dvh flex-col px-5 pb-6 pt-5 sm:px-10 lg:min-h-[calc(100dvh-32px)] lg:px-12 lg:pt-7 xl:px-16">
         <header className="flex items-center justify-between gap-3">
-          <a href="https://shopinbos.com" aria-label={t("homeAria")} className="shrink-0"><Wordmark className="h-[18px] lg:h-[20px]" /></a>
+          {/* The product is "Shopinbos Business": the logo stays, with "Business" set beside it (never translated). */}
+          <a href="https://shopinbos.com" aria-label={t("homeAria")} className="flex shrink-0 items-center gap-2">
+            <Wordmark className="h-[18px] lg:h-[20px]" />
+            <span aria-hidden className="text-[15px] font-bold leading-none tracking-[-0.01em] text-app-ink-soft lg:text-[16px]">Business</span>
+          </a>
           <span className="flex items-center gap-3">
             <HelpLink />
             <span className="sm:hidden"><LanguagePicker variant="globe" /></span>

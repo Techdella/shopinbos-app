@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { DeleteAccountForm } from "./DeleteAccountForm";
 
-export const metadata: Metadata = { title: "Delete your account | Shopinbos" };
+export const metadata: Metadata = { title: "Delete your account · Shopinbos Business" };
 
 // Public (no sign-in): the account deletion page Google Play asks for. In the app, the same request is
 // "Delete my account" under Log out (POST /api/app/account/deletion). This form opens a support ticket instead.
@@ -13,10 +13,10 @@ export default function DeleteAccountPage() {
     <main className="min-h-screen bg-paper px-4 py-12 text-navy">
       <div className="mx-auto max-w-xl">
         <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-teal-deep">Shopinbos · Privacy</p>
-        <h1 className="mt-2 font-display text-[30px] font-medium tracking-[-0.025em]">Delete your Shopinbos account</h1>
+        <h1 className="mt-2 font-display text-[30px] font-medium tracking-[-0.025em]">Delete your Shopinbos Business account</h1>
 
         <section className="mt-6 rounded-lg border border-navy/[0.06] bg-white p-6">
-          <h2 className="font-display text-[18px] font-medium">In the Shopinbos app</h2>
+          <h2 className="font-display text-[18px] font-medium">In the Shopinbos Business app</h2>
           <p className="mt-2 text-[15px] leading-6 text-muted">
             Tap <strong>Delete my account</strong> at the bottom of the <strong>Shop</strong> tab (sellers), the <strong>Money</strong> tab
             (suppliers) or the <strong>More</strong> menu (delivery partners), under Log out.

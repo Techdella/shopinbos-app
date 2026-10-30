@@ -295,7 +295,7 @@ test("every log out asks first, in an accessible dialog", () => {
   const dialogCopy = read("shared/i18n/messages/auth/en.ts");
   const commonCopy = read("shared/i18n/messages/common/en.ts");
   assert.match(dialog, /t\("signout\.title"\)/);
-  assert.match(dialogCopy, /"signout\.title": "Log out of Shopinbos\?"/);
+  assert.match(dialogCopy, /"signout\.title": "Log out of Shopinbos Business\?"/);
   assert.match(dialogCopy, /"signout\.body": "You'll need your code or password to get back in\."/);
   assert.match(dialog, />\s*\{t\("cancel"\)\}\s*</);
   assert.match(commonCopy, /cancel: "Cancel"/);
@@ -342,7 +342,7 @@ test("every log out asks first, in an accessible dialog", () => {
   const mobileAuth = read("apps/mobile/src/lib/auth.ts");
   assert.match(mobileAuth, /Alert\.alert\(/);
   assert.match(mobileAuth, /t\("logout\.title"\)/);
-  assert.match(read("shared/i18n/messages/m_auth/en.ts"), /"logout\.title": "Log out of Shopinbos\?"/);
+  assert.match(read("shared/i18n/messages/m_auth/en.ts"), /"logout\.title": "Log out of Shopinbos Business\?"/);
   assert.match(mobileAuth, /style: "cancel"/);
   assert.match(mobileAuth, /export function signOut\(/);
   const mobileSession = read("apps/mobile/src/lib/session.tsx");

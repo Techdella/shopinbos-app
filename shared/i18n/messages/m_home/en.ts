@@ -2,7 +2,7 @@
 const en = {
   askPeggy: "Ask Peggy anything",
   // Loading (components/Loading.tsx)
-  "loading.starting": "Shopinbos is starting",
+  "loading.starting": "Shopinbos Business is starting",
   "loading.openingName": "Opening {name}",
   "loading.opening": "Opening your shop",
   "loading.checkingOrders": "Checking new orders",

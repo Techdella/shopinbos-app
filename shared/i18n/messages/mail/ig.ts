@@ -18,8 +18,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "persona.rex.line": "Onye na-ahụ maka store gị, videos na designs 🦖",
   "persona.peggy.line": "Ndị ahịa, chats na support. Anọ m ebe a maka gị 💛",
   "persona.team.name": "Ndị otu Shopinbos",
-  "persona.from": "{name} si Shopinbos",
-  "persona.signature": "{name}, si Shopinbos",
+  "persona.from": "{name} si Shopinbos Business",
+  "persona.signature": "{name}, si Shopinbos Business",
   "proverb.title": "Ilu nke izu a",
   "notify.viewDetails": "Lee nkọwa",
 
@@ -80,7 +80,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "j.fromPeggy": "Site n'aka Peggy",
   "j.fromRex": "Site n'aka Rex",
   "j.fromBoth": "Site n'aka Rex na Peggy",
-  "j.openShopinbos": "Mepee Shopinbos",
+  "j.openShopinbos": "Mepee Shopinbos Business",
 
   "j.setup.progress": "I mechaala {done} n'ime nzọụkwụ {total}.",
   "j.setup.next": "Nzọụkwụ na-esote: {step}. {hint}",

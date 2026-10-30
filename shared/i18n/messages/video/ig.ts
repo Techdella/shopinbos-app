@@ -170,6 +170,11 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "downloadSaved": "Budata vidiyo echekwara",
   "hub.pages": "Peeji vidiyo",
   "hub.subShort": "Mee reels maka mgbasa ozi, ngwaahịa na social media.",
+  "partner.about": "Ihe vidiyo a na-ekwu maka ya",
+  "partner.aboutPh": "Nnyefe n'otu ụbọchị na Lagos",
+  "partner.hubSub": "Obere vidiyo gbasara azụmahịa nnyefe gị, maka WhatsApp status, Instagram na TikTok gị.",
+  "partner.adHint": "Reel siri ike na-agwa ụlọ ahịa ihe mere ha ga-eji were gị.",
+  "partner.emptyPublished": "Ị bipụtabeghị ihe ọ bụla. Kesaa vidiyo echekwara, wee kaa akara na i bipụtala ya.",
 };
 
 export default ig;

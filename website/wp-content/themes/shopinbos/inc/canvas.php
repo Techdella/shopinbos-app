@@ -101,7 +101,7 @@ function sib_canvas_part( string $part ): string {
 		$url  = (string) sib_setting( 'ios' === $m[2] ? 'ios_url' : 'android_url' );
 		$name = 'ios' === $m[2] ? 'iPhone' : 'Android';
 		return $url
-			? '<a class="row cv-b" href="' . esc_url( $url ) . '" style="gap:8px">' . esc_html( $name ) . '</a>'
+			? '<a class="row cv-b" href="' . esc_url( $url ) . '" style="gap:8px" aria-label="' . esc_attr( sprintf( __( 'Shopinbos Business for %s', 'shopinbos' ), $name ) ) . '">' . esc_html( $name ) . '</a>'
 			: '<button type="button" class="row cv-b" data-cv="pop.openApp" data-platform="' . $m[2] . '" style="gap:8px">' . esc_html( $name ) . ' <span class="tag" style="background:rgba(255,255,255,.12);color:#C9C6D3;min-height:20px;font-size:10.5px">' . esc_html__( 'Coming soon', 'shopinbos' ) . '</span></button>';
 	}, $html );
 	if ( 'footer' === $part ) {

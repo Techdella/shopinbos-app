@@ -170,6 +170,11 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "downloadSaved": "Gbà fídíò tí a fi pamọ́ sílẹ̀",
   "hub.pages": "Àwọn ojú-ewé fídíò",
   "hub.subShort": "Ṣe reels fún ìpolówó, ọjà àti social media.",
+  "partner.about": "Ohun tí fídíò náà dá lé",
+  "partner.aboutPh": "Ìfijíṣẹ́ ọjọ́ kan náà ní Èkó",
+  "partner.hubSub": "Fídíò kúkúrú nípa business ìfijíṣẹ́ rẹ, fún WhatsApp status, Instagram àti TikTok rẹ.",
+  "partner.adHint": "Reel alágbára tó ń sọ fún àwọn ṣọ́ọ̀bù ìdí tí wọ́n fi yẹ kí wọ́n gbà ọ́.",
+  "partner.emptyPublished": "O kò tíì fi nǹkan kan síta. Pín fídíò tí o ti fi pamọ́, lẹ́yìn náà sàmì sí i pé o ti fi síta.",
 };
 
 export default yo;

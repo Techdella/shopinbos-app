@@ -27,6 +27,7 @@ import {
 } from "@shared/video-style";
 import { CREDIT_COST } from "@shared/ai-credits";
 import { PURPOSE_DEFAULTS, type VideoConfig, type VideoPurpose } from "@shared/video-projects";
+import { webVideoBase } from "@shared/video-owner";
 import { loadReelImage, previewMusic, reelSupported, renderReel, type ReelResult } from "@/lib/video/render-reel";
 import { uploadFile } from "@/lib/supabase/storage";
 import { useMediaLibrary } from "@/components/media/useMediaLibrary";
@@ -94,6 +95,7 @@ export function VideoStudio({
   purpose: startPurpose = "social",
   costs = CREDIT_COST,
   onUse,
+  partner = false,
 }: {
   products: StudioProduct[];
   storeName: string;
@@ -109,8 +111,14 @@ export function VideoStudio({
   costs?: { image: number; video: number };
   /** Opened from Social posts: "Use in this post" saves the reel and hands it back instead of leaving the page. */
   onUse?: (video: { url: string; id: string | null }) => void;
+  /**
+   * A delivery partner's studio (/logistics/video/studio): the video belongs to their LogisticsPartner (see
+   * shared/video-owner.ts), the brand is their name and logo, and the shop-only places (a product page, an ad) are hidden.
+   */
+  partner?: boolean;
 }) {
   const t = useT("video");
+  const base = webVideoBase(partner ? "logistics_partner" : "seller");
   const router = useRouter();
   const saved = project?.config ?? null;
   const purpose: VideoPurpose = project?.purpose ?? startPurpose;
@@ -225,7 +233,7 @@ export function VideoStudio({
         const body = (await response.json()) as { data: { id: string; title: string } };
         setProjectId(body.data.id);
         setTitle((now) => now || body.data.title);
-        window.history.replaceState(null, "", `/home/video/studio?id=${body.data.id}`);
+        window.history.replaceState(null, "", `${base}/studio?id=${body.data.id}`);
         return body.data.id;
       })().finally(() => {
         creating.current = null;
@@ -455,7 +463,8 @@ export function VideoStudio({
       uploadFile("products", file),
       result.poster ? uploadFile("products", new File([result.poster], `${base}-cover.jpg`, { type: "image/jpeg" })).catch(() => null) : Promise.resolve(null),
     ]);
-    await fetch("/api/ai/rex/actions", {
+    // The seller's media library keeps the video (Rex's actions are for shops; a partner's video stays in their list).
+    if (!partner) await fetch("/api/ai/rex/actions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "save_to_media", url: uploaded.publicUrl, kind: "video", name: title || name || product?.name || "Reel" }),
@@ -559,7 +568,7 @@ export function VideoStudio({
   return (
     <div className="grid gap-4">
     <div className="flex flex-wrap items-center gap-3 rounded-[22px] border border-app-line bg-white px-4 py-3">
-      <Link href="/home/video" className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full border border-app-line px-3.5 text-[13.5px] font-bold text-app-ink no-underline">
+      <Link href={base} className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full border border-app-line px-3.5 text-[13.5px] font-bold text-app-ink no-underline">
         <Icon name="arrowLeft" size={14} /> {t("hub.all")}
       </Link>
       <span className="rounded-full bg-app-peach px-2.5 py-1 text-[12px] font-bold">{t(`hub.purpose.${purpose}`)}</span>
@@ -671,8 +680,8 @@ export function VideoStudio({
           <h2 className="m-0 text-[17px] font-extrabold">{t("whatPeggySays")}</h2>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <div>
-              <FieldLabel htmlFor="video-name">{t("product")}</FieldLabel>
-              <TextInput id="video-name" value={name} onChange={(event) => setName(event.target.value)} />
+              <FieldLabel htmlFor="video-name">{partner ? t("partner.about") : t("product")}</FieldLabel>
+              <TextInput id="video-name" value={name} onChange={(event) => setName(event.target.value)} placeholder={partner ? t("partner.aboutPh") : undefined} />
             </div>
             <div>
               <FieldLabel htmlFor="video-price">{t("priceOnScreen")}</FieldLabel>
@@ -824,7 +833,7 @@ export function VideoStudio({
             <div className="grid gap-2 rounded-[16px] bg-app-canvas p-3">
               <p className="m-0 text-[13px] font-bold">{t("savedVersion")}</p>
               <video src={savedUrl} controls playsInline className="mx-auto aspect-[9/16] w-full max-w-[160px] rounded-[12px] bg-app-ink object-cover" />
-              <PillButton type="button" size="sm" busy={step === "saving"} disabled={busy} onClick={() => void useInAd()}>{t("useInAd")}</PillButton>
+              {partner ? null : <PillButton type="button" size="sm" busy={step === "saving"} disabled={busy} onClick={() => void useInAd()}>{t("useInAd")}</PillButton>}
               {product ? (
                 <PillButton type="button" size="sm" tone="white" disabled={busy} onClick={() => void saveToProduct()}>{t("addTo", { name: product.name })}</PillButton>
               ) : null}
@@ -846,10 +855,12 @@ export function VideoStudio({
               <PillButton type="button" tone="white" busy={step === "saving-media"} disabled={busy || savedMedia === result.url} onClick={() => void saveToMedia()}>
                 {savedMedia === result.url ? t("savedVideoShort") : t("saveVideo")}
               </PillButton>
-              <PillButton type="button" busy={step === "saving" && purpose === "ad"} disabled={busy} onClick={() => void useInAd()}>
-                {t("useInAd")}
-              </PillButton>
-              {purpose === "social" ? (
+              {partner ? null : (
+                <PillButton type="button" busy={step === "saving" && purpose === "ad"} disabled={busy} onClick={() => void useInAd()}>
+                  {t("useInAd")}
+                </PillButton>
+              )}
+              {purpose === "social" || partner ? (
                 <PillButton type="button" tone="white" disabled={busy} onClick={() => void markPosted()}>
                   {t("markPosted")}
                 </PillButton>
@@ -869,7 +880,7 @@ export function VideoStudio({
         {notice && (
           <div className="grid gap-2">
             <Notice tone={notice.tone}>{notice.text}</Notice>
-            {notice.credits ? <BuyCreditsButton /> : null}
+            {notice.credits ? <BuyCreditsButton manageHref={partner ? "/logistics/credits" : undefined} /> : null}
           </div>
         )}
       </aside>

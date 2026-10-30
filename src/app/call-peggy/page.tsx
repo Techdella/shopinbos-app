@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { PeggyCall } from "@/components/peggy/PeggyCall";
 
-export const metadata: Metadata = { title: "Call Peggy · Shopinbos", robots: { index: false } };
+export const metadata: Metadata = { title: "Call Peggy · Shopinbos Business", robots: { index: false } };
 
 // /call-peggy?t=…: a free voice call with Peggy, opened from the Shopinbos mobile app (the token from
 // /api/mobile/peggy-call signs them in for this call only). Works in the phone's browser; needs the microphone.

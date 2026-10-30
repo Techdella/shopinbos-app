@@ -20,7 +20,7 @@ export function AuthShowcasePanel({ who = "rex" }: { who?: "rex" | "peggy" }) {
       className="relative hidden overflow-hidden rounded-[28px] p-14 text-white lg:flex lg:flex-col"
       style={{ background: "radial-gradient(circle at 78% 30%, rgba(115,216,200,0.20), transparent 42%), linear-gradient(160deg, #11524B 0%, #0E4A44 45%, #0A3B36 100%)" }}
     >
-      <div className="text-[13px] font-extrabold uppercase tracking-[0.14em] text-[#73D8C8]">Shopinbos</div>
+      <div className="text-[13px] font-extrabold uppercase tracking-[0.14em] text-[#73D8C8]">Shopinbos Business</div>
       <p className="m-0 mt-3 max-w-[460px] text-[44px] font-extrabold leading-[1.02] tracking-[-1.4px]">{t("panel.headline")}</p>
 
       <div className="relative mt-14 flex flex-1 flex-col gap-10" aria-hidden>

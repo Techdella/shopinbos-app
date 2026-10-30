@@ -151,7 +151,7 @@ const en = {
   "set.tips": "Tips and tooltips",
   "set.tipsHint": "Word explanations and intros that open by themselves",
   "set.appearance": "Appearance",
-  "set.appearanceChoose": "How should Shopinbos look?",
+  "set.appearanceChoose": "How should Shopinbos Business look?",
   "set.appearanceAuto": "Auto",
   "set.appearanceAutoSub": "Matches your phone’s light or dark setting",
   "set.appearanceLight": "Light",

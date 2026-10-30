@@ -33,7 +33,7 @@ const ALLOWED = [
   { file: "lib/web.ts", line: "export async function openWeb(", reason: "the function itself" },
   { file: "lib/web.ts", line: "onPress: () => void openWeb(path)", reason: "openPath's fallback asks first; the Alert button reads web.badge" },
   { file: "app/channels.tsx", line: "await openWeb(GMAIL_CONNECT_PATH)", reason: "Google's sign-in; the Gmail button below renders <WebButtonLabel>" },
-  { file: "app/video/studio.tsx", line: "await openWeb(webStudioPath(id))", reason: "the final render; the footer button renders <WebButtonLabel>" },
+  { file: "app/video/studio.tsx", line: "await openWeb(webStudioPath(id, role))", reason: "the final render; the footer button renders <WebButtonLabel>" },
 ];
 
 const mobileSrc = join(root, "apps/mobile/src");

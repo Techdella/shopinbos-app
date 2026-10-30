@@ -14,7 +14,7 @@ $go = sib_theme_go( '', [ 'place' => 'hero' ] );
 <!-- /wp:html -->
 
 <!-- wp:heading {"level":1,"className":"disp h1 hbig mw-920"} -->
-<h1 class="wp-block-heading disp h1 hbig mw-920">Sell everywhere your customers are. From one app.</h1>
+<h1 class="wp-block-heading disp h1 hbig mw-920">Shopinbos Business: everything you need to sell online</h1>
 <!-- /wp:heading -->
 
 <!-- wp:paragraph {"className":"lead mw-640"} -->

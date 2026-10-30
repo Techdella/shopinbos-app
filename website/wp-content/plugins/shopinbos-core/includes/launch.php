@@ -67,15 +67,15 @@ function sib_store_badge( string $store, string $style = 'dark' ): string {
 	$cls   = 'store-badge' . ( 'light' === $style ? ' is-light' : '' ) . ( $soon ? ' is-soon' : '' );
 	$inner = $logo . '<span><small>' . esc_html( $small ) . '</small>' . esc_html( $name ) . '</span>' . ( $soon ? '<em>' . esc_html__( 'Notify me', 'shopinbos' ) . '</em>' : '' );
 	return sib_launch_css() . ( $soon
-		? '<button type="button" class="' . $cls . '" data-cv="pop.openApp" data-platform="' . ( $ios ? 'ios' : 'android' ) . '" aria-label="' . esc_attr( sprintf( __( '%s app coming soon. Tell me when it’s live', 'shopinbos' ), $name ) ) . '">' . $inner . '</button>'
-		: '<a class="' . $cls . '" href="' . esc_url( $url ) . '" rel="noopener" target="_blank">' . $inner . '</a>' );
+		? '<button type="button" class="' . $cls . '" data-cv="pop.openApp" data-platform="' . ( $ios ? 'ios' : 'android' ) . '" aria-label="' . esc_attr( sprintf( __( 'Shopinbos Business on %s is coming soon. Tell me when it’s live', 'shopinbos' ), $name ) ) . '">' . $inner . '</button>'
+		: '<a class="' . $cls . '" href="' . esc_url( $url ) . '" rel="noopener" target="_blank" aria-label="' . esc_attr( sprintf( __( 'Get Shopinbos Business on %s', 'shopinbos' ), $name ) ) . '">' . $inner . '</a>' );
 }
 
 /** The "tell me when the app is live" pop-up (added to the site's pop-ups). */
 function sib_app_notify_popup(): string {
 	return '<div class="ovl" data-pop="app" hidden><div class="modal" style="width:100%;max-width:440px;padding:26px;display:flex;flex-direction:column;gap:12px;position:relative">'
 		. '<span class="tag" style="background:#FFEDE4;color:#B23E0A;align-self:flex-start">' . esc_html__( 'Coming soon', 'shopinbos' ) . '</span>'
-		. '<b class="disp" style="font-size:24px;line-height:1.1">' . esc_html__( 'The Shopinbos app is almost here', 'shopinbos' ) . '</b>'
+		. '<b class="disp" style="font-size:24px;line-height:1.1">' . esc_html__( 'The Shopinbos Business app is almost here', 'shopinbos' ) . '</b>'
 		. '<span class="p" style="font-size:14.5px">' . esc_html__( 'Leave your WhatsApp number or email and we’ll tell you the day it’s live. One message, no spam.', 'shopinbos' ) . '</span>'
 		. '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" data-cv-lead="app_notify" style="display:flex;flex-direction:column;gap:10px">'
 		. '<select class="input" name="platform" aria-label="' . esc_attr__( 'Your phone', 'shopinbos' ) . '"><option value="android">' . esc_html__( 'Android (Google Play)', 'shopinbos' ) . '</option><option value="ios">' . esc_html__( 'iPhone (App Store)', 'shopinbos' ) . '</option><option value="web">' . esc_html__( 'Web app on my computer', 'shopinbos' ) . '</option></select>'
@@ -114,7 +114,7 @@ function sib_render_coming_soon(): string {
 	return sib_launch_css( true ) . '<section class="ahero cv cs">'
 		. '<span class="cs-blob"></span><div class="wrap split" style="gap:56px;position:relative">'
 		. '<div style="display:flex;flex-direction:column;gap:18px"><span class="pill" style="align-self:flex-start"><span class="gist-dot"></span>' . esc_html__( 'Launching soon', 'shopinbos' ) . '</span>'
-		. '<h1 class="disp h1" style="font-size:60px">' . esc_html__( 'Shopinbos is', 'shopinbos' ) . ' <span class="grad">' . esc_html__( 'almost here', 'shopinbos' ) . '</span></h1>'
+		. '<h1 class="disp h1" style="font-size:60px">' . esc_html__( 'Shopinbos Business is', 'shopinbos' ) . ' <span class="grad">' . esc_html__( 'almost here', 'shopinbos' ) . '</span></h1>'
 		. '<p class="lead">' . esc_html__( 'We’re putting the finishing touches to the web app and the Android app. Join the waitlist and we’ll tell you the moment your shop can go live.', 'shopinbos' ) . '</p>'
 		. $list . '<div class="store-badges">' . sib_store_badge( 'android' ) . sib_store_badge( 'ios' ) . '</div></div>'
 		. '<div style="display:flex;flex-direction:column;gap:16px">' . $form . '<a class="lnk cv-b" style="align-self:center" href="' . esc_url( home_url( '/academy/' ) ) . '">' . esc_html__( 'While you wait: free lessons in the Academy', 'shopinbos' ) . sib_icon( 'arrow', 16 ) . '</a></div>'

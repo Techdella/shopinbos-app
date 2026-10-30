@@ -53,7 +53,7 @@ function useLoop(active: boolean, duration: number, easing: (value: number) => n
 
 // ── 1 · Launch screen ───────────────────────────────────────────────────────
 
-/** The JS twin of the native splash (same green, same mark, plus the wordmark), shown while the app decides where to go. */
+/** The JS twin of the native splash (same green, same mark, plus the "Shopinbos Business" wordmark), shown while the app decides where to go. */
 export function LaunchView() {
   const insets = useSafeAreaInsets();
   const t = useT("m_home");
@@ -61,8 +61,10 @@ export function LaunchView() {
     <View style={{ flex: 1, backgroundColor: colors.forestFill, alignItems: "center", justifyContent: "center" }} accessible accessibilityLabel={t("loading.starting")} accessibilityState={{ busy: true }}>
       <StatusBar style="light" />
       <Image source={images.markWhite} style={{ width: 76, height: 76 * MARK_RATIO }} contentFit="contain" />
-      <View style={{ position: "absolute", bottom: Math.max(64, insets.bottom + 32), opacity: 0.85 }}>
+      {/* "Shopinbos Business": the logo, with "Business" beside it (never translated). */}
+      <View style={{ position: "absolute", bottom: Math.max(64, insets.bottom + 32), opacity: 0.85, flexDirection: "row", alignItems: "center", gap: 6 }}>
         <Wordmark height={13} light />
+        <T weight="bold" style={{ color: "#FFFFFF", fontSize: 13, lineHeight: 15 }}>Business</T>
       </View>
     </View>
   );

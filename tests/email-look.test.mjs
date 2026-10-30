@@ -38,7 +38,7 @@ test("looks: classic has the navy header and season strip, no mint bar; chat and
   assert.match(classic, /\/brand\/email\/strips\/christmas\.png/);
   assert.match(classic, /Merry Christmas! 🎄/);
   assert.match(classic, /Proverb of the week/);
-  assert.match(classic, /Rex, from Shopinbos/);
+  assert.match(classic, /Rex, from Shopinbos Business/);
   assert.match(classic, /📊 Your shop this month: 4 orders\./);
   assert.match(classic, />Go<span aria-hidden="true"> &rarr;<\/span>/);
   assert.match(classic, /Built in Lagos for businesses across Africa/);
@@ -46,7 +46,7 @@ test("looks: classic has the navy header and season strip, no mint bar; chat and
   const notice = shell.platformEmail({ ...base, kind: "transactional" });
   assert.doesNotMatch(notice, /Merry Christmas/, "no seasonal greeting on security and billing notices");
   const chat = shell.platformEmail({ ...base, look: "chat", persona: "peggy", bubbles: ["Hello Kemi 👋🏾", "Next step: <b>x</b>"], reply: "Okay Peggy, I'm on it 🙏🏾" });
-  assert.match(chat, /Peggy from Shopinbos/);
+  assert.match(chat, /Peggy from Shopinbos Business/);
   assert.match(chat, /Okay Peggy, I&#39;m on it/);
   assert.match(chat, /bgcolor="#F2A93B"/, "amber button, not WhatsApp green");
   assert.doesNotMatch(chat, /#25D366/);
@@ -54,7 +54,7 @@ test("looks: classic has the navy header and season strip, no mint bar; chat and
   assert.match(party, /OYA, CONGRATS! 🎉/);
   assert.match(party, /bgcolor="#E86A4F"/);
   assert.match(party, /free AI credits/);
-  assert.equal(looks.personaSender("peggy"), "Peggy from Shopinbos");
+  assert.equal(looks.personaSender("peggy"), "Peggy from Shopinbos Business");
   assert.equal(looks.personaSender("team"), null);
 });
 

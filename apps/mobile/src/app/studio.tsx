@@ -13,10 +13,11 @@ import { colors } from "@/theme";
 // Rex Studio (web /studio): everything Rex makes, in one place, instead of "Rex videos" on its own. Pictures and
 // posts, flyers, videos, packaging and labels, banners for the shop, and the logo maker (on the web), plus a chat
 // with Rex for anything else. Delivery partners open the same screen at /logistics/studio with what Rex makes for
-// them (pictures and posts, flyers, status posts through Create with Rex): videos, packaging, banners, the logo and
-// the chat work on a shop, so they stay seller-only.
+// them (pictures and posts, flyers, status posts through Create with Rex, and videos: their VideoProject's owner is
+// their LogisticsPartner, see shared/video-owner.ts). Packaging, banners, the logo and the chat work on a shop, so
+// they stay seller-only.
 
-type Item = { id: "pictures" | "flyers" | "status" | "videos" | "packaging" | "banners"; icon: AppIconName; tone: TileTone; go: () => void; partnerSub?: "studio.picturesSubPartner" | "studio.flyersSubPartner" | "studio.statusSubPartner" };
+type Item = { id: "pictures" | "flyers" | "status" | "videos" | "packaging" | "banners"; icon: AppIconName; tone: TileTone; go: () => void; partnerSub?: "studio.picturesSubPartner" | "studio.flyersSubPartner" | "studio.statusSubPartner" | "studio.videosSubPartner" };
 
 const ITEMS: Item[] = [
   { id: "pictures", icon: "image", tone: "peach", go: () => router.push({ pathname: "/create", params: { format: "post" } }) },
@@ -30,6 +31,7 @@ const PARTNER_ITEMS: Item[] = [
   { id: "pictures", icon: "image", tone: "peach", go: () => router.push({ pathname: "/create", params: { format: "post" } }), partnerSub: "studio.picturesSubPartner" },
   { id: "flyers", icon: "doc", tone: "butter", go: () => router.push({ pathname: "/create", params: { format: "flyer" } }), partnerSub: "studio.flyersSubPartner" },
   { id: "status", icon: "megaphone", tone: "lilac", go: () => router.push({ pathname: "/create", params: { format: "status" } }), partnerSub: "studio.statusSubPartner" },
+  { id: "videos", icon: "play", tone: "ink", go: () => router.push("/video"), partnerSub: "studio.videosSubPartner" },
 ];
 
 export default function Studio() {

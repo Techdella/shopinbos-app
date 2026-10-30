@@ -10,17 +10,21 @@ import { Card, Chip, LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { friendlyDay } from "@/lib/friendly";
 import { useLoad } from "@/lib/useLoad";
 import { deleteVideo, fetchVideos } from "@/lib/video";
-import { countByStatus, firstTab, readPurpose, readStatus, videoCover, videosIn, VIDEO_PURPOSES, VIDEO_STATUSES, type VideoPurpose, type VideoRow, type VideoStatus } from "@/lib/video-pure";
+import { countByStatus, firstTab, readPurpose, readStatus, videoCover, videoPurposesFor, videosIn, videoWithoutShop, VIDEO_STATUSES, type VideoPurpose, type VideoRow, type VideoStatus } from "@/lib/video-pure";
+import { useRole } from "@/lib/role";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
 // Video studio (web /home/video): start a video for an ad, a product or social media, then drafts (they save
-// themselves), saved and published videos. Drafts open the studio; saved videos open to play and share.
+// themselves), saved and published videos. Drafts open the studio; saved videos open to play and share. Delivery
+// partners (from Rex Studio) get the same screen with ad and social videos only: they have no products.
 
 const PURPOSE_ICON: Record<VideoPurpose, AppIconName> = { ad: "megaphone", product: "tag", social: "share" };
 
 export default function VideoHub() {
   const t = useT("m_video", "video", "m_ui");
+  const { role } = useRole();
+  const partner = videoWithoutShop(role);
   const videos = useLoad(fetchVideos);
   const [tab, setTab] = useState<VideoStatus | null>(null);
   const [removing, setRemoving] = useState<VideoRow | null>(null);
@@ -53,16 +57,16 @@ export default function VideoHub() {
   }
 
   return (
-    <Screen title={t("title")} sub={t("hub.subShort")} tip={t("hub.sub")} refreshing={videos.refreshing} onRefresh={() => void videos.refresh()}>
+    <Screen title={t("title")} sub={partner ? t("partner.hubSub") : t("hub.subShort")} tip={partner ? undefined : t("hub.sub")} refreshing={videos.refreshing} onRefresh={() => void videos.refresh()}>
       <SectionTitle>{t("hub.create")}</SectionTitle>
       <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21, marginTop: -6 }}>{t("hub.createHint")}</T>
-      {VIDEO_PURPOSES.map((purpose) => (
+      {videoPurposesFor(role).map((purpose) => (
         <ChoiceRow
           key={purpose}
           icon={PURPOSE_ICON[purpose]}
           tint={purpose === "ad" ? colors.mintTint : purpose === "product" ? colors.peach : colors.lilac}
           title={t(`hub.purpose.${purpose}`)}
-          sub={t(`hub.purpose.${purpose}Hint`)}
+          sub={partner && purpose === "ad" ? t("partner.adHint") : t(`hub.purpose.${purpose}Hint`)}
           onPress={() => router.push({ pathname: "/video/studio", params: { purpose } })}
         />
       ))}
@@ -78,7 +82,7 @@ export default function VideoHub() {
       {videos.loading && !videos.data ? <LoadingBlock /> : null}
       {videos.error && !videos.data ? <ErrorState message={videos.error} onRetry={() => void videos.reload()} /> : null}
       {videos.data && !shown.length ? (
-        <EmptyState icon="play" title={t(`empty.${active}.title`)}>{t(`empty.${active}.body`)}</EmptyState>
+        <EmptyState icon="play" title={t(`empty.${active}.title`)}>{partner && active === "published" ? t("partner.emptyPublished") : t(`empty.${active}.body`)}</EmptyState>
       ) : null}
 
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
