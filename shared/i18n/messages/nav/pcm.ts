@@ -281,6 +281,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   // Preorder lists, Stock is ready and deposits (shared/preorder.ts)
   "orders-preorders": "Preorders",
   "supplier.preorders": "Preorders",
+  "studio-videos": "Videos",
+  "studio-designs": "Flyers and posts",
+  "studio-packaging": "Packaging and labels",
 };
 
 export default pcm;

@@ -281,6 +281,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   // Preorder lists, Stock is ready and deposits (shared/preorder.ts)
   "orders-preorders": "Odar kafin lokaci",
   "supplier.preorders": "Odar kafin lokaci",
+  "studio-videos": "Bidiyo",
+  "studio-designs": "Takardun talla da rubuce-rubuce",
+  "studio-packaging": "Kunshe da lakabi",
 };
 
 export default ha;

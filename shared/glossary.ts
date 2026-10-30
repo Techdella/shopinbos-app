@@ -197,7 +197,7 @@ export const NAV_TERMS: Record<GlossaryRole, Record<string, string>> = {
     orders: "orders", "orders-all": "orders", "orders-new": "record-sale", "payment-links": "payment-links", "link-in-bio": "link-in-bio", customers: "customers", "customers-all": "customers",
     subscribers: "subscribers", segments: "segments",
     "your-store": "store-builder", editor: "store-builder", pages: "pages", navigation: "menus", blog: "content", checkout: "checkout", cart: "abandoned-carts", seo: "seo", legal: "legal-pages",
-    "rex-studio": "studio", "studio-home": "studio", "studio-images": "studio", "studio-logo": "brand-kit", "brand-kit": "brand-kit", media: "media", templates: "themes", domain: "domain",
+    "rex-studio": "studio", "studio-home": "studio", "studio-images": "studio", "studio-logo": "brand-kit", "studio-videos": "video-studio", "studio-designs": "studio", "studio-packaging": "labels", "brand-kit": "brand-kit", media: "media", templates: "themes", domain: "domain",
     marketing: "campaigns", "marketing-overview": "campaigns", campaigns: "campaigns", "seasonal-campaigns": "seasonal-campaigns", automations: "automations", "email-templates": "templates", "mkt-forms": "forms", "mkt-rewards": "rewards", "marketing-analytics": "analytics",
     "social-posts": "social-posts", "social-calendar": "social-posts", "social-new": "social-posts", "social-designs": "studio", "social-accounts": "social-posts",
     ads: "ads", video: "video-studio", discounts: "discounts", affiliates: "affiliates", "sell-everywhere": "channels",

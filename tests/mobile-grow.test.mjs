@@ -22,7 +22,7 @@ test("Menu: Grow and Store grids, live counts, search, and every tile opens an a
     const block = shop.slice(shop.indexOf(`export const ${name}`), shop.indexOf("];", shop.indexOf(`export const ${name}`)));
     return [...block.matchAll(/id: "(\w+)"/g)].map((match) => match[1]);
   };
-  assert.deepEqual(ids("GROW_TOOLS"), ["ads", "video", "email", "automations", "popups", "insights"]);
+  assert.deepEqual(ids("GROW_TOOLS"), ["ads", "studio", "email", "automations", "popups", "insights"]);
   assert.deepEqual(ids("STORE_TOOLS"), ["orders", "products", "editStore", "find", "delivery", "customers", "payouts", "settings"]);
   for (const [, path] of shop.matchAll(/path: "app:(\/[^"]+)"/g)) {
     const base = `apps/mobile/src/app${path}`;
