@@ -148,6 +148,16 @@ TEXT = [
     ('>Paid instantly to your business account.<', '>Paid to your business account.<'),
     ('>Instantly, to your bank, as orders are paid.<', '>To your bank, through Paystack, usually within a few working days.<'),
     ('>How do instant payouts work? <', '>How do payouts work? <'),
+    # Matches the app (labels: 4x6 thermal or A4 with a QR tracking code; riders: pickup code, then the customer's code).
+    ('>Pack each order with the shop’s branded label. Their customer gets a great experience, and you get repeat orders.<',
+     '>Pack each dropship order in its own packaging with the shop’s delivery label, and no flyers or your number. The customer gets the shop’s order, and the shop keeps buying from you.<'),
+    ('>Deliver the order<', '>Pick up and drop off<'),
+    ('>Hand it over and collect the payment if it’s pay on delivery.<', '>Enter the pickup code at the shop, then hand the parcel over at the door. Collect the cash if it’s pay on delivery.<'),
+    ('>Sellers print waybills with the shop’s name, the delivery code and a barcode, so pickups are quick and nothing gets mixed up.<',
+     '>Sellers print labels with their logo, the customer’s address and a QR code that opens the order’s tracking page, plus a packing slip for the parcel.<'),
+    ('>A6 and thermal printers<', '>4 × 6 label printers or A4 paper<'),
+    ('>Barcode scanned at pickup<', '>QR code to track the order<'),
+    ('>Ajo and pay small small payments land in the seller’s bank. Shopinbos doesn’t keep your savings.<', '>Ajo and pay small small payments are paid to the seller through Paystack.<'),
     ('>Instant payouts. <span', '>Your money. <span'),
     ('>Instantly. Money is paid out to your bank through Paystack.<', '>Money is paid out to your bank through Paystack, usually within a few working days.<'),
 ]
