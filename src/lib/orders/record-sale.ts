@@ -1,10 +1,12 @@
 import { randomBytes } from "crypto";
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server";
 import { RECORDED_SALE_CHANNELS } from "@shared/channels";
 import { SALE_DELIVERY_KEYS, SALE_PAYMENT_KEYS, saleStatus, saleTotals, type SaleLine } from "@shared/sales";
-import { readBundle } from "@shared/bundles";
+import { itemVariant, readBundle } from "@shared/bundles";
+import { adjustVariantStock } from "@shared/product-variants";
 
 // Records a sale the seller made off the storefront (WhatsApp, Instagram, in person). Used by
 // POST /api/app/orders (mobile) and the web "Record a sale" form.
@@ -69,13 +71,24 @@ export async function recordSale(storeId: string, input: RecordSaleInput) {
       const taken = Math.max(0, Math.min(product.currentStock, quantity));
       await tx.storeProduct.update({ where: { id: productId }, data: { currentStock: { decrement: taken }, soldStock: { increment: quantity } } });
     };
+    // A bundle item's size / option counted on its own gives its units too (stops at 0, like the product's count).
+    const takeVariant = async (productId: string, variantId: string | undefined, quantity: number) => {
+      const product = await tx.storeProduct.findFirst({ where: { id: productId, storeId }, select: { variants: true } });
+      const variant = product ? itemVariant(product, variantId) : null;
+      if (!product || !variant || variant.stock === null) return;
+      const result = adjustVariantStock(product.variants, [{ id: variant.id, delta: -Math.min(variant.stock, quantity) }]);
+      if (result.ok) await tx.storeProduct.update({ where: { id: productId }, data: { variants: result.variants as Prisma.InputJsonValue } });
+    };
     for (const line of lines) {
       if (!line.productId) continue;
       // A bundle (shared/bundles.ts) holds no stock: its sale is counted and each item gives its units.
       const bundle = readBundle(known.get(line.productId)?.productDetails);
       if (bundle) {
         await tx.storeProduct.update({ where: { id: line.productId }, data: { soldStock: { increment: line.quantity } } });
-        for (const item of bundle) await take(item.productId, item.quantity * line.quantity);
+        for (const item of bundle) {
+          await take(item.productId, item.quantity * line.quantity);
+          await takeVariant(item.productId, item.variantId, item.quantity * line.quantity);
+        }
         continue;
       }
       await take(line.productId, line.quantity);

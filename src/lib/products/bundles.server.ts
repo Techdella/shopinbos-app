@@ -12,10 +12,13 @@ import {
   bundleAvailable,
   bundleDetails,
   bundleForShoppers,
+  bundleItemPrice,
+  bundleItemView,
   bundleProblemMessage,
   bundleSaving,
   checkBundle,
   isBundleProduct,
+  itemVariant,
   partProblem,
   partsTotal,
   readBundle,
@@ -23,6 +26,7 @@ import {
   type BundleSummary,
 } from "@shared/bundles";
 import type { ShopperStock } from "@shared/product-stock";
+import { normalizeVariants } from "@shared/product-variants";
 
 // Bundles ("Buy together") for the seller's web form (/products/bundles), the phone's "Make a bundle" screen and the
 // storefront's "What's inside". The rules are in shared/bundles.ts; a bundle is a StoreProduct whose productDetails
@@ -32,7 +36,8 @@ export const BundleSaveSchema = z.object({
   name: z.string().trim().min(1, "Give the bundle a name.").max(BUNDLE_NAME_MAX),
   description: z.string().trim().max(5000).optional().nullable(),
   price: z.number().positive("Set a bundle price above 0.").max(100_000_000),
-  items: z.array(z.object({ productId: z.string().min(1).max(64), quantity: z.number().int().min(1).max(BUNDLE_MAX_QUANTITY) })).min(1).max(BUNDLE_MAX_ITEMS * 2),
+  // variantId: the size / option of a product that has them (shared/bundles.ts); left out for products without.
+  items: z.array(z.object({ productId: z.string().min(1).max(64), variantId: z.string().max(80).optional().nullable(), quantity: z.number().int().min(1).max(BUNDLE_MAX_QUANTITY) })).min(1).max(BUNDLE_MAX_ITEMS * 2),
   /** The bundle's photo; empty: the first item's photo. */
   image: z.string().url().max(2000).optional().nullable().or(z.literal("")),
   publish: z.boolean().optional(),
@@ -56,14 +61,26 @@ export interface SellerBundle {
   price: number;
   status: string;
   soldCount: number;
-  items: Array<{ productId: string; quantity: number; name: string; image: string | null; price: number; missing: boolean }>;
+  /** variantId / variant: the size or option picked ("M / Red") for a product that has them. */
+  items: Array<{ productId: string; variantId?: string; variant?: string; quantity: number; name: string; image: string | null; price: number; missing: boolean }>;
   partsTotal: number;
   saving: { amount: number; percent: number };
   /** Bundles that can be bought now; null when no item tracks stock. */
   available: number | null;
 }
 
-/** The store's products a bundle can hold: its own, not archived, no versions, pre-orders or other bundles. */
+/** A size or option the seller can pick for a bundle item (switched-on versions only). */
+export interface BundleChoiceVariant {
+  id: string;
+  name: string;
+  /** Its own price, else the product's. */
+  price: number;
+  /** Units of this version left when it's counted on its own and the seller counts stock; null otherwise. */
+  stock: number | null;
+  image: string | null;
+}
+
+/** The store's products a bundle can hold: its own, not archived, no pre-orders or other bundles (with their sizes). */
 export async function bundleChoices(storeId: string) {
   const rows = await db.storeProduct.findMany({ where: { storeId, status: { not: "archived" } }, select: partSelect, orderBy: { createdAt: "desc" }, take: 500 });
   return rows
@@ -76,6 +93,16 @@ export async function bundleChoices(storeId: string) {
       status: row.status,
       // Units left when the seller counts stock (null: not counted).
       stock: row.trackStock ? row.currentStock - Math.max(0, row.reservedStock) : null,
+      // Sizes / options the seller picks from (an item of this product names one).
+      variants: normalizeVariants(row.variants)
+        .filter((variant) => variant.enabled)
+        .map((variant): BundleChoiceVariant => ({
+          id: variant.id,
+          name: variant.name,
+          price: bundleItemPrice(row, { variantId: variant.id }),
+          stock: row.trackStock && variant.stock !== null ? variant.stock : null,
+          image: variant.imageUrl,
+        })),
     }));
 }
 
@@ -94,7 +121,10 @@ export async function sellerBundles(storeId: string, onlyId?: string): Promise<S
   const parts = ids.length ? await db.storeProduct.findMany({ where: { storeId, id: { in: ids } }, select: partSelect }) : [];
   const byId = new Map(parts.map((part) => [part.id, part]));
   return bundles.map(({ row, items }) => {
-    const total = partsTotal(items, (id) => byId.get(id)?.retailPrice);
+    const total = partsTotal(items, (id, item) => {
+      const part = byId.get(id);
+      return part ? bundleItemPrice(part, item) : 0;
+    });
     return {
       id: row.id,
       name: row.name,
@@ -105,7 +135,19 @@ export async function sellerBundles(storeId: string, onlyId?: string): Promise<S
       soldCount: row.soldStock,
       items: items.map((item) => {
         const part = byId.get(item.productId);
-        return { productId: item.productId, quantity: item.quantity, name: part?.name ?? "", image: part?.images[0] ?? null, price: part?.retailPrice ?? 0, missing: !part || part.status === "archived" };
+        const view = part ? bundleItemView(part, item) : null;
+        // Missing: the product is gone or archived, or the size picked is gone or switched off.
+        const missing = !part || part.status === "archived" || itemVariant(part, item.variantId) === undefined;
+        return {
+          productId: item.productId,
+          ...(item.variantId ? { variantId: item.variantId } : {}),
+          ...(view?.variant ? { variant: view.variant } : {}),
+          quantity: item.quantity,
+          name: part?.name ?? "",
+          image: view?.image ?? null,
+          price: view?.price ?? 0,
+          missing,
+        };
       }),
       partsTotal: total,
       saving: bundleSaving(total, row.retailPrice),
@@ -123,11 +165,15 @@ export async function saveBundle(store: { id: string; userId: string }, input: B
   if (!check.ok) throw new BundleSaveError(bundleProblemMessage(check.problem, check.product));
   const items: BundleItem[] = check.items;
   const byId = new Map(parts.map((part) => [part.id, part]));
-  const total = partsTotal(items, (partId) => byId.get(partId)?.retailPrice);
+  const total = partsTotal(items, (partId, item) => {
+    const part = byId.get(partId);
+    return part ? bundleItemPrice(part, item) : 0;
+  });
   // Cost: the items' costs when every one has one (the margin then reads right on the product list).
   const costs = items.map((item) => byId.get(item.productId)?.costPrice);
   const costPrice = costs.every((cost) => typeof cost === "number") ? Math.round(items.reduce((sum, item, index) => sum + (costs[index] as number) * item.quantity, 0) * 100) / 100 : null;
-  const image = input.image || byId.get(items[0]!.productId)?.images[0] || null;
+  const first = byId.get(items[0]!.productId);
+  const image = input.image || (first ? bundleItemView(first, items[0]!).image : null) || null;
   const publish = input.publish ?? (existing ? existing.status === "published" : true);
   const data = {
     name: input.name.trim(),
@@ -176,7 +222,7 @@ export async function bundleForProductPage(storeId: string, product: { retailPri
   if (!items) return null;
   const rows = await db.storeProduct.findMany({
     where: { storeId, id: { in: items.map((item) => item.productId) }, status: { in: [...statuses] } },
-    select: { id: true, name: true, images: true, retailPrice: true, trackStock: true, currentStock: true, reservedStock: true, preorderEnabled: true, fulfillmentType: true },
+    select: { id: true, name: true, images: true, retailPrice: true, trackStock: true, currentStock: true, reservedStock: true, preorderEnabled: true, fulfillmentType: true, variants: true },
   });
   return bundleForShoppers(items, product.retailPrice, rows);
 }

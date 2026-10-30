@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { withSeller } from "@/lib/auth/middleware";
+import { withVideoMaker } from "@/lib/video/owner.server";
 import { apiError } from "@/lib/api/response";
 import { getOpenAIClient } from "@/lib/ai/client";
 import { meterAi } from "@/lib/ai/usage";
@@ -51,8 +51,8 @@ async function openAiSpeech(text: string, language: string, gender: VoiceGender)
 
 // Video studio voiceover: returns an MP3 the browser mixes into the reel. provider "elevenlabs" uses the
 // account's ElevenLabs voices when set up (falling back to Rex's voice); gender picks a female or male voice,
-// both with a Nigerian accent.
-export const POST = withSeller(async (req, { user }) => {
+// both with a Nigerian accent. Sellers and delivery partners (each pays from their own credits).
+export const POST = withVideoMaker(async (req, { user }) => {
   const parsed = Schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Check the script");
   const { text, language, gender, provider } = parsed.data;
