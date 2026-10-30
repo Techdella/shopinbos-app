@@ -149,7 +149,9 @@ test("Edit my shop changes the draft with the builder's own operations", () => {
   assert.match(lib, /api<EditorData>\("\/api\/store\/editor"\)/);
   assert.match(lib, /\{ method: "PATCH", json: \{ ops \} \}/);
   assert.match(lib, /"\/api\/app\/store", \{ method: "PATCH"/);
-  for (const file of ["app/(tabs)/shop.tsx", "app/templates.tsx", "app/start.tsx", "app/rex.tsx"]) assert.match(app(file), /"(app:)?\/shop-edit"/, file);
+  // Those entry points now open the store editor (app/store-editor.tsx), which links back to these tools.
+  for (const file of ["app/(tabs)/shop.tsx", "app/templates.tsx", "app/start.tsx", "app/rex.tsx"]) assert.match(app(file), /"(app:)?\/store-editor"/, file);
+  assert.match(app("components/store-editor/sheets.tsx"), /router\.push\("\/shop-edit" as never\)/);
   assert.match(app("app/shop-edit.tsx"), /uploadIdentityImage\("logo"/);
   for (const key of Object.keys(CATALOGS.m_shop.en).filter((entry) => entry.startsWith("editShop."))) for (const lang of LANGS) assert.ok(CATALOGS.m_shop[lang][key], `${lang} ${key}`);
 });

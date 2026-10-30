@@ -296,7 +296,9 @@ test("the live product route, the builder preview and the product form use the o
   const view = read("src/components/storefront/boutique/BoutiqueProductView.tsx");
   assert.match(view, /applyProductPageOverride\(props\.settings \?\? readPdpSettings\(null, props\.look\.id\), override\)/);
   assert.match(read("src/lib/storefront/product-page.server.ts"), /pageLayout: true/);
-  assert.match(read("src/app/api/store/editor/route.ts"), /pageLayout: true/);
+  // The builders' store data (web GET /api/store/editor and the phone's /api/mobile/store-editor) loads it.
+  assert.match(read("src/lib/store-editor/editor-data.server.ts"), /pageLayout: true/);
+  assert.match(read("src/app/api/store/editor/route.ts"), /getStoreEditorData\(user\.id\)/);
   const form = read("src/app/components/ProductForm.tsx");
   assert.match(form, /pageLayout: writeProductPageOverride\(/);
   assert.doesNotMatch(form, /enabledModules|setPageVariant/, "the old page variant and module checkboxes are gone");

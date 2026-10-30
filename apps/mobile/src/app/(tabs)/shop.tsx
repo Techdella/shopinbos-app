@@ -6,7 +6,6 @@ import { Eyebrow, List, Row, TILE, Tile, Title, type TileTone } from "@/componen
 import { HelpButton } from "@/components/Help";
 import { LanguageRow } from "@/components/LanguagePicker";
 import { AppIcon, type AppIconName } from "@/components/icons";
-import { Picture } from "@/components/kit";
 import { IconButton, Section } from "@/components/seller/bits";
 import { Field, LinkButton, T } from "@/components/ui";
 import { TabScreen } from "@/components/TabScreen";
@@ -17,7 +16,8 @@ import { automationsOn, liveAds, matchTools } from "@/lib/grow-pure";
 import { latestPicture, useChangedIdentity } from "@/lib/identity";
 import { fetchAutomations } from "@/lib/marketing";
 import { fetchSetup, type SetupOverview } from "@/lib/setup";
-import { openShop, shareShop } from "@/lib/share";
+import { shareShop } from "@/lib/share";
+import { ShopEntry } from "@/components/store-editor/ShopEntry";
 import { shopIsLive } from "@/lib/publish";
 import { PublishButton, ShopLiveSheet } from "@/components/seller/PublishShop";
 import type { PublishedShop } from "@/lib/publish";
@@ -115,7 +115,7 @@ export const GROW_TOOLS: GridTool[] = [
 export const STORE_TOOLS: GridTool[] = [
   { id: "orders", label: "Orders", icon: "bag", tone: "peach", path: "app:/orders" },
   { id: "products", label: "Products", icon: "grid", tone: "lime", path: "app:/products" },
-  { id: "editStore", label: "Edit store", icon: "sparkle", tone: "lilac", path: "app:/shop-edit" },
+  { id: "editStore", label: "Edit store", icon: "sparkle", tone: "lilac", path: "app:/store-editor" },
   { id: "find", label: "Find stock", icon: "box", tone: "blue", path: "app:/find" },
   { id: "delivery", label: "Delivery", icon: "truck", tone: "sky", path: "app:/delivery" },
   { id: "customers", label: "Customers", icon: "users", tone: "mint", path: "app:/customers" },
@@ -268,34 +268,27 @@ export default function Menu() {
         </View>
       ) : null}
 
-      {/* The shop: logo, name and "See your store as customers do" (opens it), Share; Put my shop live under it. */}
+      {/* The shop (design SE-01): a big preview of the real shop, "Edit shop" (the store editor, app/store-editor.tsx)
+          and View, then Colours and fonts, Pages and Web address. Put my shop live under the buttons while it isn't. */}
       {store ? (
-        <View style={{ ...surfaceCard(), padding: 16, gap: 12 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-            <Picture uri={latestPicture(changedPictures, "logoUrl", store.logoUrl)} name={store.name} size={52} shape="square" />
-            <Pressable
-              testID="menu-see-store"
-              accessibilityRole="link"
-              accessibilityLabel={`${store.name}. ${t("menu.seeStore")}`}
-              disabled={!store.url}
-              onPress={() => (store.url ? void openShop(store.url) : undefined)}
-              style={{ flex: 1, minWidth: 0, minHeight: 44, justifyContent: "center" }}
-            >
-              <T weight="extrabold" style={{ fontSize: 18 }} numberOfLines={1}>{store.name}</T>
-              <T style={{ fontSize: 14, color: colors.inkSoft }} numberOfLines={1}>{store.url ? t("menu.seeStore") : t("linkLater")}</T>
-            </Pressable>
-            {store.url ? <IconButton testID="shop-link-qr" icon="link" label={t("link.shopLink.label")} onPress={() => router.push("/shop-link")} /> : null}
-            {store.url ? <IconButton testID="share-shop" icon="share" label={t("share")} onPress={() => void share()} /> : null}
-          </View>
-          {shareNote ? <T style={{ color: colors.danger, fontSize: 15 }}>{shareNote}</T> : null}
-          {/* Not live yet: one obvious button puts it live (then "Your shop is live" with View shop and Share). */}
-          {shopIsLive(setup) === false ? (
-            <View style={{ gap: 8, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 12 }}>
-              <T weight="extrabold" style={{ fontSize: 16 }}>{t("publish.notLive")}</T>
-              <PublishButton testID="shop-publish" sheet={false} onPublished={(shop) => { setJustPublished(shop); void fetchSetup().then(setSetup).catch(() => null); }} />
-            </View>
-          ) : null}
-        </View>
+        <ShopEntry
+          store={{ name: store.name, url: store.url }}
+          live={shopIsLive(setup)}
+          logoUrl={latestPicture(changedPictures, "logoUrl", store.logoUrl)}
+          onShare={() => void share()}
+          below={
+            <>
+              {shareNote ? <T style={{ color: colors.danger, fontSize: 15, marginTop: 8 }}>{shareNote}</T> : null}
+              {/* Not live yet: one obvious button puts it live (then "Your shop is live" with View shop and Share). */}
+              {shopIsLive(setup) === false ? (
+                <View style={{ gap: 8, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 12, marginTop: 10 }}>
+                  <T weight="extrabold" style={{ fontSize: 16 }}>{t("publish.notLive")}</T>
+                  <PublishButton testID="shop-publish" sheet={false} onPublished={(shop) => { setJustPublished(shop); void fetchSetup().then(setSetup).catch(() => null); }} />
+                </View>
+              ) : null}
+            </>
+          }
+        />
       ) : null}
       <ShopLiveSheet shop={justPublished} onClose={() => setJustPublished(null)} />
 

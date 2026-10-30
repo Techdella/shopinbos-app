@@ -5,7 +5,9 @@ import { BRAND_MARKS } from "@shared/brand-icons";
 // Line icons for the app chrome (tab bar, quick actions, Peggy tasks). 24px grid, 1.9 stroke. The brand logos
 // (whatsapp, instagram, facebook, tiktok) are the real marks from shared/brand-icons.ts, drawn filled.
 
-export type AppIconName = "home" | "box" | "chat" | "bag" | "grid" | "plus" | "search" | "bell" | "mic" | "receipt" | "play" | "megaphone" | "sparkle" | "truck" | "mail" | "coin" | "chevron" | "store" | "user" | "printer" | "tag" | "wifiOff" | "star" | "check" | "clock" | "share" | "doc" | "send" | "settings" | "image" | "bot" | "phone" | "pin" | "camera" | "shield" | "users" | "help" | "wallet" | "logout" | "x" | "globe" | "link" | "route" | "filter" | "lock" | "copy" | "chart" | "zap" | "popup" | "sun" | "moon" | "contrast" | "info" | "volume" | "volumeOff" | "video" | "whatsapp" | "instagram" | "facebook" | "tiktok" | "download";
+export type AppIconName = "home" | "box" | "chat" | "bag" | "grid" | "plus" | "search" | "bell" | "mic" | "receipt" | "play" | "megaphone" | "sparkle" | "truck" | "mail" | "coin" | "chevron" | "store" | "user" | "printer" | "tag" | "wifiOff" | "star" | "check" | "clock" | "share" | "doc" | "send" | "settings" | "image" | "bot" | "phone" | "pin" | "camera" | "shield" | "users" | "help" | "wallet" | "logout" | "x" | "globe" | "link" | "route" | "filter" | "lock" | "copy" | "chart" | "zap" | "popup" | "sun" | "moon" | "contrast" | "info" | "volume" | "volumeOff" | "video" | "whatsapp" | "instagram" | "facebook" | "tiktok" | "download"
+  // The store editor (app/store-editor.tsx, design SE-02…SE-16).
+  | "undo" | "redo" | "eye" | "eyeOff" | "chevronDown" | "type" | "palette" | "layers" | "arrowUp" | "arrowDown" | "arrowLeft" | "trash" | "grip" | "mobile" | "monitor" | "crop" | "folder" | "button" | "move";
 
 const PATHS: Record<AppIconName, (color: string) => React.ReactNode> = {
   home: () => <Path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />,
@@ -70,6 +72,26 @@ const PATHS: Record<AppIconName, (color: string) => React.ReactNode> = {
   volume: () => <><Path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" /><Path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" /></>,
   volumeOff: () => <><Path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" /><Path d="M16 9.5l5 5M21 9.5l-5 5" /></>,
   video: () => <><Rect x="3" y="6.5" width="12.5" height="11" rx="2" /><Path d="M15.5 10.5l5-3v9l-5-3z" /></>,
+  // The store editor's toolbars and sheets (the design's own glyphs).
+  undo: () => <><Path d="M9 14L4 9l5-5" /><Path d="M4 9h10a6 6 0 0 1 0 12h-3" /></>,
+  redo: () => <><Path d="M15 14l5-5-5-5" /><Path d="M20 9H10a6 6 0 0 0 0 12h3" /></>,
+  eye: () => <><Path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" /><Circle cx="12" cy="12" r="3" /></>,
+  eyeOff: () => <><Path d="M3 3l18 18" /><Path d="M10.6 5.1A10 10 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.2M6.6 6.6A17 17 0 0 0 2 12s3.5 7 10 7a9.7 9.7 0 0 0 5.4-1.6" /></>,
+  chevronDown: () => <Path d="M6 9l6 6 6-6" />,
+  type: () => <Path d="M5 6V4h14v2M12 4v16M9 20h6" />,
+  palette: () => <><Circle cx="13.5" cy="6.5" r="2.5" /><Circle cx="7" cy="12" r="2.5" /><Circle cx="17" cy="14" r="2.5" /><Path d="M12 21a9 9 0 1 1 9-9c0 2-1.5 3-3 3h-2a2 2 0 0 0-1 3.8c.4.6.1 2.2-3 2.2z" /></>,
+  layers: () => <><Path d="M12 3l9 5-9 5-9-5 9-5z" /><Path d="M3 13l9 5 9-5" /></>,
+  arrowUp: () => <Path d="M12 19V5M5 12l7-7 7 7" />,
+  arrowDown: () => <Path d="M12 5v14M19 12l-7 7-7-7" />,
+  arrowLeft: () => <Path d="M19 12H5M12 19l-7-7 7-7" />,
+  trash: () => <Path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />,
+  grip: (color) => <><Circle cx="9" cy="6" r="1" fill={color} /><Circle cx="15" cy="6" r="1" fill={color} /><Circle cx="9" cy="12" r="1" fill={color} /><Circle cx="15" cy="12" r="1" fill={color} /><Circle cx="9" cy="18" r="1" fill={color} /><Circle cx="15" cy="18" r="1" fill={color} /></>,
+  mobile: () => <><Rect x="6" y="2" width="12" height="20" rx="3" /><Path d="M11 18h2" /></>,
+  monitor: () => <><Rect x="2" y="4" width="20" height="13" rx="2" /><Path d="M8 21h8M12 17v4" /></>,
+  crop: () => <><Path d="M6 2v14h14" /><Path d="M2 6h14v14" /></>,
+  folder: () => <Path d="M3 6h6l2 2h10v11H3z" />,
+  button: () => <><Rect x="3" y="7" width="18" height="10" rx="5" /><Path d="M8 12h8" /></>,
+  move: () => <Path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3" />,
   whatsapp: (color) => <Path d={BRAND_MARKS.whatsapp.path} fill={color} stroke="none" />,
   instagram: (color) => <Path d={BRAND_MARKS.instagram.path} fill={color} stroke="none" />,
   facebook: (color) => <Path d={BRAND_MARKS.facebook.path} fill={color} stroke="none" />,

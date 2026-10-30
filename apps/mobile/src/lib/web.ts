@@ -76,9 +76,9 @@ const APP_SCREENS: Record<string, string> = {
   "/home/discounts": "/marketing",
   "/home/marketing/templates": "/marketing/templates",
   // The store builder: Edit my shop and Shop looks.
-  "/builder": "/shop-edit",
-  "/builder/editor": "/shop-edit",
-  "/home/editor": "/shop-edit",
+  "/builder": "/store-editor",
+  "/builder/editor": "/store-editor",
+  "/home/editor": "/store-editor",
   "/builder/templates": "/templates",
   "/home/marketing/subscribers": "/marketing/subscribers",
   "/studio": "/rex",

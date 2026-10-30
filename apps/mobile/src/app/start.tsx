@@ -127,7 +127,7 @@ export default function StartHere() {
                 {open || (step.done && step.action.kind === "link") ? (
                   <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, paddingLeft: 40 }}>
                     <PillButton title={words(step).label} size="sm" tone={open ? "ink" : "white"} busy={busy === step.key || (step.key === "live" && publishing.busy)} onPress={() => run(step, data)} />
-                    {step.key === "look" ? <PillButton testID="start-edit-shop" title={t("editShop.open")} size="sm" tone="white" onPress={() => router.push("/shop-edit" as never)} /> : null}
+                    {step.key === "look" ? <PillButton testID="start-edit-shop" title={t("editShop.open")} size="sm" tone="white" onPress={() => router.push("/store-editor" as never)} /> : null}
                     {open && step.helper ? (
                       <Pressable accessibilityRole="button" onPress={() => ask(step)} style={{ minHeight: 38, borderRadius: radii.pill, paddingHorizontal: 14, justifyContent: "center", backgroundColor: colors.mintTint }}>
                         <T weight="bold" numberOfLines={1} style={{ flexShrink: 1, fontSize: 14, color: colors.forest }}>{t("start.ask", { name: step.helper.who === "rex" ? "Rex" : "Peggy" })}</T>

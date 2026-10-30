@@ -97,7 +97,10 @@ export function StoreCanvas() {
     const el = sectionEl(id);
     const rect = el ? toRect(el.getBoundingClientRect()) : null;
     const photo = el ? photoRect(el) : null;
-    if (kind === "select") post({ t: "select", id, rect, photo, viewport: { width: window.innerWidth, height: window.innerHeight } });
+    if (kind === "select") {
+      const parts = { text: Boolean(el && firstText(el, "text")), button: Boolean(el && firstText(el, "button")) };
+      post({ t: "select", id, rect, photo, viewport: { width: window.innerWidth, height: window.innerHeight }, parts });
+    }
     else post({ t: "rect", rect, photo, moving });
   }, []);
 
@@ -136,7 +139,7 @@ export function StoreCanvas() {
               // Into view with room above it for the phone's toolbar.
               if (r.top < 60 || r.bottom > window.innerHeight - 40) window.scrollTo({ top: window.scrollY + r.top - 90, behavior: "smooth" });
             }
-            setTimeout(() => reportSelected("select"), message.scroll ? 380 : 0);
+            setTimeout(() => reportSelected("select"), message.scroll ? 380 : 80);
           });
         }
         break;
@@ -339,15 +342,8 @@ export function StoreCanvas() {
         <>
           <Outline box={box} tag={tag ?? setup.labels[selectedSection.id] ?? selectedSection.name} />
           {/* "+" above (not above the header) and below (not below the footer): drop a section in right there. */}
-          {!isChrome(selectedSection.kind) || selectedSection.kind !== "header" ? (
-            selectedSection.kind !== "announcement-bar" && selectedSection.kind !== "header" ? (
-              <PlusButton
-                label={setup.words.addAbove}
-                top={box.top}
-                left={box.left + box.width / 2}
-                onPress={() => post({ t: "add", afterId: above?.id ?? null })}
-              />
-            ) : null
+          {!isChrome(selectedSection.kind) || isFooter(selectedSection.kind) ? (
+            <PlusButton label={setup.words.addAbove} top={box.top} left={box.left + box.width / 2} onPress={() => post({ t: "add", afterId: above?.id ?? null })} />
           ) : null}
           {!isFooter(selectedSection.kind) ? (
             <PlusButton label={setup.words.addBelow} top={box.top + box.height} left={box.left + box.width / 2} onPress={() => post({ t: "add", afterId: selectedSection.id })} />

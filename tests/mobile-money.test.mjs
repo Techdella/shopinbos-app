@@ -97,7 +97,8 @@ test("the seller's photo shows on Home, the shop logo on My shop, and both in Se
   assert.match(home, /const myPicture = latestPicture\(changedPictures, "avatarUrl", data\?\.ownerAvatarUrl\)/);
   assert.match(home, /<LevelPill [^\n]*uri=\{myPicture\}/);
   assert.match(home, /router\.push\("\/settings"\)/);
-  assert.match(read("apps/mobile/src/app/(tabs)/shop.tsx"), /<Picture uri=\{latestPicture\(changedPictures, "logoUrl", store\.logoUrl\)\}/);
+  assert.match(read("apps/mobile/src/app/(tabs)/shop.tsx"), /logoUrl=\{latestPicture\(changedPictures, "logoUrl", store\.logoUrl\)\}/);
+  assert.match(read("apps/mobile/src/components/store-editor/ShopEntry.tsx"), /<Picture uri=\{logoUrl\}/);
   const settings = read("apps/mobile/src/app/settings.tsx");
   assert.match(settings, /pickImage\("avatar"\)/);
   assert.match(settings, /pickImage\("logo"\)/);

@@ -879,7 +879,7 @@ export interface CanvasWords {
 /** Canvas → phone (window.ReactNativeWebView.postMessage). Rects are in the WebView's own points. */
 export type CanvasOutbound =
   | { t: "ready" }
-  | { t: "select"; id: string; rect: CanvasRect | null; photo: CanvasRect | null; viewport: { width: number; height: number } }
+  | { t: "select"; id: string; rect: CanvasRect | null; photo: CanvasRect | null; viewport: { width: number; height: number }; parts: { text: boolean; button: boolean } }
   | { t: "rect"; rect: CanvasRect | null; photo: CanvasRect | null; moving: boolean }
   | { t: "deselect" }
   | { t: "copy"; id: string; key: string; value: string }
@@ -899,7 +899,7 @@ export function parseCanvasMessage(raw: unknown): CanvasOutbound | null {
 
 /** The script the phone injects to hand a message to the canvas (queued by the page until it's ready). */
 export function canvasScript(message: CanvasInbound) {
-  return `(function(){var m=${JSON.stringify(message).replace(/</g, "\\u003c").replace(/ /g, "\\u2028").replace(/ /g, "\\u2029")};if(window.__sibCanvas){window.__sibCanvas(m);}else{(window.__sibCanvasQueue=window.__sibCanvasQueue||[]).push(m);}})();true;`;
+  return `(function(){var m=${JSON.stringify(message).replace(/</g, "\\u003c").replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029")};if(window.__sibCanvas){window.__sibCanvas(m);}else{(window.__sibCanvasQueue=window.__sibCanvasQueue||[]).push(m);}})();true;`;
 }
 
 /** The store's address without https:// and the trailing slash ("adashair.mybos.store"). */

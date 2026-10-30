@@ -26,7 +26,8 @@ export interface PeggyScreen {
 // social post maker): the shop's design is "Shop looks" (/templates); changing the shop by chatting with Rex is
 // "Edit my shop with Rex" (/rex); a social post, flyer or status is "Make a post" (/create); the posts calendar is
 // "Posts calendar" (/posts). Nothing is called "Create with Rex" any more.
-// Editing the shop by hand (name, colours, logo, banner, sections) is "Edit my shop" (/shop-edit).
+// Editing the shop by hand (photos, words, sections, colours, pages, publish) is "Edit my shop": the store editor
+// (/store-editor), which links to the name, logo and banner tools (/shop-edit) from its Theme sheet.
 const SELLER: PeggyScreen[] = [
   { id: "home", name: "Home", app: "/home", web: "/home", also: ["dashboard"] },
   { id: "start", name: "Start here", app: "/start", web: "/home/start", also: ["setup", "checklist", "get set up"], about: "the setup checklist" },
@@ -50,7 +51,7 @@ const SELLER: PeggyScreen[] = [
   {
     id: "shop_edit",
     name: "Edit my shop",
-    app: "/shop-edit",
+    app: "/store-editor",
     web: "/studio",
     also: ["edit my shop", "edit my store", "change my shop", "shop name", "logo", "make a logo", "banner", "build my banner", "tagline", "announcement", "announcement bar", "colours", "colors", "sections", "publish"],
     about: "change the shop's name, tagline, colours, logo, banner (with Rex building it), announcement bar and sections, preview and publish",

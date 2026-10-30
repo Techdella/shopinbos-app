@@ -72,7 +72,7 @@ function StoreActions() {
     <View style={{ gap: 8 }}>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
         {done ? null : <CardAction label={t("card.publish")} busy={publishing.busy} onPress={() => void publishing.publish()} />}
-        <CardAction label={t("editShop.open")} onPress={() => router.push("/shop-edit" as never)} />
+        <CardAction label={t("editShop.open")} onPress={() => router.push("/store-editor" as never)} />
         <CardAction label={t("card.seeShop")} onPress={() => void seeShop()} />
       </View>
       {done ? <T style={{ fontSize: 14, color: colors.forest }}>{t("card.published")}</T> : null}
