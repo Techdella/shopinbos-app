@@ -1,7 +1,7 @@
 import "server-only";
 
 import { db } from "@/lib/db/client";
-import { chargePaystackAuthorization, initializePaystackTransaction, refundPaystackTransaction, verifyPaystackTransaction, type PaystackVerification } from "@/lib/paystack";
+import { chargePaystackAuthorization, initializePaystackTransaction, verifyPaystackTransaction, type PaystackVerification } from "@/lib/paystack";
 import { openSecret, sealSecret } from "@/lib/reviews/secrets";
 import { paystackSecretReady } from "@shared/checkout-payments";
 import { buildSplitPlan, paystackSplitParams, platformFeeKobo, type PaymentSplitPlan } from "@/lib/wallet/rules";
@@ -14,8 +14,8 @@ import { GROUP_VERIFY_KOBO } from "@shared/group-buy";
 // exactly like store checkout (src/lib/wallet/rules.ts buildSplitPlan → paystackSplitParams). The same split goes on
 // charges of a saved card (charge_authorization with subaccount + transaction_charge).
 //
-// The one exception is group buy's card check (GROUP_VERIFY_KOBO, ₦50) that saves a shopper's card without charging
-// for the product: it isn't split (there is no sale yet) and is refunded straight away with refundCardCheck.
+// Group buy's card check (GROUP_VERIFY_KOBO, ₦50) saves a shopper's card and is split to the seller too (no fee):
+// Shopinbos never receives it. It's taken off the group price when the group fills, or the shop sends it back.
 
 export function paymentsReady() {
   return paystackSecretReady(process.env.PAYSTACK_SECRET_KEY);
@@ -90,30 +90,19 @@ export function verifyPayment(reference: string): Promise<PaystackVerification> 
   return verifyPaystackTransaction(reference);
 }
 
-/** Group buy: a ₦50 card check (card only) that saves the shopper's card. Not split; refunded at once once verified. */
-export async function startCardCheck(input: { email: string; reference: string; callbackUrl: string; metadata: Record<string, unknown> }) {
+/** Group buy: a ₦50 card check (card only) that saves the shopper's card, split to the seller's subaccount (no fee). */
+export async function startCardCheck(input: { email: string; reference: string; callbackUrl: string; metadata: Record<string, unknown>; subaccount: string }) {
+  const plan = sellerSplit(input.subaccount, GROUP_VERIFY_KOBO, 0);
   const started = await initializePaystackTransaction({
     email: input.email,
     amountKobo: GROUP_VERIFY_KOBO,
     reference: input.reference,
     callbackUrl: input.callbackUrl,
     metadata: { ...input.metadata, purpose: "card_check" },
+    split: paystackSplitParams(plan),
     channels: ["card"],
   });
   return { authorizationUrl: started.authorization_url!, accessCode: started.access_code ?? null, reference: started.reference ?? input.reference };
-}
-
-/** Sends a card check back in full. Returns the refund's status, or "failed" with Paystack's reason. Never throws. */
-export async function refundCardCheck(reference: string): Promise<{ status: string; error?: string }> {
-  try {
-    const refund = await refundPaystackTransaction(reference);
-    return { status: refund.status };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "refund failed";
-    // Already refunded (a replay): done.
-    if (/fully reversed|already been refunded|fully refunded/i.test(message)) return { status: "processed" };
-    return { status: "failed", error: message };
-  }
 }
 
 /** Paystack's reusable authorization code, sealed for storage (a token, not card data). Null when not reusable. */

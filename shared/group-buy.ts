@@ -2,10 +2,11 @@
 // charged unless the group fills. Pure rules (no imports) for the server, the storefront, the apps and
 // tests/group-buy.test.mjs.
 //
-// How the money moves: joining saves the shopper's card with a tiny card check (GROUP_VERIFY_KOBO) that is refunded
-// straight away; it never goes to the seller and is never kept. When the group fills, each member's saved card is
-// charged the group price in a Paystack payment split straight to the seller's own bank (Shopinbos's fee in the
-// same split), and their order is created. A card that can't be charged gets a pay link for PAY_LINK_HOURS; then
+// How the money moves: joining saves the shopper's card with a tiny card check (GROUP_VERIFY_KOBO) paid straight to
+// the seller's own bank like every other payment (Shopinbos never holds it). When the group fills, each member's saved
+// card is charged the group price less the card check (groupChargeKobo) in a Paystack payment split straight to the
+// seller (Shopinbos's fee in the same split), and their order is created. If the group doesn't fill, the shop sends the
+// card check back (the seller is told who to refund). A card that can't be charged gets a pay link for PAY_LINK_HOURS; then
 // that member is dropped. A group that doesn't fill by its deadline is cancelled and nobody is charged.
 
 export const GROUP_BUY_FEATURE = "group_buy";
@@ -13,8 +14,13 @@ export const GROUP_MIN_SIZE = 2;
 export const GROUP_MAX_SIZE = 20;
 export const GROUP_WINDOW_HOURS = [6, 12, 24, 48, 72] as const;
 export const GROUP_DEFAULT_HOURS = 24;
-/** The card check when joining (Paystack's smallest NGN charge), refunded at once. */
+/** The card check when joining (Paystack's smallest NGN charge): paid to the seller, then taken off the group price. */
 export const GROUP_VERIFY_KOBO = 5_000;
+
+/** What a member's card is charged when the group fills: the group price less the card check they already paid. */
+export function groupChargeKobo(priceKobo: number): number {
+  return Math.max(0, Math.round(priceKobo) - GROUP_VERIFY_KOBO);
+}
 /** A member whose card can't be charged when the group fills has this long to pay with the link. */
 export const PAY_LINK_HOURS = 2;
 /** The group price must leave the seller at least this after Shopinbos's fee (Paystack's smallest split share). */

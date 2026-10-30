@@ -6217,7 +6217,7 @@ model GroupBuyMember {
   deliveryAddress    Json      @default("{}")
   status             String    @default("pending")
   verifyReference    String    @unique
-  verifyRefundStatus String? // pending | processing | processed | failed
+  verifyRefundStatus String? // credit (comes off the group price) | shop_returns (the seller sends the ₦50 back)
   authorizationCode  String?
   authorizationEmail String?
   cardLast4          String?

@@ -6,6 +6,7 @@ import {
   GROUP_BUY_FEATURE,
   GROUP_CHARGE_PREFIX,
   GROUP_VERIFY_KOBO,
+  groupChargeKobo,
   GROUP_VERIFY_PREFIX,
   chargeOutcome,
   countsTowardsGroup,
@@ -17,16 +18,17 @@ import {
   timeLeft,
 } from "@shared/group-buy";
 import { publicFirstName } from "@shared/ajo";
-import { chargeSavedCard, paidAmountKobo, paymentsReady, readMetadata, refundCardCheck, saleFeeKobo, sealAuthorization, sellerSplit, sellerSubaccount, startCardCheck, startSplitPayment, verifyPayment } from "@/lib/paystack/plans.server";
+import { chargeSavedCard, paidAmountKobo, paymentsReady, readMetadata, saleFeeKobo, sealAuthorization, sellerSplit, sellerSubaccount, startCardCheck, startSplitPayment, verifyPayment } from "@/lib/paystack/plans.server";
 import { readSplitPlan } from "@/lib/wallet/rules";
 import { checkLink, createPaidOrder, featureOnForStore, loadSaleProduct, messageShopper, naira, newReference, signLink, storeLink, tellSeller, type StoreRef } from "./common.server";
 
 // Group buy (pilot "group_buy"; rules in shared/group-buy.ts). A lower price unlocks when enough people join before the
 // deadline; nobody is charged unless the group fills.
 //
-// Money: joining saves the shopper's card with a ₦50 card check (card only, not split: there's no sale yet) that is
-// refunded straight away. When the group fills, each saved card is charged the group price with charge_authorization,
-// split straight to the seller's bank (Shopinbos's fee in the same split), and their order is made. A card that can't
+// Money: joining saves the shopper's card with a ₦50 card check (card only) split straight to the seller's bank with
+// no fee, so Shopinbos never holds it. When the group fills, each saved card is charged the group price less that ₦50
+// (groupChargeKobo) with charge_authorization, split straight to the seller's bank (Shopinbos's fee in the same split),
+// and their order is made at the full group price. If the group doesn't fill, the seller is told to send each ₦50 back. A card that can't
 // be charged gets a pay link (a normal split checkout) for 2 hours, then that member is dropped. A group that doesn't
 // fill by its deadline is cancelled: nobody is charged.
 
@@ -103,7 +105,9 @@ export async function joinGroupBuy(store: StoreRef, input: { productId: string; 
   const reference = newReference(GROUP_VERIFY_PREFIX);
   const member = await db.groupBuyMember.create({ data: { groupId: group.id, name: input.buyer.name, email, phone: input.buyer.phone, deliveryAddress: JSON.parse(JSON.stringify(input.address)), verifyReference: reference } });
   try {
-    const started = await startCardCheck({ email, reference, callbackUrl: memberUrl(store, group.id, member.id), metadata: { kind: "group_verify", groupId: group.id, memberId: member.id, storeId: store.id } });
+    const seller = await sellerSubaccount(store.id);
+    if (!seller) throw new Error("The shop's payout account isn't active.");
+    const started = await startCardCheck({ email, reference, callbackUrl: memberUrl(store, group.id, member.id), metadata: { kind: "group_verify", groupId: group.id, memberId: member.id, storeId: store.id }, subaccount: seller.subaccount });
     return { ok: true, ...started, groupId: group.id };
   } catch (error) {
     console.error(`[group-buy] Paystack could not start the card check for ${member.id}`, error);
@@ -115,7 +119,7 @@ export async function joinGroupBuy(store: StoreRef, input: { productId: string; 
 export type ConfirmResult = { ok: true; fresh: boolean } | { ok: false; error: string; retry?: boolean; pending?: boolean };
 
 /**
- * The ₦50 card check is in: refund it at once, keep the card (if reusable), count the member in. Once per member
+ * The ₦50 card check is in (it settled to the seller): keep the card (if reusable), count the member in. Once per member
  * (conditional on status pending). Fills the group when this was the last place.
  */
 export async function confirmGroupVerify(reference: string): Promise<ConfirmResult> {
@@ -134,8 +138,7 @@ export async function confirmGroupVerify(reference: string): Promise<ConfirmResu
   if (meta.kind !== "group_verify" || meta.memberId !== member.id) return { ok: false, error: "This card check isn't for this group." };
   if (paidAmountKobo(verified) < GROUP_VERIFY_KOBO) return { ok: false, error: "The card check amount is wrong." };
 
-  // Send the ₦50 back straight away, whatever happens next (nothing of it is kept).
-  const refund = await refundCardCheck(reference);
+  // The ₦50 is the seller's (split to their bank): it comes off the group price, or the shop sends it back.
   const card = sealAuthorization(verified);
   const group = member.group;
   const open = groupState(group, joinedCount(group.members), new Date()) === "open";
@@ -143,18 +146,20 @@ export async function confirmGroupVerify(reference: string): Promise<ConfirmResu
     where: { id: member.id, status: "pending" },
     data: {
       status: open ? "joined" : "cancelled",
-      verifyRefundStatus: refund.status,
+      verifyRefundStatus: open ? "credit" : "shop_returns",
       joinedAt: new Date(),
       ...(card ? { authorizationCode: card.code, authorizationEmail: (verified.customer?.email ?? member.email).toLowerCase(), cardLast4: card.last4 } : {}),
     },
   });
   if (moved.count !== 1) return { ok: true, fresh: false };
-  if (refund.status === "failed") console.error(`[group-buy] the card check ${reference} couldn't be refunded: ${refund.error}`);
-  if (!open) return { ok: true, fresh: true };
+  if (!open) {
+    await tellSeller(group.storeId, { title: `Send ₦50 back: ${member.name}`, description: `${member.name} (${member.phone}) paid the ₦50 card check after the group for ${group.productName} had closed. It's in your bank: send it back to them.`, link: "/home/group-buys", dedupeKey: `group-buy.late-check:${member.id}`, priority: "critical" });
+    return { ok: true, fresh: true };
+  }
   const store = await db.store.findUnique({ where: { id: group.storeId }, select: { slug: true, customDomain: true, name: true } });
   if (store) {
     const link = memberUrl(store, group.id, member.id);
-    await messageShopper({ storeId: group.storeId, phone: member.phone, email: member.email, name: member.name, event: "group_buy_joined", refId: member.id, sms: `${store.name}: you're in the group for ${group.productName} (${naira(group.priceKobo)} each when ${group.size} join). Nobody pays unless it fills. Share it: ${groupUrl(store, group.id)} Your place: ${link}`, email_: { subject: `You're in the group for ${group.productName}`, heading: "You've joined the group", body: `you're in the group buy for ${group.productName} at ${store.name}: ${naira(group.priceKobo)} each when ${group.size} people join. Your card is charged only if the group fills; the ₦50 card check is on its way back to you. Share the group to fill it faster: ${groupUrl(store, group.id)}`, cta: { label: "Your place in the group", url: link } } });
+    await messageShopper({ storeId: group.storeId, phone: member.phone, email: member.email, name: member.name, event: "group_buy_joined", refId: member.id, sms: `${store.name}: you're in the group for ${group.productName} (${naira(group.priceKobo)} each when ${group.size} join). Nobody pays unless it fills. Share it: ${groupUrl(store, group.id)} Your place: ${link}`, email_: { subject: `You're in the group for ${group.productName}`, heading: "You've joined the group", body: `you're in the group buy for ${group.productName} at ${store.name}: ${naira(group.priceKobo)} each when ${group.size} people join. Your card is charged only if the group fills, and the ₦50 card check comes off your price. If it doesn't fill, ${store.name} sends the ₦50 back. Share the group to fill it faster: ${groupUrl(store, group.id)}`, cta: { label: "Your place in the group", url: link } } });
   }
   const joined = await db.groupBuyMember.count({ where: { groupId: group.id, status: { in: ["joined", "charged", "pay_link"] } } });
   if (joined >= group.size) await fillGroup(group.id);
@@ -176,11 +181,12 @@ export async function fillGroup(groupId: string) {
   const fee = seller ? await saleFeeKobo(seller.sellerUserId, group.priceKobo) : 0;
   for (const member of group.members.filter((row) => row.status === "joined")) {
     const reference = newReference(GROUP_CHARGE_PREFIX);
-    const split = seller ? sellerSplit(seller.subaccount, group.priceKobo, fee) : null;
+    const due = groupChargeKobo(group.priceKobo);
+    const split = seller ? sellerSplit(seller.subaccount, due, fee) : null;
     await db.groupBuyMember.update({ where: { id: member.id }, data: { chargeReference: reference, chargeSplit: split ? JSON.parse(JSON.stringify(split)) : undefined } });
     let outcome: "paid" | "pay_link" = "pay_link";
     if (split && member.authorizationCode && member.authorizationEmail) {
-      const charged = await chargeSavedCard({ email: member.authorizationEmail, sealedAuthorization: member.authorizationCode, amountKobo: group.priceKobo, reference, metadata: { kind: "group_charge", groupId: group.id, memberId: member.id, storeId: group.storeId }, plan: split });
+      const charged = await chargeSavedCard({ email: member.authorizationEmail, sealedAuthorization: member.authorizationCode, amountKobo: due, reference, metadata: { kind: "group_charge", groupId: group.id, memberId: member.id, storeId: group.storeId }, plan: split });
       outcome = chargeOutcome(charged.status);
       if (outcome === "paid") {
         const confirmed = await confirmGroupCharge(reference);
@@ -191,11 +197,11 @@ export async function fillGroup(groupId: string) {
       const deadline = payLinkDeadline(new Date());
       await db.groupBuyMember.updateMany({ where: { id: member.id, status: "joined" }, data: { status: "pay_link", payDeadline: deadline } });
       const link = memberUrl(store, group.id, member.id);
-      await messageShopper({ storeId: store.id, phone: member.phone, email: member.email, name: member.name, event: "group_buy_pay_link", refId: member.id, sms: `${store.name}: your group for ${group.productName} is full! Pay ${naira(group.priceKobo)} within 2 hours to get yours: ${link}`, email_: { subject: `Your group is full: pay for ${group.productName}`, heading: "Your group is full", body: `the group buy for ${group.productName} is full, but we couldn't charge your saved card. Pay ${naira(group.priceKobo)} within 2 hours to keep your place.`, cta: { label: "Pay now", url: link } } });
+      await messageShopper({ storeId: store.id, phone: member.phone, email: member.email, name: member.name, event: "group_buy_pay_link", refId: member.id, sms: `${store.name}: your group for ${group.productName} is full! Pay ${naira(groupChargeKobo(group.priceKobo))} within 2 hours to get yours: ${link}`, email_: { subject: `Your group is full: pay for ${group.productName}`, heading: "Your group is full", body: `the group buy for ${group.productName} is full, but we couldn't charge your saved card. Pay ${naira(groupChargeKobo(group.priceKobo))} (the group price less your ₦50 card check) within 2 hours to keep your place.`, cta: { label: "Pay now", url: link } } });
     }
   }
   await settleGroupStatus(group.id);
-  await tellSeller(group.storeId, { title: `Group buy full: ${group.productName}`, description: `${group.size} people joined. Their cards are being charged ${naira(group.priceKobo)} each (to your bank through Paystack), and their orders appear as each payment lands.`, link: "/home/group-buys", dedupeKey: `group-buy.full:${group.id}`, priority: "success", event: "order.paid" });
+  await tellSeller(group.storeId, { title: `Group buy full: ${group.productName}`, description: `${group.size} people joined. Their cards are being charged ${naira(groupChargeKobo(group.priceKobo))} each (the group price less the ₦50 card check you already have), to your bank through Paystack,, and their orders appear as each payment lands.`, link: "/home/group-buys", dedupeKey: `group-buy.full:${group.id}`, priority: "success", event: "order.paid" });
 }
 
 async function settleGroupStatus(groupId: string) {
@@ -223,10 +229,10 @@ export async function confirmGroupCharge(reference: string): Promise<ConfirmResu
   if (!member) return { ok: false, error: "Unknown member." };
   if (member.status === "charged" && member.chargeReference === reference) return { ok: true, fresh: false };
   const group = member.group;
-  if (paidAmountKobo(verified) < group.priceKobo) return { ok: false, error: "The amount paid is less than the group price." };
+  if (paidAmountKobo(verified) < groupChargeKobo(group.priceKobo)) return { ok: false, error: "The amount paid is less than the group price." };
   const moved = await db.groupBuyMember.updateMany({ where: { id: member.id, status: { in: ["joined", "pay_link", "dropped"] } }, data: { status: "charged", chargeReference: reference, payDeadline: null } });
   if (moved.count !== 1) {
-    await tellSeller(group.storeId, { title: `Send a payment back: ${member.name}`, description: `${member.name} paid ${naira(group.priceKobo)} again for the group buy of ${group.productName} (Paystack ${reference}). The money is in your bank: send it back to them.`, link: "/home/group-buys", dedupeKey: `group-buy.extra:${reference}`, priority: "critical" });
+    await tellSeller(group.storeId, { title: `Send a payment back: ${member.name}`, description: `${member.name} paid ${naira(groupChargeKobo(group.priceKobo))} again for the group buy of ${group.productName} (Paystack ${reference}). The money is in your bank: send it back to them.`, link: "/home/group-buys", dedupeKey: `group-buy.extra:${reference}`, priority: "critical" });
     return { ok: true, fresh: false };
   }
   const split = readSplitPlan(member.chargeSplit);
@@ -238,9 +244,9 @@ export async function confirmGroupCharge(reference: string): Promise<ConfirmResu
       unitNaira: group.priceKobo / 100,
       buyer: { name: member.name, email: member.email, phone: member.phone },
       address: member.deliveryAddress,
-      note: `Group buy: ${group.size} people at ${naira(group.priceKobo)} each.`,
+      note: `Group buy: ${group.size} people at ${naira(group.priceKobo)} each (₦50 of it paid as the card check when they joined).`,
       paystackRef: reference,
-      split: split && split.totalKobo === group.priceKobo ? split : null,
+      split: split && split.totalKobo === groupChargeKobo(group.priceKobo) ? split : null,
       logTag: "group buy",
     });
     await db.groupBuyMember.update({ where: { id: member.id }, data: { orderId: created.orderId } });
@@ -260,11 +266,12 @@ export async function startGroupPayLink(store: StoreRef, groupId: string, member
   if (member.status !== "pay_link" || !member.payDeadline || member.payDeadline.getTime() < now.getTime()) return { ok: false as const, error: "This pay link has expired." };
   const seller = await sellerSubaccount(store.id);
   if (!seller) return { ok: false as const, error: "This shop can't take card payments right now." };
-  const split = sellerSplit(seller.subaccount, member.group.priceKobo, await saleFeeKobo(seller.sellerUserId, member.group.priceKobo));
+  const due = groupChargeKobo(member.group.priceKobo);
+  const split = sellerSplit(seller.subaccount, due, await saleFeeKobo(seller.sellerUserId, member.group.priceKobo));
   const reference = newReference(GROUP_CHARGE_PREFIX);
   await db.groupBuyMember.update({ where: { id: member.id }, data: { chargeReference: reference, chargeSplit: JSON.parse(JSON.stringify(split)) } });
   try {
-    const started = await startSplitPayment({ email: member.email, amountKobo: member.group.priceKobo, reference, callbackUrl: memberUrl(store, groupId, member.id), metadata: { kind: "group_charge", groupId, memberId: member.id, storeId: store.id }, plan: split });
+    const started = await startSplitPayment({ email: member.email, amountKobo: due, reference, callbackUrl: memberUrl(store, groupId, member.id), metadata: { kind: "group_charge", groupId, memberId: member.id, storeId: store.id }, plan: split });
     return { ok: true as const, ...started };
   } catch (error) {
     console.error(`[group-buy] Paystack could not start the pay link for ${member.id}`, error);
@@ -315,7 +322,7 @@ export async function sellerGroupBuys(storeId: string) {
   }));
 }
 
-/** The seller closes an open group early: nobody is charged (card checks were already refunded). */
+/** The seller closes an open group early: nobody is charged; the seller is told who to send the ₦50 card check back to. */
 export async function cancelGroupBuy(storeId: string, groupId: string) {
   const moved = await db.groupBuy.updateMany({ where: { id: groupId, storeId, status: "open" }, data: { status: "cancelled", cancelledAt: new Date() } });
   if (moved.count !== 1) return { ok: false as const, error: "Only an open group can be closed." };
@@ -328,8 +335,20 @@ async function closeUnfilled(groupId: string, why: string) {
   if (!group) return;
   const store = await db.store.findUnique({ where: { id: group.storeId }, select: { name: true } });
   await db.groupBuyMember.updateMany({ where: { groupId, status: { in: ["pending", "joined"] } }, data: { status: "cancelled" } });
+  // Each joined member's ₦50 card check is in the seller's bank: the seller sends it back (Shopinbos never held it).
+  const owed = group.members.filter((row) => row.status === "joined");
+  if (owed.length) {
+    await db.groupBuyMember.updateMany({ where: { id: { in: owed.map((row) => row.id) } }, data: { verifyRefundStatus: "shop_returns" } });
+    await tellSeller(group.storeId, {
+      title: `Send back ${owed.length} × ₦50: ${group.productName}`,
+      description: `The group buy for ${group.productName} didn't fill (${why}). Send the ₦50 card check back to: ${owed.map((row) => `${row.name} (${row.phone})`).join(", ")}.`,
+      link: "/home/group-buys",
+      dedupeKey: `group-buy.return-checks:${group.id}`,
+      priority: "critical",
+    });
+  }
   for (const member of group.members.filter((row) => row.status === "joined")) {
-    await messageShopper({ storeId: group.storeId, phone: member.phone, email: member.email, name: member.name, event: "group_buy_cancelled", refId: member.id, sms: `${store?.name ?? "The shop"}: the group buy for ${group.productName} didn't fill (${why}). Nobody was charged.`, email_: { subject: `Group buy closed: ${group.productName}`, heading: "The group didn't fill", body: `the group buy for ${group.productName} closed (${why}). Nobody was charged, and the ₦50 card check was sent back to you.` } });
+    await messageShopper({ storeId: group.storeId, phone: member.phone, email: member.email, name: member.name, event: "group_buy_cancelled", refId: member.id, sms: `${store?.name ?? "The shop"}: the group buy for ${group.productName} didn't fill (${why}). Nobody was charged; we've asked the shop to send your ₦50 card check back.`, email_: { subject: `Group buy closed: ${group.productName}`, heading: "The group didn't fill", body: `the group buy for ${group.productName} closed (${why}). Nobody was charged for the item, and ${store?.name ?? "the shop"} will send your ₦50 card check back.` } });
   }
 }
 

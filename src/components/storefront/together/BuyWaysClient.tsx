@@ -142,7 +142,7 @@ export function BuyWaysClient({
               </p>
             </div>
             <DetailsFields theme={theme} details={details} onChange={setDetails} />
-            <p className="m-0 text-[13px]" style={{ color: theme.muted }}>To save your card, Paystack checks it with ₦50 and sends it straight back. When the group fills, your card is charged {nairaText(group.priceKobo)}. If it doesn't fill in time, nothing is charged.</p>
+            <p className="m-0 text-[13px]" style={{ color: theme.muted }}>To save your card you pay ₦50 to the shop now. When the group fills, your card is charged the rest of {nairaText(group.priceKobo)}. If it doesn't fill in time, the shop sends your ₦50 back.</p>
             {error ? <Notice theme={theme} tone="error">{error}</Notice> : null}
             <PrimaryButton theme={theme} type="button" disabled={busy} onClick={() => void start({ action: "group.join", productId: product.id, ...(group.open ? { groupId: group.open.id } : {}) })}>
               {busy ? "Opening Paystack…" : group.open ? "Join the group" : "Start a group"}

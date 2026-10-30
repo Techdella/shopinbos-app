@@ -5,8 +5,8 @@
 -- THE RULE: SHOPINBOS NEVER HOLDS MONEY. Holding savings or contributions is deposit-taking and needs a CBN licence.
 -- Every naira a shopper pays here is its own Paystack transaction, SPLIT AT THE MOMENT IT IS PAID: the seller's share
 -- settles straight to the seller's own bank through their Paystack subaccount, and Shopinbos's fee is the split's
--- transaction_charge (the same rule as store checkout, src/lib/wallet/rules.ts paystackSplitParams). The only charge
--- that is not split is group buy's small card check (₦50), which is refunded straight away.
+-- transaction_charge (the same rule as store checkout, src/lib/wallet/rules.ts paystackSplitParams). Even
+-- group buy's small card check (₦50) is split to the seller too (no fee): it comes off the group price, or the shop sends it back.
 --
 --   * "ProductPayOption":  a product's other ways to buy, set by the seller (Pay small small on/off, allowed weeks,
 --                          price lock, refund rule; Group buy on/off, group price in kobo, size, hours open).
@@ -24,7 +24,7 @@
 --     their turn; what happens to a removed member's paid weeks is the seller's call), the Pay small small refund
 --     rule preset ("Money back within 7 days, minus ₦1,000"), and the group buy card check.
 --   * Ask Paystack support to confirm charge_authorization with a subaccount + transaction_charge (split) is enabled
---     on the live account (autopay and group-buy charges use it), and how refunds of the ₦50 card check are funded.
+--     on the live account (autopay and group-buy charges use it), and that a ₦50 card check can be split to a subaccount with no transaction_charge.
 --   * Members are verified by phone code only. BVN / NIN checks are not available in this pilot.
 --
 -- No foreign keys to existing tables (rows outlive deleted products and orders as a record of what was paid).

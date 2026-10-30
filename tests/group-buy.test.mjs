@@ -57,8 +57,17 @@ test("share text says nobody pays unless it fills", () => {
   assert.match(text, /tofs\.mybos\.store/);
 });
 
-test("the shared group-buy rules are import-free and say the card check is refunded", () => {
+test("the card check goes to the seller (never Shopinbos) and comes off the group price", async () => {
   const source = readFileSync(new URL("../shared/group-buy.ts", import.meta.url), "utf8");
   assert.doesNotMatch(source, /^import /m);
-  assert.match(source, /refunded\s+\/\/ straight away|refunded/);
+  const { groupChargeKobo, GROUP_VERIFY_KOBO } = await import("../shared/group-buy.ts");
+  assert.equal(groupChargeKobo(1_000_000), 1_000_000 - GROUP_VERIFY_KOBO);
+  assert.equal(groupChargeKobo(1_000), 0);
+  const plans = readFileSync(new URL("../src/lib/paystack/plans.server.ts", import.meta.url), "utf8");
+  assert.match(plans, /startCardCheck\([^)]*subaccount: string/);
+  assert.match(plans, /sellerSplit\(input\.subaccount, GROUP_VERIFY_KOBO, 0\)/);
+  assert.doesNotMatch(plans, /refundCardCheck|refundPaystackTransaction/);
+  const server = readFileSync(new URL("../src/lib/pay-together/group-buy.server.ts", import.meta.url), "utf8");
+  assert.match(server, /amountKobo: due/);
+  assert.match(server, /Send back \$\{owed\.length\} × ₦50/);
 });

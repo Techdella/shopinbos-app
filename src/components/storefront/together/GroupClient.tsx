@@ -53,7 +53,7 @@ export function GroupClient({ store, storeBasePath, group, returned }: { store: 
   return (
     <Shell store={store} theme={theme} basePath={storeBasePath} title="Buy with friends">
       <div className="grid gap-5">
-        <ReturnNotice theme={theme} returned={returned} paidText={group.me?.status === "charged" ? "Paid. Thank you!" : "Your card is saved and the ₦50 check is on its way back to you."} />
+        <ReturnNotice theme={theme} returned={returned} paidText={group.me?.status === "charged" ? "Paid. Thank you!" : "Your card is saved. Your ₦50 comes off the group price."} />
         <div className="flex items-center gap-4">
           <ItemThumb theme={theme} src={group.productImage} alt={group.productName} size={72} />
           <div className="min-w-0">
@@ -95,7 +95,7 @@ export function GroupClient({ store, storeBasePath, group, returned }: { store: 
           <Panel theme={theme} className="grid gap-4 p-5">
             <h2 className="m-0 text-[20px] font-semibold" style={{ fontFamily: theme.heading }}>Join this group</h2>
             <DetailsFields theme={theme} details={details} onChange={setDetails} />
-            <p className="m-0 text-[13px]" style={{ color: theme.muted }}>To save your card, Paystack checks it with ₦50 and sends it straight back. When the group fills, your card is charged {nairaText(group.priceKobo)} and the shop sends your order. If it doesn't fill in time, nothing is charged.</p>
+            <p className="m-0 text-[13px]" style={{ color: theme.muted }}>To save your card you pay ₦50 to the shop now. When the group fills, your card is charged the rest of {nairaText(group.priceKobo)} and the shop sends your order. If it doesn't fill in time, the shop sends your ₦50 back.</p>
             {error ? <Notice theme={theme} tone="error">{error}</Notice> : null}
             <PrimaryButton theme={theme} type="button" disabled={busy} onClick={() => void run({ action: "group.join", productId: group.productId, groupId: group.id, ...detailsBody(details) })}>{busy ? "Opening Paystack…" : "Join the group"}</PrimaryButton>
           </Panel>
