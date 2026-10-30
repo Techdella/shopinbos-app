@@ -51,7 +51,8 @@ test("store is live: confetti and a dancing Rex on the web and in the phone app"
 });
 
 test("onboarding logo: fun loader on every redraw, a clear chosen logo with Download, and a voice note to Rex", () => {
-  for (const file of ["src/components/onboarding/seller/SellerOnboarding.tsx", "apps/mobile/src/app/onboarding/index.tsx"]) {
+  // The phone's sign-up no longer draws logos (Rex builds the shop step by step, tests/seller-onboarding-flow.test.mjs).
+  for (const file of ["src/components/onboarding/seller/SellerOnboarding.tsx"]) {
     const source = read(file);
     assert.match(source, /<FunLoader kind="logo"/, file);
     assert.match(source, /t\("logo\.yourLogo"\)/, file);
@@ -60,7 +61,6 @@ test("onboarding logo: fun loader on every redraw, a clear chosen logo with Down
     assert.match(source, /if \(spoken\.trim\(\)\) void askForLogos\(logoRound, spoken\);/, file);
   }
   assert.match(read("src/components/onboarding/seller/SellerOnboarding.tsx"), /downloadPicture\(logoUrl/);
-  assert.match(read("apps/mobile/src/app/onboarding/index.tsx"), /saveFileToPhone\(logoUrl/);
   assert.match(read("src/lib/download-picture.ts"), /URL\.createObjectURL\(blob\)/);
 });
 

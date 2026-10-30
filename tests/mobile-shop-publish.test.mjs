@@ -30,7 +30,7 @@ test("the keyboard never covers a chat's text box (Android draws edge to edge, s
   for (const file of ["components/ChatScreen.tsx", "app/peggy.tsx", "components/OnboardingFrame.tsx"]) assert.match(app(file), /useScrollToEndOnKeyboard\(/, file);
   // Sign-up's one-question screens use the shared frame (keyboard included), numbered "3 of 9"; a chat in the frame
   // still sticks to its newest message.
-  assert.match(app("app/onboarding/index.tsx"), /<OnboardingFrame\s+step="chat"\s+progress=\{\{ current: sellerQuestionNumber\(question\), total: SELLER_QUESTIONS\.length \}\}/);
+  assert.match(app("components/rex-build/Frame.tsx"), /<KeyboardShift>/, "Rex's guided build keeps the keyboard off its fields");
   assert.match(app("components/OnboardingFrame.tsx"), /onContentSizeChange=\{chat \?/);
   assert.equal(JSON.parse(app("../app.json")).expo.android.softwareKeyboardLayoutMode, "resize");
 });
@@ -149,7 +149,9 @@ test("Edit my shop changes the draft with the builder's own operations", () => {
   assert.match(lib, /api<EditorData>\("\/api\/store\/editor"\)/);
   assert.match(lib, /\{ method: "PATCH", json: \{ ops \} \}/);
   assert.match(lib, /"\/api\/app\/store", \{ method: "PATCH"/);
-  for (const file of ["app/(tabs)/shop.tsx", "app/templates.tsx", "app/start.tsx", "app/rex.tsx"]) assert.match(app(file), /"(app:)?\/shop-edit"/, file);
+  // Those entry points now open the store editor (app/store-editor.tsx), which links back to these tools.
+  for (const file of ["app/(tabs)/shop.tsx", "app/templates.tsx", "app/start.tsx", "app/rex.tsx"]) assert.match(app(file), /"(app:)?\/store-editor"/, file);
+  assert.match(app("components/store-editor/sheets.tsx"), /router\.push\("\/shop-edit" as never\)/);
   assert.match(app("app/shop-edit.tsx"), /uploadIdentityImage\("logo"/);
   for (const key of Object.keys(CATALOGS.m_shop.en).filter((entry) => entry.startsWith("editShop."))) for (const lang of LANGS) assert.ok(CATALOGS.m_shop[lang][key], `${lang} ${key}`);
 });

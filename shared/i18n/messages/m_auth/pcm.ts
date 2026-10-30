@@ -185,6 +185,12 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "q.role.seller": "I wan sell",
   "q.role.logistics_partner": "I dey deliver orders",
   "q.role.supplier": "I dey supply goods",
+  // Sign-in, spec A3/A4 (app/verify.tsx)
+  "q.roleDo": "Wetin you wan do?",
+  "q.roleSubLater": "Pick one. You fit add another one later.",
+  "error.wrongCode": "That code no work. Try again.",
+  "error.expiredCode": "That code don expire. Send new code.",
+  "error.locked": "You don try too many times. Wait 10 minutes, then send new code.",
 };
 
 export default pcm;

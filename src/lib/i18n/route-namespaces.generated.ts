@@ -369,6 +369,7 @@ export const ROUTE_NAMESPACES: ReadonlyArray<readonly [string, readonly string[]
   ["/seller/store/settings", ["common","nav","ui"]],
   ["/seller/store/templates", ["common","nav","ui"]],
   ["/signup", ["auth","common","nav","settings","support","ui"]],
+  ["/store-canvas", ["builder","bundles","campaigns","common","nav","productVideos","ui"]],
   ["/store/[storeSlug]", ["common","nav","ui"]],
   ["/store/[storeSlug]/blog", ["common","nav","ui"]],
   ["/store/[storeSlug]/blog/[postSlug]", ["common","nav","ui"]],

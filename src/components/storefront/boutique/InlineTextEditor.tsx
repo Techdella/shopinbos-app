@@ -122,6 +122,8 @@ export function InlineTextEditor({ edit, container, onSave, onClose }: { edit: I
     <textarea
       ref={ref}
       data-inline-editor
+      // Which words these are, for the phone editor's text toolbar (src/app/store-canvas formats the selection).
+      data-inline-key={edit.key}
       aria-label="Edit text"
       value={value}
       maxLength={MAX_LENGTH[edit.key]}

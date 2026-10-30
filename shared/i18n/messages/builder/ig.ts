@@ -2287,6 +2287,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "ed.Products with sizes or colours open their page to choose one.": "Ngwaahịa nwere nha ma ọ bụ agba na-emeghe peeji ha iji họrọ otu.",
   "ed.Second photo on hover": "Foto nke abụọ mgbe a tụrụ aka",
   "ed.On computers, pointing at a product shows its next photo.": "Na kọmputa, ịtụ aka na ngwaahịa na-egosi foto ya ọzọ.",
+  "ed.Show prices": "Gosi ọnụahịa",
+  "ed.Product pages always show the price.": "Ibe ngwaahịa na-egosi ọnụahịa mgbe niile.",
   "ed.Your page's own filter bar and category sections still show above. Hide them if this style already has what you need.": "Ogwe nzacha na ngalaba peeji gị ka na-egosi n'elu. Zoo ha ma ọ bụrụ na ụdị a enweelarị ihe ịchọrọ.",
   // Seasonal campaign sections (block-catalog.ts)
   "ed.Countdown banner": "Banner countdown",

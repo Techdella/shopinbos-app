@@ -21,7 +21,8 @@ import { StoreBrandMark } from "@/components/storefront/StoreBrandMark";
 import { GameSection } from "@/components/storefront/gamification/GameSection";
 import { isGameSectionKind } from "@/lib/gamification/logic";
 import { HeroSlider, slideAlign } from "@/components/storefront/HeroSlider";
-import { itemMediaUrl, readCountdownEnd, readHeroSlides, readOptionalProductLimit, readProductLimit, readSlideTiming, youTubeEmbedUrl, youTubeId, type HeroSlide } from "@/lib/store-templates/section-content";
+import { richCopy } from "@/components/storefront/rich-copy";
+import { itemMediaUrl, readCountdownEnd, readHeroSlides, readOptionalProductLimit, readProductCardOptions, readProductLimit, readSlideTiming, youTubeEmbedUrl, youTubeId, type HeroSlide } from "@/lib/store-templates/section-content";
 import { findStorefrontPage, storefrontPageHref } from "@shared/storefront-pages";
 import { bannerLinkHref, readableText, readBarColor, readBarLink } from "@shared/store-banner";
 import type { BoutiqueProductDetail } from "@/components/storefront/boutique/BoutiqueProductView";
@@ -1155,6 +1156,8 @@ function ClassicTemplateSurface({
     const isHovered = hoveredSectionId === sectionId && !isSelected;
     return (
       <div
+        // The phone editor's canvas (src/app/store-canvas) finds each section by it, as the boutique themes' are.
+        data-section-id={sectionId}
         onClick={(e) => { e.stopPropagation(); onSelectSection?.(sectionId); }}
         onMouseEnter={() => setHoveredSectionId(sectionId)}
         onMouseLeave={() => setHoveredSectionId(null)}
@@ -1200,6 +1203,12 @@ function ClassicTemplateSurface({
     );
   }
 
+  /** The copy block of a section on this page (for the formatting kept beside its words). */
+  function sectionCopyOf(sectionId: string): Record<string, unknown> | undefined {
+    const section = page?.sections.find((entry) => entry.id === sectionId) ?? snapshot.pages.flatMap((entry) => entry.sections).find((entry) => entry.id === sectionId);
+    return section?.blocks.find((block) => block.type === "copy")?.content as Record<string, unknown> | undefined;
+  }
+
   function editableCopy(
     sectionId: string,
     key: string,
@@ -1213,14 +1222,20 @@ function ClassicTemplateSurface({
     // Seller guidance saved by older templates never shows on the live store; the builder marks it "edit me".
     const guidance = isPlaceholderCopy(raw, store.name);
     const text = !isEditor && guidance ? "" : raw;
+    // Bold, sizes and colours from the phone's text toolbar (shared/rich-text.ts); plain words when there are none.
+    const shown = richCopy(sectionCopyOf(sectionId), key, text, (name) => (name === "cta" ? theme.ctaBg : name === "accent" ? theme.accent : name === "ink" ? theme.ink : theme.muted));
     if (!isEditor || !onUpdateSectionCopy) {
       const Tag = tag;
-      return <Tag className={className} style={style}>{text}</Tag>;
+      return <Tag className={className} style={style}>{shown}</Tag>;
     }
     const Tag = tag;
     const hint = !text.trim() || guidance;
     return (
       <Tag
+        // A new element whenever the words or their formatting change: typing over formatted words never fights React.
+        key={`${sectionId}:${key}:${text}:${shown === text ? "" : JSON.stringify(sectionCopyOf(sectionId)?.richText ?? null)}`}
+        data-copy-section={sectionId}
+        data-copy-key={key}
         className={className}
         data-editor-hint={hint ? say("Shoppers won't see this until you write your own text") : undefined}
         title={hint ? say("Shoppers won't see this until you write your own text") : undefined}
@@ -1242,7 +1257,7 @@ function ClassicTemplateSurface({
           }
         }}
       >
-        {text}
+        {shown}
       </Tag>
     );
   }
@@ -2196,6 +2211,9 @@ function ClassicTemplateSurface({
     }
 
     if (kindSection.kind === "featured-products") {
+      // "Show prices" off: this section's cards show no price (product pages still do).
+      const priced = readProductCardOptions(kindSection.settings).showPrice;
+      const withPrice = <P extends { priceLabel: string }>(product: P): P => (priced ? product : { ...product, priceLabel: "" });
       // The shop page's "Shop page style" (ShopBrowser). Unset is the classic look below, unchanged.
       const browse = currentPage === "products" ? readShopLayoutOptions(kindSection.settings) : null;
       if (browse && browse.layout !== "classic") {
@@ -2210,13 +2228,13 @@ function ClassicTemplateSurface({
             initialCategory={productFilter.category === "all" ? "" : productFilter.category}
             collections={shopperInfo.collections}
             renderCard={(product) => (
-              <ProductCard product={product} theme={theme} onOpenProduct={() => openProduct(product)} href={productHref(product)} onAddToCart={onAddToCart} onToggleWishlist={onToggleWishlist} wishlistProductIds={wishlistProductIds} mode={mode} />
+              <ProductCard product={withPrice(product)} theme={theme} onOpenProduct={() => openProduct(product)} href={productHref(product)} onAddToCart={onAddToCart} onToggleWishlist={onToggleWishlist} wishlistProductIds={wishlistProductIds} mode={mode} />
             )}
           />
         );
       }
       // "How many products" always applies once the seller sets it; unset, the shop page shows every product.
-      const products = filteredProducts(resolveProductItems(kindSection.items, store)).slice(0, readOptionalProductLimit(kindSection.settings) ?? (currentPage === "products" ? undefined : readProductLimit(kindSection.settings, 8)));
+      const products = filteredProducts(resolveProductItems(kindSection.items, store)).slice(0, readOptionalProductLimit(kindSection.settings) ?? (currentPage === "products" ? undefined : readProductLimit(kindSection.settings, 8))).map(withPrice);
       const isPremiumProducts = kindSection.settings?.layout === "premium-product-cards";
       // "Products per row on computers" (2, 3 or 4); without a choice the template's own grid is kept.
       const columnClass = ({ "2": "xl:grid-cols-2", "3": "xl:grid-cols-3", "4": "xl:grid-cols-4" } as Record<string, string>)[String(kindSection.settings?.columns ?? "")];

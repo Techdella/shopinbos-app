@@ -229,6 +229,8 @@ export interface ProductCardOptions {
   quickAdd: boolean;
   /** The product's second photo when a shopper points at the card. */
   hoverImage: boolean;
+  /** The price on the card (on unless the seller turned "Show prices" off; product pages always show it). */
+  showPrice: boolean;
 }
 
 export function readProductCardOptions(settings: Record<string, unknown> | undefined): ProductCardOptions {
@@ -236,6 +238,7 @@ export function readProductCardOptions(settings: Record<string, unknown> | undef
     showRating: settings?.showRating === true,
     quickAdd: settings?.quickAdd === true,
     hoverImage: settings?.hoverImage === true,
+    showPrice: settings?.showPrice !== false,
   };
 }
 

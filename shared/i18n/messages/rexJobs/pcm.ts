@@ -27,6 +27,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "kind.reel_shots": "Reel shots",
   "kind.voiceover": "Voiceover",
   "kind.store_build": "Store build",
+  "kind.store_words": "Shop words",
 };
 
 export default pcm;

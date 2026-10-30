@@ -1,4 +1,5 @@
 import { getTemplateManifest, listTemplateGalleryItems } from "./catalog";
+import { sanitizeSnapshotRich } from "@shared/rich-text";
 import { getNavStructure, getThemeAIHints } from "./themes";
 import {
   applyEditorPatchOps,
@@ -525,12 +526,14 @@ export function updateDraftFromSnapshot(
   brandSettings: StoreBrandSettingsLike,
   snapshot: StoreEditorSnapshot,
 ) {
+  // Formatted words (the phone's text toolbar) are kept only as whitelisted runs that spell the section's own words.
+  const clean = sanitizeSnapshotRich(snapshot);
   return {
     ...brandSettings,
-    themeTokens: snapshot.themeTokens,
+    themeTokens: clean.themeTokens,
     editor: {
       ...parseEditorState(brandSettings.editor),
-      draft: snapshot,
+      draft: clean,
     },
   };
 }

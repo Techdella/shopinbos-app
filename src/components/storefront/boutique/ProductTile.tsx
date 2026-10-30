@@ -25,10 +25,12 @@ interface Props {
   hoverImage?: boolean;
   /** Large cards (shop page "Large cards"): bigger name and price. */
   size?: "regular" | "large";
+  /** The price under the name (off when the section's "Show prices" is off). */
+  showPrice?: boolean;
 }
 
 /** Product card: photo (or a neutral placeholder), wishlist heart, name, price and real colour options. */
-export function ProductTile({ product, look, href, onOpen, wished, onToggleWishlist, eager, showRating, onQuickAdd, hoverImage, size = "regular" }: Props) {
+export function ProductTile({ product, look, href, onOpen, wished, onToggleWishlist, eager, showRating, onQuickAdd, hoverImage, size = "regular", showPrice = true }: Props) {
   const image = product.images[0];
   const second = hoverImage ? product.images.find((src, index) => index > 0 && src && src !== image) : undefined;
   const rating = showRating && product.avgRating && product.avgRating > 0 && product.reviewCount ? { average: product.avgRating, count: product.reviewCount } : null;
@@ -78,7 +80,7 @@ export function ProductTile({ product, look, href, onOpen, wished, onToggleWishl
           </span>
         ) : null}
       </span>
-      <span className="mt-1 flex items-baseline gap-2">
+      {showPrice ? <span className="mt-1 flex items-baseline gap-2">
         <span className={`${large ? "text-[16px]" : "text-[14.5px]"} font-semibold`} style={{ color: look.tokens.ink }}>{formatStoreMoney(product.retailPrice, product.currency)}</span>
         {compareAt ? (
           <span className="text-[12.5px] line-through" style={{ color: look.tokens.muted }}>
@@ -86,7 +88,7 @@ export function ProductTile({ product, look, href, onOpen, wished, onToggleWishl
             {formatStoreMoney(compareAt, product.currency)}
           </span>
         ) : null}
-      </span>
+      </span> : null}
       {rating ? (
         <span className="mt-1 flex items-center gap-1.5 text-[12.5px]" style={{ color: look.tokens.muted }}>
           <span aria-hidden style={{ color: "#F2A93B", letterSpacing: 1 }}>{"★".repeat(Math.round(rating.average))}{"☆".repeat(5 - Math.round(rating.average))}</span>

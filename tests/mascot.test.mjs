@@ -216,6 +216,6 @@ test("<MascotVideo>: three studio clips in a fading spotlight, poster first, mut
 
   // Where the clips play on the phone (Prototype 10).
   assert.match(readFileSync("apps/mobile/src/components/OnboardingWelcome.tsx", "utf8"), /<MascotVideo clip="rex-hello"/, "onboarding welcome: Rex");
-  assert.match(readFileSync("apps/mobile/src/app/onboarding/index.tsx", "utf8"), /<OnboardingWelcome /);
+  assert.match(readFileSync("apps/mobile/src/components/rex-build/basics.tsx", "utf8"), /<Mascot name="rex" mood="wave"/, "onboarding intro: Rex waves");
   assert.match(readFileSync("apps/mobile/src/app/onboarding/live.tsx", "utf8"), /<MascotVideo clip="rex-thumbs"/, "shop ready: Rex thumbs up");
 });

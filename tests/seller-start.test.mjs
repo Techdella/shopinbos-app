@@ -35,8 +35,10 @@ test("helpers: greeting name, initials, suggested dropship price, address from t
 
 test("web and phone ask the same questions with the same calls, and never ask for ID, bank or CAC", () => {
   const web = read("src/components/onboarding/seller/SellerOnboarding.tsx");
-  const phone = read("apps/mobile/src/app/onboarding/index.tsx");
-  for (const [label, source] of [["web", web], ["phone", phone]]) {
+  // The phone now runs Rex's guided build (tests/seller-onboarding-flow.test.mjs); it still asks for no ID, bank or CAC.
+  const phone = ["app/onboarding/index.tsx", "components/rex-build/basics.tsx", "components/rex-build/products.tsx", "components/rex-build/design.tsx", "components/rex-build/pages.tsx"].map((file) => read(`apps/mobile/src/${file}`)).join("\n");
+  assert.doesNotMatch(phone, /payout-bank|linkPayoutBank|\bnin\b|cacNumber|bvn/i, "phone has no ID, bank or CAC");
+  for (const [label, source] of [["web", web]]) {
     assert.match(source, /useT\("sellerStart", "common"\)/, label);
     assert.match(source, /nextSellerQuestion\(question, path\)/, label);
     assert.match(source, /saveMemory\(\{ screen: next, \.\.\.patch \}\)/, `${label} saves the screen after every answer`);
@@ -49,7 +51,7 @@ test("web and phone ask the same questions with the same calls, and never ask fo
   }
   assert.match(web, /capture="environment"/, "the first product opens the camera");
   assert.match(web, /publishStore\(\)/);
-  assert.match(phone, /publishShop\(\)/);
+  assert.match(read("apps/mobile/src/app/onboarding/review.tsx"), /await goLive\(\)/);
   assert.match(web, /"\/home\/start"/);
   // Buying a domain is a paid checkout: the phone only points to the website.
   assert.doesNotMatch(phone, /searchDomains|\/api\/domains/);
@@ -99,7 +101,8 @@ test("Pick a look: the real theme library with full previews, applied before Rex
   // A selected chip keeps its check and label on one line.
   assert.match(web, /<Icon name="check" size=\{14\} className="shrink-0" \/>\}\s*<span>\{category\}<\/span>/);
 
-  const phone = read("apps/mobile/src/app/onboarding/index.tsx");
+  // The phone puts the draft on the theme for what the shop sells before Rex builds on it.
+  const phone = read("apps/mobile/src/components/rex-build/design.tsx");
   assert.doesNotMatch(phone, /BRAND_LOOKS|BRAND_PALETTES/);
-  for (const piece of ["fetchLookLibrary()", "<MiniShop", "lookDemoUrl(look)", "await applyLook(picked.id);"]) assert.ok(phone.includes(piece), piece);
+  assert.match(phone, /await applyLook\(themeId\)/);
 });

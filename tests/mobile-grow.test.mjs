@@ -33,7 +33,9 @@ test("Menu: Grow and Store grids, live counts, search, and every tile opens an a
   assert.match(shop, /liveAds\(ads\)/);
   assert.match(shop, /automationsOn\(flows\)/);
   assert.match(shop, /matchTools\(allTools, query\)/);
-  assert.match(shop, /t\("menu\.seeStore"\)/);
+  // The store area is the store editor's entry (design SE-01): the shop's preview, Edit shop and View.
+  assert.match(shop, /<ShopEntry/);
+  assert.match(app("components/store-editor/ShopEntry.tsx"), /t\("entry\.view"\)/);
   // Nothing on the Menu opens the website (Import from China, not open yet, isn't a tile: see the ids above).
   assert.doesNotMatch(shop, /openWeb|web:\//);
   // The tab: "Menu", with the shop's logo or initials.

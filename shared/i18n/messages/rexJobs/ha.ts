@@ -27,6 +27,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "kind.reel_shots": "Hotunan reel",
   "kind.voiceover": "Murya",
   "kind.store_build": "Gina shago",
+  "kind.store_words": "Kalmomin shago",
 };
 
 export default ha;

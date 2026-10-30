@@ -280,6 +280,7 @@ export const STORE_BLOCKS: StoreBlockMeta[] = [
       { title: "Cards", fields: [
         toggle("showRating", "Star rating", true, { help: "Only shows on products with real reviews." }),
         toggle("quickAdd", "Quick add button", true, { help: "Products with sizes or colours open their page instead." }),
+        toggle("showPrice", "Show prices", true, { help: "Product pages always show the price." }),
       ] },
     ],
   },

@@ -134,13 +134,13 @@ export function quickAdd(ctx: BlockContext, product: ShopperProduct) {
 }
 
 /** A theme product tile with optional real-review stars and a quick add button underneath. */
-export function BlockProductCard({ ctx, product, eager, rating = true, add = true }: { ctx: BlockContext; product: ShopperProduct; eager?: boolean; rating?: boolean; add?: boolean }) {
+export function BlockProductCard({ ctx, product, eager, rating = true, add = true, price = true }: { ctx: BlockContext; product: ShopperProduct; eager?: boolean; rating?: boolean; add?: boolean; price?: boolean }) {
   const { look } = ctx;
   const t = look.tokens;
   const reviews = product.reviewCount ?? 0;
   return (
     <div className="flex min-w-0 flex-col">
-      <ProductTile product={product} look={look} href={ctx.productHref(product.id)} onOpen={ctx.live ? undefined : () => ctx.openProduct(product.id)} wished={ctx.wished.includes(product.id)} onToggleWishlist={ctx.toggleWish} eager={eager} />
+      <ProductTile product={product} look={look} href={ctx.productHref(product.id)} onOpen={ctx.live ? undefined : () => ctx.openProduct(product.id)} wished={ctx.wished.includes(product.id)} onToggleWishlist={ctx.toggleWish} eager={eager} showPrice={price} />
       {rating && reviews > 0 && product.avgRating ? <span className="mt-1"><Stars rating={product.avgRating} count={reviews} muted={t.muted} /></span> : null}
       {add ? (
         <button

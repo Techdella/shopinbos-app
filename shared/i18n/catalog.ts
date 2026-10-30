@@ -39,6 +39,7 @@ import m_looks from "./messages/m_looks/index.ts";
 import m_marketing from "./messages/m_marketing/index.ts";
 import m_chats from "./messages/m_chats/index.ts";
 import m_onboarding from "./messages/m_onboarding/index.ts";
+import m_rexBuild from "./messages/m_rexBuild/index.ts";
 import m_auth from "./messages/m_auth/index.ts";
 import m_notifications from "./messages/m_notifications/index.ts";
 import m_help from "./messages/m_help/index.ts";
@@ -92,6 +93,7 @@ import account from "./messages/account/index.ts";
 import store from "./messages/store/index.ts";
 import domain from "./messages/domain/index.ts";
 import shopLink from "./messages/shopLink/index.ts";
+import storeEditor from "./messages/storeEditor/index.ts";
 import marketplace from "./messages/marketplace/index.ts";
 import shipping from "./messages/shipping/index.ts";
 import payments from "./messages/payments/index.ts";
@@ -153,6 +155,7 @@ export const CATALOGS = {
   m_marketing,
   m_chats,
   m_onboarding,
+  m_rexBuild,
   m_auth,
   m_notifications,
   m_help,
@@ -206,6 +209,7 @@ export const CATALOGS = {
   store,
   domain,
   shopLink,
+  storeEditor,
   marketplace,
   shipping,
   payments,

@@ -2287,6 +2287,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "ed.Products with sizes or colours open their page to choose one.": "Ọjà tó ní ìwọ̀n tàbí àwọ̀ máa ṣí ojú-ìwé wọn láti yan ọ̀kan.",
   "ed.Second photo on hover": "Fọ́tò kejì nígbà tí a bá tọ́ka sí i",
   "ed.On computers, pointing at a product shows its next photo.": "Lórí kọ̀ǹpútà, títọ́ka sí ọjà máa ń fi fọ́tò rẹ̀ tó kàn hàn.",
+  "ed.Show prices": "Fi iye owó hàn",
+  "ed.Product pages always show the price.": "Ojú-ìwé ọjà máa ń fi iye owó hàn nígbà gbogbo.",
   "ed.Your page's own filter bar and category sections still show above. Hide them if this style already has what you need.": "Ọ̀pá àlẹ̀mọ́ àti apá ẹ̀ka ojú-ìwé rẹ ṣì ń hàn lókè. Fi wọ́n pamọ́ tí ara yìí bá ti ní ohun tí o nílò.",
   // Seasonal campaign sections (block-catalog.ts)
   "ed.Countdown banner": "Banner countdown",

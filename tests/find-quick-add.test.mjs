@@ -279,7 +279,7 @@ test("phone and web screens: one-tap add with undo, the markup question, select 
   assert.ok(existsSync(join(root, "apps/mobile/src/app/find/mine.tsx")));
   assert.ok(existsSync(join(root, "apps/mobile/src/app/find/markup.tsx")));
   assert.match(read("apps/mobile/src/app/settings.tsx"), /\/find\/markup/);
-  assert.match(read("apps/mobile/src/app/onboarding/index.tsx"), /\/find\/packs/);
+  assert.match(read("apps/mobile/src/components/rex-build/products.tsx"), /router\.push\("\/find"\)/, "Find stock on the products step");
   assert.ok(existsSync(join(root, "src/app/marketplace/packs/page.tsx")));
   assert.ok(existsSync(join(root, "src/app/marketplace/mine/page.tsx")));
   const grid = read("src/app/marketplace/_components/ProductGrid.tsx");

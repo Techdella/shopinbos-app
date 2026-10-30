@@ -136,7 +136,7 @@ test("phone: Your shop link & QR screen, from the Menu", () => {
   assert.match(read("apps/mobile/src/lib/shop-link.ts"), /"\/api\/app\/store\/handle"/);
   const menu = read("apps/mobile/src/app/(tabs)/shop.tsx");
   assert.match(menu, /id: "shopLink"[^\n]*path: "app:\/shop-link"/);
-  assert.match(menu, /router\.push\("\/shop-link"\)/);
+  assert.match(read("apps/mobile/src/components/store-editor/ShopEntry.tsx"), /router\.push\("\/shop-link"\)/);
 });
 
 test("every word is in all five languages", () => {

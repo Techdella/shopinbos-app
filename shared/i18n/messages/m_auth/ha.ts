@@ -185,6 +185,12 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "q.role.seller": "Ina so in sayar",
   "q.role.logistics_partner": "Ina kai oda",
   "q.role.supplier": "Ina samar da kayayyaki",
+  // Sign-in, spec A3/A4 (app/verify.tsx)
+  "q.roleDo": "Me kake son yi?",
+  "q.roleSubLater": "Zaɓi ɗaya. Za ka iya ƙara wani daga baya.",
+  "error.wrongCode": "Wannan lambar ba ta yi aiki ba. Sake gwadawa.",
+  "error.expiredCode": "Wannan lambar ta ƙare. Aika sabuwar lamba.",
+  "error.locked": "Ka gwada sau da yawa. Jira minti 10, sannan ka aika sabuwar lamba.",
 };
 
 export default ha;

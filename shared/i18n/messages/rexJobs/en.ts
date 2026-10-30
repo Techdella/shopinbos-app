@@ -26,6 +26,7 @@ const en = {
   "kind.reel_shots": "Reel shots",
   "kind.voiceover": "Voiceover",
   "kind.store_build": "Store build",
+  "kind.store_words": "Shop words",
 } as const;
 
 export default en;

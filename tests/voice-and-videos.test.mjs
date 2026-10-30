@@ -353,7 +353,7 @@ test("the mic sits next to every long text field in the seller, supplier and par
     "apps/mobile/src/components/SetupHelpRequest.tsx": "anything the team should know",
     "apps/mobile/src/app/help/chat.tsx": "a message to the support team",
     "apps/mobile/src/app/peggy.tsx": "a question for Peggy",
-    "apps/mobile/src/app/onboarding/index.tsx": "the look they want for their shop", // sign-up's "Ask Rex" on the look
+    "apps/mobile/src/components/rex-build/pages.tsx": "how a small business started", // onboarding's About story (D4b)
     "apps/mobile/src/app/record-sale.tsx": "a note about a sale",
     "apps/mobile/src/app/supplier/product/new.tsx": "a product description",
     "apps/mobile/src/app/supplier/quote/[id].tsx": "a note with a quote",

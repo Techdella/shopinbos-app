@@ -185,6 +185,12 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "q.role.seller": "Mo fẹ́ tajà",
   "q.role.logistics_partner": "Mo ń fi ọjà ránṣẹ́",
   "q.role.supplier": "Mo ń pèsè ọjà",
+  // Sign-in, spec A3/A4 (app/verify.tsx)
+  "q.roleDo": "Kí lo fẹ́ ṣe?",
+  "q.roleSubLater": "Yan ọ̀kan. O lè fi òmíràn kún un lẹ́yìn náà.",
+  "error.wrongCode": "Kóòdù yẹn kò ṣiṣẹ́. Tún gbìyànjú.",
+  "error.expiredCode": "Kóòdù yẹn ti parí. Fi kóòdù tuntun ránṣẹ́.",
+  "error.locked": "O ti gbìyànjú jù. Dúró fún ìṣẹ́jú 10, kí o tó fi kóòdù tuntun ránṣẹ́.",
 };
 
 export default yo;

@@ -3245,8 +3245,9 @@ test("shop page layouts: columns, list, large cards, filters and Show more read 
   assert.equal(c.readShopGridOptions({ filters: false }).filters, "none", "older grids that hid filters keep them hidden");
   assert.equal(c.readShopGridOptions({ pageSize: "all" }).pageSize, null);
   assert.equal(c.readShopGridOptions({ columns: "7", shopView: "x" }).columns, "auto");
-  assert.deepEqual(c.readProductCardOptions({}), { showRating: false, quickAdd: false, hoverImage: false });
-  assert.deepEqual(c.readProductCardOptions({ showRating: true, quickAdd: true, hoverImage: true }), { showRating: true, quickAdd: true, hoverImage: true });
+  // Prices show unless the seller turned "Show prices" off (the phone editor's products sheet, SE-16).
+  assert.deepEqual(c.readProductCardOptions({}), { showRating: false, quickAdd: false, hoverImage: false, showPrice: true });
+  assert.deepEqual(c.readProductCardOptions({ showRating: true, quickAdd: true, hoverImage: true, showPrice: false }), { showRating: true, quickAdd: true, hoverImage: true, showPrice: false });
 
   // Older shop pages saved without a layout get "grid" written; Dúdú's story name maps to its option.
   const snap = { pages: [

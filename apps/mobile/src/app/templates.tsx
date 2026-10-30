@@ -103,7 +103,7 @@ function LookPreview({ look, rexReason, applied, onClose, onApplied }: { look: S
 
   const editShop = () => {
     onClose();
-    router.push("/shop-edit" as never);
+    router.push("/store-editor" as never);
   };
 
   let action;

@@ -172,7 +172,7 @@ test("tips: no intro opens by itself; a Tips button on screens with a tip, after
 
 test("first-run Home tour: waits for setup, Home in front, and no Peggy call", () => {
   const home = read("apps/mobile/src/app/(tabs)/home.tsx");
-  assert.match(home, /const tourAllowed = useTourAllowed\(sellerSetupDone\(setup\)\);/);
+  assert.match(home, /const tourAllowed = useTourAllowed\(tourParam === "1" \? true : sellerSetupDone\(setup\)\);/, "waits for setup, except straight after going live (spec F1-F3)");
   assert.match(home, /const tourShowing = touring && tourAllowed && focused;/);
   assert.match(home, /visible=\{tourShowing\}/);
   assert.doesNotMatch(home, /visible=\{touring\}/);
@@ -200,7 +200,7 @@ test("Peggy's screens: store design opens Shop looks, Rex opens /rex, a social p
   const seller = (asked) => screens.findScreen("seller", asked)?.app ?? null;
   for (const asked of ["store design", "my store design", "shop look", "Shop looks", "templates", "theme", "design", "look"]) assert.equal(seller(asked), "/templates", asked);
   for (const asked of ["Edit my shop with Rex", "Rex store builder", "rex", "store builder"]) assert.equal(seller(asked), "/rex", asked);
-  for (const asked of ["edit my shop", "Edit my shop", "change my shop"]) assert.equal(seller(asked), "/shop-edit", asked);
+  for (const asked of ["edit my shop", "Edit my shop", "change my shop"]) assert.equal(seller(asked), "/store-editor", asked);
   for (const asked of ["make a social post", "Make a post", "social post", "Create with Rex posts", "flyer", "create"]) assert.equal(seller(asked), "/create", asked);
   for (const asked of ["posts calendar", "Posts calendar", "posts", "calendar"]) assert.equal(seller(asked), "/posts", asked);
   assert.equal(seller("Create with Rex"), null, "the old, ambiguous name opens nothing");
@@ -239,7 +239,7 @@ test("Peggy sees what each screen is for and is told to name the screen she open
   assert.match(text, /changing or building the shop by chatting with Rex: rex \(Edit my shop with Rex\)/);
   assert.match(text, /making a social media post, flyer, status or reel: create \(Make a post\)/);
   assert.match(text, /posts already made or planned, the posts calendar: posts \(Posts calendar\)/);
-  assert.match(read("shared/peggy-screens.ts"), /app: "\/shop-edit"/);
+  assert.match(read("shared/peggy-screens.ts"), /app: "\/store-editor"/);
   for (const lang of LANGS) {
     const help = read(`shared/i18n/messages/m_help/${lang}.ts`);
     assert.match(help, /"call\.screen\.rex": "/, lang);
