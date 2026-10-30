@@ -194,6 +194,16 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "money.state.unavailable": "Ìsanwó káàdì ti dúró fún ìgbà díẹ̀ lórí Shopinbos.",
   "money.state.needs_whatsapp": "Fi nọ́ńbà WhatsApp rẹ kún un láti tan èyí.",
   "money.bankRecheck": "Fi báǹkì yìí kún un lẹ́ẹ̀kan sí i kí Paystack lè ṣàyẹ̀wò rẹ̀. Lẹ́yìn náà ìsanwó káàdì yóò máa lọ tààrà sí i.",
+  "pilot.section": "Àwọn pilot feature",
+  "pilot.title": "Ṣé o ní pilot invite code?",
+  "pilot.hint": "Tí ẹgbẹ́ Shopinbos bá fún ẹ ní code láti gbìyànjú nǹkan tuntun, tẹ̀ ẹ́ síbí.",
+  "pilot.redeem": "Lo code",
+  "pilot.empty": "Kọ́kọ́ tẹ code rẹ.",
+  "pilot.done": "Ó ti ṣe. Àwọn feature tuntun máa hàn nínú app láìpẹ́.",
+  "pilot.notFound": "Code yẹn kò ṣiṣẹ́. Yẹ̀ ẹ́ wò kí o tún gbìyànjú.",
+  "pilot.expired": "Code yẹn ti parí.",
+  "pilot.usedUp": "Wọ́n ti lo code yẹn tán.",
+  "pilot.tooMany": "O ti gbìyànjú ju. Dúró ìṣẹ́jú díẹ̀ kí o tún gbìyànjú.",
 };
 
 export default yo;

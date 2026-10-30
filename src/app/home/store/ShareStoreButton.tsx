@@ -1,13 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import { promptDialog } from "@/components/ui/dialogs";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { useT } from "@/components/i18n/I18nProvider";
 
-// "Share" on the store hub: copy the link, send it on WhatsApp, or use the phone's share sheet.
+// "Share" on the store hub: copy the link, send it on WhatsApp, use the phone's share sheet, or open Shop link & QR
+// (/home/store/share: the @handle, short link and a QR code to print).
 export function ShareStoreButton({ url, storeName }: { url: string; storeName: string }) {
-  const t = useT("store");
+  const t = useT("store", "shopLink");
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [canShare, setCanShare] = useState(false);
@@ -77,6 +79,9 @@ export function ShareStoreButton({ url, storeName }: { url: string; storeName: s
               <Icon name="send" size={16} /> {t("share.more")}
             </button>
           )}
+          <Link role="menuitem" href="/home/store/share" className={item} onClick={() => setOpen(false)}>
+            <Icon name="grid" size={16} /> {t("menu")}
+          </Link>
           <span className="sr-only" aria-live="polite">{copied ? t("share.copied") : ""}</span>
         </div>
       )}

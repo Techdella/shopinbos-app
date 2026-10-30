@@ -6,6 +6,7 @@ import * as WebBrowser from "expo-web-browser";
 import type { IdentityImageKind } from "@shared/identity-images";
 import { AppearanceRow } from "@/components/AppearancePicker";
 import { LanguageRow } from "@/components/LanguagePicker";
+import { PilotInviteCard } from "@/components/PilotInvite";
 import { TipsRow } from "@/components/learn/TipsRow";
 import { ErrorState, LinkRow, LoadingBlock, Picture, SectionTitle } from "@/components/kit";
 import { Screen } from "@/components/Screen";
@@ -212,6 +213,10 @@ function SettingsForm({ initial, identity }: { initial: SellerProfile; identity:
         <T style={{ color: colors.inkSoft, fontSize: 14 }}>{tDetails("settingsHint")}</T>
         <PillButton title={tDetails("menu")} tone="white" size="sm" onPress={() => router.push("/my-details")} />
       </Card>
+
+      {/* A code from the Shopinbos team for pilot features (components/PilotInvite.tsx). */}
+      <SectionTitle>{t("pilot.section")}</SectionTitle>
+      <PilotInviteCard />
 
       <Card style={{ paddingVertical: 2 }}>
         <LinkRow first icon="user" label={tDetails("menu")} hint={tDetails("menuHint")} onPress={() => router.push("/my-details")} />

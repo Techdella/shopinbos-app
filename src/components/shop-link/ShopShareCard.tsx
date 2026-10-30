@@ -25,6 +25,7 @@ const SIZES: Record<ShopCardSize, CSSProperties> = {
 export function useQrDataUrl(value: string, pixels = 640) {
   const [src, setSrc] = useState<string | null>(null);
   useEffect(() => {
+    if (!value) return;
     let alive = true;
     void import("qrcode")
       .then((QR) => QR.toDataURL(value, { margin: 1, width: pixels, errorCorrectionLevel: "M", color: { dark: "#16141F", light: "#FFFFFF" } }))
@@ -46,15 +47,18 @@ export interface ShopShareCardProps {
   size?: ShopCardSize;
   /** "Follow us on Shopinbos Plug". Off until Plug ships. */
   plug?: boolean;
+  /** A QR image already made (the print sheet draws it on the server); otherwise it's drawn here. */
+  qrSrc?: string;
   className?: string;
 }
 
 export const ShopShareCard = forwardRef<HTMLDivElement, ShopShareCardProps>(function ShopShareCard(
-  { name, logoUrl, handle, shortUrl, shortHost, size = "screen", plug = PLUG_LIVE, className },
+  { name, logoUrl, handle, shortUrl, shortHost, size = "screen", plug = PLUG_LIVE, qrSrc, className },
   ref,
 ) {
   const t = useT("shopLink");
-  const qr = useQrDataUrl(shortUrl);
+  const drawn = useQrDataUrl(qrSrc ? "" : shortUrl);
+  const qr = qrSrc ?? drawn;
   const initial = name.trim().charAt(0).toUpperCase() || "S";
 
   return (

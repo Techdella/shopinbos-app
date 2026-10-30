@@ -5,13 +5,16 @@ import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { readBusinessAddress } from "@/lib/email/shell";
 import { findCities, placeArea, stateOf } from "@shared/ng-places";
+import { APP_CLIENT_HEADER, APP_CLIENT_VALUE } from "@shared/store-payments";
 import {
+  APP_PLATFORM_HEADER,
   FEATURE_KEYS,
   KILL_ALL_SETTING_KEY,
   featuresOn,
   inviteCodeFrom,
   inviteUsable,
   normalizeInviteCode,
+  parseFeatureApp,
   readApps,
   readMinVersions,
   readPlaces,
@@ -106,6 +109,13 @@ export async function featuresFor(user: { id: string; role?: string | null }, ap
     console.warn("[feature-switches] couldn't read the switches; every pilot feature is off", error);
     return [];
   }
+}
+
+/** The app asking: its X-App-Platform header; none from a browser is the web; none from the phone app is no app. */
+export function appFromHeaders(headers: { get(name: string): string | null }): FeatureApp | null {
+  const header = headers.get(APP_PLATFORM_HEADER);
+  if (header) return parseFeatureApp(header);
+  return headers.get(APP_CLIENT_HEADER) === APP_CLIENT_VALUE ? null : "business_web";
 }
 
 /** For web pages (business_web): is this feature on for this account? Never throws (false on any failure). */

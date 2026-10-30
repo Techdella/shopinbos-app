@@ -194,6 +194,16 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "money.state.unavailable": "An dakatar da biyan kati a Shopinbos a yanzu.",
   "money.state.needs_whatsapp": "Ƙara lambar WhatsApp ɗinka don kunna wannan.",
   "money.bankRecheck": "Sake ƙara wannan banki don Paystack ya duba shi. Sannan biyan kati zai tafi kai tsaye zuwa gare shi.",
+  "pilot.section": "Pilot features",
+  "pilot.title": "Kana da pilot invite code?",
+  "pilot.hint": "Idan ƙungiyar Shopinbos ta ba ka code don gwada sabon abu, rubuta shi a nan.",
+  "pilot.redeem": "Yi amfani da code",
+  "pilot.empty": "Rubuta code ɗinka tukuna.",
+  "pilot.done": "An gama. Sababbin features za su bayyana a app nan ba da jimawa ba.",
+  "pilot.notFound": "Wannan code ɗin ba ya aiki. Duba shi ka sake gwadawa.",
+  "pilot.expired": "Wannan code ɗin ya ƙare.",
+  "pilot.usedUp": "An riga an yi amfani da wannan code ɗin duka.",
+  "pilot.tooMany": "Ka gwada sau da yawa. Jira ɗan lokaci ka sake gwadawa.",
 };
 
 export default ha;
