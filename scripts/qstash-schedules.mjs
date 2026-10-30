@@ -47,6 +47,7 @@ export const JOBS = [
   { id: "status-purge", path: "/api/cron/status-purge", cron: "41 * * * *" },
   { id: "business-registrations", path: "/api/cron/business-registrations", cron: "*/10 * * * *" },
   { id: "money-owed", path: "/api/cron/money-owed", cron: "7 * * * *" },
+  { id: "pay-together", path: "/api/cron/pay-together", cron: "23 * * * *" },
   // Supplier price rises on 7 days' notice: applies the due ones and pauses listings that would lose money (daily).
   { id: "price-notices", path: "/api/cron/price-notices", cron: "13 5 * * *" },
   { id: "social-posts", path: "/api/cron/social-posts", cron: "*/5 * * * *" },

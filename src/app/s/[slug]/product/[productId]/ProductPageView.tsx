@@ -15,6 +15,8 @@ import { shippingForStructuredData } from "@/lib/seo/store-seo.server";
 import { breadcrumbLd, conditionFromLabel, faqPageLd, plainDescription, productLd, type JsonLd, type ProductAvailability } from "@/lib/seo/structured-data";
 import { readFaqs } from "@/components/storefront/boutique/pdp/pdp-logic";
 import { deliveryLines, formatStoreMoney, freeDeliveryPromise } from "@/lib/storefront/shopper-info";
+import { Suspense } from "react";
+import { OtherWaysLink } from "@/components/storefront/together/OtherWaysLink";
 
 // Shared by /s/[slug]/product/[productId] and custom-domain product pages.
 
@@ -147,6 +149,10 @@ export function ProductPageView({ data, storeBasePath, canonical }: { data: Prod
           dangerouslySetInnerHTML={{ __html: scriptSafeJson(entry) }}
         />
       ))}
+      {/* Pilots pay_small_small / group_buy / ajo: "Other ways to buy" (nothing unless the shop has one on). */}
+      <Suspense fallback={null}>
+        <OtherWaysLink storeId={data.store.id} productId={data.product.id} storeBasePath={storeBasePath} />
+      </Suspense>
     </>
   );
 

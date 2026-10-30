@@ -5984,3 +5984,251 @@ model ShopLinkHit {
   @@unique([storeId, day, source])
   @@index([day])
 }
+
+// ─── Pay small small, ajo and group buy (pilot features) ──────────────────────
+/// docs/migrations/2026-12-17-pay-small-ajo-groupbuy.sql; rules in shared/instalments.ts, shared/ajo.ts,
+/// shared/group-buy.ts. Shopinbos NEVER holds this money: every payment is its own Paystack transaction split at the
+/// moment it's paid, so the seller's share settles straight to the seller's own bank (src/lib/paystack/plans.server.ts).
+/// No foreign keys to existing tables (rows outlive deleted products and orders as a record).
+
+/// A product's other ways to buy, set by the seller: Pay small small and Group buy.
+model ProductPayOption {
+  id             String   @id @default(cuid())
+  productId      String   @unique
+  storeId        String
+  paySmallOn     Boolean  @default(false)
+  paySmallWeeks  Int[]    @default([4, 6, 8]) // some of 4 | 6 | 8
+  priceLock      Boolean  @default(true) // the price is fixed for the plan's weeks
+  refundRule     String   @default("Money back within 7 days, minus ₦1,000")
+  groupBuyOn     Boolean  @default(false)
+  groupPriceKobo Int?
+  groupSize      Int?
+  groupHours     Int?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now()) @updatedAt
+
+  @@index([storeId])
+}
+
+/// One shopper paying for one product in weekly parts. Amounts in kobo. status pending (first part not paid) |
+/// active | completed | cancelled | defaulted. authorizationCode is Paystack's reusable authorization code (a token,
+/// not card data), sealed with src/lib/reviews/secrets.ts; kept only when the buyer ticked "Pay automatically".
+model InstalmentPlan {
+  id                String               @id @default(cuid())
+  storeId           String
+  productId         String
+  variantId         String?
+  variantLabel      String?
+  productName       String
+  productImage      String?
+  quantity          Int                  @default(1)
+  buyerName         String
+  buyerEmail        String
+  buyerPhone        String?
+  deliveryAddress   Json                 @default("{}")
+  shopperId         String?
+  weeks             Int
+  weeklyKobo        Int
+  totalKobo         Int
+  amountsKobo       Int[]
+  feeKobo           Int                  @default(0) // Shopinbos's fee on the whole sale, spread over the parts
+  paidCount         Int                  @default(0)
+  paidKobo          Int                  @default(0)
+  status            String               @default("pending")
+  priceLock         Boolean              @default(true)
+  refundRule        String
+  startedAt         DateTime?
+  nextDueAt         DateTime?
+  autopay           Boolean              @default(false)
+  authorizationCode String?
+  authorizationEmail String?
+  cardLast4         String?
+  remindedN         Int                  @default(0)
+  autopayTriedN     Int                  @default(0)
+  stockHeld         Int                  @default(0) // units set aside (StoreProduct.reservedStock) while the plan runs
+  orderId           String?              @unique // the RetailOrder made when the last part is paid
+  defaultedAt       DateTime?
+  cancelledAt       DateTime?
+  completedAt       DateTime?
+  refundStatus      String? // manual (the seller sends it from their own bank) | done
+  refundNote        String?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @default(now()) @updatedAt
+  payments          InstalmentPayment[]
+
+  @@index([storeId, status])
+  @@index([status, nextDueAt])
+  @@index([productId, status])
+}
+
+/// One part's payment attempt: its own Paystack transaction (reference PSS-…), split to the seller.
+/// status pending | paid | failed. via card (the shopper paid on Paystack) | autopay (the saved card was charged).
+model InstalmentPayment {
+  id          String         @id @default(cuid())
+  planId      String
+  n           Int
+  amountKobo  Int
+  feeKobo     Int            @default(0)
+  sellerKobo  Int            @default(0)
+  reference   String         @unique
+  status      String         @default("pending")
+  via         String         @default("card")
+  extra       Boolean        @default(false) // paid, but the part was already paid: the seller sends it back
+  paidAt      DateTime?
+  split       Json?
+  createdAt   DateTime       @default(now())
+  plan        InstalmentPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([planId, n])
+  @@index([status, createdAt])
+}
+
+/// A product ajo run by a seller: `size` members over `size` weeks, each paying weeklyKobo a week; each full week pays
+/// for one member's item. status forming (taking members) | running | completed | cancelled. startDay is a Lagos day.
+model AjoGroup {
+  id            String            @id @default(cuid())
+  storeId       String
+  productId     String
+  variantId     String?
+  variantLabel  String?
+  productName   String
+  productImage  String?
+  itemPriceKobo Int
+  size          Int
+  weeklyKobo    Int
+  depositKobo   Int               @default(0)
+  rules         String
+  startDay      String // YYYY-MM-DD (Africa/Lagos)
+  status        String            @default("forming")
+  drawSeed      String?
+  drawnAt       DateTime?
+  orderSetBy    String? // draw | seller
+  shippedWeeks  Int[]             @default([])
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @default(now()) @updatedAt
+  completedAt   DateTime?
+  cancelledAt   DateTime?
+  members       AjoMember[]
+  contributions AjoContribution[]
+
+  @@index([storeId, status])
+  @@index([status, startDay])
+}
+
+/// A member of an ajo group. Phone verified with a code (phone-only: no BVN/NIN check). status pending (first payment
+/// not in) | active | collected | removed | left. isNew: no earlier paid order at this shop when they joined
+/// (ShopperStore.orderCount), so they collect later. settlement: what the seller decided about a removed member's
+/// paid weeks (free text, per the group's rules).
+model AjoMember {
+  id                String            @id @default(cuid())
+  groupId           String
+  name              String
+  phone             String
+  email             String
+  deliveryAddress   Json              @default("{}")
+  shopperId         String?
+  isNew             Boolean           @default(true)
+  position          Int?
+  status            String            @default("pending")
+  phoneVerifiedAt   DateTime?
+  rulesAcceptedAt   DateTime?
+  autopay           Boolean           @default(false)
+  authorizationCode String?
+  authorizationEmail String?
+  cardLast4         String?
+  remindedWeek      Int               @default(0)
+  autopayTriedWeek  Int               @default(0)
+  collectedWeek     Int?
+  orderId           String?
+  removedAt         DateTime?
+  removedReason     String?
+  settlement        String?
+  joinedAt          DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @default(now()) @updatedAt
+  group             AjoGroup          @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  contributions     AjoContribution[]
+
+  @@unique([groupId, phone])
+  @@index([groupId, status])
+}
+
+/// One weekly contribution attempt (week 1 may carry the joining deposit): its own Paystack transaction (AJO-…),
+/// split to the seller. status pending | paid | failed. via card | autopay.
+model AjoContribution {
+  id          String    @id @default(cuid())
+  groupId     String
+  memberId    String
+  week        Int
+  amountKobo  Int
+  depositKobo Int       @default(0)
+  feeKobo     Int       @default(0)
+  sellerKobo  Int       @default(0)
+  reference   String    @unique
+  status      String    @default("pending")
+  via         String    @default("card")
+  extra       Boolean   @default(false) // paid, but the week was already paid: the seller sends it back
+  paidAt      DateTime?
+  split       Json?
+  createdAt   DateTime  @default(now())
+  group       AjoGroup  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  member      AjoMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([groupId, week, status])
+  @@index([memberId, week])
+}
+
+/// A group buy of one product: priceKobo each once `size` people join before endsAt. status open | filled (charging,
+/// pay links open) | charged (done) | cancelled (didn't fill: nobody charged).
+model GroupBuy {
+  id           String           @id @default(cuid())
+  storeId      String
+  productId    String
+  variantId    String?
+  variantLabel String?
+  productName  String
+  productImage String?
+  retailKobo   Int
+  priceKobo    Int
+  size         Int
+  endsAt       DateTime
+  status       String           @default("open")
+  filledAt     DateTime?
+  chargedAt    DateTime?
+  cancelledAt  DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @default(now()) @updatedAt
+  members      GroupBuyMember[]
+
+  @@index([storeId, status])
+  @@index([productId, status])
+  @@index([status, endsAt])
+}
+
+/// A member of a group buy. verifyReference: the small card check (GBV-…, refunded at once) that saved their card
+/// (authorizationCode, sealed). chargeReference: the group-price payment (GBC-…), split to the seller. status pending |
+/// joined | charged | pay_link | dropped | cancelled.
+model GroupBuyMember {
+  id                 String    @id @default(cuid())
+  groupId            String
+  name               String
+  phone              String?
+  email              String
+  deliveryAddress    Json      @default("{}")
+  status             String    @default("pending")
+  verifyReference    String    @unique
+  verifyRefundStatus String? // credit (comes off the group price) | shop_returns (the seller sends the ₦50 back)
+  authorizationCode  String?
+  authorizationEmail String?
+  cardLast4          String?
+  chargeReference    String?   @unique
+  chargeSplit        Json?
+  payDeadline        DateTime?
+  orderId            String?
+  joinedAt           DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @default(now()) @updatedAt
+  group              GroupBuy  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([groupId, status])
+}

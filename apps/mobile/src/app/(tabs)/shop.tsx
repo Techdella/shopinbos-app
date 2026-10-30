@@ -176,6 +176,10 @@ export default function Menu() {
   const tBulk = useT("bulkAdd");
   // Resell (pilot): the shop's resell sales and reselling other shops' products, only while it is on.
   const resellOn = useFeature("resell");
+  const paySmallOn = useFeature("pay_small_small");
+  const ajoOn = useFeature("ajo");
+  const groupBuyOn = useFeature("group_buy");
+  const tTogether = useT("together");
   const tResell = useT("resell");
   const pilotNumbersOn = usePilotNumbersOn();
   const tPilot = useT("pilotNumbers");
@@ -313,6 +317,9 @@ export default function Menu() {
             {group.key === "sell" ? <Row testID="shop-bulk-add" lead={<Tile icon="sparkle" tone="lilac" />} title={tBulk("entry.title")} onPress={() => router.push("/bulk-add")} /> : null}
             {group.key === "sell" && resellOn ? <Row testID="shop-resell-sales" lead={<Tile icon="link" tone="mint" />} title={tResell("sales.title")} onPress={() => router.push("/resell-sales")} /> : null}
             {group.key === "sell" && resellOn ? <Row testID="shop-resell" lead={<Tile icon="share" tone="sky" />} title={tResell("sales.resellYourself")} onPress={() => router.push("/resell")} /> : null}
+            {group.key === "sell" && paySmallOn ? <Row testID="shop-pay-small" lead={<Tile icon="coin" tone="mint" />} title={tTogether("plans.title")} onPress={() => router.push("/pay-small")} /> : null}
+            {group.key === "sell" && ajoOn ? <Row testID="shop-ajo" lead={<Tile icon="users" tone="lilac" />} title={tTogether("ajoList.title")} onPress={() => router.push("/ajo")} /> : null}
+            {group.key === "sell" && groupBuyOn ? <Row testID="shop-group-buys" lead={<Tile icon="share" tone="sky" />} title={tTogether("groups.title")} onPress={() => router.push("/group-buys")} /> : null}
             {group.key === "sell" && pilotNumbersOn ? <Row testID="shop-pilot-numbers" lead={<Tile icon="chart" tone="lime" />} title={tPilot("open")} onPress={() => router.push("/pilot-numbers")} /> : null}
             {group.links
               .filter((link) => !ON_SCREEN.has(link.id))

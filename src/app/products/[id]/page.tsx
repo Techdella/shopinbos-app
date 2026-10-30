@@ -18,6 +18,7 @@ import { ProductVideosPanel } from "@/components/product-videos/ProductVideosPan
 import { POST_TO_PLUG } from "@shared/product-videos";
 import { ProductResellCard } from "@/components/resell/ProductResellCard";
 import { RESELL_FEATURE } from "@shared/resell";
+import { ProductPayOptionsCard } from "@/components/together/ProductPayOptionsCard";
 
 export const dynamic = "force-dynamic";
 
@@ -68,6 +69,8 @@ export default async function ProductEditPage({
   ]);
   // Resell (pilot): "Let resellers sell this" + commission, only for shops in the pilot.
   const resellOn = await featureOn(user.id, RESELL_FEATURE);
+  // Other ways to buy (pilots pay_small_small, group_buy, ajo): only for shops in one of them.
+  const togetherOn = (await Promise.all(["pay_small_small", "group_buy", "ajo"].map((key) => featureOn(user.id, key)))).some(Boolean);
 
   return (
     <AppPage
@@ -95,6 +98,7 @@ export default async function ProductEditPage({
       />
       {videosOn ? <ProductVideosPanel ownerKind="store" productId={product.id} /> : null}
       {resellOn ? <ProductResellCard productId={product.id} price={product.retailPrice} currency={product.currency} /> : null}
+      {togetherOn ? <ProductPayOptionsCard productId={product.id} /> : null}
     </AppPage>
   );
 }

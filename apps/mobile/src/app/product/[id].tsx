@@ -64,6 +64,7 @@ import { shareOnWhatsApp, shareText } from "@/lib/share";
 import { PREORDER_PROBLEM_KEY, isDropshipProduct, preorderFormFrom, preorderLineText, preorderPatch, type PreorderForm } from "@/lib/preorder-pure";
 import { useT } from "@/lib/i18n";
 import { ResellCard } from "@/components/ResellCard";
+import { PayOptionsCard } from "@/components/PayOptionsCard";
 import { colors, fonts, radii, surfaceCard } from "@/theme";
 
 // Edit product (web /products/[id]): everything the web product form fills in. Always open: photos (order, main
@@ -546,6 +547,8 @@ export default function EditProductScreen() {
       ) : null}
       {/* Resell (pilot): "Let resellers sell this" + commission; nothing unless resell is on for this shop. */}
       <ResellCard productId={product.id} price={product.retailPrice} />
+      {/* Other ways to buy (pilots pay_small_small, group_buy, ajo); nothing unless one is on for this shop. */}
+      <PayOptionsCard productId={product.id} />
       <Eyebrow>{t("view.editDetails")}</Eyebrow>
 
       {/* Dropship: who sends it and what each sale leaves (live as the price changes). */}
