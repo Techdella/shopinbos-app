@@ -17,6 +17,11 @@ Sentry.init({
   tracesSampleRate: process.env.NODE_ENV === "production" ? 0.2 : 1.0,
   replaysSessionSampleRate: 0.1,
   replaysOnErrorSampleRate: 1.0,
+  // Browser noise with nothing to fix, skipped by Admin › App errors too (report-client.ts listenForUnhandledErrors):
+  // the ResizeObserver warnings (a layout took more than a frame to settle; nothing breaks), cross-origin
+  // "Script error." with no details, and errors thrown inside browser extensions.
+  ignoreErrors: [/ResizeObserver loop/, /^Script error\.?$/],
+  denyUrls: [/^chrome-extension:\/\//, /^moz-extension:\/\//, /^safari-(web-)?extension:\/\//],
   integrations: [
     Sentry.replayIntegration(),
   ],
