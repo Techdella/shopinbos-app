@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { View } from "react-native";
+import { router } from "expo-router";
 import { NATIONWIDE, startingPrice } from "@shared/delivery-market";
 import { naira } from "@shared/onboarding";
-import { Pill, Small, Sub } from "@/components/design";
+import { List, Pill, Row, Small, Sub, Tile } from "@/components/design";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { Initial, LabeledInput } from "@/components/PartnerKit";
 import { Screen } from "@/components/Screen";
@@ -33,6 +34,7 @@ function detailsOf(partner: MarketData["partner"]): Details {
 
 export default function ProfilePreview() {
   const t = useT("m_partner", "common");
+  const tDetails = useT("details");
   const market = useLoad(fetchMarket);
   const data = market.data;
   const [form, setForm] = useState<Details | null>(null);
@@ -107,6 +109,10 @@ export default function ProfilePreview() {
     >
       {market.loading && !data ? <LoadingBlock /> : null}
       {market.error && !data ? <ErrorState message={market.error} onRetry={() => void market.reload()} /> : null}
+      {/* The person's own name, email and phone (and the company's phone, base address and state) are in My details. */}
+      <List>
+        <Row lead={<Tile icon="user" tone="peach" />} title={tDetails("menu")} sub={tDetails("menuHint")} onPress={() => router.push("/my-details")} />
+      </List>
       {note ? <Notice tone={note.tone}>{note.text}</Notice> : null}
       {form ? (
         <View style={{ gap: 14 }}>

@@ -19,8 +19,9 @@ const SHARED = ["/help", "/ask-us", "/notifications"];
 /** Screens sellers and suppliers share: the Delivery hub (both connect delivery partners, same API). */
 const OWNER_SHARED = ["/delivery"];
 /** The "Familiar app" screens every business role shares: Rewards, Ask Peggy, Create with Rex, the posts calendar and
- * posting a status. Signed-in sellers, suppliers and delivery partners only (not admins, not signed out). */
-const BUSINESS_SHARED = ["/rewards", "/ask-peggy", "/create", "/posts", "/status"];
+ * posting a status, and My details (name, email, phone and the business's address). Signed-in sellers, suppliers and
+ * delivery partners only (not admins, not signed out). */
+const BUSINESS_SHARED = ["/rewards", "/ask-peggy", "/create", "/posts", "/status", "/my-details"];
 
 const under = (path: string, list: readonly string[]) => list.some((shared) => path === shared || path.startsWith(`${shared}/`));
 

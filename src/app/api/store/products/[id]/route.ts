@@ -51,7 +51,7 @@ export const PATCH = withSeller(async (
   const fields = await productFieldsData(
     product.storeId,
     { productType, productDetails, relatedProductIds, variants, variantOptions, variantUpdates },
-    { id: product.id, variants: product.variants, variantOptions: product.variantOptions, inventoryType: rest.inventoryType ?? product.inventoryType },
+    { id: product.id, variants: product.variants, variantOptions: product.variantOptions, inventoryType: rest.inventoryType ?? product.inventoryType, productDetails: product.productDetails },
   );
   if (!fields.ok) return apiError("BAD_REQUEST", fields.error);
 

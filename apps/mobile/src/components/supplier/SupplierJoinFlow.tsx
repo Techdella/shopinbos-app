@@ -21,6 +21,7 @@ import {
 import { Choice, Pill, Seg, type PillTone } from "@/components/design";
 import { AppIcon } from "@/components/icons";
 import { CallPeggyButton } from "@/components/CallPeggyButton";
+import { Confetti, DancingRex } from "@/components/Celebrate";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { FlowFrame, NoteCard } from "@/components/SupplierKit";
 import { StatePicker } from "@/components/StatePicker";
@@ -79,6 +80,8 @@ export function SupplierJoinFlow() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  // Just sent their sign-up: confetti and Rex dancing over "Your Shopinbos dashboard is ready", once.
+  const [justSent, setJustSent] = useState(false);
 
   const [name, setName] = useState("");
   const [cacNumber, setCacNumber] = useState("");
@@ -509,6 +512,13 @@ export function SupplierJoinFlow() {
     const items = supplierReviewItems(current);
     body = (
       <View style={{ gap: 14 }}>
+        {justSent && current.completed ? (
+          <View testID="supplier-celebrate" style={{ alignItems: "center", gap: 8, backgroundColor: colors.mintTint, borderRadius: 24, padding: 18 }}>
+            <DancingRex size={130} />
+            <T weight="extrabold" style={{ fontSize: 22, textAlign: "center" }} accessibilityRole="header">{t("review.celebrate.title")}</T>
+            <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21, textAlign: "center" }}>{t("review.celebrate.sub")}</T>
+          </View>
+        ) : null}
         <View testID="supplier-review-items" style={{ ...surfaceCard(), paddingHorizontal: 16 }}>
           {items.map((item, position) => (
             <View key={item.key} style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 14, borderTopWidth: position ? 1 : 0, borderTopColor: colors.line }}>
@@ -539,12 +549,13 @@ export function SupplierJoinFlow() {
         ) : null}
         {!current.completed && !idSent ? <PillButton title={t("review.addId")} tone="white" size="md" onPress={() => go("id")} /> : null}
         <T style={{ color: colors.inkSoft, fontSize: 14 }}>{t("review.payoutLater")}</T>
+        {justSent && current.completed ? <Confetti /> : null}
       </View>
     );
     action = current.completed
       ? { label: verified ? t("review.open") : t("review.lookAround"), onPress: () => router.replace("/supplier/home") }
       : idSent
-        ? { label: t("review.send"), onPress: () => void run(async () => setView(await saveSupplierJoin({ completed: true, step: "review" }))) }
+        ? { label: t("review.send"), onPress: () => void run(async () => { setView(await saveSupplierJoin({ completed: true, step: "review" })); setJustSent(true); }) }
         : {
             label: t("review.later"),
             onPress: () =>

@@ -135,6 +135,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "grid.photo": "Foto",
   "pick.subShort": "Ruo 300 n'otu oge. Otu foto, otu ngwaahịa.",
   "other.csvSubShort": "Ị nwere ndepụta? Bulite faịlụ CSV ma ọ bụ Excel.",
+  "entry.sheet": "Bulite site na CSV ma ọ bụ Google Sheet",
 } satisfies Record<string, string>;
 
 export default ig;

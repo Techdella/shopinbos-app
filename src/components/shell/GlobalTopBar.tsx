@@ -20,6 +20,7 @@ import { navLabel } from "@shared/i18n/nav";
 import { creditsUrlFor } from "@shared/ai-credits";
 import { useT } from "@/components/i18n/I18nProvider";
 import { LanguagePicker } from "@/components/i18n/LanguagePicker";
+import { DETAILS_HREF } from "@shared/my-details";
 
 // Top bar in the 2026 design: page title, pill search ("/" to focus), Ask Peggy, notifications, account menu.
 
@@ -57,6 +58,7 @@ export function GlobalTopBar({
   searchPlaceholder,
 }: GlobalTopBarProps) {
   const t = useT("nav");
+  const tDetails = useT("details");
   const placeholder = searchPlaceholder ?? (role === "seller" ? t("shell.searchSeller") : t("shell.search"));
   const [searchOpen, setSearchOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
@@ -152,6 +154,12 @@ export function GlobalTopBar({
                 <div className="truncate text-[14px] font-extrabold">{displayName}</div>
                 {email && <div className="truncate text-[12px] text-app-ink-soft">{email}</div>}
               </div>
+              {/* My details: name, email, phone and the business's address, one click from every page. */}
+              {role !== "admin" && (
+                <Link href={DETAILS_HREF[role]} onClick={() => setMenuOpen(false)} className="flex items-center gap-2.5 rounded-[12px] px-3 py-2 text-[13.5px] font-semibold text-app-ink no-underline hover:bg-app-canvas">
+                  <Icon name="edit" size={15} /> {tDetails("menu")}
+                </Link>
+              )}
               <Link href={PROFILE_HREF[role]} onClick={() => setMenuOpen(false)} className="flex items-center gap-2.5 rounded-[12px] px-3 py-2 text-[13.5px] font-semibold text-app-ink no-underline hover:bg-app-canvas">
                 <Icon name="user" size={15} /> {t("shell.profile")}
               </Link>

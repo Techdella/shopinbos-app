@@ -19,8 +19,8 @@ import { useT } from "@/lib/i18n";
 import { colors, radii } from "@/theme";
 
 // Settings (web /home/settings, Store tab): the shop's logo, name, description, city, state and phone; the
-// seller's own photo, name and phone (photo and logo through the web uploader's API, lib/identity.ts); language, notifications and help. Team, billing, security, Peggy and Rex choices
-// and closing the shop aren't on the phone.
+// seller's own photo and name (photo and logo through the web uploader's API, lib/identity.ts); language, notifications and help. Team, billing, security, Peggy and Rex choices
+// and closing the shop aren't on the phone. Email and phone are shown here and changed in My details (app/my-details.tsx).
 
 type ShopForm = Record<ShopFields, string>;
 type MeForm = Record<MeFields, string>;
@@ -55,6 +55,7 @@ export default function Settings() {
 function SettingsForm({ initial, identity }: { initial: SellerProfile; identity: Identity | null }) {
   const t = useT("m_settings", "m_products", "m_find", "common");
   const tUi = useT("m_ui");
+  const tDetails = useT("details");
   const [saved, setSaved] = useState(initial);
   const [shop, setShop] = useState<ShopForm>(shopForm(initial));
   const [me, setMe] = useState<MeForm>(meForm(initial));
@@ -203,21 +204,18 @@ function SettingsForm({ initial, identity }: { initial: SellerProfile; identity:
           <Label>{t("set.yourName")}</Label>
           <Field maxLength={120} autoComplete="name" accessibilityLabel={t("set.yourName")} {...meField("name")} />
         </View>
-        <View>
-          <Label>{t("set.email")}</Label>
-          <View style={{ minHeight: 52, borderRadius: radii.field, backgroundColor: colors.canvas, paddingHorizontal: 16, justifyContent: "center" }}>
-            <T style={{ fontSize: 16 }} numberOfLines={1}>{saved.me.email ?? t("set.noEmail")}</T>
-          </View>
-          <T style={{ color: colors.inkSoft, fontSize: 14, marginTop: 6 }}>{t("set.emailHint")}</T>
+        {/* Email and phone are how the seller logs in: they change in My details, with a link or a code. */}
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          <ReadOnly label={t("set.email")} value={saved.me.email ?? t("set.noEmail")} />
+          <ReadOnly label={t("set.yourPhone")} value={saved.me.phone || tDetails("phoneNone")} />
         </View>
-        <View>
-          <Label>{t("set.yourPhone")}</Label>
-          <Field keyboardType="phone-pad" maxLength={40} autoComplete="tel" placeholder="0803 000 0000" accessibilityLabel={t("set.yourPhone")} {...meField("phone")} />
-        </View>
+        <T style={{ color: colors.inkSoft, fontSize: 14 }}>{tDetails("settingsHint")}</T>
+        <PillButton title={tDetails("menu")} tone="white" size="sm" onPress={() => router.push("/my-details")} />
       </Card>
 
       <Card style={{ paddingVertical: 2 }}>
-        <LanguageRow first />
+        <LinkRow first icon="user" label={tDetails("menu")} hint={tDetails("menuHint")} onPress={() => router.push("/my-details")} />
+        <LanguageRow />
         <AppearanceRow />
         <TipsRow />
         <LinkRow icon="bell" label={t("set.notifications")} hint={t("set.notificationsHint")} onPress={() => router.push("/notifications/settings")} />

@@ -64,6 +64,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "link.chatbot.hint": "E dey answer shoppers for your shop chat, day and night",
   "link.notifications.label": "Notifications",
   "link.notifications.hint": "Orders, payments and messages, and wetin dey buzz your phone",
+  "link.myDetails.label": "My details",
+  "link.myDetails.hint": "Your name, email, phone and your shop address",
   "link.settings.label": "Settings and help",
   "link.settings.hint": "Your shop details, logo and your own details",
   "link.legal.label": "Legal pages",

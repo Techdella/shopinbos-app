@@ -8,7 +8,7 @@ import { Initial, useRiderWhere } from "@/components/PartnerKit";
 import { Screen } from "@/components/Screen";
 import { LinkButton, Notice, PillButton } from "@/components/ui";
 import { useT } from "@/lib/i18n";
-import { fetchRiders, setRiderActive } from "@/lib/logistics";
+import { fetchRiders, riderCompanyMessages, setRiderActive } from "@/lib/logistics";
 import { riderState } from "@/lib/logistics-pure";
 import { useLoad } from "@/lib/useLoad";
 import { colors } from "@/theme";
@@ -22,6 +22,7 @@ export default function RiderPage() {
   const t = useT("m_partner", "common");
   const riders = useLoad(fetchRiders);
   const where = useRiderWhere();
+  const rating = useLoad(() => riderCompanyMessages(String(id)), String(id));
   const rider = riders.data?.riders.find((entry) => entry.id === id);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,8 +67,10 @@ export default function RiderPage() {
         <Sub style={{ textAlign: "center" }}>{[rider.plate, where(rider)].filter(Boolean).join(" · ")}</Sub>
       </View>
       <List>
+        <Row lead={<Tile icon="chat" />} title={t("rider.message", { name: rider.name.split(" ")[0] })} onPress={() => router.push({ pathname: "/logistics/team/chat/[id]", params: { id: rider.id, name: rider.name } })} />
         {rider.phone ? <Row lead={<Tile icon="phone" />} title={t("riders.call")} sub={rider.phone} onPress={() => void Linking.openURL(`tel:${rider.phone}`)} /> : null}
         <Row lead={<Tile icon="box" />} title={t("rider.deliveredToday")} sub={String(rider.deliveredToday)} />
+        {rating.data?.rating ? <Row lead={<Tile icon="star" />} title={t("rider.rating")} sub={t("rider.ratingValue", { average: rating.data.rating.average.toFixed(1), count: rating.data.rating.count })} /> : null}
         {rider.earnedToday ? <Row lead={<Tile icon="wallet" />} title={t("money.earnedToday")} sub={naira(rider.earnedToday)} /> : null}
       </List>
       {error ? <Notice>{error}</Notice> : null}

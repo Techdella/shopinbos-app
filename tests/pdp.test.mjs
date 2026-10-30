@@ -376,7 +376,7 @@ test("checkout refuses more than is left of tracked products, with a clear messa
   assert.equal(holds.holdTotals([{ source: "store", productId: "x", quantity: 1, name: "Old" }]).store.get("x").mode, "strict", "older saved holds are strict");
 
   const pricing = read("src/lib/commerce/pricing.server.ts");
-  assert.match(pricing, /stockShortfallDetails\(products, quantities\)/);
+  assert.match(pricing, /stockShortfallDetails\(stockProducts, stockQuantities\)/, "bundles give their items' units (shared/bundles.ts)");
   assert.match(pricing, /storeStockMode\(product\) !== "off"/, "untracked products' versions aren't counted");
   const reserve = read("src/lib/commerce/stock.server.ts");
   assert.match(reserve, /"currentStock" - GREATEST\("reservedStock", 0\) >= \$\{quantity\}/, "the conditional decrement leaves set-aside units alone");

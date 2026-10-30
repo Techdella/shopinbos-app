@@ -106,6 +106,20 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "pay.wait": "Ha achọghị ịkwụ ụgwọ? Weghachi parcel dịka gị na ụlọ ahịa kwekọrịtara: pịa Couldn't deliver.",
   "pay.codeLabel": "Koodu nnyefe onye ahịa",
   "pay.noJob": "Ọrụ a anọghị gị n'okporo ụzọ ọzọ. Mee refresh ka i lelee.",
+  "review.metaTitle": "Nye onye ozi gị akara",
+  "review.eyebrow": "Ngwa e zitere gị",
+  "review.title": "Kedu ka {name} si mee?",
+  "review.sub": "Akara ị nyere ga-enyere {company} aka ilekọta ndị ozi ọma.",
+  "review.stars": "Kpakpando",
+  "review.starLabel": "{count, plural, other {Kpakpando #}}",
+  "review.comment": "Ọ nwere ihe ịgbakwunye? (ọ bụghị iwu)",
+  "review.send": "Zipu akara",
+  "review.sending": "Ọ na-eziga…",
+  "review.thanks": "Daalụ! Anyị natara akara gị.",
+  "review.pick": "Họrọ site na kpakpando 1 ruo 5.",
+  "review.failed": "O zighị. Nwaa ọzọ.",
+  "review.badTitle": "Njikọ a anaghị arụ ọrụ",
+  "review.badSub": "O nwere ike ịbụ na e zighebeghị ngwa ahụ. Rịọ onye ozi gị ka o nye gị nke ọhụrụ.",
 };
 
 export default ig;

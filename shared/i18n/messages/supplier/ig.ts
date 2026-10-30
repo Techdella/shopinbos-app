@@ -475,6 +475,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "team.deactivate": "Kwụsịtụ ya",
   "team.reactivate": "Mee ka ọ rụọ ọzọ",
   "team.removeAria": "Wepụ {name}",
+  "settings.link.details.label": "Nkọwa m",
+  "settings.link.details.hint": "Aha gị, email, ekwentị na adreesị",
   "settings.link.profile.label": "Profile supplier",
   "settings.link.profile.hint": "Aha, logo, gbasara gị, kọntaktị",
   "settings.link.billing.label": "Ịkwụ ụgwọ na plan",
@@ -694,6 +696,10 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "orders.sampleTag": "Ihe nlele",
   "agr.subShort": "Ụlọ ahịa chọrọ ire ngwaahịa gị.",
   "agr.noneSubShort": "Mgbe ụlọ ahịa chọrọ ire ngwaahịa gị, ọ ga-egosi ebe a.",
+  "imp.template": "Budata ndebiri ahụ",
+  "imp.sheet": "Ma ọ bụ jiri Google Sheet",
+  "imp.sheetGo": "Bulite site na sheet",
+  "imp.sheetHint": "Na Google Sheets pịa Share, họrọ \"Anyone with the link\", wee mado njikọ ahụ ebe a. Ahịrị mbụ bụ aha kọlụm.",
 };
 
 export default ig;

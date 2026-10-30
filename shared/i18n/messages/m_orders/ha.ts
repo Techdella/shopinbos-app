@@ -176,6 +176,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "sale.codePlaceholder": "Kodi, kamar BAG2",
   "sale.codeNone": "Babu kayan da ke da kodi {code}.",
   "list.emptyBodyShort": "Oda za su bayyana a nan. Ka sayar a WhatsApp ko ido da ido? Rubuta shi.",
+  "order2.yourRider": "Mai kawo kayanka",
+  "order2.riderChatSub": "Yana ɗauke da wannan oda",
+  "order2.messageRider": "Aika wa {name}, mai kawo kaya, saƙo",
 };
 
 export default ha;

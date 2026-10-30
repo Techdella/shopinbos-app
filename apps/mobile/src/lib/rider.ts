@@ -222,3 +222,25 @@ export const sendRiderSignInCode = (phone: string, via?: "whatsapp" | "sms") => 
 
 export const checkRiderSignInCode = (phone: string, challenge: string, code: string) =>
   riderSignIn<{ token: string; name: string; partnerName: string }>({ phone, challenge, code });
+
+// Rider chat (shared/rider-chat.ts): with the delivery company, or with the shop on a job the rider carries.
+export interface RiderChatMessage {
+  id: string;
+  body: string;
+  mine: boolean;
+  createdAt: string;
+}
+
+export function riderMessages(input: { with: "company" | "shop"; job?: string }) {
+  const query = new URLSearchParams({ with: input.with, ...(input.job ? { job: input.job } : {}) });
+  return riderFetch<{ messages: RiderChatMessage[]; with: string | null }>(`/messages?${query.toString()}`);
+}
+
+export const sendRiderMessage = (input: { with: "company" | "shop"; job?: string; body: string }) =>
+  riderFetch<{ message: RiderChatMessage }>("/messages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) });
+
+/** The rider's own rating from customers (Me). */
+export const fetchRiderRating = () => riderFetch<{ rating: { average: number; count: number } | null }>("/reviews");
+
+/** The customer's review link for a delivered job, and their number to WhatsApp it to. */
+export const riderReviewLink = (jobId: string) => riderFetch<{ url: string; phone: string | null }>(`/reviews?job=${encodeURIComponent(jobId)}`);

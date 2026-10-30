@@ -5,7 +5,7 @@ import { CallPeggyButton } from "@/components/CallPeggyButton";
 import { type FlowScreen } from "@shared/partner-tiers";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { BaseScreen, IdScreen, ReviewScreen, SelfieScreen, type NinDraft } from "@/components/kyc/CheckScreens";
-import { AreasScreen, CacScreen, ChargeScreen, InterstateScreen, NameScreen, StateScreen, VehiclesScreen } from "@/components/kyc/QuestionScreens";
+import { AreasScreen, CacScreen, ChargeScreen, InterstateScreen, LogoScreen, NameScreen, StateScreen, VehiclesScreen } from "@/components/kyc/QuestionScreens";
 import { StepHeader } from "@/components/PartnerKit";
 import { Screen } from "@/components/Screen";
 import { LinkButton, T } from "@/components/ui";
@@ -17,7 +17,7 @@ import { useLoad } from "@/lib/useLoad";
 import { colors } from "@/theme";
 
 // Delivery partner sign-up on the phone, one question per screen like the web page (/logistics/verification, the
-// owner's "Shopinbos Onboarding — Simplified"): business name → CAC (any answer continues) → state → areas → what
+// owner's "Shopinbos Onboarding — Simplified"): business name → CAC (any answer continues) → company logo (optional) → state → areas → what
 // they deliver with → other states → how they charge → where they're based → photo of their ID → selfie (Korapay's
 // liveness check first when it's on) → review and send ("You're in review"). No BVN, no bank, no email code, no vehicle
 // papers: the bank account is added in their Wallet to get paid. Each screen saves on Continue, so the flow reopens on the
@@ -88,6 +88,7 @@ export default function LogisticsVerification() {
 
           {current === "name" ? <NameScreen {...props} accountName={accountName} /> : null}
           {current === "cac" ? <CacScreen {...props} /> : null}
+          {current === "logo" ? <LogoScreen {...props} /> : null}
           {current === "state" ? <StateScreen {...props} /> : null}
           {current === "areas" ? <AreasScreen {...props} /> : null}
           {current === "vehicles" ? <VehiclesScreen {...props} /> : null}

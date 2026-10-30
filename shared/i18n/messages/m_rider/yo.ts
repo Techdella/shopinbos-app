@@ -212,6 +212,19 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "me.plateTitle": "Nọ́ńbà plate rẹ",
   "me.plateSave": "Fi pamọ́",
   "me.plateFailed": "A kò lè fi nọ́ńbà plate pamọ́. Tún gbìyànjú.",
+  "chat.shop": "Kọ ọ̀rọ̀ sí {name}",
+  "chat.theShop": "Ṣọ́ọ̀bù náà",
+  "chat.yourCompany": "Ilé iṣẹ́ rẹ",
+  "chat.aboutJob": "Nípa ẹrù yìí",
+  "chat.company": "Ilé iṣẹ́ tó ń gbé ẹrù rẹ",
+  "chat.messageCompany": "Kọ ọ̀rọ̀ sí {company}",
+  "me.rating": "Ìdíyelé rẹ",
+  "me.ratingValue": "Ìràwọ̀ {average} látọ̀dọ̀ oníbàárà {count}",
+  "me.noRating": "Kò tíì sí ìdíyelé. Fi ìjápọ̀ ìdíyelé ránṣẹ́ sí oníbàárà lẹ́yìn ẹrù kọ̀ọ̀kan.",
+  "review.send": "Ní kí oníbàárà fún ọ ní ìràwọ̀",
+  "review.message": "Ẹ n lẹ́! Mo ti gbé ẹrù yín dé. Báwo ni mo ṣe ṣe? Ẹ fún mi ní ìràwọ̀ níbí: {link}",
+  "review.sent": "Ìjápọ̀ ìdíyelé ti ṣetán láti fi ránṣẹ́.",
+  "review.failed": "A kò rí ìjápọ̀ ìdíyelé gbà. Tún gbìyànjú.",
 };
 
 export default yo;

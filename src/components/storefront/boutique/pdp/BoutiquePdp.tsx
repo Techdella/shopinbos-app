@@ -14,6 +14,7 @@ import { ProductTile } from "../ProductTile";
 import { FaqList } from "../faq/FaqList";
 import { productFaqItems } from "../faq/faq-logic";
 import { PdpDetails } from "./PdpDetails";
+import { PdpBundle } from "./PdpBundle";
 import { productDepositKobo } from "../../../../../shared/preorder.ts";
 import { PdpGallery } from "./PdpGallery";
 import { PdpReviews, Stars } from "./PdpReviews";
@@ -486,6 +487,8 @@ export function BoutiquePdp(props: Props) {
           </p>
         ) : null}
       </div>
+      {/* A bundle (shared/bundles.ts): what's inside and what it saves next to buying each one. */}
+      {product.bundle ? <PdpBundle bundle={product.bundle} look={look} currency={props.currency} productHref={interactive ? props.relatedHref : undefined} /> : null}
       {settings.buyBox.map((id) => {
         const node = blocks[id]();
         return node ? <div key={id}>{node}</div> : null;

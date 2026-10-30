@@ -64,6 +64,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "link.chatbot.hint": "Ọ na-aza ndị na-azụ ahịa na chat ụlọ ahịa gị, ehihie na abalị",
   "link.notifications.label": "Ọkwa",
   "link.notifications.hint": "Order, ego a kwụrụ na ozi, na ihe na-eme ka ekwentị gị daa ụda",
+  "link.myDetails.label": "Nkọwa m",
+  "link.myDetails.hint": "Aha gị, email, ekwentị na adreesị ụlọ ahịa gị",
   "link.settings.label": "Ntọala na enyemaka",
   "link.settings.hint": "Nkọwa ụlọ ahịa gị, logo ya na nkọwa gị",
   "link.legal.label": "Ibe iwu",

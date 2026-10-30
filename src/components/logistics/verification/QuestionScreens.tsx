@@ -1,17 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { field } from "@/components/seller-core";
 import { NG_STATES, parseArea } from "@shared/delivery-market";
 import { lgasOf } from "@shared/ng-lgas";
 import { parseCacNumber } from "@/lib/kyb/cac";
+import { shrinkImage } from "@/lib/media/shrink-image";
 import { Choice, DocUpload, QuestionFrame, jsonInit, kycCall, useAction, useKycT, type KycState } from "./kit";
 
-// Screens 1–7 of the partner sign-up, one question each: business name, CAC, state, areas, what they deliver with,
-// other states, how they charge. Each saves through /api/logistics/kyc/answers (CAC also looks the number up) and
-// moves on with onDone.
+// Screens 1–8 of the partner sign-up, one question each: business name, CAC, company logo, state, areas, what they
+// deliver with, other states, how they charge. Each saves through /api/logistics/kyc/answers (CAC also looks the
+// number up; the logo photo goes to /kyc/logo) and moves on with onDone.
 
 export type ScreenProps = { state: KycState; onState: (state: KycState) => void; onDone: () => void };
 
@@ -236,6 +237,50 @@ export function VehiclesScreen({ state, onState, onDone }: ScreenProps) {
           </button>
         ))}
       </div>
+    </QuestionFrame>
+  );
+}
+
+/** "Do you have a company logo?": upload a picture of it, or "I'll add it later". Optional, never blocks sign-up. */
+export function LogoScreen({ state, onState, onDone }: ScreenProps) {
+  const t = useKycT();
+  const { busy, error, setError, run } = useAction(onState);
+  const input = useRef<HTMLInputElement>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(state.business.logoUrl ?? null);
+
+  async function pick(picked: File | undefined) {
+    if (!picked) return;
+    setError("");
+    if (!picked.type.startsWith("image/")) return setError(t("q.logo.notPicture"));
+    // Logos may be see-through: shrunk as WebP, not JPEG on white.
+    const ready = await shrinkImage(picked, 1024);
+    setFile(ready);
+    setPreview(URL.createObjectURL(ready));
+  }
+
+  const upload = () => {
+    if (!file) return;
+    const form = new FormData();
+    form.append("file", file);
+    void run("logo", () => kycCall("/logo", { method: "POST", body: form }, { retry: true }), onDone);
+  };
+
+  return (
+    <QuestionFrame title={t("q.logo.title")} sub={t("q.logo.sub")} error={error} busy={busy === "logo"} canContinue={Boolean(file)} onContinue={upload}>
+      {preview && (
+        <div className="grid place-items-center rounded-[18px] border border-app-line bg-white p-5">
+          {/* eslint-disable-next-line @next/next/no-img-element -- a local preview or the saved logo */}
+          <img src={preview} alt={t("q.logo.title")} className="h-40 w-40 object-contain" />
+        </div>
+      )}
+      <input ref={input} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(event) => void pick(event.target.files?.[0])} />
+      <button type="button" onClick={() => input.current?.click()} className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full border-2 border-app-ink bg-white px-5 text-[16px] font-extrabold">
+        <Icon name="image" size={18} /> {preview ? t("q.logo.change") : t("q.logo.pick")}
+      </button>
+      <button type="button" disabled={busy !== null} onClick={() => void run("later", () => answer("logo", { logo: "later" }), onDone)} className="justify-self-center text-[16px] font-bold underline underline-offset-4 disabled:opacity-50">
+        {t("q.logo.later")}
+      </button>
     </QuestionFrame>
   );
 }

@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server";
 import { RECORDED_SALE_CHANNELS } from "@shared/channels";
 import { SALE_DELIVERY_KEYS, SALE_PAYMENT_KEYS, saleStatus, saleTotals, type SaleLine } from "@shared/sales";
+import { readBundle } from "@shared/bundles";
 
 // Records a sale the seller made off the storefront (WhatsApp, Instagram, in person). Used by
 // POST /api/app/orders (mobile) and the web "Record a sale" form.
@@ -45,7 +46,7 @@ export async function recordSale(storeId: string, input: RecordSaleInput) {
   // changed per sale: sellers often agree a price on WhatsApp.
   const productIds = [...new Set(input.items.map((item) => item.productId).filter((id): id is string => Boolean(id)))];
   const products = productIds.length
-    ? await db.storeProduct.findMany({ where: { storeId, id: { in: productIds } }, select: { id: true, images: true } })
+    ? await db.storeProduct.findMany({ where: { storeId, id: { in: productIds } }, select: { id: true, images: true, productDetails: true } })
     : [];
   const known = new Map(products.map((product) => [product.id, product]));
   if (known.size !== productIds.length) throw new RecordSaleError("One of those products is no longer in your store");
@@ -61,15 +62,23 @@ export async function recordSale(storeId: string, input: RecordSaleInput) {
   const now = new Date();
 
   const order = await db.$transaction(async (tx) => {
+    // The sale already happened, so it's recorded even if the stock count was off; stock stops at 0.
+    const take = async (productId: string, quantity: number) => {
+      const product = await tx.storeProduct.findFirst({ where: { id: productId, storeId }, select: { currentStock: true } });
+      if (!product) return;
+      const taken = Math.max(0, Math.min(product.currentStock, quantity));
+      await tx.storeProduct.update({ where: { id: productId }, data: { currentStock: { decrement: taken }, soldStock: { increment: quantity } } });
+    };
     for (const line of lines) {
       if (!line.productId) continue;
-      // The sale already happened, so it's recorded even if the stock count was off; stock stops at 0.
-      const product = await tx.storeProduct.findUnique({ where: { id: line.productId }, select: { currentStock: true } });
-      const taken = Math.min(product?.currentStock ?? 0, line.quantity);
-      await tx.storeProduct.update({
-        where: { id: line.productId },
-        data: { currentStock: { decrement: taken }, soldStock: { increment: line.quantity } },
-      });
+      // A bundle (shared/bundles.ts) holds no stock: its sale is counted and each item gives its units.
+      const bundle = readBundle(known.get(line.productId)?.productDetails);
+      if (bundle) {
+        await tx.storeProduct.update({ where: { id: line.productId }, data: { soldStock: { increment: line.quantity } } });
+        for (const item of bundle) await take(item.productId, item.quantity * line.quantity);
+        continue;
+      }
+      await take(line.productId, line.quantity);
     }
     return tx.retailOrder.create({
       data: {

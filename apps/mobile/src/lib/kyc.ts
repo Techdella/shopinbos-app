@@ -1,6 +1,7 @@
 import type { CheckStatus, FlowAnswers, FlowScreen, IdType, ItemState, TierRules, GraduationProgress } from "@shared/partner-tiers";
 import type { VerificationDoc } from "@shared/verification-docs";
 import { api } from "./api";
+import { uploadOnePhoto, type PhotoInput } from "./upload-photo";
 
 // Delivery partner sign-up and verification, the same calls as the web page (/api/logistics/kyc/*, src/lib/logistics/
 // partner-kyc.server.ts kycState). Every change answers with the whole state, so screens just replace it.
@@ -27,7 +28,7 @@ export interface KycState {
   docs: VerificationDoc[];
   coverage: { deliveryAreas: string[]; deliveryMethods: string[]; interstate: boolean };
   pricing: { basePrice: number };
-  business: { registeredName: string | null; cacType: string | null; cacNumber: string | null; businessAddress: string | null; companyName: string };
+  business: { registeredName: string | null; cacType: string | null; cacNumber: string | null; businessAddress: string | null; companyName: string; logoUrl: string | null };
   flow: { answers: FlowAnswers; done: Record<FlowScreen, boolean>; first: FlowScreen };
   tier1: Record<string, ItemState>;
   tier2: Record<string, ItemState>;
@@ -59,6 +60,9 @@ export const sendSelfie = (input: { selfie: string; liveness?: { reference: stri
 export const sendPhoneCode = (phone: string) => api<{ challenge: string }>(`${BASE}/phone`, { method: "POST", json: { action: "send", phone } });
 export const verifyPhoneCode = (phone: string, challenge: string, code: string) =>
   api<KycState>(`${BASE}/phone`, { method: "POST", json: { action: "verify", phone, challenge, code } });
+
+/** "Do you have a company logo?": a photo of it (saved as the company's logo, kept see-through). */
+export const saveKycLogo = (photo: PhotoInput) => uploadOnePhoto<KycState>(`${BASE}/logo`, photo, {}, { base: "logo", keepTransparency: true });
 
 export const saveKycBusiness = (input: { registeredName: string; cacType: string; cacNumber: string; businessAddress?: string }) =>
   api<KycState>(`${BASE}/business`, { method: "PATCH", json: input });

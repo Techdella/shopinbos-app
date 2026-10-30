@@ -134,6 +134,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "product.needPrice": "Kọ iye owó ní naira.",
   "review.title": "À ń ṣàyẹ̀wò rẹ",
   "review.sub": "Kì í ju ìṣẹ́jú díẹ̀ lọ. A máa fi ọ̀rọ̀ ránṣẹ́ sí ọ nígbà tí a bá jẹ́rìísí rẹ, àwọn olùtajà á sì rí catalogue rẹ.",
+  "review.celebrate.title": "Dashboard Shopinbos rẹ ti ṣetán",
+  "review.celebrate.sub": "Ẹ káàbọ̀ sílé. Wo àyíká nígbà tí a ń ṣàyẹ̀wò àwọn àlàyé rẹ, kí o sì fi àwọn ọjà míì kún un nígbàkúùgbà tí o bá fẹ́.",
   "review.verifiedTitle": "A ti jẹ́rìísí rẹ",
   "review.verifiedSub": "Àwọn olùtajà lè rí ọ báyìí. Fi àwọn ọjà rẹ ránṣẹ́ fún àyẹ̀wò kí àwọn olùtajà lè rí wọn.",
   "review.readyTitle": "Ó ti ṣetán láti fi ránṣẹ́",

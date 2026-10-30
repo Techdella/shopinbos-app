@@ -6,12 +6,12 @@ import { Icon } from "@/components/ui/Icon";
 import { whatsappChatUrl } from "@/lib/support-contact";
 import { PARTNER_FLOW, isFlowScreen, type FlowScreen } from "@shared/partner-tiers";
 import { kycCall, useKycT, type KycState } from "./kit";
-import { AreasScreen, CacScreen, ChargeScreen, InterstateScreen, NameScreen, StateScreen, VehiclesScreen } from "./QuestionScreens";
+import { AreasScreen, CacScreen, ChargeScreen, InterstateScreen, LogoScreen, NameScreen, StateScreen, VehiclesScreen } from "./QuestionScreens";
 import { BaseScreen, IdScreen, ReviewScreen, SelfieScreen, type NinDraft } from "./CheckScreens";
 import { StepRail } from "@/components/onboarding/StepRail";
 
 // Delivery partner sign-up, one question per screen (the owner's "Shopinbos Onboarding — Simplified"): business name
-// → CAC → state → areas → what they deliver with → other states → how they charge → where they're based → photo of
+// → CAC → company logo (optional) → state → areas → what they deliver with → other states → how they charge → where they're based → photo of
 // their ID → selfie → review and send ("You're in review"). Each screen saves on Continue, so leaving and coming back
 // opens on the first unanswered one (state.flow.first, shared/partner-tiers.ts flowProgress); ?step=<screen> opens
 // one directly (the dashboard's "Fix" and "Add CAC" links). Tier rules: shared/partner-tiers.ts.
@@ -96,6 +96,7 @@ export function PartnerVerificationFlow({ accountName }: { accountName: string }
 
       {screen === "name" && <NameScreen {...props} accountName={accountName} />}
       {screen === "cac" && <CacScreen {...props} reload={reload} />}
+      {screen === "logo" && <LogoScreen {...props} />}
       {screen === "state" && <StateScreen {...props} />}
       {screen === "areas" && <AreasScreen {...props} />}
       {screen === "vehicles" && <VehiclesScreen {...props} />}

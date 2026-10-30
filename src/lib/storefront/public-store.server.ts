@@ -7,6 +7,7 @@ import { publicBrandSettings } from "@shared/public-brand-settings";
 import { readPaymentBadges, type PaymentBadgeKey } from "@shared/payment-badges";
 import { storeBadgeAvailability } from "@/lib/seller-payments.server";
 import { showsShopinbosBadge } from "@/lib/store-badges";
+import { bundleStocks } from "@shared/bundles";
 import { forShoppers } from "@shared/product-stock";
 import { loadShopperInfo } from "./shopper-info.server";
 import { PREVIEW_PRODUCT_STATUSES, storeUnavailableReason, storefrontAccess, type StoreUnavailableReason } from "./store-visibility";
@@ -121,9 +122,12 @@ async function shapePublicStore(row: StoreRow) {
   const { userId: _userId, user: owner, ...store } = row;
   void _userId;
   const reviews = await reviewStats(store.storeProducts.map((product) => product.id));
+  // Bundles (shared/bundles.ts) can be bought while every item can: their stock comes from their items.
+  const bundles = bundleStocks(store.storeProducts);
   const storeProducts = store.storeProducts.map((product) => ({
     // Tracked stock as `stock`, version counts only where they apply (shared/product-stock.ts).
     ...forShoppers(product),
+    ...(bundles.has(product.id) ? { stock: bundles.get(product.id) ?? null } : {}),
     avgRating: reviews.get(product.id)?.avgRating ?? 0,
     reviewCount: reviews.get(product.id)?.count ?? 0,
   }));

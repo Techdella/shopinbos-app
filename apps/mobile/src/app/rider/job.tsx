@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { BackHandler, Linking, ScrollView, View } from "react-native";
+import { BackHandler, Linking, ScrollView, Share, View } from "react-native";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
@@ -13,7 +13,7 @@ import { Screen } from "@/components/Screen";
 import { Field, Notice, PillButton, T } from "@/components/ui";
 import { MiniStat } from "@/components/visual";
 import { ApiError } from "@/lib/api";
-import { fetchRider, riderAction, uploadRiderProof, type RiderDrop, type RiderRun } from "@/lib/rider";
+import { fetchRider, riderAction, riderReviewLink, uploadRiderProof, type RiderDrop, type RiderRun } from "@/lib/rider";
 import { useOwnPosition } from "@/lib/rider-location";
 import { firstName, isCarrying, pickupJobIds, routeLine } from "@/lib/rider-pure";
 import { RIDER_HELP_EN, RIDER_HELP_KEYS, RIDER_REASONS_EN, useRiderStrings } from "@/lib/rider-strings";
@@ -72,6 +72,7 @@ export default function RiderJob() {
   const [last, setLast] = useState<{ earned: number; cash: number } | null>(null);
   // The job as last seen: once delivered it leaves the list, but "Delivered" still needs its amounts.
   const [held, setHeld] = useState<{ run: RiderRun; drop: RiderDrop } | null>(null);
+  const [reviewNote, setReviewNote] = useState<string | null>(null);
 
   const here = useOwnPosition();
   const data = rider.data;
@@ -101,6 +102,22 @@ export default function RiderJob() {
     if (step === "help") return helpFrom;
     return "exit";
   }, [step, drop, helpFrom]);
+
+  async function sendReviewLink() {
+    setBusy("review");
+    setReviewNote(null);
+    try {
+      const { url, phone } = await riderReviewLink(jobId);
+      const text = say("review.message", { link: url });
+      if (phone) await Linking.openURL(`https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(text)}`);
+      else await Share.share({ message: text });
+      setReviewNote(say("review.sent"));
+    } catch (problem) {
+      setReviewNote(problem instanceof Error ? problem.message : say("review.failed"));
+    } finally {
+      setBusy(null);
+    }
+  }
 
   function go(next: Step) {
     setError(null);
@@ -325,6 +342,11 @@ export default function RiderJob() {
               </View>
             ) : null}
             {last && last.cash > 0 ? <Small style={{ textAlign: "center" }}>{t.doneCash({ amount: naira(last.cash) })}</Small> : null}
+            {/* Ask the customer to rate this delivery: their review link by WhatsApp (or the share sheet). */}
+            <View style={{ alignSelf: "stretch", marginTop: 8 }}>
+              <PillButton tone="white" icon="star" title={say("review.send")} busy={busy === "review"} onPress={() => void sendReviewLink()} />
+              {reviewNote ? <Small style={{ textAlign: "center", marginTop: 6 }}>{reviewNote}</Small> : null}
+            </View>
           </Center>
         </ScrollView>
         <View style={{ paddingHorizontal: 20, paddingBottom: 12, paddingTop: 10 }}>
@@ -357,7 +379,14 @@ export default function RiderJob() {
           <Row lead={<Tile icon="store" tone="mint" />} title={run.pickupName} sub={run.pickupWindow ? `${run.pickupAddress}\n${run.pickupWindow}` : run.pickupAddress} />
           {run.pickupPhone ? <Row lead={<Tile icon="phone" />} title={t.call} onPress={() => void Linking.openURL(`tel:${run.pickupPhone}`)} chevron={false} /> : null}
           <Row lead={<Tile icon="pin" />} title={say("openMaps")} onPress={() => void Linking.openURL(mapUrl(run.pickupAddress))} chevron={false} />
+          <Row lead={<Tile icon="chat" />} title={say("chat.shop", { name: run.pickupName })} onPress={() => router.push({ pathname: "/rider/chat", params: { with: "shop", job: drop.id, name: run.pickupName } })} />
         </List>
+        {/* The customer's number as soon as the job is the rider's, to call ahead or check the address. */}
+        {drop.buyerPhone ? (
+          <List>
+            <Row lead={<Tile icon="user" />} title={drop.buyerName ? say("drop.customer", { name: drop.buyerName }) : t.customer} sub={drop.buyerPhone} onPress={() => void Linking.openURL(`tel:${drop.buyerPhone}`)} />
+          </List>
+        ) : null}
         <Small>
           {drop.orderNumber
             ? say(drop.hasPickupCode ? "pickup.order" : "pickup.orderNoCode", { order: drop.orderNumber })
@@ -461,9 +490,10 @@ export default function RiderJob() {
         </View>
         <List>
           <Row lead={<Tile icon="user" tone="mint" />} title={drop.buyerName ? say("drop.customer", { name: drop.buyerName }) : t.customer} sub={drop.address} />
-          {drop.buyerPhone ? <Row lead={<Tile icon="phone" />} title={t.call} onPress={() => void Linking.openURL(`tel:${drop.buyerPhone}`)} chevron={false} /> : null}
+          {drop.buyerPhone ? <Row lead={<Tile icon="phone" />} title={t.call} sub={drop.buyerPhone} onPress={() => void Linking.openURL(`tel:${drop.buyerPhone}`)} chevron={false} /> : null}
           {drop.buyerPhone ? <Row lead={<Tile icon="whatsapp" />} title={t.whatsapp} onPress={() => void Linking.openURL(`https://wa.me/${drop.buyerPhone!.replace(/\D/g, "")}`)} chevron={false} /> : null}
           <Row lead={<Tile icon="pin" />} title={say("openMaps")} onPress={() => void Linking.openURL(mapUrl(drop.address))} chevron={false} />
+          <Row lead={<Tile icon="chat" />} title={say("chat.shop", { name: run.pickupName })} onPress={() => router.push({ pathname: "/rider/chat", params: { with: "shop", job: drop.id, name: run.pickupName } })} />
         </List>
         {drop.collect > 0 ? (
           <View style={{ backgroundColor: colors.warnTint, borderRadius: 24, padding: 20, gap: 6 }}>

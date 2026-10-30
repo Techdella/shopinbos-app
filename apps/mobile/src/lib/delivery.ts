@@ -233,3 +233,16 @@ export function openPartnerChat(role: string | null | undefined, partner: { user
 
 export const jobAction = (jobId: string, body: { action: "ready" } | { action: "cash_received" } | { action: "reassign"; connectionId: string }) =>
   api<{ done: boolean }>(`/api/mobile/delivery/jobs/${encodeURIComponent(jobId)}`, { method: "POST", json: body });
+
+// The shop's chat with the rider carrying one of its parcels (shared/rider-chat.ts).
+export interface JobRiderMessage {
+  id: string;
+  body: string;
+  mine: boolean;
+  createdAt: string;
+}
+
+export const jobRiderMessages = (jobId: string) => api<{ messages: JobRiderMessage[] }>(`/api/mobile/delivery/jobs/${encodeURIComponent(jobId)}/messages`);
+
+export const sendJobRiderMessage = async (jobId: string, body: string) =>
+  (await api<{ message: JobRiderMessage }>(`/api/mobile/delivery/jobs/${encodeURIComponent(jobId)}/messages`, { method: "POST", json: { body } })).message;

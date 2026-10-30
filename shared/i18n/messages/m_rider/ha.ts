@@ -212,6 +212,19 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "me.plateTitle": "Lambar plate ɗin ka",
   "me.plateSave": "Ajiye",
   "me.plateFailed": "Ba a iya ajiye lambar plate ba. Sake gwadawa.",
+  "chat.shop": "Aika wa {name} saƙo",
+  "chat.theShop": "Shagon",
+  "chat.yourCompany": "Kamfaninka",
+  "chat.aboutJob": "Game da wannan kayan",
+  "chat.company": "Kamfanin kawo kayanka",
+  "chat.messageCompany": "Aika wa {company} saƙo",
+  "me.rating": "Makinka",
+  "me.ratingValue": "Taurari {average} daga abokan ciniki {count}",
+  "me.noRating": "Babu maki tukuna. Aika wa abokan ciniki mahaɗin maki bayan kowane kawowa.",
+  "review.send": "Roƙi abokin ciniki ya ba ka maki",
+  "review.message": "Sannu! Na kawo kayanka yanzu. Yaya na yi? Ba ni maki a nan: {link}",
+  "review.sent": "Mahaɗin maki ya shirya don aikawa.",
+  "review.failed": "Ba mu samo mahaɗin maki ba. Sake gwadawa.",
 };
 
 export default ha;

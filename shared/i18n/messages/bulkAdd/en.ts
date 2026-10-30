@@ -142,6 +142,7 @@ const en = {
   "grid.photo": "Photo",
   "pick.subShort": "Up to 300 at once. One photo, one product.",
   "other.csvSubShort": "Have a list? Upload a CSV or Excel file.",
+  "entry.sheet": "Upload from a CSV or Google Sheet",
 } satisfies Record<string, string>;
 
 export default en;

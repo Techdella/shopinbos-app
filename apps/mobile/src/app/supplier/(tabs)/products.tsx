@@ -15,6 +15,8 @@ import { fetchSupplierProducts, type SupplierProduct } from "@/lib/supplier";
 import { LOW_STOCK } from "@/lib/supplier-pure";
 import { useLoad } from "@/lib/useLoad";
 import { colors, surfaceCard } from "@/theme";
+import { openWeb } from "@/lib/web";
+import { WebBadge } from "@/components/WebBadge";
 
 // Supplier Products ("Familiar app" supplier prototype `products`): a two-column grid of product cards (the photo,
 // the name, the price to shops and how many are left), the first card being "Add a product · Take a photo to
@@ -71,6 +73,13 @@ export default function SupplierProducts() {
       {products.data && query && !list.length ? <Sub>{t("products.noneHere")}</Sub> : null}
 
       {products.data ? <PillButton testID="supplier-bulk-add" tone="white" size="md" icon="sparkle" title={tBulk("entry.title")} onPress={() => router.push("/bulk-add")} /> : null}
+      {/* A spreadsheet of products (CSV or a Google Sheet): easier on a bigger screen, so it opens the web page. */}
+      {products.data ? (
+        <Pressable testID="supplier-sheet-upload" accessibilityRole="button" onPress={() => void openWeb("/supplier/products/import")} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, minHeight: 44, opacity: pressed ? 0.7 : 1 })}>
+          <T weight="bold" style={{ fontSize: 14.5 }}>{tBulk("entry.sheet")}</T>
+          <WebBadge />
+        </Pressable>
+      ) : null}
 
       {products.data ? (
         <View style={{ gap: 12 }}>

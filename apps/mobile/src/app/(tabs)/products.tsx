@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { View } from "react-native";
 import { router, useFocusEffect, useNavigation } from "expo-router";
-import { List, Seg, Small } from "@/components/design";
+import { List, Row, Seg, Small, Tile } from "@/components/design";
 import { FilterBar, FilterGroup, FilterSheet } from "@/components/FilterBar";
 import { Screen } from "@/components/Screen";
 import { StockRow, useStockSaver } from "@/components/seller/StockRows";
@@ -27,6 +27,7 @@ function back() {
 export default function Products() {
   const t = useT("m_products", "common");
   const tBulk = useT("bulkAdd");
+  const tBundles = useT("bundles");
   const [products, setProducts] = useState<ProductItem[] | null>(null);
   const [categories, setCategories] = useState<StoreCategory[]>([]);
   const [query, setQuery] = useState<ProductListQuery>(DEFAULT_PRODUCT_QUERY);
@@ -115,6 +116,11 @@ export default function Products() {
           <Small>{t("list.stockHintShort")}</Small>
         </WithTip>
       ) : null}
+
+      {/* Bundles ("Buy together", shared/bundles.ts): products sold together at one price. */}
+      <List>
+        <Row testID="products-bundles" title={tBundles("title")} sub={tBundles("make")} lead={<Tile icon="box" tone="peach" />} onPress={() => router.push("/bundles")} accessibilityLabel={tBundles("title")} />
+      </List>
 
       <FilterSheet visible={sheet} onClose={() => setSheet(false)} title={t("filters.title")} doneLabel={t("filters.done")} clearLabel={t("filters.clear")} onClear={() => pick({ categoryId: "", sort: "newest" })}>
         {chips.length ? (

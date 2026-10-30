@@ -201,7 +201,7 @@ test("checkout reserves through the holds and saves them on the order", () => {
   assert.match(reserve, /stockQuantity: \{ gte: quantity \}/);
   assert.match(reserve, /"currentStock" - GREATEST\("reservedStock", 0\) >= \$\{quantity\}/);
   const pricing = read("src/lib/commerce/pricing.server.ts");
-  assert.match(pricing, /stockShortfallDetails\(products, quantities\)/);
+  assert.match(pricing, /stockShortfallDetails\(stockProducts, stockQuantities\)/, "bundles give their items' units (shared/bundles.ts)");
   assert.match(pricing, /maybeExpireUnpaidOrders\(input\.store\.id\)/);
 });
 

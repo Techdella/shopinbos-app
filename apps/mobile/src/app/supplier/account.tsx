@@ -34,6 +34,7 @@ import { colors } from "@/theme";
 export default function SupplierAccount() {
   const t = useT("m_supplier", "m_partner", "common", "settings");
   const tu = useT("m_ui");
+  const tDetails = useT("details");
   const words = useWords();
   // The level row hides on a server without the level route.
   const level = useLoad(() => fetchSupplierLevel().catch(() => null));
@@ -68,6 +69,8 @@ export default function SupplierAccount() {
       {loaded.error && !data ? <ErrorState message={loaded.error} onRetry={() => void loaded.reload()} /> : null}
 
       <List>
+        {/* My details: the person's name, email and phone, and the business's phone and pickup address (app/my-details.tsx). */}
+        <Row lead={<Tile icon="user" tone="peach" />} title={tDetails("menu")} sub={tDetails("menuHint")} onPress={() => router.push("/my-details")} />
         <Row lead={<Tile icon="store" tone="gray" />} title={t("account.business")} sub={setup ? [setup.displayName || setup.businessName, categories.join(", ")].filter(Boolean).join(" · ") : undefined} onPress={() => router.push({ pathname: "/supplier/setup", params: { edit: "biz" } })} />
         <Row lead={<Tile icon="pin" tone="gray" />} title={t("account.sendFrom")} sub={setup ? [setup.address, setup.city].filter(Boolean).join(", ") || t("account.addAddress") : undefined} onPress={() => router.push({ pathname: "/supplier/setup", params: { edit: "pickup" } })} />
         <Row lead={<Tile icon="truck" tone="gray" />} title={t("account.delivery")} sub={t("account.deliverySub")} onPress={() => router.push("/delivery")} />

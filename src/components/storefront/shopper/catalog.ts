@@ -3,6 +3,7 @@
 import { isColourOption, normalizeVariants, totalVariantStock } from "../../../../shared/product-variants.ts";
 import { listingSoldOut, type ShopperStock } from "../../../../shared/product-stock.ts";
 import type { PreorderState } from "../../../../shared/preorder.ts";
+import type { BundleSummary } from "../../../../shared/bundles.ts";
 
 export interface ShopperVariant {
   id?: string;
@@ -39,6 +40,8 @@ export interface ShopperProduct {
   stock?: ShopperStock | null;
   /** Taking preorders (shared/preorder.ts forShoppers); null when not. */
   preorder?: (PreorderState & { depositPct?: number }) | null;
+  /** A bundle's "What's inside" and saving (shared/bundles.ts), on its product page; null or absent otherwise. */
+  bundle?: BundleSummary | null;
 }
 
 export function readVariants(value: unknown): ShopperVariant[] {

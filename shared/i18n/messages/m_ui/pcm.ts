@@ -272,6 +272,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "wk.5": "Sat",
   "wk.6": "Sun",
   "chart.lastDays": "Last 7 days: {days}",
+  "riderChat.failed": "E no send. Try again.",
+  "riderChat.placeholder": "Message {name}",
+  "riderChat.empty": "No message yet. Say hello.",
 };
 
 export default pcm;

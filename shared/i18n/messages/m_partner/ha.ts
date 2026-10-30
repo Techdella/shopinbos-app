@@ -593,6 +593,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "fam.money.bankLabel": "Asusun karɓar kuɗi {bank}. Canza",
   "fam.biz.posts": "Posts da Status",
   "fam.biz.postsSub": "Yi kuma tsara posts tare da Rex",
+  "fam.biz.studio": "Rex Studio",
+  "fam.biz.studioSub": "Flyers da posts da Rex ke yi maka",
   "fam.biz.credits": "Kiredit na Rex da Peggy",
   "fam.biz.creditsSub": "{count, plural, one {Kiredit #} other {Kiredit #}}",
   "fam.biz.rewards": "Lada",
@@ -709,6 +711,10 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "today.finishHintShort": "Hoton ID ɗinka da selfie. Babu takardu ko bayanan banki.",
   "riders.noneBodyShort": "Ƙara mahayi da sunansa da lambar WhatsApp ɗinsa.",
   "home.quotesAll": "Duba duka",
+  "rider.chatSub": "Mai kawo kayanka, a manhajar Riders",
+  "rider.message": "Aika wa {name} saƙo",
+  "rider.rating": "Makin abokan ciniki",
+  "rider.ratingValue": "Taurari {average} daga abokan ciniki {count}",
 };
 
 export default ha;

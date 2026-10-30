@@ -729,3 +729,23 @@ export async function importSupplierProductsCsv(csvText: string): Promise<Suppli
   }
   return { ok: true, created, errors: errors.sort((a, b) => a.row - b.row).slice(0, 100) };
 }
+
+/**
+ * The same upload from a Google Sheets link (shared as "Anyone with the link can view"): read through the sheet's
+ * CSV export (shared/sheets-link.ts), then exactly as a CSV file.
+ */
+export async function importSupplierProductsSheet(link: string): Promise<SupplierImportResult> {
+  const { supplier } = await getSupplierActor();
+  assertOnboardedSupplier(supplier);
+  const { sheetsCsvUrl } = await import("@shared/sheets-link");
+  const url = typeof link === "string" ? sheetsCsvUrl(link) : null;
+  if (!url) return { ok: false, created: 0, errors: [], message: "Paste the link to a Google Sheet (it starts with https://docs.google.com/spreadsheets/)." };
+  const { safeFetch } = await import("@/lib/security/safe-fetch.server");
+  const response = await safeFetch(url, { httpsOnly: true, maxRedirects: 5, signal: AbortSignal.timeout(20_000) }).catch(() => null);
+  const type = response?.headers.get("content-type") ?? "";
+  if (!response?.ok || !/text\/csv|text\/plain|application\/octet-stream/.test(type)) {
+    return { ok: false, created: 0, errors: [], message: "We couldn't open that sheet. In Google Sheets tap Share, set it to \"Anyone with the link\", then paste the link again." };
+  }
+  const text = await response.text();
+  return importSupplierProductsCsv(text);
+}

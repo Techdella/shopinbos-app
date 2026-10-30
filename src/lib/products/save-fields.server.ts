@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { readProductDetails } from "@shared/product-types";
 import { prepareVariantSave } from "@shared/product-variants";
+import { keepBundle } from "@shared/bundles";
 
 // The product type, details, versions and related products as the product API saves them (POST / PATCH
 // /api/store/products, Peggy's set_product_variants). Versions are checked and normalized by shared/product-variants;
@@ -20,11 +21,12 @@ export interface ProductFieldsInput {
 export async function productFieldsData(
   storeId: string,
   input: ProductFieldsInput,
-  stored: { id?: string; variants?: unknown; variantOptions?: unknown; inventoryType?: string | null },
+  stored: { id?: string; variants?: unknown; variantOptions?: unknown; inventoryType?: string | null; productDetails?: unknown },
 ): Promise<{ ok: true; data: Prisma.StoreProductUncheckedUpdateInput } | { ok: false; error: string }> {
   const data: Prisma.StoreProductUncheckedUpdateInput = {};
   if (input.productType !== undefined) data.productType = input.productType === "other" ? null : input.productType;
-  if (input.productDetails !== undefined) data.productDetails = readProductDetails(input.productDetails);
+  // A bundle's items (shared/bundles.ts) live in productDetails too and stay when the form saves the details.
+  if (input.productDetails !== undefined) data.productDetails = keepBundle(stored.productDetails, readProductDetails(input.productDetails)) as Prisma.InputJsonValue;
   if (input.relatedProductIds !== undefined) {
     const wanted = [...new Set(input.relatedProductIds)].filter((id) => id !== stored.id).slice(0, 8);
     const found = wanted.length

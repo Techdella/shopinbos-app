@@ -9,7 +9,7 @@ import { RiderBadge } from "@/components/RiderKit";
 import { TabScreen } from "@/components/TabScreen";
 import { Sheet } from "@/components/Sheet";
 import { Field, Notice, PillButton } from "@/components/ui";
-import { fetchRider, forgetRiderToken, riderAction } from "@/lib/rider";
+import { fetchRider, fetchRiderRating, forgetRiderToken, riderAction } from "@/lib/rider";
 import { unregisterPushDevice } from "@/lib/push";
 import { initials } from "@/lib/rider-pure";
 import { RIDER_LANGS, useRiderStrings } from "@/lib/rider-strings";
@@ -21,6 +21,7 @@ import { colors } from "@/theme";
 
 export default function RiderMe() {
   const rider = useLoad(fetchRider);
+  const rating = useLoad(fetchRiderRating);
   const { lang, t, say } = useRiderStrings();
   const [help, setHelp] = useState(false);
   const [plateOpen, setPlateOpen] = useState(false);
@@ -72,6 +73,12 @@ export default function RiderMe() {
       {data ? (
         <List>
           <Row lead={<RiderBadge label={initials(data.rider.name)} />} title={data.rider.name} sub={say("me.riderFor", { company })} />
+          {/* What customers say: the stars from the review links this rider sent after drops. */}
+          <Row
+            lead={<Tile icon="star" />}
+            title={say("me.rating")}
+            sub={rating.data?.rating ? say("me.ratingValue", { average: rating.data.rating.average.toFixed(1), count: rating.data.rating.count }) : say("me.noRating")}
+          />
           <Row lead={<Tile icon="globe" />} title={t.language} sub={language} onPress={() => router.push({ pathname: "/rider/language", params: { id: data.rider.id ?? "" } })} />
           <AppearanceRow tile />
           <Row
@@ -88,6 +95,7 @@ export default function RiderMe() {
         </List>
       ) : null}
       <List>
+        <Row lead={<Tile icon="chat" />} title={say("chat.messageCompany", { company })} onPress={() => router.push({ pathname: "/rider/chat", params: { with: "company", name: company } })} />
         {data?.rider.partnerPhone ? <Row lead={<Tile icon="phone" />} title={t.callCompany({ name: company })} onPress={() => void Linking.openURL(`tel:${data.rider.partnerPhone}`)} /> : null}
         <Row lead={<Tile icon="help" />} title={say("me.help")} onPress={() => setHelp(true)} />
         <Row lead={<Tile icon="logout" />} title={t.removeLink} titleStyle={{ color: colors.danger }} onPress={leave} />

@@ -593,6 +593,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "fam.money.bankLabel": "Akaụntụ payout {bank}. Gbanwee",
   "fam.biz.posts": "Post na Status",
   "fam.biz.postsSub": "Mee ma hazie post gị na Rex",
+  "fam.biz.studio": "Rex Studio",
+  "fam.biz.studioSub": "Flyers na posts Rex na-emere gị",
   "fam.biz.credits": "Credits Rex na Peggy",
   "fam.biz.creditsSub": "{count, plural, other {credits #}}",
   "fam.biz.rewards": "Ihe nrite",
@@ -709,6 +711,10 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "today.finishHintShort": "Foto ID gị na selfie. Enweghị akwụkwọ ma ọ bụ nkọwa ụlọ akụ.",
   "riders.noneBodyShort": "Tinye onye na-agba ọgba tum tum na aha ya na nọmba WhatsApp ya.",
   "home.quotesAll": "Lee ha niile",
+  "rider.chatSub": "Onye ozi gị, n'ime ngwa Riders",
+  "rider.message": "Zigara {name} ozi",
+  "rider.rating": "Akara ndị ahịa",
+  "rider.ratingValue": "Kpakpando {average} site n'aka ndị ahịa {count}",
 };
 
 export default ig;

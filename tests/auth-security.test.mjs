@@ -36,6 +36,8 @@ const PUBLIC_PAGES = [
   /^\/(supplier|logistics)\/(login|signup)$/,
   /^\/admin\/login$/,
   /^\/auth\/handoff$/, // mobile app → web handoff, sets its own session
+  /^\/rate-rider\/\[code\]$/, // a customer rates their rider from the signed link the rider sent (no account)
+  /^\/auth\/email-changed$/, // where Supabase's change-email links land (My details); only says how it went
   /^\/s\//, // storefronts on shopinbos subdomains
   /^\/_domain\//, // storefronts on custom domains
   /^\/store\/\[storeSlug\]/, // legacy storefront routes

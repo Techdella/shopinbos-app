@@ -145,6 +145,8 @@ const en = {
 
   "review.title": "You're in review",
   "review.sub": "This usually takes a few minutes. We'll message you when you're verified, and your catalogue goes live to sellers.",
+  "review.celebrate.title": "Your Shopinbos dashboard is ready",
+  "review.celebrate.sub": "Welcome home. Look around while we check your details, and add more products whenever you like.",
   "review.verifiedTitle": "You're verified",
   "review.verifiedSub": "Sellers can find you now. Send your products for review to show them to sellers.",
   "review.readyTitle": "Ready to send",

@@ -134,6 +134,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "product.needPrice": "Rubuta farashin a naira.",
   "review.title": "Muna duba bayananka",
   "review.sub": "Yawanci mintuna kaɗan ne. Za mu aiko maka da saƙo idan an tabbatar da kai, kuma masu sayarwa za su ga catalogue ɗinka.",
+  "review.celebrate.title": "Dashboard ɗinka na Shopinbos ya shirya",
+  "review.celebrate.sub": "Barka da zuwa gida. Ka duba ko'ina yayin da muke duba bayananka, kuma ka ƙara kayayyaki duk lokacin da kake so.",
   "review.verifiedTitle": "An tabbatar da kai",
   "review.verifiedSub": "Masu sayarwa za su iya samunka yanzu. Aika kayanka don dubawa domin masu sayarwa su gan su.",
   "review.readyTitle": "A shirye don aikawa",

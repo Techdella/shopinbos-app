@@ -16,6 +16,8 @@ import { sellerCardLine, sellerReach, type StoreSellerCard, type StorefrontShopp
 import { PREVIEW_PRODUCT_STATUSES, storeUnavailableReason } from "./store-visibility";
 import { relatedProducts } from "@/components/storefront/shopper/catalog";
 import { forShoppers } from "@shared/product-stock";
+import { bundleStocks } from "@shared/bundles";
+import { bundleForProductPage } from "@/lib/products/bundles.server";
 import { storefrontTrust } from "@shared/storefront-trust";
 import { paystackSecretReady } from "@shared/checkout-payments";
 import { withCampaignLook } from "@/lib/store-campaigns/storefront.server";
@@ -119,7 +121,15 @@ const catalogSelect = {
   preorderTaken: true,
   preorderNote: true,
   preorderDepositPct: true,
+  // Bundles (shared/bundles.ts): their items, for the bundle's stock in the catalogue.
+  productDetails: true,
 } as const;
+
+/** Catalogue rows for shoppers; a bundle's stock comes from its items in the same list (shared/bundles.ts). */
+function withBundleStock<T extends Parameters<typeof forShoppers>[0] & { id: string; productDetails?: unknown }>(rows: T[]) {
+  const bundles = bundleStocks(rows);
+  return rows.map((row) => ({ ...forShoppers(row), ...(bundles.has(row.id) ? { stock: bundles.get(row.id) ?? null } : {}) }));
+}
 
 /**
  * preview: the owner's view of a store that isn't live (the caller checks ownership with resolveStorefront);
@@ -183,7 +193,7 @@ export const loadProductPage = cache(async (slug: string, productId: string, pre
   const ratingCounts = [0, 0, 0, 0, 0];
   for (const review of reviews) ratingCounts[review.rating - 1]++;
 
-  const [catalog, shopper, deliverySettings, trustFacts] = await Promise.all([
+  const [catalog, shopper, deliverySettings, trustFacts, bundle] = await Promise.all([
     db.storeProduct
       .findMany({ where: { storeId: store.id, status: { in: [...statuses] } }, select: catalogSelect, orderBy: { createdAt: "desc" }, take: 200 })
       .catch(() => []),
@@ -194,6 +204,8 @@ export const loadProductPage = cache(async (slug: string, productId: string, pre
       .catch(() => null),
     // The trust lines (shared/storefront-trust.ts): the supplier's verification stays on the server, only booleans leave.
     productTrustFacts(store.id, product.id).catch(() => ({ supplierVerificationStatus: null, onlinePayments: false })),
+    // A bundle: "What's inside", the saving and its stock (from its items).
+    bundleForProductPage(store.id, product, statuses).catch(() => null),
   ]);
   const info = shopper as StorefrontShopperInfo;
   const place = [deliverySettings?.originArea, deliverySettings?.originState].map((part) => part?.trim()).filter(Boolean).join(", ") || store.city?.trim() || null;
@@ -218,8 +230,8 @@ export const loadProductPage = cache(async (slug: string, productId: string, pre
   const publicStore = { ...rest, brandSettings: publicBrandSettings(brandSettings) };
   const { status: _productStatus, ...productRow } = product;
   void _productStatus;
-  const publicProduct = forShoppers(productRow);
-  const shopperCatalog = catalog.map((entry) => forShoppers(entry));
+  const publicProduct = { ...forShoppers(productRow), ...(bundle ? { stock: bundle.stock } : {}), bundle: bundle?.summary ?? null };
+  const shopperCatalog = withBundleStock(catalog);
 
   return {
     store: publicStore,
@@ -266,7 +278,7 @@ export const loadStoreChrome = cache(async (slug: string) => {
     themeId: templateId,
     snapshot: boutiqueSnapshotFor(templateId, brandSettings),
     store: { ...rest, brandSettings: publicBrandSettings(brandSettings) },
-    catalog: catalog.map((entry) => forShoppers(entry)),
+    catalog: withBundleStock(catalog),
     shopper: shopper as StorefrontShopperInfo,
   };
 });

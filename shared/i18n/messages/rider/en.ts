@@ -107,6 +107,20 @@ const en = {
   "pay.wait": "They won't pay? Bring the parcel back as you agreed with the shop: tap Couldn't deliver.",
   "pay.codeLabel": "The customer's delivery code",
   "pay.noJob": "This job isn't on the road with you any more. Refresh to check.",
+  "review.metaTitle": "Rate your rider",
+  "review.eyebrow": "Your delivery",
+  "review.title": "How was {name}?",
+  "review.sub": "Your rating helps {company} look after good riders.",
+  "review.stars": "Stars",
+  "review.starLabel": "{count, plural, one {# star} other {# stars}}",
+  "review.comment": "Anything to add? (optional)",
+  "review.send": "Send rating",
+  "review.sending": "Sending…",
+  "review.thanks": "Thank you! Your rating is in.",
+  "review.pick": "Pick from 1 to 5 stars.",
+  "review.failed": "We couldn't send that. Try again.",
+  "review.badTitle": "This link doesn't work",
+  "review.badSub": "It may be for a delivery that isn't finished yet. Ask your rider for a new one.",
 } satisfies Record<string, string>;
 
 export default en;

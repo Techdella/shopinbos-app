@@ -9,6 +9,7 @@ import { readJson, stateResponse, withKycPartner } from "../_partner";
 // The one-question screens of the partner sign-up (shared/partner-tiers.ts PARTNER_FLOW) that are plain answers:
 //   { screen: "name", companyName }                          the name sellers see ("Just use my name" sends theirs)
 //   { screen: "cac", cac: "yes" | "no" | "registering" }    any answer continues; "yes" then looks the number up
+//   { screen: "logo", logo: "later" }                        "I'll add it later" (the photo itself: /api/logistics/kyc/logo)
 //   { screen: "state", state }                               the state they deliver in
 //   { screen: "areas", deliveryAreas }                       states, "State: LGA" areas, regions (delivery-market tokens)
 //   { screen: "vehicles", deliveryMethods }                  bike, car, van, truck…
@@ -32,6 +33,11 @@ export const PATCH = withKycPartner(async (req, { partner }) => {
     case "cac": {
       if (body.cac !== "yes" && body.cac !== "no" && body.cac !== "registering") return apiError("BAD_REQUEST", "Pick one answer.");
       await saveFlowAnswers(partner.id, { cac: body.cac });
+      return done();
+    }
+    case "logo": {
+      if (body.logo !== "later") return apiError("BAD_REQUEST", "Add a photo of your logo, or add it later.");
+      await saveFlowAnswers(partner.id, { logo: "later" });
       return done();
     }
     case "state": {

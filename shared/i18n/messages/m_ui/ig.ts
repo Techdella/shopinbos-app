@@ -272,6 +272,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "wk.5": "Sat",
   "wk.6": "Ụka",
   "chart.lastDays": "Ụbọchị 7 gara aga: {days}",
+  "riderChat.failed": "O zighị. Nwaa ọzọ.",
+  "riderChat.placeholder": "Zigara {name} ozi",
+  "riderChat.empty": "Enwebeghị ozi. Kelee.",
 };
 
 export default ig;

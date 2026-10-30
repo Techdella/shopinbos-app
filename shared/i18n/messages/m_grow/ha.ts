@@ -168,6 +168,14 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "studio.logoSub": "Rex zai zana ra'ayoyin tambari (zai buɗe a yanar gizo)",
   "studio.chat": "Yi hira da Rex",
   "studio.chatSub": "Nemi kowane abu, ko ka canza shagon ka",
+  "studio.partnerSub": "Flyers, hotuna da status posts don kasuwancin isar da kaya naka",
+  "studio.partnerIntro": "Mu sa shaguna su lura da kai. Zaɓi ɗaya, zan yi aiki mai wahala.",
+  "studio.picturesSubPartner": "Nuna mahayanka, babura da isar da kaya a rana ɗaya",
+  "studio.flyersSubPartner": "Farashinka, yankunan da kake rufewa da yadda za a yi maka booking",
+  "studio.status": "Status posts",
+  "studio.statusSubPartner": "Don WhatsApp status da groups ɗinka",
+  "studio.posts": "Posts ɗina",
+  "studio.postsSub": "Abin da Rex ya yi maka, da abin da aka tsara",
   "tool.studio": "Rex Studio",
 };
 

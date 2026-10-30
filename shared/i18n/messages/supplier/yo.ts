@@ -475,6 +475,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "team.deactivate": "Dá a dúró",
   "team.reactivate": "Tún un tàn",
   "team.removeAria": "Yọ {name} kúrò",
+  "settings.link.details.label": "Àlàyé mi",
+  "settings.link.details.hint": "Orúkọ rẹ, email, fóònù àti àdírẹ́sì",
   "settings.link.profile.label": "Profile supplier",
   "settings.link.profile.hint": "Orúkọ, logo, nípa rẹ, ìbánisọ̀rọ̀",
   "settings.link.billing.label": "Billing àti plan",
@@ -694,6 +696,10 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "orders.sampleTag": "Àpẹẹrẹ",
   "agr.subShort": "Àwọn ṣọ́ọ̀bù tó fẹ́ ta ọjà rẹ.",
   "agr.noneSubShort": "Tí ṣọ́ọ̀bù kan bá fẹ́ ta ọjà rẹ, ó máa hàn níbí.",
+  "imp.template": "Gba àwòṣe náà sílẹ̀",
+  "imp.sheet": "Tàbí lo Google Sheet",
+  "imp.sheetGo": "Gbé e sókè láti inú sheet",
+  "imp.sheetHint": "Nínú Google Sheets tẹ Share, yan \"Anyone with the link\", lẹ́yìn náà lẹ ìjápọ̀ náà síbí. Ìlà àkọ́kọ́ ni orúkọ àwọn kọ́lọ́mù.",
 };
 
 export default yo;

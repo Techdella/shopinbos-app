@@ -64,6 +64,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "link.chatbot.hint": "Ó ń dá àwọn oníbàárà lóhùn lórí chat ṣọ́ọ̀bù rẹ, ọ̀sán àti òru",
   "link.notifications.label": "Ìfitónilétí",
   "link.notifications.hint": "Order, ìsanwó àti ọ̀rọ̀, àti ohun tí ń mú fóònù rẹ dún",
+  "link.myDetails.label": "Àlàyé mi",
+  "link.myDetails.hint": "Orúkọ rẹ, email, fóònù àti àdírẹ́sì ṣọ́ọ̀bù rẹ",
   "link.settings.label": "Ètò àti ìrànlọ́wọ́",
   "link.settings.hint": "Àlàyé ṣọ́ọ̀bù rẹ, logo rẹ̀ àti àlàyé tìrẹ",
   "link.legal.label": "Àwọn ojú-ìwé òfin",

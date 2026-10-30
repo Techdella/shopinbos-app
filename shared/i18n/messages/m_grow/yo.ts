@@ -168,6 +168,14 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "studio.logoSub": "Rex ya àwọn èrò àmì (yóò ṣí lórí wẹ́ẹ̀bù)",
   "studio.chat": "Bá Rex sọ̀rọ̀",
   "studio.chatSub": "Béèrè fún ohunkóhun mìíràn, tàbí yí ṣọ́ọ̀bù rẹ padà",
+  "studio.partnerSub": "Flyers, àwòrán àti status posts fún business ìfijíṣẹ́ rẹ",
+  "studio.partnerIntro": "Jẹ́ ká jẹ́ kí àwọn ṣọ́ọ̀bù kíyèsí ọ. Yan ọ̀kan, màá ṣe apá tó le.",
+  "studio.picturesSubPartner": "Fi àwọn rider rẹ, ọ̀kadà àti ìfijíṣẹ́ ọjọ́ kan náà hàn",
+  "studio.flyersSubPartner": "Iye owó rẹ, àwọn agbègbè tí o ń bò àti bí wọ́n ṣe lè gbà ọ́",
+  "studio.status": "Status posts",
+  "studio.statusSubPartner": "Fún WhatsApp status àti àwọn group rẹ",
+  "studio.posts": "Àwọn post mi",
+  "studio.postsSub": "Ohun tí Rex ṣe fún ọ, àti ohun tí a ti ṣètò",
   "tool.studio": "Rex Studio",
 };
 

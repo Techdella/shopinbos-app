@@ -176,6 +176,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "sale.codePlaceholder": "Kóòdù, bíi BAG2",
   "sale.codeNone": "Kò sí ọjà tó ní kóòdù {code}.",
   "list.emptyBodyShort": "Àwọn order á hàn níbí. O tà lórí WhatsApp tàbí lójúkojú? Kọ ọ́ sílẹ̀.",
+  "order2.yourRider": "Ẹni tó ń gbé ẹrù rẹ",
+  "order2.riderChatSub": "Ó ń gbé ọjà yìí",
+  "order2.messageRider": "Kọ ọ̀rọ̀ sí {name}, ẹni tó ń gbé ẹrù",
 };
 
 export default yo;

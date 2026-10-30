@@ -387,3 +387,17 @@ export const fetchPriceRequests = () => api<{ waiting: PriceRequest[]; answered:
 /** Send a price for a request, or say no to it. */
 export const answerPriceRequest = (id: string, body: { intent: "respond"; price: number; note?: string } | { intent: "decline"; note?: string }) =>
   api<{ id: string; status: string }>(`/api/mobile/logistics/quotes/${encodeURIComponent(id)}`, { method: "POST", json: body });
+
+// Chat with one rider (shared/rider-chat.ts); the rider answers from the Riders app. Also their rating from customers.
+export interface RiderChatMessage {
+  id: string;
+  body: string;
+  mine: boolean;
+  createdAt: string;
+}
+
+export const riderCompanyMessages = (riderId: string) =>
+  api<{ messages: RiderChatMessage[]; rating: { average: number; count: number } | null }>(`/api/mobile/logistics/riders/${encodeURIComponent(riderId)}/messages`);
+
+export const sendRiderCompanyMessage = async (riderId: string, body: string) =>
+  (await api<{ message: RiderChatMessage }>(`/api/mobile/logistics/riders/${encodeURIComponent(riderId)}/messages`, { method: "POST", json: { body } })).message;

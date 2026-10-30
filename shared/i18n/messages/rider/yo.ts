@@ -106,6 +106,20 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "pay.wait": "Wọn kò fẹ́ sanwó? Gbé parcel padà bí ìwọ àti ṣọ́ọ̀bù ṣe fohùn ṣọ̀kan: tẹ Couldn't deliver.",
   "pay.codeLabel": "Delivery code oníbàárà",
   "pay.noJob": "Iṣẹ́ yìí kò sí lọ́wọ́ rẹ lójú ọ̀nà mọ́. Tún wò ó láti ṣàyẹ̀wò.",
+  "review.metaTitle": "Fún ẹni tó gbé ẹrù rẹ ní ìràwọ̀",
+  "review.eyebrow": "Ẹrù rẹ",
+  "review.title": "Báwo ni {name} ṣe ṣe?",
+  "review.sub": "Ìdíyelé rẹ ń ran {company} lọ́wọ́ láti tọ́jú àwọn tó ń ṣiṣẹ́ dáadáa.",
+  "review.stars": "Ìràwọ̀",
+  "review.starLabel": "{count, plural, other {Ìràwọ̀ #}}",
+  "review.comment": "Ṣé o ní nǹkan láti fi kún un? (kò pọn dandan)",
+  "review.send": "Fi ìdíyelé ránṣẹ́",
+  "review.sending": "Ó ń lọ…",
+  "review.thanks": "Ẹ ṣé o! A ti gba ìdíyelé rẹ.",
+  "review.pick": "Yan láti ìràwọ̀ 1 sí 5.",
+  "review.failed": "Kò lọ. Tún gbìyànjú.",
+  "review.badTitle": "Ìjápọ̀ yìí kò ṣiṣẹ́",
+  "review.badSub": "Ó lè jẹ́ pé ẹrù náà kò tíì dé. Béèrè ìjápọ̀ tuntun lọ́wọ́ ẹni tó gbé e.",
 };
 
 export default yo;

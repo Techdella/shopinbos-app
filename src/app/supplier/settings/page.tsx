@@ -20,6 +20,8 @@ type PageProps = {
 
 // Labels and hints are "supplier" keys: settings.link.<key>.label / .hint.
 const LINKS: Array<{ key: string; href: string; icon: IconName }> = [
+  // My details: the person's name, email and phone, and the business's phone and address.
+  { key: "details", href: "/supplier/details", icon: "user" },
   { key: "profile", href: "/supplier/profile", icon: "shop" },
   { key: "billing", href: "/supplier/profile?tab=Billing%20%26%20Plan", icon: "card" },
   { key: "payouts", href: "/supplier/payouts", icon: "bank" },

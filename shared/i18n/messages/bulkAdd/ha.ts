@@ -135,6 +135,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "grid.photo": "Hoto",
   "pick.subShort": "Har zuwa 300 lokaci guda. Hoto ɗaya, kaya ɗaya.",
   "other.csvSubShort": "Kana da jeri? Ɗora fayil ɗin CSV ko Excel.",
+  "entry.sheet": "Loda daga CSV ko Google Sheet",
 } satisfies Record<string, string>;
 
 export default ha;

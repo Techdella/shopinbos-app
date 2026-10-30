@@ -133,6 +133,7 @@ export const NOTIFY_EVENTS = {
   "rider.job_assigned": { category: "deliveries", urgent: true },
   "rider.job_changed": { category: "deliveries" },
   "rider.job_cancelled": { category: "deliveries", urgent: true },
+  "rider.message": { category: "messages" },
   // Admins and everyone
   "admin.review": { category: "account", collapse: { key: "admin.review", one: "item to review", many: "items to review" } },
   "admin.alert": { category: "account" },
@@ -511,6 +512,9 @@ export function appRouteFor(link: string | null | undefined): AppRoute | null {
   if ((match = /^\/logistics\/(?:bookings|jobs)\/([\w-]+)$/.exec(pathname))) return { pathname: "/logistics/job/[id]", params: { id: match[1] } };
   const job = queryParam(query, "job");
   if (/^\/logistics\/(bookings|jobs)$/.test(pathname) && job) return { pathname: "/logistics/job/[id]", params: { id: job } };
+  // A rider wrote to their company: the chat with that rider.
+  const chatRider = queryParam(query, "chat");
+  if (pathname === "/logistics/couriers" && chatRider && /^[\w-]+$/.test(chatRider)) return { pathname: "/logistics/team/chat/[id]", params: { id: chatRider } };
   if ((match = /^\/rider\/drop\/([\w-]+)$/.exec(pathname))) return { pathname: "/rider/drop/[id]", params: { id: match[1] } };
   // Preorders: "Stock is ready: pay the rest" opens the seller's list on the right view.
   if (pathname === "/home/preorders") {
