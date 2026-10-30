@@ -5266,7 +5266,7 @@ model PlanGrant {
   tier      String
   startsAt  DateTime
   endsAt    DateTime
-  source    String // referral | referral_welcome | milestone | admin
+  source    String // referral | referral_welcome | milestone | admin | join_offer
   reference String   @unique
   createdAt DateTime @default(now())
 
@@ -5304,7 +5304,7 @@ model AdminDataAccess {
   id            String   @id @default(cuid())
   adminId       String
   subjectUserId String
-  /// reveal_contact | suspend_store | restore_store
+  /// reveal_contact | suspend_store | restore_store | gift_credits | gift_plan | end_gift
   action        String
   /// support | verification | payments | safety | legal (shared/privacy.ts)
   reason        String
