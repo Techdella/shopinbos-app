@@ -17,6 +17,8 @@ export interface AppNotification {
   actionUrl: string | null;
   read: boolean;
   createdAt: string;
+  /** The app screen it opens, when the sender named one (push centre campaigns), kept with the row. */
+  metadata?: { appRoute?: string | null } | null;
 }
 
 export interface NotificationPage {

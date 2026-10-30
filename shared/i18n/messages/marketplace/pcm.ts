@@ -195,7 +195,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "pd.step.0": "The customer go pay. Dem go split the money there and then: the supplier price go to the supplier, the rest go to you.",
   "pd.step.1": "{name} go pack am inside the product own packaging.",
   "pd.step.2": "Rider go deliver am. Peggy go follow the delivery for you.",
-  "pd.step.3": "Each person share go enter their own bank straight, usually the next working day. Shopinbos no dey hold the money.",
+  "pd.step.3": "Each person money go enter their own bank straight, usually the next working day. Shopinbos no dey hold the money.",
   "pd.about": "About this product",
   "pd.returns": "How {name} dey take returns",
   "pd.returnsDefault": "{name} never write return policy, so our Supplier terms apply: dem go collect back wrong, damaged or not-as-described items and pay you back.",

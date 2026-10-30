@@ -139,7 +139,7 @@ export default function Peggy() {
             accessibilityLabel={t("peggy.ask")}
             style={{ flex: 1, height: 54, borderRadius: radii.pill, backgroundColor: colors.surface, paddingHorizontal: 20, fontSize: 16, fontFamily: fonts.regular, color: colors.ink }}
           />
-          <VoiceInput variant="icon" value={draft} onChange={setDraft} context="a question for Peggy" disabled={thinking} />
+          <VoiceInput variant="icon" value={draft} onChange={setDraft} onSpoken={(text) => void ask(text)} context="a question for Peggy" disabled={thinking} />
           <Pressable accessibilityRole="button" accessibilityLabel={t("send")} disabled={!draft.trim() || thinking} onPress={() => void ask()} style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: colors.inkFill, alignItems: "center", justifyContent: "center", opacity: !draft.trim() || thinking ? 0.5 : 1 }}>
             <AppIcon name="chevron" size={22} color="#FFFFFF" strokeWidth={2.4} />
           </Pressable>

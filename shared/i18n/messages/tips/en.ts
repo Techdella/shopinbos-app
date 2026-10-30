@@ -14,7 +14,7 @@ const en = {
   "inbox.chatbot": "Peggy answers shoppers from your own products, prices and delivery settings, so keep those up to date first. Try her yourself before you switch her on.",
   "inbox.whatsappStore": "Customers can shop and pay without leaving WhatsApp. Their orders show up here and in Orders, so you pack and send them like any other order.",
   "connections": "Start with WhatsApp and Google: one sign-in each, nothing to copy or paste. Connect once and it works across your whole shop.",
-  "wallet": "Add your bank once. When customers pay by card, your share goes straight to that bank, usually the next working day. Shopinbos never holds your money.",
+  "wallet": "Add your bank once. When customers pay by card, your money goes straight to that bank, usually the next working day. Shopinbos never holds your money.",
   "labels": "Print a shipping label for every parcel: it has the customer's address and a QR code to track it. For pouches, boxes and tags, start with the packaging designer.",
   "labels.packaging": "Pick a template, add your words and picture, then download the print file. Or tap Order prints and we print it and deliver it to you.",
   "labels.studio": "Choose what to make, like price tags or thank-you cards, and pick your products. Print on A4 at home, or download the file for a print shop.",

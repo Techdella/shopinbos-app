@@ -227,8 +227,8 @@ export function Thread({
     }
   }
 
-  function send() {
-    const trimmed = text.trim();
+  function send(spoken?: string) {
+    const trimmed = (spoken ?? text).trim();
     const ready = staged.filter((file) => file.status === "ready" && file.ref);
     if (staged.some((file) => file.status === "uploading")) {
       setComposerError(t("pt.waitUpload"));
@@ -478,7 +478,7 @@ export function Thread({
             placeholder={t("partner.write")}
             className="max-h-[140px] min-h-[44px] min-w-0 flex-1 resize-none rounded-[22px] border border-app-line bg-white px-4 py-[10px] text-[16px] leading-[1.4] outline-none placeholder:text-app-ink-faint focus:border-app-ink sm:text-[15px]"
           />
-          <VoiceInputButton variant="icon" value={text} onChange={setText} maxLength={MESSAGE_MAX} context="a message to a business partner" />
+          <VoiceInputButton variant="icon" value={text} onChange={setText} onSpoken={(spoken) => send(spoken)} maxLength={MESSAGE_MAX} context="a message to a business partner" />
           <button type="submit" disabled={!canSend} aria-label={t("send")} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-app-accent text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-45">
             <Icon name="send" size={17} />
           </button>

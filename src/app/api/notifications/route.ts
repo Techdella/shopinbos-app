@@ -6,6 +6,18 @@ import { db } from "@/lib/db/client";
 import { ok, apiError, parsePagination } from "@/lib/api/response";
 import type { AuthUser } from "@/lib/auth/types";
 import { NOTIFY_CATEGORY_KEYS, categoryForType, isNotifyCategory, type NotifyCategory } from "@shared/notifications";
+import { sellsDigitalGoods } from "@shared/store-payments";
+import { isAppRequest } from "@/lib/app-session.server";
+
+/**
+ * Unread notifications the reader can see. The phone app hides credit and plan alerts (store rules), so for the app
+ * those don't count: otherwise the bell keeps a number nobody can clear.
+ */
+async function unreadFor(userId: string, req: NextRequest) {
+  if (!isAppRequest(req.headers)) return db.notification.count({ where: { userId, read: false } });
+  const rows = await db.notification.findMany({ where: { userId, read: false }, select: { link: true, actionUrl: true, title: true, description: true }, take: 500 });
+  return rows.filter((row) => !sellsDigitalGoods(row)).length;
+}
 
 // The bell: every role's notifications, newest first. ?tab=unread | orders | money | messages | deliveries | stock |
 // marketing | account. Old rows (before notify()) have no category, so they're matched by their type.
@@ -38,7 +50,7 @@ export const GET = withAuth(async (req: NextRequest, { user }: { user: AuthUser 
   const [total, rows, unreadCount] = await Promise.all([
     db.notification.count({ where }),
     db.notification.findMany({ where, orderBy: { createdAt: "desc" }, skip, take: limit }),
-    db.notification.count({ where: { userId: user.id, read: false } }),
+    unreadFor(user.id, req),
   ]);
   const totalPages = Math.ceil(total / limit);
   const items = rows.map((row) => ({ ...row, category: isNotifyCategory(row.category) ? row.category : categoryForType(row.type) }));
@@ -73,6 +85,6 @@ export const PATCH = withAuth(async (req: NextRequest, { user }: { user: AuthUse
     where = { id: body.id, userId: user.id, read: false };
   }
   const updated = await db.notification.updateMany({ where, data: { read: true, readAt: now } });
-  const unreadCount = await db.notification.count({ where: { userId: user.id, read: false } });
+  const unreadCount = await unreadFor(user.id, req);
   return ok({ success: true, updated: updated.count, unreadCount });
 });

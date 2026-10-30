@@ -92,7 +92,8 @@ export function Composer({
 }: {
   value: string;
   onChange: (value: string) => void;
-  onSend: () => void;
+  /** Sends the box, or `text` (a voice message, sent as soon as it is written down). */
+  onSend: (text?: string) => void;
   busy?: boolean;
   placeholder: string;
   disabled?: boolean;
@@ -121,8 +122,8 @@ export function Composer({
           accessibilityLabel={placeholder}
           style={{ flex: 1, minHeight: 50, maxHeight: 140, borderRadius: radii.field + 8, backgroundColor: colors.surface, paddingHorizontal: 18, paddingTop: 14, paddingBottom: 14, fontSize: 16, fontFamily: fonts.regular, color: colors.ink }}
         />
-        {voice ? <VoiceInput variant="icon" value={value} onChange={onChange} context="a chat message" disabled={disabled} /> : null}
-        <Pressable accessibilityRole="button" accessibilityLabel={t("send")} accessibilityState={{ disabled: off, busy }} disabled={off} onPress={onSend} style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: colors.inkFill, alignItems: "center", justifyContent: "center", opacity: off ? 0.5 : 1 }}>
+        {voice ? <VoiceInput variant="icon" value={value} onChange={onChange} onSpoken={(text) => onSend(text)} context="a chat message" disabled={disabled || busy} /> : null}
+        <Pressable accessibilityRole="button" accessibilityLabel={t("send")} accessibilityState={{ disabled: off, busy }} disabled={off} onPress={() => onSend()} style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: colors.inkFill, alignItems: "center", justifyContent: "center", opacity: off ? 0.5 : 1 }}>
           <AppIcon name="send" size={20} color="#FFFFFF" strokeWidth={2.1} />
         </Pressable>
       </View>

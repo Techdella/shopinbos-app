@@ -106,5 +106,5 @@ test("Sign in with Apple is on the log-in and sign-up screens themselves, not on
   const primary = form.indexOf("onPress={() => void submit()}");
   assert.ok(primary < apple && apple < sheet, "under the main button, outside the Other ways sheet");
   assert.match(form, /scheme === "dark" \? AppleAuthentication\.AppleAuthenticationButtonStyle\.WHITE : AppleAuthentication\.AppleAuthenticationButtonStyle\.BLACK/);
-  assert.match(form, /\(mode === "login" \|\| role\) && apple && \(/);
+  assert.match(form, /\{apple && \(/);
 });

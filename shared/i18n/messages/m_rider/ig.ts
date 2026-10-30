@@ -208,6 +208,10 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "offer.km": "{km} km",
   "done.earned": "Ego i nwetara",
   "done.cash": "Ego aka i natara",
+  "me.addPlate": "Pịa ka itinye nọmba plate gị",
+  "me.plateTitle": "Nọmba plate gị",
+  "me.plateSave": "Chekwaa",
+  "me.plateFailed": "Enweghị ike ichekwa nọmba plate. Nwaa ọzọ.",
 };
 
 export default ig;

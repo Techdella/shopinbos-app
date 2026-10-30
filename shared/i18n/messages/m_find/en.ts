@@ -61,7 +61,7 @@ const en = {
   "product.outOfStock": "Out of stock",
   "product.inShop": "In your shop",
   "product.message": "Message",
-  "product.dropshipIntro": "You don't buy anything now. When a customer pays you, {name} sends it to them and you keep the difference. Your share goes straight to your bank.",
+  "product.dropshipIntro": "You don't buy anything now. When a customer pays you, {name} sends it to them and you keep the difference. Your profit goes straight to your bank.",
   "product.sellingPrice": "Your selling price",
   "product.customerPays": "Customer pays",
   "product.supplierGets": "Supplier gets",

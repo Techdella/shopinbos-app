@@ -208,6 +208,10 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "offer.km": "{km} km",
   "done.earned": "Owó tí o rí",
   "done.cash": "Owó tí o gbà lọ́wọ́",
+  "me.addPlate": "Tẹ̀ láti fi nọ́ńbà plate rẹ kún un",
+  "me.plateTitle": "Nọ́ńbà plate rẹ",
+  "me.plateSave": "Fi pamọ́",
+  "me.plateFailed": "A kò lè fi nọ́ńbà plate pamọ́. Tún gbìyànjú.",
 };
 
 export default yo;

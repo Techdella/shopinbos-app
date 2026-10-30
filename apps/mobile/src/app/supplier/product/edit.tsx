@@ -53,6 +53,7 @@ export default function EditSupplierProduct() {
   const [prices, setPrices] = useState<PricesForm>(() => pricesFormFrom(null));
   const [shipping, setShipping] = useState<DropshipForm>(() => dropshipFormFrom(null));
   const [moq, setMoq] = useState("1");
+  const [stock, setStock] = useState("");
   const [ships, setShips] = useState("");
   const [regions, setRegions] = useState("");
   const [dropship, setDropship] = useState(false);
@@ -70,6 +71,7 @@ export default function EditSupplierProduct() {
     setPrices(pricesFormFrom(data));
     setShipping(dropshipFormFrom(data));
     setMoq(String(data.moq || 1));
+    setStock(String(data.stockQuantity ?? 0));
     const extra = data as { processingTime?: string | null; deliveryRegions?: string[] };
     setShips(extra.processingTime ?? "");
     setRegions((extra.deliveryRegions ?? []).join(", "));
@@ -97,6 +99,7 @@ export default function EditSupplierProduct() {
       if (name.trim().length < 2) return setError(t("new.needName"));
       if (description.trim().length < 10) return setError(t("new.needDescription"));
       if (!parseCount(moq) || parseCount(moq)! < 1) return setError(t("new.needMoq"));
+      if (!stock.trim() || parseCount(stock) === null) return setError(t("new.needStock"));
       if (!dropship && !bulk) return setError(t("new.needKind"));
     }
     // Preorders: only from servers that send them, and only when changed.
@@ -126,6 +129,7 @@ export default function EditSupplierProduct() {
                 description: description.trim(),
                 images,
                 moq: parseCount(moq)!,
+                stockQuantity: parseCount(stock)!,
                 ...(ships ? { processingTime: ships } : {}),
                 deliveryRegions: regions.split(",").map((item) => item.trim()).filter(Boolean),
                 dropshipAvailable: dropship,
@@ -218,6 +222,11 @@ export default function EditSupplierProduct() {
           <View>
             <FieldLabel>{t("new.moq")}</FieldLabel>
             <Field value={moq} onChangeText={setMoq} keyboardType="number-pad" accessibilityLabel={t("moqLabel")} />
+          </View>
+          {/* Stock: the number in stock now (it was missing here, so a product saved with 0 stayed at 0). */}
+          <View>
+            <FieldLabel>{t("new.howMany")}</FieldLabel>
+            <Field value={stock} onChangeText={setStock} keyboardType="number-pad" accessibilityLabel={t("new.howMany")} />
           </View>
           <View>
             <FieldLabel>{t("new.shipsWithin")}</FieldLabel>

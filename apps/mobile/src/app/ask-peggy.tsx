@@ -104,7 +104,7 @@ export default function AskPeggy() {
       scrollKey={turns.length + (thinking ? 0.5 : 0)}
       composer={
         missing ? undefined : (
-          <Composer value={draft} onChange={setDraft} onSend={() => void ask()} busy={thinking} placeholder={t("peg.placeholder")} />
+          <Composer value={draft} onChange={setDraft} onSend={(text) => void ask(text)} busy={thinking} placeholder={t("peg.placeholder")} />
         )
       }
     >

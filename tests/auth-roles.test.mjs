@@ -129,7 +129,8 @@ test("web screens: one question per screen; the role is asked last, unless the l
   assert.match(auth, /t\(`change\.\$\{signupRole\}`\)/, "Not a supplier? Change");
   assert.match(auth, /conflictMessage\(syncedRole/);
   assert.match(auth, /withPortalNote\(roleDestination\(syncedRole\), role\)/);
-  assert.match(auth, /signInWithGoogle\(role, nextUrl, mode\)/);
+  assert.match(auth, /signInWithGoogle\(role, nextUrl, mode, \(mode === "signup" && !roleKnown\) \|\| genericLogin\)/, "a new Google login comes back to What brings you?");
+  assert.match(auth, /params\.get\("step"\) !== "role"/);
   assert.match(read("src/components/ClientLayout.tsx"), /<PortalNote \/>/);
   // sync-user: the role sent from the sign-up page wins for a brand-new account.
   assert.match(read("src/app/api/auth/sync-user/route.ts"), /requestedSignupRole\(claims\.user_metadata\?\.rawRole, body\.role, body\.source === "signup"\)/);
@@ -144,7 +145,7 @@ test("phone app: one question per screen; the role is asked after the code unles
   assert.doesNotMatch(signup, /<Redirect href="\/welcome" \/>/, "no role needed to start");
   assert.match(signup, /initialRole=\{picked\}/);
   const form = read("apps/mobile/src/components/AuthForm.tsx");
-  assert.match(form, /useState<"name" \| "contact">\(mode === "signup" \? "name" : "contact"\)/, "sign up opens on the name");
+  assert.match(form, /useState<"name" \| "contact">\(mode === "signup" && !\(prefill\?\.step === "contact" && keptGiven\) \? "name" : "contact"\)/, "sign up opens on the name, unless coming back with it");
   assert.match(form, /t\("q\.name"\)/);
   assert.match(form, /t\(`as\.\$\{role\}`\)/);
   assert.match(form, /t\(`change\.\$\{role\}`\)/);
@@ -155,5 +156,12 @@ test("phone app: one question per screen; the role is asked after the code unles
   const verify = read("apps/mobile/src/app/verify.tsx");
   assert.match(verify, /if \(signup && !linkRole\) \{[\s\S]*?setAskRole\(true\)/, "What brings you to Shopinbos? comes after the code");
   assert.match(verify, /t\("q\.role"\)/);
-  assert.match(verify, /explainSignupConflict\(actual, role, target\.kind\)/);
+  assert.match(verify, /explainSignupConflict\(actual, role, target\.kind \?\? "email"\)/);
+  assert.match(verify, /params: \{ role, method: target\.kind \?\? "email", name: params\.name \?\? "", step: "contact" \}/, "Use a different email keeps the name and role");
+  assert.match(verify, /useState\(params\.oauth === "1"\)/, "Google or Apple with no account: straight to What brings you?");
+  assert.match(form, /router\.replace\(\{ pathname: "\/verify", params: \{ mode: "signup", oauth: "1"/);
+  assert.match(form, /if \(mode === "signup" && peek\?\.exists\) \{/, "signing up with Google on an existing account says log in");
+  assert.match(read("src/app/api/auth/sync-user/route.ts"), /if \(body\.peek\) return NextResponse\.json/);
+  assert.match(read("src/app/auth/callback/route.ts"), /redirectUrl\(request, "\/signup\?step=role"\)/);
+  assert.match(lib, /\/api\/mobile\/auth-return\?to=\$\{encodeURIComponent\(appReturn\)\}/, "Google comes back through a page always on Supabase's list");
 });

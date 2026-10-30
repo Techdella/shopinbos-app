@@ -44,14 +44,13 @@ export function audienceRoles(role: unknown): readonly StatusRole[] {
 }
 
 /**
- * Whether a viewer sees an author's posts. `related` = a real tie between them (a seller selling the supplier's
- * products, a delivery connection). A supplier only sees sellers who sell their products.
+ * Whether a viewer sees an author's posts: everyone in the roles their role may see (suppliers see sellers and
+ * delivery partners too). `related` (a seller selling the supplier's products, a delivery connection) only orders
+ * the feed (audienceTier); it no longer hides anyone.
  */
-export function canSee(viewer: { userId: string; role: unknown }, author: { userId: string; role: unknown }, related: boolean) {
+export function canSee(viewer: { userId: string; role: unknown }, author: { userId: string; role: unknown }, _related: boolean) {
   if (viewer.userId === author.userId) return false;
-  if (!audienceRoles(viewer.role).includes(author.role as StatusRole)) return false;
-  if (viewer.role === "supplier" && author.role === "seller") return related;
-  return true;
+  return audienceRoles(viewer.role).includes(author.role as StatusRole);
 }
 
 /** 0: a real relationship, 1: the same state, 2: anyone else the role may see. */

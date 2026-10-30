@@ -78,19 +78,21 @@ export async function signInWithPassword(email: string, password: string) {
 }
 
 /** mode "signup" lets the callback say "This email already has a seller account" when the Google account has one. */
-export function callbackUrl(role: AuthRole, next: string, mode?: "login" | "signup") {
+export function callbackUrl(role: AuthRole, next: string, mode?: "login" | "signup", askRole = false) {
   const url = new URL("/auth/callback", window.location.origin);
   url.searchParams.set("role", role);
   url.searchParams.set("next", next);
   if (mode === "signup") url.searchParams.set("mode", "signup");
+  // Nothing said which kind of account: a Google login with no account yet comes back to "What brings you?".
+  if (askRole) url.searchParams.set("ask", "1");
   return url.toString();
 }
 
-export async function signInWithGoogle(role: AuthRole, next: string, mode?: "login" | "signup") {
+export async function signInWithGoogle(role: AuthRole, next: string, mode?: "login" | "signup", askRole = false) {
   const supabase = requireSupabase();
   const { error } = await supabase.auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo: callbackUrl(role, next, mode), queryParams: { prompt: "select_account" } },
+    options: { redirectTo: callbackUrl(role, next, mode, askRole), queryParams: { prompt: "select_account" } },
   });
   if (error) throw new Error(/provider is not enabled/i.test(error.message) ? "Google sign-in isn't switched on yet. Use your phone or email." : error.message);
 }

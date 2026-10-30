@@ -39,8 +39,11 @@ export default function SupplierProductScreen() {
   const [notice, setNotice] = useState<{ tone: "error" | "success"; text: string } | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // A stock change still waiting to save when the screen closes is saved then, not dropped.
+  const pendingStock = useRef<{ id: string; value: number } | null>(null);
   useEffect(() => () => {
     if (timer.current) clearTimeout(timer.current);
+    if (pendingStock.current) void quickEditProduct(pendingStock.current.id, { stockQuantity: pendingStock.current.value }).catch(() => undefined);
   }, []);
 
   // Back from the editor: show what was saved.
@@ -74,8 +77,10 @@ export default function SupplierProductScreen() {
     if (!data) return;
     product.setData({ ...data, stockQuantity: next });
     if (timer.current) clearTimeout(timer.current);
+    pendingStock.current = { id: data.id, value: next };
     timer.current = setTimeout(() => {
       timer.current = null;
+      pendingStock.current = null;
       quickEditProduct(data.id, { stockQuantity: next })
         .then(() => setNotice(null))
         .catch((saveError) => {

@@ -397,7 +397,7 @@ const en = {
   "trust.point.0": "The supplier keeps their stock and prices on Shopinbos up to date, and marks items sold out straight away.",
   "trust.point.1": "The supplier accepts or declines each order on time and sends it straight to your customer within 3 days, in the product's own packaging. They don't add flyers or offers to sell to your customer directly.",
   "trust.point.2": "You set your own selling price and look after your customers. The supplier never contacts your customers to sell to them directly.",
-  "trust.point.3": "When a customer pays by card, the supplier's cost goes straight to the supplier's bank and your share to yours. Shopinbos holds no one's money.",
+  "trust.point.3": "When a customer pays by card, the supplier's cost goes straight to the supplier's bank and your profit to yours. Shopinbos holds no one's money.",
   "trust.point.4": "If the supplier is paid for an order and doesn't send it, they pay you back within 3 days; after that it comes out of their next orders.",
   "trust.point.5": "The supplier takes back wrong, damaged or not-as-described items and pays you back. You claim in your Shopinbos Wallet within 7 days of delivery.",
   "trust.point.6": "If you don't agree on a claim, Shopinbos decides from what the app recorded and what you both send. Either of you can stop: the supplier can decline new orders, and you can remove their products.",

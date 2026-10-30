@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse, after } from "next/server";
+import { db } from "@/lib/db/client";
 import { provisionWallet } from "@/lib/wallet/balance.server";
 import type { AuthRole } from "@/lib/brand";
 import { roleDestination } from "@/lib/brand";
@@ -47,6 +48,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(redirectUrl(request, isReset ? RESET_PATH : portalLoginPath(role), isReset ? "link_expired" : "confirmation_failed"));
   }
 
+  // A Google login with no account yet, from a page that didn't say which kind (?ask=1): signed in now, so the
+  // sign-up page asks "What brings you to Shopinbos?" and makes the account with that answer.
+  const email = data.user.email?.toLowerCase() ?? null;
+  const existed = await db.user.findFirst({ where: { OR: [{ supabaseId: data.user.id }, ...(email ? [{ email }] : [])] }, select: { id: true } }).catch(() => null);
+  if (!isReset && !existed && request.nextUrl.searchParams.get("ask") === "1") {
+    const response = NextResponse.redirect(redirectUrl(request, "/signup?step=role"));
+    response.headers.set("Cache-Control", "private, no-store");
+    return response;
+  }
+
   // Google (and email links) say which portal's page they came from (?role=). That only decides the role of a
   // brand-new account; an existing account keeps its own role (src/lib/auth/role-rules.ts).
   const metadataRole = asAccountRole(data.user.user_metadata?.role);
@@ -61,7 +72,11 @@ export async function GET(request: NextRequest) {
   after(() => provisionWallet(appUser.id));
 
   let landing = destination;
-  if (!isReset && appUser.role !== role) {
+  // Signing up with Google when this email already has an account (of this kind too): say so on the sign-up page.
+  const signupPageRole = asSignupRole(role);
+  if (!isReset && existed && appUser.role === role && request.nextUrl.searchParams.get("mode") === "signup" && signupPageRole) {
+    landing = `${portalSignupPath(signupPageRole)}?conflict=${appUser.role}&via=email`;
+  } else if (!isReset && appUser.role !== role) {
     const pageRole = asSignupRole(role);
     if (request.nextUrl.searchParams.get("mode") === "signup" && pageRole) {
       // Signed up on the supplier page with an email that already has a seller account (or any other mix): say so

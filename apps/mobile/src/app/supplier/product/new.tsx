@@ -90,7 +90,7 @@ export default function NewSupplierProduct() {
     if (name.trim().length < 2) return t("new.needName");
     const priced = readPricesForm(prices, preorderOpen, words);
     if (!priced.ok) return priced.message;
-    if (parseCount(stock) === null) return t("new.needStock");
+    if (!stock.trim() || parseCount(stock) === null) return t("new.needStock");
     if (description.trim().length < 10) return t("new.needDescription");
     if (!categoryId) return t("new.needCategory");
     if (!parseCount(moq) || parseCount(moq)! < 1) return t("new.needMoq");

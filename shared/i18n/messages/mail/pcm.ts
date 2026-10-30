@@ -172,7 +172,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "step.hint.supplier.pickup": "Where riders go dey collect orders from you.",
   "step.hint.supplier.documents": "So the team fit check your business.",
   "step.hint.supplier.products": "Add products wey sellers fit stock or dropship.",
-  "step.hint.supplier.bank": "Where dem go dey pay your share for each sale.",
+  "step.hint.supplier.bank": "Where dem go dey pay the money for each sale.",
   "step.hint.supplier.verified": "The team go check your documents.",
   "step.hint.logistics_partner.profile": "Company name, city and the vehicles wey you dey use.",
   "step.hint.logistics_partner.coverage": "The states and areas wey you dey cover.",

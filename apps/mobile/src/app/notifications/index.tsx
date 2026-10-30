@@ -78,7 +78,8 @@ export default function Notifications() {
   const byDay = groupByDay(items);
   const earlier = byDay.filter((group) => group.label !== "Today").flatMap((group) => group.items);
   const groups = [...byDay.filter((group) => group.label === "Today").map((group) => ({ key: "today", title: t("time.today"), items: group.items })), ...(earlier.length ? [{ key: "earlier", title: t("time.earlier"), items: earlier }] : [])];
-  const unreadHere = items.filter((item) => !item.read).length;
+  // Unread rows here, or (on All) any the server still counts, so "Mark all read" can always clear the bell.
+  const unreadHere = items.filter((item) => !item.read).length || (tab === "all" ? feed.data?.unreadCount ?? 0 : 0);
   const tabs = notificationFilters(role).map((filter) => ({ key: filter.tab, label: words(FILTER_KEY[filter.key]) }));
 
   const markLocal = (match: (item: AppNotification) => boolean) => {
@@ -91,7 +92,7 @@ export default function Notifications() {
       markLocal((row) => row.id === item.id);
       void markNotificationsRead({ id: item.id }).then((count) => count !== null && setUnreadCount(count));
     }
-    openNotificationTarget({ url: item.actionUrl || item.link });
+    openNotificationTarget({ route: item.metadata?.appRoute ?? null, url: item.actionUrl || item.link });
   };
 
   const readAll = async () => {
@@ -122,7 +123,7 @@ export default function Notifications() {
       </View>
 
       {/* All / Orders / Money / Peggy as one segmented pill. */}
-      <Segmented options={tabs.map((option) => ({ value: option.key, label: option.label }))} value={tab} onChange={setTab} />
+      <Segmented fitContent options={tabs.map((option) => ({ value: option.key, label: option.label }))} value={tab} onChange={setTab} />
 
       {feed.loading && !feed.data ? <LoadingBlock label={t("feed.loading")} /> : null}
       {feed.error && !feed.data ? <ErrorState message={feed.error} onRetry={() => void feed.reload()} /> : null}

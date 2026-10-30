@@ -44,6 +44,8 @@ export async function POST(request: NextRequest) {
     source?: "signup";
     /** An invite code typed in, or carried by the phone app (the web uses the sib_ref cookie). */
     ref?: string;
+    /** Only ask whether this login already has an account (and its role); nothing is made or changed. */
+    peek?: boolean;
   };
 
   // The role saved on the login when it was made, else (Google sign-ups carry none) the one picked on the sign-up
@@ -64,6 +66,8 @@ export async function POST(request: NextRequest) {
   if (!existingUser && email) {
     existingUser = await db.user.findUnique({ where: { email }, select: { id: true, role: true } }) ?? null;
   }
+  // Google or Apple from the phone: is this a new person (ask what brings them, then set up) or a log in?
+  if (body.peek) return NextResponse.json({ data: { exists: Boolean(existingUser), role: existingUser?.role ?? null } });
 
   const requestedAdmin = requestedRole === "admin";
   const isAdminInvite = email ? adminInviteEmails().includes(email) : false;

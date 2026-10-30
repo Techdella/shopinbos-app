@@ -291,7 +291,7 @@ export default function Rex() {
         <Composer
           value={draft}
           onChange={setDraft}
-          onSend={() => void ask()}
+          onSend={(text) => void ask(text)}
           busy={thinking || uploading}
           ready={photos.length > 0}
           placeholder={photos.length ? t("photos.placeholder") : t("placeholder")}

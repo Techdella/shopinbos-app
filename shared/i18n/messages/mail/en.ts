@@ -172,7 +172,7 @@ const en = {
   "step.hint.supplier.pickup": "Where riders collect orders from you.",
   "step.hint.supplier.documents": "So the team can check your business.",
   "step.hint.supplier.products": "Add products sellers can stock or dropship.",
-  "step.hint.supplier.bank": "Where your share of each sale is paid.",
+  "step.hint.supplier.bank": "Where the money for each sale is paid.",
   "step.hint.supplier.verified": "The team reviews your documents.",
   "step.hint.logistics_partner.profile": "Company name, city and the vehicles you use.",
   "step.hint.logistics_partner.coverage": "The states and areas you cover.",

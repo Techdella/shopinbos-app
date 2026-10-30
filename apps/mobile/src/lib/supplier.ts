@@ -456,6 +456,7 @@ export interface ProductEdit extends ChannelFields {
   description?: string;
   images?: string[];
   moq?: number;
+  stockQuantity?: number;
   processingTime?: string;
   deliveryRegions?: string[];
   dropshipAvailable?: boolean;

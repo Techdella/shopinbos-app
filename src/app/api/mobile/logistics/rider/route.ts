@@ -182,6 +182,8 @@ const Body = z.discriminatedUnion("action", [
   z.object({ action: z.literal("check_code"), jobId: z.string().max(64), code: z.string().max(12) }),
   z.object({ action: z.literal("language"), language: z.enum(RIDER_LANGUAGES) }),
   z.object({ action: z.literal("pay_link"), jobId: z.string().max(64) }),
+  // The rider types their own bike or vehicle plate (the company can still change it).
+  z.object({ action: z.literal("plate"), plate: z.string().max(30) }),
 ]);
 
 export async function POST(req: NextRequest) {
@@ -190,11 +192,17 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "Check the details and try again.");
   const input = parsed.data;
 
-  if (input.action === "skip" || input.action === "help" || input.action === "check_code" || input.action === "language") {
+  if (input.action === "skip" || input.action === "help" || input.action === "check_code" || input.action === "language" || input.action === "plate") {
     const session = await riderFromToken(token);
     if (!session.ok) return apiError(session.reason === "limited" ? "RATE_LIMITED" : "UNAUTHORIZED", session.reason === "limited" ? "Too many tries. Wait a minute and try again." : LINK_ERROR, session.reason === "limited" ? 429 : 401);
     if (input.action === "language") {
       await saveRiderLanguage(session.rider, input.language);
+      return ok({ done: true });
+    }
+    if (input.action === "plate") {
+      // The same rule as the company's form (api/mobile/logistics/riders): capitals, single spaces, 20 at most.
+      const plate = input.plate.trim().replace(/\s+/g, " ").toUpperCase().slice(0, 20) || null;
+      await db.logisticsTeamMember.update({ where: { id: session.rider.id }, data: { plate } });
       return ok({ done: true });
     }
     const step =

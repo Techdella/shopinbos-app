@@ -353,6 +353,21 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Back from Google with no account yet (/auth/callback sent ?step=role): signed in, so only the role is left.
+  useEffect(() => {
+    if (mode !== "signup" || roleKnown || params.get("step") !== "role") return;
+    let live = true;
+    void currentAccessToken().then((accessToken) => {
+      if (!live || !accessToken) return;
+      setPending({ accessToken });
+      setScreen("role");
+    });
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function resetMessages() {
     setError(null);
     setInfo(null);
@@ -564,7 +579,7 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
     resetMessages();
     setBusy("google");
     try {
-      await signInWithGoogle(role, nextUrl, mode);
+      await signInWithGoogle(role, nextUrl, mode, (mode === "signup" && !roleKnown) || genericLogin);
     } catch (googleError) {
       setError(friendlyNetworkError(googleError));
       setBusy(null);
@@ -760,9 +775,9 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
       : method === "phone" ? t("q.loginPhone") : t("q.loginEmail");
   const detailsSub = isAdmin ? t("sub.admin") : mode === "signup" ? (givenName.trim() ? t("q.phoneSubNamed", { name: givenName.trim() }) : t("q.phoneSub")) : t("q.loginSub");
 
-  // Google and email stay as quieter options. Google on sign up only once the kind of account is known (it can't
-  // ask "What brings you to Shopinbos?" afterwards).
-  const showGoogle = !isAdmin && (mode === "login" || roleKnown);
+  // Google and email stay as quieter options, on log in and sign up. A Google login with no account yet comes back
+  // to "What brings you to Shopinbos?" (?step=role) when nothing said which kind of account.
+  const showGoogle = !isAdmin;
   const detailsForm = (
     <QuestionScreen
       onSubmit={usingPassword ? submitPassword : requestCode}

@@ -6,7 +6,8 @@ import { pickedSignupRole } from "@/lib/partner-pure";
 // "What brings you to Shopinbos?" on the verify screen.
 export default function Signup() {
   // phone / email: typed on the log-in screen before "Sign up now" (no account had it yet).
-  const { method, role, phone, email } = useLocalSearchParams<{ method?: string; role?: string; phone?: string; email?: string }>();
+  // name / step=contact: back from "Use a different email", so nothing already answered is asked again.
+  const { method, role, phone, email, name, step } = useLocalSearchParams<{ method?: string; role?: string; phone?: string; email?: string; name?: string; step?: string }>();
   const picked = pickedSignupRole(role);
-  return <AuthForm key={picked ?? "ask"} mode="signup" initialMethod={method === "email" ? "email" : "phone"} initialRole={picked} prefill={{ phone, email }} />;
+  return <AuthForm key={`${picked ?? "ask"}:${name ?? ""}`} mode="signup" initialMethod={method === "email" ? "email" : "phone"} initialRole={picked} prefill={{ phone, email, name, step: step === "contact" ? "contact" : undefined }} />;
 }

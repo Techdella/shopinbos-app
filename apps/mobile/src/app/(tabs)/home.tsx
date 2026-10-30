@@ -297,6 +297,8 @@ export default function Home() {
 
   const myPicture = latestPicture(changedPictures, "avatarUrl", data?.ownerAvatarUrl);
   const myName = data?.ownerName || firstName || "S";
+  // Statuses are posted as the shop: its logo and name on "Your status" (the owner's photo only when there's no logo).
+  const shopPicture = latestPicture(changedPictures, "logoUrl", data?.store.logoUrl) ?? myPicture;
 
   return (
     <View style={{ flex: 1 }}>
@@ -331,11 +333,11 @@ export default function Home() {
         {status ? (
           <StatusRow
             authors={rings.authors}
-            myName={myName}
-            myPicture={myPicture}
+            myName={shopName || myName}
+            myPicture={shopPicture}
             hasMine={status.mine.posts.length > 0}
             onNew={() => router.push("/status/new" as never)}
-            onOpenMine={() => setStory({ authors: [{ userId: uid ?? "me", name: shopName || myName, role: "seller", logoUrl: myPicture, seen: true, posts: status.mine.posts }], start: 0, own: true })}
+            onOpenMine={() => setStory({ authors: [{ userId: uid ?? "me", name: shopName || myName, role: "seller", logoUrl: shopPicture, seen: true, posts: status.mine.posts }], start: 0, own: true })}
             onOpen={(index) => setStory({ authors: rings.authors, start: index, own: false })}
             leading={rings.leading}
           />
