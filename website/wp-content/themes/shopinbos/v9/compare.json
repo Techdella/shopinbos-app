@@ -1,0 +1,773 @@
+{
+  "checked": "2026-10-30",
+  "fx": {
+    "rate": 1346,
+    "text": "Naira amounts are rough guides at about ₦1,346 to $1 (market rate on 30 October 2026, open.er-api.com). Your bank's card rate may be higher.",
+    "source": "https://open.er-api.com/v6/latest/USD"
+  },
+  "hub": {
+    "title": "Shopinbos vs Bumpa, Selar, Jumia, Shopify and more (2026)",
+    "description": "Honest, sourced comparisons of Shopinbos with Nigerian store builders, marketplaces, global builders and social selling: prices, fees, pay on delivery and delivery.",
+    "lead": "Side-by-side comparisons with the other ways Nigerians sell online. Real prices with sources, what each one does well, and when another option suits you better.",
+    "groups": [
+      { "key": "ng-builders", "label": "Nigerian store builders", "lead": "Apps made in Nigeria for running an online shop.", "slugs": [ "bumpa", "selar", "paystack-storefront", "flutterwave-store" ] },
+      { "key": "ng-marketplaces", "label": "Nigerian marketplaces", "lead": "Big shopping sites where you list next to other sellers.", "slugs": [ "jumia", "konga", "jiji" ] },
+      { "key": "global", "label": "Global store builders", "lead": "International website and shop builders, mostly priced in dollars.", "slugs": [ "shopify", "wix", "woocommerce", "squarespace" ] },
+      { "key": "social", "label": "Social selling", "lead": "Selling straight from your social apps.", "slugs": [ "instagram-shop", "whatsapp-business" ] }
+    ],
+    "rows": [
+      [ "price", "Monthly price" ],
+      [ "fee", "Fee on each sale" ],
+      [ "pod", "Pay on delivery" ],
+      [ "naira", "Naira payments" ],
+      [ "delivery", "Delivery and riders built in" ],
+      [ "social", "WhatsApp and Instagram selling" ],
+      [ "domain", "Your own domain" ],
+      [ "sourcing", "Supplier sourcing and dropship" ],
+      [ "ai", "AI help" ],
+      [ "app", "Phone app" ]
+    ],
+    "faq": [
+      [ "Which is the best online store builder in Nigeria?", "It depends on how you sell. If you sell physical products to customers in Nigeria and want pay on delivery, riders and suppliers in one app, Shopinbos is built for that. If you sell courses or e-books, Selar is strong. If you sell to many countries, a global builder like Shopify may fit better. Each page here lists the strengths of both sides." ],
+      [ "Are these prices up to date?", "We checked every price on 30 October 2026 and link to the source. Prices change, so check the provider's own site before you pay." ],
+      [ "Can I use Shopinbos together with Jumia, Instagram or WhatsApp?", "Yes. Many sellers list on a marketplace and also run their own store. Shopinbos works alongside Instagram, WhatsApp and TikTok: you share your store and product links there." ]
+    ]
+  },
+  "us": {
+    "name": "Shopinbos",
+    "short": "Online store, pay on delivery, delivery partners and Nigerian suppliers in one app.",
+    "facts": {
+      "price": [ "yes", "₦0 to ₦40,000", "Free plan (₦0), Starter ₦6,000, Growth ₦18,000, Pro ₦40,000 a month. Yearly plans give 2 months free." ],
+      "fee": [ "part", "3% to 0.5%", "3% (Free), 2% (Starter), 1% (Growth) or 0.5% (Pro) on each store sale, plus Paystack's card fee." ],
+      "pod": [ "yes", "Growth and Pro", "Yes, on Growth and Pro. The customer pays the shop at the door from their payment link or the rider's QR code (through Paystack), then gives the delivery code." ],
+      "naira": [ "yes", "Yes", "Yes. Plans and prices in naira. Card, transfer and USSD through Paystack, paid out to your bank." ],
+      "delivery": [ "yes", "Yes", "Yes. Book delivery partners in the app, offer self-pickup or doorstep delivery at checkout, and track every delivery." ],
+      "social": [ "yes", "Yes", "Share your store and product links on WhatsApp, Instagram and TikTok. Chats come into one inbox, and you can sync a WhatsApp catalogue." ],
+      "domain": [ "yes", "From Starter", "Free name.mybos.store address on every plan. Your own domain from Starter." ],
+      "sourcing": [ "yes", "Yes", "Yes. Registered sellers can find stock from Nigerian suppliers, dropship it or order wholesale." ],
+      "ai": [ "yes", "Rex and Peggy", "Rex builds your store from a chat. Peggy drafts replies to customers." ],
+      "app": [ "part", "Web app; phone app in pilot", "Shopinbos Business runs in your phone's browser. The phone app is in pilot." ]
+    },
+    "pricing": [
+      [ "Free", "₦0", "3% per sale" ],
+      [ "Starter", "₦6,000 a month", "2% per sale" ],
+      [ "Growth", "₦18,000 a month", "1% per sale" ],
+      [ "Pro", "₦40,000 a month", "0.5% per sale" ]
+    ],
+    "pricing_note": "Paystack's card fee also applies to card payments. Pay on delivery is on Growth and Pro. VAT is added where it applies.",
+    "pros": [
+      "Built for selling in Nigeria: naira prices, Paystack payments and payouts to your bank",
+      "Pay on delivery without riders handling cash (Growth and Pro)",
+      "Book delivery partners and track deliveries in the same app",
+      "Find stock from Nigerian suppliers, dropship or buy wholesale",
+      "Free plan to start, and AI helpers (Rex and Peggy)"
+    ],
+    "cons": [
+      "New: a younger company with a shorter track record than most names here",
+      "The phone app is still in pilot; most sellers use it in the browser",
+      "Nigeria-focused: not the best choice if you mostly sell abroad",
+      "Pay on delivery is only on Growth and Pro",
+      "Fewer themes and add-ons than the big global builders"
+    ]
+  },
+  "rivals": {
+    "bumpa": {
+      "name": "Bumpa",
+      "group": "ng-builders",
+      "logo": "bumpa-mark.png",
+      "site": "https://www.getbumpa.com",
+      "short": "Nigerian app for running a business: website, inventory, in-store sales and bookkeeping.",
+      "answer": "Bumpa is a strong choice if you run a physical shop and want inventory, in-store checkout and bookkeeping in one app. Shopinbos suits sellers who mainly sell online and on social media and want pay on delivery, delivery partners and Nigerian suppliers built in. Both price in naira; Bumpa bills by the quarter or year, Shopinbos by the month or year and has a free plan.",
+      "facts": {
+        "price": [ "yes", "From ₦5,000 (billed quarterly)", "Starter ₦15,000 a quarter (about ₦5,000 a month), Pro ₦30,000 a quarter. Growth and Scale are billed every 6 or 12 months. 14-day free trial." ],
+        "fee": [ "check", "Check their site", "Not shown on their pricing page. Check their site for payment fees." ],
+        "pod": [ "check", "Check their site", "Not mentioned on their pricing page. Check their site." ],
+        "naira": [ "yes", "Yes", "Yes. Naira payments, and dollars too; Growth and up can show prices in NGN, USD, CAD and GBP." ],
+        "delivery": [ "part", "Shipping tools", "Shipping rates on every plan. Automated shipping, pick-up locations and tracking on Pro and up." ],
+        "social": [ "check", "Check their site", "Not listed on their pricing or home page. Check their site." ],
+        "domain": [ "yes", "Yes", "Buy a domain on Starter. A free .com.ng on Pro and up." ],
+        "sourcing": [ "no", "Not listed", "No supplier marketplace listed." ],
+        "ai": [ "check", "Not listed", "No AI tools listed on their home page." ],
+        "app": [ "yes", "Yes", "Yes, on Google Play and the App Store." ]
+      },
+      "pricing": {
+        "currency": "Naira",
+        "plans": [
+          [ "Starter", "₦15,000 a quarter · ₦28,000 for 6 months · ₦55,000 a year", "" ],
+          [ "Pro", "₦30,000 a quarter · ₦55,000 for 6 months · ₦105,000 a year", "" ],
+          [ "Growth", "₦150,000 for 6 months · ₦250,000 a year", "" ],
+          [ "Scale", "₦750,000 a year", "" ],
+          [ "Premium", "Custom price", "" ]
+        ],
+        "note": "Bumpa's help centre lists a 14-day free trial. Their pricing page says fees for payments aren't shown there."
+      },
+      "pros": [
+        "Inventory with barcodes and stock that updates after every sale",
+        "In-store checkout on your device, plus a Bumpa Terminal",
+        "Bookkeeping: invoices, receipts, sales and expenses",
+        "Several locations and staff accounts on higher plans",
+        "Phone apps on Google Play and the App Store"
+      ],
+      "cons": [
+        "No monthly billing on the plans we checked: you pay per quarter or longer",
+        "No free plan listed after the trial",
+        "Pay on delivery and social selling aren't described on their pricing page",
+        "No supplier marketplace for finding stock"
+      ],
+      "choose_them": [ "You run a physical shop and want in-store checkout", "Inventory and bookkeeping matter most to you", "You have staff or more than one location" ],
+      "choose_us": [ "You sell mostly online and on WhatsApp, Instagram or TikTok", "Your customers want to pay on delivery", "You want to book riders and find stock in the same app", "You want a free plan to start" ],
+      "faq": [
+        [ "Is Bumpa or Shopinbos better for Nigerian sellers?", "Bumpa is strong for physical shops that need inventory, in-store checkout and bookkeeping. Shopinbos is built for selling online and on social media, with pay on delivery, delivery partners and Nigerian suppliers. Choose by how most of your sales happen." ],
+        [ "How much does Bumpa cost?", "On 30 October 2026 Bumpa's Starter plan was ₦15,000 a quarter (about ₦5,000 a month) and Pro was ₦30,000 a quarter, with longer plans for Growth and Scale. Check getbumpa.com/pricing for today's prices." ],
+        [ "Is Shopinbos free?", "Shopinbos has a Free plan with a 3% fee on each sale. Paid plans start at ₦6,000 a month and lower the fee to as little as 0.5%." ]
+      ],
+      "sources": [
+        [ "Bumpa pricing", "https://www.getbumpa.com/pricing" ],
+        [ "Bumpa help centre: subscription plans", "https://support.getbumpa.com/support/solutions/articles/150000193102-bumpa-subscription-plans" ],
+        [ "Bumpa home page (features)", "https://www.getbumpa.com/" ]
+      ]
+    },
+    "selar": {
+      "name": "Selar",
+      "group": "ng-builders",
+      "logo": "selar.png",
+      "site": "https://selar.com",
+      "short": "Nigerian platform for selling digital products, courses, memberships and tickets.",
+      "answer": "For e-books, online courses, memberships and event tickets, Selar is usually the better fit: it is built for creators and takes many currencies. For physical products delivered in Nigeria, Shopinbos fits better because pay on delivery, delivery partners and Nigerian suppliers are built in. Both have a free plan.",
+      "facts": {
+        "price": [ "yes", "Free to ₦50,000", "Starter free. Pro ₦12,000, Turbo ₦22,500, TurboPlus ₦50,000 a month." ],
+        "fee": [ "part", "4% + ₦50 (naira sales)", "4% + ₦50 on each naira sale. You can ask the buyer to pay it." ],
+        "pod": [ "no", "Not listed", "Buyers pay online at checkout." ],
+        "naira": [ "yes", "Yes", "Yes, plus many other currencies (USD, GBP, GHS, KES and more)." ],
+        "delivery": [ "no", "You arrange it", "You can sell physical products, but delivery is up to you." ],
+        "social": [ "part", "Share links", "Share product links anywhere, including WhatsApp and Instagram." ],
+        "domain": [ "part", "Pro and up", "Custom domain on Pro and up." ],
+        "sourcing": [ "no", "No", "No supplier marketplace." ],
+        "ai": [ "check", "Not listed", "No AI tools listed on their pricing page." ],
+        "app": [ "check", "Check their site", "Check their site." ]
+      },
+      "pricing": {
+        "currency": "Naira (also priced in USD and other currencies)",
+        "plans": [
+          [ "Starter", "Free", "40 products" ],
+          [ "Pro", "₦12,000 a month ($30)", "Unlimited products, custom domain, courses" ],
+          [ "Turbo", "₦22,500 a month ($45)", "Memberships and more courses" ],
+          [ "TurboPlus", "₦50,000 a month ($125)", "Most courses and memberships" ]
+        ],
+        "note": "Selling fee on naira sales: 4% + ₦50 per sale (Selar help centre). Quarterly and yearly plans cost less per month."
+      },
+      "pros": [
+        "Free Starter plan with up to 40 products",
+        "Made for digital products: e-books, courses, memberships, tickets and bookings",
+        "Sells in many currencies, good for buyers abroad",
+        "Affiliates, coupons, upsells and sales pages"
+      ],
+      "cons": [
+        "Physical delivery is up to you",
+        "No pay on delivery",
+        "A 4% + ₦50 fee on each naira sale, on every plan we checked",
+        "No supplier marketplace"
+      ],
+      "choose_them": [ "You sell e-books, courses, memberships or tickets", "You have buyers in other countries", "You want affiliates to sell for you" ],
+      "choose_us": [ "You sell physical products in Nigeria", "Customers want to pay on delivery", "You want delivery partners and suppliers in the same app" ],
+      "faq": [
+        [ "Is Selar or Shopinbos better for Nigerian sellers?", "Selar is better for digital products and courses. Shopinbos is better for physical products delivered in Nigeria, with pay on delivery and delivery partners built in." ],
+        [ "What does Selar charge per sale?", "Selar's help centre says it charges 4% + ₦50 on each naira sale, and you can pass this to the buyer. Check selar.com for other currencies." ],
+        [ "Can I sell digital products on Shopinbos?", "Shopinbos is built mainly for physical products. If digital products are your main business, Selar is likely the better fit." ]
+      ],
+      "sources": [
+        [ "Selar pricing", "https://selar.com/pricing" ],
+        [ "Selar help centre: passing transaction fees to customers", "https://help.selar.com/portal/en/kb/articles/how-to-pass-transaction-fees-to-your-customers-from-your-selar-dashboard" ]
+      ]
+    },
+    "paystack-storefront": {
+      "name": "Paystack Storefront",
+      "group": "ng-builders",
+      "logo": "paystack.png",
+      "site": "https://paystack.com",
+      "short": "A simple shop page inside your Paystack account.",
+      "answer": "Paystack Storefront is a quick, simple way to take payments for a few products if you already use Paystack. Shopinbos is a full online store with pay on delivery, delivery partners and suppliers, and it also takes payments through Paystack. Start with Storefront if you need something simple today; move to Shopinbos when you want to run the whole shop.",
+      "facts": {
+        "price": [ "yes", "No monthly fee", "No separate subscription; you need a Paystack account." ],
+        "fee": [ "part", "Paystack's fees", "Paystack's normal fees. Their published local rate is 1.5% + ₦100 (₦100 waived under ₦2,500), capped at ₦2,000. Check paystack.com." ],
+        "pod": [ "no", "No", "Customers pay online at checkout." ],
+        "naira": [ "yes", "Yes", "Yes. You can make storefronts in different currencies too." ],
+        "delivery": [ "part", "Delivery fees only", "Set delivery fees by location and collect addresses. You arrange the delivery." ],
+        "social": [ "part", "Share link", "Share your store link anywhere, and add your social links." ],
+        "domain": [ "no", "Paystack link", "Your store lives on a Paystack link." ],
+        "sourcing": [ "no", "No", "No supplier marketplace." ],
+        "ai": [ "no", "Not listed", "No AI tools listed." ],
+        "app": [ "check", "Check their site", "Check their site." ]
+      },
+      "pricing": {
+        "currency": "Naira",
+        "plans": [
+          [ "Storefront", "No monthly fee", "Paystack's transaction fees apply" ],
+          [ "Local payments (Paystack's published rate)", "1.5% + ₦100 per payment", "₦100 waived under ₦2,500; capped at ₦2,000" ]
+        ],
+        "note": "The local rate above is Paystack's long-standing published rate. Check paystack.com/ng/pricing for today's rate."
+      },
+      "pros": [
+        "Very quick to set up if you already use Paystack",
+        "No extra subscription",
+        "Discounts, delivery fees by location and several storefronts",
+        "Paystack's trusted checkout"
+      ],
+      "cons": [
+        "A simple shop page, not a full store with themes and pages",
+        "No pay on delivery",
+        "You arrange delivery yourself",
+        "No own domain, inbox or supplier marketplace"
+      ],
+      "choose_them": [ "You already use Paystack and sell a few products", "You want a payment page today with no subscription", "You don't need delivery or pay on delivery" ],
+      "choose_us": [ "You want a full store with your own domain", "Customers want to pay on delivery", "You want to book delivery and track orders in one app" ],
+      "faq": [
+        [ "Is Paystack Storefront or Shopinbos better for Nigerian sellers?", "Storefront is great for taking payments quickly with no subscription. Shopinbos is a full store with pay on delivery, delivery partners and suppliers. Many sellers start simple and move when orders grow." ],
+        [ "Is Paystack Storefront still available?", "Yes. Paystack's help centre still explains how to create and edit a Storefront (checked 30 October 2026)." ],
+        [ "Does Shopinbos use Paystack?", "Yes. Card, transfer and USSD payments on Shopinbos go through Paystack and are paid out to your bank." ]
+      ],
+      "sources": [
+        [ "Paystack help centre: Storefront", "https://support.paystack.com/en/articles/2132738" ],
+        [ "Paystack help centre: set up a Storefront", "https://support.paystack.com/hc/en-us/articles/360017856000-How-do-I-set-up-a-Storefront" ],
+        [ "Paystack pricing (Nigeria)", "https://paystack.com/ng/pricing" ]
+      ]
+    },
+    "flutterwave-store": {
+      "name": "Flutterwave Store",
+      "group": "ng-builders",
+      "logo": "flutterwave.png",
+      "site": "https://flutterwave.com/ng/store",
+      "short": "A free online store from Flutterwave, listed on Flutterwave Market.",
+      "answer": "Flutterwave Store is a free, simple way to list products and take payments, and your store appears on Flutterwave Market. Shopinbos is a fuller store with pay on delivery, delivery partners and Nigerian suppliers built in. If you only need a product page and payments, Flutterwave Store is enough; if you want to run deliveries and orders in one place, Shopinbos fits better.",
+      "facts": {
+        "price": [ "yes", "Free to set up", "Free to set up. No subscription listed." ],
+        "fee": [ "part", "2% + VAT", "Flutterwave's local rate: 2% per payment (1.4% + 0.6% platform fee), plus VAT. Customers pay it by default." ],
+        "pod": [ "no", "No", "Customers pay online." ],
+        "naira": [ "yes", "Yes", "Yes." ],
+        "delivery": [ "part", "Delivery fee only", "Charge a delivery fee. You arrange the delivery." ],
+        "social": [ "part", "Share link", "Share your store link." ],
+        "domain": [ "no", "Flutterwave link", "Your store lives on a Flutterwave link." ],
+        "sourcing": [ "no", "No", "No supplier marketplace." ],
+        "ai": [ "no", "Not listed", "No AI tools listed." ],
+        "app": [ "part", "Manage on mobile", "Manage your store on mobile." ]
+      },
+      "pricing": {
+        "currency": "Naira",
+        "plans": [
+          [ "Store", "Free to set up", "" ],
+          [ "Local payments", "2% per payment", "1.4% + 0.6% platform fee, plus 7.5% VAT on fees" ],
+          [ "International cards", "4.8% per payment", "" ]
+        ],
+        "note": "By default your customers pay the transaction fee; you can change this in your dashboard."
+      },
+      "pros": [
+        "Free to set up",
+        "Your store is also listed on Flutterwave Market",
+        "Variants, discounts and low-stock alerts",
+        "Takes local and international payments"
+      ],
+      "cons": [
+        "No pay on delivery",
+        "You arrange delivery yourself",
+        "No own domain or supplier marketplace",
+        "Simple store pages with few design choices"
+      ],
+      "choose_them": [ "You want a free product page with payments", "You'd like to be listed on Flutterwave Market", "You sell to customers abroad by card" ],
+      "choose_us": [ "Customers want to pay on delivery", "You want to book delivery and track orders", "You want your own domain and a full store" ],
+      "faq": [
+        [ "Is Flutterwave Store or Shopinbos better for Nigerian sellers?", "Flutterwave Store is a good free start for taking payments. Shopinbos suits sellers who want pay on delivery, delivery partners and a full store with their own domain." ],
+        [ "Is Flutterwave Store still running?", "Yes. Flutterwave's Nigeria site still offers Store and says it is free to set up (checked 30 October 2026)." ],
+        [ "Who pays Flutterwave's fee?", "Flutterwave's pricing page says customers bear the transaction charges by default, and you can change that." ]
+      ],
+      "sources": [
+        [ "Flutterwave Store", "https://flutterwave.com/ng/store" ],
+        [ "Flutterwave pricing (Nigeria)", "https://flutterwave.com/ng/pricing" ]
+      ]
+    },
+    "jumia": {
+      "name": "Jumia",
+      "group": "ng-marketplaces",
+      "logo": "jumia.png",
+      "site": "https://www.jumia.com.ng",
+      "short": "One of Nigeria's biggest online marketplaces, with its own delivery.",
+      "answer": "Jumia gives you access to a very large group of shoppers and handles delivery, but you pay commission on each sale and sell next to many other sellers. Shopinbos gives you your own store, your own customers and lower fees per sale, but you bring the shoppers yourself. Many sellers use both.",
+      "facts": {
+        "price": [ "yes", "Free to sign up", "Free to register, per Jumia's vendor pages. You pay commission on sales." ],
+        "fee": [ "part", "Commission by category", "Commission on each sale, set by category, plus other fees and VAT. Check Jumia Seller Center for today's rates." ],
+        "pod": [ "yes", "Yes (limits apply)", "Shoppers can choose pay on delivery, with limits on some items and places." ],
+        "naira": [ "yes", "Yes", "Yes." ],
+        "delivery": [ "yes", "Jumia delivers", "Jumia's own delivery network." ],
+        "social": [ "no", "No", "Shoppers buy on Jumia, not in your chats." ],
+        "domain": [ "no", "No", "You sell on Jumia's site." ],
+        "sourcing": [ "no", "No", "No supplier sourcing for sellers." ],
+        "ai": [ "no", "Not listed", "Not listed for sellers." ],
+        "app": [ "part", "Shopper app", "Big shopper app; seller tools in Seller Center." ]
+      },
+      "pricing": {
+        "currency": "Naira",
+        "plans": [
+          [ "Sign-up", "Free", "Per Jumia's vendor pages" ],
+          [ "Commission", "Varies by category", "Check Jumia Seller Center" ],
+          [ "Low seller score", "Extra 20% to 75% of your commission", "Charged weekly for scores below 3" ]
+        ],
+        "note": "Jumia's vendor guide shows a 5% commission as an example, not a fixed rate. Fines apply for counterfeit items."
+      },
+      "pros": [
+        "A very large group of shoppers already on Jumia",
+        "Jumia delivers for you",
+        "Shoppers trust it, and pay on delivery is offered",
+        "Big sales events like Black Friday"
+      ],
+      "cons": [
+        "Commission and fees on every sale",
+        "You sell next to many sellers of the same item",
+        "Customers belong to Jumia, not to you",
+        "Extra fees and fines tied to your seller score"
+      ],
+      "choose_them": [ "You want shoppers without building a following", "You don't want to handle delivery", "Your products sell well on price" ],
+      "choose_us": [ "You want your own brand and your own customers", "You sell through WhatsApp, Instagram or TikTok", "You want lower fees per sale" ],
+      "faq": [
+        [ "Is Jumia or Shopinbos better for Nigerian sellers?", "Jumia is better for reaching shoppers fast without your own following. Shopinbos is better for building your own brand with your own customers and lower fees per sale. Many sellers do both." ],
+        [ "How much commission does Jumia charge?", "Jumia sets commission by category and changes it from time to time. Check Jumia Seller Center for today's rates." ],
+        [ "Can I sell on Jumia and Shopinbos at the same time?", "Yes. You can keep your Jumia listings and run your own Shopinbos store for repeat customers." ]
+      ],
+      "sources": [
+        [ "Jumia vendor hub: extra fees and fines", "https://vendor.jumia.com/?p=433" ],
+        [ "Jumia investor relations (Q4 2025 results)", "https://investor.jumia.com" ]
+      ]
+    },
+    "konga": {
+      "name": "Konga",
+      "group": "ng-marketplaces",
+      "logo": "konga.png",
+      "site": "https://www.konga.com",
+      "short": "Long-running Nigerian marketplace with KongaPay and its own delivery.",
+      "answer": "Konga puts your products in front of shoppers who already use it, with KongaPay and Konga's delivery. You pay commission and compete with other sellers on the same page. Shopinbos gives you your own store and customers, with pay on delivery and delivery partners, for a monthly plan and a smaller fee per sale.",
+      "facts": {
+        "price": [ "yes", "Free to sign up", "Free to register, per seller guides. You pay commission on sales." ],
+        "fee": [ "part", "Commission by category", "Commission by category, taken before your money is paid out. Check Konga SellerHQ." ],
+        "pod": [ "check", "Check their site", "Check their site." ],
+        "naira": [ "yes", "Yes", "Yes, through KongaPay." ],
+        "delivery": [ "yes", "Konga delivers", "Konga's own delivery and logistics." ],
+        "social": [ "no", "No", "Shoppers buy on Konga." ],
+        "domain": [ "no", "No", "You sell on Konga's site." ],
+        "sourcing": [ "no", "No", "No supplier sourcing for sellers." ],
+        "ai": [ "no", "Not listed", "Not listed for sellers." ],
+        "app": [ "part", "Shopper app", "Shopper app; seller tools in SellerHQ." ]
+      },
+      "pricing": {
+        "currency": "Naira",
+        "plans": [
+          [ "Sign-up", "Free", "Per seller guides" ],
+          [ "Commission", "Varies by category", "Check Konga SellerHQ" ]
+        ],
+        "note": "Konga's seller agreement says it gives at least 14 days' notice before changing commission."
+      },
+      "pros": [
+        "Shoppers who already know and use Konga",
+        "Konga handles delivery",
+        "KongaPay checkout",
+        "Free to sign up"
+      ],
+      "cons": [
+        "Commission on each sale",
+        "Customers belong to Konga, not to you",
+        "You compete with other sellers on the same page",
+        "Commission rates aren't published on the open site"
+      ],
+      "choose_them": [ "You want marketplace shoppers without your own following", "You don't want to arrange delivery", "You already sell on other marketplaces" ],
+      "choose_us": [ "You want your own brand and repeat customers", "You sell through social media and chats", "You want to see every fee up front" ],
+      "faq": [
+        [ "Is Konga or Shopinbos better for Nigerian sellers?", "Konga is better for reaching marketplace shoppers. Shopinbos is better for your own brand, your own customers and selling on social media. Many sellers use both." ],
+        [ "Is Konga still operating?", "Yes. Konga.com was live with a Sell on Konga sign-up when we checked on 30 October 2026." ],
+        [ "How much does Konga charge sellers?", "Konga charges commission by category. Check Konga SellerHQ or its seller handbook for today's rates." ]
+      ],
+      "sources": [
+        [ "Konga", "https://www.konga.com/" ],
+        [ "Konga seller service agreement", "https://www-konga-com-res.cloudinary.com/sellerhq/global/service_agreement.pdf" ],
+        [ "Konga seller handbook (2024)", "https://www-konga-com-res.cloudinary.com/image/upload/v1707226589/sellerhq/docs/Updated_Seller_Handbook_2024.pdf" ]
+      ]
+    },
+    "jiji": {
+      "name": "Jiji",
+      "group": "ng-marketplaces",
+      "logo": "jiji.png",
+      "site": "https://jiji.ng",
+      "short": "Nigeria's big classifieds site: post ads and buyers contact you.",
+      "answer": "Jiji is great for reaching lots of buyers with free ads, especially for phones, cars, property and used items, and it takes no commission. But there is no checkout: you agree payment and delivery with each buyer yourself. Shopinbos gives you a store with checkout, pay on delivery and delivery partners, so orders run in one place.",
+      "facts": {
+        "price": [ "yes", "Free ads; paid boosts", "Basic ads are free. Paid boosts and premium packages give more views." ],
+        "fee": [ "yes", "No commission", "No commission on sales; Jiji earns from paid boosts." ],
+        "pod": [ "part", "You arrange it", "No checkout. You agree payment with each buyer." ],
+        "naira": [ "part", "You arrange it", "Buyers pay you directly." ],
+        "delivery": [ "no", "You arrange it", "Meet the buyer or arrange delivery yourself." ],
+        "social": [ "part", "WhatsApp contact", "Buyers can contact you on WhatsApp from your ad." ],
+        "domain": [ "no", "No", "Your ads live on Jiji." ],
+        "sourcing": [ "no", "No", "No supplier sourcing." ],
+        "ai": [ "no", "Not listed", "Not listed." ],
+        "app": [ "yes", "Yes", "Yes, on Google Play and the App Store." ]
+      },
+      "pricing": {
+        "currency": "Naira",
+        "plans": [
+          [ "Basic ads", "Free", "" ],
+          [ "Boosts and premium packages", "Check their site", "Prices depend on category and length" ]
+        ],
+        "note": "Boost prices depend on your category and how long the ad runs. Check jiji.ng for today's prices."
+      },
+      "pros": [
+        "Free to post ads",
+        "No commission on sales",
+        "Lots of buyers for phones, cars, property and used items",
+        "Buyers can call or WhatsApp you straight from the ad"
+      ],
+      "cons": [
+        "No checkout or online payment",
+        "You arrange delivery and payment with each buyer",
+        "Scams are a known risk; Jiji warns buyers not to pay in advance",
+        "Your ads compete with many similar ads"
+      ],
+      "choose_them": [ "You sell used items, cars, property or one-off items", "You want free ads and calls from buyers", "You are happy to meet buyers or arrange delivery yourself" ],
+      "choose_us": [ "You want customers to order and pay online", "Customers want pay on delivery with a code", "You want to book delivery and track it" ],
+      "faq": [
+        [ "Is Jiji or Shopinbos better for Nigerian sellers?", "Jiji is better for free ads and one-off or used items. Shopinbos is better if you sell regularly and want checkout, pay on delivery and delivery in one place." ],
+        [ "Does Jiji charge commission?", "No. Basic ads are free and Jiji earns from paid boosts and premium packages." ],
+        [ "Can I post my Shopinbos products on Jiji?", "Yes. You can post ads on Jiji and send buyers to your Shopinbos store link to order." ]
+      ],
+      "sources": [
+        [ "Jiji Nigeria", "https://jiji.ng" ],
+        [ "Jiji help: boosts and premium", "https://jiji.ng/faq/upgrade-boost" ],
+        [ "Jiji help: WhatsApp contact and safety", "https://jiji.ng/faq/whatsapp-contact" ],
+        [ "Jiji on Google Play", "https://play.google.com/store/apps/details?id=ng.jiji.app" ]
+      ]
+    },
+    "shopify": {
+      "name": "Shopify",
+      "group": "global",
+      "logo": "shopify.svg",
+      "site": "https://www.shopify.com",
+      "short": "The world's best-known store builder, priced in dollars.",
+      "answer": "Shopify is excellent if you sell to many countries or need its huge app store, and you are happy to pay in dollars. For selling mainly in Nigeria, Shopinbos is simpler and cheaper to start: naira plans, pay on delivery, delivery partners and Nigerian suppliers are built in, where Shopify needs apps. Shopify Payments isn't offered in Nigeria, so you'd add Paystack and pay Shopify's extra fee.",
+      "facts": {
+        "price": [ "part", "$27 to $399 (≈₦36,000 to ₦537,000)", "Basic $27, Grow $72, Advanced $399 a month (less if billed yearly). Billed in US dollars." ],
+        "fee": [ "part", "2% to 0.6% + provider fee", "Shopify Payments isn't offered in Nigeria, so Shopify adds 2% (Basic), 1% (Grow) or 0.6% (Advanced) on top of your payment provider's fee." ],
+        "pod": [ "part", "Manual", "A manual cash-on-delivery payment option; you collect and mark it paid." ],
+        "naira": [ "yes", "With Paystack app", "Yes, with the Paystack app. Your store prices must be in naira." ],
+        "delivery": [ "part", "Through apps", "Through third-party apps. No Nigerian riders built in." ],
+        "social": [ "part", "Through apps", "Sales channels and apps; check which work in Nigeria." ],
+        "domain": [ "yes", "Yes", "Yes." ],
+        "sourcing": [ "part", "Dropship apps", "Dropshipping apps, mostly overseas suppliers." ],
+        "ai": [ "yes", "Yes", "Shopify Magic and Sidekick AI tools." ],
+        "app": [ "yes", "Yes", "Yes, iOS and Android." ]
+      },
+      "pricing": {
+        "currency": "US dollars",
+        "plans": [
+          [ "Basic", "$27 a month (≈₦36,000) · $19 billed yearly", "2% extra fee with Paystack" ],
+          [ "Grow", "$72 a month (≈₦97,000) · $54 billed yearly", "1% extra fee" ],
+          [ "Advanced", "$399 a month (≈₦537,000) · $299 billed yearly", "0.6% extra fee" ],
+          [ "Plus", "From $2,300 a month", "0.2% extra fee" ]
+        ],
+        "note": "3-day free trial, then $1 a month for the first 3 months on most plans. Your payment provider's own fee (e.g. Paystack) comes on top."
+      },
+      "pros": [
+        "Thousands of themes and apps",
+        "Strong for selling to many countries",
+        "Mature, reliable platform with 24/7 support",
+        "Paystack app for naira payments"
+      ],
+      "cons": [
+        "Billed in dollars, so the naira cost moves with the exchange rate",
+        "Shopify Payments isn't offered in Nigeria: an extra 2% to 0.6% fee on top of Paystack",
+        "Pay on delivery, Nigerian riders and WhatsApp need apps or manual work",
+        "Paid apps add up"
+      ],
+      "choose_them": [ "You sell to many countries", "You need a very large app store", "You have a developer or agency", "You charge in dollars or pounds" ],
+      "choose_us": [ "You sell mainly in Nigeria", "Your customers want pay on delivery", "You want to pay in naira, with a free plan to start", "You want riders and Nigerian suppliers built in" ],
+      "faq": [
+        [ "Is Shopify or Shopinbos better for Nigerian sellers?", "Shopify is better for selling worldwide and for its app store. Shopinbos is better for selling in Nigeria, with naira plans, pay on delivery and delivery partners built in." ],
+        [ "Is Shopify available in Nigeria?", "Yes, you can use Shopify from Nigeria and take naira payments with the Paystack app. Shopify Payments isn't offered in Nigeria, so Shopify adds its own fee on each sale." ],
+        [ "How much is Shopify in naira?", "Shopify Basic was $27 a month on 30 October 2026, about ₦36,000 at the market rate that day. Your bank's card rate may be higher." ]
+      ],
+      "sources": [
+        [ "Shopify pricing", "https://www.shopify.com/ng/pricing" ],
+        [ "Shopify Payments supported countries", "https://help.shopify.com/en/manual/payments/shopify-payments/supported-countries" ],
+        [ "Paystack app on the Shopify App Store", "https://apps.shopify.com/paystack" ]
+      ]
+    },
+    "wix": {
+      "name": "Wix",
+      "group": "global",
+      "logo": "wix.svg",
+      "site": "https://www.wix.com",
+      "short": "Popular drag-and-drop website builder with online store plans.",
+      "answer": "Wix is a great website builder with lots of design freedom, and it can take naira payments through Paystack. But it is billed in dollars, and delivery, pay on delivery and suppliers are not built for Nigeria. Shopinbos is the simpler, cheaper choice if you mainly sell products in Nigeria; Wix suits you if the website and design matter most.",
+      "facts": {
+        "price": [ "part", "$29 to $159 (≈₦39,000 to ₦214,000)", "Plans that take payments: Core $29, Business $39, Business Elite $159 a month, billed yearly (US prices; they vary by country)." ],
+        "fee": [ "part", "Provider's fee", "Your payment provider's fee, such as Paystack." ],
+        "pod": [ "part", "Manual", "Manual (offline) payments you mark as paid." ],
+        "naira": [ "yes", "With Paystack", "Yes. Wix lists Paystack as a payment provider in Nigeria." ],
+        "delivery": [ "no", "Not built in", "Set your own shipping rates. No Nigerian riders built in." ],
+        "social": [ "part", "Through apps", "Through Wix apps and integrations." ],
+        "domain": [ "yes", "Yes", "Yes, with a free domain for the first year on yearly plans." ],
+        "sourcing": [ "part", "Dropship apps", "Dropshipping apps, mostly overseas suppliers." ],
+        "ai": [ "yes", "Yes", "AI website builder and AI tools." ],
+        "app": [ "yes", "Yes", "Yes, the Wix app." ]
+      },
+      "pricing": {
+        "currency": "US dollars (prices vary by country)",
+        "plans": [
+          [ "Light", "$17 a month, billed yearly (≈₦23,000)", "No online payments" ],
+          [ "Core", "$29 a month, billed yearly (≈₦39,000)", "Accept payments, basic store" ],
+          [ "Business", "$39 a month, billed yearly (≈₦52,500)", "Standard store" ],
+          [ "Business Elite", "$159 a month, billed yearly (≈₦214,000)", "Advanced store" ]
+        ],
+        "note": "Wix shows yearly prices; monthly billing costs more. There is also a free plan without online payments."
+      },
+      "pros": [
+        "Lots of design freedom with drag and drop",
+        "Great for a full website: blog, bookings, pages",
+        "Paystack works for naira payments",
+        "Large app market"
+      ],
+      "cons": [
+        "Billed in dollars, and plans that take payments start at $29 a month",
+        "No pay on delivery with a code, and no Nigerian riders built in",
+        "No Nigerian supplier marketplace",
+        "More setup work to make a shop fit Nigerian buyers"
+      ],
+      "choose_them": [ "Your website and design matter most", "You want a blog, bookings and pages as well as a shop", "You charge in dollars" ],
+      "choose_us": [ "You mainly sell products in Nigeria", "Customers want pay on delivery", "You want naira plans and a free plan", "You want delivery and suppliers in the app" ],
+      "faq": [
+        [ "Is Wix or Shopinbos better for Nigerian sellers?", "Wix is better for design-led websites. Shopinbos is better for selling products in Nigeria, with naira plans, pay on delivery and delivery built in." ],
+        [ "Can Wix take naira payments?", "Yes. Wix's help centre lists Paystack as a payment provider for Nigeria." ],
+        [ "How much is Wix in Nigeria?", "Wix's Core plan, the cheapest that takes payments, was $29 a month billed yearly on 30 October 2026 (US price), about ₦39,000. Wix prices vary by country." ]
+      ],
+      "sources": [
+        [ "Wix plans", "https://www.wix.com/plans" ],
+        [ "Wix help: connecting Paystack", "https://support.wix.com/en/article/connecting-paystack-as-a-payment-provider" ],
+        [ "Wix help: available payment providers", "https://support.wix.com/en/article/available-payment-providers" ]
+      ]
+    },
+    "woocommerce": {
+      "name": "WooCommerce",
+      "group": "global",
+      "logo": "woocommerce.svg",
+      "site": "https://woocommerce.com",
+      "short": "Free, open-source shop plugin for WordPress websites.",
+      "answer": "WooCommerce is free, flexible and lets you own everything, with Paystack and cash on delivery available. But you pay for hosting and extensions and need to set it up and maintain it, often with a developer. Shopinbos is ready to sell from day one with pay on delivery, delivery partners and suppliers built in.",
+      "facts": {
+        "price": [ "part", "Free + hosting", "The plugin is free. Hosting is about $25 to $350 a month and extensions $29 to $299 a year each, per WooCommerce." ],
+        "fee": [ "yes", "0% + provider fee", "WooCommerce takes no cut. You pay your payment provider, such as Paystack." ],
+        "pod": [ "yes", "Cash on delivery", "Cash on delivery is a built-in payment option." ],
+        "naira": [ "yes", "With plugins", "Yes, with the Paystack or Flutterwave plugins." ],
+        "delivery": [ "part", "Plugins", "Through plugins you set up yourself." ],
+        "social": [ "part", "Plugins", "Through plugins." ],
+        "domain": [ "yes", "Yes", "Yes, it is your own website." ],
+        "sourcing": [ "part", "Plugins", "Through dropshipping plugins." ],
+        "ai": [ "part", "Plugins", "Through plugins." ],
+        "app": [ "yes", "Yes", "Yes, the WooCommerce app for orders." ]
+      },
+      "pricing": {
+        "currency": "US dollars (hosting can be bought in naira)",
+        "plans": [
+          [ "WooCommerce plugin", "Free", "" ],
+          [ "Hosting", "$25 to $350 a month (≈₦34,000 to ₦471,000)", "WooCommerce's estimate; hosts' prices vary" ],
+          [ "Extensions", "$29 to $299 a year each", "Optional" ]
+        ],
+        "note": "Payment fees are your provider's, for example Paystack's. WooCommerce adds no fee of its own."
+      },
+      "pros": [
+        "Free and open source: you own the site and the data",
+        "Endless plugins and designs",
+        "Cash on delivery built in, and Paystack and Flutterwave plugins",
+        "No platform fee on sales"
+      ],
+      "cons": [
+        "You pay for hosting, and plugins add up",
+        "Setup, updates and security are your job, often with a developer",
+        "Delivery, WhatsApp and suppliers need extra plugins",
+        "Pay on delivery is plain cash, with no code or payment link at the door"
+      ],
+      "choose_them": [ "You already have a WordPress website", "You have a developer or like doing it yourself", "You want full control and no platform fee" ],
+      "choose_us": [ "You want to start selling today, without a developer", "You run your shop from your phone", "You want pay on delivery without riders handling cash", "You want delivery and suppliers in one app" ],
+      "faq": [
+        [ "Is WooCommerce or Shopinbos better for Nigerian sellers?", "WooCommerce is better if you want full control and have a developer. Shopinbos is better if you want to start fast and run everything from your phone, with pay on delivery and delivery built in." ],
+        [ "Is WooCommerce really free?", "The plugin is free, but you pay for hosting, a domain and any paid extensions. WooCommerce estimates hosting at $25 to $350 a month for most stores." ],
+        [ "Can I move from WooCommerce to Shopinbos?", "Yes. Export your products as a CSV file and import the spreadsheet into Shopinbos." ]
+      ],
+      "sources": [
+        [ "WooCommerce pricing", "https://woocommerce.com/pricing/" ],
+        [ "Paystack WooCommerce plugin", "https://wordpress.org/plugins/woo-paystack/" ]
+      ]
+    },
+    "squarespace": {
+      "name": "Squarespace",
+      "group": "global",
+      "logo": "squarespace.svg",
+      "site": "https://www.squarespace.com",
+      "short": "Design-led website builder with online store plans.",
+      "answer": "Squarespace makes beautiful websites and is good for portfolios and brands that sell abroad. For Nigerian sellers, payments are the sticking point: Squarespace works with Stripe and PayPal, and Stripe sends Nigerian businesses to Paystack instead. Shopinbos takes naira payments through Paystack and adds pay on delivery and delivery, so it is the more practical choice for selling in Nigeria.",
+      "facts": {
+        "price": [ "part", "$25 to $139 (≈₦34,000 to ₦187,000)", "Basic $25, Core $39, Plus $65, Advanced $139 a month (less billed yearly)." ],
+        "fee": [ "part", "2% on Basic + card fee", "2% fee on Basic; 0% on Core and up. Card fees from 2.5% + $0.30 come on top." ],
+        "pod": [ "no", "Not built in", "Not built in." ],
+        "naira": [ "check", "Check their site", "Payments run through Stripe or PayPal. Stripe sends Nigerian businesses to Paystack, so check this works for you." ],
+        "delivery": [ "no", "Not built in", "Shipping rates you set. No Nigerian riders built in." ],
+        "social": [ "part", "Social tools", "Social links and posting tools." ],
+        "domain": [ "yes", "Yes", "Yes." ],
+        "sourcing": [ "check", "Check their site", "Check their site for extensions." ],
+        "ai": [ "yes", "Yes", "AI website builder." ],
+        "app": [ "yes", "Yes", "Yes, the Squarespace app." ]
+      },
+      "pricing": {
+        "currency": "US dollars",
+        "plans": [
+          [ "Basic", "$25 a month (≈₦34,000) · $19 billed yearly", "2% transaction fee" ],
+          [ "Core", "$39 a month (≈₦52,500) · $29 billed yearly", "0% transaction fee" ],
+          [ "Plus", "$65 a month (≈₦87,500) · $49 billed yearly", "0% transaction fee" ],
+          [ "Advanced", "$139 a month (≈₦187,000) · $99 billed yearly", "0% transaction fee" ]
+        ],
+        "note": "Card rates on Squarespace Payments run from 2.9% + $0.30 (Basic) to 2.5% + $0.30 (Advanced)."
+      },
+      "pros": [
+        "Beautiful templates and strong design",
+        "Good for portfolios, services and brands",
+        "No transaction fee from the Core plan up",
+        "Built-in blog, plus add-ons for email campaigns and bookings"
+      ],
+      "cons": [
+        "Billed in dollars",
+        "Taking payments from Nigeria can be hard: it relies on Stripe or PayPal",
+        "No pay on delivery or Nigerian delivery built in",
+        "No Nigerian supplier marketplace"
+      ],
+      "choose_them": [ "You sell mostly to customers abroad", "Design and brand image come first", "You already have Stripe or PayPal set up for your business" ],
+      "choose_us": [ "You sell mainly in Nigeria", "You want naira payments through Paystack", "Customers want pay on delivery", "You want delivery and suppliers in the app" ],
+      "faq": [
+        [ "Is Squarespace or Shopinbos better for Nigerian sellers?", "Squarespace is better for design-led sites selling abroad. Shopinbos is better for selling in Nigeria, with naira payments, pay on delivery and delivery built in." ],
+        [ "Can I use Squarespace in Nigeria?", "You can build a site, but check payments first. Squarespace works with Stripe and PayPal, and Stripe's site sends Nigerian businesses to Paystack." ],
+        [ "How much is Squarespace?", "On 30 October 2026 Squarespace Basic was $25 a month, or $19 a month billed yearly. Check squarespace.com/pricing." ]
+      ],
+      "sources": [
+        [ "Squarespace pricing", "https://www.squarespace.com/pricing" ],
+        [ "Stripe global availability", "https://stripe.com/global" ]
+      ]
+    },
+    "instagram-shop": {
+      "name": "Instagram",
+      "group": "social",
+      "logo": "instagram.svg",
+      "site": "https://business.instagram.com",
+      "short": "Selling through your Instagram page, posts and DMs.",
+      "answer": "Instagram is where many Nigerian shoppers find products, and it costs nothing to post. But selling only in DMs means screenshots, transfers and manual tracking, and Instagram's own checkout isn't something we could confirm for Nigeria. Shopinbos doesn't replace Instagram: it gives your followers a store link to order and pay, with pay on delivery and delivery handled.",
+      "facts": {
+        "price": [ "yes", "Free", "Free to post and chat." ],
+        "fee": [ "yes", "Free", "No selling fee; payment is up to you." ],
+        "pod": [ "part", "You arrange it", "You arrange it with each customer." ],
+        "naira": [ "part", "Transfers", "Customers pay by transfer or a link you send." ],
+        "delivery": [ "no", "You arrange it", "You arrange it." ],
+        "social": [ "yes", "Instagram itself", "It is the social channel, with posts, reels, stories and DMs." ],
+        "domain": [ "no", "No", "Your Instagram page only." ],
+        "sourcing": [ "no", "No", "No." ],
+        "ai": [ "check", "Check their site", "Meta's AI features vary by country." ],
+        "app": [ "yes", "Yes", "Yes." ]
+      },
+      "pricing": {
+        "currency": "Naira",
+        "plans": [
+          [ "Instagram account", "Free", "" ],
+          [ "Ads", "You set your budget", "" ]
+        ],
+        "note": "Instagram checkout depends on country. We couldn't confirm it for Nigerian businesses; check Meta's commerce eligibility rules."
+      },
+      "pros": [
+        "Free, and many Nigerian shoppers are already there",
+        "Great for showing products with photos, reels and stories",
+        "Easy to chat with customers in DMs",
+        "Paid ads to reach new buyers"
+      ],
+      "cons": [
+        "Orders, payments and stock live in DMs and screenshots",
+        "No checkout or pay on delivery tools for most Nigerian sellers",
+        "You arrange every delivery",
+        "If your account is blocked or hacked, your shop goes with it"
+      ],
+      "choose_them": [ "You are testing a product and only get a few orders", "You want to grow followers first", "You're happy to take orders in DMs" ],
+      "choose_us": [ "DMs and screenshots are getting too much", "You want customers to order and pay from a link in your bio", "You want pay on delivery and delivery booked for you" ],
+      "faq": [
+        [ "Is Instagram or Shopinbos better for Nigerian sellers?", "Use both. Instagram is where people find you; Shopinbos is where they order and pay. Put your Shopinbos store link in your bio and share product links in DMs." ],
+        [ "Can I sell directly on Instagram in Nigeria?", "You can post products and take orders in DMs. Instagram's in-app checkout depends on country; check Meta's eligibility rules." ],
+        [ "Does Shopinbos work with Instagram?", "Yes. Share your store and product links on Instagram, and bring your Instagram chats into the Shopinbos inbox." ]
+      ],
+      "sources": [
+        [ "Instagram for business", "https://business.instagram.com" ],
+        [ "Meta commerce eligibility requirements", "https://www.facebook.com/business/help/2347002662267537" ]
+      ]
+    },
+    "whatsapp-business": {
+      "name": "WhatsApp Business",
+      "group": "social",
+      "logo": "whatsapp.svg",
+      "site": "https://business.whatsapp.com",
+      "short": "Free business app with a product catalogue and quick replies.",
+      "answer": "WhatsApp Business is free and perfect for chatting with customers, with a catalogue to show products. But orders, payments and deliveries still happen by hand. Shopinbos works with WhatsApp: customers order and pay from your store link, and you can sync your products to a WhatsApp catalogue, with pay on delivery and delivery handled.",
+      "facts": {
+        "price": [ "yes", "Free", "The WhatsApp Business app is free." ],
+        "fee": [ "yes", "Free", "No selling fee; payment is up to you." ],
+        "pod": [ "part", "You arrange it", "You arrange it with each customer." ],
+        "naira": [ "part", "Transfers", "Customers pay by transfer or a link you send." ],
+        "delivery": [ "no", "You arrange it", "You arrange it." ],
+        "social": [ "yes", "WhatsApp itself", "Catalogue, quick replies, labels and a cart for customers." ],
+        "domain": [ "no", "No", "Your WhatsApp number only." ],
+        "sourcing": [ "no", "No", "No." ],
+        "ai": [ "check", "Check their site", "Meta's AI features vary by country." ],
+        "app": [ "yes", "Yes", "Yes." ]
+      },
+      "pricing": {
+        "currency": "Naira",
+        "plans": [
+          [ "WhatsApp Business app", "Free", "Catalogue, quick replies and labels" ]
+        ],
+        "note": "Paid options like Meta Verified for business and the WhatsApp Business Platform (API) cost extra; check WhatsApp's site."
+      },
+      "pros": [
+        "Free, and nearly every customer already uses WhatsApp",
+        "Catalogue to show products in chat",
+        "Quick replies, labels and away messages",
+        "Personal, trusted way to sell"
+      ],
+      "cons": [
+        "Orders and payment proof get lost in long chats",
+        "No checkout or pay on delivery tools",
+        "You arrange every delivery",
+        "Hard to run with staff or many orders"
+      ],
+      "choose_them": [ "You get a few orders a week", "Your customers are mostly people you know", "You are just starting" ],
+      "choose_us": [ "You want customers to order and pay from a link", "You want pay on delivery without riders handling cash", "You want orders, stock and deliveries tracked in one place" ],
+      "faq": [
+        [ "Is WhatsApp Business or Shopinbos better for Nigerian sellers?", "Use both. WhatsApp is where you chat; Shopinbos is where customers order and pay, and where you track deliveries. Send your store link in chats instead of screenshots." ],
+        [ "Can customers pay inside WhatsApp in Nigeria?", "Not that we could confirm. Most sellers ask for a transfer or send a payment link. Shopinbos payment links go through Paystack." ],
+        [ "Can I use my WhatsApp catalogue with Shopinbos?", "Yes. You can add products from your WhatsApp catalogue and sync your Shopinbos products to a WhatsApp catalogue." ]
+      ],
+      "sources": [
+        [ "WhatsApp Business", "https://business.whatsapp.com" ]
+      ]
+    }
+  },
+  "pairs": {
+    "woocommerce-vs-shopify": {
+      "a": "woocommerce",
+      "b": "shopify",
+      "title": "WooCommerce vs Shopify for Nigerian sellers: pricing, pros and cons (2026)",
+      "description": "WooCommerce or Shopify for a small business in Nigeria? Real prices, Paystack fees, pros and cons, checked 30 October 2026.",
+      "h1": "WooCommerce vs Shopify for Nigerian sellers",
+      "answer": "WooCommerce is free to install and takes no cut of your sales, but you pay for hosting and handle setup and updates yourself. Shopify is easier and runs everything for you, but it is billed in dollars and adds an extra fee on each sale in Nigeria because Shopify Payments isn't offered here. Pick WooCommerce for control and lower running fees; pick Shopify for ease.",
+      "faq": [
+        [ "Is WooCommerce cheaper than Shopify in Nigeria?", "Often, yes. WooCommerce takes no cut, while Shopify charges a monthly plan in dollars plus 2% to 0.6% on each sale when you use Paystack. Hosting and plugins for WooCommerce cost extra, though." ],
+        [ "Which is easier for a beginner?", "Shopify. It handles hosting, security and updates. WooCommerce needs more setup, often with a developer." ],
+        [ "Is there an option built for Nigeria?", "Shopinbos is built for Nigerian sellers, with naira plans, pay on delivery and delivery partners. See Shopinbos vs WooCommerce and Shopinbos vs Shopify." ]
+      ]
+    }
+  }
+}

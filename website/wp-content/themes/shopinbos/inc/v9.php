@@ -132,8 +132,8 @@ function sib_v9_redirects(): array {
 		'#^/waitlist/?$#'                                           => '/plug/',
 		'#^/(join|lp/join)/?$#'                                     => '/app/',
 		'#^/blog/(page/\\d+|tag/[^/]+)/?$#'                        => '/blog/', // category and author pages: v9-blog.php
-		// V9 never names other companies: comparison pages that do go to the general comparison.
-		'#^/compare/(?!global-store-builder/?$)[^/]+/?$#'           => '/compare/',
+		// The design's generic "global store builder" comparison: the named Shopify comparison replaced it (v9-compare.php).
+		'#^/compare/global-store-builder/?$#'                       => '/compare/shopify/',
 	];
 }
 
@@ -317,3 +317,4 @@ require_once __DIR__ . '/v9-for.php';
 require_once __DIR__ . '/v9-academy.php';
 require_once __DIR__ . '/v9-help.php';
 require_once __DIR__ . '/v9-blog.php';
+require_once __DIR__ . '/v9-compare.php';
