@@ -69,6 +69,13 @@ export interface StoreOnboardingMemory {
   logoMode?: "upload" | "rex" | null;
   logoPicked?: string | null;
   aiCredits?: number;
+  /**
+   * "Rex builds your shop (step by step)": the guided build's answers and the screen to resume on, shared by the phone
+   * (apps/mobile/src/app/onboarding/**) and the web (src/components/onboarding/seller/**). Written only through
+   * src/lib/onboarding/rex-build.server.ts saveRexBuild (PATCH /api/mobile/onboarding), so one device picks up where
+   * the other left off.
+   */
+  rexBuild?: import("@shared/seller-onboarding").RexBuildMemory;
   updatedAt?: string;
 }
 

@@ -10,6 +10,10 @@ const INTENT_PARAM_KEYS = [
   "plan",
   "billing",
   "tool",
+  // A referral code (?ref=) and a pilot invite (?invite=) ride along to the seller onboarding, which records the
+  // referral and redeems the invite (src/components/onboarding/seller/SellerRexBuild.tsx).
+  "ref",
+  "invite",
 ];
 
 function cleanValue(value) {

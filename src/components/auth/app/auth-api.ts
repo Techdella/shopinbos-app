@@ -65,7 +65,7 @@ export async function verifyCode(target: CodeTarget, token: string) {
 /** Creates or refreshes the app's User row. Returns the role the account actually has. */
 export async function syncSession(
   accessToken: string,
-  payload: { role: AuthRole; fullName?: string; businessName?: string; phone?: string; source?: "signup" },
+  payload: { role: AuthRole; fullName?: string; businessName?: string; phone?: string; source?: "signup"; ref?: string },
 ) {
   const data = await postJson<{ role?: AuthRole }>("/api/auth/sync-user", payload, { Authorization: `Bearer ${accessToken}` }).catch(() => null);
   return data?.role ?? null;

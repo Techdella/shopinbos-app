@@ -395,6 +395,8 @@ export function AppAuth({ role, mode }: { role: AuthRole; mode: Mode }) {
           fullName: name.trim() || undefined,
           phone: signedUpPhone,
           source: mode === "signup" ? "signup" : undefined,
+          // A referral link's code (?ref=CODE) counts for the person who shared it (the sib_ref cookie covers /r/CODE).
+          ref: mode === "signup" ? params.get("ref") ?? undefined : undefined,
         })
       : null;
     if (mode === "signup" && syncedRole && syncedRole !== wanted && !isAdmin) {

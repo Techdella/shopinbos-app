@@ -23,6 +23,9 @@ import { sortForWidget } from "@/lib/store-campaigns/status";
 import { PromoBanner } from "@/components/pricing/PromoBanner";
 import { PeggyCall } from "@/components/peggy/PeggyCall";
 import { peggyVoiceReady } from "@/lib/ai/peggy-voice.server";
+import { shopReadyFor } from "@/lib/onboarding/rex-build.server";
+import { readRexBuild, stepOf } from "@shared/seller-onboarding";
+import { FinishShopCard, ShopReadyCard } from "@/components/onboarding/seller/ShopReadyCard";
 import { rexStudioWelcomeFor } from "@/lib/ai/rex-studio-welcome.server";
 import { RexStudioWelcomeCard } from "@/components/credits/RexStudioWelcomeCard";
 
@@ -143,14 +146,20 @@ export default async function HomePage() {
 
   const [dashboard, setup, studio] = await Promise.all([getSellerDashboard(user.id), getSetupOverview(user.id), rexStudioWelcomeFor(user.id)]);
   if (!dashboard) redirect("/onboarding/rex");
+  // Rex's guided build (src/components/onboarding/seller/**, shared with the phone): a shop that went live through it
+  // gets "Get your shop ready" here (spec F4) instead of Start here; one left part-way gets "Finish your shop".
+  const countdownStore = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, brandSettings: true } });
+  const rexFlow = readRexBuild(countdownStore?.brandSettings);
+  const rexLive = Boolean(rexFlow.liveAt);
+  const shopReady = rexLive ? await shopReadyFor(user.id).catch(() => null) : null;
+  const finishShop = Boolean(rexFlow.startedAt) && !rexLive && rexFlow.mode !== "redesign" && onboardingStore?.onboardingState !== "LIVE";
   // New sellers land on Start here (once per visit) until their checklist is done or dismissed.
-  if (setup?.checklist.showStart && !(await cookies()).get(START_SEEN_COOKIE)) redirect("/home/start");
+  if (!rexLive && setup?.checklist.showStart && !(await cookies()).get(START_SEEN_COOKIE)) redirect("/home/start");
   // Setup finished elsewhere (or dismissed): take "Start here" out of the menu. Writes only when it changes.
   if (setup && !setup.checklist.showStart) await syncStartNav(user.id, false).catch(() => undefined);
 
   // Active & upcoming campaigns: live and scheduled countdowns (campaigns, countdown pop-ups and sections).
   const now = new Date();
-  const countdownStore = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, brandSettings: true } });
   const countdowns = countdownStore ? sortForWidget(await sellerCountdowns(countdownStore, now).catch(() => []), 5) : [];
 
   const t = await getT("home", "orders", "common");
@@ -172,6 +181,7 @@ export default async function HomePage() {
     >
       <div className="grid w-full gap-5 px-4 py-6 font-app text-app-ink sm:px-6 xl:grid-cols-[minmax(0,1fr)_420px] xl:px-8 2xl:grid-cols-[minmax(0,1fr)_480px] 2xl:px-10">
         <PromoBanner role="seller" className="xl:col-span-2" />
+        {finishShop && <div className="xl:col-span-2"><FinishShopCard step={rexFlow.screen ? stepOf(rexFlow.screen) : null} /></div>}
         {/* Free plan, after Rex built the shop: "You have 20 credits to try Rex Studio" (shared/rex-studio-welcome.ts). */}
         {studio ? <RexStudioWelcomeCard view={studio} className="xl:col-span-2" /> : null}
         {/* Hero */}
@@ -237,8 +247,10 @@ export default async function HomePage() {
 
         <SalesChart daily={dashboard.daily} week={dashboard.sales.week} change={dashboard.sales.weekChange} t={t} naira={naira} />
 
-        {/* Finish setting up: a compact link back to Start here while steps are left */}
-        {setup && !setup.checklist.complete ? (
+        {/* Get your shop ready (shops Rex built), else Finish setting up: a compact link back to Start here */}
+        {shopReady ? (
+          <ShopReadyCard ready={JSON.parse(JSON.stringify(shopReady))} uid={user.id} />
+        ) : setup && !setup.checklist.complete ? (
           <Link href="/home/start" className="flex items-center gap-4 rounded-[22px] border border-app-line bg-white p-5 text-app-ink no-underline hover:border-app-line-strong">
             <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-app-peach text-app-accent-ink"><Icon name="flag" size={20} /></span>
             <span className="min-w-0 flex-1">

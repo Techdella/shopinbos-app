@@ -10,15 +10,39 @@ import { supabase } from "./supabase";
 // and the setup status after each save. Setup screens refresh when she saves (usePeggySaved) and can take the
 // "Continue" after the call to their own next step (usePeggyContinue). No web or browser fallback anywhere.
 //
-//   GET  /api/mobile/peggy-call          → { ready }
-//   POST /api/mobile/peggy-call          → { conversationToken, dynamicVariables, maxSeconds }
+//   GET  /api/mobile/peggy-call          → { ready, callsLeft, mode, maxSeconds, perMinute, hold }
+//   POST /api/mobile/peggy-call          → { conversationToken, dynamicVariables, maxSeconds, callRef, mode, … }
 //   POST /api/mobile/peggy-call/action   → { result, saved, status }   (Peggy's tools)
+//   POST /api/app/peggy-call/end         → { settled, minutes?, charged?, refunded? }  (the call ended)
 //   GET  /api/app/setup-peggy            → { status }                   (the checklist at the start of a call)
+//
+// Free plans (shared/peggy-call-limits.ts): 3 free calls a Lagos month, each up to 10 minutes (ElevenLabs closes the
+// line at 10:00; the app warns at 9:00); after them calls use AI credits by the minute (10 minutes held, the rest
+// given back when the call is settled). Out of credits: the app's calm out-of-credits note, nothing to buy here.
 
 export interface CallStart {
   conversationToken: string;
   dynamicVariables: Record<string, string>;
   maxSeconds?: number;
+  callRef?: string;
+  mode?: CallMode;
+  perMinute?: number;
+  heldCredits?: number;
+}
+export type CallMode = "plan" | "free" | "credits";
+/** The terms of the next call (GET): free, paid with credits, or the paid plan's. */
+export interface CallTerms {
+  mode: CallMode;
+  maxSeconds: number;
+  perMinute: number;
+  hold: number;
+}
+/** How the last call ended: at the time limit, and what it used (once settled). */
+export interface LastCall {
+  atLimit: boolean;
+  maxSeconds: number;
+  held: number;
+  bill: { charged: number; refunded: number; minutes: number } | null;
 }
 export interface ToolResult {
   result: string;
@@ -26,7 +50,10 @@ export interface ToolResult {
   status: SetupView | null;
 }
 
-export const fetchCallInfo = () => api<{ ready: boolean; callsLeft?: number | null }>("/api/mobile/peggy-call");
+export const fetchCallInfo = () => api<{ ready: boolean; callsLeft?: number | null; mode?: CallMode; maxSeconds?: number; perMinute?: number; hold?: number }>("/api/mobile/peggy-call");
+/** The call ended: the server reads its real length from ElevenLabs and settles a call paid with credits. */
+export const endCallSession = (callRef: string, conversationId: string | null) =>
+  api<{ settled: boolean; minutes?: number; charged?: number; refunded?: number }>("/api/app/peggy-call/end", { method: "POST", json: { callRef, conversationId } });
 export const startCallSession = () =>
   api<CallStart>("/api/mobile/peggy-call", { method: "POST", json: {} }).then((session) => {
     // One of this month's free calls is used (free plans).
@@ -68,9 +95,13 @@ export interface CallState {
   endedBy: "agent" | "user" | "error" | null;
   /** When Peggy last opened a screen (open_screen), so tips stay away from the screen she opened. */
   openedAt: number | null;
+  /** The terms of the next call (null while unknown). */
+  terms: CallTerms | null;
+  /** The last call's end: shown on the summary. */
+  lastCall: LastCall | null;
 }
 
-const INITIAL: CallState = { available: null, callsLeft: null, engine: false, phase: "idle", minimized: false, saved: [], status: null, error: null, endedBy: null, openedAt: null };
+const INITIAL: CallState = { available: null, callsLeft: null, engine: false, phase: "idle", minimized: false, saved: [], status: null, error: null, endedBy: null, openedAt: null, terms: null, lastCall: null };
 let state: CallState = INITIAL;
 const listeners = new Set<() => void>();
 const saveListeners = new Set<(item: SavedItem) => void>();
@@ -194,7 +225,13 @@ export function checkCallsAvailable(force = false) {
   if (!force && Date.now() - checkedAt < 5 * 60_000 && state.available !== null) return;
   checkedAt = Date.now();
   fetchCallInfo()
-    .then((info) => patchCall({ available: Boolean(info.ready), callsLeft: typeof info.callsLeft === "number" ? info.callsLeft : null }))
+    .then((info) =>
+      patchCall({
+        available: Boolean(info.ready),
+        callsLeft: typeof info.callsLeft === "number" ? info.callsLeft : null,
+        terms: info.mode ? { mode: info.mode, maxSeconds: info.maxSeconds ?? 900, perMinute: info.perMinute ?? 0, hold: info.hold ?? 0 } : null,
+      }),
+    )
     .catch(() => {
       checkedAt = 0;
     });

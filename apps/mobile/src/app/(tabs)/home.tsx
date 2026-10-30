@@ -44,6 +44,7 @@ import { fetchWallet } from "@/lib/wallet";
 import { openPath } from "@/lib/web";
 import { colors, surfaceCard } from "@/theme";
 import { PushPromptCard } from "@/components/PushPromptCard";
+import { RexStudioWelcomeCard } from "@/components/RexStudioWelcomeCard";
 import { NotificationBellButton } from "@/components/NotificationBellButton";
 import { CampaignsCard } from "@/components/CampaignsCard";
 import { LinkInBioCard } from "@/components/LinkInBioCard";
@@ -360,6 +361,9 @@ export default function Home() {
 
         {/* After the first sale: the moment a push matters. */}
         {data?.counts.ordersToday ? <PushPromptCard who="seller" /> : null}
+
+        {/* Free plan, after Rex built the shop: "You have 20 credits to try Rex Studio" (hidden otherwise). */}
+        {!tourShowing ? <RexStudioWelcomeCard /> : null}
 
         {/* Hidden while the tour runs, so its targets stay on screen (as in the prototype). */}
         {!checklistHidden && !tourShowing ? (

@@ -20,7 +20,7 @@ test("one rule for every wallet: sellers none, suppliers and delivery partners C
 });
 
 test("sellers are never asked for an ID: onboarding, the top bar, Start here, the wallet and the phone app", () => {
-  assert.doesNotMatch(read("src/components/onboarding/seller/SellerOnboarding.tsx"), /VerifyIdCard|"verify"/);
+  for (const file of ["SellerRexBuild.tsx", "basics.tsx", "products.tsx", "design.tsx", "pages.tsx", "finish.tsx"]) assert.doesNotMatch(read(`src/components/onboarding/seller/${file}`), /VerifyIdCard|"verify"/, file);
   assert.equal(exists("src/components/shell/VerifyYouBar.tsx"), false);
   assert.doesNotMatch(read("src/components/shell/AppFrame.tsx"), /VerifyYouBar/);
   assert.doesNotMatch(read("src/app/api/app/shell-counts/route.ts"), /idCheck/);

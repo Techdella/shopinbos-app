@@ -2,7 +2,7 @@
 // logo (clearly chosen, downloadable, changed by voice note) and the fun loading lines while Rex works.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const { confettiPieces, CONFETTI_COLORS } = await import("../shared/celebrate.ts");
@@ -38,8 +38,8 @@ test("fun loading lines: every kind's lines exist, go through once, then keep al
 });
 
 test("store is live: confetti and a dancing Rex on the web and in the phone app", () => {
-  const web = read("src/components/onboarding/seller/SellerOnboarding.tsx");
-  const live = web.slice(web.indexOf('if (question === "live")'));
+  const web = read("src/components/onboarding/seller/finish.tsx");
+  const live = web.slice(web.indexOf("export function LiveScreen"));
   assert.match(live, /<Confetti \/>/);
   assert.match(live, /<DancingRex size=\{150\} \/>/);
   const phone = read("apps/mobile/src/app/onboarding/live.tsx");
@@ -50,17 +50,11 @@ test("store is live: confetti and a dancing Rex on the web and in the phone app"
   assert.match(read("apps/mobile/src/components/Celebrate.tsx"), /isReduceMotionEnabled/);
 });
 
-test("onboarding logo: fun loader on every redraw, a clear chosen logo with Download, and a voice note to Rex", () => {
-  // The phone's sign-up no longer draws logos (Rex builds the shop step by step, tests/seller-onboarding-flow.test.mjs).
-  for (const file of ["src/components/onboarding/seller/SellerOnboarding.tsx"]) {
-    const source = read(file);
-    assert.match(source, /<FunLoader kind="logo"/, file);
-    assert.match(source, /t\("logo\.yourLogo"\)/, file);
-    assert.match(source, /t\("logo\.download"\)/, file);
-    assert.match(source, /async function askForLogos\(round: number, notes = logoNotes\)/, file);
-    assert.match(source, /if \(spoken\.trim\(\)\) void askForLogos\(logoRound, spoken\);/, file);
-  }
-  assert.match(read("src/components/onboarding/seller/SellerOnboarding.tsx"), /downloadPicture\(logoUrl/);
+test("logos: the logo studio's fun loader and Download (sign-up no longer draws logos: Rex builds the shop step by step)", () => {
+  // The web and phone sign-ups both run Rex's guided build now (tests/web-seller-onboarding.test.mjs,
+  // tests/seller-onboarding-flow.test.mjs); logos are made in the logo studio.
+  assert.equal(existsSync(new URL("../src/components/onboarding/seller/SellerOnboarding.tsx", import.meta.url)), false);
+  assert.match(read("src/app/studio/logo/LogoStudioClient.tsx"), /<FunLoader kind="logo"/);
   assert.match(read("src/lib/download-picture.ts"), /URL\.createObjectURL\(blob\)/);
 });
 

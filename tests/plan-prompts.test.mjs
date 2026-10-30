@@ -35,18 +35,23 @@ test("phone: 'This isn't on your plan' with no price, link or button to buy", ()
   assert.match(read("apps/mobile/src/app/_layout.tsx"), /<PlanPrompt \/>/);
 });
 
-test("Peggy calls: 3 a month on free plans, no cap on paid ones; every way to start a call checks", () => {
+test("Peggy calls: 3 free a month on free plans (then credits), no cap on paid ones; every way to start a call checks", () => {
   assert.equal(plans.FREE_PEGGY_CALLS_PER_MONTH, 3);
   assert.equal(plans.peggyCallsLeft("seller_free", 0), 3);
   assert.equal(plans.peggyCallsLeft("supplier_free", 2), 1);
   assert.equal(plans.peggyCallsLeft("logistics_free", 7), 0);
   assert.equal(plans.peggyCallsLeft("seller_growth", 40), null);
+  // After the free calls a call costs AI credits (shared/peggy-call-limits.ts, tests/peggy-call-limits.test.mjs):
+  // every start goes through openCall, which decides the terms; no credits → 402 AI_CREDITS_NEEDED.
   for (const file of ["src/app/api/app/peggy-call/route.ts", "src/app/api/mobile/peggy-call/route.ts", "src/app/api/public/peggy-call/route.ts"]) {
-    assert.match(read(file), /if \(\(await peggyCallsLeftFor\((user\.id|userId)\)\) === 0\) return apiError\("PLAN_LIMIT", noCallsLeftMessage\((true|false)\), 402\);/, file);
+    assert.match(read(file), /error instanceof PeggyCallCreditsError/, file);
+    assert.match(read(file), /code: "AI_CREDITS_NEEDED"/, file);
   }
   const voice = read("src/lib/ai/peggy-voice.server.ts");
+  assert.equal((voice.match(/await openCall\(userId, /g) ?? []).length, 2, "both ways to start a call decide the terms");
+  assert.match(voice, /const terms = await peggyCallQuote\(userId\);/);
   assert.equal((voice.match(/await recordCall\(userId\);/g) ?? []).length, 2, "a call is counted once it starts");
-  assert.match(voice, /inApp\s*\?\s*`\$\{used\} Chat with her instead/);
+  assert.match(voice, /inApp\s*\?\s*`\$\{used\}\$\{price\} Chat with her instead/);
 });
 
 test("Peggy's notes to the team: a chat tool, kept with the call notes, listed in admin", () => {

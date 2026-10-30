@@ -6,7 +6,7 @@ import { Sheet } from "@/components/Sheet";
 import { LinkButton, Mascot, PillButton, T } from "@/components/ui";
 import { RoundAction, RoundActions } from "@/components/visual";
 import { useT } from "@/lib/i18n";
-import type { CallPhase, SavedEntry } from "@/lib/peggy-call";
+import type { CallPhase, LastCall, SavedEntry } from "@/lib/peggy-call";
 import { callClock, savedKey, stepKey, type SetupView } from "@/lib/peggy-call-pure";
 import { colors, fonts } from "@/theme";
 
@@ -23,6 +23,22 @@ export interface LiveCall {
   saved: SavedEntry[];
   status: SetupView | null;
   error: string | null;
+  /** The call's cap (10 minutes on free plans), whether the "1 minute left" warning is on, and whether it's paid with credits. */
+  maxSeconds?: number;
+  warning?: boolean;
+  paid?: boolean;
+}
+
+/** "9:12 left" while the call is live, "1 minute left…" in its last minute. */
+function useTimeLeft(startedAt: number | null, maxSeconds: number | undefined) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!startedAt || !maxSeconds) return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [startedAt, maxSeconds]);
+  if (!startedAt || !maxSeconds) return null;
+  return Math.max(0, maxSeconds - (now - startedAt) / 1000);
 }
 
 function useClock(startedAt: number | null) {
@@ -120,6 +136,8 @@ export function SetupTicks({ status, dark = false }: { status: SetupView | null;
 /** The call, full screen. */
 export function CallSheet({ call, onMinimize, onMute, onEnd }: { call: LiveCall; onMinimize: () => void; onMute: () => void; onEnd: () => void }) {
   const t = useT("m_help");
+  const tc = useT("m_credits");
+  const left = useTimeLeft(call.phase === "live" ? call.startedAt : null, call.maxSeconds);
   const insets = useSafeAreaInsets();
   const clock = useClock(call.phase === "live" ? call.startedAt : null);
   const live = call.phase === "live";
@@ -144,7 +162,12 @@ export function CallSheet({ call, onMinimize, onMute, onEnd }: { call: LiveCall;
               <PeggyAvatar size={108} speaking={call.speaking} />
             </View>
             <T style={{ color: "#FFFFFF", fontFamily: fonts.display, fontSize: 26, textAlign: "center" }} accessibilityRole="header">{words}</T>
-            <T style={{ color: "rgba(255,255,255,0.75)", fontSize: 14, textAlign: "center" }}>{t("call.free")}</T>
+            <T style={{ color: "rgba(255,255,255,0.75)", fontSize: 14, textAlign: "center" }}>{call.paid ? tc("pc.limit", { minutes: Math.round((call.maxSeconds ?? 600) / 60) }) : t("call.free")}</T>
+            {left !== null ? (
+              <View testID="peggy-call-time" style={{ backgroundColor: call.warning || left <= 60 ? "rgba(242,169,59,0.25)" : "rgba(255,255,255,0.1)", borderRadius: 16, paddingHorizontal: 14, paddingVertical: 8 }}>
+                <T weight="bold" style={{ color: "#FFFFFF", fontSize: 14, textAlign: "center" }}>{call.warning || left <= 60 ? tc("pc.oneMinute") : tc("pc.timeLeft", { time: callClock(left) })}</T>
+              </View>
+            ) : null}
           </View>
 
           {call.error ? (
@@ -210,15 +233,24 @@ export function CallBar({ call, note, onOpen, onMute, onEnd }: { call: LiveCall;
 
 
 /** After the call: everything Peggy saved, with Edit links, then the next step that's still missing. */
-export function CallSummary({ saved, status, endedByPeggy = false, editPathOf, nextLabel, onEdit, onContinue, onClose }: { saved: SavedEntry[]; status: SetupView | null; endedByPeggy?: boolean; editPathOf: (item: SavedEntry) => string | null; nextLabel: string | null; onEdit: (path: string) => void; onContinue: () => void; onClose: () => void }) {
+export function CallSummary({ saved, status, endedByPeggy = false, lastCall = null, editPathOf, nextLabel, onEdit, onContinue, onClose }: { saved: SavedEntry[]; status: SetupView | null; endedByPeggy?: boolean; lastCall?: LastCall | null; editPathOf: (item: SavedEntry) => string | null; nextLabel: string | null; onEdit: (path: string) => void; onContinue: () => void; onClose: () => void }) {
   const t = useT("m_help");
+  const tc = useT("m_credits");
   const line = useSavedLine();
+  // Ended at the time limit, and what a call paid with credits used (once ElevenLabs reported its length).
+  const notes = [
+    lastCall?.atLimit ? tc("pc.endedLimit", { minutes: Math.round(lastCall.maxSeconds / 60) }) : null,
+    lastCall?.bill ? tc("pc.charged", { charged: lastCall.bill.charged, minutes: lastCall.bill.minutes, refunded: lastCall.bill.refunded }) : lastCall && lastCall.held > 0 ? tc("pc.settling") : null,
+  ].filter((note): note is string => Boolean(note));
   return (
     <Sheet visible onClose={onClose} title={t("call.summaryTitle")} testID="peggy-call-summary">
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
         <PeggyAvatar size={40} />
-        <T weight="semibold" style={{ flex: 1, fontSize: 15, color: colors.inkSoft }} numberOfLines={2}>{endedByPeggy ? t("call.peggyEnded") : t("call.free")}</T>
+        <T weight="semibold" style={{ flex: 1, fontSize: 15, color: colors.inkSoft }} numberOfLines={2}>{endedByPeggy ? t("call.peggyEnded") : lastCall && lastCall.held > 0 ? tc("pc.covered") : t("call.free")}</T>
       </View>
+      {notes.map((note) => (
+        <T key={note} testID="peggy-call-note" style={{ fontSize: 14, lineHeight: 20, color: colors.inkSoft }}>{note}</T>
+      ))}
       <ScrollView style={{ maxHeight: 360 }} contentContainerStyle={{ gap: 4 }}>
         {saved.length ? (
           saved.map((item) => {

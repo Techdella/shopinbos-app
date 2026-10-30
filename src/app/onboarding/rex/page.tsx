@@ -1,12 +1,13 @@
-import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { requireRole } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
 import { slugify } from "@/lib/workspace";
 import intentRouting from "@/lib/intent-routing";
-import { getSellerOnboardingStatus } from "@/lib/onboarding-status";
-import { SellerOnboarding } from "@/components/onboarding/seller/SellerOnboarding";
+import { libraryFor, loadRexBuild } from "@/lib/onboarding/rex-build.server";
+import { SellerRexBuild } from "@/components/onboarding/seller/SellerRexBuild";
+import type { LoadedState } from "@/components/onboarding/seller/api";
+import { entryFromQuery } from "@shared/seller-onboarding";
 import { getT } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
@@ -15,20 +16,25 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("seller.metaTitle") };
 }
 
-// Seller onboarding (2026 redesign), two steps: what you sell, then name and look. The rest of setup lives on
-// Start here (/home/start).
+// Seller onboarding on the web: "Rex builds your shop (step by step)", the phone's flow (design RB-01…RB-16) one
+// question per screen (src/components/onboarding/seller/SellerRexBuild.tsx). The shop and the saved answers load here
+// with the same server function as the phone's GET /api/mobile/onboarding (loadRexBuild), so the first screen is the
+// one the seller left on, here or on the phone. Sellers mid-way through the older web questions carry on here too
+// (their products and name are kept). ?intent=add_product&productSlug=…, ?ref=, ?invite= and ?source= from sign-up
+// are passed on to the flow; ?redesign=1 is "Redesign with Rex"; ?screen= opens a screen (the review's "Fix it").
 export default async function SellerOnboardingPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const user = await requireRole(["seller"], "/login");
   const params = await searchParams;
+  const flat = Object.fromEntries(Object.entries(params).filter((entry): entry is [string, string] => typeof entry[1] === "string"));
 
   // Launch payments started from the older flow still return here with ?launch=paid|failed.
-  if (typeof params.launch === "string") {
-    const query = new URLSearchParams({ launch: params.launch, ...(typeof params.error === "string" ? { error: params.error } : {}) });
+  if (flat.launch) {
+    const query = new URLSearchParams({ launch: flat.launch, ...(flat.error ? { error: flat.error } : {}) });
     redirect(`/home/start?${query}`);
   }
 
-  let status = await getSellerOnboardingStatus(user.id);
-  if (!status) {
+  let state = await loadRexBuild(user.id);
+  if (!state.store) {
     const name = `${user.name.split(" ")[0] || "My"}'s Store`;
     await db.store.create({
       data: {
@@ -41,23 +47,14 @@ export default async function SellerOnboardingPage({ searchParams }: { searchPar
         onboardingState: "NEW",
       },
     });
-    status = await getSellerOnboardingStatus(user.id);
+    state = await loadRexBuild(user.id);
   }
-  if (!status) redirect("/home");
+  if (!state.store) redirect("/home");
 
-  // Sellers who were past the brand step in the longer flow carry on from Start here.
-  const screen = status.memory?.screen;
-  if (status.finished || screen === "products" || screen === "payments") {
-    if (!status.finished) {
-      await db.store.update({ where: { id: status.store.id }, data: { firstDashboardVisitComplete: true, onboardingState: status.store.live ? "LIVE" : "INCOMPLETE" } });
-    }
-    const intent = Object.fromEntries(Object.entries(params).filter((entry): entry is [string, string] => typeof entry[1] === "string"));
-    redirect(intent.intent ? intentRouting.getContinuationPath({ role: "seller", ...intent }) : "/home/start");
-  }
+  const images = (state.products ?? []).map((product) => product.image).filter((url): url is string => Boolean(url));
+  const initial = JSON.parse(JSON.stringify({ ...state, library: libraryFor(state.flow.categories, images) })) as LoadedState;
+  const entry = entryFromQuery(new URLSearchParams(flat).toString());
+  const continuation = flat.intent ? intentRouting.getContinuationPath({ role: "seller", ...flat }) : "/home";
 
-  return (
-    <Suspense>
-      <SellerOnboarding initialStatus={JSON.parse(JSON.stringify(status))} />
-    </Suspense>
-  );
+  return <SellerRexBuild initial={initial} entry={entry} redesign={flat.redesign === "1"} startScreen={flat.screen ?? null} continuation={continuation} />;
 }

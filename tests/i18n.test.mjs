@@ -228,7 +228,7 @@ test("web and phone runtimes are mounted and the pickers are reachable", () => {
   assert.match(read("src/components/shell/GlobalTopBar.tsx"), /<LanguagePicker variant="compact" \/>/);
   assert.match(read("src/components/auth/app/AppAuth.tsx"), /<LanguagePicker variant="globe" \/>/);
   for (const page of ["src/app/home/settings/page.tsx", "src/app/supplier/settings/page.tsx", "src/app/logistics/profile/page.tsx", "src/app/admin/settings/page.tsx"]) assert.match(read(page), /<LanguageSettingsCard/, page);
-  assert.match(read("src/components/onboarding/seller/SellerOnboarding.tsx"), /setAppLocale\(locale\)/);
+  assert.match(read("src/components/onboarding/seller/basics.tsx"), /<LanguagePicker variant="compact" \/>/, "the language switch on the web's first onboarding screen");
   assert.match(read("apps/mobile/src/app/welcome.tsx"), /<LanguageButton \/>/);
   assert.match(read("apps/mobile/src/components/AuthForm.tsx"), /<LanguageButton \/>/);
   for (const file of ["apps/mobile/src/app/(tabs)/shop.tsx", "apps/mobile/src/components/PartnerMore.tsx", "apps/mobile/src/app/logistics/(tabs)/more.tsx", "apps/mobile/src/app/supplier/(tabs)/money.tsx"]) assert.match(read(file), /<LanguageRow/, file);

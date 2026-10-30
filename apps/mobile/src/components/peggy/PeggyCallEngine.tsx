@@ -4,7 +4,8 @@ import { requestRecordingPermissionsAsync } from "expo-audio";
 import { ConversationProvider, useConversation } from "@elevenlabs/react-native";
 import { ApiError } from "@/lib/api";
 import { useT } from "@/lib/i18n";
-import { callState, fetchSetupView, notePeggyOpened, patchCall, recordSaved, runCallTool, runContinue, setCallControls, startCallSession, usePeggyCall, usePeggySaved } from "@/lib/peggy-call";
+import { callState, checkCallsAvailable, endCallSession, fetchSetupView, notePeggyOpened, patchCall, recordSaved, runCallTool, runContinue, setCallControls, startCallSession, usePeggyCall, usePeggySaved } from "@/lib/peggy-call";
+import { ONE_MINUTE_LEFT_NOTE, PAID_CALL_MAX_SECONDS, callTimeline } from "@shared/peggy-call-limits";
 import { CALL_TOOLS, editPath, nextStepPath, openScreenOnPhone, stepKey, type CallRole } from "@/lib/peggy-call-pure";
 import { HANG_UP_AFTER_MS, HANG_UP_FALLBACK_MS, shouldHangUp } from "@shared/peggy-goodbye";
 import { useRole } from "@/lib/role";
@@ -19,6 +20,11 @@ import { CallBar, CallSheet, CallSummary, useSavedLine } from "./PeggyCallViews"
 // call herself (ElevenLabs' end_call: the same summary, "Peggy ended the call"), and open screens while she talks
 // (open_screen, run here: an allow-listed route for the role, shared/peggy-screens.ts; the call minimizes so the
 // screen shows, with a "Peggy opened Delivery" toast). get_dashboard and the saving tools go to the server.
+//
+// Length (shared/peggy-call-limits.ts): free-plan calls last up to 10 minutes. ElevenLabs closes the line at 10:00 on
+// its side (the free agent's max_duration_seconds); here, at 9:00 Peggy is told to sum up and the call shows "1 minute
+// left", and at 10:00 the app hangs up and shows the summary. When a call ends the server is told (callRef and
+// ElevenLabs' conversation id), so a call paid with credits is settled from ElevenLabs' own length.
 
 const clockNow = () => Date.now();
 
@@ -44,6 +50,10 @@ function Engine() {
     roleRef.current = callRole;
   });
   const limit = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const warnTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // This call: its reference (for settling), cap and the credits held.
+  const callInfo = useRef<{ ref: string | null; maxSeconds: number; held: number; connectedAt: number | null }>({ ref: null, maxSeconds: PAID_CALL_MAX_SECONDS, held: 0, connectedAt: null });
+  const [warning, setWarning] = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Peggy hangs up when they're done. Her end_call tool ends the call from ElevenLabs' side (reason "agent"); as a
@@ -77,8 +87,24 @@ function Engine() {
   const conversation = useConversation({
     onConnect: ({ conversationId: id }: { conversationId: string }) => {
       conversationId.current = id;
-      setStartedAt(clockNow());
+      const now = clockNow();
+      setStartedAt(now);
+      setWarning(false);
+      callInfo.current = { ...callInfo.current, connectedAt: now };
       patchCall({ phase: "live" });
+      // 9:00: "1 minute left" (Peggy sums up); 10:00: the app hangs up (ElevenLabs ends it then on its side too).
+      const { warnAt, endAt } = callTimeline(callInfo.current.maxSeconds);
+      if (warnTimer.current) clearTimeout(warnTimer.current);
+      warnTimer.current = setTimeout(() => {
+        setWarning(true);
+        try {
+          conversationRef.current.sendContextualUpdate(ONE_MINUTE_LEFT_NOTE);
+        } catch {
+          // The banner still shows.
+        }
+      }, warnAt * 1000);
+      if (limit.current) clearTimeout(limit.current);
+      limit.current = setTimeout(() => void conversationRef.current.endSession(), endAt * 1000);
     },
     onMessage: ({ message, source }: { message: string; source: "user" | "ai" }) => {
       if (source === "user") {
@@ -96,7 +122,26 @@ function Engine() {
     },
     onDisconnect: (details?: { reason?: string }) => {
       if (limit.current) clearTimeout(limit.current);
+      if (warnTimer.current) clearTimeout(warnTimer.current);
       setStartedAt(null);
+      setWarning(false);
+      // Tell the server the call ended (it reads the length from ElevenLabs, never from here) and show what it used.
+      const info = callInfo.current;
+      callInfo.current = { ref: null, maxSeconds: PAID_CALL_MAX_SECONDS, held: 0, connectedAt: null };
+      if (info.ref) {
+        const atLimit = info.connectedAt !== null && (clockNow() - info.connectedAt) / 1000 >= info.maxSeconds - 2;
+        patchCall({ lastCall: { atLimit, maxSeconds: info.maxSeconds, held: info.held, bill: null } });
+        const ref = info.ref;
+        void endCallSession(ref, conversationId.current)
+          .then((result) => {
+            if (result.settled && typeof result.charged === "number") {
+              const last = callState().lastCall;
+              if (last) patchCall({ lastCall: { ...last, bill: { charged: result.charged, refunded: result.refunded ?? 0, minutes: result.minutes ?? 0 } } });
+            }
+            checkCallsAvailable(true);
+          })
+          .catch(() => null);
+      }
       const current = callState();
       // Peggy ended it: her end_call (reason "agent"), the app hanging up after her goodbye, or the line closing
       // right after her goodbye (LiveKit can report that as an error).
@@ -170,16 +215,18 @@ function Engine() {
   const start = useCallback(async () => {
     const phase = callState().phase;
     if (phase === "connecting" || phase === "live") return patchCall({ minimized: false });
-    patchCall({ phase: "connecting", minimized: false, saved: [], error: null, endedBy: null });
+    patchCall({ phase: "connecting", minimized: false, saved: [], error: null, endedBy: null, lastCall: null });
     const mic = await requestRecordingPermissionsAsync().catch(() => null);
     if (!mic?.granted) return patchCall({ phase: "idle", error: tRef.current("call.micOff") });
     try {
       const [session, status] = await Promise.all([startCallSession(), fetchSetupView().catch(() => null)]);
       patchCall({ status });
+      callInfo.current = { ref: session.callRef ?? null, maxSeconds: session.maxSeconds ?? PAID_CALL_MAX_SECONDS, held: session.heldCredits ?? 0, connectedAt: null };
       conversationRef.current.startSession({ conversationToken: session.conversationToken, connectionType: "webrtc", dynamicVariables: session.dynamicVariables, clientTools });
-      // The agent ends calls at its own maximum; this is a safety net a little after it.
+      // The agent ends calls at its own maximum (10 minutes on free plans); the app's own timer starts when it connects.
+      // This is the safety net for a call that connects late.
       if (limit.current) clearTimeout(limit.current);
-      limit.current = setTimeout(() => conversationRef.current.endSession(), ((session.maxSeconds ?? 900) + 15) * 1000);
+      limit.current = setTimeout(() => conversationRef.current.endSession(), (callInfo.current.maxSeconds + 45) * 1000);
       // A call that never connects gives up after 30 seconds, so the button works again.
       setTimeout(() => {
         if (callState().phase !== "connecting") return;
@@ -218,13 +265,14 @@ function Engine() {
     () => () => {
       if (toastTimer.current) clearTimeout(toastTimer.current);
       if (limit.current) clearTimeout(limit.current);
+      if (warnTimer.current) clearTimeout(warnTimer.current);
       if (goodbye.current.soon) clearTimeout(goodbye.current.soon);
       if (goodbye.current.fallback) clearTimeout(goodbye.current.fallback);
     },
     [],
   );
 
-  const call = { phase: state.phase, speaking: conversation.isSpeaking, muted: conversation.isMuted, startedAt, saved: state.saved, status: state.status, error: state.error };
+  const call = { phase: state.phase, speaking: conversation.isSpeaking, muted: conversation.isMuted, startedAt, saved: state.saved, status: state.status, error: state.error, maxSeconds: callInfo.current.maxSeconds, warning, paid: callInfo.current.held > 0 };
   const onMute = () => conversation.setMuted(!conversation.isMuted);
 
   if (state.phase === "summary") {
@@ -235,6 +283,7 @@ function Engine() {
         saved={state.saved}
         status={state.status}
         endedByPeggy={state.endedBy === "agent"}
+        lastCall={state.lastCall}
         editPathOf={(item) => editPath(callRole, item.kind)}
         nextLabel={next ? t.dynamic(stepKey(next), next) : null}
         onEdit={(path) => {

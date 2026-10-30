@@ -12,6 +12,8 @@ import { colors, radii } from "@/theme";
 // notes while she talks, and the call can be minimized while people carry on in the app. Free: no AI credits.
 // The button only shows when calls are switched on and this build can run them (not in Expo Go); otherwise it isn't
 // there at all. There is no web or browser fallback.
+// Free plans: 3 free calls a month, each up to 10 minutes; after them a call uses AI credits by the minute, and the
+// button says so (m_credits "pc.*", never anything to buy: shared/store-payments.ts).
 //   variant "button": the big button (setup welcome, Help, Start) · "compact": a small pill (setup steps) ·
 //   "icon": a round phone button (Ask Peggy's header) · "row": a row in a List (Home, Account, Business).
 //   "mic": a big round mic (Ask Peggy before the first question).
@@ -20,7 +22,10 @@ type Variant = "button" | "compact" | "icon" | "row" | "mic";
 
 export function CallPeggyButton({ style, note = true, variant = "button" }: { style?: StyleProp<ViewStyle>; note?: boolean; variant?: Variant }) {
   const t = useT("m_help");
+  const tc = useT("m_credits");
   const call = usePeggyCall();
+  const paid = call.terms?.mode === "credits";
+  const leftLine = paid && call.terms ? tc("pc.creditsNoteApp", { perMinute: call.terms.perMinute, hold: call.terms.hold }) : call.callsLeft !== null ? t("call.left", { count: call.callsLeft }) : null;
   const ready = canCall(call);
 
   useEffect(() => {
@@ -32,7 +37,7 @@ export function CallPeggyButton({ style, note = true, variant = "button" }: { st
   const onCall = call.phase === "connecting" || call.phase === "live";
   const press = () => void requestPeggyCall();
   const failed = call.phase === "idle" && call.error ? call.error : null;
-  const title = onCall ? t("call.backTo") : t("call.title");
+  const title = onCall ? t("call.backTo") : paid && call.terms ? tc("pc.callCredits", { count: call.terms.perMinute }) : t("call.title");
 
   if (variant === "icon") {
     return (
@@ -65,14 +70,14 @@ export function CallPeggyButton({ style, note = true, variant = "button" }: { st
   }
 
   if (variant === "row") {
-    return <Row lead={<Tile icon="phone" tone="mint" />} title={title} sub={failed ?? (call.callsLeft !== null ? t("call.left", { count: call.callsLeft }) : t("call.note"))} onPress={press} accessibilityLabel={t("call.label")} />;
+    return <Row lead={<Tile icon="phone" tone="mint" />} title={title} sub={failed ?? leftLine ?? t("call.note")} onPress={press} accessibilityLabel={t("call.label")} />;
   }
 
   return (
     <View style={style}>
       <PillButton tone="forest" busy={busy} disabled={busy} onPress={press} accessibilityLabel={t("call.label")} icon="phone" title={title} />
       {note ? <T style={{ marginTop: 8, textAlign: "center", fontSize: 13, color: colors.inkSoft }}>{t("call.note")}</T> : null}
-      {call.callsLeft !== null ? <T style={{ marginTop: 4, textAlign: "center", fontSize: 13, color: colors.inkSoft }}>{t("call.left", { count: call.callsLeft })}</T> : null}
+      {leftLine ? <T style={{ marginTop: 4, textAlign: "center", fontSize: 13, color: colors.inkSoft }}>{leftLine}</T> : null}
       {failed ? <T style={{ marginTop: 6, textAlign: "center", fontSize: 13, color: colors.danger }}>{failed || t("call.failed")}</T> : null}
     </View>
   );

@@ -33,26 +33,20 @@ test("helpers: greeting name, initials, suggested dropship price, address from t
   assert.equal(onboarding.addressFromName("Ada's Kloset & Co."), "ada-s-kloset-co");
 });
 
-test("web and phone ask the same questions with the same calls, and never ask for ID, bank or CAC", () => {
-  const web = read("src/components/onboarding/seller/SellerOnboarding.tsx");
-  // The phone now runs Rex's guided build (tests/seller-onboarding-flow.test.mjs); it still asks for no ID, bank or CAC.
+test("web and phone run the same guided build with the same calls, and never ask for ID, bank or CAC", () => {
+  // Both now run Rex's guided build (tests/seller-onboarding-flow.test.mjs, tests/web-seller-onboarding.test.mjs).
+  const web = ["SellerRexBuild.tsx", "basics.tsx", "products.tsx", "design.tsx", "pages.tsx", "finish.tsx", "api.ts"].map((file) => read(`src/components/onboarding/seller/${file}`)).join("\n");
   const phone = ["app/onboarding/index.tsx", "components/rex-build/basics.tsx", "components/rex-build/products.tsx", "components/rex-build/design.tsx", "components/rex-build/pages.tsx"].map((file) => read(`apps/mobile/src/${file}`)).join("\n");
-  assert.doesNotMatch(phone, /payout-bank|linkPayoutBank|\bnin\b|cacNumber|bvn/i, "phone has no ID, bank or CAC");
-  for (const [label, source] of [["web", web]]) {
-    assert.match(source, /useT\("sellerStart", "common"\)/, label);
-    assert.match(source, /nextSellerQuestion\(question, path\)/, label);
-    assert.match(source, /saveMemory\(\{ screen: next, \.\.\.patch \}\)/, `${label} saves the screen after every answer`);
-    assert.match(source, /drawLogos\(/, label);
-    assert.match(source, /addSupplierPick\(/, label);
-    assert.match(source, /createFirstProduct\(/, label);
-    assert.match(source, /buildStore\(/, label);
-    assert.match(source, /saveAddress\(/, label);
+  for (const [label, source] of [["web", web], ["phone", phone]]) {
     assert.doesNotMatch(source, /payout-bank|linkPayoutBank|\bnin\b|cacNumber|bvn/i, `${label} has no ID, bank or CAC`);
+    assert.match(source, /nextScreen\(screen, mode\)/, `${label} uses the shared step machine`);
+    assert.match(source, /addSupplierPick\(/, label);
+    assert.match(source, /saveAddress\(/, label);
   }
-  assert.match(web, /capture="environment"/, "the first product opens the camera");
-  assert.match(web, /publishStore\(\)/);
+  assert.match(web, /useT\("rexBuild"\)/);
+  assert.match(web, /capture="environment"/, "the products step opens the phone's camera");
+  assert.match(web, /await goLive\(\)|const result = await goLive\(\)/);
   assert.match(read("apps/mobile/src/app/onboarding/review.tsx"), /await goLive\(\)/);
-  assert.match(web, /"\/home\/start"/);
   // Buying a domain is a paid checkout: the phone only points to the website.
   assert.doesNotMatch(phone, /searchDomains|\/api\/domains/);
 });
@@ -85,21 +79,19 @@ test("verification screens have no page head or banner above the question", () =
   assert.match(read("src/components/verification/AnnouncementBanner.tsx"), /VERIFYING_PATHS/);
 });
 
-test("Pick a look: the real theme library with full previews, applied before Rex builds on it", () => {
+test("looks: the real theme library, applied before Rex builds on it", () => {
   const { look, palette } = onboarding.lookFromTheme({ id: "noir", name: "Dúdú", preview: { bg: "#141414", ink: "#F5F2EA", accent: "#C8A96A", nameFont: "serif", dark: true } });
   assert.equal(look.templateId, "noir");
   assert.equal(look.fontStyle, "fraunces");
   assert.deepEqual(palette.swatches, ["#141414", "#C8A96A", "#F5F2EA"], "a dark theme's background is its dark colour");
   assert.deepEqual(onboarding.lookFromTheme({ id: "plain", name: "Jẹ́jẹ́", preview: { bg: "#F2F2F2", ink: "#111111", accent: "#111111", nameFont: "grotesk", dark: false } }).palette.swatches, ["#111111", "#111111", "#F2F2F2"]);
 
-  const web = read("src/components/onboarding/seller/SellerOnboarding.tsx");
+  // The web and the phone put the draft on the theme for what the shop sells before Rex builds on it; the server
+  // checks the plan.
+  const web = read("src/components/onboarding/seller/design.tsx");
   assert.doesNotMatch(web, /BRAND_LOOKS|BRAND_PALETTES/, "no more hand-drawn mock looks");
-  for (const piece of ["<ThemeThumbnail", "<ThemePreviewDialog", "themeCategoryChips()", "pickThemeByRules(", "brand={brand}"]) assert.ok(web.includes(piece), piece);
-  // The theme's pages first, then Rex's words and colours on them; the server checks the plan.
-  assert.match(web, /await applyTheme\(picked\.id\);[\s\S]*await buildStore\(/);
+  assert.match(web, /await applyTheme\(themeId\)/);
   assert.match(read("src/components/onboarding/seller/api.ts"), /"\/api\/store\/templates\/apply"/);
-  // A selected chip keeps its check and label on one line.
-  assert.match(web, /<Icon name="check" size=\{14\} className="shrink-0" \/>\}\s*<span>\{category\}<\/span>/);
 
   // The phone puts the draft on the theme for what the shop sells before Rex builds on it.
   const phone = read("apps/mobile/src/components/rex-build/design.tsx");

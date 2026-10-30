@@ -78,8 +78,9 @@ test("starting a call: a WebRTC token, the same daily limit and maximum length",
   assert.match(route, /maxRequests: VOICE_CALLS_PER_DAY/);
   const server = read("src/lib/ai/peggy-voice.server.ts");
   assert.match(server, /export const VOICE_CALLS_PER_DAY = 5;/);
-  assert.match(server, /const MAX_CALL_SECONDS = 900;/);
-  assert.match(server, /max_duration_seconds: MAX_CALL_SECONDS/);
+  // The longest call: 15 minutes on paid plans, 10 on free plans (shared/peggy-call-limits.ts), set on the agent.
+  assert.match(server, /function agentConfig\(\{ withSystemTools = true, maxSeconds = PAID_CALL_MAX_SECONDS \} = \{\}\)/);
+  assert.match(server, /max_duration_seconds: maxSeconds/);
   assert.match(server, /\/convai\/conversation\/token\?agent_id=/);
   assert.match(server, /prompt: \{ prompt: PROMPT, tools: elevenLabsTools\(\), \.\.\.\(withSystemTools \? \{ built_in_tools: elevenLabsBuiltInTools\(\) \} : \{\}\) \}/);
   assert.match(server, /FIRST_MESSAGE = `.*\$\{PEGGY_LANGUAGE_QUESTION\}`/);
@@ -243,7 +244,7 @@ test("end_call: ElevenLabs' system tool in the agent config, and a rejected sync
   assert.match(server, /built_in_tools: elevenLabsBuiltInTools\(\)/);
   // Version saved only once ElevenLabs takes the full config; otherwise the agent still gets the rest, and it's retried.
   assert.match(server, /if \(synced\) await db\.platformSetting\.upsert/);
-  assert.match(server, /agentConfig\(\{ withSystemTools: false \}\)/);
+  assert.match(server, /agentConfig\(\{ withSystemTools: false, maxSeconds: variant\.maxSeconds \}\)/);
   assert.match(server, /saveAs = "partial"/);
   // Peggy is told when to hang up.
   const text = prompt.peggyVoicePrompt({ facts: "F", cities: "C" });

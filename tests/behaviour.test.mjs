@@ -1640,8 +1640,9 @@ test("Start here is the first seller menu item and onboarding hands over to it",
   assert.ok(sellerBlock.indexOf('id: "start"') < sellerBlock.indexOf('id: "home"'), "Start here comes before Home");
   assert.doesNotMatch(sellerBlock, /Advanced builder/);
   assert.match(sellerBlock, /label: "Edit your store", href: "\/seller\/store\/builder"/);
-  const onboarding = readFileSync(new URL("../src/components/onboarding/seller/SellerOnboarding.tsx", import.meta.url), "utf8");
-  assert.match(onboarding, /"\/home\/start"/);
+  // Rex's guided build hands over to Home with the three tips and "Get your shop ready" (tests/web-seller-onboarding.test.mjs).
+  const onboarding = readFileSync(new URL("../src/components/onboarding/seller/finish.tsx", import.meta.url), "utf8");
+  assert.match(onboarding, /"\/home\?tour=quick"/);
   const tour = readFileSync(new URL("../src/components/shell/GuidedTour.tsx", import.meta.url), "utf8");
   assert.match(tour, /seller: \["\/home\/start", "\/home"\]/);
 });

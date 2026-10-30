@@ -12,6 +12,7 @@ import { patchSetup } from "@/lib/setup";
 import { fetchOnboarding, track, type OnboardingState } from "@/lib/seller-onboarding";
 import { shownHost } from "@/lib/store-editor";
 import { colors, fonts, surfaceCard } from "@/theme";
+import { RexStudioWelcomeCard } from "@/components/RexStudioWelcomeCard";
 
 // E3 "Ada's Hair is live! Rex built 4 pages for you." (design RB-16, the same moment as F-Seller-02-live): confetti,
 // the real shop in a card (the store editor's StorePreview), Share on WhatsApp Status as the main button, Edit it
@@ -46,7 +47,7 @@ export default function Launched() {
   }
 
   /** Onboarding is done: Home, with the three tips the first time (F1–F3) and the "Get your shop ready" list. */
-  async function leave(next?: { pathname: "/store-editor"; params?: { sheet: string } }) {
+  async function leave(next?: { pathname: "/store-editor"; params?: { sheet: string } } | { pathname: "/rex"; params: { prompt: string } }) {
     setLeaving(true);
     await finishOnboarding(true).catch(() => null);
     router.replace({ pathname: "/home", params: { tour: "1" } });
@@ -64,8 +65,12 @@ export default function Launched() {
             {redesign ? t("live.redesigned") : pages === 1 ? t("live.subOne") : t("live.sub", { count: pages || 4 })} <T weight="extrabold" selectable style={{ color: colors.ink, fontSize: 16 }}>{shownHost(url)}</T>
           </T>
         </View>
-        <View style={{ ...surfaceCard(28), flex: 1, marginTop: 20, marginBottom: 16, padding: 10, maxHeight: 420 }}>
+        <View style={{ ...surfaceCard(28), flex: 1, marginTop: 20, marginBottom: 12, padding: 10, maxHeight: 420 }}>
           {url ? <StorePreview url={url} accessibilityLabel={name} style={{ flex: 1, borderRadius: 20 }} /> : null}
+        </View>
+        {/* Free plan: "You have 20 credits to try Rex Studio" with one-tap starters (finishes onboarding, then opens Rex). */}
+        <View style={{ marginBottom: 12 }}>
+          <RexStudioWelcomeCard compact onStart={(prompt) => void leave({ pathname: "/rex", params: { prompt } })} />
         </View>
         <View style={{ gap: 10, paddingBottom: 6 }}>
           <PillButton tone="accent" icon="share" title={t("live.status")} busy={sharing} onPress={() => void shareStatus()} testID="live-status" />
