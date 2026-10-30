@@ -40,6 +40,11 @@ function sib_settings_fields(): array {
 				'riders_android_url'   => [ __( 'Riders app: Google Play link', 'shopinbos' ), '', 'url', '' ],
 				'riders_ios_url'       => [ __( 'Riders app: App Store link', 'shopinbos' ), '', 'url', '' ],
 				'partner_api_docs_url' => [ __( 'Delivery partner API docs link', 'shopinbos' ), '', 'url', '' ],
+				'social_instagram'     => [ __( 'Instagram page', 'shopinbos' ), '', 'url', __( 'Footer social links. Empty links are left out.', 'shopinbos' ) ],
+				'social_tiktok'        => [ __( 'TikTok page', 'shopinbos' ), '', 'url', '' ],
+				'social_x'             => [ __( 'X page', 'shopinbos' ), '', 'url', '' ],
+				'social_youtube'       => [ __( 'YouTube channel', 'shopinbos' ), '', 'url', '' ],
+				'social_linkedin'      => [ __( 'LinkedIn page', 'shopinbos' ), '', 'url', '' ],
 			],
 		],
 		'pricing' => [

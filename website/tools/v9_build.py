@@ -103,6 +103,17 @@ def rewrite_images(body):
     return re.sub(r'<img\b[^>]*>', img, body)
 
 
+def fix_forms(body):
+    """Make the drawn form controls real: the message box becomes a textarea, the label buttons that flip the
+    success state (label for="sent") get keyboard focus. v9.js sends the form before the state flips."""
+    def area(m):
+        style = re.sub(r'color:#[0-9A-Fa-f]+;?', '', m.group(1))
+        return ('<textarea name="message" rows="5" placeholder="' + m.group(2) + '" style="' + style +
+                ';color:#16141F;border:0;outline:0;resize:vertical;font-family:inherit;width:100%;box-sizing:border-box"></textarea>')
+    body = re.sub(r'<span style="(display:block;border-radius:14px;background:#fff;box-shadow:inset 0 0 0 1.5px #E3E0E8;padding:14px 16px;height:140px;[^"]*)">([^<]+)</span>', area, body)
+    return body.replace('<label for="sent" ', '<label for="sent" role="button" tabindex="0" ')
+
+
 def extract(path):
     s = open(path, encoding='utf-8').read()
     helmet = re.search(r'<helmet>(.*?)</helmet>', s, re.S).group(1)
@@ -160,7 +171,7 @@ def main():
         if name not in PAGES:
             continue
         _, body, title = extract(f)
-        body = rewrite_images(rewrite_links(body))
+        body = fix_forms(rewrite_images(rewrite_links(body)))
         open(os.path.join(OUT, 'pages', PAGES[name] + '.html'), 'w', encoding='utf-8').write(body + '\n')
         titles[PAGES[name]] = title
     with open(os.path.join(OUT, 'pages', 'titles.json'), 'w', encoding='utf-8') as fh:

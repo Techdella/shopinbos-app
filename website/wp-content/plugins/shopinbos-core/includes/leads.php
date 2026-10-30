@@ -452,11 +452,19 @@ function sib_process_lead_form( string $kind, array $in ): array {
 
 		case 'contact':
 			$message = sanitize_textarea_field( mb_substr( (string) ( $in['message'] ?? '' ), 0, 3000 ) );
-			if ( ! $name || ! $email || ! $message ) {
-				return $fail( __( 'Add your name, email and message.', 'shopinbos' ) );
+			if ( ! empty( $in['phone'] ) ) {
+				$phone = sib_lead_phone( (string) $in['phone'] );
+			}
+			if ( ! $name || ! $message || ( ! $email && ! $phone ) ) {
+				return $fail( __( 'Add your name, your WhatsApp number or email, and your message.', 'shopinbos' ) );
+			}
+			$extra = '';
+			foreach ( [ 'topic' => 'Topic', 'shop' => 'Shop', 'via' => 'Reply by', 'ref' => 'Reference' ] as $k => $label ) {
+				$v = sanitize_text_field( mb_substr( (string) ( $in[ $k ] ?? '' ), 0, 160 ) );
+				$extra .= $v ? '<br>' . esc_html( $label . ': ' . $v ) : '';
 			}
 			$to = (string) apply_filters( 'sib_contact_to', get_option( 'admin_email' ) );
-			sib_send_email( $to, 'Website message from ' . $name, sib_email_html( 'New message', '<p><b>' . esc_html( $name ) . '</b> (' . esc_html( $email ) . ')</p><p>' . nl2br( esc_html( $message ) ) . '</p>' ) );
+			sib_send_email( $to, 'Website message from ' . $name, sib_email_html( 'New message', '<p><b>' . esc_html( $name ) . '</b> (' . esc_html( trim( $email . ' ' . $phone ) ) . ')' . $extra . '</p><p>' . nl2br( esc_html( $message ) ) . '</p>' ) );
 			return [ 'ok' => true, 'message' => sib_lead_message( 'contact' ) ];
 	}
 	return $fail( '' );

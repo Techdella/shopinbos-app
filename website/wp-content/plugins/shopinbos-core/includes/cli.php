@@ -147,6 +147,20 @@ class Sib_CLI {
 		WP_CLI::success( 'Shopinbos is set up. Front page: ' . get_permalink( $home ) );
 	}
 
+	/**
+	 * Print the link that shows the new website (V9) in your browser before launch. ?v9=off turns it off again.
+	 *
+	 * @subcommand v9-link
+	 */
+	public function v9_link() {
+		if ( ! function_exists( 'sib_v9_key' ) ) {
+			WP_CLI::error( 'The Shopinbos theme with V9 is not active.' );
+		}
+		WP_CLI::log( 'Preview on:  ' . add_query_arg( 'v9', sib_v9_key(), home_url( '/' ) ) );
+		WP_CLI::log( 'Preview off: ' . add_query_arg( 'v9', 'off', home_url( '/' ) ) );
+		WP_CLI::log( sib_v9_launched() ? 'V9 is live for everyone.' : 'V9 goes live for everyone on ' . wp_date( 'j F Y, H:i T', function_exists( 'sib_launch_ts' ) ? sib_launch_ts() : time() ) . '.' );
+	}
+
 	/** Rebuild the marketplace sitemap now. */
 	public function sitemap() {
 		sib_build_sitemap() ? WP_CLI::success( 'Marketplace sitemap rebuilt.' ) : WP_CLI::error( 'The API did not answer; kept the previous sitemap.' );

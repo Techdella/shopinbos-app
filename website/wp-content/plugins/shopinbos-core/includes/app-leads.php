@@ -69,6 +69,9 @@ function sib_app_lead_from_form( string $kind, array $in ): void {
 	} elseif ( 'contact' === $kind ) {
 		$source             = 'Contact form';
 		$payload['topic']   = $str( 'topic', 80 );
+		foreach ( [ 'shop', 'via', 'ref' ] as $k ) {
+			$payload[ $k ] = $str( $k, 160 );
+		}
 	} elseif ( 'waitlist' === $kind ) {
 		$intent             = $str( 'intent', 60 );
 		$source             = 'ads_landing' === $intent ? 'Waitlist (ads landing page)' : 'Waitlist (coming soon)';
@@ -76,7 +79,10 @@ function sib_app_lead_from_form( string $kind, array $in ): void {
 		$payload['sells']   = $str( 'sells', 120 );
 		$payload['intent']  = $intent;
 		// Answers from the /join/ landing page (several choices arrive as lists) and where the visitor came from.
-		foreach ( [ 'business', 'category', 'channels', 'state', 'sell_mode', 'cac', 'partner_type', 'cities', 'fleet', 'cod', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid', 'ttclid' ] as $k ) {
+		if ( 'plug' === $intent ) {
+			$source = 'Shopinbos Plug ' . ( 'pilot' === $str( 'list', 20 ) ? 'pilot' : 'waitlist' );
+		}
+		foreach ( [ 'list', 'area', 'os', 'fave', 'business', 'category', 'channels', 'state', 'sell_mode', 'cac', 'partner_type', 'cities', 'fleet', 'cod', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid', 'ttclid' ] as $k ) {
 			$v = $in[ $k ] ?? '';
 			$v = is_array( $v ) ? implode( ', ', array_map( 'sanitize_text_field', array_map( 'strval', $v ) ) ) : sanitize_text_field( (string) $v );
 			if ( '' !== $v ) {
@@ -87,8 +93,11 @@ function sib_app_lead_from_form( string $kind, array $in ): void {
 		$source         = 'Investor relations';
 		$payload['org'] = $str( 'org', 160 );
 	} elseif ( 'app_notify' === $kind ) {
-		$source              = 'App launch alert';
+		$source              = 'pilot' === $str( 'intent', 20 ) ? 'Mobile app pilot' : 'App launch alert';
 		$payload['platform'] = $str( 'platform', 20 );
+		foreach ( [ 'role', 'business', 'state' ] as $k ) {
+			$payload[ $k ] = $str( $k, 120 );
+		}
 	}
 	sib_app_lead( [
 		'kind'    => $kind,

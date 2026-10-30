@@ -145,7 +145,11 @@ function sib_v9_tokens( string $html ): string {
 	];
 	foreach ( [ 'instagram', 'tiktok', 'x', 'youtube', 'linkedin' ] as $s ) {
 		$url                          = function_exists( 'sib_setting' ) ? (string) sib_setting( 'social_' . $s ) : '';
-		$map[ '%%SOCIAL:' . $s . '%%' ] = $url ? esc_url( $url ) : '#';
+		if ( $url ) {
+			$map[ '%%SOCIAL:' . $s . '%%' ] = esc_url( $url );
+		} else { // no page set: leave the icon out
+			$html = (string) preg_replace( '#<a\b[^>]*href="%%SOCIAL:' . $s . '%%"[^>]*>.*?</a>#s', '', $html );
+		}
 	}
 	return strtr( $html, $map );
 }
