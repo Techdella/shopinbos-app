@@ -188,7 +188,26 @@ STORE_BADGES = [
 ]
 
 
+# Learn menu and footer: Free tools and Free PDFs (pages the design had no menu items for).
+_ICO = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{c}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{p}</svg>'
+TOOLS_ICO = _ICO.format(c='#5B3FD6', p='<rect x="5" y="3" width="14" height="18" rx="2.5"></rect><path d="M8.5 7h7M8.5 11h1M12 11h1M15.5 11h.01M8.5 14.5h1M12 14.5h1M15.5 14.5v3M8.5 18h1M12 18h1"></path>')
+PDF_ICO = _ICO.format(c='#C2410C', p='<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 3v5h5M12 12v6M9.5 15.5 12 18l2.5-2.5"></path>')
+LEARN_LINKS = [
+    ('<span><b>Help centre</b><small>Answers, step by step</small></span></a>',
+     '<span><b>Help centre</b><small>Answers, step by step</small></span></a>'
+     '<a class="mi" href="/tools/"><span class="ico" style="background:#ECE8FF">' + TOOLS_ICO + '</span><span><b>Free tools</b><small>Calculators, invoices and more</small></span></a>'
+     '<a class="mi" href="/resources/"><span class="ico" style="background:#FFEDE4">' + PDF_ICO + '</span><span><b>Free PDFs</b><small>Guides and templates to download</small></span></a>'),
+    ('<span style="font-weight:600">Help centre</span></a>',
+     '<span style="font-weight:600">Help centre</span></a>'
+     '<a href="/tools/" style="display:flex;gap:12px;align-items:center;padding:10px 0"><span class="ico" style="background:#ECE8FF">' + TOOLS_ICO + '</span><span style="font-weight:600">Free tools</span></a>'
+     '<a href="/resources/" style="display:flex;gap:12px;align-items:center;padding:10px 0"><span class="ico" style="background:#FFEDE4">' + PDF_ICO + '</span><span style="font-weight:600">Free PDFs</span></a>'),
+    ('<a href="/help/">Help centre</a></div>', '<a href="/help/">Help centre</a><a href="/tools/">Free tools</a><a href="/resources/">Free PDFs</a></div>'),
+]
+
+
 def fix_text(body):
+    for a, b in LEARN_LINKS:
+        body = body.replace(a, b, 1)
     for a, b in STORE_BADGES:
         body = body.replace(a, b)
     for a, b in TEXT:

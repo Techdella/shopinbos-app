@@ -90,8 +90,8 @@ function sib_v9_blog_post(): ?array {
 		$h .= '<section style="padding:0 0 40px"><div class="wrap"><div style="height:560px;border-radius:32px;overflow:hidden" class="grow v9-feat"><img fetchpriority="high" decoding="async" src="' . esc_url( $img ) . '" alt="' . esc_attr( sib_v9_blog_alt( $post ) ) . '" style="width:100%;height:100%;object-fit:cover"></div>' . sib_v9_blog_credit( $post ) . '</div></section>';
 	}
 	$h .= '<section style="padding:56px 0 120px"><div class="wrap g2" style="display:grid;grid-template-columns:260px 1fr;gap:72px;max-width:1120px">';
-	$h .= '<aside class="hm"><div style="position:sticky;top:24px;display:flex;flex-direction:column;gap:12px;font-size:14.5px">' . ( $toc ? '<span class="k mutd">' . esc_html__( 'On this page', 'shopinbos' ) . '</span>' . sib_v9_toc( $toc ) : '' );
-	$h .= '<span class="k mutd" style="margin-top:20px">' . esc_html__( 'Share', 'shopinbos' ) . '</span>' . sib_v9_blog_share( $post, 'side' ) . '</div></aside>';
+	$h .= '<aside class="hm"><div style="display:flex;flex-direction:column;gap:12px;font-size:14.5px">' . ( $toc ? '<span class="k mutd">' . esc_html__( 'On this page', 'shopinbos' ) . '</span>' . sib_v9_toc( $toc ) : '' );
+	$h .= '<span class="k mutd" style="margin-top:20px">' . esc_html__( 'Share', 'shopinbos' ) . '</span>' . sib_v9_blog_share( $post, 'side' ) . '</div>' . sib_v9_blog_side_card( $post ) . '</aside>';
 	$h .= '<article style="min-width:0;max-width:700px">' . ( $dek ? '<p class="lead" style="font-size:21px;color:#16141F">' . esc_html( $dek ) . '</p>' : '' ) . '<div class="v9-prose">' . $body . '</div>' . sib_v9_blog_end( $post ) . '</article></div></section>';
 	$h .= sib_v9_related( $post );
 	$h .= sib_v9_section( 'blog-post', 'night' );
@@ -108,6 +108,21 @@ function sib_v9_blog_post(): ?array {
 		'description' => $seo_desc,
 		'crumbs'      => $crumbs,
 	];
+}
+
+/**
+ * The sidebar card that stays in view while reading: a short muted video (Shopinbos or Peggy, by post), a sign-up
+ * button and a free PDF. Fills the column next to long posts; hidden on phones with the rest of the sidebar.
+ */
+function sib_v9_blog_side_card( WP_Post $post ): string {
+	$videos = [ [ 'shopinbos-launch', 'Shopinbos for the people who sell online in Nigeria' ], [ 'meet-peggy', 'Meet Peggy, who answers your chats' ] ];
+	[ $file, $label ] = $videos[ $post->ID % 2 ];
+	$kit = get_page_by_path( 'online-sellers-starter-kit', OBJECT, 'sib_resource' );
+	return '<div class="v9-side-card">'
+		. '<div class="v9-side-video"><video muted loop playsinline preload="none" data-autoplay poster="' . esc_url( get_theme_file_uri( 'assets/video/' . $file . '.webp' ) ) . '" aria-label="' . esc_attr( $label ) . '"><source src="' . esc_url( get_theme_file_uri( 'assets/video/' . $file . '.mp4' ) ) . '" type="video/mp4"></video></div>'
+		. '<div class="v9-side-over"><b>' . esc_html__( 'Your shop can be live tonight.', 'shopinbos' ) . '</b><a class="btn b-org" href="' . esc_url( sib_v9_tokens( '%%SIGNUP%%' ) ) . '">' . esc_html__( 'Start free', 'shopinbos' ) . '</a></div>'
+		. ( $kit ? '<a class="v9-side-pdf" href="' . esc_url( get_permalink( $kit ) ) . '">' . ( get_the_post_thumbnail_url( $kit, 'thumbnail' ) ? '<img loading="lazy" decoding="async" src="' . esc_url( get_the_post_thumbnail_url( $kit, 'medium' ) ) . '" alt="" width="44" height="62">' : '' ) . '<span><small>' . esc_html__( 'Free PDF', 'shopinbos' ) . '</small>' . esc_html( get_the_title( $kit ) ) . '</span></a>' : '' )
+		. '</div>';
 }
 
 /** "Keep reading": three posts from the same category, in the design's card style. */

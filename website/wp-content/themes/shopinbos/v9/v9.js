@@ -483,6 +483,23 @@
 		});
 	})();
 
+	/* Muted videos (blog sidebar): play while on screen, pause when not; still poster for reduced motion. */
+	(function () {
+		var vids = document.querySelectorAll('video[data-autoplay]');
+		if (!vids.length || !('IntersectionObserver' in window)) return;
+		if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) {
+			vids.forEach(function (v) { v.controls = true; });
+			return;
+		}
+		var io = new IntersectionObserver(function (es) {
+			es.forEach(function (e) {
+				var v = e.target;
+				if (e.isIntersecting) { var p = v.play(); if (p && p.catch) p.catch(function () { v.controls = true; }); } else { v.pause(); }
+			});
+		}, { threshold: 0.4 });
+		vids.forEach(function (v) { io.observe(v); });
+	})();
+
 	/* CTA clicks to the app. */
 	document.addEventListener('click', function (e) {
 		var a = e.target.closest && e.target.closest('a[href*="app.shopinbos.com"], a[href*="/signup"]');
