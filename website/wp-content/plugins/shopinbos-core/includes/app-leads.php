@@ -95,8 +95,8 @@ function sib_app_lead_from_form( string $kind, array $in ): void {
 	} elseif ( 'app_notify' === $kind ) {
 		$source              = 'pilot' === $str( 'intent', 20 ) ? 'Mobile app pilot' : 'App launch alert';
 		$payload['platform'] = $str( 'platform', 20 );
-		foreach ( [ 'role', 'business', 'state' ] as $k ) {
-			$payload[ $k ] = $str( $k, 120 );
+		foreach ( [ 'role', 'business', 'state', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid', 'ttclid' ] as $k ) {
+			$payload[ $k ] = $str( $k, 'fbclid' === $k || 'ttclid' === $k ? 255 : 120 );
 		}
 	}
 	sib_app_lead( [

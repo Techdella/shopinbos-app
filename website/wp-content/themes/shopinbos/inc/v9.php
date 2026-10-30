@@ -124,6 +124,11 @@ function sib_v9_redirects(): array {
 		'#^/solutions(/.*)?$#'                                      => '/start/',
 		'#^/integrations(/.*)?$#'                                   => '/social-selling/',
 		'#^/legal/?$#'                                              => '/legal/terms/',
+		// Sign-up waitlists end at launch: the waitlist goes to Shopinbos Plug, the ads landing page to the app pilot.
+		'#^/waitlist/?$#'                                           => '/plug/',
+		'#^/(join|lp/join)/?$#'                                     => '/app/',
+		'#^/blog/category/([^/]+)/?$#'                              => '/blog/?topic=$1',
+		'#^/blog/(page/\\d+|tag/[^/]+|author/[^/]+)/?$#'           => '/blog/',
 		// V9 never names other companies: comparison pages that do go to the general comparison.
 		'#^/compare/(?!global-store-builder/?$)[^/]+/?$#'           => '/compare/',
 	];
@@ -179,12 +184,16 @@ add_action( 'template_redirect', function () {
 	$path = trailingslashit( (string) wp_parse_url( add_query_arg( [] ), PHP_URL_PATH ) );
 	foreach ( sib_v9_redirects() as $re => $to ) {
 		if ( preg_match( $re, $path ) ) {
+			// Keep the visitor's tracking (utm_*, fbclid) on the new page.
+			$to = (string) preg_replace( $re, $to, $path );
+			$q  = (string) wp_parse_url( add_query_arg( [] ), PHP_URL_QUERY );
+			$to = $q ? $to . ( false === strpos( $to, '?' ) ? '?' : '&' ) . $q : $to;
 			wp_safe_redirect( home_url( $to ), 301 );
 			exit;
 		}
 	}
 	$routes = sib_v9_routes();
-	if ( isset( $routes[ $path ] ) ) {
+	if ( isset( $routes[ $path ] ) && ! is_search() ) {
 		// Index pages (blog, help) swap the design's sample cards for real posts.
 		sib_v9_render( $routes[ $path ], (string) apply_filters( 'sib_v9_fill', sib_v9_page( $routes[ $path ] ), $routes[ $path ] ) );
 	}
@@ -197,7 +206,7 @@ add_action( 'template_redirect', function () {
 			}
 		}
 	}
-}, 1 );
+}, 0 ); // before the plugin's own redirects (/join → /lp/join/ at priority 1)
 
 /**
  * Print a whole V9 page and stop. $meta: title, description, canonical (optional).
@@ -222,17 +231,18 @@ function sib_v9_render( string $slug, string $html, array $meta = [] ): void {
 	}
 
 	global $wp_query;
-	$wp_query->is_404 = false;
-	status_header( 200 );
+	$status           = (int) ( $meta['status'] ?? 200 );
+	$wp_query->is_404 = 404 === $status;
+	status_header( $status );
 	$GLOBALS['sib_virtual'] = [
 		'title'       => $title,
 		'description' => $desc,
 		'canonical'   => $meta['canonical'] ?? home_url( trailingslashit( $path ) ),
-		'noindex'     => ! sib_v9_launched(),
+		'noindex'     => ! empty( $meta['noindex'] ) || ! sib_v9_launched(),
 		'view'        => 'v9',
 		'crumbs'      => (array) ( $meta['crumbs'] ?? [] ),
 		'route'       => 'v9',
-		'status'      => 200,
+		'status'      => $status,
 	];
 	$GLOBALS['sib_v9_page'] = $slug;
 	add_filter( 'pre_get_document_title', fn() => $title, 99 );
@@ -288,3 +298,4 @@ add_action( 'wp_enqueue_scripts', function () {
 
 require_once __DIR__ . '/v9-content.php';
 require_once __DIR__ . '/v9-fill.php';
+require_once __DIR__ . '/v9-pages.php';

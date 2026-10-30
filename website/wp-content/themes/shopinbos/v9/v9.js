@@ -14,6 +14,9 @@
 		fd.append('action', 'sib_lead');
 		fd.append('back', location.href.split('#')[0]);
 		Object.keys(data).forEach(function (k) { if (data[k] !== '' && data[k] != null) fd.append(k, data[k]); });
+		// Where the visitor came from (ads land on /app/ and /plug/ with utm_* and fbclid).
+		var qs = new URLSearchParams(location.search);
+		['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid', 'ttclid'].forEach(function (k) { if (qs.get(k)) fd.append(k, qs.get(k)); });
 		return fetch(C.post || '/wp-admin/admin-post.php', { method: 'POST', body: fd, credentials: 'same-origin', headers: { Accept: 'application/json' } })
 			.then(function (r) { return r.json().catch(function () { return { ok: false }; }); })
 			.catch(function () { return { ok: false, message: 'No connection. Check your data and try again.' }; });
