@@ -1,0 +1,37 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@font-face{font-family:Jak;src:url(file:///home/user/shopinbos-app/public/fonts/plus-jakarta-sans-latin-wght-normal.woff2);font-weight:200 800}
+*{margin:0;box-sizing:border-box}
+html,body{width:var(--w);height:var(--h);overflow:hidden}
+body{font-family:Jak;background:#0C4A44;position:relative;color:#fff}
+.dots{position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.10) calc(var(--u)*.12),transparent calc(var(--u)*.13));background-size:calc(var(--u)*2.2) calc(var(--u)*2.2)}
+.glow{position:absolute;border-radius:50%;background:radial-gradient(circle,rgba(115,216,200,.30),rgba(115,216,200,0) 65%)}
+.ring{position:absolute;border-radius:50%;border:calc(var(--u)*.35) solid rgba(255,255,255,.07)}
+.lime{position:absolute;border-radius:50%;background:#C6F432}
+.copy{position:absolute;left:var(--l);top:50%;transform:translateY(-50%);width:var(--cw)}
+.logo{height:calc(var(--u)*2.6);display:block;margin-bottom:calc(var(--u)*2.4)}
+h1{font-weight:800;font-size:calc(var(--u)*6.4);line-height:1.02;letter-spacing:-.035em}
+h1 span{color:#FF6A2B;display:block}
+p{font-size:calc(var(--u)*1.75);line-height:1.45;color:rgba(255,255,255,.88);margin-top:calc(var(--u)*1.8);font-weight:500}
+.chips{display:flex;gap:calc(var(--u)*.7);margin-top:calc(var(--u)*2.2);flex-wrap:wrap}
+.chip{font-weight:700;font-size:calc(var(--u)*1.15);padding:calc(var(--u)*.6) calc(var(--u)*1.3);border-radius:999px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.18)}
+.m{position:absolute;filter:drop-shadow(0 calc(var(--u)*1.2) calc(var(--u)*1.5) rgba(0,0,0,.35))}
+.card{position:absolute;background:#fff;color:#0C2521;border-radius:calc(var(--u)*1.6);padding:calc(var(--u)*1) calc(var(--u)*1.4);display:flex;align-items:center;gap:calc(var(--u)*.9);box-shadow:0 calc(var(--u)*.8) calc(var(--u)*2.4) rgba(0,0,0,.28);white-space:nowrap}
+.card b{display:block;font-size:calc(var(--u)*1.35);font-weight:800;letter-spacing:-.01em}
+.card small{display:block;font-size:calc(var(--u)*.95);color:#5c6b68;font-weight:600;margin-top:calc(var(--u)*.15)}
+.ic{width:calc(var(--u)*2.6);height:calc(var(--u)*2.6);border-radius:50%;display:grid;place-items:center;flex:none}
+.ic svg{width:55%;height:55%}
+</style></head><body>
+<div class="dots"></div>
+<div class="glow" id="glow"></div><div class="ring" id="ring"></div><div class="lime" id="lime"></div>
+<div class="copy">
+<img class="logo" src="file:///home/user/shopinbos-app/public/brand/logos/shopinbos-logo-light.png">
+<h1>Start easy,<span>sell smarter.</span></h1>
+<p id="sub">Your online shop, built with AI. Sell, get paid and deliver, all from your phone.</p>
+<div class="chips"><div class="chip">English</div><div class="chip">Pidgin</div><div class="chip">Yorùbá</div><div class="chip">Hausa</div><div class="chip">Igbo</div></div>
+</div>
+<img class="m" id="rex" src="REX">
+<img class="m" id="peg" src="PEG">
+<div class="card" id="c1"><div class="ic" style="background:#E3F7D0"><svg viewBox="0 0 24 24" fill="none" stroke="#2E7E2A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></div><div><b>₦184,500 today</b><small>Coming to your bank tomorrow</small></div></div>
+<div class="card" id="c2"><div class="ic" style="background:#FFE6DA"><svg viewBox="0 0 24 24" fill="none" stroke="#E0531A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1 13H7z"/><path d="M9 7a3 3 0 016 0"/></svg></div><div><b>New order</b><small>Ankara fabric · 4 yards</small></div></div>
+<div class="card" id="c3"><div class="ic" style="background:#D8F3EE"><svg viewBox="0 0 24 24" fill="none" stroke="#2E7E78" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 01-11.6 7.1L4 20l1-4.6A8 8 0 1121 12z"/></svg></div><div><b>Peggy replied</b><small>9 customer chats answered</small></div></div>
+</body></html>

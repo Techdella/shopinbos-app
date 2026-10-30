@@ -98,6 +98,8 @@ App Store Connect › the app › the version:
 | Category | Business (primary), Shopping (secondary) |
 | Age rating | 4+ (no objectionable content; the chats are between businesses and their customers) |
 | Copyright | 2026 <the company's registered name> |
+| Header asset (optional) | `creative/header-3840x1646.jpg` |
+| Search Results asset (optional) | `creative/search-results-3840x2560.jpg` (or the 1920×1280 one) |
 | Screenshots, 6.9" iPhone | `screenshots/iphone-6.9/` (7 at 1320×2868, in order). Apple scales them down for smaller iPhones. |
 | App Review information | `review-notes.txt`: create the demo seller account first and put its email and password there. |
 | App Privacy | `app-privacy.md` |
@@ -133,4 +135,5 @@ python3 docs/app-store/make-screenshots.py docs/play-store/listing/screenshots d
 | `screenshots/iphone-6.9/` | 7 screenshots, 1320×2868 |
 | `review-notes.txt` | App Review notes and demo account |
 | `app-privacy.md` | App Privacy answers |
+| `creative/` | Header and Search Results assets, and the page + `render.js` that make them |
 | `make-screenshots.py` | Makes the iPhone screenshots from the Play ones |
