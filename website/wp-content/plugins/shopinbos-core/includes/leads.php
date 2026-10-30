@@ -421,7 +421,9 @@ function sib_process_lead_form( string $kind, array $in ): array {
 				}
 			}
 			do_action( 'sib_lead_download', [ 'resource' => $rid, 'name' => $name, 'email' => $email, 'phone' => $phone, 'sells' => sanitize_text_field( (string) ( $in['sells'] ?? '' ) ), 'consent' => $consent ] );
-			return [ 'ok' => true, 'message' => $url ? sib_lead_message( 'download' ) : __( 'Thanks! The guide is almost ready; we’ll email it to you.', 'shopinbos' ), 'download' => $url ?: null ];
+			$ready = $email ? sib_lead_message( 'download' ) : __( 'Your guide is ready. Tap the button to download it.', 'shopinbos' );
+			$later = $email ? __( 'Thanks! The guide is almost ready; we’ll email it to you.', 'shopinbos' ) : __( 'Thanks! The guide is almost ready; our team will send it to your WhatsApp.', 'shopinbos' );
+			return [ 'ok' => true, 'message' => $url ? $ready : $later, 'download' => $url ?: null ];
 
 		case 'waitlist':
 		case 'app_notify':
