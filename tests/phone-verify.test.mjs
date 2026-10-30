@@ -57,8 +57,11 @@ test("forged or tampered strings are refused; a challenge is not a token and the
   const { challenge } = pv.createPhoneChallenge({ phone: PHONE, storeId: STORE, code: "123456", now }, SECRET);
   const { phoneToken } = pv.createPhoneToken({ phone: PHONE, storeId: STORE, now }, SECRET);
   const [payload, signature] = phoneToken.split(".");
+  // Tamper with the signature's first character: it carries six whole bits, so the bytes always change. (Replacing
+  // the last two with "AA" left the signature valid about once in a thousand runs, when it already decoded that way.)
+  const tampered = `${signature[0] === "A" ? "B" : "A"}${signature.slice(1)}`;
   const swapped = Buffer.from(JSON.stringify({ p: "+2348030000000", s: STORE, e: now + 1e9 })).toString("base64url");
-  for (const bad of [undefined, null, "", "abc", `${payload}`, `${payload}.${signature}.x`, `${swapped}.${signature}`, `${payload}.${signature.slice(0, -2)}AA`, "x".repeat(3000)]) {
+  for (const bad of [undefined, null, "", "abc", `${payload}`, `${payload}.${signature}.x`, `${swapped}.${signature}`, `${payload}.${tampered}`, "x".repeat(3000)]) {
     assert.equal(pv.verifyPhoneToken(bad, { phone: PHONE, storeId: STORE, now }, SECRET), false, String(bad).slice(0, 30));
   }
   assert.equal(pv.verifyPhoneToken(challenge, { phone: PHONE, storeId: STORE, now }, SECRET), false, "a challenge isn't a token");

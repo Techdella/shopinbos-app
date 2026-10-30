@@ -26,6 +26,8 @@ import { OnboardingFrame } from "@/components/OnboardingFrame";
 import { OnboardingWelcome, onboardingWelcomeSeen } from "@/components/OnboardingWelcome";
 import { useOnboarding } from "@/components/OnboardingContext";
 import { VoiceInput } from "@/components/VoiceInput";
+import { FunLoader } from "@/components/FunLoader";
+import { saveFileToPhone } from "@/lib/familiar-share";
 import {
   addSupplierPick,
   buildStore,
@@ -249,14 +251,14 @@ export default function SellerQuestions() {
     }
   }
 
-  async function askForLogos(round: number) {
+  async function askForLogos(round: number, notes = logoNotes) {
     setLogoMode("rex");
     setLogoRound(round);
     setLogoUnavailable(false);
     setBusy(true);
     setError(null);
     try {
-      setLogos(await drawLogos({ businessName: displayName, businessDescription: description, round, notes: logoNotes.trim() || undefined }));
+      setLogos(await drawLogos({ businessName: displayName, businessDescription: description, round, notes: notes.trim() || undefined }));
     } catch {
       setLogoUnavailable(true);
     } finally {
@@ -497,7 +499,8 @@ export default function SellerQuestions() {
         ) : null}
         {logoMode === "rex" ? (
           <View style={{ marginTop: 18, gap: 12 }}>
-            {busy && !logos.length ? <T style={{ color: colors.inkSoft }}>{t("logo.drawing", { name: displayName })}</T> : null}
+            {/* Rex is drawing (the first round, a redraw or more ideas): the fun loader, above the old ideas. */}
+            {busy ? <FunLoader kind="logo" /> : null}
             {logoUnavailable ? (
               <>
                 <Notice tone="info">{t("logo.unavailable")}</Notice>
@@ -525,12 +528,42 @@ export default function SellerQuestions() {
                       accessibilityLabel={t("logo.option", { number: index + 1 })}
                       accessibilityState={{ selected: logoUrl === logo.url }}
                       onPress={() => setLogoUrl(logo.url)}
-                      style={{ width: (width - 50) / 2, aspectRatio: 1, borderRadius: 20, overflow: "hidden", backgroundColor: colors.surface, borderWidth: 2, borderColor: logoUrl === logo.url ? colors.ink : "transparent" }}
+                      style={{
+                        width: (width - 50) / 2,
+                        aspectRatio: 1,
+                        borderRadius: 20,
+                        overflow: "hidden",
+                        backgroundColor: "#FFFFFF",
+                        borderWidth: 3,
+                        borderColor: logoUrl === logo.url ? colors.accent : colors.line,
+                        opacity: busy || (logoUrl && logoUrl !== logo.url) ? 0.5 : 1,
+                      }}
                     >
                       <Image source={{ uri: logo.url }} style={{ width: "100%", height: "100%" }} resizeMode="contain" />
+                      {logoUrl === logo.url ? (
+                        <View style={{ position: "absolute", top: 8, right: 8, flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.inkFill, borderRadius: radii.pill, paddingHorizontal: 9, paddingVertical: 4 }}>
+                          <AppIcon name="check" size={12} color="#FFFFFF" />
+                          <T weight="bold" style={{ color: "#FFFFFF", fontSize: 12 }}>{t("logo.chosen")}</T>
+                        </View>
+                      ) : null}
                     </Pressable>
                   ))}
                 </View>
+                {logoUrl && logos.some((logo) => logo.url === logoUrl) ? (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: colors.surface, borderRadius: 22, borderWidth: 2, borderColor: colors.accent, padding: 14 }}>
+                    <Image source={{ uri: logoUrl }} accessibilityLabel={t("logo.yourLogo")} style={{ width: 104, height: 104, borderRadius: 16, backgroundColor: "#FFFFFF" }} resizeMode="contain" />
+                    <View style={{ flex: 1, gap: 8 }}>
+                      <T weight="extrabold" style={{ fontSize: 16 }}>{t("logo.yourLogo")}</T>
+                      <PillButton
+                        size="sm"
+                        tone="white"
+                        icon="download"
+                        title={t("logo.download")}
+                        onPress={() => void saveFileToPhone(logoUrl, t("logo.yourLogo")).then((saved) => (saved ? undefined : setError(t("logo.downloadFailed"))))}
+                      />
+                    </View>
+                  </View>
+                ) : null}
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                   <TextInput
                     value={logoNotes}
@@ -539,6 +572,18 @@ export default function SellerQuestions() {
                     placeholderTextColor={colors.inkFaint}
                     accessibilityLabel={t("logo.changeAria")}
                     style={{ flex: 1, minHeight: 50, borderRadius: radii.pill, backgroundColor: colors.surface, paddingHorizontal: 18, fontSize: 15, fontFamily: fonts.regular, color: colors.ink }}
+                  />
+                  {/* A voice note to Rex: the words go in the box and Rex redraws straight away. */}
+                  <VoiceInput
+                    variant="icon"
+                    mode="replace"
+                    value={logoNotes}
+                    onChange={(spoken) => {
+                      setLogoNotes(spoken);
+                      if (spoken.trim()) void askForLogos(logoRound, spoken);
+                    }}
+                    context="changes to a logo design"
+                    disabled={busy}
                   />
                   <PillButton size="sm" tone="forest" title={t("logo.redo")} disabled={!logoNotes.trim() || busy} onPress={() => void askForLogos(logoRound)} />
                 </View>

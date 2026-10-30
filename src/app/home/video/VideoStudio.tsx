@@ -36,6 +36,7 @@ import { useT } from "@/components/i18n/I18nProvider";
 import { ReelPreview } from "./ReelPreview";
 import { VoiceRecorder } from "./VoiceRecorder";
 import { friendlyError } from "@/lib/errors/report-client";
+import { FunLoader } from "@/components/brand/FunLoader";
 
 export interface StudioProduct {
   id: string;
@@ -633,6 +634,7 @@ export function VideoStudio({
                 </button>
               ) : null}
             </div>
+            {step === "shots" && <FunLoader kind="image" size="sm" className="mt-3" />}
             <p className="m-0 mt-2 text-[12px] text-app-ink-soft">{t("shots.cost", { credits: costs.image })}</p>
           </div>
         </section>
@@ -829,6 +831,7 @@ export function VideoStudio({
               <a href={savedUrl} download target="_blank" rel="noopener noreferrer" className="text-center text-[13px] font-bold text-app-ink underline underline-offset-2">{t("downloadSaved")}</a>
             </div>
           ) : null}
+          {(step === "rendering" || step === "voicing") && <FunLoader kind="video" size="sm" />}
           {step === "rendering" && <p className="m-0 text-center text-[12.5px] text-app-ink-soft">{t("keepOpen", { seconds: Math.round(result?.seconds ?? 14) })}</p>}
           {result && (
             <>

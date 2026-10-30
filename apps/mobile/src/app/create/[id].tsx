@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
 import { ScheduleSheet } from "@/components/familiar/ScheduleSheet";
@@ -15,6 +15,7 @@ import { FORMAT_KEY, POLL_LIMIT, pollDelay } from "@/lib/familiar-pure";
 import type { ShareTarget } from "@/lib/familiar-share";
 import { useT } from "@/lib/i18n";
 import { colors, radii } from "@/theme";
+import { FunLoader } from "@/components/FunLoader";
 
 // Create with Rex, step 2 ("Familiar app" prototype `making` then `result`): "Rex is making 3 designs" while
 // GET /api/mobile/create/[id] says "making" (polled), then the three designs to pick from, the caption to edit,
@@ -132,7 +133,7 @@ export default function CreateResult() {
           <Mascot who="rex" mood={slow ? "idle" : "working"} size={120} label="" />
           <Title style={{ textAlign: "center" }}>{t("cr.making")}</Title>
           <Sub style={{ textAlign: "center" }}>{slow ? t("cr.slow") : t("cr.makingSub")}</Sub>
-          {slow ? <PillButton title={t("cr.checkAgain")} tone="white" size="md" onPress={checkAgain} /> : <ActivityIndicator color={colors.ink} size="large" />}
+          {slow ? <PillButton title={t("cr.checkAgain")} tone="white" size="md" onPress={checkAgain} /> : <FunLoader kind="image" style={{ alignSelf: "stretch" }} />}
         </View>
       </Screen>
     );
