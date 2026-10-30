@@ -111,6 +111,7 @@ const en = {
   "products.noPrice": "Add a price",
   "products.partly": "Some photos didn't come back: {reason}",
   "products.noAi": "Rex couldn't read these photos. Add the names and prices yourself.",
+  "products.untitled": "New product {number}",
   "products.denied": "Allow photos in your phone's settings to add products.",
 
   // Product sheet (price check)
@@ -223,9 +224,9 @@ const en = {
   // D4a Rex's photo library
   "media.title": "Need photos for your About page?",
   "media.sub": "Pick from my library. Free to use in your shop.",
-  "media.cat.beauty": "Hair and beauty",
   "media.cat.people": "People",
   "media.cat.backgrounds": "Backgrounds",
+  "media.cat.markets": "Markets",
   "media.cat.mine": "My photos",
   "media.use": "Use {count} photos",
   "media.useOne": "Use 1 photo",

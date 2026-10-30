@@ -13,16 +13,18 @@ export type ChecklistItem = { key: string; label: string; done: boolean; onPress
 
 /** `variant="tiles"`: the "Before you start" look (delivery partners): the title with the count and a progress bar,
  * then two tiles to a row, each with its icon and a tick when done. */
-export function Checklist({ title, items, onDismiss, variant = "list" }: { title: string; items: ChecklistItem[]; onDismiss?: () => void; variant?: "list" | "tiles" }) {
+/** `progress`: the count for the bar when done items are left out of `items` (they disappear when done, spec F4). */
+export function Checklist({ title, items, onDismiss, variant = "list", progress }: { title: string; items: ChecklistItem[]; onDismiss?: () => void; variant?: "list" | "tiles"; progress?: { done: number; total: number } }) {
   const t = useT("m_familiar");
-  const done = items.filter((item) => item.done).length;
-  if (!items.length || done === items.length) return null;
+  const done = progress ? progress.done : items.filter((item) => item.done).length;
+  const total = progress ? progress.total : items.length;
+  if (!items.length || done >= total) return null;
   if (variant === "tiles") {
     return (
       <View style={{ gap: 12 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <T weight="extrabold" style={{ fontSize: 17, flex: 1 }} accessibilityRole="header">{title}</T>
-          <T weight="semibold" style={{ fontSize: 13, color: colors.inkSoft }}>{t("check.count", { done, total: items.length })}</T>
+          <T weight="semibold" style={{ fontSize: 13, color: colors.inkSoft }}>{t("check.count", { done, total })}</T>
           {onDismiss ? (
             <Pressable accessibilityRole="button" accessibilityLabel={t("check.hide")} onPress={onDismiss} hitSlop={8} style={{ width: 32, height: 32, alignItems: "center", justifyContent: "center" }}>
               <AppIcon name="x" size={18} color={colors.inkSoft} />
@@ -30,7 +32,7 @@ export function Checklist({ title, items, onDismiss, variant = "list" }: { title
           ) : null}
         </View>
         <View style={{ height: 6, borderRadius: 3, backgroundColor: colors.track, overflow: "hidden" }}>
-          <View style={{ width: `${(done / items.length) * 100}%`, height: 6, borderRadius: 3, backgroundColor: colors.successFill }} />
+          <View style={{ width: `${(done / total) * 100}%`, height: 6, borderRadius: 3, backgroundColor: colors.successFill }} />
         </View>
         <TileGrid>
           {items.map((item) => <CheckTile key={item.key} icon={item.icon ?? "check"} label={item.label} done={item.done} onPress={item.onPress} />)}
@@ -42,7 +44,7 @@ export function Checklist({ title, items, onDismiss, variant = "list" }: { title
     <View style={{ backgroundColor: currentScheme() === "dark" ? "#2A3912" : "#E2F5A0", borderRadius: 24, padding: 18, paddingRight: 12, gap: 10 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
         <T weight="extrabold" style={{ fontSize: 16, flex: 1 }}>{title}</T>
-        <T weight="semibold" style={{ fontSize: 13, color: colors.inkSoft }}>{t("check.count", { done, total: items.length })}</T>
+        <T weight="semibold" style={{ fontSize: 13, color: colors.inkSoft }}>{t("check.count", { done, total })}</T>
         {onDismiss ? (
           <Pressable accessibilityRole="button" accessibilityLabel={t("check.hide")} onPress={onDismiss} hitSlop={8} style={{ width: 32, height: 32, alignItems: "center", justifyContent: "center" }}>
             <AppIcon name="x" size={18} color={colors.inkSoft} />
@@ -50,7 +52,7 @@ export function Checklist({ title, items, onDismiss, variant = "list" }: { title
         ) : null}
       </View>
       <View style={{ height: 6, borderRadius: 3, marginRight: 6, backgroundColor: "rgba(22,20,31,0.12)", overflow: "hidden" }}>
-        <View style={{ width: `${(done / items.length) * 100}%`, height: 6, backgroundColor: colors.inkFill }} />
+        <View style={{ width: `${(done / total) * 100}%`, height: 6, backgroundColor: colors.inkFill }} />
       </View>
       {items.map((item) => (
         <Pressable key={item.key} accessibilityRole="button" accessibilityState={{ checked: item.done }} accessibilityLabel={item.label} onPress={item.onPress} style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 44 }}>

@@ -103,6 +103,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "products.noPrice": "Add price",
   "products.partly": "Some photos no come back: {reason}",
   "products.noAi": "Rex no fit read these photos. Add the names and prices yourself.",
+  "products.untitled": "New product {number}",
   "products.denied": "Allow photos for your phone settings to add products.",
 
   "item.title": "Check this product",
@@ -206,9 +207,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
 
   "media.title": "You need photos for your About page?",
   "media.sub": "Pick from my library. E free to use for your shop.",
-  "media.cat.beauty": "Hair and beauty",
   "media.cat.people": "People",
   "media.cat.backgrounds": "Backgrounds",
+  "media.cat.markets": "Market",
   "media.cat.mine": "My photos",
   "media.use": "Use {count} photos",
   "media.useOne": "Use 1 photo",

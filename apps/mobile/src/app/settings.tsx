@@ -57,6 +57,7 @@ function SettingsForm({ initial, identity }: { initial: SellerProfile; identity:
   const t = useT("m_settings", "m_products", "m_find", "common");
   const tUi = useT("m_ui");
   const tDetails = useT("details");
+  const tRex = useT("m_rexBuild");
   const [saved, setSaved] = useState(initial);
   const [shop, setShop] = useState<ShopForm>(shopForm(initial));
   const [me, setMe] = useState<MeForm>(meForm(initial));
@@ -182,6 +183,12 @@ function SettingsForm({ initial, identity }: { initial: SellerProfile; identity:
               <ReadOnly label={t("set.country")} value={saved.shop.country} />
               <ReadOnly label={t("set.currency")} value={saved.shop.currency} />
             </View>
+          </Card>
+
+          {/* Redesign with Rex: the guided build again, into the draft; products and orders stay, and nothing
+              changes on the live shop until the seller says "Use this design" (app/onboarding?redesign=1). */}
+          <Card style={{ paddingVertical: 2 }}>
+            <LinkRow first icon="sparkle" label={tRex("redesign.row")} hint={tRex("redesign.rowHint")} onPress={() => router.push({ pathname: "/onboarding", params: { redesign: "1" } })} />
           </Card>
         </>
       ) : (

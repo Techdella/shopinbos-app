@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Platform, Pressable, View, useWindowDimensions } from "react-native";
-import { router, useFocusEffect, useNavigation } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams, useNavigation } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { naira } from "@shared/onboarding";
 import { isPeggyNight } from "@shared/mascots";
@@ -29,7 +29,9 @@ import { useHomeData } from "@/lib/homeData";
 import { latestPicture, useChangedIdentity } from "@/lib/identity";
 import { hasOpenedHome, rememberedStoreName } from "@/lib/launch";
 import { useSession } from "@/lib/session";
-import { fetchSetup, type SetupOverview, type SetupStepKey } from "@/lib/setup";
+import { fetchSetup, type SetupOverview } from "@/lib/setup";
+import { SHOP_READY_ROUTE, fetchShopReady, moreProductsWanted, type ShopReady } from "@/lib/seller-onboarding";
+import { ShopReadyDone, useChecklistEvents } from "@/components/rex-build/ShopReadyDone";
 import { useTourAllowed } from "@/lib/setup-gate";
 import { sellerSetupDone } from "@/lib/setup-gate-pure";
 import { fetchDeliveryHub, type DeliveryHub } from "@/lib/delivery";
@@ -108,6 +110,9 @@ function AskCard({ who, title, sub, onPress, testID }: { who: "rex" | "peggy"; t
 
 export default function Home() {
   const t = useT("m_home", "m_delivery", "m_onboarding", "m_ui", "common");
+  const tr = useT("m_rexBuild");
+  // ?tour=1: just went live (onboarding/launched.tsx): the three tips show now, before setup is finished (spec F1–F3).
+  const { tour: tourParam } = useLocalSearchParams<{ tour?: string }>();
   const { session } = useSession();
   const uid = session?.user.id;
   const home = useHomeData(uid);
@@ -121,6 +126,9 @@ export default function Home() {
   // way to the bank, Rewards and Status: each loaded on its own so Home never waits for them, refreshed when coming
   // back to Home. Rewards and Status are null on a server without them (their parts hide).
   const [setup, setSetup] = useState<SetupOverview | null>(null);
+  // "Get your shop ready" (spec F4, GET /api/mobile/onboarding/ready): each item from the shop's real state.
+  const [ready, setReady] = useState<ShopReady | null>(null);
+  useChecklistEvents(uid, ready);
   const [delivery, setDelivery] = useState<DeliveryHub | null>(null);
   const [payout, setPayout] = useState<{ amount: number; date: string | null } | null>(null);
   const [rewards, setRewards] = useState<Rewards | null>(null);
@@ -131,6 +139,7 @@ export default function Home() {
     () =>
       Promise.all([
         fetchSetup().then(setSetup).catch(() => null),
+        fetchShopReady().then(setReady).catch(() => null),
         fetchDeliveryHub().then(setDelivery).catch(() => null),
         fetchWallet()
           .then((wallet) => setPayout(upcomingPayout(wallet.view.settlements)))
@@ -175,7 +184,7 @@ export default function Home() {
   // shows once setup is complete (the Start checklist), while Home is the screen in front, and never during a Peggy
   // call (open or minimized) or just after she opened a screen (lib/setup-gate.ts).
   const [touring, setTouring] = useState(false);
-  const tourAllowed = useTourAllowed(sellerSetupDone(setup));
+  const tourAllowed = useTourAllowed(tourParam === "1" ? true : sellerSetupDone(setup));
   const [focused, setFocused] = useState(true);
   useFocusEffect(
     useCallback(() => {
@@ -266,16 +275,22 @@ export default function Home() {
     else if (result === "shared") void loadExtras();
   }
 
-  // "Get your shop ready": four steps from the shop's real state (GET /api/app/setup).
-  const stepDone = (key: SetupStepKey) => Boolean(setup?.checklist.steps.find((step) => step.key === key)?.done);
-  const checklist: ChecklistItem[] = setup
-    ? [
-        { key: "products", label: t("ready.product"), done: stepDone("products"), onPress: () => router.push("/add-products") },
-        { key: "payout", label: t("ready.bank"), done: stepDone("payout"), onPress: () => router.push("/wallet") },
-        { key: "delivery", label: t("ready.delivery"), done: stepDone("delivery"), onPress: () => router.push("/delivery") },
-        { key: "share", label: t("ready.share"), done: stepDone("share"), onPress: () => void share() },
-      ]
-    : [];
+  // "Get your shop ready" (spec F4), in order: bank account, delivery partner, pay on delivery, share, first post,
+  // more products (under four), WhatsApp or Instagram, then the optional domain. Done items drop off; the bar counts
+  // the required ones. Each opens the screen that does it.
+  const readyLabel = (key: ShopReady["rows"][number]["key"]) =>
+    key === "products"
+      ? moreProductsWanted(ready?.facts.products ?? 0) === 1 ? tr("ready.productsOne") : tr("ready.products", { count: moreProductsWanted(ready?.facts.products ?? 0) })
+      : tr(`ready.${key}`);
+  const checklist: ChecklistItem[] = (ready?.open ?? []).map((row) => ({
+    key: row.key,
+    label: readyLabel(row.key),
+    done: false,
+    onPress: () => {
+      if (row.key === "share") void share();
+      else router.push(SHOP_READY_ROUTE[row.key] as never);
+    },
+  }));
 
   const shortcuts: QuickAction[] = [
     { key: "post", label: t("qa.post"), icon: "sparkle", tone: "lime", onPress: () => router.push("/create" as never), testID: "home-make-post" },
@@ -349,14 +364,18 @@ export default function Home() {
         {/* Hidden while the tour runs, so its targets stay on screen (as in the prototype). */}
         {!checklistHidden && !tourShowing ? (
           <Checklist
-            title={t("ready.title")}
+            title={tr("ready.title")}
             items={checklist}
+            progress={ready ? { done: ready.done, total: ready.total } : undefined}
             onDismiss={() => {
               if (uid) hideChecklistHere(uid);
               setChecklistHidden(true);
             }}
           />
         ) : null}
+
+        {/* Everything on the list done: confetti and "Your shop is fully set up" (once). */}
+        {ready?.complete && uid && !tourShowing ? <ShopReadyDone uid={uid} /> : null}
 
         {/* Shopinbos's getting-started videos and tips (an X closes it for good). */}
         {!tourShowing ? <GettingStartedCard /> : null}

@@ -1,3 +1,4 @@
+import { readEntry } from "./seller-onboarding";
 import { Alert, Platform } from "react-native";
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as Crypto from "expo-crypto";
@@ -17,6 +18,10 @@ function friendly(message: string, phone = false) {
   const t = tNow("m_auth");
   if (/signups not allowed|user not found/i.test(message)) return t("error.noAccount");
   if (/phone provider/i.test(message) && phone) return t("error.noPhoneCodes");
+  // Spec A3: a wrong code says so; an old one (10 minutes) asks for a new one; too many tries is the 10-minute lock.
+  if (/too many|rate limit|security purposes|over_request_rate_limit/i.test(message)) return t("error.locked");
+  if (/expired/i.test(message) && /token|otp|code/i.test(message)) return t("error.expiredCode");
+  if (/invalid/i.test(message) && /token|otp|code/i.test(message)) return t("error.wrongCode");
   if (/expired|invalid/i.test(message) && /token|otp/i.test(message)) return t("error.badCode");
   if (/invalid login credentials/i.test(message)) return t("error.badPassword");
   if (/provider is not enabled/i.test(message)) return t("error.noGoogle");
@@ -202,7 +207,8 @@ export async function syncAccount(payload: { fullName?: string; phone?: string; 
   const role = payload.role ?? "seller";
   const data = await api<{ role?: AppRole }>("/api/auth/sync-user", {
     method: "POST",
-    json: { role, fullName: payload.fullName, phone: payload.phone, source: payload.signup ? "signup" : undefined },
+    // A referral link's code (?ref=, kept by app/+native-intent.tsx) goes with the sign-up: Refer & earn links it once.
+    json: { role, fullName: payload.fullName, phone: payload.phone, source: payload.signup ? "signup" : undefined, ref: payload.signup ? readEntry().ref : undefined },
   }).catch(() => null);
   // Pick up the role the server saved on the login, so later launches read the same one.
   if (payload.signup && data?.role) await supabase.auth.refreshSession().catch(() => null);

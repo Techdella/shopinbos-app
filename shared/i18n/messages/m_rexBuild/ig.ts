@@ -103,6 +103,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "products.noPrice": "Tinye ọnụahịa",
   "products.partly": "Ụfọdụ foto alọghachighị: {reason}",
   "products.noAi": "Rex enweghị ike ịgụ foto ndị a. Tinye aha na ọnụahịa n'onwe gị.",
+  "products.untitled": "Ngwaahịa ọhụrụ {number}",
   "products.denied": "Kwe ka foto na settings ekwentị gị ka ị tinye ngwaahịa.",
 
   "item.title": "Lelee ngwaahịa a",
@@ -206,9 +207,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
 
   "media.title": "Ị chọrọ foto maka ibe Banyere anyị?",
   "media.sub": "Họrọ n'ọbá foto m. Ọ bụ n'efu iji ya n'ụlọ ahịa gị.",
-  "media.cat.beauty": "Ntutu na ịma mma",
   "media.cat.people": "Ndị mmadụ",
   "media.cat.backgrounds": "Azụ foto",
+  "media.cat.markets": "Ahịa",
   "media.cat.mine": "Foto m",
   "media.use": "Jiri foto {count}",
   "media.useOne": "Jiri foto 1",

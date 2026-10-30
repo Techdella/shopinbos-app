@@ -103,6 +103,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "products.noPrice": "Saka farashi",
   "products.partly": "Wasu hotuna ba su dawo ba: {reason}",
   "products.noAi": "Rex bai iya karanta waɗannan hotunan ba. Saka sunaye da farashi da kanka.",
+  "products.untitled": "Sabon kaya {number}",
   "products.denied": "Ba da izinin hotuna a settings na wayarka don ƙara kayayyaki.",
 
   "item.title": "Duba wannan kaya",
@@ -206,9 +207,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
 
   "media.title": "Kana buƙatar hotuna don shafin Game da mu?",
   "media.sub": "Zaɓi daga ɗakin hotuna na. Kyauta ne a shagonka.",
-  "media.cat.beauty": "Gashi da kwalliya",
   "media.cat.people": "Mutane",
   "media.cat.backgrounds": "Bango",
+  "media.cat.markets": "Kasuwanni",
   "media.cat.mine": "Hotunana",
   "media.use": "Yi amfani da hotuna {count}",
   "media.useOne": "Yi amfani da hoto 1",

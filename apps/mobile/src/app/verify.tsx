@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { Animated, Pressable, ScrollView, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import * as Clipboard from "expo-clipboard";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -14,13 +14,14 @@ import { SignupProgress, signupSteps } from "@/components/AuthForm";
 import { colors } from "@/theme";
 import { HelpButton } from "@/components/Help";
 import { useT } from "@/lib/i18n";
+import { track } from "@/lib/seller-onboarding";
 
 // "Enter the code we sent you." Then, on a sign-up that came without a role (Welcome's "Get started"), the last
 // question: "What brings you to Shopinbos?" (sell · deliver · supply). The account is made at sync-user with the
 // picked role (the role sent from sign up wins for a brand-new account).
 
-/** "What brings you to Shopinbos?": sell, deliver, supply. */
-const ROLE_ORDER: SignupRole[] = ["seller", "logistics_partner", "supplier"];
+/** "What do you want to do?" (spec A4): sell online, supply shops, run a delivery company (and "I'm a rider" below). */
+const ROLE_ORDER: SignupRole[] = ["seller", "supplier", "logistics_partner"];
 const TONE: Record<SignupRole, TileTone> = { seller: "peach", supplier: "blue", logistics_partner: "mint" };
 
 export default function Verify() {
@@ -42,6 +43,13 @@ export default function Verify() {
   // The code is right and the account is signed in; the role is all that's left to ask.
   const [askRole, setAskRole] = useState(params.oauth === "1");
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Wrong code: the boxes shake (spec A3). Tries are counted for the otp_verified event.
+  const shake = useRef(new Animated.Value(0)).current;
+  const attempts = useRef(0);
+  function shakeBoxes() {
+    shake.setValue(0);
+    Animated.sequence([10, -10, 8, -8, 4, 0].map((toValue) => Animated.timing(shake, { toValue, duration: 50, useNativeDriver: true }))).start();
+  }
 
   function startCountdown() {
     setSeconds(OTP_RESEND_SECONDS);
@@ -60,6 +68,10 @@ export default function Verify() {
   async function openAccount(role: SignupRole) {
     const actual = await syncAccount({ fullName: params.name || undefined, phone: target.kind === "phone" ? target.phone : undefined, signup, role });
     await rememberSignedInRole(actual);
+    if ((actual ?? role) === "seller") {
+      track("otp_verified", { attempts: attempts.current });
+      if (signup) track("role_selected", { role: "seller" });
+    }
     // This email or phone already has another kind of account (a seller signing up as a supplier): nothing was
     // changed. "Use a different email" logs out and goes back to the form; otherwise their own account opens.
     if (signup && actual && actual !== role && (await explainSignupConflict(actual, role, target.kind ?? "email")) === "different") {
@@ -76,6 +88,7 @@ export default function Verify() {
     if (value.length !== OTP_LENGTH || busy) return;
     setBusy(true);
     setError(null);
+    attempts.current += 1;
     try {
       await verifyCode(target, value);
       if (signup && !linkRole) {
@@ -87,7 +100,15 @@ export default function Verify() {
     } catch (verifyError) {
       setError(verifyError instanceof Error ? verifyError.message : t("verify.checkFailed"));
       setBusy(false);
+      setCode("");
+      shakeBoxes();
     }
+  }
+
+  /** "I'm a rider": riders sign in with the link their delivery company sends, not with a business account. */
+  async function rider() {
+    await signOutNow();
+    router.replace("/rider/sign-in");
   }
 
   async function pickRole(role: SignupRole) {
@@ -140,15 +161,15 @@ export default function Verify() {
             <HelpButton />
           </View>
           <View style={{ gap: 12 }}>
-            <Title>{t("q.role")}</Title>
-            <Sub>{t("q.roleSub")}</Sub>
+            <Title>{t("q.roleDo")}</Title>
+            <Sub>{t("q.roleSubLater")}</Sub>
           </View>
           <View style={{ gap: 12 }}>
             {ROLE_ORDER.map((role) => (
               <Pressable
                 key={role}
                 accessibilityRole="button"
-                accessibilityLabel={`${t(`q.role.${role}`)}. ${t(`pick.${role}.line`)}`}
+                accessibilityLabel={`${t(`pick.${role}.title`)}. ${t(`pick.${role}.line`)}`}
                 disabled={Boolean(busy)}
                 onPress={() => void pickRole(role)}
                 testID={`signup-role-${role}`}
@@ -158,13 +179,14 @@ export default function Verify() {
                   <AppIcon name={ROLE_ICON[role]} size={24} color={TILE[TONE[role]].fg} />
                 </View>
                 <View style={{ flex: 1, gap: 3 }}>
-                  <T weight="extrabold" style={{ fontSize: 19 }}>{t(`q.role.${role}`)}</T>
+                  <T weight="extrabold" style={{ fontSize: 19 }}>{t(`pick.${role}.title`)}</T>
                   <T style={{ fontSize: 14, lineHeight: 19, color: colors.inkSoft }}>{t(`pick.${role}.line`)}</T>
                 </View>
                 <AppIcon name="chevron" size={20} color={colors.inkFaint} />
               </Pressable>
             ))}
           </View>
+          <LinkButton testID="signup-role-rider" title={t("pick.rider.title")} onPress={() => void rider()} />
           {error && <Notice>{error}</Notice>}
         </ScrollView>
       </SafeAreaView>
@@ -187,7 +209,18 @@ export default function Verify() {
           <Title>{t("q.code")}</Title>
           <Sub>{sentTo}</Sub>
         </View>
-        <Keypad value={code} length={OTP_LENGTH} onChange={(next) => { setError(null); setCode(next); }} />
+        {/* The 6th digit checks the code straight away (spec A3); a wrong one shakes the boxes. */}
+        <Animated.View style={{ transform: [{ translateX: shake }] }}>
+          <Keypad
+            value={code}
+            length={OTP_LENGTH}
+            onChange={(next) => {
+              setError(null);
+              setCode(next);
+              if (next.length === OTP_LENGTH) void submit(next);
+            }}
+          />
+        </Animated.View>
         <PillButton tone="white" size="md" title={t("verify.paste")} disabled={Boolean(busy)} onPress={() => void pasteCode()} testID="verify-paste" />
         {resent ? <Small style={{ textAlign: "center" }}>{t("code.newSent")}</Small> : null}
         {seconds > 0 ? (

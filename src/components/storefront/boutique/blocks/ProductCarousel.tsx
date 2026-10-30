@@ -72,7 +72,7 @@ export function ProductCarousel({ ctx }: { ctx: BlockContext }) {
       <ul ref={track} className="bqb-car m-0 list-none p-0" aria-label={`${title}. Swipe or use the arrows for more.`} tabIndex={0}>
         {list.map((product, index) => (
           <li key={product.id} aria-roledescription="slide" aria-label={`${index + 1} of ${list.length}`}>
-            <BlockProductCard ctx={ctx} product={product} eager={index < 2} rating={boolSetting(settings.showRating, true)} add={boolSetting(settings.quickAdd, true)} />
+            <BlockProductCard ctx={ctx} product={product} eager={index < 2} rating={boolSetting(settings.showRating, true)} add={boolSetting(settings.quickAdd, true)} price={settings.showPrice !== false} />
           </li>
         ))}
       </ul>

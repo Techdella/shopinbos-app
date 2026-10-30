@@ -103,6 +103,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "products.noPrice": "Fi iye owó sí i",
   "products.partly": "Àwọn fọ́tò kan kò padà: {reason}",
   "products.noAi": "Rex kò lè ka àwọn fọ́tò yìí. Fi orúkọ àti iye owó sí i fúnra rẹ.",
+  "products.untitled": "Ọjà tuntun {number}",
   "products.denied": "Gba àyè fọ́tò nínú settings fóònù rẹ láti fi ọjà kún un.",
 
   "item.title": "Ṣàyẹ̀wò ọjà yìí",
@@ -206,9 +207,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
 
   "media.title": "Ṣé o nílò fọ́tò fún ojú-ìwé Nípa wa?",
   "media.sub": "Yan láti inú àkójọ mi. Ọ̀fẹ́ ni láti lò nínú ṣọ́ọ̀bù rẹ.",
-  "media.cat.beauty": "Irun àti ẹwà",
   "media.cat.people": "Ènìyàn",
   "media.cat.backgrounds": "Ìpìlẹ̀",
+  "media.cat.markets": "Ọjà",
   "media.cat.mine": "Fọ́tò mi",
   "media.use": "Lo fọ́tò {count}",
   "media.useOne": "Lo fọ́tò kan",

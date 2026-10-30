@@ -69,7 +69,8 @@ export function isValidEmail(value: string) {
 }
 
 export const OTP_LENGTH = 6;
-export const OTP_RESEND_SECONDS = 45;
+/** "Send a new code" shows after this many seconds (spec A3). */
+export const OTP_RESEND_SECONDS = 30;
 
 /**
  * The sign-in code in pasted text: "123456", "123 456", "123-456" or the whole message ("Your Shopinbos code is

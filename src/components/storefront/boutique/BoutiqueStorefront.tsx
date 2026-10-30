@@ -52,6 +52,7 @@ import { englishText, type EditorText } from "../editor-text";
 import { CheckoutPreview } from "../checkout/CheckoutPreview";
 import { checkoutNavLinks, readCheckoutPageSettings } from "../checkout/checkout-layout";
 import { checkoutThemeFromLook } from "../checkout/checkout-theme";
+import { richCopy, type ThemeColorOf } from "../rich-copy";
 
 export interface BoutiqueStore {
   id?: string;
@@ -400,6 +401,9 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
 
   // ─── Sections ──────────────────────────────────────────────────────────────
 
+  /** The shop's colours for formatted words (shared/rich-text.ts "theme:…"). */
+  const richTone: ThemeColorOf = (name) => (name === "cta" ? t.ctaBg : name === "accent" ? t.accent : name === "ink" ? t.ink : t.muted);
+
   function hero(section: TemplateSectionNode) {
     const copy = copyOf(section);
     const layout = text(section.settings?.layout) || look.defaultHero;
@@ -414,6 +418,9 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     const pool = [...new Set([...banner, ...fromProducts, ...(stock && !uploaded.length ? [stock.story, ...stock.extras] : [])])];
     const title = text(copy.title) || store.name;
     const body = text(copy.body) || (layout === "plain-slides" ? "" : text(store.description));
+    // Bold, sizes and colours from the phone's text toolbar (plain words when there are none).
+    const titleRich = richCopy(copy, "title", title, richTone);
+    const bodyRich = richCopy(copy, "body", body, richTone);
     const cta = text(copy.primaryCta) || "Shop now";
     const action = text(section.settings?.primaryButtonAction) || "products";
     // The phone's banner editor can also send the button to one product, one collection or a WhatsApp chat
@@ -468,8 +475,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="bq-wrap grid gap-8 py-10 @3xl:grid-cols-[1.1fr_1fr] @3xl:items-center @3xl:py-16">
             <div className="flex flex-col items-start gap-4">
               {eyebrowEl(t.accent)}
-              <h1 id={headingId} className="bq-h max-w-[13ch]" style={{ ...look.headingStyle, fontSize: "clamp(38px, 6cqi, 76px)", lineHeight: 1.02 }}>{title}</h1>
-              {body ? <p className="max-w-[460px] text-[16px] leading-7 opacity-85">{body}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[13ch]" style={{ ...look.headingStyle, fontSize: "clamp(38px, 6cqi, 76px)", lineHeight: 1.02 }}>{titleRich}</h1>
+              {body ? <p className="max-w-[460px] text-[16px] leading-7 opacity-85">{bodyRich}</p> : null}
               {ctaButton()}
             </div>
             <div className="bq-media mx-auto w-full max-w-[460px]" style={{ aspectRatio: "4 / 5", borderRadius: "999px 999px 24px 24px" }}>{img}</div>
@@ -484,8 +491,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="bq-wrap grid gap-8 py-10 @3xl:grid-cols-[1fr_0.9fr] @3xl:items-center @3xl:py-14">
             <div className="flex flex-col items-start gap-4">
               {eyebrow ? <p className="rounded-full px-3 py-1 text-[12px] font-bold uppercase" style={{ background: t.accent, color: "#fff", letterSpacing: "0.12em" }}>{eyebrow}</p> : null}
-              <h1 id={headingId} className="bq-h max-w-[11ch]" style={{ ...look.headingStyle, fontSize: "clamp(42px, 7.5cqi, 96px)", lineHeight: 0.95 }}>{title}</h1>
-              {body ? <p className="max-w-[440px] text-[16px] opacity-85">{body}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[11ch]" style={{ ...look.headingStyle, fontSize: "clamp(42px, 7.5cqi, 96px)", lineHeight: 0.95 }}>{titleRich}</h1>
+              {body ? <p className="max-w-[440px] text-[16px] opacity-85">{bodyRich}</p> : null}
               {ctaButton()}
             </div>
             <div className="relative mx-auto w-full max-w-[420px]">
@@ -505,9 +512,9 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="bq-wrap grid gap-8 py-10 @3xl:grid-cols-[0.9fr_1.1fr] @3xl:items-center @3xl:py-16">
             <div className="flex flex-col items-start gap-4">
               {eyebrowEl(t.accent)}
-              <h1 id={headingId} className="bq-h max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 5.6cqi, 72px)", lineHeight: 1.04 }}>{title}</h1>
+              <h1 id={headingId} className="bq-h max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 5.6cqi, 72px)", lineHeight: 1.04 }}>{titleRich}</h1>
               <span className="block h-[2px] w-16" style={{ background: t.accent }} aria-hidden />
-              {body ? <p className="max-w-[460px] text-[15.5px] leading-7 opacity-85">{body}</p> : null}
+              {body ? <p className="max-w-[460px] text-[15.5px] leading-7 opacity-85">{bodyRich}</p> : null}
               {ctaButton({ background: t.accent, color: t.heroBg, border: `1.5px solid ${t.accent}` })}
             </div>
             <div className="bq-collage" style={{ aspectRatio: "6 / 5" }}>
@@ -529,9 +536,9 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="flex flex-col justify-center gap-5 px-6 py-12 @3xl:px-14">
             {eyebrowEl(t.accent)}
             <span className="block h-px w-full max-w-[420px]" style={{ background: `${t.heroText}40` }} aria-hidden />
-            <h1 id={headingId} className="bq-h max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(34px, 5cqi, 64px)", lineHeight: 1.05 }}>{title}</h1>
+            <h1 id={headingId} className="bq-h max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(34px, 5cqi, 64px)", lineHeight: 1.05 }}>{titleRich}</h1>
             <span className="block h-px w-full max-w-[420px]" style={{ background: `${t.heroText}40` }} aria-hidden />
-            {body ? <p className="max-w-[440px] text-[15.5px] leading-7 opacity-85">{body}</p> : null}
+            {body ? <p className="max-w-[440px] text-[15.5px] leading-7 opacity-85">{bodyRich}</p> : null}
             <div>{ctaButton({ background: t.heroText, color: t.heroBg, border: `1.5px solid ${t.heroText}` })}</div>
           </div>
         </section>
@@ -543,8 +550,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         <section aria-labelledby={headingId} style={{ background: t.heroBg, color: t.heroText }}>
           <div className="bq-wrap flex flex-col items-center gap-6 py-12 text-center @3xl:py-16">
             {eyebrowEl(t.accent)}
-            <h1 id={headingId} className="bq-h max-w-[16ch]" style={{ ...look.headingStyle, fontSize: "clamp(38px, 6.4cqi, 84px)", lineHeight: 1 }}>{title}</h1>
-            {body ? <p className="max-w-[520px] text-[15.5px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+            <h1 id={headingId} className="bq-h max-w-[16ch]" style={{ ...look.headingStyle, fontSize: "clamp(38px, 6.4cqi, 84px)", lineHeight: 1 }}>{titleRich}</h1>
+            {body ? <p className="max-w-[520px] text-[15.5px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
             {ctaButton(look.solidButton)}
             <div className="mt-2 w-full max-w-[720px] p-3" style={{ border: `1px solid ${t.accent}66`, borderRadius: look.cardRadius + 6 }}>
               <div className="bq-media" style={{ aspectRatio: "16 / 9", borderRadius: look.cardRadius }}>{img}</div>
@@ -562,8 +569,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="bq-wrap grid gap-8 py-10 @3xl:grid-cols-[1.1fr_1fr] @3xl:items-center @3xl:py-14">
             <div className="flex flex-col items-start gap-4">
               {eyebrowEl(t.accent)}
-              <h1 id={headingId} className="bq-h max-w-[13ch]" style={{ ...look.headingStyle, fontSize: "clamp(38px, 6.4cqi, 80px)", lineHeight: 0.98 }}>{title}</h1>
-              {body ? <p className="max-w-[460px] text-[16px] opacity-85">{body}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[13ch]" style={{ ...look.headingStyle, fontSize: "clamp(38px, 6.4cqi, 80px)", lineHeight: 0.98 }}>{titleRich}</h1>
+              {body ? <p className="max-w-[460px] text-[16px] opacity-85">{bodyRich}</p> : null}
               <div className="flex flex-wrap gap-3">
                 {whatsapp ? (
                   <a href={live && shopper.whatsappNumber ? whatsappLink(shopper.whatsappNumber, `Hi ${store.name}, I'd like to order`) : undefined} target="_blank" rel="noopener noreferrer" className="bq-btn" style={{ background: "#25D366", color: "#fff", border: "1.5px solid #25D366" }}>
@@ -591,8 +598,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="bq-wrap grid gap-8 pb-16 pt-10 @3xl:grid-cols-2 @3xl:items-center @3xl:pb-20 @3xl:pt-14">
             <div className="flex flex-col items-start gap-4">
               {eyebrowEl(t.accent)}
-              <h1 id={headingId} className="bq-h max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(38px, 6cqi, 76px)", lineHeight: 1.02 }}>{title}</h1>
-              {body ? <p className="max-w-[440px] text-[16px] opacity-85">{body}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(38px, 6cqi, 76px)", lineHeight: 1.02 }}>{titleRich}</h1>
+              {body ? <p className="max-w-[440px] text-[16px] opacity-85">{bodyRich}</p> : null}
               {ctaButton()}
             </div>
             <div className="bq-media mx-auto w-full max-w-[460px]" style={{ aspectRatio: "1 / 1", borderRadius: "46% 54% 42% 58% / 52% 44% 56% 48%", border: `8px solid ${t.paperBg}` }}>{img}</div>
@@ -610,8 +617,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="grid overflow-hidden @3xl:grid-cols-[1.4fr_1fr]" style={{ background: t.heroBg, color: t.heroText, borderRadius: look.cardRadius + 6 }}>
             <div className="flex flex-col items-start gap-4 px-5 py-8 @3xl:px-10 @3xl:py-10">
               {eyebrowEl(t.heroText, { opacity: 0.85 })}
-              <h1 id={headingId} className="bq-h max-w-[18ch]" style={{ ...look.headingStyle, fontSize: "clamp(30px, 4.4cqi, 54px)", lineHeight: 1.05 }}>{title}</h1>
-              {body ? <p className="max-w-[480px] text-[15px] opacity-90">{body}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[18ch]" style={{ ...look.headingStyle, fontSize: "clamp(30px, 4.4cqi, 54px)", lineHeight: 1.05 }}>{titleRich}</h1>
+              {body ? <p className="max-w-[480px] text-[15px] opacity-90">{bodyRich}</p> : null}
               {searchForm("Search rice, oil, detergent…", true)}
             </div>
             <div className="bq-media bq-only-wide" style={{ minHeight: "100%" }}>{img}</div>
@@ -626,8 +633,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="grid gap-6 overflow-hidden px-6 py-10 @3xl:grid-cols-[1.1fr_1fr] @3xl:items-center @3xl:px-12 @3xl:py-14" style={{ background: t.heroBg, color: t.heroText, borderRadius: 32 }}>
             <div className="flex flex-col items-start gap-4">
               {eyebrow ? <p className="rounded-full bg-white px-3 py-1 text-[12.5px] font-bold" style={{ color: t.accent }}>{eyebrow}</p> : null}
-              <h1 id={headingId} className="bq-h max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 5.8cqi, 72px)", lineHeight: 1 }}>{title}</h1>
-              {body ? <p className="max-w-[440px] text-[16px] opacity-85">{body}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 5.8cqi, 72px)", lineHeight: 1 }}>{titleRich}</h1>
+              {body ? <p className="max-w-[440px] text-[16px] opacity-85">{bodyRich}</p> : null}
               {ctaButton()}
             </div>
             <div className="relative mx-auto w-full max-w-[400px] py-4">
@@ -647,8 +654,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="bq-wrap grid gap-10 py-12 @3xl:grid-cols-[1fr_1.2fr] @3xl:items-end @3xl:py-16">
             <div className="flex flex-col items-start gap-4">
               {eyebrowEl(t.accent)}
-              <h1 id={headingId} className="bq-h max-w-[13ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 5.6cqi, 70px)", lineHeight: 1.04 }}>{title}</h1>
-              {body ? <p className="max-w-[440px] text-[15.5px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[13ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 5.6cqi, 70px)", lineHeight: 1.04 }}>{titleRich}</h1>
+              {body ? <p className="max-w-[440px] text-[15.5px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
               {ctaButton(look.solidButton)}
             </div>
             <div>
@@ -673,8 +680,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="bq-wrap relative grid gap-8 py-12 @3xl:grid-cols-[1fr_1fr] @3xl:items-center @3xl:py-16">
             <div className="flex flex-col items-start gap-4">
               {eyebrowEl(t.accent)}
-              <h1 id={headingId} className="bq-h max-w-[13ch]" style={{ ...look.headingStyle, fontSize: "clamp(40px, 6.4cqi, 84px)", lineHeight: 0.98 }}>{title}</h1>
-              {body ? <p className="max-w-[440px] text-[16px] opacity-85">{body}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[13ch]" style={{ ...look.headingStyle, fontSize: "clamp(40px, 6.4cqi, 84px)", lineHeight: 0.98 }}>{titleRich}</h1>
+              {body ? <p className="max-w-[440px] text-[16px] opacity-85">{bodyRich}</p> : null}
               {ctaButton()}
             </div>
             <div className="bq-media" style={{ aspectRatio: "5 / 4", borderRadius: look.cardRadius + 6, border: `3px solid ${t.accent}` }}>{img}</div>
@@ -690,8 +697,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="bq-wrap grid gap-8 py-10 @3xl:grid-cols-[1.2fr_1fr] @3xl:items-center @3xl:py-14">
             <div className="flex flex-col items-start gap-4">
               {eyebrowEl(t.accent)}
-              <h1 id={headingId} className="bq-h max-w-[15ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 6cqi, 76px)", lineHeight: 0.98 }}>{title}</h1>
-              {body ? <p className="max-w-[480px] text-[15.5px] opacity-85">{body}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[15ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 6cqi, 76px)", lineHeight: 0.98 }}>{titleRich}</h1>
+              {body ? <p className="max-w-[480px] text-[15.5px] opacity-85">{bodyRich}</p> : null}
               {searchForm("Search by part, car or model", true)}
             </div>
             <div className="bq-media" style={{ aspectRatio: "4 / 3", borderRadius: look.cardRadius, border: `2px solid ${t.accent}` }}>{img}</div>
@@ -707,8 +714,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="bq-wrap grid gap-8 py-12 @3xl:grid-cols-2 @3xl:items-center @3xl:py-20">
             <div className="flex flex-col items-start gap-5">
               {eyebrowEl(t.accent)}
-              <h1 id={headingId} className="bq-h max-w-[13ch]" style={{ ...look.headingStyle, fontSize: "clamp(38px, 6cqi, 80px)", lineHeight: 1.02 }}>{title}</h1>
-              {body ? <p className="max-w-[440px] text-[15.5px] leading-7 opacity-80">{body}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[13ch]" style={{ ...look.headingStyle, fontSize: "clamp(38px, 6cqi, 80px)", lineHeight: 1.02 }}>{titleRich}</h1>
+              {body ? <p className="max-w-[440px] text-[15.5px] leading-7 opacity-80">{bodyRich}</p> : null}
               {ctaButton()}
             </div>
             <div className="mx-auto grid w-full max-w-[420px] place-items-center" style={{ aspectRatio: "1 / 1", borderRadius: 999, background: `radial-gradient(circle, ${t.accent}66, transparent 68%)` }}>
@@ -727,8 +734,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             <div className="absolute inset-0" style={{ background: image ? "linear-gradient(to top, rgba(18,32,14,.7), rgba(18,32,14,0) 60%)" : "transparent" }} />
             <div className="bq-wrap absolute inset-x-0 bottom-0 flex flex-col items-start gap-4 pb-8 text-white">
               {eyebrow ? <p className="rounded-full px-3.5 py-1.5 text-[12.5px] font-bold" style={{ background: t.accent, color: t.ink }}>{eyebrow}</p> : null}
-              <h1 id={headingId} className="bq-h max-w-[16ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 6cqi, 80px)", lineHeight: 1 }}>{title}</h1>
-              {body ? <p className="max-w-[480px] text-[15.5px] opacity-90">{body}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[16ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 6cqi, 80px)", lineHeight: 1 }}>{titleRich}</h1>
+              {body ? <p className="max-w-[480px] text-[15.5px] opacity-90">{bodyRich}</p> : null}
               {ctaButton({ background: "#fff", color: t.ink, border: "1.5px solid #fff" })}
             </div>
           </div>
@@ -763,8 +770,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             <div className="absolute inset-0" style={{ background: image ? "rgba(0,0,0,.32)" : "transparent" }} />
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6 text-center text-white">
               {eyebrow ? <p className="text-[13px]" style={{ letterSpacing: "0.08em" }}>{eyebrow}</p> : null}
-              <h1 id={headingId} className="bq-h max-w-[16ch]" style={{ ...look.headingStyle, fontSize: "clamp(34px, 5.5cqi, 64px)", lineHeight: 1.08 }}>{title}</h1>
-              {body ? <p className="max-w-[520px] text-[15.5px] opacity-90">{body}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[16ch]" style={{ ...look.headingStyle, fontSize: "clamp(34px, 5.5cqi, 64px)", lineHeight: 1.08 }}>{titleRich}</h1>
+              {body ? <p className="max-w-[520px] text-[15.5px] opacity-90">{bodyRich}</p> : null}
               <button type="button" className="bq-btn mt-1" style={{ background: "#fff", color: "#121212", border: "1px solid #fff", borderRadius: look.buttonRadius }} onClick={() => goHero()}>{cta}</button>
             </div>
           </div>
@@ -780,8 +787,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               {eyebrow ? (
                 <p className="inline-flex -rotate-3 items-center rounded-full px-4 py-1.5 text-[13px] font-extrabold uppercase" style={{ background: "#F6D27A", color: t.ink, border: `2px solid ${t.ink}`, letterSpacing: "0.06em" }}>{eyebrow}</p>
               ) : null}
-              <h1 id={headingId} className="bq-h max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(44px, 7.4cqi, 104px)", lineHeight: 0.92 }}>{title}</h1>
-              {body ? <p className="max-w-[460px] text-[16px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(44px, 7.4cqi, 104px)", lineHeight: 0.92 }}>{titleRich}</h1>
+              {body ? <p className="max-w-[460px] text-[16px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
               {ctaButton()}
             </div>
             <div className="relative mx-auto w-full max-w-[560px]">
@@ -803,8 +810,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             <div className="absolute inset-0" style={{ background: image ? "linear-gradient(to top, rgba(0,0,0,.55), rgba(0,0,0,0) 55%)" : "transparent" }} />
             <div className="bq-wrap absolute inset-x-0 bottom-0 flex flex-col items-center gap-4 pb-12 text-center @3xl:pb-16" style={{ color: t.heroText }}>
               {eyebrow ? <p className="text-[11.5px] uppercase" style={{ fontFamily: look.eyebrowFont, letterSpacing: "0.3em" }}>{eyebrow}</p> : null}
-              <h1 id={headingId} className="bq-h max-w-[18ch]" style={{ ...look.headingStyle, fontSize: "clamp(38px, 6.6cqi, 92px)", lineHeight: 1.02 }}>{title}</h1>
-              {body ? <p className="max-w-[520px] text-[15px] leading-7 opacity-90">{body}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[18ch]" style={{ ...look.headingStyle, fontSize: "clamp(38px, 6.6cqi, 92px)", lineHeight: 1.02 }}>{titleRich}</h1>
+              {body ? <p className="max-w-[520px] text-[15px] leading-7 opacity-90">{bodyRich}</p> : null}
               <button type="button" className="mt-2 cursor-pointer border-0 border-b bg-transparent px-0 pb-1.5 text-[12px] font-semibold uppercase" style={{ color: "inherit", borderColor: "currentColor", letterSpacing: "0.22em" }} onClick={() => goHero()}>{cta}</button>
             </div>
           </div>
@@ -822,9 +829,9 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             <div className="bq-wrap absolute inset-x-0 bottom-0 flex flex-col items-start gap-4 pb-8 @3xl:pb-12">
               {eyebrow ? <p className="rounded-full px-3.5 py-1 text-[12px] font-extrabold uppercase" style={{ background: glow, color: "#fff", letterSpacing: "0.14em" }}>{eyebrow}</p> : null}
               <h1 id={headingId} className="bq-h max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(48px, 10.5cqi, 156px)", lineHeight: 0.86 }}>
-                <span style={{ background: `linear-gradient(100deg, ${t.heroText} 35%, ${t.accent} 70%, #EC4899)`, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>{title}</span>
+                <span style={{ background: `linear-gradient(100deg, ${t.heroText} 35%, ${t.accent} 70%, #EC4899)`, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>{titleRich}</span>
               </h1>
-              {body ? <p className="max-w-[480px] text-[15.5px] opacity-85">{body}</p> : null}
+              {body ? <p className="max-w-[480px] text-[15.5px] opacity-85">{bodyRich}</p> : null}
               {ctaButton()}
             </div>
           </div>
@@ -852,8 +859,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             <div className="bq-media aspect-[4/5] @3xl:aspect-[16/7]" style={{ borderRadius: 32, background: image ? look.placeholder : t.heroBg }}>{img}</div>
             <div className="relative mx-3 -mt-20 flex flex-col items-start gap-3 p-6 @3xl:absolute @3xl:bottom-10 @3xl:left-10 @3xl:m-0 @3xl:max-w-[460px] @3xl:p-9" style={{ background: "#FFFFFF", borderRadius: 26, boxShadow: "0 18px 50px rgba(58,35,65,.14)" }}>
               {eyebrow ? <p className="rounded-full px-3 py-1 text-[12px] font-semibold" style={{ background: t.cardBg, color: t.accent }}>{eyebrow}</p> : null}
-              <h1 id={headingId} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(32px, 4.4cqi, 54px)", lineHeight: 1.04 }}>{title}</h1>
-              {body ? <p className="text-[15.5px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+              <h1 id={headingId} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(32px, 4.4cqi, 54px)", lineHeight: 1.04 }}>{titleRich}</h1>
+              {body ? <p className="text-[15.5px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
               {ctaButton()}
             </div>
           </div>
@@ -873,8 +880,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             </div>
             <div className="flex flex-col items-start gap-4">
               {eyebrowEl(t.accent)}
-              <h1 id={headingId} className="bq-h max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 5.4cqi, 68px)", lineHeight: 1.04 }}>{title}</h1>
-              {body ? <p className="max-w-[460px] text-[16px] leading-7 opacity-85">{body}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 5.4cqi, 68px)", lineHeight: 1.04 }}>{titleRich}</h1>
+              {body ? <p className="max-w-[460px] text-[16px] leading-7 opacity-85">{bodyRich}</p> : null}
               {ctaButton()}
             </div>
           </div>
@@ -888,8 +895,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="grid @3xl:grid-cols-[1fr_1.1fr]">
             <div className="relative z-[1] flex flex-col items-start justify-center gap-4 px-5 py-10 @3xl:py-20 @3xl:pl-12 @3xl:pr-6">
               {eyebrow ? <p className="-skew-x-12 px-3 py-1 text-[12px] font-extrabold uppercase" style={{ background: t.accent, color: t.ink, letterSpacing: "0.12em" }}>{eyebrow}</p> : null}
-              <h1 id={headingId} className="bq-h max-w-[11ch]" style={{ ...look.headingStyle, fontSize: "clamp(46px, 8cqi, 116px)", lineHeight: 0.9 }}>{title}</h1>
-              {body ? <p className="max-w-[440px] text-[15.5px] opacity-80">{body}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[11ch]" style={{ ...look.headingStyle, fontSize: "clamp(46px, 8cqi, 116px)", lineHeight: 0.9 }}>{titleRich}</h1>
+              {body ? <p className="max-w-[440px] text-[15.5px] opacity-80">{bodyRich}</p> : null}
               <button type="button" className="bq-btn" style={look.primaryButton} onClick={() => goHero()}>{cta} <span aria-hidden>→</span></button>
             </div>
             <div className="bq-media aspect-[4/3] @3xl:aspect-auto @3xl:min-h-[560px] [clip-path:polygon(0_8%,100%_0,100%_100%,0_100%)] @3xl:[clip-path:polygon(18%_0,100%_0,100%_100%,0_100%)]" style={{ background: image ? look.placeholder : "#1F1F1F" }}>
@@ -909,8 +916,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="grid gap-10 @3xl:grid-cols-[0.75fr_2fr] @3xl:items-end">
             <div className="flex flex-col items-start gap-4">
               {eyebrow ? <p className="flex items-center gap-2 text-[12px] uppercase" style={{ color: t.muted, letterSpacing: "0.18em" }}><span aria-hidden className="h-2 w-2 rounded-full" style={{ background: t.accent }} />{eyebrow}</p> : null}
-              <h1 id={headingId} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(34px, 4.2cqi, 54px)", lineHeight: 1.08 }}>{title}</h1>
-              {body ? <p className="max-w-[360px] text-[15px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+              <h1 id={headingId} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(34px, 4.2cqi, 54px)", lineHeight: 1.08 }}>{titleRich}</h1>
+              {body ? <p className="max-w-[360px] text-[15px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
               <button type="button" className="mt-1 cursor-pointer border-0 border-b bg-transparent px-0 pb-1 text-[14px]" style={{ color: t.ink, borderColor: t.ink }} onClick={() => goHero()}>{cta} →</button>
             </div>
             <div className="flex snap-x gap-5 overflow-x-auto pb-2 @3xl:grid @3xl:grid-cols-3 @3xl:items-end @3xl:gap-8 @3xl:overflow-visible" style={{ scrollbarWidth: "none" }}>
@@ -937,8 +944,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="grid overflow-hidden @3xl:grid-cols-[1fr_1fr]" style={{ background: t.heroBg, color: t.heroText, borderRadius: look.cardRadius + 4 }}>
             <div className="flex flex-col items-start justify-center gap-4 p-6 @3xl:p-10">
               {eyebrow ? <p className="rounded-md px-2.5 py-1 text-[12px] font-bold uppercase" style={{ background: t.accent, color: t.ink, letterSpacing: "0.06em" }}>{eyebrow}</p> : null}
-              <h1 id={headingId} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(32px, 4.2cqi, 56px)", lineHeight: 1 }}>{title}</h1>
-              {body ? <p className="max-w-[380px] text-[15px] opacity-85">{body}</p> : null}
+              <h1 id={headingId} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(32px, 4.2cqi, 56px)", lineHeight: 1 }}>{titleRich}</h1>
+              {body ? <p className="max-w-[380px] text-[15px] opacity-85">{bodyRich}</p> : null}
               {ctaButton({ background: t.accent, color: t.ink, border: `1.5px solid ${t.accent}` })}
             </div>
             <div className="bq-media min-h-[220px]" style={{ background: "rgba(255,255,255,.08)" }}>{img}</div>
@@ -967,8 +974,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             <div className="relative mx-4 -mt-24 @3xl:absolute @3xl:inset-0 @3xl:m-0 @3xl:grid @3xl:place-items-center">
               <div className="flex flex-col items-center gap-3 px-6 py-8 text-center @3xl:max-w-[520px] @3xl:px-12 @3xl:py-11" style={{ background: t.paperBg, color: t.ink, outline: `1px solid ${t.border}`, outlineOffset: -10 }}>
                 {eyebrow ? <p className="text-[11.5px] uppercase" style={{ color: t.accent, letterSpacing: "0.22em" }}>{eyebrow}</p> : null}
-                <h1 id={headingId} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(30px, 3.8cqi, 48px)", lineHeight: 1.08 }}>{title}</h1>
-                {body ? <p className="text-[15px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+                <h1 id={headingId} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(30px, 3.8cqi, 48px)", lineHeight: 1.08 }}>{titleRich}</h1>
+                {body ? <p className="text-[15px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
                 <div className="mt-1">{ctaButton()}</div>
               </div>
             </div>
@@ -990,8 +997,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               <div className="bq-media aspect-[4/5] @3xl:aspect-[5/4]" style={{ background: look.placeholder }}>{img}</div>
               <div className="flex flex-col gap-5">
                 {eyebrow ? <p className="m-0 text-[11px] uppercase @3xl:hidden" style={{ fontFamily: look.eyebrowFont, letterSpacing: "0.16em", color: t.accent }}>{eyebrow}</p> : null}
-                <h1 id={headingId} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(38px, 5cqi, 72px)", lineHeight: 0.98 }}>{title}</h1>
-                {body ? <p className="text-[16px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+                <h1 id={headingId} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(38px, 5cqi, 72px)", lineHeight: 0.98 }}>{titleRich}</h1>
+                {body ? <p className="text-[16px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
                 <div>{ctaButton()}</div>
                 {issue.length ? (
                   <div className="mt-2 border-t pt-4" style={{ borderColor: t.ink }}>
@@ -1030,8 +1037,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="absolute inset-0" style={{ background: image ? "linear-gradient(to top, rgba(0,0,0,.66), rgba(0,0,0,.28) 55%, rgba(0,0,0,.12))" : "transparent" }} />
           <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-4 px-6 pb-10 text-center @3xl:pb-16" style={{ textShadow: "0 1px 18px rgba(0,0,0,.35)" }}>
             {eyebrow ? <p className="text-[11.5px] uppercase" style={{ letterSpacing: "0.24em" }}>{eyebrow}</p> : null}
-            <h1 id={headingId} className="bq-h max-w-[16ch]" style={{ ...look.headingStyle, fontSize: "clamp(40px, 7cqi, 104px)", lineHeight: 0.98 }}>{title}</h1>
-            {body ? <p className="max-w-[480px] text-[15px] opacity-90">{body}</p> : null}
+            <h1 id={headingId} className="bq-h max-w-[16ch]" style={{ ...look.headingStyle, fontSize: "clamp(40px, 7cqi, 104px)", lineHeight: 0.98 }}>{titleRich}</h1>
+            {body ? <p className="max-w-[480px] text-[15px] opacity-90">{bodyRich}</p> : null}
             {ctaButton({ ...look.secondaryButton, background: "transparent", color: "#FFFFFF", border: "1px solid #FFFFFF" })}
           </div>
         </section>
@@ -1045,7 +1052,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="bq-wrap grid items-center gap-8 py-12 text-center @3xl:grid-cols-[1fr_auto_1fr] @3xl:gap-14 @3xl:py-16 @3xl:text-left">
             <div className="flex flex-col items-center gap-4 @3xl:items-start">
               {eyebrowEl(t.accent)}
-              <h1 id={headingId} className="bq-h max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 4.6cqi, 62px)", lineHeight: 1.04 }}>{title}</h1>
+              <h1 id={headingId} className="bq-h max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 4.6cqi, 62px)", lineHeight: 1.04 }}>{titleRich}</h1>
               <span aria-hidden className="block h-px w-24" style={{ background: t.accent }} />
             </div>
             <div className="relative mx-auto w-[min(78vw,380px)]">
@@ -1053,7 +1060,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               <div className="bq-media" style={{ aspectRatio: "3 / 4", borderRadius: "999px 999px 0 0", background: "rgba(255,255,255,.06)" }}>{img}</div>
             </div>
             <div className="flex flex-col items-center gap-5 @3xl:items-start">
-              {body ? <p className="max-w-[340px] text-[15px] leading-7 opacity-85">{body}</p> : null}
+              {body ? <p className="max-w-[340px] text-[15px] leading-7 opacity-85">{bodyRich}</p> : null}
               {ctaButton()}
               {thumbs.length ? (
                 <div className="flex gap-3">
@@ -1079,8 +1086,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="bq-wrap grid items-center gap-10 py-10 @3xl:grid-cols-2 @3xl:py-16">
             <div className="flex flex-col items-start gap-4">
               {eyebrow ? <p className="rounded-full px-3 py-1 text-[12.5px] font-bold" style={{ background: "#FFFFFF", color: t.accent }}>★ {eyebrow}</p> : null}
-              <h1 id={headingId} className="bq-h max-w-[13ch]" style={{ ...look.headingStyle, fontSize: "clamp(40px, 6.2cqi, 84px)", lineHeight: 0.95 }}>{title}</h1>
-              {body ? <p className="max-w-[440px] text-[16px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[13ch]" style={{ ...look.headingStyle, fontSize: "clamp(40px, 6.2cqi, 84px)", lineHeight: 0.95 }}>{titleRich}</h1>
+              {body ? <p className="max-w-[440px] text-[16px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
               {star ? (
                 <p className="m-0 flex flex-wrap items-baseline gap-x-3 text-[15px]">
                   <span className="font-semibold">{star.name}</span>
@@ -1118,9 +1125,9 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             </div>
             <div className="flex flex-col items-start gap-4">
               {eyebrowEl(t.accent)}
-              <h1 id={headingId} className="bq-h max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(38px, 5.6cqi, 74px)", lineHeight: 1.02 }}>{title}</h1>
+              <h1 id={headingId} className="bq-h max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(38px, 5.6cqi, 74px)", lineHeight: 1.02 }}>{titleRich}</h1>
               <span aria-hidden className="block h-[3px] w-14" style={{ background: t.accent }} />
-              {body ? <p className="max-w-[440px] text-[16px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+              {body ? <p className="max-w-[440px] text-[16px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
               {ctaButton()}
             </div>
           </div>
@@ -1134,8 +1141,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="bq-wrap grid items-center gap-10 pb-16 pt-10 @3xl:grid-cols-[1.05fr_1fr] @3xl:pb-24 @3xl:pt-14">
             <div className="flex flex-col items-start gap-4">
               {eyebrow ? <p className="rounded-full px-3 py-1 text-[12.5px] font-bold" style={{ background: "rgba(255,255,255,.16)" }}>{eyebrow}</p> : null}
-              <h1 id={headingId} className="bq-h max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(44px, 7cqi, 96px)", lineHeight: 0.92 }}>{title}</h1>
-              {body ? <p className="max-w-[440px] text-[16px] opacity-90">{body}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(44px, 7cqi, 96px)", lineHeight: 0.92 }}>{titleRich}</h1>
+              {body ? <p className="max-w-[440px] text-[16px] opacity-90">{bodyRich}</p> : null}
               {ctaButton()}
             </div>
             <div className="relative mx-auto grid w-full max-w-[460px] place-items-center">
@@ -1159,8 +1166,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         <section aria-labelledby={headingId} className="bq-wrap grid gap-8 py-10 @3xl:grid-cols-[1fr_1.15fr] @3xl:gap-14 @3xl:py-14">
           <div className="flex flex-col items-start gap-4 @3xl:sticky @3xl:top-24 @3xl:self-start">
             {eyebrow ? <p className="text-[11.5px] uppercase" style={{ fontFamily: look.eyebrowFont, letterSpacing: "0.18em", color: t.accent }}>{eyebrow}</p> : null}
-            <h1 id={headingId} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(40px, 5.4cqi, 76px)", lineHeight: 0.98 }}>{title}</h1>
-            {body ? <p className="max-w-[420px] text-[16px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+            <h1 id={headingId} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(40px, 5.4cqi, 76px)", lineHeight: 0.98 }}>{titleRich}</h1>
+            {body ? <p className="max-w-[420px] text-[16px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
             {ctaButton()}
             {stops.length ? (
               <ol className="m-0 mt-4 grid w-full list-none gap-0 border-t p-0" style={{ borderColor: t.border }}>
@@ -1192,8 +1199,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="bq-wrap grid items-center gap-6 pb-12 pt-10 @3xl:grid-cols-2 @3xl:pb-16 @3xl:pt-14">
             <div className="flex flex-col items-start gap-4">
               {eyebrow ? <p className="-rotate-2 rounded-full px-3.5 py-1 text-[13px] font-extrabold uppercase" style={{ background: t.accent, color: t.ink }}>{eyebrow}</p> : null}
-              <h1 id={headingId} className="bq-h max-w-[11ch]" style={{ ...look.headingStyle, fontSize: "clamp(46px, 7.6cqi, 112px)", lineHeight: 0.88 }}>{title}</h1>
-              {body ? <p className="max-w-[420px] text-[16px] opacity-90">{body}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[11ch]" style={{ ...look.headingStyle, fontSize: "clamp(46px, 7.6cqi, 112px)", lineHeight: 0.88 }}>{titleRich}</h1>
+              {body ? <p className="max-w-[420px] text-[16px] opacity-90">{bodyRich}</p> : null}
               {ctaButton()}
             </div>
             <div className="relative mx-auto h-[340px] w-full max-w-[520px] @3xl:h-[460px]">
@@ -1220,8 +1227,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             <div className="absolute inset-0" style={{ background: image ? "linear-gradient(90deg, rgba(25,20,16,.78), rgba(25,20,16,.15) 60%)" : "transparent" }} />
             <div className="bq-wrap absolute inset-x-0 bottom-0 flex flex-col items-start gap-4 pb-8 @3xl:inset-y-0 @3xl:justify-center @3xl:pb-0">
               {eyebrowEl(t.accent)}
-              <h1 id={headingId} className="bq-h max-w-[13ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 5.4cqi, 72px)", lineHeight: 1.02 }}>{title}</h1>
-              {body ? <p className="max-w-[420px] text-[15.5px] leading-7 opacity-85">{body}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[13ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 5.4cqi, 72px)", lineHeight: 1.02 }}>{titleRich}</h1>
+              {body ? <p className="max-w-[420px] text-[15.5px] leading-7 opacity-85">{bodyRich}</p> : null}
               {ctaButton()}
             </div>
             {pins.map((product, i) => (
@@ -1261,8 +1268,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             <div className="bq-media col-span-2 aspect-[4/5] @3xl:row-span-2 @3xl:aspect-auto @3xl:min-h-[640px]" style={{ background: look.placeholder }}>{picture(pool[0], true)}</div>
             <div className="col-span-2 flex flex-col items-start justify-end gap-4 p-6 @3xl:p-10" style={{ background: t.accent, color: "#FFFFFF" }}>
               {eyebrow ? <p className="text-[11.5px] uppercase" style={{ letterSpacing: "0.22em", opacity: 0.85 }}>{eyebrow}</p> : null}
-              <h1 id={headingId} className="bq-h max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(34px, 4.6cqi, 64px)", lineHeight: 1.02 }}>{title}</h1>
-              {body ? <p className="max-w-[420px] text-[15px] opacity-90">{body}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(34px, 4.6cqi, 64px)", lineHeight: 1.02 }}>{titleRich}</h1>
+              {body ? <p className="max-w-[420px] text-[15px] opacity-90">{bodyRich}</p> : null}
               {ctaButton({ background: "#FFFFFF", color: t.ink, border: "1px solid #FFFFFF" })}
             </div>
             <div className="bq-media aspect-square" style={{ background: look.placeholder }}>{picture(pool[1])}</div>
@@ -1280,8 +1287,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             <div className="grid items-end gap-8 py-10 @3xl:grid-cols-[1.1fr_1fr] @3xl:py-16 @3xl:pl-28">
               <div className="relative order-2 @3xl:order-1">
                 {eyebrow ? <p className="mb-4 inline-block rotate-[-3deg] border-2 px-3 py-1 text-[13px] font-bold uppercase" style={{ fontFamily: look.eyebrowFont, borderColor: t.accent, color: t.accent }}>{eyebrow}</p> : null}
-                <h1 id={headingId} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(56px, 11cqi, 172px)", lineHeight: 0.84 }}>{title}</h1>
-                {body ? <p className="mt-5 max-w-[420px] text-[15.5px] opacity-80">{body}</p> : null}
+                <h1 id={headingId} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(56px, 11cqi, 172px)", lineHeight: 0.84 }}>{titleRich}</h1>
+                {body ? <p className="mt-5 max-w-[420px] text-[15.5px] opacity-80">{bodyRich}</p> : null}
                 <div className="mt-6">{ctaButton()}</div>
               </div>
               <div className="relative order-1 mx-auto w-full max-w-[440px] @3xl:order-2">
@@ -1304,7 +1311,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="bq-wrap flex flex-wrap items-end justify-between gap-4 pb-6 pt-8">
             <div>
               {eyebrow ? <p className="m-0 flex items-center gap-2 text-[12px] font-semibold uppercase" style={{ letterSpacing: "0.12em", color: t.muted }}><span aria-hidden className="inline-block h-[3px] w-6" style={{ background: t.accent }} />{eyebrow}</p> : null}
-              <h1 id={headingId} className="bq-h mt-2 text-[30px] @3xl:text-[40px]" style={look.headingStyle}>{title}</h1>
+              <h1 id={headingId} className="bq-h mt-2 text-[30px] @3xl:text-[40px]" style={look.headingStyle}>{titleRich}</h1>
             </div>
             {ctaButton()}
           </div>
@@ -1338,8 +1345,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="bq-wrap grid items-center gap-8 py-10 @3xl:grid-cols-[1fr_1.2fr] @3xl:py-16">
             <div className="flex flex-col items-start gap-4">
               {eyebrow ? <p className="m-0 text-[13px] font-semibold" style={{ color: t.accent }}>{eyebrow}</p> : null}
-              <h1 id={headingId} className="bq-h max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(38px, 5.4cqi, 70px)", lineHeight: 1.02 }}>{title}</h1>
-              {body ? <p className="max-w-[420px] text-[15.5px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(38px, 5.4cqi, 70px)", lineHeight: 1.02 }}>{titleRich}</h1>
+              {body ? <p className="max-w-[420px] text-[15.5px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
               {ctaButton()}
             </div>
             <div className="relative">
@@ -1372,8 +1379,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             <div className="absolute inset-0" style={{ background: image ? "linear-gradient(90deg, rgba(253,232,226,.92), rgba(253,232,226,.35) 55%, rgba(253,232,226,0))" : "transparent" }} />
             <div className="relative flex h-full min-h-[420px] max-w-[420px] flex-col justify-center gap-4 p-8 @3xl:min-h-[560px] @3xl:p-12" style={{ color: t.heroText }}>
               {eyebrow ? <p className="m-0 text-[13px] uppercase" style={{ letterSpacing: "0.14em", color: t.accent }}>{eyebrow}</p> : null}
-              <h1 id={headingId} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(40px, 5cqi, 64px)", lineHeight: 1.04 }}>{title}</h1>
-              {body ? <p className="m-0 text-[15px]" style={{ color: t.muted }}>{body}</p> : null}
+              <h1 id={headingId} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(40px, 5cqi, 64px)", lineHeight: 1.04 }}>{titleRich}</h1>
+              {body ? <p className="m-0 text-[15px]" style={{ color: t.muted }}>{bodyRich}</p> : null}
               <button type="button" onClick={() => goHero()} className="w-max cursor-pointer border-0 border-b-2 bg-transparent px-0 pb-1 text-[13px] font-bold uppercase" style={{ color: t.ink, borderColor: t.accent, letterSpacing: "0.08em" }}>{cta}</button>
             </div>
           </div>
@@ -1414,8 +1421,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
                 ) : (
                   <>
                     {eyebrow ? <p className="m-0 text-[12px] uppercase" style={{ letterSpacing: "0.16em", color: t.accent }}>{eyebrow}</p> : null}
-                    <h1 id={headingId} className="bq-h max-w-[12ch] text-[32px] @3xl:text-[44px]" style={{ ...look.headingStyle, color: t.heroText }}>{title}</h1>
-                    {body ? <p className="m-0 max-w-[360px] text-[15px] opacity-85">{body}</p> : null}
+                    <h1 id={headingId} className="bq-h max-w-[12ch] text-[32px] @3xl:text-[44px]" style={{ ...look.headingStyle, color: t.heroText }}>{titleRich}</h1>
+                    {body ? <p className="m-0 max-w-[360px] text-[15px] opacity-85">{bodyRich}</p> : null}
                     {ctaButton()}
                   </>
                 )}
@@ -1434,8 +1441,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div aria-hidden className="absolute left-1/2 top-[-120px] h-[360px] w-[720px] -translate-x-1/2 rounded-full" style={{ background: `radial-gradient(closest-side, ${t.accent}33, transparent)` }} />
           <div className="bq-wrap relative flex flex-col items-center gap-4 py-14 text-center @3xl:py-20">
             {eyebrow ? <p className="m-0 rounded-full px-3 py-1 text-[12.5px] font-semibold" style={{ background: t.heroBg, color: t.accent }}>{eyebrow}</p> : null}
-            <h1 id={headingId} className="bq-h max-w-[16ch]" style={{ ...look.headingStyle, fontSize: "clamp(38px, 5.6cqi, 64px)", lineHeight: 1.05 }}>{title}</h1>
-            {body ? <p className="m-0 max-w-[560px] text-[16.5px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+            <h1 id={headingId} className="bq-h max-w-[16ch]" style={{ ...look.headingStyle, fontSize: "clamp(38px, 5.6cqi, 64px)", lineHeight: 1.05 }}>{titleRich}</h1>
+            {body ? <p className="m-0 max-w-[560px] text-[16.5px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
             {chips.length ? (
               <div className="mt-2 flex flex-wrap justify-center gap-2">
                 {chips.map((category) => (
@@ -1467,8 +1474,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="bq-wrap grid items-center gap-8 px-12 py-12 @3xl:grid-cols-2 @3xl:px-20 @3xl:py-16">
             <div className="flex flex-col items-start gap-4">
               {eyebrow ? <p className="m-0 text-[13px] font-semibold" style={{ color: t.accent }}>{eyebrow}</p> : null}
-              <h1 id={headingId} className="bq-h max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(34px, 4.8cqi, 60px)", lineHeight: 1.08 }}>{title}</h1>
-              {body ? <p className="m-0 max-w-[420px] text-[15.5px]" style={{ color: t.muted }}>{body}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(34px, 4.8cqi, 60px)", lineHeight: 1.08 }}>{titleRich}</h1>
+              {body ? <p className="m-0 max-w-[420px] text-[15.5px]" style={{ color: t.muted }}>{bodyRich}</p> : null}
               {ctaButton()}
             </div>
             <div className="mx-auto w-[min(70%,320px)]">
@@ -1490,7 +1497,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             <div className="flex flex-col items-start gap-5">
               {eyebrow ? <p className="m-0 text-[12px] uppercase" style={{ letterSpacing: "0.2em", color: t.muted }}>{eyebrow}</p> : null}
               <h1 id={headingId} className="bq-h max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(40px, 5.4cqi, 72px)", lineHeight: 1.12 }}>{first} <span style={{ color: t.accent }}>{rest.join(" ")}</span></h1>
-              {body ? <p className="m-0 max-w-[420px] text-[15px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+              {body ? <p className="m-0 max-w-[420px] text-[15px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
               <button type="button" onClick={() => goHero()} className="bq-btn" style={look.primaryButton}>{cta} <span aria-hidden>→</span></button>
             </div>
             <div className="mx-auto w-[min(72%,340px)]">
@@ -1510,8 +1517,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             <div className="absolute inset-0" style={{ background: image ? "linear-gradient(90deg, rgba(255,255,255,.92), rgba(255,255,255,.55) 40%, rgba(255,255,255,0) 65%)" : "transparent" }} />
             <div className="bq-wrap absolute inset-0 flex flex-col items-start justify-center gap-4" style={{ color: t.ink }}>
               {eyebrow ? <p className="m-0 text-[12.5px] font-semibold uppercase" style={{ letterSpacing: "0.08em" }}>{eyebrow}</p> : null}
-              <h1 id={headingId} className="bq-h max-w-[13ch]" style={{ ...look.headingStyle, fontSize: "clamp(34px, 5cqi, 64px)", lineHeight: 1.06 }}>{title}</h1>
-              {body ? <p className="m-0 max-w-[420px] text-[15px]" style={{ color: t.muted }}>{body}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[13ch]" style={{ ...look.headingStyle, fontSize: "clamp(34px, 5cqi, 64px)", lineHeight: 1.06 }}>{titleRich}</h1>
+              {body ? <p className="m-0 max-w-[420px] text-[15px]" style={{ color: t.muted }}>{bodyRich}</p> : null}
               {ctaButton()}
             </div>
           </div>
@@ -1527,8 +1534,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             <div className="absolute inset-0" style={{ background: image ? "linear-gradient(90deg, rgba(233,236,242,.9), rgba(233,236,242,.3) 45%, rgba(233,236,242,0) 65%)" : "transparent" }} />
             <div className="bq-wrap absolute inset-0 flex flex-col items-start justify-center gap-3" style={{ color: t.ink }}>
               {eyebrow ? <p className="m-0 text-[17px] @3xl:text-[22px]">{eyebrow}</p> : null}
-              <h1 id={headingId} className="m-0 max-w-[12ch] uppercase" style={{ fontFamily: BQ_SERIF, fontWeight: 700, fontSize: "clamp(38px, 5.6cqi, 72px)", lineHeight: 1.02 }}>{title}</h1>
-              {body ? <p className="m-0 max-w-[400px] text-[15px]" style={{ color: t.muted }}>{body}</p> : null}
+              <h1 id={headingId} className="m-0 max-w-[12ch] uppercase" style={{ fontFamily: BQ_SERIF, fontWeight: 700, fontSize: "clamp(38px, 5.6cqi, 72px)", lineHeight: 1.02 }}>{titleRich}</h1>
+              {body ? <p className="m-0 max-w-[400px] text-[15px]" style={{ color: t.muted }}>{bodyRich}</p> : null}
               <div className="mt-2">{ctaButton()}</div>
             </div>
           </div>
@@ -1547,8 +1554,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             </div>
             <div className="flex flex-col items-start gap-4 p-6 @3xl:p-0" style={{ background: t.heroBg, color: t.heroText }}>
               {eyebrow ? <p className="sr-only">{eyebrow}</p> : null}
-              <h1 id={headingId} className="bq-h max-w-[10ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 4.8cqi, 60px)", lineHeight: 1.04, color: t.heroText }}>{title}</h1>
-              {body ? <p className="m-0 max-w-[380px] text-[15px] opacity-85">{body}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[10ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 4.8cqi, 60px)", lineHeight: 1.04, color: t.heroText }}>{titleRich}</h1>
+              {body ? <p className="m-0 max-w-[380px] text-[15px] opacity-85">{bodyRich}</p> : null}
               {ctaButton()}
               <div aria-hidden className="mt-4 hidden gap-0 @3xl:flex"><span className="h-8 w-8" style={{ background: t.accent }} /><span className="h-8 w-8" style={{ background: "#1B2B33" }} /></div>
             </div>
@@ -1568,8 +1575,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="bq-wrap relative">
           <div className="flex min-h-[420px] flex-col items-center justify-center gap-5 px-10 pb-24 pt-16 text-center @3xl:min-h-[540px] @3xl:px-24">
             {eyebrow ? <p className="m-0 text-[13px] font-semibold uppercase" style={{ letterSpacing: "0.16em", textShadow: "0 1px 8px rgba(0,0,0,.35)" }}>{eyebrow}</p> : null}
-            <h1 id={headingId} className="bq-h max-w-[16ch] uppercase" style={{ ...look.headingStyle, fontSize: "clamp(34px, 5.6cqi, 72px)", lineHeight: 1.08, textShadow: "0 2px 18px rgba(0,0,0,.35)" }}>{title}</h1>
-            {body ? <p className="m-0 max-w-[520px] text-[15.5px]" style={{ textShadow: "0 1px 8px rgba(0,0,0,.4)" }}>{body}</p> : null}
+            <h1 id={headingId} className="bq-h max-w-[16ch] uppercase" style={{ ...look.headingStyle, fontSize: "clamp(34px, 5.6cqi, 72px)", lineHeight: 1.08, textShadow: "0 2px 18px rgba(0,0,0,.35)" }}>{titleRich}</h1>
+            {body ? <p className="m-0 max-w-[520px] text-[15.5px]" style={{ textShadow: "0 1px 8px rgba(0,0,0,.4)" }}>{bodyRich}</p> : null}
             {ctaButton(look.solidButton)}
           </div>
           </div>
@@ -1593,7 +1600,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             <div className="bq-wrap absolute inset-0 flex flex-col items-start justify-center gap-4" style={{ color: "#FFFFFF" }}>
               {eyebrow ? <p className="m-0 text-[12px] font-semibold uppercase" style={{ letterSpacing: "0.12em" }}>{eyebrow}</p> : null}
               <h1 id={headingId} className="bq-h max-w-[11ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 5.2cqi, 68px)", lineHeight: 1.08 }}><span style={{ color: t.accent }}>{first}</span> {rest.join(" ")}</h1>
-              {body ? <p className="m-0 max-w-[400px] text-[15px] opacity-90">{body}</p> : null}
+              {body ? <p className="m-0 max-w-[400px] text-[15px] opacity-90">{bodyRich}</p> : null}
               <div className="mt-1">{ctaButton()}</div>
             </div>
           </div>
@@ -1612,8 +1619,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               <div className="absolute inset-0" style={{ background: image ? "linear-gradient(90deg, rgba(255,255,255,.94), rgba(255,255,255,.6) 45%, rgba(255,255,255,0) 72%)" : "transparent" }} />
               <div className="absolute inset-0 flex flex-col items-start justify-center gap-3 p-7 @3xl:p-12" style={{ color: t.ink }}>
                 {eyebrow ? <p className="m-0 text-[13px] font-bold uppercase" style={{ color: t.accent, letterSpacing: "0.08em" }}>{eyebrow}</p> : null}
-                <h1 id={headingId} className="bq-h max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(30px, 4.2cqi, 54px)", lineHeight: 1.08 }}>{title}</h1>
-                {body ? <p className="m-0 max-w-[380px] text-[15px]" style={{ color: t.muted }}>{body}</p> : null}
+                <h1 id={headingId} className="bq-h max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(30px, 4.2cqi, 54px)", lineHeight: 1.08 }}>{titleRich}</h1>
+                {body ? <p className="m-0 max-w-[380px] text-[15px]" style={{ color: t.muted }}>{bodyRich}</p> : null}
                 <div className="mt-1">{ctaButton()}</div>
               </div>
             </div>
@@ -1648,8 +1655,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             <div className="bq-media aspect-[4/3]" style={{ background: "transparent", borderRadius: look.cardRadius }}>{picture(left, true)}</div>
             <div className="flex flex-col items-center gap-4 text-center">
               {eyebrow ? <p className="m-0 text-[13px] font-bold uppercase" style={{ color: t.accent, letterSpacing: "0.12em" }}>{eyebrow}</p> : null}
-              <h1 id={headingId} className="bq-h max-w-[14ch] uppercase" style={{ ...look.headingStyle, fontSize: "clamp(30px, 3.8cqi, 50px)", lineHeight: 1.08 }}>{title}</h1>
-              {body ? <p className="m-0 max-w-[420px] text-[15px] uppercase" style={{ color: t.muted, letterSpacing: "0.04em" }}>{body}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[14ch] uppercase" style={{ ...look.headingStyle, fontSize: "clamp(30px, 3.8cqi, 50px)", lineHeight: 1.08 }}>{titleRich}</h1>
+              {body ? <p className="m-0 max-w-[420px] text-[15px] uppercase" style={{ color: t.muted, letterSpacing: "0.04em" }}>{bodyRich}</p> : null}
               <div className="mt-1">{ctaButton()}</div>
             </div>
             <div className="bq-media hidden aspect-[4/3] @3xl:block" style={{ background: "transparent", borderRadius: look.cardRadius }}>{picture(right)}</div>
@@ -1682,8 +1689,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               <div className="absolute inset-0" style={{ background: shots.length ? "rgba(20,20,30,.38)" : "transparent" }} />
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-14 text-center" style={{ color: shots.length ? "#FFFFFF" : t.heroText }}>
                 {eyebrow ? <p className="m-0 text-[13px] font-semibold uppercase" style={{ letterSpacing: "0.14em" }}>{eyebrow}</p> : null}
-                <h1 id={headingId} className="bq-h max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(32px, 4.6cqi, 58px)", lineHeight: 1.08 }}>{title}</h1>
-                {body ? <p className="m-0 max-w-[440px] text-[15px] opacity-90">{body}</p> : null}
+                <h1 id={headingId} className="bq-h max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(32px, 4.6cqi, 58px)", lineHeight: 1.08 }}>{titleRich}</h1>
+                {body ? <p className="m-0 max-w-[440px] text-[15px] opacity-90">{bodyRich}</p> : null}
                 {ctaButton()}
               </div>
               {sideArrows(shots.length, "#FFFFFF")}
@@ -1707,7 +1714,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
                 <span className="block" style={{ color: t.accent }}>{lead}</span>
                 {rest ? <span className="block">{rest}</span> : null}
               </h1>
-              {body ? <p className="m-0 max-w-[440px] text-[15px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+              {body ? <p className="m-0 max-w-[440px] text-[15px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
               <div className="mt-1">{ctaButton()}</div>
             </div>
             <div className="bq-media aspect-[4/5] @3xl:aspect-[5/6]" style={{ background: "transparent", borderRadius: 0 }}>{img}</div>
@@ -1728,8 +1735,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             <div className="relative grid min-h-[360px] items-center overflow-hidden @3xl:grid-cols-[1.1fr_1fr]" style={{ background: t.heroBg, borderRadius: look.cardRadius + 6 }}>
               <div className="relative z-[1] flex flex-col items-start gap-4 p-8 @3xl:p-12">
                 {eyebrow ? <p className="m-0 text-[17px]" style={{ color: t.accent, fontFamily: BQ_SERIF }}>{eyebrow}</p> : null}
-                <h1 id={headingId} className="bq-h m-0 max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(32px, 4cqi, 52px)", lineHeight: 1.1 }}>{title}</h1>
-                {body ? <p className="m-0 max-w-[360px] text-[14.5px] leading-6" style={{ color: t.muted }}>{body}</p> : null}
+                <h1 id={headingId} className="bq-h m-0 max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(32px, 4cqi, 52px)", lineHeight: 1.1 }}>{titleRich}</h1>
+                {body ? <p className="m-0 max-w-[360px] text-[14.5px] leading-6" style={{ color: t.muted }}>{bodyRich}</p> : null}
                 <button type="button" className="bq-btn mt-1" style={{ background: "transparent", color: t.ink, border: `1.5px solid ${t.ink}` }} onClick={() => goHero()}>{cta}</button>
               </div>
               <div className="bq-media h-full min-h-[260px]" style={{ background: "transparent", borderRadius: 0 }}>{img}</div>
@@ -1758,8 +1765,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             <div className="absolute inset-0" style={{ background: image ? "linear-gradient(0deg, rgba(255,255,255,.88), rgba(255,255,255,.2) 45%, rgba(255,255,255,0) 70%)" : "transparent" }} />
             <div className="bq-wrap absolute inset-x-0 bottom-0 flex flex-col items-start gap-3 pb-10" style={{ color: t.ink }}>
               {eyebrow ? <p className="m-0 text-[12px] font-semibold uppercase" style={{ letterSpacing: "0.2em", color: t.accent }}>{eyebrow}</p> : null}
-              <h1 id={headingId} className="bq-h m-0 max-w-[16ch]" style={{ ...look.headingStyle, fontSize: "clamp(34px, 4.6cqi, 60px)", lineHeight: 1.06 }}>{title}</h1>
-              {body ? <p className="m-0 max-w-[440px] text-[15px]" style={{ color: t.muted }}>{body}</p> : null}
+              <h1 id={headingId} className="bq-h m-0 max-w-[16ch]" style={{ ...look.headingStyle, fontSize: "clamp(34px, 4.6cqi, 60px)", lineHeight: 1.06 }}>{titleRich}</h1>
+              {body ? <p className="m-0 max-w-[440px] text-[15px]" style={{ color: t.muted }}>{bodyRich}</p> : null}
               <div className="mt-1">{ctaButton()}</div>
             </div>
           </div>
@@ -1782,8 +1789,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="bq-wrap relative">
             <div className="flex min-h-[420px] flex-col items-center justify-center gap-4 px-10 py-16 text-center @3xl:min-h-[560px] @3xl:px-16">
               {eyebrow ? <p className="m-0 text-[13px] font-semibold uppercase" style={{ letterSpacing: "0.16em" }}>{eyebrow}</p> : null}
-              <h1 id={headingId} className="bq-h m-0 max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(38px, 5.6cqi, 72px)", lineHeight: 1.06 }}>{title}</h1>
-              {body ? <p className="m-0 max-w-[520px] text-[15.5px] opacity-90">{body}</p> : null}
+              <h1 id={headingId} className="bq-h m-0 max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(38px, 5.6cqi, 72px)", lineHeight: 1.06 }}>{titleRich}</h1>
+              {body ? <p className="m-0 max-w-[520px] text-[15.5px] opacity-90">{bodyRich}</p> : null}
               <div className="mt-1">{ctaButton()}</div>
             </div>
           </div>
@@ -1809,8 +1816,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="bq-wrap grid items-center gap-8 py-10 @3xl:grid-cols-[1.25fr_1fr] @3xl:py-20">
             <div className="flex flex-col items-start gap-4">
               {eyebrow ? <p className="m-0 text-[16px] font-semibold" style={{ color: "#B7791F" }}>{eyebrow}</p> : null}
-              <h1 id={headingId} className="bq-h m-0 max-w-[13ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 5cqi, 64px)", lineHeight: 1.06, color: "#3F7A05" }}>{title}</h1>
-              {body ? <p className="m-0 max-w-[460px] text-[15px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+              <h1 id={headingId} className="bq-h m-0 max-w-[13ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 5cqi, 64px)", lineHeight: 1.06, color: "#3F7A05" }}>{titleRich}</h1>
+              {body ? <p className="m-0 max-w-[460px] text-[15px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
               <div className="mt-2 w-full max-w-[520px] rounded-full border-2 bg-white" style={{ borderColor: orange }}>{searchForm("Search fresh produce", true)}</div>
             </div>
             <div className="relative">
@@ -1836,8 +1843,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             <div className="absolute inset-0" style={{ background: image ? "rgba(5,25,34,.62)" : "transparent" }} />
             <div className="bq-wrap absolute inset-0 flex flex-col items-center justify-center gap-4 text-center" style={{ color: "#FFFFFF" }}>
               {eyebrow ? <p className="m-0 text-[13px] font-bold uppercase" style={{ color: t.accent, letterSpacing: "0.3em" }}>{eyebrow}</p> : null}
-              <h1 id={headingId} className="bq-h m-0 max-w-[16ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 5.4cqi, 68px)", lineHeight: 1.08 }}>{title}</h1>
-              {body ? <p className="m-0 max-w-[520px] text-[15.5px] opacity-90">{body}</p> : null}
+              <h1 id={headingId} className="bq-h m-0 max-w-[16ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 5.4cqi, 68px)", lineHeight: 1.08 }}>{titleRich}</h1>
+              {body ? <p className="m-0 max-w-[520px] text-[15.5px] opacity-90">{bodyRich}</p> : null}
               <div className="mt-1 flex flex-wrap justify-center gap-3">
                 {ctaButton()}
                 {pageTypes.has("contact") ? <button type="button" className="bq-btn" style={{ background: "transparent", color: "#FFFFFF", border: `1.5px solid ${t.accent}` }} onClick={() => go("contact")}>Contact us</button> : null}
@@ -1856,8 +1863,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="bq-wrap grid items-center gap-8 py-12 @3xl:grid-cols-[1fr_1.05fr] @3xl:py-16">
             <div className="flex flex-col items-start gap-4">
               {eyebrow ? <p className="m-0 text-[15px]" style={{ color: t.muted }}>{eyebrow}</p> : null}
-              <h1 id={headingId} className="bq-h m-0 max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(34px, 4.6cqi, 58px)", lineHeight: 1.1 }}>{title}</h1>
-              {body ? <p className="m-0 max-w-[440px] text-[15px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+              <h1 id={headingId} className="bq-h m-0 max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(34px, 4.6cqi, 58px)", lineHeight: 1.1 }}>{titleRich}</h1>
+              {body ? <p className="m-0 max-w-[440px] text-[15px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
               <div className="mt-1 flex flex-wrap items-center gap-5">
                 {ctaButton()}
                 {pageTypes.has("about") ? <button type="button" onClick={() => go("about")} className="cursor-pointer border-0 bg-transparent p-0 text-[14px] font-semibold" style={{ color: t.accent }}>More info</button> : null}
@@ -1884,8 +1891,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         <section aria-labelledby={headingId} className="relative" style={{ background: t.heroBg, color: t.heroText }}>
           <div className="bq-wrap grid items-end gap-6 pt-12 @3xl:grid-cols-[1fr_1.2fr] @3xl:pt-16">
             <div className="flex flex-col items-start gap-4 pb-10 @3xl:pb-24">
-              <h1 id={headingId} className="bq-h m-0 max-w-[13ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 4.8cqi, 60px)", lineHeight: 1.08 }}>{title}</h1>
-              {body ? <p className="m-0 max-w-[420px] text-[15px] leading-7 opacity-80">{body}</p> : null}
+              <h1 id={headingId} className="bq-h m-0 max-w-[13ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 4.8cqi, 60px)", lineHeight: 1.08 }}>{titleRich}</h1>
+              {body ? <p className="m-0 max-w-[420px] text-[15px] leading-7 opacity-80">{bodyRich}</p> : null}
               <div className="mt-1 flex flex-wrap gap-3">
                 {ctaButton()}
                 <button type="button" className="bq-btn" style={{ background: "transparent", color: "#FFFFFF", border: "1.5px solid rgba(255,255,255,.45)" }} onClick={() => go("products")}>Explore</button>
@@ -1946,8 +1953,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               <div className="absolute inset-0" style={{ background: image ? "rgba(0,0,0,.42)" : "transparent" }} />
               <div className="absolute inset-0 flex flex-col items-start justify-center gap-4 p-8 @3xl:p-12" style={{ color: "#FFFFFF" }}>
                 {eyebrow ? <p className="m-0 text-[13px] font-semibold uppercase" style={{ letterSpacing: "0.16em" }}>{eyebrow}</p> : null}
-                <h1 id={headingId} className="bq-h m-0 max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(34px, 4.4cqi, 56px)", lineHeight: 1.06 }}>{title}</h1>
-                {body ? <p className="m-0 max-w-[380px] text-[15px] italic opacity-90">{body}</p> : null}
+                <h1 id={headingId} className="bq-h m-0 max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(34px, 4.4cqi, 56px)", lineHeight: 1.06 }}>{titleRich}</h1>
+                {body ? <p className="m-0 max-w-[380px] text-[15px] italic opacity-90">{bodyRich}</p> : null}
                 <button type="button" className="bq-btn" style={{ background: "transparent", color: "#FFFFFF", border: "1.5px solid #FFFFFF" }} onClick={() => goHero()}>{cta}</button>
               </div>
             </div>
@@ -1980,8 +1987,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div aria-hidden className="absolute inset-0" style={{ background: shots.length ? "linear-gradient(90deg, rgba(0,0,0,.5), rgba(0,0,0,.15) 60%)" : "transparent" }} />
           <div className="bq-wrap relative flex min-h-[440px] flex-col items-start justify-end gap-4 pb-14 pt-24 @3xl:min-h-[600px]">
             {eyebrow ? <p className="m-0 text-[12px] font-semibold" style={{ letterSpacing: "0.04em" }}>* {eyebrow}</p> : null}
-            <h1 id={headingId} className="bq-h m-0 max-w-[14ch] uppercase" style={{ ...look.headingStyle, fontWeight: 800, fontSize: "clamp(40px, 6.4cqi, 88px)", lineHeight: 0.98 }}>{title}</h1>
-            {body ? <p className="m-0 max-w-[460px] text-[15px] opacity-90">{body}</p> : null}
+            <h1 id={headingId} className="bq-h m-0 max-w-[14ch] uppercase" style={{ ...look.headingStyle, fontWeight: 800, fontSize: "clamp(40px, 6.4cqi, 88px)", lineHeight: 0.98 }}>{titleRich}</h1>
+            {body ? <p className="m-0 max-w-[460px] text-[15px] opacity-90">{bodyRich}</p> : null}
             <button type="button" className="bq-btn mt-1" style={{ background: "transparent", color: "#FFFFFF", border: "2px solid #FFFFFF", textTransform: "uppercase", fontSize: 12.5, fontWeight: 700 }} onClick={() => goHero()}>{cta}</button>
           </div>
           {shots.length > 1 ? (
@@ -2001,8 +2008,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="bq-wrap relative grid items-center gap-8 py-12 @3xl:grid-cols-[1fr_1.2fr] @3xl:py-20">
             <div className="flex flex-col items-start gap-4">
               {eyebrow ? <p className="m-0 text-[13px] font-bold uppercase" style={{ color: t.accent, letterSpacing: "0.12em" }}>{eyebrow}</p> : null}
-              <h1 id={headingId} className="bq-h m-0 max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 4.8cqi, 62px)", lineHeight: 1.06 }}>{title}</h1>
-              {body ? <p className="m-0 max-w-[420px] text-[15px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+              <h1 id={headingId} className="bq-h m-0 max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 4.8cqi, 62px)", lineHeight: 1.06 }}>{titleRich}</h1>
+              {body ? <p className="m-0 max-w-[420px] text-[15px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
               <button type="button" onClick={() => goHero()} className="mt-1 inline-flex cursor-pointer items-center gap-3 border-0 bg-transparent p-0 text-[13px] font-bold uppercase" style={{ color: t.ink, letterSpacing: "0.06em" }}>
                 <span aria-hidden className="grid h-11 w-11 place-items-center rounded-full" style={{ background: t.accent, color: t.ctaText }}><Icon name="chevRight" size={18} /></span>
                 {cta}
@@ -2031,8 +2038,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         <section aria-labelledby={headingId} className="relative overflow-hidden" style={{ background: t.paperBg, color: t.ink }}>
           <div className="bq-wrap relative py-12 text-center @3xl:py-16">
             {eyebrow ? <p className="m-0 text-[17px] @3xl:text-[20px]" style={{ color: t.muted }}>{eyebrow}</p> : null}
-            <h1 id={headingId} className="bq-h m-0 mt-2" style={{ ...look.headingStyle, fontSize: "clamp(32px, 4.4cqi, 54px)", lineHeight: 1.1 }}>{title}</h1>
-            {body ? <p className="mx-auto mt-3 max-w-[520px] text-[15px]" style={{ color: t.muted }}>{body}</p> : null}
+            <h1 id={headingId} className="bq-h m-0 mt-2" style={{ ...look.headingStyle, fontSize: "clamp(32px, 4.4cqi, 54px)", lineHeight: 1.1 }}>{titleRich}</h1>
+            {body ? <p className="mx-auto mt-3 max-w-[520px] text-[15px]" style={{ color: t.muted }}>{bodyRich}</p> : null}
             <div className="mt-8 grid grid-cols-2 gap-0">{half(image, 0)}{half(second, 1)}</div>
           </div>
         </section>
@@ -2045,8 +2052,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="bq-wrap grid items-center gap-8 pt-10 @3xl:grid-cols-2 @3xl:pt-0">
             <div className="flex flex-col items-start gap-4 @3xl:py-24">
               {eyebrow ? <p className="m-0 text-[12.5px] font-bold uppercase" style={{ color: t.accent, letterSpacing: "0.18em" }}>{eyebrow}</p> : null}
-              <h1 id={headingId} className="bq-h m-0 max-w-[13ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 4.6cqi, 58px)", lineHeight: 1.1 }}>{title}</h1>
-              {body ? <p className="m-0 max-w-[400px] text-[15px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+              <h1 id={headingId} className="bq-h m-0 max-w-[13ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 4.6cqi, 58px)", lineHeight: 1.1 }}>{titleRich}</h1>
+              {body ? <p className="m-0 max-w-[400px] text-[15px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
               <button type="button" className="bq-btn mt-2" style={{ ...look.primaryButton, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 12.5, fontWeight: 700 }} onClick={() => goHero()}>{cta} <span aria-hidden className="ml-2">→</span></button>
             </div>
             <div className="relative mx-auto w-full max-w-[520px] self-end">
@@ -2066,8 +2073,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="bq-wrap grid items-center gap-8 py-12 @3xl:grid-cols-[1fr_1.15fr] @3xl:py-16">
             <div className="flex flex-col items-start gap-4">
               {eyebrow ? <p className="m-0 px-2.5 py-1 text-[12px] font-semibold uppercase" style={{ background: "#111111", color: t.heroBg, letterSpacing: "0.14em" }}>#{eyebrow}</p> : null}
-              <h1 id={headingId} className="bq-h m-0 max-w-[14ch] uppercase" style={{ ...look.headingStyle, fontWeight: 300, fontSize: "clamp(34px, 4.4cqi, 56px)", lineHeight: 1.1 }}>{title}</h1>
-              {body ? <p className="m-0 max-w-[420px] text-[15px] leading-7" style={{ opacity: 0.8 }}>{body}</p> : null}
+              <h1 id={headingId} className="bq-h m-0 max-w-[14ch] uppercase" style={{ ...look.headingStyle, fontWeight: 300, fontSize: "clamp(34px, 4.4cqi, 56px)", lineHeight: 1.1 }}>{titleRich}</h1>
+              {body ? <p className="m-0 max-w-[420px] text-[15px] leading-7" style={{ opacity: 0.8 }}>{bodyRich}</p> : null}
               <div className="mt-1">{ctaButton()}</div>
             </div>
             <div className="bq-media aspect-[4/3]" style={{ background: "transparent", borderRadius: 0 }}>{img}</div>
@@ -2084,9 +2091,9 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             {img}
             <div className="absolute inset-0" style={{ background: image ? "rgba(0,0,0,.32)" : "transparent" }} />
             <div className="bq-wrap absolute inset-0 flex flex-col items-center justify-center gap-3 text-center text-white">
-              <h1 id={headingId} className="m-0 max-w-[18ch] uppercase" style={{ fontFamily: look.headingFont, fontWeight: 300, letterSpacing: "0.06em", fontSize: "clamp(38px, 6cqi, 84px)", lineHeight: 1.04, textShadow: "0 2px 16px rgba(0,0,0,.35)" }}>{title}</h1>
+              <h1 id={headingId} className="m-0 max-w-[18ch] uppercase" style={{ fontFamily: look.headingFont, fontWeight: 300, letterSpacing: "0.06em", fontSize: "clamp(38px, 6cqi, 84px)", lineHeight: 1.04, textShadow: "0 2px 16px rgba(0,0,0,.35)" }}>{titleRich}</h1>
               {eyebrow ? <p className="m-0 text-[12.5px] font-semibold uppercase" style={{ letterSpacing: "0.3em" }}>{eyebrow}</p> : null}
-              {body ? <p className="m-0 max-w-[480px] text-[15px] opacity-90">{body}</p> : null}
+              {body ? <p className="m-0 max-w-[480px] text-[15px] opacity-90">{bodyRich}</p> : null}
               <div className="mt-2">{ctaButton()}</div>
             </div>
           </div>
@@ -2109,7 +2116,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
                 <span className="block font-bold">{first}</span>
                 {rest.length ? <span className="block font-light">{rest.join(" ")}.</span> : null}
               </h1>
-              {body ? <p className="m-0 max-w-[460px] text-[15px] opacity-90">{body}</p> : null}
+              {body ? <p className="m-0 max-w-[460px] text-[15px] opacity-90">{bodyRich}</p> : null}
               <button type="button" className="bq-btn mt-2" style={{ background: "transparent", color: "#FFFFFF", border: "2px solid #FFFFFF", textTransform: "uppercase", fontSize: 12, letterSpacing: "0.12em" }} onClick={() => goHero()}>{cta}</button>
             </div>
           </div>
@@ -2134,7 +2141,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               <h1 id={headingId} className="bq-h m-0 max-w-[13ch]" style={{ ...look.headingStyle, fontSize: "clamp(38px, 5cqi, 66px)", lineHeight: 1.1 }}>
                 {lead} {tail ? <span style={{ color: t.accent }}>{tail}</span> : null}
               </h1>
-              {body ? <p className="m-0 max-w-[420px] text-[15px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+              {body ? <p className="m-0 max-w-[420px] text-[15px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
               <button type="button" className="bq-btn mt-1" style={{ background: "transparent", color: t.ink, border: `1.5px solid ${t.ink}`, textTransform: "uppercase", fontSize: 12.5, letterSpacing: "0.08em" }} onClick={() => goHero()}>{cta} <span aria-hidden className="ml-2">→</span></button>
             </div>
           </div>
@@ -2153,7 +2160,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               <h1 id={headingId} className="m-0 max-w-[12ch]" style={{ fontFamily: look.headingFont, fontWeight: 300, fontSize: "clamp(34px, 4.4cqi, 56px)", lineHeight: 1.12 }}>
                 {words.map((word, i) => <span key={i} style={{ fontWeight: i === words.length - 2 ? 700 : 300 }}>{word}{i < words.length - 1 ? " " : ""}</span>)}
               </h1>
-              {body ? <p className="m-0 max-w-[400px] text-[15px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+              {body ? <p className="m-0 max-w-[400px] text-[15px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
               <div className="mt-1">{ctaButton({ ...look.primaryButton, boxShadow: `0 10px 24px ${t.accent}55` })}</div>
             </div>
             <div className="bq-media min-h-[380px] @3xl:min-h-[600px]" style={{ borderRadius: 0, background: image ? look.placeholder : t.cardBg }}>{img}</div>
@@ -2200,8 +2207,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="bq-wrap relative">
             <div className="flex min-h-[420px] flex-col items-start justify-center gap-4 px-10 py-16 @3xl:min-h-[580px] @3xl:px-0">
               {eyebrow ? <p className="m-0 text-[13px] font-semibold uppercase" style={{ letterSpacing: "0.14em", color: t.muted }}>{eyebrow}</p> : null}
-              <h1 id={headingId} className="m-0 max-w-[9ch]" style={{ fontFamily: look.headingFont, fontWeight: 800, fontSize: "clamp(44px, 6.4cqi, 88px)", lineHeight: 0.98, letterSpacing: "-0.03em" }}>{title}</h1>
-              {body ? <p className="m-0 max-w-[400px] text-[15px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+              <h1 id={headingId} className="m-0 max-w-[9ch]" style={{ fontFamily: look.headingFont, fontWeight: 800, fontSize: "clamp(44px, 6.4cqi, 88px)", lineHeight: 0.98, letterSpacing: "-0.03em" }}>{titleRich}</h1>
+              {body ? <p className="m-0 max-w-[400px] text-[15px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
               <button type="button" className="bq-btn mt-2" style={{ background: "#FFFFFF", color: t.ink, border: "1.5px solid #FFFFFF", textTransform: "uppercase", fontSize: 12.5, fontWeight: 700, letterSpacing: "0.06em" }} onClick={() => goHero()}>{cta} <span aria-hidden className="ml-2">→</span></button>
             </div>
           </div>
@@ -2218,8 +2225,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             <div className="absolute inset-0" style={{ background: image ? "rgba(20,12,6,.38)" : "transparent" }} />
             <div className="bq-wrap absolute inset-x-0 bottom-0 flex flex-col items-center gap-3 pb-10 text-center text-white">
               {eyebrow ? <p className="text-[12px] uppercase" style={{ letterSpacing: "0.22em" }}>{eyebrow}</p> : null}
-              <h1 id={headingId} className="bq-h max-w-[980px]" style={{ ...look.headingStyle, fontWeight: 500, fontSize: "clamp(34px, 6cqi, 72px)", lineHeight: 1.04 }}>{title}</h1>
-              {body ? <p className="max-w-[560px] text-[15px] opacity-90">{body}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[980px]" style={{ ...look.headingStyle, fontWeight: 500, fontSize: "clamp(34px, 6cqi, 72px)", lineHeight: 1.04 }}>{titleRich}</h1>
+              {body ? <p className="max-w-[560px] text-[15px] opacity-90">{bodyRich}</p> : null}
               <button type="button" className="bq-btn mt-1" style={{ background: "transparent", color: "#fff", border: "1.5px solid #fff", borderRadius: 999 }} onClick={() => goHero()}>{cta}</button>
             </div>
           </div>
@@ -2233,8 +2240,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="bq-split-hero overflow-hidden" style={{ borderRadius: look.cardRadius + 8 }}>
             <div className="flex flex-col justify-center gap-4 px-6 py-10 @3xl:px-12" style={{ background: t.heroBg, color: t.heroText }}>
               {eyebrow ? <p className="text-[13px] font-bold uppercase" style={{ letterSpacing: "0.14em", opacity: 0.85 }}>{eyebrow}</p> : null}
-              <h1 id={headingId} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(38px, 6.5cqi, 76px)", lineHeight: 0.98 }}>{title}</h1>
-              {body ? <p className="max-w-[460px] text-[16px] opacity-90">{body}</p> : null}
+              <h1 id={headingId} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(38px, 6.5cqi, 76px)", lineHeight: 0.98 }}>{titleRich}</h1>
+              {body ? <p className="max-w-[460px] text-[16px] opacity-90">{bodyRich}</p> : null}
               <div>
                 <button type="button" className="bq-btn" style={look.secondaryButton} onClick={() => goHero()}>{cta}</button>
               </div>
@@ -2251,10 +2258,10 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="grid gap-5 @3xl:grid-cols-[1.2fr_1fr] @3xl:items-end">
             <div>
               {eyebrow ? <p className="text-[12.5px] uppercase" style={{ letterSpacing: "0.2em", color: t.muted }}>{eyebrow}</p> : null}
-              <h1 id={headingId} className="bq-h mt-3 max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 5.5cqi, 68px)", lineHeight: 1.04 }}>{title}</h1>
+              <h1 id={headingId} className="bq-h mt-3 max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 5.5cqi, 68px)", lineHeight: 1.04 }}>{titleRich}</h1>
             </div>
             <div className="flex flex-col items-start gap-4">
-              {body ? <p className="max-w-[440px] text-[15.5px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+              {body ? <p className="max-w-[440px] text-[15.5px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
               <button type="button" className="bq-btn" style={look.secondaryButton} onClick={() => goHero()}>{cta}</button>
             </div>
           </div>
@@ -2269,8 +2276,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="bq-wrap grid gap-8 py-12 @3xl:grid-cols-2 @3xl:items-center @3xl:py-16">
             <div className="flex flex-col items-start gap-4">
               {eyebrow ? <p className="text-[12px] uppercase" style={{ fontFamily: look.eyebrowFont, color: t.accent, letterSpacing: "0.16em" }}>{eyebrow}</p> : null}
-              <h1 id={headingId} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(36px, 5.5cqi, 66px)", lineHeight: 1.02 }}>{title}</h1>
-              {body ? <p className="max-w-[480px] text-[15.5px]" style={{ color: t.muted }}>{body}</p> : null}
+              <h1 id={headingId} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(36px, 5.5cqi, 66px)", lineHeight: 1.02 }}>{titleRich}</h1>
+              {body ? <p className="max-w-[480px] text-[15.5px]" style={{ color: t.muted }}>{bodyRich}</p> : null}
               <div className="flex flex-wrap gap-3">
                 <button type="button" className="bq-btn" style={look.primaryButton} onClick={() => goHero()}>{cta}</button>
               </div>
@@ -2291,8 +2298,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             <div className="absolute inset-0" style={{ background: image ? "linear-gradient(to top, rgba(0,0,0,.6), rgba(0,0,0,0) 55%)" : "transparent" }} />
             <div className="bq-wrap absolute inset-x-0 bottom-0 flex flex-col items-start gap-4 pb-8 text-white">
               {eyebrow ? <p className="px-3 py-1 text-[12px] font-extrabold uppercase" style={{ background: image ? t.accent : t.ink, letterSpacing: "0.14em" }}>{eyebrow}</p> : null}
-              <h1 id={headingId} className="bq-h max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(46px, 10cqi, 140px)", lineHeight: 0.9 }}>{title}</h1>
-              {body ? <p className="max-w-[480px] text-[15.5px] font-medium opacity-90">{body}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(46px, 10cqi, 140px)", lineHeight: 0.9 }}>{titleRich}</h1>
+              {body ? <p className="max-w-[480px] text-[15.5px] font-medium opacity-90">{bodyRich}</p> : null}
               <button type="button" className="bq-btn" style={{ background: "#fff", color: t.ink, border: "1.5px solid #fff", borderRadius: 999, textTransform: "uppercase", fontWeight: 800 }} onClick={() => goHero()}>{cta}</button>
             </div>
           </div>
@@ -2308,8 +2315,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             <div className="absolute inset-0" style={{ background: "rgba(0,0,0,.55)" }} />
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6 text-center text-white">
               {text(copy.eyebrow) ? <p className="text-[11.5px] font-bold uppercase" style={{ color: t.accent, letterSpacing: "0.22em" }}>{text(copy.eyebrow)}</p> : null}
-              <h1 id={headingId} className="bq-h max-w-[900px]" style={{ ...look.headingStyle, fontSize: "clamp(30px, 6cqi, 60px)" }}>{title}</h1>
-              {body ? <p className="max-w-[560px] text-[15px] opacity-90">{body}</p> : null}
+              <h1 id={headingId} className="bq-h max-w-[900px]" style={{ ...look.headingStyle, fontSize: "clamp(30px, 6cqi, 60px)" }}>{titleRich}</h1>
+              {body ? <p className="max-w-[560px] text-[15px] opacity-90">{bodyRich}</p> : null}
               <button type="button" className="bq-btn" style={look.primaryButton} onClick={() => goHero()}>{cta}</button>
             </div>
           </div>
@@ -2384,8 +2391,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,.55), rgba(0,0,0,.05) 65%)" }} />
           {/* Phones: inset inside the rounded card. Wider: lines up with the header via bq-wrap. */}
           <div className="bq-wrap absolute inset-x-0 bottom-0 flex flex-col items-start gap-3 py-6 text-white">
-            <h1 id={headingId} className="bq-h max-w-[760px]" style={{ fontWeight: 700, letterSpacing: "-0.03em", fontSize: "clamp(32px, 6cqi, 68px)", lineHeight: 1.02 }}>{title}</h1>
-            {body ? <p className="max-w-[520px] text-[15px] opacity-90">{body}</p> : null}
+            <h1 id={headingId} className="bq-h max-w-[760px]" style={{ fontWeight: 700, letterSpacing: "-0.03em", fontSize: "clamp(32px, 6cqi, 68px)", lineHeight: 1.02 }}>{titleRich}</h1>
+            {body ? <p className="max-w-[520px] text-[15px] opacity-90">{bodyRich}</p> : null}
             <button type="button" className="bq-btn" style={{ ...look.primaryButton, borderRadius: 999 }} onClick={() => goHero()}>{cta}</button>
           </div>
         </div>
@@ -2403,6 +2410,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     const pageTitle = snapshot.pages.find((entry) => entry.pageType === current)?.title ?? "";
     const title = text(copy.title) || pageTitle || store.name;
     const body = text(copy.body);
+    const titleRich = richCopy(copy, "title", title, richTone);
+    const bodyRich = richCopy(copy, "body", body, richTone);
     const headingId = `${uid}-${section.id}`;
     const uploaded = itemImages(section)[0];
     const crumbs = (color: string) => (
@@ -2420,8 +2429,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           {photo ? <img src={photo} alt="" width={1600} height={300} loading="eager" decoding="async" /> : null}
           <div className="absolute inset-0" style={{ background: photo ? "linear-gradient(90deg, rgba(0,0,0,.62), rgba(0,0,0,.1))" : "transparent" }} />
           <div className="bq-wrap absolute inset-x-0 bottom-0 flex flex-col gap-2 pb-6 text-white @3xl:pb-8">
-            <h1 id={headingId} className="bq-h text-[30px] @3xl:text-[40px]" style={{ ...look.headingStyle, color: "#fff" }}>{title}</h1>
-            {body ? <p className="m-0 max-w-[560px] text-[15px] opacity-90">{body}</p> : null}
+            <h1 id={headingId} className="bq-h text-[30px] @3xl:text-[40px]" style={{ ...look.headingStyle, color: "#fff" }}>{titleRich}</h1>
+            {body ? <p className="m-0 max-w-[560px] text-[15px] opacity-90">{bodyRich}</p> : null}
             {crumbs("rgba(255,255,255,.85)")}
           </div>
         </section>
@@ -2431,8 +2440,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       return (
         <section aria-labelledby={headingId} className="bq-wrap border-b pb-6 pt-8" style={{ borderColor: t.border }}>
           {crumbs(t.muted)}
-          <h1 id={headingId} className="bq-h mt-3 text-[30px] @3xl:text-[38px]" style={look.headingStyle}>{title}</h1>
-          {body ? <p className="m-0 mt-2 max-w-[600px] text-[15px]" style={{ color: t.muted }}>{body}</p> : null}
+          <h1 id={headingId} className="bq-h mt-3 text-[30px] @3xl:text-[38px]" style={look.headingStyle}>{titleRich}</h1>
+          {body ? <p className="m-0 mt-2 max-w-[600px] text-[15px]" style={{ color: t.muted }}>{bodyRich}</p> : null}
         </section>
       );
     }
@@ -2441,8 +2450,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       <section aria-labelledby={headingId} style={{ background: look.raised }}>
         <div className="bq-wrap grid items-center gap-6 py-8 @3xl:min-h-[220px] @3xl:grid-cols-[1fr_auto] @3xl:py-6">
           <div className="flex flex-col gap-3">
-            <h1 id={headingId} className="bq-h text-[32px] @3xl:text-[42px]" style={look.headingStyle}>{title}</h1>
-            {body ? <p className="m-0 max-w-[560px] text-[15px]" style={{ color: t.muted }}>{body}</p> : null}
+            <h1 id={headingId} className="bq-h text-[32px] @3xl:text-[42px]" style={look.headingStyle}>{titleRich}</h1>
+            {body ? <p className="m-0 max-w-[560px] text-[15px]" style={{ color: t.muted }}>{bodyRich}</p> : null}
             {crumbs(t.muted)}
           </div>
           {picture ? (
@@ -3004,7 +3013,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
   function cardOptions(section: TemplateSectionNode) {
     const options = readProductCardOptions(section.settings);
     const quickAdd = options.quickAdd ? (live ? props.onAddToCart : () => undefined) : undefined;
-    return { showRating: options.showRating, hoverImage: options.hoverImage, onQuickAdd: quickAdd };
+    return { showRating: options.showRating, hoverImage: options.hoverImage, onQuickAdd: quickAdd, showPrice: options.showPrice };
   }
 
   function productRail(section: TemplateSectionNode) {
@@ -3107,7 +3116,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               <span aria-hidden className="block h-[2px] w-12" style={{ background: t.accent }} />
               <p className="m-0 mt-2 text-[20px] font-semibold" style={{ fontFamily: look.headingFont }}>{product.name}</p>
               {text(product.description) ? <p className="m-0 max-w-[480px] text-[15.5px] leading-7" style={{ color: t.muted }}>{text(product.description)}</p> : null}
-              <p className="m-0 text-[22px] font-bold" style={{ color: t.accent }}>{formatStoreMoney(product.retailPrice, product.currency)}</p>
+              {card.showPrice ? <p className="m-0 text-[22px] font-bold" style={{ color: t.accent }}>{formatStoreMoney(product.retailPrice, product.currency)}</p> : null}
               {open(product, "bq-btn mt-2", text(copy.cta) || "Shop it now", { ...look.primaryButton, padding: "0 24px" })}
             </div>
           </div>
@@ -3137,7 +3146,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
                   {text(product.description) ? <p className="m-0 max-w-[460px] text-[15px] leading-7" style={{ color: t.muted }}>{text(product.description)}</p> : null}
                   <div className={`flex w-full max-w-[460px] items-center justify-between gap-4 ${i % 2 ? "" : "@3xl:flex-row-reverse"}`}>
                     {open(product, "bq-btn", "Buy now", { ...look.solidButton, padding: "0 20px", minHeight: 40 })}
-                    <span className="text-[15px] font-semibold">Price <span style={{ color: t.accent }}>{formatStoreMoney(product.retailPrice, product.currency)}</span></span>
+                    {card.showPrice ? <span className="text-[15px] font-semibold">Price <span style={{ color: t.accent }}>{formatStoreMoney(product.retailPrice, product.currency)}</span></span> : null}
                   </div>
                 </div>
               </article>
@@ -3164,7 +3173,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
                   <p className="m-0 text-[12px] uppercase" style={{ color: t.muted, letterSpacing: "0.2em", fontFamily: look.eyebrowFont }}>{String(i + 1).padStart(2, "0")}{product.category?.name ? ` · ${product.category.name}` : ""}</p>
                   <h3 className="bq-h text-[28px] @3xl:text-[40px]" style={{ ...look.headingStyle, lineHeight: 1.05 }}>{product.name}</h3>
                   {text(product.description) ? <p className="m-0 max-w-[460px] text-[15.5px] leading-7" style={{ color: t.muted }}>{text(product.description)}</p> : null}
-                  <p className="m-0 text-[18px] font-semibold">{formatStoreMoney(product.retailPrice, product.currency)}</p>
+                  {card.showPrice ? <p className="m-0 text-[18px] font-semibold">{formatStoreMoney(product.retailPrice, product.currency)}</p> : null}
                   {open(product, "bq-btn", "View product", { ...look.primaryButton, padding: "0 22px" })}
                 </div>
               </article>
@@ -3186,7 +3195,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               <span className="absolute inset-x-3 bottom-3 flex items-end justify-between gap-3 p-4 @3xl:inset-x-5 @3xl:bottom-5" style={{ background: look.dark ? "rgba(0,0,0,.72)" : "rgba(255,255,255,.94)", color: look.dark ? "#fff" : t.ink, borderRadius: Math.max(0, look.cardRadius - 4) }}>
                 <span className="min-w-0">
                   <span className="block truncate text-[17px] font-semibold" style={{ fontFamily: look.headingFont }}>{lead.name}</span>
-                  <span className="block text-[14px]">{formatStoreMoney(lead.retailPrice, lead.currency)}</span>
+                  {card.showPrice ? <span className="block text-[14px]">{formatStoreMoney(lead.retailPrice, lead.currency)}</span> : null}
                 </span>
                 <span className="shrink-0 text-[13px] font-semibold underline underline-offset-4">Shop</span>
               </span>
@@ -3236,6 +3245,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
   /** Three short lists side by side: newest, best sellers and on sale (Gèlè), each a photo, name and price. */
   function productLists(section: TemplateSectionNode, headingId: string) {
     const copy = copyOf(section);
+    const priced = readProductCardOptions(section.settings).showPrice;
     const pool = sectionProducts(section);
     const onSale = pool.filter((product) => product.compareAtPrice && product.compareAtPrice > product.retailPrice);
     // Four lists adds a "Featured" column (the products picked first) ahead of the other three.
@@ -3253,7 +3263,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <span className="bq-media block h-[72px] w-[72px] shrink-0" style={{ borderRadius: Math.min(look.cardRadius, 12) }}>{product.images[0] ? <img src={product.images[0]} alt="" width={144} height={144} loading="lazy" /> : null}</span>
           <span className="min-w-0">
             <span className="block truncate text-[14.5px] font-medium">{product.name}</span>
-            <span className="mt-1 block text-[14px] font-bold">{formatStoreMoney(product.retailPrice, product.currency)}{product.compareAtPrice && product.compareAtPrice > product.retailPrice ? <s className="ml-2 font-normal" style={{ color: t.muted }}>{formatStoreMoney(product.compareAtPrice, product.currency)}</s> : null}</span>
+            {priced ? <span className="mt-1 block text-[14px] font-bold">{formatStoreMoney(product.retailPrice, product.currency)}{product.compareAtPrice && product.compareAtPrice > product.retailPrice ? <s className="ml-2 font-normal" style={{ color: t.muted }}>{formatStoreMoney(product.compareAtPrice, product.currency)}</s> : null}</span> : null}
           </span>
         </>
       );
@@ -3284,6 +3294,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
    */
   function categoryRows(section: TemplateSectionNode, headingId: string) {
     const copy = copyOf(section);
+    const priced = readProductCardOptions(section.settings).showPrice;
     const pool = sectionProducts(section);
     const groups = categories.length
       ? categories.slice(0, 4).map((category) => ({ key: category.slug, title: category.name, slug: category.slug as string | null, list: pool.filter((product) => product.category?.slug === category.slug).slice(0, 3) }))
@@ -3292,7 +3303,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       <div key={product.id} className="flex min-w-0 flex-col gap-3 p-5" style={{ background: "#FFFFFF", borderRadius: look.cardRadius, boxShadow: "0 4px 18px rgba(0,0,0,.08)" }}>
         <div className="text-center">
           <h4 className="bq-h m-0 truncate text-[17px] font-semibold" style={look.headingStyle}>{product.name}</h4>
-          <p className="m-0 mt-1 text-[13.5px]"><span style={{ color: t.accent }}>Price</span> {formatStoreMoney(product.retailPrice, product.currency)}</p>
+          {priced ? <p className="m-0 mt-1 text-[13.5px]"><span style={{ color: t.accent }}>Price</span> {formatStoreMoney(product.retailPrice, product.currency)}</p> : null}
         </div>
         {linkToProduct(product, "bq-media block aspect-square w-full border-0 p-0", product.images[0] ? <img src={product.images[0]} alt="" width={500} height={500} loading="lazy" style={{ objectFit: "contain" }} /> : null, { background: "transparent", borderRadius: look.cardRadius })}
         <div className="flex items-center justify-between text-[13.5px] font-semibold">
@@ -3317,6 +3328,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
   /** "Intro" (Ìtẹ́): a heading, a line and a button beside three products on the page background, each with a + button. */
   function introProducts(section: TemplateSectionNode, list: ShopperProduct[], headingId: string) {
     const copy = copyOf(section);
+    const priced = readProductCardOptions(section.settings).showPrice;
     const lead = text(copy.body) || text(store.description);
     return (
       <section aria-labelledby={headingId} className="bq-wrap py-12 @3xl:py-16">
@@ -3332,7 +3344,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
                 <span aria-hidden className="absolute inset-x-0 bottom-0 top-[30%] -z-0 translate-y-3 opacity-0 transition group-hover:translate-y-0 group-hover:opacity-100" style={{ background: t.cardBg, borderRadius: look.cardRadius }} />
                 <span className="bq-media relative block aspect-square w-full" style={{ background: "transparent" }}>{product.images[0] ? <img src={product.images[0]} alt="" width={400} height={400} loading="lazy" style={{ objectFit: "contain" }} /> : null}</span>
                 <span className="relative text-[15px] font-semibold">{product.name}</span>
-                <span className="relative text-[16px] font-bold">{formatStoreMoney(product.retailPrice, product.currency)}</span>
+                {priced ? <span className="relative text-[16px] font-bold">{formatStoreMoney(product.retailPrice, product.currency)}</span> : null}
                 <span aria-hidden className="absolute -bottom-4 left-1/2 grid h-9 w-9 -translate-x-1/2 place-items-center rounded-full opacity-0 transition group-hover:opacity-100" style={{ background: t.ink, color: "#FFFFFF" }}>+</span>
               </>
             ), { color: t.ink }))}
@@ -3345,6 +3357,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
   /** "On the photo" (Ọlá): tall photos with the name and price over a dark fade at the bottom. */
   function overlayTiles(section: TemplateSectionNode, list: ShopperProduct[], headingId: string) {
     const copy = copyOf(section);
+    const priced = readProductCardOptions(section.settings).showPrice;
     return (
       <section aria-labelledby={headingId} className="bq-wrap py-12">
         <h2 id={headingId} className="bq-h mb-8 text-center text-[26px] @3xl:text-[30px]" style={look.headingStyle}>{text(copy.title) || "New arrivals"}</h2>
@@ -3356,7 +3369,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               <span className="absolute inset-x-0 bottom-0 flex flex-col gap-1 p-4 text-left text-white">
                 <span className="text-[16px] font-semibold leading-tight">{product.name}</span>
                 {product.category?.name ? <span className="text-[12.5px] opacity-80">{product.category.name}</span> : null}
-                <span className="text-[14px] font-semibold" style={{ color: "#FFD28A" }}>{formatStoreMoney(product.retailPrice, product.currency)}</span>
+                {priced ? <span className="text-[14px] font-semibold" style={{ color: "#FFD28A" }}>{formatStoreMoney(product.retailPrice, product.currency)}</span> : null}
               </span>
             </>
           ), { background: look.placeholder, borderRadius: look.cardRadius }))}
@@ -3371,6 +3384,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
    */
   function dealSection(section: TemplateSectionNode, list: ShopperProduct[], headingId: string) {
     const copy = copyOf(section);
+    const priced = readProductCardOptions(section.settings).showPrice;
     const product = list[0];
     if (!product) return null;
     const saving = product.compareAtPrice && product.compareAtPrice > product.retailPrice ? Math.round((1 - product.retailPrice / product.compareAtPrice) * 100) : null;
@@ -3384,10 +3398,12 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="flex flex-col items-start gap-3">
             <p className="m-0 text-[12.5px] font-bold uppercase" style={{ color: t.accent, letterSpacing: "0.16em" }}>{text(copy.title) || "Deal of the week"}</p>
             <h2 id={headingId} className="bq-h m-0 text-[30px] leading-tight @3xl:text-[38px]" style={look.headingStyle}>{product.name}</h2>
-            <p className="m-0 text-[20px] font-semibold">
-              {formatStoreMoney(product.retailPrice, product.currency)}
-              {saving ? <s className="ml-3 text-[16px] font-normal" style={{ color: t.muted }}>{formatStoreMoney(product.compareAtPrice!, product.currency)}</s> : null}
-            </p>
+            {priced ? (
+              <p className="m-0 text-[20px] font-semibold">
+                {formatStoreMoney(product.retailPrice, product.currency)}
+                {saving ? <s className="ml-3 text-[16px] font-normal" style={{ color: t.muted }}>{formatStoreMoney(product.compareAtPrice!, product.currency)}</s> : null}
+              </p>
+            ) : null}
             <DealTimer settings={section.settings} look={look} editor={!live && !props.demo} say={say} />
             {linkToProduct(product, "bq-btn mt-2 border-0", <>{text(copy.cta) || "Shop now"}</>, look.primaryButton)}
           </div>
@@ -3429,6 +3445,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
   /** "Mini cards" (Wuta): small bordered cards, the photo beside the category, name and price, three across. */
   function miniCards(section: TemplateSectionNode, list: ShopperProduct[], headingId: string) {
     const copy = copyOf(section);
+    const priced = readProductCardOptions(section.settings).showPrice;
     // "Round photos" (Èso): circular pictures on soft panels instead of bordered cards.
     const round = section.settings?.round === true;
     return (
@@ -3441,7 +3458,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               <span className="min-w-0">
                 {product.category?.name ? <span className="block truncate text-[12px]" style={{ color: t.accent }}>{product.category.name}</span> : null}
                 <span className="mt-0.5 block truncate text-[15.5px] font-semibold">{product.name}</span>
-                <span className="mt-1 block text-[14.5px] font-bold" style={{ color: t.accent }}>{formatStoreMoney(product.retailPrice, product.currency)}{product.compareAtPrice && product.compareAtPrice > product.retailPrice ? <s className="ml-2 font-normal" style={{ color: t.muted }}>{formatStoreMoney(product.compareAtPrice, product.currency)}</s> : null}</span>
+                {priced ? <span className="mt-1 block text-[14.5px] font-bold" style={{ color: t.accent }}>{formatStoreMoney(product.retailPrice, product.currency)}{product.compareAtPrice && product.compareAtPrice > product.retailPrice ? <s className="ml-2 font-normal" style={{ color: t.muted }}>{formatStoreMoney(product.compareAtPrice, product.currency)}</s> : null}</span> : null}
               </span>
             </>
           ), { borderColor: t.border, borderRadius: look.cardRadius, color: t.ink, background: round ? t.cardBg : "#FFFFFF" }))}
@@ -3453,6 +3470,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
   /** Oúnjẹ's menu: dish, what's in it and price, in a list; orders go through the product page or WhatsApp. */
   function menuList(section: TemplateSectionNode, list: ShopperProduct[], headingId: string) {
     const copy = copyOf(section);
+    const priced = readProductCardOptions(section.settings).showPrice;
     const whatsapp = shopper.whatsappNumber ?? (props.demo ? "sample" : null);
     const item = (product: ShopperProduct, i: number) => {
       const inner = (
@@ -3463,7 +3481,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <span className="flex min-w-0 flex-col gap-1">
             <span className="text-[16px] font-semibold leading-snug" style={{ fontFamily: look.headingFont }}>{product.name}</span>
             {text(product.description) ? <span className="line-clamp-2 text-[13.5px] leading-5" style={{ color: t.muted }}>{text(product.description)}</span> : null}
-            <span className="mt-1 text-[15px] font-bold">{formatStoreMoney(product.retailPrice, product.currency)}</span>
+            {priced ? <span className="mt-1 text-[15px] font-bold">{formatStoreMoney(product.retailPrice, product.currency)}</span> : null}
           </span>
         </>
       );
@@ -3577,7 +3595,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             {card.showRating && product.avgRating && product.reviewCount ? (
               <span className="text-[12.5px]" style={{ color: t.muted }}><span aria-hidden style={{ color: "#F2A93B" }}>★</span> {product.avgRating.toFixed(1)} ({product.reviewCount})</span>
             ) : null}
-            <span className="mt-1 text-[15px] font-bold">{formatStoreMoney(product.retailPrice, product.currency)}</span>
+            {card.showPrice ? <span className="mt-1 text-[15px] font-bold">{formatStoreMoney(product.retailPrice, product.currency)}</span> : null}
           </span>
           <span className="bq-shop-row-side">
             <span className="text-[13px] font-semibold underline underline-offset-4">View</span>
@@ -3699,6 +3717,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     const stockStory = section.settings?.stockImage === false ? undefined : stockImages?.story;
     const image = itemImages(section)[0] ?? stockStory ?? products[1]?.images[0] ?? products[0]?.images[0];
     const body = text(copy.body) || text(store.description);
+    const bodyRich = richCopy(copy, "body", body, richTone);
+    const storyTitle = richCopy(copy, "title", text(copy.title) || store.name, richTone);
     const headingId = `${uid}-${section.id}`;
     const onAbout = current === "about";
     const storyButton = (
@@ -3715,8 +3735,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         <section aria-labelledby={headingId} className="py-14 @3xl:py-24" style={{ background: look.storyBg }}>
           <div className="bq-wrap mx-auto flex max-w-[820px] flex-col items-center gap-4 text-center">
             {eyebrow}
-            <h2 id={headingId} className="bq-h text-[34px] @3xl:text-[52px]" style={{ ...look.headingStyle, lineHeight: 1.06 }}>{text(copy.title) || store.name}</h2>
-            {body ? <p className="max-w-[640px] whitespace-pre-line text-[16px] leading-8" style={{ color: t.muted }}>{body}</p> : null}
+            <h2 id={headingId} className="bq-h text-[34px] @3xl:text-[52px]" style={{ ...look.headingStyle, lineHeight: 1.06 }}>{storyTitle}</h2>
+            {body ? <p className="max-w-[640px] whitespace-pre-line text-[16px] leading-8" style={{ color: t.muted }}>{bodyRich}</p> : null}
             {storyButton}
           </div>
         </section>
@@ -3731,8 +3751,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           </div>
           <div className="bq-wrap mx-auto flex max-w-[760px] flex-col items-center gap-4 py-12 text-center @3xl:py-16">
             {eyebrow}
-            <h2 id={headingId} className="bq-h text-[30px] @3xl:text-[42px]" style={{ ...look.headingStyle, lineHeight: 1.08 }}>{text(copy.title) || store.name}</h2>
-            {body ? <p className="max-w-[620px] whitespace-pre-line text-[15.5px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+            <h2 id={headingId} className="bq-h text-[30px] @3xl:text-[42px]" style={{ ...look.headingStyle, lineHeight: 1.08 }}>{storyTitle}</h2>
+            {body ? <p className="max-w-[620px] whitespace-pre-line text-[15.5px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
             {storyButton}
           </div>
         </section>
@@ -3745,8 +3765,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="grid items-center gap-10 @3xl:grid-cols-[1.1fr_1fr] @3xl:gap-16">
             <div className={`flex flex-col items-start gap-3 ${pictureRight ? "" : "@3xl:order-2"}`}>
               {eyebrow}
-              <h2 id={headingId} className="bq-h text-[30px] @3xl:text-[38px]" style={{ ...look.headingStyle, lineHeight: 1.1 }}>{text(copy.title) || store.name}</h2>
-              {body ? <p className="m-0 whitespace-pre-line text-[15.5px] leading-8" style={{ color: t.muted }}>{body}</p> : null}
+              <h2 id={headingId} className="bq-h text-[30px] @3xl:text-[38px]" style={{ ...look.headingStyle, lineHeight: 1.1 }}>{storyTitle}</h2>
+              {body ? <p className="m-0 whitespace-pre-line text-[15.5px] leading-8" style={{ color: t.muted }}>{bodyRich}</p> : null}
               {storyButton}
             </div>
             <div className="relative mx-auto w-full max-w-[460px] p-5">
@@ -3764,8 +3784,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         <section aria-labelledby={headingId} className="bq-wrap py-14 @3xl:py-20">
           <div className="grid items-center gap-10 @3xl:grid-cols-[1fr_1.2fr]">
             <div className="flex flex-col items-start gap-4">
-              <h2 id={headingId} className="bq-h m-0 text-[36px] @3xl:text-[48px]" style={{ ...look.headingStyle, fontWeight: 800, lineHeight: 1.04 }}>{text(copy.title) || store.name}</h2>
-              {body ? <p className="m-0 whitespace-pre-line text-[14.5px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+              <h2 id={headingId} className="bq-h m-0 text-[36px] @3xl:text-[48px]" style={{ ...look.headingStyle, fontWeight: 800, lineHeight: 1.04 }}>{storyTitle}</h2>
+              {body ? <p className="m-0 whitespace-pre-line text-[14.5px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
               {storyButton}
             </div>
             <div className="relative">
@@ -3785,8 +3805,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           </div>
           <div className={`relative flex flex-col items-start gap-4 px-6 py-10 @3xl:min-h-[440px] @3xl:w-[44%] @3xl:justify-center @3xl:px-14 ${pictureRight ? "@3xl:ml-auto" : ""}`} style={{ background: "rgba(43,43,43,.86)" }}>
             {text(copy.eyebrow) ? <p className="m-0 text-[12px] font-semibold uppercase" style={{ letterSpacing: "0.18em", color: t.accent }}>{text(copy.eyebrow)}</p> : null}
-            <h2 id={headingId} className="bq-h m-0 text-[28px] @3xl:text-[36px]" style={{ ...look.headingStyle, lineHeight: 1.12 }}>{text(copy.title) || store.name}</h2>
-            {body ? <p className="m-0 whitespace-pre-line text-[14.5px] leading-7 opacity-85">{body}</p> : null}
+            <h2 id={headingId} className="bq-h m-0 text-[28px] @3xl:text-[36px]" style={{ ...look.headingStyle, lineHeight: 1.12 }}>{storyTitle}</h2>
+            {body ? <p className="m-0 whitespace-pre-line text-[14.5px] leading-7 opacity-85">{bodyRich}</p> : null}
             <button type="button" className="bq-btn mt-1" style={look.primaryButton} onClick={() => go(onAbout ? "contact" : "products")}>{onAbout ? "Get in touch" : "View more"}</button>
           </div>
         </section>
@@ -3809,8 +3829,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             </div>
             <div className="flex flex-col items-start gap-4">
               {eyebrow}
-              <h2 id={headingId} className="bq-h m-0 text-[30px] @3xl:text-[38px]" style={{ ...look.headingStyle, lineHeight: 1.12 }}>{text(copy.title) || store.name}</h2>
-              {body ? <p className="m-0 whitespace-pre-line text-[15px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+              <h2 id={headingId} className="bq-h m-0 text-[30px] @3xl:text-[38px]" style={{ ...look.headingStyle, lineHeight: 1.12 }}>{storyTitle}</h2>
+              {body ? <p className="m-0 whitespace-pre-line text-[15px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
               {storyButton}
             </div>
           </div>
@@ -3823,8 +3843,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         <section aria-labelledby={headingId} style={{ background: look.storyBg, color: t.ink }}>
           <div className="bq-wrap grid items-center gap-8 py-12 @3xl:grid-cols-2 @3xl:py-16">
             <div className="flex flex-col items-start gap-4">
-              <h2 id={headingId} className="bq-h m-0 max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(32px, 4.4cqi, 56px)", lineHeight: 1.08 }}>{text(copy.title) || store.name}</h2>
-              {body ? <p className="m-0 max-w-[460px] whitespace-pre-line text-[15px] leading-7">{body}</p> : null}
+              <h2 id={headingId} className="bq-h m-0 max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(32px, 4.4cqi, 56px)", lineHeight: 1.08 }}>{storyTitle}</h2>
+              {body ? <p className="m-0 max-w-[460px] whitespace-pre-line text-[15px] leading-7">{bodyRich}</p> : null}
               <button type="button" className="bq-btn mt-1" style={{ background: "transparent", color: t.ink, border: `2px solid ${t.ink}` }} onClick={() => go(onAbout ? "contact" : "products")}>{onAbout ? "Get in touch" : text(copy.primaryCta) || "Shop now"}</button>
             </div>
             <div className="relative mx-auto w-full max-w-[460px]">
@@ -3843,8 +3863,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             <div className={`bq-media aspect-[4/3] h-full ${pictureRight ? "@3xl:order-2" : ""}`} style={{ borderRadius: 0 }}>{image ? <img src={image} alt="" width={900} height={675} loading="lazy" /> : null}</div>
             <div className="flex flex-col items-center gap-4 px-6 py-10 text-center @3xl:px-12">
               {text(copy.eyebrow) ? <p className="m-0 text-[15px] uppercase" style={{ color: t.muted, letterSpacing: "0.06em" }}>{text(copy.eyebrow)}</p> : null}
-              <h2 id={headingId} className="bq-h max-w-[12ch] uppercase" style={{ ...look.headingStyle, fontWeight: 700, fontSize: "clamp(34px, 4.6cqi, 60px)", lineHeight: 1.04 }}>{text(copy.title) || store.name}</h2>
-              {body ? <p className="m-0 max-w-[420px] whitespace-pre-line text-[14.5px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+              <h2 id={headingId} className="bq-h max-w-[12ch] uppercase" style={{ ...look.headingStyle, fontWeight: 700, fontSize: "clamp(34px, 4.6cqi, 60px)", lineHeight: 1.04 }}>{storyTitle}</h2>
+              {body ? <p className="m-0 max-w-[420px] whitespace-pre-line text-[14.5px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
               <button type="button" className="bq-btn mt-1" style={look.primaryButton} onClick={() => go(onAbout ? "contact" : "products")}>{onAbout ? "Get in touch" : text(copy.primaryCta) || "Shop now"}</button>
             </div>
           </div>
@@ -3857,7 +3877,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         <section aria-labelledby={headingId} className="py-14 @3xl:py-20" style={{ background: look.storyBg }}>
           <figure className="bq-wrap m-0 mx-auto flex max-w-[860px] flex-col items-center gap-5 text-center">
             {eyebrow}
-            <h2 id={headingId} className="sr-only">{text(copy.title) || store.name}</h2>
+            <h2 id={headingId} className="sr-only">{storyTitle}</h2>
             <blockquote className="bq-h m-0 text-[26px] @3xl:text-[36px]" style={{ ...look.headingStyle, lineHeight: 1.35 }}>
               <span aria-hidden style={{ color: t.accent }}>“</span>{body || text(copy.title) || store.name}<span aria-hidden style={{ color: t.accent }}>”</span>
             </blockquote>
@@ -3876,8 +3896,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             </div>
             <div className={`relative z-[1] mx-4 -mt-16 flex flex-col items-start gap-3 p-6 @3xl:row-start-1 @3xl:m-0 @3xl:p-10 ${pictureRight ? "@3xl:col-span-5 @3xl:col-start-1" : "@3xl:col-span-5 @3xl:col-start-8"}`} style={{ background: look.storyBg === t.paperBg ? t.cardBg : look.storyBg, borderRadius: look.cardRadius, boxShadow: "0 20px 50px rgba(0,0,0,.12)" }}>
               {eyebrow}
-              <h2 id={headingId} className="bq-h text-[30px] @3xl:text-[40px]" style={{ ...look.headingStyle, lineHeight: 1.08 }}>{text(copy.title) || store.name}</h2>
-              {body ? <p className="m-0 text-[15.5px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+              <h2 id={headingId} className="bq-h text-[30px] @3xl:text-[40px]" style={{ ...look.headingStyle, lineHeight: 1.08 }}>{storyTitle}</h2>
+              {body ? <p className="m-0 text-[15.5px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
               {storyButton}
             </div>
           </div>
@@ -3893,8 +3913,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             </div>
             <div className="flex flex-col items-start gap-4">
               {text(copy.eyebrow) ? <p className="text-[12px] uppercase" style={{ color: t.muted, letterSpacing: "0.22em" }}>{text(copy.eyebrow)}</p> : null}
-              <h2 id={headingId} className="bq-h text-[32px] @3xl:text-[44px]" style={{ ...look.headingStyle, lineHeight: 1.08 }}>{text(copy.title) || store.name}</h2>
-              {body ? <p className="max-w-[520px] text-[15.5px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+              <h2 id={headingId} className="bq-h text-[32px] @3xl:text-[44px]" style={{ ...look.headingStyle, lineHeight: 1.08 }}>{storyTitle}</h2>
+              {body ? <p className="max-w-[520px] text-[15.5px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
               {storyButton}
             </div>
           </div>
@@ -3908,8 +3928,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         </div>
         <div className="flex flex-col justify-center gap-3 px-6 py-10 @3xl:px-10">
           {text(copy.eyebrow) ? <p className="text-[11.5px] font-bold uppercase" style={{ color: look.dark ? t.accent : t.muted, letterSpacing: "0.22em" }}>{text(copy.eyebrow)}</p> : null}
-          <h2 id={headingId} className="bq-h text-[28px] @3xl:text-[32px]" style={look.headingStyle}>{text(copy.title) || store.name}</h2>
-          {body ? <p className="max-w-[520px] text-[15px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+          <h2 id={headingId} className="bq-h text-[28px] @3xl:text-[32px]" style={look.headingStyle}>{storyTitle}</h2>
+          {body ? <p className="max-w-[520px] text-[15px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
           <div>
             <button type="button" className="bq-btn mt-2" style={look.id === "noir" ? { ...look.primaryButton, minHeight: 42 } : look.primaryButton} onClick={() => go(onAbout ? "contact" : pageTypes.has("about") ? "about" : "contact")}>
               {onAbout ? "Get in touch" : text(copy.primaryCta) || "Our story"}
@@ -4196,8 +4216,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     return (
       <section className="bq-wrap py-10">
         <div className="mx-auto max-w-[720px]">
-          {title ? <h2 className="bq-h text-[28px]" style={look.headingStyle}>{title}</h2> : null}
-          {body ? <p className="mt-3 whitespace-pre-line text-[15px] leading-7" style={{ color: t.muted }}>{body}</p> : null}
+          {title ? <h2 className="bq-h text-[28px]" style={look.headingStyle}>{richCopy(copy, "title", title, richTone)}</h2> : null}
+          {body ? <p className="mt-3 whitespace-pre-line text-[15px] leading-7" style={{ color: t.muted }}>{richCopy(copy, text(copy.body) ? "body" : "summary", body, richTone)}</p> : null}
         </div>
       </section>
     );

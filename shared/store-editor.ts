@@ -6,6 +6,7 @@
 // Node's type stripping (tests/mobile-store-editor.test.mjs).
 
 import { customPageSlug } from "./storefront-pages.ts";
+import { RICH_KEY, remapRuns, sanitizeRuns, type RichPatch, type RichRun, type RichSize } from "./rich-text.ts";
 
 // ─── Snapshot shapes (structurally the web's StoreEditorSnapshot) ────────────
 
@@ -217,11 +218,36 @@ export function sectionCopy(section: EdSection | null | undefined): Record<strin
   return section?.blocks.find((block) => block.type === "copy")?.content ?? {};
 }
 
-/** Sets one of a section's words, as the web builder's setSectionCopy does (a copy block is made when missing). */
-export function setCopy(snapshot: EdSnapshot, pageKey: string, sectionId: string, key: string, value: string): EdSnapshot {
+/** The formatting kept for one of a section's words (shared/rich-text.ts), when it still fits them. */
+export function readRich(section: EdSection | null | undefined, key: string): RichRun[] | null {
+  const copy = sectionCopy(section);
+  const map = copy[RICH_KEY];
+  if (!map || typeof map !== "object" || Array.isArray(map)) return null;
+  return sanitizeRuns((map as Record<string, unknown>)[key], str(copy[key]));
+}
+
+/** A copy block's content with `key` set to `value` and its formatting set to `runs` (null: none). */
+function withCopy(content: Record<string, unknown>, key: string, value: string, runs: RichRun[] | null | undefined): Record<string, unknown> {
+  const next: Record<string, unknown> = { ...content, [key]: value };
+  const before = content[RICH_KEY] && typeof content[RICH_KEY] === "object" && !Array.isArray(content[RICH_KEY]) ? (content[RICH_KEY] as Record<string, unknown>) : {};
+  // undefined: the words were typed over, so their formatting follows them (remapRuns).
+  const kept = runs === undefined ? remapRuns(sanitizeRuns(before[key], str(content[key])), str(content[key]), value) : runs ? sanitizeRuns(runs, value) : null;
+  const map: Record<string, unknown> = { ...before };
+  if (kept) map[key] = kept;
+  else delete map[key];
+  if (Object.keys(map).length) next[RICH_KEY] = map;
+  else delete next[RICH_KEY];
+  return next;
+}
+
+/**
+ * Sets one of a section's words, as the web builder's setSectionCopy does (a copy block is made when missing). Bold,
+ * sizes and colours on those words follow the edit (remapRuns), unless `runs` says what they are now (null: none).
+ */
+export function setCopy(snapshot: EdSnapshot, pageKey: string, sectionId: string, key: string, value: string, runs?: RichRun[] | null): EdSnapshot {
   return updateSection(snapshot, pageKey, sectionId, (section) => {
     if (!section.blocks.some((block) => block.type === "copy")) {
-      return { ...section, blocks: [{ id: `${section.id}-copy`, type: "copy", content: { [key]: value } }, ...section.blocks] };
+      return { ...section, blocks: [{ id: `${section.id}-copy`, type: "copy", content: withCopy({}, key, value, runs ?? null) }, ...section.blocks] };
     }
     let done = false;
     return {
@@ -229,7 +255,7 @@ export function setCopy(snapshot: EdSnapshot, pageKey: string, sectionId: string
       blocks: section.blocks.map((block) => {
         if (done || block.type !== "copy") return block;
         done = true;
-        return { ...block, content: { ...block.content, [key]: value } };
+        return { ...block, content: withCopy(block.content, key, value, runs) };
       }),
     };
   });
@@ -678,6 +704,19 @@ export function setProductsLayout(snapshot: EdSnapshot, pageKey: string, section
 
 export const pickedProductIds = (section: EdSection | null | undefined) => (section?.items ?? []).map((item) => str(item.mappedStoreProductId)).filter(Boolean);
 
+/**
+ * "Show prices" (SE-16): a products section's cards show their price unless the seller turned it off (settings
+ * showPrice: false). Only that section's cards: product pages, the bag and checkout always show the price. The
+ * storefront reads the same setting (src/lib/store-templates/section-content.ts readProductCardOptions).
+ */
+export function showsPrices(settings: Record<string, unknown> | null | undefined) {
+  return settings?.showPrice !== false;
+}
+
+export function setShowPrices(snapshot: EdSnapshot, pageKey: string, sectionId: string, show: boolean): EdSnapshot {
+  return setSetting(snapshot, pageKey, sectionId, { showPrice: show });
+}
+
 // ─── Pages (SE-15) ───────────────────────────────────────────────────────────
 
 export interface PageRow {
@@ -868,6 +907,8 @@ export type CanvasInbound =
   | { t: "select"; id: string | null; scroll?: boolean; tag?: string | null }
   | { t: "marks"; marks: Array<{ id: string; tag: string }> }
   | { t: "editText"; id: string; part: "text" | "button" }
+  /** The text toolbar (SE-04): format the selected words (or all of them when none are selected). */
+  | { t: "format"; patch: RichPatch }
   | { t: "blur" };
 
 /** The few words the canvas draws itself (the "+" buttons' labels), in the seller's language. */
@@ -883,6 +924,10 @@ export type CanvasOutbound =
   | { t: "rect"; rect: CanvasRect | null; photo: CanvasRect | null; moving: boolean }
   | { t: "deselect" }
   | { t: "copy"; id: string; key: string; value: string }
+  /** Words formatted on the page: the words as they are now and their runs (null: no formatting left). */
+  | { t: "rich"; id: string; key: string; value: string; runs: RichRun[] | null }
+  /** The style of the words being typed or selected, for the text toolbar's buttons. */
+  | { t: "textState"; bold: boolean; size: RichSize; color: string | null }
   | { t: "editing"; on: boolean }
   | { t: "add"; afterId: string | null }
   | { t: "navigate"; page: string };
@@ -905,4 +950,138 @@ export function canvasScript(message: CanvasInbound) {
 /** The store's address without https:// and the trailing slash ("adashair.mybos.store"). */
 export function shownHost(url: string | null | undefined) {
   return (url ?? "").replace(/^https?:\/\//, "").replace(/\/$/, "");
+}
+
+// ─── Schedule for later (SE-13) ──────────────────────────────────────────────
+//
+// Sellers pick a day and a time in Lagos time (Africa/Lagos, WAT: UTC+1 all year, no daylight saving). The server
+// keeps the draft exactly as it was when they scheduled it (ScheduledStorePublish.snapshot) and a job
+// (/api/cron/store-publish, every 5 minutes) puts it live at that time through the same publishStoreDraft. If the
+// draft changed after scheduling, the scheduled version still goes live and the newer changes stay in the draft.
+
+export const LAGOS_OFFSET_MINUTES = 60;
+/** At least this far ahead (the job runs every 5 minutes). */
+export const SCHEDULE_MIN_LEAD_MS = 10 * 60 * 1000;
+/** At most this far ahead. */
+export const SCHEDULE_MAX_AHEAD_MS = 60 * 24 * 60 * 60 * 1000;
+/** The hours the time picker offers (Lagos time, on the hour and half past). */
+export const SCHEDULE_HOURS = Array.from({ length: 18 }, (_, index) => index + 6);
+
+export interface LagosParts {
+  year: number;
+  /** 0-11 */
+  month: number;
+  day: number;
+  /** 0 Sunday … 6 Saturday */
+  weekday: number;
+  hour: number;
+  minute: number;
+}
+
+/** The date and time on a clock in Lagos. */
+export function lagosParts(date: Date): LagosParts {
+  const shifted = new Date(date.getTime() + LAGOS_OFFSET_MINUTES * 60_000);
+  return { year: shifted.getUTCFullYear(), month: shifted.getUTCMonth(), day: shifted.getUTCDate(), weekday: shifted.getUTCDay(), hour: shifted.getUTCHours(), minute: shifted.getUTCMinutes() };
+}
+
+/** The moment a Lagos clock shows that date and time. */
+export function lagosTime(year: number, month: number, day: number, hour: number, minute = 0): Date {
+  return new Date(Date.UTC(year, month, day, hour, minute) - LAGOS_OFFSET_MINUTES * 60_000);
+}
+
+export interface ScheduleDay {
+  /** 0 today, 1 tomorrow, … (in Lagos). */
+  offset: number;
+  weekday: number;
+  year: number;
+  month: number;
+  day: number;
+}
+
+/** The days the picker offers: today and the next `count - 1`, by the Lagos calendar. */
+export function scheduleDays(now: Date, count = 8): ScheduleDay[] {
+  const today = lagosParts(now);
+  return Array.from({ length: count }, (_, offset) => {
+    const noon = lagosParts(lagosTime(today.year, today.month, today.day + offset, 12));
+    return { offset, weekday: noon.weekday, year: noon.year, month: noon.month, day: noon.day };
+  });
+}
+
+export type ScheduleProblem = "past" | "tooSoon" | "tooFar";
+
+export function scheduleProblem(at: Date, now: Date): ScheduleProblem | null {
+  const ahead = at.getTime() - now.getTime();
+  if (!Number.isFinite(ahead) || ahead <= 0) return "past";
+  if (ahead < SCHEDULE_MIN_LEAD_MS) return "tooSoon";
+  if (ahead > SCHEDULE_MAX_AHEAD_MS) return "tooFar";
+  return null;
+}
+
+/** The picker's first choice: tomorrow at 9:00, Lagos time. */
+export function defaultScheduleTime(now: Date): Date {
+  const day = scheduleDays(now, 2)[1]!;
+  return lagosTime(day.year, day.month, day.day, 9);
+}
+
+/** "9:00", "21:30": the time on a Lagos clock. */
+export function lagosClock(date: Date) {
+  const parts = lagosParts(date);
+  return `${parts.hour}:${String(parts.minute).padStart(2, "0")}`;
+}
+
+/**
+ * How to say when it goes live ("Scheduled for Sat 9:00"): "today" / "tomorrow" or the weekday (0-6, for the
+ * seller's language), within the coming week; otherwise the weekday and the date. Times are Lagos time.
+ */
+export function scheduleWhen(at: Date | string, now: Date): { day: "today" | "tomorrow" | "weekday" | "date"; weekday: number; date: number; month: number; time: string } {
+  const when = typeof at === "string" ? new Date(at) : at;
+  const parts = lagosParts(when);
+  const days = scheduleDays(now, 7);
+  const match = days.find((day) => day.year === parts.year && day.month === parts.month && day.day === parts.day);
+  const kind = match?.offset === 0 ? "today" : match?.offset === 1 ? "tomorrow" : match ? "weekday" : "date";
+  return { day: kind, weekday: parts.weekday, date: parts.day, month: parts.month, time: lagosClock(when) };
+}
+
+/** What happened when a scheduled publish ran: the draft was the scheduled one, or it changed since. */
+export function scheduleOutcome(currentVersion: string, scheduledVersion: string): "same" | "changed" {
+  return currentVersion && scheduledVersion && currentVersion !== scheduledVersion ? "changed" : "same";
+}
+
+export interface ScheduledPublish {
+  id: string;
+  /** ISO time it goes live. */
+  runAt: string;
+  status: "scheduled" | "publishing" | "published" | "failed" | "cancelled";
+  /** The draft version (save stamp) that was scheduled. */
+  draftVersion: string;
+  /** The draft has changed since: the scheduled version is what goes live. */
+  draftChanged: boolean;
+}
+
+// ─── Photo tools (SE-05, SE-06) ──────────────────────────────────────────────
+
+/**
+ * "Brighten": three steps up from the photo as it was picked (0 = as picked). The server makes the brighter copy
+ * (sharp: brightness, a little contrast and colour) from the original each time, so steps never stack up and Undo
+ * goes back to the original.
+ */
+export const BRIGHTEN_LEVELS = [0, 1, 2, 3] as const;
+export type BrightenLevel = (typeof BRIGHTEN_LEVELS)[number];
+
+export function brightenParams(level: number): { brightness: number; contrast: number; saturation: number } | null {
+  const step = Math.max(0, Math.min(3, Math.round(level)));
+  if (!step) return null;
+  return { brightness: 1 + 0.08 * step, contrast: 1 + 0.06 * step, saturation: 1 + 0.05 * step };
+}
+
+/** The "Make with Rex" picture's words: what the section and shop are about, plus what the seller typed (if anything). */
+export function rexPhotoPrompt(input: { sectionLabel: string; sectionWords?: string; shopName?: string; ask?: string }) {
+  const ask = (input.ask ?? "").trim().slice(0, 300);
+  const words = (input.sectionWords ?? "").replace(/\s+/g, " ").trim().slice(0, 200);
+  return [
+    `A photo for the "${input.sectionLabel.slice(0, 60)}" section of ${input.shopName ? `${input.shopName.slice(0, 80)}'s` : "an"} online shop.`,
+    words ? `The section says: "${words}".` : "",
+    ask ? `The seller asks for: ${ask}` : "",
+    "Real photograph, natural light, no words or letters in the picture.",
+  ].filter(Boolean).join(" ");
 }

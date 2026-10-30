@@ -188,6 +188,12 @@ const en = {
   "q.role.seller": "I want to sell",
   "q.role.logistics_partner": "I deliver orders",
   "q.role.supplier": "I supply products",
+  // Sign-in, spec A3/A4 (app/verify.tsx)
+  "q.roleDo": "What do you want to do?",
+  "q.roleSubLater": "Pick one. You can add another later.",
+  "error.wrongCode": "That code didn't work. Try again.",
+  "error.expiredCode": "That code has expired. Send a new code.",
+  "error.locked": "Too many tries. Wait 10 minutes, then send a new code.",
 } satisfies Record<string, string>;
 
 export default en;

@@ -617,6 +617,7 @@ function boutiqueSchema(kind: string, themeId: string): SectionSchema {
         { title: "Product cards", fields: [
           { id: "showRating", type: "toggle", label: "Star rating", target: setting("showRating"), fallback: false, when: layoutNot(["menu"], layoutFallback), help: "Only products with real reviews show stars." },
           { id: "quickAdd", type: "toggle", label: "Add to bag button", target: setting("quickAdd"), fallback: false, when: layoutNot(["menu"], layoutFallback), help: "Products with sizes or colours open their page to choose one." },
+          { id: "showPrice", type: "toggle", label: "Show prices", target: setting("showPrice"), fallback: true, help: "Product pages always show the price." },
           { id: "hoverImage", type: "toggle", label: "Second photo on hover", target: setting("hoverImage"), fallback: false, when: [layoutNot(["menu"], layoutFallback), { scope: "settings", key: "shopView", notIn: ["list"], fallback: "grid" }], help: "On computers, pointing at a product shows its next photo." },
         ] },
       ], [{ id: "product", label: "Product" }]);
@@ -1092,6 +1093,7 @@ function classicContent(kind: string, fallback: string): FieldGroup[] {
           { id: "products", type: "products", label: "Products to show", help: "Pick products in the order you want. With none picked, your newest products show." },
           { id: "limit", type: "number", label: "How many products", target: setting("limit"), min: 1, max: 24, fallback: 8 },
           { id: "columns", type: "segmented", label: "Products per row on computers", target: setting("columns"), fallback: "3", options: [{ value: "2", label: "2" }, { value: "3", label: "3" }, { value: "4", label: "4" }], when: [on(["grid", "premium-product-cards", "beauty-rounded"]), { scope: "settings", key: "shopLayout", in: ["classic"], fallback: "classic" }] },
+          { id: "showPrice", type: "toggle", label: "Show prices", target: setting("showPrice"), fallback: true, help: "Product pages always show the price." },
         ] },
         // On the shop page the section can be one of the shop page styles instead (ShopBrowser).
         { title: "Shop layout", fields: shopBrowseFields([], ["products"]) },

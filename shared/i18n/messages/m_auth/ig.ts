@@ -185,6 +185,12 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "q.role.seller": "Achọrọ m ire ahịa",
   "q.role.logistics_partner": "Ana m ebuga ọda",
   "q.role.supplier": "Ana m eweta ngwaahịa",
+  // Sign-in, spec A3/A4 (app/verify.tsx)
+  "q.roleDo": "Gịnị ka ị chọrọ ime?",
+  "q.roleSubLater": "Họrọ otu. Ị nwere ike ịgbakwunye ọzọ ma emechaa.",
+  "error.wrongCode": "Koodu ahụ arụghị ọrụ. Nwaa ọzọ.",
+  "error.expiredCode": "Koodu ahụ agwụla. Zipu koodu ọhụrụ.",
+  "error.locked": "Ị nwaala ọtụtụ ugboro. Chere nkeji 10, wee zipu koodu ọhụrụ.",
 };
 
 export default ig;

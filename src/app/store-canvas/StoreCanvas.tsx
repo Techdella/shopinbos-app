@@ -5,7 +5,8 @@ import { TemplateStorefrontSurface, type SurfaceStore } from "@/components/store
 import { BOUTIQUE_FONT_CLASS } from "@/components/storefront/boutique/fonts";
 import { useEditorT } from "@/components/builder/editor/i18n";
 import type { StoreEditorSnapshot } from "@/lib/store-templates";
-import { isChrome, isFooter, type CanvasInbound, type CanvasOutbound, type CanvasRect, type CanvasWords, type EdSnapshot } from "@shared/store-editor";
+import { isChrome, isFooter, readRich, sectionCopy, type CanvasInbound, type CanvasOutbound, type CanvasRect, type CanvasWords, type EdSnapshot } from "@shared/store-editor";
+import { applyRichFormat, formatAt, remapRuns, type RichPatch, type RichRun } from "@shared/rich-text";
 
 // The phone editor's canvas (design SE-02…SE-04, SE-08, SE-11, SE-12): the shop drawn by the storefront's own
 // renderer, in editor mode. The phone sends the draft and every change (window.__sibCanvas); the page posts back
@@ -60,6 +61,43 @@ function photoRect(section: HTMLElement): CanvasRect | null {
 }
 
 /** The first words in the section a seller would edit (or its button's words). */
+/**
+ * The words being typed right now, for the text toolbar (SE-04): the 2026 themes' text box (a textarea laid over the
+ * words) or a classic theme's editable words. Their section, which copy key they are, what they say now and the
+ * selected part (character offsets; start = end when nothing is selected).
+ */
+function typingTarget(): { sectionId: string; key: string; value: string; start: number; end: number } | null {
+  const active = document.activeElement as HTMLElement | null;
+  if (!active) return null;
+  if (active instanceof HTMLTextAreaElement && active.dataset.inlineKey) {
+    const sectionId = active.closest<HTMLElement>("[data-section-id]")?.dataset.sectionId;
+    if (!sectionId) return null;
+    return { sectionId, key: active.dataset.inlineKey, value: active.value, start: active.selectionStart ?? 0, end: active.selectionEnd ?? 0 };
+  }
+  const editable = active.isContentEditable ? active.closest<HTMLElement>("[data-copy-key]") : null;
+  if (!editable?.dataset.copyKey || !editable.dataset.copySection) return null;
+  const value = editable.textContent ?? "";
+  const selection = window.getSelection();
+  let start = value.length;
+  let end = value.length;
+  if (selection && selection.rangeCount && editable.contains(selection.anchorNode)) {
+    const range = selection.getRangeAt(0);
+    const before = document.createRange();
+    before.selectNodeContents(editable);
+    before.setEnd(range.startContainer, range.startOffset);
+    start = before.toString().length;
+    end = start + range.toString().length;
+  }
+  return { sectionId: editable.dataset.copySection, key: editable.dataset.copyKey, value, start, end };
+}
+
+/** The runs of words being typed, moved onto what they say now (typing since the last save keeps the formatting). */
+function runsNow(snapshot: EdSnapshot | undefined, page: string, target: { sectionId: string; key: string; value: string }): RichRun[] | null {
+  const section = snapshot?.pages.find((entry) => entry.pageType === page)?.sections.find((entry) => entry.id === target.sectionId);
+  const saved = String(sectionCopy(section)[target.key] ?? "");
+  return remapRuns(readRich(section, target.key), saved, target.value);
+}
+
 function firstText(section: HTMLElement, part: "text" | "button"): HTMLElement | null {
   const editable = Array.from(section.querySelectorAll<HTMLElement>("[contenteditable]"));
   const inControl = (el: Element) => Boolean(el.closest("a, button"));
@@ -164,11 +202,46 @@ export function StoreCanvas() {
         }
         break;
       }
+      case "format": {
+        const target = typingTarget();
+        const current = setupRef.current;
+        if (!target || !current) break;
+        const runs = applyRichFormat(runsNow(current.snapshot, current.page, target), target.value, target.start, target.end, message.patch as RichPatch);
+        post({ t: "rich", id: target.sectionId, key: target.key, value: target.value, runs });
+        const state = formatAt(runs, target.start, target.end);
+        post({ t: "textState", ...state });
+        break;
+      }
       case "blur":
         (document.activeElement as HTMLElement | null)?.blur?.();
         break;
     }
   }, [reportSelected]);
+
+  // While typing: the style of the selected words, so the phone's B, size and colour show what they are.
+  useEffect(() => {
+    let last = "";
+    const report = () => {
+      const target = typingTarget();
+      const current = setupRef.current;
+      if (!target || !current) return;
+      const state = formatAt(runsNow(current.snapshot, current.page, target), target.start, target.end);
+      const key = JSON.stringify(state);
+      if (key === last) return;
+      last = key;
+      post({ t: "textState", ...state });
+    };
+    document.addEventListener("selectionchange", report);
+    document.addEventListener("focusin", report);
+    document.addEventListener("keyup", report);
+    document.addEventListener("touchend", report);
+    return () => {
+      document.removeEventListener("touchend", report);
+      document.removeEventListener("selectionchange", report);
+      document.removeEventListener("focusin", report);
+      document.removeEventListener("keyup", report);
+    };
+  }, []);
 
   // The phone's door in: messages sent before the page was ready wait in a queue.
   useEffect(() => {
