@@ -147,7 +147,8 @@ test("every part payment goes through the seller's split (server module)", () =>
   assert.match(server, /paystackSplitParams/);
   assert.match(server, /buildSplitPlan/);
   // Card checks for group buy are the only charge without the seller's split, and they are refunded at once.
-  assert.match(server, /refundPaystackTransaction/);
+  // Nothing is refunded from Shopinbos: even the group-buy card check settles to the seller.
+  assert.doesNotMatch(server, /refundPaystackTransaction/);
 });
 
 test("the Paystack webhook routes every pay-together reference, before the retail-order branch", () => {
