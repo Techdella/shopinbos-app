@@ -6,6 +6,7 @@ import { getPublicEnv } from "@/lib/env";
 import { notify, notifyRider } from "@/lib/notifications/notify.server";
 import { cleanRiderMessage, cleanRiderReview, ratingSummary, type RiderAudience, type RiderMessageView } from "@shared/rider-chat";
 import { riderInboxSummary, riderThreadSummaries, type RiderChatSummary, type RiderInboxSummary } from "@shared/logistics-chats";
+import { ENDED_DELIVERY, shopRiderChats, type ShopRiderChat } from "@shared/seller-inbox";
 
 // Rider chat and rider reviews (shared/rider-chat.ts). Every thread is one rider and one other side:
 //   company: the rider ↔ their delivery company (the partner's owner and staff reply from their app);
@@ -123,6 +124,47 @@ export async function listRiderThreads(partnerId: string): Promise<RiderChatSumm
   ]);
   const unread = new Map(unreadRows.map((row) => [row.riderId, row._count._all]));
   return riderThreadSummaries(riders, lastRows, unread);
+}
+
+/**
+ * The shop's chats with the riders carrying its parcels (the seller's unified inbox, web and phone): one per job a
+ * rider has, with the order it belongs to, the last message and the rider's unread messages. Jobs still moving are
+ * listed even before anyone wrote; finished jobs from the last 30 days only when they have messages.
+ */
+export async function listShopRiderThreads(sellerUserId: string): Promise<ShopRiderChat[]> {
+  const since = new Date(Date.now() - 30 * 86_400_000);
+  const jobs = await db.deliveryBooking.findMany({
+    where: { sellerId: sellerUserId, riderId: { not: null }, OR: [{ status: { notIn: [...ENDED_DELIVERY] } }, { updatedAt: { gte: since } }] },
+    orderBy: { updatedAt: "desc" },
+    take: 60,
+    select: { id: true, status: true, orderId: true, updatedAt: true, rider: { select: { name: true, phone: true } }, logisticsPartner: { select: { displayName: true } } },
+  });
+  if (!jobs.length) return [];
+  const ids = jobs.map((job) => job.id);
+  const orderIds = [...new Set(jobs.map((job) => job.orderId).filter((id): id is string => Boolean(id)))];
+  const where = { bookingId: { in: ids }, audience: "shop" };
+  const [lastRows, unreadRows, orders] = await Promise.all([
+    // The newest message per job.
+    db.riderMessage.findMany({ where, orderBy: { createdAt: "desc" }, distinct: ["bookingId"], take: ids.length, select: { bookingId: true, body: true, fromRider: true, createdAt: true, readAt: true } }),
+    db.riderMessage.groupBy({ by: ["bookingId"], where: { ...where, fromRider: true, readAt: null }, _count: { _all: true } }),
+    orderIds.length ? db.retailOrder.findMany({ where: { id: { in: orderIds } }, select: { id: true, orderNumber: true, status: true, total: true, currency: true } }) : Promise.resolve([]),
+  ]);
+  const unread = new Map(unreadRows.map((row) => [row.bookingId ?? "", row._count._all]));
+  return shopRiderChats(jobs, lastRows, unread, orders);
+}
+
+/** One rider chat's header for the shop (the order and the delivery), or null when the job isn't the shop's. */
+export async function shopRiderJob(sellerUserId: string, bookingId: string): Promise<Omit<ShopRiderChat, "last" | "unread" | "at"> | null> {
+  const job = await db.deliveryBooking.findFirst({
+    where: { id: bookingId, sellerId: sellerUserId, riderId: { not: null } },
+    select: { id: true, status: true, orderId: true, updatedAt: true, rider: { select: { name: true, phone: true } }, logisticsPartner: { select: { displayName: true } } },
+  });
+  if (!job) return null;
+  const order = job.orderId ? await db.retailOrder.findUnique({ where: { id: job.orderId }, select: { id: true, orderNumber: true, status: true, total: true, currency: true } }) : null;
+  // The same shape as a list row; a fake "last message" keeps a finished job in.
+  const [chat] = shopRiderChats([job], [{ bookingId: job.id, body: "", fromRider: true, createdAt: job.updatedAt, readAt: null }], {}, order ? [order] : []);
+  if (!chat) return null;
+  return { jobId: chat.jobId, riderName: chat.riderName, riderPhone: chat.riderPhone, company: chat.company, deliveryStatus: chat.deliveryStatus, active: chat.active, order: chat.order };
 }
 
 /** Unread rider messages for the company (the sidebar's Messages badge adds these to partner chats). */

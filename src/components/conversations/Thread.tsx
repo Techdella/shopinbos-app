@@ -25,6 +25,7 @@ import {
 import { announceMessagesChanged, messagesApi } from "./client";
 import { Attachments, ContextCard, PartnerAvatar, RoleBadge, formatClock } from "./parts";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
+import { chatLinkedContext } from "@shared/seller-inbox";
 import { useLocale, useT } from "@/components/i18n/I18nProvider";
 import { formatDate, formatNumber } from "@shared/i18n";
 import type { MessageKey } from "@shared/i18n/catalog";
@@ -47,6 +48,17 @@ function profileHref(viewerRole: PartnerRole, partner: ConversationSummary["with
   return null;
 }
 
+/** The order or delivery this chat is about: the latest one linked in it (shared/seller-inbox.ts chatLinkedContext). */
+function LinkedBar({ messages, role }: { messages: Array<{ context?: ContextSnapshot | null }>; role: PartnerRole }) {
+  const t = useT("inbox");
+  const linked = chatLinkedContext(messages);
+  return (
+    <div className="shrink-0 border-b border-app-line bg-app-canvas/40 px-3 py-2 sm:px-4" aria-label={t("uni.ctx.label")}>
+      {linked ? <ContextCard context={linked} viewerRole={role} /> : <p className="m-0 text-[12.5px] text-app-ink-soft">{t("uni.ctx.linkHint")}</p>}
+    </div>
+  );
+}
+
 export function Thread({
   conversation,
   role,
@@ -55,6 +67,7 @@ export function Thread({
   onBack,
   onActivity,
   compact = false,
+  contextBar = false,
 }: {
   conversation: ConversationSummary;
   role: PartnerRole;
@@ -64,6 +77,8 @@ export function Thread({
   /** Called after a send or read, so the list can refresh its preview and unread counts. */
   onActivity?: () => void;
   compact?: boolean;
+  /** Under the header: the latest order, wholesale order or delivery linked in the chat (the seller's unified inbox). */
+  contextBar?: boolean;
 }) {
   const t = useT("inbox", "common");
   const locale = useLocale();
@@ -327,6 +342,7 @@ export function Thread({
           </Link>
         )}
       </header>
+      {contextBar && <LinkedBar messages={messages} role={role} />}
 
       <div
         ref={scrollRef}
