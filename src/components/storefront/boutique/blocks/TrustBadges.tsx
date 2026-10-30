@@ -3,7 +3,7 @@
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { deliveryLines, freeDeliveryPromise, whatsappLink, type StorefrontShopperInfo } from "@/lib/storefront/shopper-info";
 import { str } from "./block-logic";
-import type { BlockContext } from "./shared";
+import { words, type BlockContext } from "./shared";
 
 const ICONS: IconName[] = ["truck", "card", "lock", "whatsapp", "refresh", "star", "shield", "clock", "package", "leaf", "heart", "check"];
 
@@ -62,7 +62,7 @@ export function TrustBadges({ ctx }: { ctx: BlockContext }) {
   }
   return (
     <section aria-labelledby={title ? headingId : undefined} aria-label={title ? undefined : "Why shop with us"} className="bq-wrap py-8">
-      {title ? <h2 id={headingId} className={`bq-h text-center ${tiles ? "mb-8 text-[30px] @3xl:text-[38px]" : "mb-5 text-[24px]"}`} style={look.headingStyle}>{title}</h2> : null}
+      {title ? <h2 id={headingId} className={`bq-h text-center ${tiles ? "mb-8 text-[30px] @3xl:text-[38px]" : "mb-5 text-[24px]"}`} style={look.headingStyle}>{words(ctx, "title", title)}</h2> : null}
       <ul className="m-0 grid list-none gap-3 p-0" style={{ gridTemplateColumns: `repeat(auto-fit, minmax(${tiles ? 210 : cards ? 200 : 160}px, 1fr))`, gap: tiles ? 20 : undefined }}>
         {badges.map((badge) => {
           const content = (

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { needsOptions, type ShopperProduct } from "../../shopper/catalog";
 import { boolSetting, comparisonRows, str } from "./block-logic";
 import { pickedProductIds } from "./ProductCarousel";
-import { money, quickAdd, SampleLabel, Stars, type BlockContext } from "./shared";
+import { money, quickAdd, SampleLabel, Stars, type BlockContext, words } from "./shared";
 
 /** Comparison table: 2–4 picked products as columns; price, rating and their filled-in details as rows. */
 export function CompareTable({ ctx }: { ctx: BlockContext }) {
@@ -22,8 +22,8 @@ export function CompareTable({ ctx }: { ctx: BlockContext }) {
   return (
     <section aria-labelledby={headingId} className="bq-wrap py-12">
       {sample ? <SampleLabel look={look}>{ctx.say("Sample with your first products. Pick the ones to compare.")}</SampleLabel> : null}
-      <h2 id={headingId} className="bq-h text-[26px] @3xl:text-[30px]" style={look.headingStyle}>{str(copy.title) || "Compare"}</h2>
-      {str(copy.body) ? <p className="m-0 mt-2 max-w-[620px] text-[15px] leading-7" style={{ color: t.muted }}>{str(copy.body)}</p> : null}
+      <h2 id={headingId} className="bq-h text-[26px] @3xl:text-[30px]" style={look.headingStyle}>{words(ctx, "title", "Compare")}</h2>
+      {str(copy.body) ? <p className="m-0 mt-2 max-w-[620px] text-[15px] leading-7" style={{ color: t.muted }}>{words(ctx, "body")}</p> : null}
       <div className="mt-6 overflow-x-auto" tabIndex={0} aria-label="Comparison table, scroll sideways on small screens">
         <table className="w-full min-w-[520px] border-collapse text-left" style={{ color: t.ink }}>
           <thead>

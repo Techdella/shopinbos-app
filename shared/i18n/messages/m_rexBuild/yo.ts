@@ -328,6 +328,25 @@ const yo: Partial<Record<keyof typeof en, string>> = {
 
   "nudge.title": "Ìgbésẹ̀ {count} ló kù fún ṣọ́ọ̀bù rẹ",
   "nudge.body": "Tẹ̀ ẹ́ láti parí rẹ̀. Rex pa gbogbo ohun tí o ṣe mọ́.",
+  "colours.fromLogo": "Láti inú logo rẹ",
+  "colours.fromPhotos": "Láti inú àwọn fọ́tò rẹ",
+  "colours.readable": "A ti yẹ̀ ẹ́ wò: ó rọrùn láti kà",
+  "colours.subPictures": "Mo ṣe wọ́n láti inú logo àti fọ́tò rẹ. Yan ọ̀kan.",
+  "clean.switch": "Ẹ̀yìn funfun tó mọ́ ({count, plural, other {credit #}} fún fọ́tò kan)",
+  "clean.sub": "Rex yóò gbé fọ́tò ọjà rẹ sí ẹ̀yìn funfun tó mọ́. Kò ní bẹ̀rẹ̀ àyàfi tí o bá gbà.",
+  "clean.askTitle": "Ṣé kí Rex fọ ẹ̀yìn fọ́tò mọ́?",
+  "clean.askBody": "Rex yóò gbé fọ́tò ọjà kọ̀ọ̀kan sí ẹ̀yìn funfun tó mọ́. Ó ń ná {count, plural, other {credit #}} fún fọ́tò kan, o sì lè dá ọ̀kọ̀ọ̀kan padà.",
+  "clean.askNow": "Fọ́tò tí a ó fọ̀ báyìí: {count}. Àpapọ̀: credit {credits}.",
+  "clean.balance": "O ní {count, plural, other {credit #}}.",
+  "clean.yes": "Bẹ́ẹ̀ni, tàn án",
+  "clean.yesNow": "{count, plural, other {Bẹ́ẹ̀ni, fọ̀ wọ́n (credit #)}}",
+  "clean.no": "Kì í ṣe báyìí",
+  "clean.one": "Fọ ẹ̀yìn mọ́ (credit {count, plural, other {#}})",
+  "clean.undo": "Dá fọ́tò àtijọ́ padà",
+  "clean.undoOne": "Dá padà: {name}",
+  "clean.cleaning": "Ó ń fọ̀ ọ́…",
+  "clean.done": "Ẹ̀yìn funfun",
+  "clean.failed": "Rex kò lè fọ fọ́tò yẹn mọ́. A kò gba nǹkankan; tún gbìyànjú.",
 };
 
 export default yo;

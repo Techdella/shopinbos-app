@@ -2,7 +2,7 @@
 
 import { useT } from "@/components/i18n/I18nProvider";
 import { choice, str } from "./block-logic";
-import { heightFor, overlayColor, type BlockContext } from "./shared";
+import { heightFor, overlayColor, type BlockContext, words } from "./shared";
 import { SectionCountdown } from "./campaign-timer";
 
 /** Countdown banner: a full-width campaign banner with a picture (or the campaign colour), words, a button and a big timer. */
@@ -27,9 +27,9 @@ export function CampaignCountdownHero({ ctx }: { ctx: BlockContext }) {
       ) : null}
       {image ? <span aria-hidden className="absolute inset-0" style={{ background: overlayColor("strong") }} /> : null}
       <div className="relative mx-auto flex w-full max-w-[1200px] flex-col items-center justify-center px-5 py-12 text-center sm:px-8" style={{ minHeight: heightFor(str(settings.height) || "medium") }}>
-        {str(copy.eyebrow) ? <p className="m-0 text-[12px] font-bold uppercase" style={{ letterSpacing: "0.22em", fontFamily: look.eyebrowFont, color: image ? "#FFFFFF" : tone === "dark" ? look.tokens.accent : color }}>{str(copy.eyebrow)}</p> : null}
-        {title ? <h2 id={headingId} className="bq-h m-0 mt-3 max-w-[20ch]" style={{ ...look.headingStyle, color, fontSize: "clamp(32px, 6cqi, 72px)", lineHeight: 1.02 }}>{title}</h2> : null}
-        {str(copy.body) ? <p className="m-0 mt-3 max-w-[560px] text-[16px] leading-7 opacity-90">{str(copy.body)}</p> : null}
+        {str(copy.eyebrow) ? <p className="m-0 text-[12px] font-bold uppercase" style={{ letterSpacing: "0.22em", fontFamily: look.eyebrowFont, color: image ? "#FFFFFF" : tone === "dark" ? look.tokens.accent : color }}>{words(ctx, "eyebrow")}</p> : null}
+        {title ? <h2 id={headingId} className="bq-h m-0 mt-3 max-w-[20ch]" style={{ ...look.headingStyle, color, fontSize: "clamp(32px, 6cqi, 72px)", lineHeight: 1.02 }}>{words(ctx, "title", title)}</h2> : null}
+        {str(copy.body) ? <p className="m-0 mt-3 max-w-[560px] text-[16px] leading-7 opacity-90">{words(ctx, "body")}</p> : null}
         <SectionCountdown
           ctx={ctx}
           className="mt-7 block"
@@ -42,7 +42,7 @@ export function CampaignCountdownHero({ ctx }: { ctx: BlockContext }) {
             style={tone === "dark" || image ? { background: look.tokens.accent, color: look.onAccent, border: `1.5px solid ${look.tokens.accent}`, minHeight: 48, padding: "0 28px", borderRadius: look.buttonRadius, fontWeight: 700 } : { ...look.primaryButton, minHeight: 48 }}
             onClick={() => ctx.go(str(settings.action) || "products")}
           >
-            {cta}
+            {words(ctx, "primaryCta", cta)}
           </button>
         ) : null}
       </div>

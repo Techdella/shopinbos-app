@@ -2444,6 +2444,13 @@ const en = {
   "rex.bp.photos": "Making {count, plural, one {# photo} other {# photos}}",
   "rex.bp.photosNote": "{made} of {total} made",
   "rex.bp.check": "Putting it all in the preview",
+  "ed.Text size": "Text size",
+  "ed.Extra large": "Extra large",
+  "ed.Own colour": "Own colour",
+  "ed.Shop colour": "Shop colour",
+  "ed.Dark text": "Dark text",
+  "ed.Soft grey": "Soft grey",
+  "ed.Text style": "Text style",
 } satisfies Record<string, string>;
 
 export default en;

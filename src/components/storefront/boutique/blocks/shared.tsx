@@ -15,6 +15,7 @@ import type { BoutiqueLook } from "../look";
 import { ProductTile } from "../ProductTile";
 import { sectionCopyOf, str } from "./block-logic";
 import { englishText, type EditorText } from "../../editor-text";
+import { richCopy, themeTone } from "../../rich-copy";
 
 export interface BlockStore {
   name: string;
@@ -211,4 +212,13 @@ export function overlayColor(strength: string) {
 
 export function heightFor(value: string) {
   return value === "full" ? "min(92vh, 900px)" : value === "medium" ? "min(52vh, 460px)" : "min(72vh, 640px)";
+}
+
+/**
+ * One of the section's words with its formatting (bold, size, colour from the text toolbar; shared/rich-text.ts),
+ * or `fallback` (the block's default words, never formatted) when the seller hasn't written any.
+ */
+export function words(ctx: Pick<BlockContext, "copy" | "look">, key: string, fallback: React.ReactNode = ""): React.ReactNode {
+  const own = str(ctx.copy[key]);
+  return own ? richCopy(ctx.copy, key, own, themeTone(ctx.look.tokens)) : fallback;
 }

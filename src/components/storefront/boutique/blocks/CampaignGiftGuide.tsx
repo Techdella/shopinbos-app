@@ -4,7 +4,7 @@ import type React from "react";
 import { useT } from "@/components/i18n/I18nProvider";
 import { SectionTitle } from "../BoutiqueChrome";
 import { choice, str } from "./block-logic";
-import { ItemLink, itemLink, type BlockContext } from "./shared";
+import { ItemLink, itemLink, type BlockContext, words } from "./shared";
 
 /** Gift guide: picture tiles that send shoppers to gift ideas ("For him", "Under ₦20,000"); the store's collections when the seller hasn't added tiles. */
 export function CampaignGiftGuide({ ctx }: { ctx: BlockContext }) {
@@ -35,8 +35,8 @@ export function CampaignGiftGuide({ ctx }: { ctx: BlockContext }) {
   return (
     <section aria-labelledby={headingId} className="bq-wrap py-10">
       <style>{`.bqb-gifts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}@container bq (min-width:760px){.bqb-gifts{grid-template-columns:repeat(var(--bqb-cols),minmax(0,1fr));gap:18px}}`}</style>
-      <SectionTitle look={look} id={headingId}>{str(copy.title) || t("section.giftsTitle")}</SectionTitle>
-      {str(copy.body) ? <p className="m-0 mb-5 max-w-[640px] text-[15px] leading-7" style={{ color: tokens.muted }}>{str(copy.body)}</p> : null}
+      <SectionTitle look={look} id={headingId}>{words(ctx, "title", t("section.giftsTitle"))}</SectionTitle>
+      {str(copy.body) ? <p className="m-0 mb-5 max-w-[640px] text-[15px] leading-7" style={{ color: tokens.muted }}>{words(ctx, "body")}</p> : null}
       <ul className="bqb-gifts m-0 list-none p-0" style={{ "--bqb-cols": columns } as React.CSSProperties}>
         {tiles.map((entry) => (
           <li key={entry.key} className="min-w-0">

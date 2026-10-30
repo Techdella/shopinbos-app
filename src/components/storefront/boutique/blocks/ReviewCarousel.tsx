@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { boolSetting, intSetting, safeCity, safeFirstName, str } from "./block-logic";
-import { SampleLabel, useReducedMotion, type BlockContext } from "./shared";
+import { SampleLabel, useReducedMotion, type BlockContext, words } from "./shared";
 
 interface Card {
   key: string;
@@ -65,7 +65,7 @@ export function ReviewCarousel({ ctx }: { ctx: BlockContext }) {
       {sample ? <SampleLabel look={look} say={ctx.say} /> : null}
       <div className="mb-6 flex items-end justify-between gap-4">
         <div>
-          <h2 id={headingId} className="bq-h text-[26px] @3xl:text-[30px]" style={look.headingStyle}>{title}</h2>
+          <h2 id={headingId} className="bq-h text-[26px] @3xl:text-[30px]" style={look.headingStyle}>{words(ctx, "title", title)}</h2>
           {shopper.rating && !sample ? <p className="m-0 mt-1.5 text-[13.5px]" style={{ color: t.muted }}><span aria-hidden style={{ color: "#F2A93B" }}>★</span> {shopper.rating.average.toFixed(1)} from {shopper.rating.count} {shopper.rating.count === 1 ? "review" : "reviews"}</p> : null}
         </div>
         {cards.length > 1 ? (

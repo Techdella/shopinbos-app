@@ -119,6 +119,10 @@ export const cancelScheduledPublish = () => api<{ cancelled: boolean }>("/api/mo
 export const brightenPhoto = (url: string, level: number) =>
   api<{ url: string }>("/api/mobile/store-editor/photo", { method: "POST", json: { action: "brighten", url, level } }).then((body) => body.url);
 
+/** A small preview of Brighten at a level (a data: URL made by the same server steps; nothing is stored). */
+export const brightenPreview = (url: string, level: number) =>
+  api<{ preview: string | null }>("/api/mobile/store-editor/photo", { method: "POST", json: { action: "brightenPreview", url, level } }).then((body) => body.preview);
+
 /** The photo with its background removed (a Rex job: one picture use). */
 export const cutOutPhoto = (url: string) =>
   rexApi<{ url: string; creditsLeft: number | null }>("/api/mobile/store-editor/photo", { action: "cutout", url }, "store-cutout").then((body) => body.url);

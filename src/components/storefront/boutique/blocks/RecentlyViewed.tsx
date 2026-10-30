@@ -5,7 +5,7 @@ import { useCart } from "@/hooks/useCart";
 import { RECENTLY_VIEWED_EVENT, readRecentlyViewed, recentlyViewedKey, viewedProducts } from "@/lib/storefront/recently-viewed";
 import { SectionTitle } from "../BoutiqueChrome";
 import { boolSetting, intSetting, recommendProducts, str } from "./block-logic";
-import { BlockProductCard, SampleLabel, type BlockContext } from "./shared";
+import { BlockProductCard, SampleLabel, type BlockContext, words } from "./shared";
 
 /** This shopper's recently viewed product ids (read after mount, kept in sync across tabs). */
 export function useRecentlyViewed(storeSlug: string) {
@@ -28,7 +28,7 @@ function ProductRow({ ctx, title, list, sample }: { ctx: BlockContext; title: st
   return (
     <section aria-labelledby={ctx.headingId} className="bq-wrap py-10">
       {sample ? <SampleLabel look={ctx.look}>{sample}</SampleLabel> : null}
-      <SectionTitle look={ctx.look} id={ctx.headingId}>{title}</SectionTitle>
+      <SectionTitle look={ctx.look} id={ctx.headingId}>{words(ctx, "title", title)}</SectionTitle>
       <div className="bq-shop-grid">
         {list.map((product) => <BlockProductCard key={product.id} ctx={ctx} product={product} />)}
       </div>

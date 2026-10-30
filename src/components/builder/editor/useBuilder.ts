@@ -357,6 +357,9 @@ export function useBuilder() {
     };
   }, [dirty]);
 
+  /** The draft's save stamp now (what a scheduled publish is checked against on the server). */
+  const draftVersion = useCallback(() => draftRef.current?.updatedAt ?? "", []);
+
   /** Leaving without saving: the unsaved edits are dropped for good (no "brought back" next time). */
   const forgetUnsaved = useCallback(() => writeBackup(store.slug, null), [store.slug]);
 
@@ -518,6 +521,7 @@ export function useBuilder() {
     redo,
     save,
     forgetUnsaved,
+    draftVersion,
     publish,
     startBlank,
     applyOps,

@@ -328,6 +328,25 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
 
   "nudge.title": "Your shop remain {count} steps",
   "nudge.body": "Tap to finish am. Rex keep everything wey you do.",
+  "colours.fromLogo": "From your logo",
+  "colours.fromPhotos": "From your photos",
+  "colours.readable": "We don check am: e easy to read",
+  "colours.subPictures": "I make them from your logo and photos. Pick one.",
+  "clean.switch": "Clean white background ({count, plural, one {# credit} other {# credits}} for one photo)",
+  "clean.sub": "Rex go put your product photos for clean white background. E no go start until you talk yes.",
+  "clean.askTitle": "Make Rex clean the background?",
+  "clean.askBody": "Rex go put each product photo for clean white background. E cost {count, plural, one {# credit} other {# credits}} for one photo, and you fit undo each one.",
+  "clean.askNow": "Photos to clean now: {count}. Total: {credits} credits.",
+  "clean.balance": "You get {count, plural, one {# credit} other {# credits}}.",
+  "clean.yes": "Yes, on am",
+  "clean.yesNow": "{count, plural, one {Yes, clean them (# credit)} other {Yes, clean them (# credits)}}",
+  "clean.no": "No be now",
+  "clean.one": "Clean background ({count, plural, one {# credit} other {# credits}})",
+  "clean.undo": "Bring the old photo back",
+  "clean.undoOne": "Undo: {name}",
+  "clean.cleaning": "Rex dey clean am…",
+  "clean.done": "White background",
+  "clean.failed": "Rex no fit clean that photo. We no charge you; try again.",
 };
 
 export default pcm;

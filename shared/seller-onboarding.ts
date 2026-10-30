@@ -171,6 +171,11 @@ export interface RexBuildMemory {
   themeId?: string;
   style?: StyleId;
   palette?: string;
+  /**
+   * The picked colour set's own tokens when it was made from the seller's logo or photos (or a preset brought up to
+   * WCAG contrast): shared/colour-sets.ts. Null/absent: the preset `palette` names is used as it is.
+   */
+  paletteTokens?: Record<string, string> | null;
   banner?: { url: string; source: BannerSource; assetId?: string | null; swipes?: number } | null;
   words?: { headline: string; sub?: string; cta?: string; options?: Array<{ headline: string; sub?: string; cta?: string }> } | null;
   layout?: { layout: LayoutChoice; show: ShowFirst; collectionId?: string | null; showPrice: boolean } | null;
@@ -497,10 +502,22 @@ export function brighterPalette(current: string | null | undefined, style: Style
   return next ?? PALETTES[0]!;
 }
 
-/** The theme tokens for a style and colour set: colours, fonts and button shape. */
-export function styleTokens(style: StyleId | null | undefined, palette: string | null | undefined): Record<string, string> {
+/**
+ * The colour set the seller picked as a card's palette: a set made from their logo or photos (its own tokens), else
+ * the preset it names, else the style's first.
+ */
+export function flowPalette(flow: Pick<RexBuildMemory, "palette" | "paletteTokens" | "style"> | null | undefined): PaletteDef {
+  const tokens = flow?.paletteTokens;
+  if (tokens && typeof tokens === "object" && tokens.ctaBg && tokens.paperBg && tokens.ink) {
+    return { id: flow?.palette || "custom", swatch: [tokens.ctaBg, tokens.cardBg ?? tokens.paperBg, tokens.paperBg, tokens.ink], tokens };
+  }
+  return paletteDef(flow?.palette) ?? palettesFor(flow?.style)[0]!;
+}
+
+/** The theme tokens for a style and colour set: colours, fonts and button shape. `custom`: the set's own tokens. */
+export function styleTokens(style: StyleId | null | undefined, palette: string | null | undefined, custom?: Record<string, string> | null): Record<string, string> {
   const def = styleDef(style);
-  const colours = paletteDef(palette)?.tokens ?? paletteDef(def.palettes[0])!.tokens;
+  const colours = custom && custom.ctaBg && custom.paperBg && custom.ink ? custom : paletteDef(palette)?.tokens ?? paletteDef(def.palettes[0])!.tokens;
   const font = FONT_CHOICES.find((choice) => choice.id === def.font)?.tokens ?? {};
   const buttons = BUTTON_CHOICES.find((choice) => choice.id === def.buttons)?.tokens ?? {};
   return { ...colours, ...font, ...buttons };
@@ -740,7 +757,7 @@ export function applyRexBuild(snapshot: EdSnapshot, input: RexBuildInput): { sna
   let next = snapshot;
 
   if (flow.style || flow.palette) {
-    next = applyTokens(next, styleTokens(flow.style, flow.palette));
+    next = applyTokens(next, styleTokens(flow.style, flow.palette, flow.paletteTokens));
     done.push("colours");
   }
 

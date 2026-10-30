@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { mediaKind, youTubeEmbedUrl, youTubeId } from "@/lib/store-templates/section-content";
 import { choice, str } from "./block-logic";
-import { Paragraphs, SampleLabel, type BlockContext } from "./shared";
+import { Paragraphs, SampleLabel, type BlockContext, words } from "./shared";
 
 /** The founder's video: nothing loads until the shopper presses play (YouTube or an uploaded file). */
 function LetterVideo({ url, poster, label, radius }: { url: string; poster: string; label: string; radius: number }) {
@@ -54,8 +54,8 @@ export function FounderStory({ ctx }: { ctx: BlockContext }) {
         </div>
         <div className="flex flex-col gap-4">
           {sampleLetter ? <SampleLabel look={look}>{ctx.say("Write your letter in the panel on the right.")}</SampleLabel> : null}
-          {str(copy.eyebrow) ? <p className="m-0 text-[12px] font-semibold uppercase" style={{ color: t.muted, letterSpacing: "0.2em", fontFamily: look.eyebrowFont }}>{str(copy.eyebrow)}</p> : null}
-          <h2 id={headingId} className="bq-h text-[30px] @3xl:text-[40px]" style={{ ...look.headingStyle, lineHeight: 1.08 }}>{str(copy.title) || `Why we started ${store.name}`}</h2>
+          {str(copy.eyebrow) ? <p className="m-0 text-[12px] font-semibold uppercase" style={{ color: t.muted, letterSpacing: "0.2em", fontFamily: look.eyebrowFont }}>{words(ctx, "eyebrow")}</p> : null}
+          <h2 id={headingId} className="bq-h text-[30px] @3xl:text-[40px]" style={{ ...look.headingStyle, lineHeight: 1.08 }}>{words(ctx, "title", `Why we started ${store.name}`)}</h2>
           <div className="grid gap-3 text-[16px] leading-7" style={{ color: t.ink }}>
             {sampleLetter
               ? <p className="m-0" style={{ color: t.muted }}>Tell shoppers who you are, why you started and what you care about. A few honest paragraphs build more trust than any badge.</p>

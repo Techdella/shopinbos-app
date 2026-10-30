@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type React from "react";
 import { boolSetting, intSetting, str, tabProducts, type ProductTab } from "./block-logic";
-import { BlockProductCard, type BlockContext } from "./shared";
+import { BlockProductCard, type BlockContext, words } from "./shared";
 
 /** Tabbed products: best sellers, new arrivals and sale items behind tabs that switch on the page. */
 export function TabbedProducts({ ctx }: { ctx: BlockContext }) {
@@ -32,7 +32,7 @@ export function TabbedProducts({ ctx }: { ctx: BlockContext }) {
   };
   return (
     <section aria-labelledby={headingId} className="bq-wrap py-10">
-      <h2 id={headingId} className="bq-h text-center text-[26px] @3xl:text-[30px]" style={look.headingStyle}>{str(copy.title) || "Shop our favourites"}</h2>
+      <h2 id={headingId} className="bq-h text-center text-[26px] @3xl:text-[30px]" style={look.headingStyle}>{words(ctx, "title", "Shop our favourites")}</h2>
       {tabs.length > 1 ? (
         <div role="tablist" aria-labelledby={headingId} className="mx-auto mb-6 mt-5 flex max-w-full justify-center gap-2 overflow-x-auto pb-1">
           {tabs.map((tab, index) => {

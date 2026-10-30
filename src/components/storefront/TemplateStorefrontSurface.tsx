@@ -22,6 +22,7 @@ import { GameSection } from "@/components/storefront/gamification/GameSection";
 import { isGameSectionKind } from "@/lib/gamification/logic";
 import { HeroSlider, slideAlign } from "@/components/storefront/HeroSlider";
 import { richCopy } from "@/components/storefront/rich-copy";
+import type { RichRun } from "@shared/rich-text";
 import { itemMediaUrl, readCountdownEnd, readHeroSlides, readOptionalProductLimit, readProductCardOptions, readProductLimit, readSlideTiming, youTubeEmbedUrl, youTubeId, type HeroSlide } from "@/lib/store-templates/section-content";
 import { findStorefrontPage, storefrontPageHref } from "@shared/storefront-pages";
 import { bannerLinkHref, readableText, readBarColor, readBarLink } from "@shared/store-banner";
@@ -118,6 +119,8 @@ interface TemplateStorefrontSurfaceProps {
   onDeleteSection?: (sectionId: string) => void;
   onSaveReusableSection?: (sectionId: string) => void;
   onUpdateSectionCopy?: (sectionId: string, key: string, value: string) => void;
+  /** 2026 themes in the builder: the inline editor's text toolbar formatted words (shared/rich-text.ts runs). */
+  onUpdateSectionRich?: (sectionId: string, key: string, value: string, runs: RichRun[] | null) => void;
   onUploadImage?: (file: File) => Promise<string | null>;
   onUpdateStoreLogo?: (url: string) => void;
   onUpdateSectionItem?: (sectionId: string, itemIndex: number, changes: Record<string, unknown>) => void;
@@ -891,6 +894,7 @@ export function TemplateStorefrontSurface(props: TemplateStorefrontSurfaceProps)
       onNavigate={props.onSelectPage ?? setOwnPage}
       selectedSectionId={props.selectedSectionId}
       onUpdateSectionCopy={props.onUpdateSectionCopy}
+      onUpdateSectionRich={props.onUpdateSectionRich}
       onSelectSection={props.onSelectSection}
       cartCount={props.cartCount ?? 0}
       onOpenCart={props.onOpenCart}

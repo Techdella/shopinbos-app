@@ -353,6 +353,25 @@ const en = {
   // Nudge (Peggy on WhatsApp, server side)
   "nudge.title": "Your shop is {count} steps away",
   "nudge.body": "Tap to finish. Rex kept everything you did.",
+  "colours.fromLogo": "From your logo",
+  "colours.fromPhotos": "From your photos",
+  "colours.readable": "Checked: easy to read",
+  "colours.subPictures": "I made them from your logo and photos. Pick one.",
+  "clean.switch": "Clean white backgrounds ({count, plural, one {# credit} other {# credits}} a photo)",
+  "clean.sub": "Rex puts your product photos on a clean white background. Off until you say yes.",
+  "clean.askTitle": "Clean white backgrounds?",
+  "clean.askBody": "Rex puts each product photo on a clean white background. It costs {count, plural, one {# credit} other {# credits}} a photo, and you can undo each one.",
+  "clean.askNow": "Photos to clean now: {count}. Total: {credits} credits.",
+  "clean.balance": "You have {count, plural, one {# credit} other {# credits}}.",
+  "clean.yes": "Yes, turn it on",
+  "clean.yesNow": "{count, plural, one {Yes, clean them (# credit)} other {Yes, clean them (# credits)}}",
+  "clean.no": "Not now",
+  "clean.one": "Clean background ({count, plural, one {# credit} other {# credits}})",
+  "clean.undo": "Undo clean background",
+  "clean.undoOne": "Undo: {name}",
+  "clean.cleaning": "Cleaning…",
+  "clean.done": "White background",
+  "clean.failed": "Rex couldn't clean that photo. Nothing was charged; try again.",
 };
 
 export default en;

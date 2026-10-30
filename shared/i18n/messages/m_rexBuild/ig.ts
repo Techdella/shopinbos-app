@@ -328,6 +328,25 @@ const ig: Partial<Record<keyof typeof en, string>> = {
 
   "nudge.title": "Nzọụkwụ {count} fọdụrụ maka ụlọ ahịa gị",
   "nudge.body": "Pịa ka ịmezue ya. Rex chekwara ihe niile i mere.",
+  "colours.fromLogo": "Site na logo gị",
+  "colours.fromPhotos": "Site na foto gị",
+  "colours.readable": "Elelere ya: ọ dị mfe ịgụ",
+  "colours.subPictures": "Esi m na logo na foto gị mee ha. Họrọ otu.",
+  "clean.switch": "Azụ ọcha dị ọcha ({count, plural, other {credit #}} otu foto)",
+  "clean.sub": "Rex ga-etinye foto ngwaahịa gị n'azụ ọcha dị ọcha. Ọ gaghị amalite ruo mgbe ị kwetara.",
+  "clean.askTitle": "Ka Rex mee azụ foto ọcha?",
+  "clean.askBody": "Rex ga-etinye foto ngwaahịa ọ bụla n'azụ ọcha dị ọcha. Ọ na-efu {count, plural, other {credit #}} otu foto, ị nwekwara ike ịkagharị nke ọ bụla.",
+  "clean.askNow": "Foto a ga-eme ọcha ugbu a: {count}. Ngụkọta: credit {credits}.",
+  "clean.balance": "I nwere {count, plural, other {credit #}}.",
+  "clean.yes": "Ee, gbanye ya",
+  "clean.yesNow": "{count, plural, other {Ee, mee ha ọcha (credit #)}}",
+  "clean.no": "Ọ bụghị ugbu a",
+  "clean.one": "Mee azụ ọcha ({count, plural, other {credit #}})",
+  "clean.undo": "Weghachi foto ochie",
+  "clean.undoOne": "Kagharịa: {name}",
+  "clean.cleaning": "Ọ na-eme ya ọcha…",
+  "clean.done": "Azụ ọcha",
+  "clean.failed": "Rex enweghị ike ime foto ahụ ọcha. Anaghị ana gị ego; nwaa ọzọ.",
 };
 
 export default ig;

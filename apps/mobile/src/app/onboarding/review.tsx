@@ -151,8 +151,8 @@ function ReviewScreen({ load, state }: { load: EditorLoad & { draft: EdSnapshot 
     if (kind === "colours") {
       const palette = brighterPalette(flow.palette, flow.style);
       ed.commit((current) => applyTokens(current, styleTokens(flow.style, palette.id)));
-      setFlow((current) => ({ ...current, palette: palette.id }));
-      void saveFlow({ palette: palette.id }).catch(() => null);
+      setFlow((current) => ({ ...current, palette: palette.id, paletteTokens: null }));
+      void saveFlow({ palette: palette.id, paletteTokens: null }).catch(() => null);
     }
     if (kind === "words" && banner) {
       const next = nextWords(flow.words?.options ?? [], flow.words?.headline);

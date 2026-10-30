@@ -51,6 +51,8 @@ export interface TopBarProps {
   onRedo: () => void;
   onPublish: () => void;
   publishing: boolean;
+  /** "Schedule for later" (SchedulePublish.tsx): the clock, or "Scheduled for Sat 9:00", next to Publish. */
+  schedule?: ReactNode;
   canPublish: boolean;
   onSave: () => void;
   /** "Preview store": see the store as shoppers do (hidden while previewing a theme). */
@@ -141,6 +143,7 @@ export function TopBar(props: TopBarProps) {
           <span aria-hidden className="hidden md:inline">{props.previewingStore ? tx("Back to editing") : tx("Preview store")}</span>
         </button>
       ) : null}
+      {editor ? props.schedule : null}
       <button
         type="button"
         onClick={props.onPublish}

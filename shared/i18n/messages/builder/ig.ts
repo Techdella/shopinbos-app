@@ -2443,6 +2443,13 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "rex.bp.photos": "Na-eme {count, plural, one {foto #} other {foto #}}",
   "rex.bp.photosNote": "Emela {made} n'ime {total}",
   "rex.bp.check": "Na-etinye ihe niile na preview",
+  "ed.Text size": "Nha ederede",
+  "ed.Extra large": "Buru ibu nke ukwuu",
+  "ed.Own colour": "Agba nke ya",
+  "ed.Shop colour": "Agba ụlọ ahịa",
+  "ed.Dark text": "Ederede gbara ọchịchịrị",
+  "ed.Soft grey": "Ntụ dị nro",
+  "ed.Text style": "Ụdị ederede",
 };
 
 export default ig;

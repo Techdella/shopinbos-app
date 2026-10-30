@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, PanResponder, Platform, Pressable, TextInput, View } from "react-native";
 import { Image } from "expo-image";
 import { requireOptionalNativeModule } from "expo";
@@ -8,7 +8,7 @@ import { ApiError } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { pickPhotos, uploadPhoto, type PhotoSource, type PickedPhoto } from "@/lib/photos";
 import { RexStillWorking } from "@/lib/rex-jobs";
-import { brightenPhoto, coverCrop, cutOutPhoto, makeRexPhoto, readPhoto, sectionCopy, shopPhotos, type CanvasRect, type EdSection } from "@/lib/store-editor";
+import { brightenPhoto, brightenPreview, coverCrop, cutOutPhoto, makeRexPhoto, readPhoto, sectionCopy, shopPhotos, type CanvasRect, type EdSection } from "@/lib/store-editor";
 import { colors, fonts, radii } from "@/theme";
 import { Chip, ChipRow, EditorSheet, SheetLabel } from "./parts";
 import type { SheetContext } from "./sheets";
@@ -279,6 +279,33 @@ export function CropOverlay({ picked, frame, onDone, onUndo, onFailed }: { picke
   // Applied on Done, after the crop: Brighten (0-3) and Remove background.
   const [bright, setBright] = useState(0);
   const [cut, setCut] = useState(false);
+  // Brighten's true look before Done: the server's own steps on a small copy (a data: URL per level, asked a moment
+  // after the last tap and kept, so tapping round the levels again is instant). Until it's back, the photo as picked.
+  const [previews, setPreviews] = useState<Record<number, string>>({});
+  const [previewing, setPreviewing] = useState(false);
+  useEffect(() => {
+    if (!bright || previews[bright]) {
+      setPreviewing(false);
+      return;
+    }
+    let stale = false;
+    setPreviewing(true);
+    const timer = setTimeout(() => {
+      brightenPreview(picked.url, bright)
+        .then((preview) => {
+          if (!stale && preview) setPreviews((now) => ({ ...now, [bright]: preview }));
+        })
+        .catch(() => undefined)
+        .finally(() => {
+          if (!stale) setPreviewing(false);
+        });
+    }, 350);
+    return () => {
+      stale = true;
+      clearTimeout(timer);
+    };
+  }, [bright, picked.url, previews]);
+  const shownUri = (bright && previews[bright]) || picked.photo.uri;
   const photo = { width: picked.photo.width || frame.width, height: picked.photo.height || frame.height };
   const crop = coverCrop(photo, frame, zoom, offset);
   const cover = Math.max(frame.width / photo.width, frame.height / photo.height) * zoom;
@@ -349,7 +376,8 @@ export function CropOverlay({ picked, frame, onDone, onUndo, onFailed }: { picke
       {/* The photo in its frame on the page. */}
       <View {...(fill ? pan.panHandlers : {})} accessibilityLabel={t("crop.tag")} style={{ position: "absolute", left: frame.x, top: frame.y, width: frame.width, height: frame.height, overflow: "hidden", borderRadius: 14, zIndex: 6, backgroundColor: "#000" }}>
         <Image
-          source={{ uri: picked.photo.uri }}
+          source={{ uri: shownUri }}
+          transition={120}
           contentFit={fill ? "cover" : "contain"}
           style={
             fill
@@ -366,8 +394,12 @@ export function CropOverlay({ picked, frame, onDone, onUndo, onFailed }: { picke
             </View>
           </>
         ) : null}
-        {/* A rough look at Brighten before Done makes the real one (on our server). */}
-        {bright ? <View pointerEvents="none" style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "#FFFFFF", opacity: 0.07 * bright }} /> : null}
+        {previewing && !saving ? (
+          <View pointerEvents="none" style={{ position: "absolute", right: 8, top: 8, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(22,20,31,0.75)", borderRadius: radii.pill, paddingHorizontal: 10, paddingVertical: 4 }}>
+            <ActivityIndicator color="#FFFFFF" size="small" />
+            <T weight="bold" style={{ fontSize: 11.5, color: "#FFFFFF" }}>{t("photo.brightening")}</T>
+          </View>
+        ) : null}
         <View pointerEvents="none" style={{ position: "absolute", left: 8, top: 8, backgroundColor: colors.accent, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 }}>
           <T weight="extrabold" style={{ fontSize: 11, color: colors.onAccent }}>{t("crop.tag")}</T>
         </View>

@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { intSetting, leadField, promoPopupDue, promoPopupTrigger, str, type PopupMemory } from "./block-logic";
-import { useMediaMatch, type BlockContext } from "./shared";
+import { useMediaMatch, type BlockContext, words } from "./shared";
 
 const key = (slug: string, id: string) => `promo-popup:${slug}:${id}`;
 
@@ -80,7 +80,7 @@ function SignupCard({ ctx, onClose, titleId, live }: { ctx: BlockContext; onClos
             <Icon name="x" size={18} />
           </button>
         ) : null}
-        <h2 id={titleId} className="bq-h pr-8 text-[26px]" style={{ ...look.headingStyle, lineHeight: 1.1 }}>{str(copy.title) || "Join our list"}</h2>
+        <h2 id={titleId} className="bq-h pr-8 text-[26px]" style={{ ...look.headingStyle, lineHeight: 1.1 }}>{words(ctx, "title", "Join our list")}</h2>
         {status === "done" ? (
           <div className="mt-3" role="status">
             <p className="m-0 text-[15px]">{code ? str(copy.successText) || "You're in. Here's your code:" : "You're in. Thanks for joining."}</p>
@@ -95,7 +95,7 @@ function SignupCard({ ctx, onClose, titleId, live }: { ctx: BlockContext; onClos
           </div>
         ) : (
           <>
-            {str(copy.body) ? <p className="m-0 mt-2 text-[15px] leading-6" style={{ color: t.muted }}>{str(copy.body)}</p> : null}
+            {str(copy.body) ? <p className="m-0 mt-2 text-[15px] leading-6" style={{ color: t.muted }}>{words(ctx, "body")}</p> : null}
             <form className="mt-5 grid gap-2" noValidate onSubmit={(event) => { event.preventDefault(); void submit(); }}>
               <label htmlFor={inputId} className="sr-only">{placeholder}</label>
               <input

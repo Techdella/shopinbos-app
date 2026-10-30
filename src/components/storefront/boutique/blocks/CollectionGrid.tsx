@@ -4,7 +4,7 @@ import type React from "react";
 import { productCategories } from "../../shopper/catalog";
 import { SectionTitle } from "../BoutiqueChrome";
 import { choice, intSetting, str } from "./block-logic";
-import type { BlockContext } from "./shared";
+import { words, type BlockContext } from "./shared";
 
 const RATIO = { square: "1 / 1", portrait: "4 / 5", landscape: "3 / 2" } as const;
 
@@ -36,7 +36,7 @@ export function CollectionGrid({ ctx }: { ctx: BlockContext }) {
   return (
     <section aria-labelledby={headingId} className="bq-wrap py-10">
       <style>{`.bqb-cgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}@container bq (min-width:760px){.bqb-cgrid{grid-template-columns:repeat(var(--bqb-cols),minmax(0,1fr));gap:18px}}.bqb-ctile .bq-media img{transition:transform .5s ease}.bqb-ctile{transition:transform .25s ease,box-shadow .25s ease}.bqb-cgrid[data-hover="zoom"] .bqb-ctile:hover .bq-media img,.bqb-cgrid[data-hover="zoom"] .bqb-ctile:focus-visible .bq-media img{transform:scale(1.06)}.bqb-cgrid[data-hover="lift"] .bqb-ctile:hover,.bqb-cgrid[data-hover="lift"] .bqb-ctile:focus-visible{transform:translateY(-4px);box-shadow:0 14px 30px rgba(0,0,0,.14)}@media (prefers-reduced-motion: reduce){.bqb-ctile,.bqb-ctile .bq-media img{transition:none}.bqb-cgrid .bqb-ctile:hover,.bqb-cgrid .bqb-ctile:hover .bq-media img{transform:none}}`}</style>
-      {str(copy.title) ? <SectionTitle look={look} id={headingId}>{str(copy.title)}</SectionTitle> : null}
+      {str(copy.title) ? <SectionTitle look={look} id={headingId}>{words(ctx, "title")}</SectionTitle> : null}
       <ul className="bqb-cgrid m-0 list-none p-0" data-hover={hover} style={{ "--bqb-cols": columns } as React.CSSProperties} aria-label={str(copy.title) ? undefined : "Collections"}>
         {tiles.slice(0, limit).map((tile) => (
           <li key={tile.key}>

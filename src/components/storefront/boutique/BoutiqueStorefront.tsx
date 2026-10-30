@@ -1,6 +1,7 @@
 "use client";
 
-import { InlineTextEditor, inlineTargetFor, type InlineEdit } from "./InlineTextEditor";
+import { InlineTextEditor, inlineTargetFor, type InlineEdit, type InlineFormatting } from "./InlineTextEditor";
+import { richRunsFor, type RichRun } from "@shared/rich-text";
 import Link from "next/link";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type React from "react";
@@ -52,7 +53,7 @@ import { englishText, type EditorText } from "../editor-text";
 import { CheckoutPreview } from "../checkout/CheckoutPreview";
 import { checkoutNavLinks, readCheckoutPageSettings } from "../checkout/checkout-layout";
 import { checkoutThemeFromLook } from "../checkout/checkout-theme";
-import { richCopy, type ThemeColorOf } from "../rich-copy";
+import { richCopy, richWords, themeTone, type ThemeColorOf } from "../rich-copy";
 
 export interface BoutiqueStore {
   id?: string;
@@ -82,6 +83,8 @@ export interface BoutiqueStorefrontProps {
   onSelectSection?: (sectionId: string | null) => void;
   /** Builder only: click a heading, paragraph or label to type over it (InlineTextEditor). */
   onUpdateSectionCopy?: (sectionId: string, key: string, value: string) => void;
+  /** Builder only: the inline editor's text toolbar formatted words (bold, size, colour; shared/rich-text.ts). */
+  onUpdateSectionRich?: (sectionId: string, key: string, value: string, runs: RichRun[] | null) => void;
   cartCount: number;
   onOpenCart?: () => void;
   onAddToCart?: (productId: string) => void;
@@ -168,6 +171,7 @@ function Countdown({ settings, look, copy, onShop, editor, say }: { settings: un
     : "Payday edit";
   const heading = custom || status;
   const t = look.tokens;
+  const tone = themeTone(t);
   const units: Array<[string, number | null]> = [
     ["Days", parts?.days ?? null],
     ["Hours", parts?.hours ?? null],
@@ -179,10 +183,10 @@ function Countdown({ settings, look, copy, onShop, editor, say }: { settings: un
     <section aria-label="Payday countdown" style={{ background: "#000", color: "#fff" }}>
       <div className="bq-wrap flex flex-wrap items-center justify-between gap-5 py-5">
         <div>
-          <p className="text-[11.5px] font-bold uppercase" style={{ color: t.accent, letterSpacing: "0.22em" }}>{text(copy.eyebrow) || "Payday edit"}</p>
-          <h2 className="bq-h mt-1 text-[22px] @3xl:text-[26px]" style={look.headingStyle}>{heading}</h2>
+          <p className="text-[11.5px] font-bold uppercase" style={{ color: t.accent, letterSpacing: "0.22em" }}>{richWords(copy, "eyebrow", tone, "Payday edit")}</p>
+          <h2 className="bq-h mt-1 text-[22px] @3xl:text-[26px]" style={look.headingStyle}>{custom ? richWords(copy, "title", tone) : heading}</h2>
           {custom ? <p className="mt-1 text-[13px] opacity-80">{status}</p> : null}
-          {text(copy.body) ? <p className="mt-1 text-[13px] opacity-80">{text(copy.body)}</p> : null}
+          {text(copy.body) ? <p className="mt-1 text-[13px] opacity-80">{richWords(copy, "body", tone)}</p> : null}
           {editor ? <p className="mt-1 text-[12px] opacity-60">{paydayNote(config, say)}</p> : null}
         </div>
         <div className="flex gap-2.5" role="timer" aria-label={spoken || "Countdown"}>
@@ -196,7 +200,7 @@ function Countdown({ settings, look, copy, onShop, editor, say }: { settings: un
           ))}
         </div>
         <button type="button" className="bq-btn" style={{ ...look.primaryButton, minHeight: 42, textTransform: "uppercase", fontSize: 13 }} onClick={onShop}>
-          {text(copy.primaryCta) || "Shop the edit"}
+          {richWords(copy, "primaryCta", tone, "Shop the edit")}
         </button>
       </div>
     </section>
@@ -384,10 +388,18 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             container={inline.container}
             onSave={(value) => editCopy(section.id, inline.key, value)}
             onClose={() => setInline(null)}
+            format={props.onUpdateSectionRich ? inlineFormatting(section, inline.key, props.onUpdateSectionRich) : undefined}
           />
         ) : null}
       </div>
     );
+  }
+
+  /** The inline editor's text toolbar for one of a section's words: their saved words and runs, and where they go. */
+  function inlineFormatting(section: TemplateSectionNode, key: string, onRich: NonNullable<BoutiqueStorefrontProps["onUpdateSectionRich"]>): InlineFormatting {
+    const copy = copyOf(section);
+    const saved = typeof copy[key] === "string" ? (copy[key] as string) : "";
+    return { saved, runs: saved ? richRunsFor(copy, key, saved) : null, tone: richTone, say, onFormat: (value, runs) => onRich(section.id, key, value, runs) };
   }
 
   function editorHint(message: string, vars?: Record<string, string | number>) {
@@ -403,6 +415,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
 
   /** The shop's colours for formatted words (shared/rich-text.ts "theme:…"). */
   const richTone: ThemeColorOf = (name) => (name === "cta" ? t.ctaBg : name === "accent" ? t.accent : name === "ink" ? t.ink : t.muted);
+  /** A section's own words with their formatting (the theme's default words when it has none). */
+  const rich = (copy: Record<string, unknown>, key: string, fallback = "") => richWords(copy, key, richTone, fallback);
 
   function hero(section: TemplateSectionNode) {
     const copy = copyOf(section);
@@ -445,11 +459,13 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     const img = image ? <img src={image} alt="" width={1600} height={900} loading="eager" fetchPriority="high" decoding="async" /> : null;
 
     const eyebrow = text(copy.eyebrow);
+    const eyebrowRich = rich(copy, "eyebrow");
+    const ctaRich = rich(copy, "primaryCta", "Shop now");
 
     // ─── Industry theme heroes (Ẹwà, Ṣùkú, Aṣọ Ẹbí, Agbada, Ìlẹ̀kẹ̀, Oúnjẹ, Chin Chin, Ọjà, Ọmọ, Ìwé, Owambe, Danfo, Turare, Oko) ──
     const eyebrowEl = (color: string, extra?: React.CSSProperties) =>
-      eyebrow ? <p className="text-[12px] font-semibold uppercase" style={{ fontFamily: look.eyebrowFont, letterSpacing: "0.18em", color, ...extra }}>{eyebrow}</p> : null;
-    const ctaButton = (style: React.CSSProperties = look.primaryButton) => <button type="button" className="bq-btn" style={style} onClick={() => goHero()}>{cta}</button>;
+      eyebrow ? <p className="text-[12px] font-semibold uppercase" style={{ fontFamily: look.eyebrowFont, letterSpacing: "0.18em", color, ...extra }}>{eyebrowRich}</p> : null;
+    const ctaButton = (style: React.CSSProperties = look.primaryButton) => <button type="button" className="bq-btn" style={style} onClick={() => goHero()}>{ctaRich}</button>;
     const searchForm = (placeholder: string, dark: boolean) => (
       <form
         role="search"
@@ -490,7 +506,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         <section aria-labelledby={headingId} style={{ background: t.heroBg, color: t.heroText }}>
           <div className="bq-wrap grid gap-8 py-10 @3xl:grid-cols-[1fr_0.9fr] @3xl:items-center @3xl:py-14">
             <div className="flex flex-col items-start gap-4">
-              {eyebrow ? <p className="rounded-full px-3 py-1 text-[12px] font-bold uppercase" style={{ background: t.accent, color: "#fff", letterSpacing: "0.12em" }}>{eyebrow}</p> : null}
+              {eyebrow ? <p className="rounded-full px-3 py-1 text-[12px] font-bold uppercase" style={{ background: t.accent, color: "#fff", letterSpacing: "0.12em" }}>{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h max-w-[11ch]" style={{ ...look.headingStyle, fontSize: "clamp(42px, 7.5cqi, 96px)", lineHeight: 0.95 }}>{titleRich}</h1>
               {body ? <p className="max-w-[440px] text-[16px] opacity-85">{bodyRich}</p> : null}
               {ctaButton()}
@@ -632,7 +648,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         <section aria-labelledby={headingId} className="bq-wrap pt-4">
           <div className="grid gap-6 overflow-hidden px-6 py-10 @3xl:grid-cols-[1.1fr_1fr] @3xl:items-center @3xl:px-12 @3xl:py-14" style={{ background: t.heroBg, color: t.heroText, borderRadius: 32 }}>
             <div className="flex flex-col items-start gap-4">
-              {eyebrow ? <p className="rounded-full bg-white px-3 py-1 text-[12.5px] font-bold" style={{ color: t.accent }}>{eyebrow}</p> : null}
+              {eyebrow ? <p className="rounded-full bg-white px-3 py-1 text-[12.5px] font-bold" style={{ color: t.accent }}>{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 5.8cqi, 72px)", lineHeight: 1 }}>{titleRich}</h1>
               {body ? <p className="max-w-[440px] text-[16px] opacity-85">{bodyRich}</p> : null}
               {ctaButton()}
@@ -733,7 +749,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             {img}
             <div className="absolute inset-0" style={{ background: image ? "linear-gradient(to top, rgba(18,32,14,.7), rgba(18,32,14,0) 60%)" : "transparent" }} />
             <div className="bq-wrap absolute inset-x-0 bottom-0 flex flex-col items-start gap-4 pb-8 text-white">
-              {eyebrow ? <p className="rounded-full px-3.5 py-1.5 text-[12.5px] font-bold" style={{ background: t.accent, color: t.ink }}>{eyebrow}</p> : null}
+              {eyebrow ? <p className="rounded-full px-3.5 py-1.5 text-[12.5px] font-bold" style={{ background: t.accent, color: t.ink }}>{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h max-w-[16ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 6cqi, 80px)", lineHeight: 1 }}>{titleRich}</h1>
               {body ? <p className="max-w-[480px] text-[15.5px] opacity-90">{bodyRich}</p> : null}
               {ctaButton({ background: "#fff", color: t.ink, border: "1.5px solid #fff" })}
@@ -769,10 +785,10 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             {img}
             <div className="absolute inset-0" style={{ background: image ? "rgba(0,0,0,.32)" : "transparent" }} />
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6 text-center text-white">
-              {eyebrow ? <p className="text-[13px]" style={{ letterSpacing: "0.08em" }}>{eyebrow}</p> : null}
+              {eyebrow ? <p className="text-[13px]" style={{ letterSpacing: "0.08em" }}>{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h max-w-[16ch]" style={{ ...look.headingStyle, fontSize: "clamp(34px, 5.5cqi, 64px)", lineHeight: 1.08 }}>{titleRich}</h1>
               {body ? <p className="max-w-[520px] text-[15.5px] opacity-90">{bodyRich}</p> : null}
-              <button type="button" className="bq-btn mt-1" style={{ background: "#fff", color: "#121212", border: "1px solid #fff", borderRadius: look.buttonRadius }} onClick={() => goHero()}>{cta}</button>
+              <button type="button" className="bq-btn mt-1" style={{ background: "#fff", color: "#121212", border: "1px solid #fff", borderRadius: look.buttonRadius }} onClick={() => goHero()}>{ctaRich}</button>
             </div>
           </div>
         </section>
@@ -785,7 +801,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="bq-wrap grid gap-10 py-10 @3xl:grid-cols-[1fr_1fr] @3xl:items-center @3xl:py-16">
             <div className="relative flex flex-col items-start gap-5">
               {eyebrow ? (
-                <p className="inline-flex -rotate-3 items-center rounded-full px-4 py-1.5 text-[13px] font-extrabold uppercase" style={{ background: "#F6D27A", color: t.ink, border: `2px solid ${t.ink}`, letterSpacing: "0.06em" }}>{eyebrow}</p>
+                <p className="inline-flex -rotate-3 items-center rounded-full px-4 py-1.5 text-[13px] font-extrabold uppercase" style={{ background: "#F6D27A", color: t.ink, border: `2px solid ${t.ink}`, letterSpacing: "0.06em" }}>{eyebrowRich}</p>
               ) : null}
               <h1 id={headingId} className="bq-h max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(44px, 7.4cqi, 104px)", lineHeight: 0.92 }}>{titleRich}</h1>
               {body ? <p className="max-w-[460px] text-[16px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
@@ -809,10 +825,10 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             {img}
             <div className="absolute inset-0" style={{ background: image ? "linear-gradient(to top, rgba(0,0,0,.55), rgba(0,0,0,0) 55%)" : "transparent" }} />
             <div className="bq-wrap absolute inset-x-0 bottom-0 flex flex-col items-center gap-4 pb-12 text-center @3xl:pb-16" style={{ color: t.heroText }}>
-              {eyebrow ? <p className="text-[11.5px] uppercase" style={{ fontFamily: look.eyebrowFont, letterSpacing: "0.3em" }}>{eyebrow}</p> : null}
+              {eyebrow ? <p className="text-[11.5px] uppercase" style={{ fontFamily: look.eyebrowFont, letterSpacing: "0.3em" }}>{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h max-w-[18ch]" style={{ ...look.headingStyle, fontSize: "clamp(38px, 6.6cqi, 92px)", lineHeight: 1.02 }}>{titleRich}</h1>
               {body ? <p className="max-w-[520px] text-[15px] leading-7 opacity-90">{bodyRich}</p> : null}
-              <button type="button" className="mt-2 cursor-pointer border-0 border-b bg-transparent px-0 pb-1.5 text-[12px] font-semibold uppercase" style={{ color: "inherit", borderColor: "currentColor", letterSpacing: "0.22em" }} onClick={() => goHero()}>{cta}</button>
+              <button type="button" className="mt-2 cursor-pointer border-0 border-b bg-transparent px-0 pb-1.5 text-[12px] font-semibold uppercase" style={{ color: "inherit", borderColor: "currentColor", letterSpacing: "0.22em" }} onClick={() => goHero()}>{ctaRich}</button>
             </div>
           </div>
         </section>
@@ -827,7 +843,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             {img}
             <div className="absolute inset-0" style={{ background: `radial-gradient(circle at 80% 20%, ${t.accent}55, transparent 50%), linear-gradient(to top, ${t.heroBg} 4%, rgba(11,11,15,.55) 45%, rgba(11,11,15,.15))` }} />
             <div className="bq-wrap absolute inset-x-0 bottom-0 flex flex-col items-start gap-4 pb-8 @3xl:pb-12">
-              {eyebrow ? <p className="rounded-full px-3.5 py-1 text-[12px] font-extrabold uppercase" style={{ background: glow, color: "#fff", letterSpacing: "0.14em" }}>{eyebrow}</p> : null}
+              {eyebrow ? <p className="rounded-full px-3.5 py-1 text-[12px] font-extrabold uppercase" style={{ background: glow, color: "#fff", letterSpacing: "0.14em" }}>{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(48px, 10.5cqi, 156px)", lineHeight: 0.86 }}>
                 <span style={{ background: `linear-gradient(100deg, ${t.heroText} 35%, ${t.accent} 70%, #EC4899)`, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>{titleRich}</span>
               </h1>
@@ -858,7 +874,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="relative">
             <div className="bq-media aspect-[4/5] @3xl:aspect-[16/7]" style={{ borderRadius: 32, background: image ? look.placeholder : t.heroBg }}>{img}</div>
             <div className="relative mx-3 -mt-20 flex flex-col items-start gap-3 p-6 @3xl:absolute @3xl:bottom-10 @3xl:left-10 @3xl:m-0 @3xl:max-w-[460px] @3xl:p-9" style={{ background: "#FFFFFF", borderRadius: 26, boxShadow: "0 18px 50px rgba(58,35,65,.14)" }}>
-              {eyebrow ? <p className="rounded-full px-3 py-1 text-[12px] font-semibold" style={{ background: t.cardBg, color: t.accent }}>{eyebrow}</p> : null}
+              {eyebrow ? <p className="rounded-full px-3 py-1 text-[12px] font-semibold" style={{ background: t.cardBg, color: t.accent }}>{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(32px, 4.4cqi, 54px)", lineHeight: 1.04 }}>{titleRich}</h1>
               {body ? <p className="text-[15.5px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
               {ctaButton()}
@@ -894,10 +910,10 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         <section aria-labelledby={headingId} className="relative overflow-hidden" style={{ background: t.heroBg, color: t.heroText }}>
           <div className="grid @3xl:grid-cols-[1fr_1.1fr]">
             <div className="relative z-[1] flex flex-col items-start justify-center gap-4 px-5 py-10 @3xl:py-20 @3xl:pl-12 @3xl:pr-6">
-              {eyebrow ? <p className="-skew-x-12 px-3 py-1 text-[12px] font-extrabold uppercase" style={{ background: t.accent, color: t.ink, letterSpacing: "0.12em" }}>{eyebrow}</p> : null}
+              {eyebrow ? <p className="-skew-x-12 px-3 py-1 text-[12px] font-extrabold uppercase" style={{ background: t.accent, color: t.ink, letterSpacing: "0.12em" }}>{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h max-w-[11ch]" style={{ ...look.headingStyle, fontSize: "clamp(46px, 8cqi, 116px)", lineHeight: 0.9 }}>{titleRich}</h1>
               {body ? <p className="max-w-[440px] text-[15.5px] opacity-80">{bodyRich}</p> : null}
-              <button type="button" className="bq-btn" style={look.primaryButton} onClick={() => goHero()}>{cta} <span aria-hidden>→</span></button>
+              <button type="button" className="bq-btn" style={look.primaryButton} onClick={() => goHero()}>{ctaRich} <span aria-hidden>→</span></button>
             </div>
             <div className="bq-media aspect-[4/3] @3xl:aspect-auto @3xl:min-h-[560px] [clip-path:polygon(0_8%,100%_0,100%_100%,0_100%)] @3xl:[clip-path:polygon(18%_0,100%_0,100%_100%,0_100%)]" style={{ background: image ? look.placeholder : "#1F1F1F" }}>
               {img}
@@ -915,10 +931,10 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         <section aria-labelledby={headingId} className="bq-wrap py-12 @3xl:py-20">
           <div className="grid gap-10 @3xl:grid-cols-[0.75fr_2fr] @3xl:items-end">
             <div className="flex flex-col items-start gap-4">
-              {eyebrow ? <p className="flex items-center gap-2 text-[12px] uppercase" style={{ color: t.muted, letterSpacing: "0.18em" }}><span aria-hidden className="h-2 w-2 rounded-full" style={{ background: t.accent }} />{eyebrow}</p> : null}
+              {eyebrow ? <p className="flex items-center gap-2 text-[12px] uppercase" style={{ color: t.muted, letterSpacing: "0.18em" }}><span aria-hidden className="h-2 w-2 rounded-full" style={{ background: t.accent }} />{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(34px, 4.2cqi, 54px)", lineHeight: 1.08 }}>{titleRich}</h1>
               {body ? <p className="max-w-[360px] text-[15px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
-              <button type="button" className="mt-1 cursor-pointer border-0 border-b bg-transparent px-0 pb-1 text-[14px]" style={{ color: t.ink, borderColor: t.ink }} onClick={() => goHero()}>{cta} →</button>
+              <button type="button" className="mt-1 cursor-pointer border-0 border-b bg-transparent px-0 pb-1 text-[14px]" style={{ color: t.ink, borderColor: t.ink }} onClick={() => goHero()}>{ctaRich} →</button>
             </div>
             <div className="flex snap-x gap-5 overflow-x-auto pb-2 @3xl:grid @3xl:grid-cols-3 @3xl:items-end @3xl:gap-8 @3xl:overflow-visible" style={{ scrollbarWidth: "none" }}>
               {works.map((work, i) => (
@@ -943,7 +959,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         <section aria-labelledby={headingId} className="bq-wrap grid gap-3 pt-4 @3xl:grid-cols-[2fr_1fr] @3xl:gap-4 @3xl:pt-6">
           <div className="grid overflow-hidden @3xl:grid-cols-[1fr_1fr]" style={{ background: t.heroBg, color: t.heroText, borderRadius: look.cardRadius + 4 }}>
             <div className="flex flex-col items-start justify-center gap-4 p-6 @3xl:p-10">
-              {eyebrow ? <p className="rounded-md px-2.5 py-1 text-[12px] font-bold uppercase" style={{ background: t.accent, color: t.ink, letterSpacing: "0.06em" }}>{eyebrow}</p> : null}
+              {eyebrow ? <p className="rounded-md px-2.5 py-1 text-[12px] font-bold uppercase" style={{ background: t.accent, color: t.ink, letterSpacing: "0.06em" }}>{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(32px, 4.2cqi, 56px)", lineHeight: 1 }}>{titleRich}</h1>
               {body ? <p className="max-w-[380px] text-[15px] opacity-85">{bodyRich}</p> : null}
               {ctaButton({ background: t.accent, color: t.ink, border: `1.5px solid ${t.accent}` })}
@@ -973,7 +989,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             <div className="bq-media aspect-[4/5] @3xl:aspect-[16/7]" style={{ background: image ? look.placeholder : t.heroBg }}>{img}</div>
             <div className="relative mx-4 -mt-24 @3xl:absolute @3xl:inset-0 @3xl:m-0 @3xl:grid @3xl:place-items-center">
               <div className="flex flex-col items-center gap-3 px-6 py-8 text-center @3xl:max-w-[520px] @3xl:px-12 @3xl:py-11" style={{ background: t.paperBg, color: t.ink, outline: `1px solid ${t.border}`, outlineOffset: -10 }}>
-                {eyebrow ? <p className="text-[11.5px] uppercase" style={{ color: t.accent, letterSpacing: "0.22em" }}>{eyebrow}</p> : null}
+                {eyebrow ? <p className="text-[11.5px] uppercase" style={{ color: t.accent, letterSpacing: "0.22em" }}>{eyebrowRich}</p> : null}
                 <h1 id={headingId} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(30px, 3.8cqi, 48px)", lineHeight: 1.08 }}>{titleRich}</h1>
                 {body ? <p className="text-[15px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
                 <div className="mt-1">{ctaButton()}</div>
@@ -991,12 +1007,12 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="bq-wrap pb-10 pt-6 @3xl:pb-14">
             <div className="flex items-end justify-between gap-4 border-b-2 pb-2" style={{ borderColor: t.ink }}>
               <p aria-hidden className="m-0 truncate leading-[0.85]" style={{ fontFamily: look.logoFont, ...look.logoStyle, fontSize: "clamp(48px, 11cqi, 168px)" }}>{store.name}</p>
-              {eyebrow ? <p className="m-0 hidden shrink-0 pb-3 text-[11px] uppercase @3xl:block" style={{ fontFamily: look.eyebrowFont, letterSpacing: "0.16em", color: t.accent }}>{eyebrow}</p> : null}
+              {eyebrow ? <p className="m-0 hidden shrink-0 pb-3 text-[11px] uppercase @3xl:block" style={{ fontFamily: look.eyebrowFont, letterSpacing: "0.16em", color: t.accent }}>{eyebrowRich}</p> : null}
             </div>
             <div className="mt-6 grid gap-8 @3xl:grid-cols-[1.5fr_1fr] @3xl:gap-12">
               <div className="bq-media aspect-[4/5] @3xl:aspect-[5/4]" style={{ background: look.placeholder }}>{img}</div>
               <div className="flex flex-col gap-5">
-                {eyebrow ? <p className="m-0 text-[11px] uppercase @3xl:hidden" style={{ fontFamily: look.eyebrowFont, letterSpacing: "0.16em", color: t.accent }}>{eyebrow}</p> : null}
+                {eyebrow ? <p className="m-0 text-[11px] uppercase @3xl:hidden" style={{ fontFamily: look.eyebrowFont, letterSpacing: "0.16em", color: t.accent }}>{eyebrowRich}</p> : null}
                 <h1 id={headingId} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(38px, 5cqi, 72px)", lineHeight: 0.98 }}>{titleRich}</h1>
                 {body ? <p className="text-[16px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
                 <div>{ctaButton()}</div>
@@ -1036,7 +1052,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           </div>
           <div className="absolute inset-0" style={{ background: image ? "linear-gradient(to top, rgba(0,0,0,.66), rgba(0,0,0,.28) 55%, rgba(0,0,0,.12))" : "transparent" }} />
           <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-4 px-6 pb-10 text-center @3xl:pb-16" style={{ textShadow: "0 1px 18px rgba(0,0,0,.35)" }}>
-            {eyebrow ? <p className="text-[11.5px] uppercase" style={{ letterSpacing: "0.24em" }}>{eyebrow}</p> : null}
+            {eyebrow ? <p className="text-[11.5px] uppercase" style={{ letterSpacing: "0.24em" }}>{eyebrowRich}</p> : null}
             <h1 id={headingId} className="bq-h max-w-[16ch]" style={{ ...look.headingStyle, fontSize: "clamp(40px, 7cqi, 104px)", lineHeight: 0.98 }}>{titleRich}</h1>
             {body ? <p className="max-w-[480px] text-[15px] opacity-90">{bodyRich}</p> : null}
             {ctaButton({ ...look.secondaryButton, background: "transparent", color: "#FFFFFF", border: "1px solid #FFFFFF" })}
@@ -1085,7 +1101,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         <section aria-labelledby={headingId} style={{ background: t.heroBg, color: t.heroText }}>
           <div className="bq-wrap grid items-center gap-10 py-10 @3xl:grid-cols-2 @3xl:py-16">
             <div className="flex flex-col items-start gap-4">
-              {eyebrow ? <p className="rounded-full px-3 py-1 text-[12.5px] font-bold" style={{ background: "#FFFFFF", color: t.accent }}>★ {eyebrow}</p> : null}
+              {eyebrow ? <p className="rounded-full px-3 py-1 text-[12.5px] font-bold" style={{ background: "#FFFFFF", color: t.accent }}>★ {eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h max-w-[13ch]" style={{ ...look.headingStyle, fontSize: "clamp(40px, 6.2cqi, 84px)", lineHeight: 0.95 }}>{titleRich}</h1>
               {body ? <p className="max-w-[440px] text-[16px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
               {star ? (
@@ -1140,7 +1156,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         <section aria-labelledby={headingId} style={{ background: t.heroBg, color: t.heroText }}>
           <div className="bq-wrap grid items-center gap-10 pb-16 pt-10 @3xl:grid-cols-[1.05fr_1fr] @3xl:pb-24 @3xl:pt-14">
             <div className="flex flex-col items-start gap-4">
-              {eyebrow ? <p className="rounded-full px-3 py-1 text-[12.5px] font-bold" style={{ background: "rgba(255,255,255,.16)" }}>{eyebrow}</p> : null}
+              {eyebrow ? <p className="rounded-full px-3 py-1 text-[12.5px] font-bold" style={{ background: "rgba(255,255,255,.16)" }}>{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(44px, 7cqi, 96px)", lineHeight: 0.92 }}>{titleRich}</h1>
               {body ? <p className="max-w-[440px] text-[16px] opacity-90">{bodyRich}</p> : null}
               {ctaButton()}
@@ -1165,7 +1181,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       return (
         <section aria-labelledby={headingId} className="bq-wrap grid gap-8 py-10 @3xl:grid-cols-[1fr_1.15fr] @3xl:gap-14 @3xl:py-14">
           <div className="flex flex-col items-start gap-4 @3xl:sticky @3xl:top-24 @3xl:self-start">
-            {eyebrow ? <p className="text-[11.5px] uppercase" style={{ fontFamily: look.eyebrowFont, letterSpacing: "0.18em", color: t.accent }}>{eyebrow}</p> : null}
+            {eyebrow ? <p className="text-[11.5px] uppercase" style={{ fontFamily: look.eyebrowFont, letterSpacing: "0.18em", color: t.accent }}>{eyebrowRich}</p> : null}
             <h1 id={headingId} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(40px, 5.4cqi, 76px)", lineHeight: 0.98 }}>{titleRich}</h1>
             {body ? <p className="max-w-[420px] text-[16px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
             {ctaButton()}
@@ -1198,7 +1214,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         <section aria-labelledby={headingId} className="overflow-hidden" style={{ background: t.heroBg, color: t.heroText }}>
           <div className="bq-wrap grid items-center gap-6 pb-12 pt-10 @3xl:grid-cols-2 @3xl:pb-16 @3xl:pt-14">
             <div className="flex flex-col items-start gap-4">
-              {eyebrow ? <p className="-rotate-2 rounded-full px-3.5 py-1 text-[13px] font-extrabold uppercase" style={{ background: t.accent, color: t.ink }}>{eyebrow}</p> : null}
+              {eyebrow ? <p className="-rotate-2 rounded-full px-3.5 py-1 text-[13px] font-extrabold uppercase" style={{ background: t.accent, color: t.ink }}>{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h max-w-[11ch]" style={{ ...look.headingStyle, fontSize: "clamp(46px, 7.6cqi, 112px)", lineHeight: 0.88 }}>{titleRich}</h1>
               {body ? <p className="max-w-[420px] text-[16px] opacity-90">{bodyRich}</p> : null}
               {ctaButton()}
@@ -1267,7 +1283,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="grid grid-cols-2 gap-3 @3xl:grid-cols-4 @3xl:grid-rows-2 @3xl:gap-4">
             <div className="bq-media col-span-2 aspect-[4/5] @3xl:row-span-2 @3xl:aspect-auto @3xl:min-h-[640px]" style={{ background: look.placeholder }}>{picture(pool[0], true)}</div>
             <div className="col-span-2 flex flex-col items-start justify-end gap-4 p-6 @3xl:p-10" style={{ background: t.accent, color: "#FFFFFF" }}>
-              {eyebrow ? <p className="text-[11.5px] uppercase" style={{ letterSpacing: "0.22em", opacity: 0.85 }}>{eyebrow}</p> : null}
+              {eyebrow ? <p className="text-[11.5px] uppercase" style={{ letterSpacing: "0.22em", opacity: 0.85 }}>{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(34px, 4.6cqi, 64px)", lineHeight: 1.02 }}>{titleRich}</h1>
               {body ? <p className="max-w-[420px] text-[15px] opacity-90">{bodyRich}</p> : null}
               {ctaButton({ background: "#FFFFFF", color: t.ink, border: "1px solid #FFFFFF" })}
@@ -1286,7 +1302,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="bq-wrap relative">
             <div className="grid items-end gap-8 py-10 @3xl:grid-cols-[1.1fr_1fr] @3xl:py-16 @3xl:pl-28">
               <div className="relative order-2 @3xl:order-1">
-                {eyebrow ? <p className="mb-4 inline-block rotate-[-3deg] border-2 px-3 py-1 text-[13px] font-bold uppercase" style={{ fontFamily: look.eyebrowFont, borderColor: t.accent, color: t.accent }}>{eyebrow}</p> : null}
+                {eyebrow ? <p className="mb-4 inline-block rotate-[-3deg] border-2 px-3 py-1 text-[13px] font-bold uppercase" style={{ fontFamily: look.eyebrowFont, borderColor: t.accent, color: t.accent }}>{eyebrowRich}</p> : null}
                 <h1 id={headingId} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(56px, 11cqi, 172px)", lineHeight: 0.84 }}>{titleRich}</h1>
                 {body ? <p className="mt-5 max-w-[420px] text-[15.5px] opacity-80">{bodyRich}</p> : null}
                 <div className="mt-6">{ctaButton()}</div>
@@ -1310,7 +1326,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         <section aria-labelledby={headingId}>
           <div className="bq-wrap flex flex-wrap items-end justify-between gap-4 pb-6 pt-8">
             <div>
-              {eyebrow ? <p className="m-0 flex items-center gap-2 text-[12px] font-semibold uppercase" style={{ letterSpacing: "0.12em", color: t.muted }}><span aria-hidden className="inline-block h-[3px] w-6" style={{ background: t.accent }} />{eyebrow}</p> : null}
+              {eyebrow ? <p className="m-0 flex items-center gap-2 text-[12px] font-semibold uppercase" style={{ letterSpacing: "0.12em", color: t.muted }}><span aria-hidden className="inline-block h-[3px] w-6" style={{ background: t.accent }} />{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h mt-2 text-[30px] @3xl:text-[40px]" style={look.headingStyle}>{titleRich}</h1>
             </div>
             {ctaButton()}
@@ -1344,7 +1360,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         <section aria-labelledby={headingId} style={{ background: t.heroBg, color: t.heroText }}>
           <div className="bq-wrap grid items-center gap-8 py-10 @3xl:grid-cols-[1fr_1.2fr] @3xl:py-16">
             <div className="flex flex-col items-start gap-4">
-              {eyebrow ? <p className="m-0 text-[13px] font-semibold" style={{ color: t.accent }}>{eyebrow}</p> : null}
+              {eyebrow ? <p className="m-0 text-[13px] font-semibold" style={{ color: t.accent }}>{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(38px, 5.4cqi, 70px)", lineHeight: 1.02 }}>{titleRich}</h1>
               {body ? <p className="max-w-[420px] text-[15.5px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
               {ctaButton()}
@@ -1378,10 +1394,10 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             <div className="bq-media inset-0" style={{ position: "absolute", background: "transparent" }}>{img}</div>
             <div className="absolute inset-0" style={{ background: image ? "linear-gradient(90deg, rgba(253,232,226,.92), rgba(253,232,226,.35) 55%, rgba(253,232,226,0))" : "transparent" }} />
             <div className="relative flex h-full min-h-[420px] max-w-[420px] flex-col justify-center gap-4 p-8 @3xl:min-h-[560px] @3xl:p-12" style={{ color: t.heroText }}>
-              {eyebrow ? <p className="m-0 text-[13px] uppercase" style={{ letterSpacing: "0.14em", color: t.accent }}>{eyebrow}</p> : null}
+              {eyebrow ? <p className="m-0 text-[13px] uppercase" style={{ letterSpacing: "0.14em", color: t.accent }}>{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(40px, 5cqi, 64px)", lineHeight: 1.04 }}>{titleRich}</h1>
               {body ? <p className="m-0 text-[15px]" style={{ color: t.muted }}>{bodyRich}</p> : null}
-              <button type="button" onClick={() => goHero()} className="w-max cursor-pointer border-0 border-b-2 bg-transparent px-0 pb-1 text-[13px] font-bold uppercase" style={{ color: t.ink, borderColor: t.accent, letterSpacing: "0.08em" }}>{cta}</button>
+              <button type="button" onClick={() => goHero()} className="w-max cursor-pointer border-0 border-b-2 bg-transparent px-0 pb-1 text-[13px] font-bold uppercase" style={{ color: t.ink, borderColor: t.accent, letterSpacing: "0.08em" }}>{ctaRich}</button>
             </div>
           </div>
           {tiles.length ? (
@@ -1420,7 +1436,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
                   </>
                 ) : (
                   <>
-                    {eyebrow ? <p className="m-0 text-[12px] uppercase" style={{ letterSpacing: "0.16em", color: t.accent }}>{eyebrow}</p> : null}
+                    {eyebrow ? <p className="m-0 text-[12px] uppercase" style={{ letterSpacing: "0.16em", color: t.accent }}>{eyebrowRich}</p> : null}
                     <h1 id={headingId} className="bq-h max-w-[12ch] text-[32px] @3xl:text-[44px]" style={{ ...look.headingStyle, color: t.heroText }}>{titleRich}</h1>
                     {body ? <p className="m-0 max-w-[360px] text-[15px] opacity-85">{bodyRich}</p> : null}
                     {ctaButton()}
@@ -1440,7 +1456,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         <section aria-labelledby={headingId} className="relative overflow-hidden">
           <div aria-hidden className="absolute left-1/2 top-[-120px] h-[360px] w-[720px] -translate-x-1/2 rounded-full" style={{ background: `radial-gradient(closest-side, ${t.accent}33, transparent)` }} />
           <div className="bq-wrap relative flex flex-col items-center gap-4 py-14 text-center @3xl:py-20">
-            {eyebrow ? <p className="m-0 rounded-full px-3 py-1 text-[12.5px] font-semibold" style={{ background: t.heroBg, color: t.accent }}>{eyebrow}</p> : null}
+            {eyebrow ? <p className="m-0 rounded-full px-3 py-1 text-[12.5px] font-semibold" style={{ background: t.heroBg, color: t.accent }}>{eyebrowRich}</p> : null}
             <h1 id={headingId} className="bq-h max-w-[16ch]" style={{ ...look.headingStyle, fontSize: "clamp(38px, 5.6cqi, 64px)", lineHeight: 1.05 }}>{titleRich}</h1>
             {body ? <p className="m-0 max-w-[560px] text-[16.5px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
             {chips.length ? (
@@ -1473,7 +1489,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         <section aria-labelledby={headingId} className="relative overflow-hidden" style={{ background: "linear-gradient(115deg, #DDF3F1 0%, #F3EEF7 45%, #FCE7EF 100%)", color: t.heroText }}>
           <div className="bq-wrap grid items-center gap-8 px-12 py-12 @3xl:grid-cols-2 @3xl:px-20 @3xl:py-16">
             <div className="flex flex-col items-start gap-4">
-              {eyebrow ? <p className="m-0 text-[13px] font-semibold" style={{ color: t.accent }}>{eyebrow}</p> : null}
+              {eyebrow ? <p className="m-0 text-[13px] font-semibold" style={{ color: t.accent }}>{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(34px, 4.8cqi, 60px)", lineHeight: 1.08 }}>{titleRich}</h1>
               {body ? <p className="m-0 max-w-[420px] text-[15.5px]" style={{ color: t.muted }}>{bodyRich}</p> : null}
               {ctaButton()}
@@ -1495,10 +1511,10 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         <section aria-labelledby={headingId} className="relative" style={{ background: t.heroBg, color: t.heroText }}>
           <div className="bq-wrap grid items-center gap-10 px-12 py-12 @3xl:grid-cols-[1.1fr_1fr] @3xl:px-24 @3xl:py-20">
             <div className="flex flex-col items-start gap-5">
-              {eyebrow ? <p className="m-0 text-[12px] uppercase" style={{ letterSpacing: "0.2em", color: t.muted }}>{eyebrow}</p> : null}
+              {eyebrow ? <p className="m-0 text-[12px] uppercase" style={{ letterSpacing: "0.2em", color: t.muted }}>{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(40px, 5.4cqi, 72px)", lineHeight: 1.12 }}>{first} <span style={{ color: t.accent }}>{rest.join(" ")}</span></h1>
               {body ? <p className="m-0 max-w-[420px] text-[15px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
-              <button type="button" onClick={() => goHero()} className="bq-btn" style={look.primaryButton}>{cta} <span aria-hidden>→</span></button>
+              <button type="button" onClick={() => goHero()} className="bq-btn" style={look.primaryButton}>{ctaRich} <span aria-hidden>→</span></button>
             </div>
             <div className="mx-auto w-[min(72%,340px)]">
               <div className="bq-media aspect-[2/3]" style={{ boxShadow: "inset 10px 0 12px -8px rgba(0,0,0,.35), 0 24px 50px rgba(0,0,0,.18)" }}>{picture(covers[at], true)}</div>
@@ -1516,7 +1532,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             {img}
             <div className="absolute inset-0" style={{ background: image ? "linear-gradient(90deg, rgba(255,255,255,.92), rgba(255,255,255,.55) 40%, rgba(255,255,255,0) 65%)" : "transparent" }} />
             <div className="bq-wrap absolute inset-0 flex flex-col items-start justify-center gap-4" style={{ color: t.ink }}>
-              {eyebrow ? <p className="m-0 text-[12.5px] font-semibold uppercase" style={{ letterSpacing: "0.08em" }}>{eyebrow}</p> : null}
+              {eyebrow ? <p className="m-0 text-[12.5px] font-semibold uppercase" style={{ letterSpacing: "0.08em" }}>{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h max-w-[13ch]" style={{ ...look.headingStyle, fontSize: "clamp(34px, 5cqi, 64px)", lineHeight: 1.06 }}>{titleRich}</h1>
               {body ? <p className="m-0 max-w-[420px] text-[15px]" style={{ color: t.muted }}>{bodyRich}</p> : null}
               {ctaButton()}
@@ -1533,7 +1549,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             {img}
             <div className="absolute inset-0" style={{ background: image ? "linear-gradient(90deg, rgba(233,236,242,.9), rgba(233,236,242,.3) 45%, rgba(233,236,242,0) 65%)" : "transparent" }} />
             <div className="bq-wrap absolute inset-0 flex flex-col items-start justify-center gap-3" style={{ color: t.ink }}>
-              {eyebrow ? <p className="m-0 text-[17px] @3xl:text-[22px]">{eyebrow}</p> : null}
+              {eyebrow ? <p className="m-0 text-[17px] @3xl:text-[22px]">{eyebrowRich}</p> : null}
               <h1 id={headingId} className="m-0 max-w-[12ch] uppercase" style={{ fontFamily: BQ_SERIF, fontWeight: 700, fontSize: "clamp(38px, 5.6cqi, 72px)", lineHeight: 1.02 }}>{titleRich}</h1>
               {body ? <p className="m-0 max-w-[400px] text-[15px]" style={{ color: t.muted }}>{bodyRich}</p> : null}
               <div className="mt-2">{ctaButton()}</div>
@@ -1553,7 +1569,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               {eyebrow ? <span aria-hidden className="absolute left-[18%] top-0 grid h-16 w-16 place-items-center rounded-full text-center text-[11px] font-bold uppercase leading-tight" style={{ background: t.accent, color: t.ink }}>{eyebrow.split(" ")[0]}</span> : null}
             </div>
             <div className="flex flex-col items-start gap-4 p-6 @3xl:p-0" style={{ background: t.heroBg, color: t.heroText }}>
-              {eyebrow ? <p className="sr-only">{eyebrow}</p> : null}
+              {eyebrow ? <p className="sr-only">{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h max-w-[10ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 4.8cqi, 60px)", lineHeight: 1.04, color: t.heroText }}>{titleRich}</h1>
               {body ? <p className="m-0 max-w-[380px] text-[15px] opacity-85">{bodyRich}</p> : null}
               {ctaButton()}
@@ -1574,7 +1590,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div aria-hidden className="absolute inset-0" style={{ background: shots.length ? `linear-gradient(180deg, ${t.heroBg}B3 0%, rgba(0,0,0,.18) 55%, ${t.paperBg} 100%)` : "transparent" }} />
           <div className="bq-wrap relative">
           <div className="flex min-h-[420px] flex-col items-center justify-center gap-5 px-10 pb-24 pt-16 text-center @3xl:min-h-[540px] @3xl:px-24">
-            {eyebrow ? <p className="m-0 text-[13px] font-semibold uppercase" style={{ letterSpacing: "0.16em", textShadow: "0 1px 8px rgba(0,0,0,.35)" }}>{eyebrow}</p> : null}
+            {eyebrow ? <p className="m-0 text-[13px] font-semibold uppercase" style={{ letterSpacing: "0.16em", textShadow: "0 1px 8px rgba(0,0,0,.35)" }}>{eyebrowRich}</p> : null}
             <h1 id={headingId} className="bq-h max-w-[16ch] uppercase" style={{ ...look.headingStyle, fontSize: "clamp(34px, 5.6cqi, 72px)", lineHeight: 1.08, textShadow: "0 2px 18px rgba(0,0,0,.35)" }}>{titleRich}</h1>
             {body ? <p className="m-0 max-w-[520px] text-[15.5px]" style={{ textShadow: "0 1px 8px rgba(0,0,0,.4)" }}>{bodyRich}</p> : null}
             {ctaButton(look.solidButton)}
@@ -1598,7 +1614,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             {img}
             <div className="absolute inset-0" style={{ background: image ? "linear-gradient(90deg, rgba(12,24,52,.62), rgba(12,24,52,.25) 45%, rgba(12,24,52,0) 70%)" : "transparent" }} />
             <div className="bq-wrap absolute inset-0 flex flex-col items-start justify-center gap-4" style={{ color: "#FFFFFF" }}>
-              {eyebrow ? <p className="m-0 text-[12px] font-semibold uppercase" style={{ letterSpacing: "0.12em" }}>{eyebrow}</p> : null}
+              {eyebrow ? <p className="m-0 text-[12px] font-semibold uppercase" style={{ letterSpacing: "0.12em" }}>{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h max-w-[11ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 5.2cqi, 68px)", lineHeight: 1.08 }}><span style={{ color: t.accent }}>{first}</span> {rest.join(" ")}</h1>
               {body ? <p className="m-0 max-w-[400px] text-[15px] opacity-90">{bodyRich}</p> : null}
               <div className="mt-1">{ctaButton()}</div>
@@ -1618,7 +1634,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               {img}
               <div className="absolute inset-0" style={{ background: image ? "linear-gradient(90deg, rgba(255,255,255,.94), rgba(255,255,255,.6) 45%, rgba(255,255,255,0) 72%)" : "transparent" }} />
               <div className="absolute inset-0 flex flex-col items-start justify-center gap-3 p-7 @3xl:p-12" style={{ color: t.ink }}>
-                {eyebrow ? <p className="m-0 text-[13px] font-bold uppercase" style={{ color: t.accent, letterSpacing: "0.08em" }}>{eyebrow}</p> : null}
+                {eyebrow ? <p className="m-0 text-[13px] font-bold uppercase" style={{ color: t.accent, letterSpacing: "0.08em" }}>{eyebrowRich}</p> : null}
                 <h1 id={headingId} className="bq-h max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(30px, 4.2cqi, 54px)", lineHeight: 1.08 }}>{titleRich}</h1>
                 {body ? <p className="m-0 max-w-[380px] text-[15px]" style={{ color: t.muted }}>{bodyRich}</p> : null}
                 <div className="mt-1">{ctaButton()}</div>
@@ -1654,7 +1670,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="bq-wrap grid items-center gap-6 py-10 @3xl:grid-cols-[1fr_1.25fr_1fr] @3xl:py-14">
             <div className="bq-media aspect-[4/3]" style={{ background: "transparent", borderRadius: look.cardRadius }}>{picture(left, true)}</div>
             <div className="flex flex-col items-center gap-4 text-center">
-              {eyebrow ? <p className="m-0 text-[13px] font-bold uppercase" style={{ color: t.accent, letterSpacing: "0.12em" }}>{eyebrow}</p> : null}
+              {eyebrow ? <p className="m-0 text-[13px] font-bold uppercase" style={{ color: t.accent, letterSpacing: "0.12em" }}>{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h max-w-[14ch] uppercase" style={{ ...look.headingStyle, fontSize: "clamp(30px, 3.8cqi, 50px)", lineHeight: 1.08 }}>{titleRich}</h1>
               {body ? <p className="m-0 max-w-[420px] text-[15px] uppercase" style={{ color: t.muted, letterSpacing: "0.04em" }}>{bodyRich}</p> : null}
               <div className="mt-1">{ctaButton()}</div>
@@ -1688,7 +1704,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               {picture(shots[at], true)}
               <div className="absolute inset-0" style={{ background: shots.length ? "rgba(20,20,30,.38)" : "transparent" }} />
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-14 text-center" style={{ color: shots.length ? "#FFFFFF" : t.heroText }}>
-                {eyebrow ? <p className="m-0 text-[13px] font-semibold uppercase" style={{ letterSpacing: "0.14em" }}>{eyebrow}</p> : null}
+                {eyebrow ? <p className="m-0 text-[13px] font-semibold uppercase" style={{ letterSpacing: "0.14em" }}>{eyebrowRich}</p> : null}
                 <h1 id={headingId} className="bq-h max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(32px, 4.6cqi, 58px)", lineHeight: 1.08 }}>{titleRich}</h1>
                 {body ? <p className="m-0 max-w-[440px] text-[15px] opacity-90">{bodyRich}</p> : null}
                 {ctaButton()}
@@ -1709,7 +1725,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         <section aria-labelledby={headingId} className="relative overflow-hidden" style={{ background: t.heroBg, color: t.heroText }}>
           <div className="bq-wrap grid items-center gap-6 @3xl:grid-cols-2">
             <div className="flex flex-col items-start gap-4 pb-4 pt-10 @3xl:py-20">
-              {eyebrow ? <p className="m-0 text-[13px] font-semibold uppercase" style={{ letterSpacing: "0.12em", color: t.muted }}>{eyebrow}</p> : null}
+              {eyebrow ? <p className="m-0 text-[13px] font-semibold uppercase" style={{ letterSpacing: "0.12em", color: t.muted }}>{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h m-0" style={{ ...look.headingStyle, fontSize: "clamp(36px, 4.8cqi, 62px)", lineHeight: 1.08 }}>
                 <span className="block" style={{ color: t.accent }}>{lead}</span>
                 {rest ? <span className="block">{rest}</span> : null}
@@ -1734,10 +1750,10 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="grid gap-5 @3xl:grid-cols-[1.7fr_1fr]">
             <div className="relative grid min-h-[360px] items-center overflow-hidden @3xl:grid-cols-[1.1fr_1fr]" style={{ background: t.heroBg, borderRadius: look.cardRadius + 6 }}>
               <div className="relative z-[1] flex flex-col items-start gap-4 p-8 @3xl:p-12">
-                {eyebrow ? <p className="m-0 text-[17px]" style={{ color: t.accent, fontFamily: BQ_SERIF }}>{eyebrow}</p> : null}
+                {eyebrow ? <p className="m-0 text-[17px]" style={{ color: t.accent, fontFamily: BQ_SERIF }}>{eyebrowRich}</p> : null}
                 <h1 id={headingId} className="bq-h m-0 max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(32px, 4cqi, 52px)", lineHeight: 1.1 }}>{titleRich}</h1>
                 {body ? <p className="m-0 max-w-[360px] text-[14.5px] leading-6" style={{ color: t.muted }}>{bodyRich}</p> : null}
-                <button type="button" className="bq-btn mt-1" style={{ background: "transparent", color: t.ink, border: `1.5px solid ${t.ink}` }} onClick={() => goHero()}>{cta}</button>
+                <button type="button" className="bq-btn mt-1" style={{ background: "transparent", color: t.ink, border: `1.5px solid ${t.ink}` }} onClick={() => goHero()}>{ctaRich}</button>
               </div>
               <div className="bq-media h-full min-h-[260px]" style={{ background: "transparent", borderRadius: 0 }}>{img}</div>
             </div>
@@ -1764,7 +1780,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             {img}
             <div className="absolute inset-0" style={{ background: image ? "linear-gradient(0deg, rgba(255,255,255,.88), rgba(255,255,255,.2) 45%, rgba(255,255,255,0) 70%)" : "transparent" }} />
             <div className="bq-wrap absolute inset-x-0 bottom-0 flex flex-col items-start gap-3 pb-10" style={{ color: t.ink }}>
-              {eyebrow ? <p className="m-0 text-[12px] font-semibold uppercase" style={{ letterSpacing: "0.2em", color: t.accent }}>{eyebrow}</p> : null}
+              {eyebrow ? <p className="m-0 text-[12px] font-semibold uppercase" style={{ letterSpacing: "0.2em", color: t.accent }}>{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h m-0 max-w-[16ch]" style={{ ...look.headingStyle, fontSize: "clamp(34px, 4.6cqi, 60px)", lineHeight: 1.06 }}>{titleRich}</h1>
               {body ? <p className="m-0 max-w-[440px] text-[15px]" style={{ color: t.muted }}>{bodyRich}</p> : null}
               <div className="mt-1">{ctaButton()}</div>
@@ -1788,7 +1804,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div aria-hidden className="absolute inset-0" style={{ background: shots.length ? "rgba(0,0,0,.42)" : "transparent" }} />
           <div className="bq-wrap relative">
             <div className="flex min-h-[420px] flex-col items-center justify-center gap-4 px-10 py-16 text-center @3xl:min-h-[560px] @3xl:px-16">
-              {eyebrow ? <p className="m-0 text-[13px] font-semibold uppercase" style={{ letterSpacing: "0.16em" }}>{eyebrow}</p> : null}
+              {eyebrow ? <p className="m-0 text-[13px] font-semibold uppercase" style={{ letterSpacing: "0.16em" }}>{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h m-0 max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(38px, 5.6cqi, 72px)", lineHeight: 1.06 }}>{titleRich}</h1>
               {body ? <p className="m-0 max-w-[520px] text-[15.5px] opacity-90">{bodyRich}</p> : null}
               <div className="mt-1">{ctaButton()}</div>
@@ -1815,7 +1831,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         <section aria-labelledby={headingId} className="relative overflow-hidden" style={{ background: t.heroBg, color: t.heroText }}>
           <div className="bq-wrap grid items-center gap-8 py-10 @3xl:grid-cols-[1.25fr_1fr] @3xl:py-20">
             <div className="flex flex-col items-start gap-4">
-              {eyebrow ? <p className="m-0 text-[16px] font-semibold" style={{ color: "#B7791F" }}>{eyebrow}</p> : null}
+              {eyebrow ? <p className="m-0 text-[16px] font-semibold" style={{ color: "#B7791F" }}>{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h m-0 max-w-[13ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 5cqi, 64px)", lineHeight: 1.06, color: "#3F7A05" }}>{titleRich}</h1>
               {body ? <p className="m-0 max-w-[460px] text-[15px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
               <div className="mt-2 w-full max-w-[520px] rounded-full border-2 bg-white" style={{ borderColor: orange }}>{searchForm("Search fresh produce", true)}</div>
@@ -1842,7 +1858,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             {img}
             <div className="absolute inset-0" style={{ background: image ? "rgba(5,25,34,.62)" : "transparent" }} />
             <div className="bq-wrap absolute inset-0 flex flex-col items-center justify-center gap-4 text-center" style={{ color: "#FFFFFF" }}>
-              {eyebrow ? <p className="m-0 text-[13px] font-bold uppercase" style={{ color: t.accent, letterSpacing: "0.3em" }}>{eyebrow}</p> : null}
+              {eyebrow ? <p className="m-0 text-[13px] font-bold uppercase" style={{ color: t.accent, letterSpacing: "0.3em" }}>{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h m-0 max-w-[16ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 5.4cqi, 68px)", lineHeight: 1.08 }}>{titleRich}</h1>
               {body ? <p className="m-0 max-w-[520px] text-[15.5px] opacity-90">{bodyRich}</p> : null}
               <div className="mt-1 flex flex-wrap justify-center gap-3">
@@ -1862,7 +1878,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         <section aria-labelledby={headingId} className="relative overflow-hidden" style={{ background: t.heroBg, color: t.heroText }}>
           <div className="bq-wrap grid items-center gap-8 py-12 @3xl:grid-cols-[1fr_1.05fr] @3xl:py-16">
             <div className="flex flex-col items-start gap-4">
-              {eyebrow ? <p className="m-0 text-[15px]" style={{ color: t.muted }}>{eyebrow}</p> : null}
+              {eyebrow ? <p className="m-0 text-[15px]" style={{ color: t.muted }}>{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h m-0 max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(34px, 4.6cqi, 58px)", lineHeight: 1.1 }}>{titleRich}</h1>
               {body ? <p className="m-0 max-w-[440px] text-[15px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
               <div className="mt-1 flex flex-wrap items-center gap-5">
@@ -1919,11 +1935,11 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="bq-wrap grid items-center gap-8 py-10 @3xl:grid-cols-[1.2fr_1fr] @3xl:py-16">
             <div className="bq-media aspect-[4/3]" style={{ background: "transparent", borderRadius: 0 }}>{picture(product?.images[0] ?? image, true)}</div>
             <div className="flex flex-col items-start gap-4">
-              {saving ? <p className="m-0 text-[28px] font-semibold" style={{ color: t.accent }}>{saving}% off</p> : eyebrow ? <p className="m-0 text-[13px] font-semibold uppercase" style={{ color: t.accent, letterSpacing: "0.14em" }}>{eyebrow}</p> : null}
+              {saving ? <p className="m-0 text-[28px] font-semibold" style={{ color: t.accent }}>{saving}% off</p> : eyebrow ? <p className="m-0 text-[13px] font-semibold uppercase" style={{ color: t.accent, letterSpacing: "0.14em" }}>{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h m-0" style={{ ...look.headingStyle, fontSize: "clamp(32px, 4cqi, 52px)", lineHeight: 1.08 }}>{product ? product.name : title}</h1>
               {product?.description || body ? <p className="m-0 line-clamp-3 max-w-[420px] text-[15px] leading-7" style={{ color: t.muted }}>{product?.description || body}</p> : null}
               {product ? <p className="m-0 text-[22px] font-semibold">{formatStoreMoney(product.retailPrice, product.currency)}</p> : null}
-              {product ? linkToProduct(product, "inline-flex items-center border-0 border-b-2 pb-1 text-[15px] font-semibold", <>{cta} <span aria-hidden className="ml-2">→</span></>, { borderColor: t.ink }) : ctaButton()}
+              {product ? linkToProduct(product, "inline-flex items-center border-0 border-b-2 pb-1 text-[15px] font-semibold", <>{ctaRich} <span aria-hidden className="ml-2">→</span></>, { borderColor: t.ink }) : ctaButton()}
               {slideProducts.length > 1 ? (
                 <div className="mt-3 flex gap-2">
                   <button type="button" aria-label="Previous product" onClick={() => setHeroIndex((value) => (value + count - 1) % count)} className="grid h-11 w-11 cursor-pointer place-items-center border" style={{ borderColor: t.ink, background: "transparent", color: t.ink }}><Icon name="arrowLeft" size={18} /></button>
@@ -1952,10 +1968,10 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               {img}
               <div className="absolute inset-0" style={{ background: image ? "rgba(0,0,0,.42)" : "transparent" }} />
               <div className="absolute inset-0 flex flex-col items-start justify-center gap-4 p-8 @3xl:p-12" style={{ color: "#FFFFFF" }}>
-                {eyebrow ? <p className="m-0 text-[13px] font-semibold uppercase" style={{ letterSpacing: "0.16em" }}>{eyebrow}</p> : null}
+                {eyebrow ? <p className="m-0 text-[13px] font-semibold uppercase" style={{ letterSpacing: "0.16em" }}>{eyebrowRich}</p> : null}
                 <h1 id={headingId} className="bq-h m-0 max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(34px, 4.4cqi, 56px)", lineHeight: 1.06 }}>{titleRich}</h1>
                 {body ? <p className="m-0 max-w-[380px] text-[15px] italic opacity-90">{bodyRich}</p> : null}
-                <button type="button" className="bq-btn" style={{ background: "transparent", color: "#FFFFFF", border: "1.5px solid #FFFFFF" }} onClick={() => goHero()}>{cta}</button>
+                <button type="button" className="bq-btn" style={{ background: "transparent", color: "#FFFFFF", border: "1.5px solid #FFFFFF" }} onClick={() => goHero()}>{ctaRich}</button>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -1986,10 +2002,10 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="bq-media inset-0" style={{ position: "absolute", borderRadius: 0, background: t.heroBg }}>{picture(shots[at], true)}</div>
           <div aria-hidden className="absolute inset-0" style={{ background: shots.length ? "linear-gradient(90deg, rgba(0,0,0,.5), rgba(0,0,0,.15) 60%)" : "transparent" }} />
           <div className="bq-wrap relative flex min-h-[440px] flex-col items-start justify-end gap-4 pb-14 pt-24 @3xl:min-h-[600px]">
-            {eyebrow ? <p className="m-0 text-[12px] font-semibold" style={{ letterSpacing: "0.04em" }}>* {eyebrow}</p> : null}
+            {eyebrow ? <p className="m-0 text-[12px] font-semibold" style={{ letterSpacing: "0.04em" }}>* {eyebrowRich}</p> : null}
             <h1 id={headingId} className="bq-h m-0 max-w-[14ch] uppercase" style={{ ...look.headingStyle, fontWeight: 800, fontSize: "clamp(40px, 6.4cqi, 88px)", lineHeight: 0.98 }}>{titleRich}</h1>
             {body ? <p className="m-0 max-w-[460px] text-[15px] opacity-90">{bodyRich}</p> : null}
-            <button type="button" className="bq-btn mt-1" style={{ background: "transparent", color: "#FFFFFF", border: "2px solid #FFFFFF", textTransform: "uppercase", fontSize: 12.5, fontWeight: 700 }} onClick={() => goHero()}>{cta}</button>
+            <button type="button" className="bq-btn mt-1" style={{ background: "transparent", color: "#FFFFFF", border: "2px solid #FFFFFF", textTransform: "uppercase", fontSize: 12.5, fontWeight: 700 }} onClick={() => goHero()}>{ctaRich}</button>
           </div>
           {shots.length > 1 ? (
             <div className="absolute right-4 top-1/2 flex -translate-y-1/2 flex-col gap-2 @3xl:left-4 @3xl:right-auto">
@@ -2007,12 +2023,12 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div aria-hidden className="absolute inset-y-0 right-0 hidden w-[58%] @3xl:block" style={{ backgroundImage: "repeating-linear-gradient(120deg, transparent 0 70px, rgba(255,255,255,.85) 70px 86px, transparent 86px 170px)", clipPath: "polygon(22% 0, 100% 0, 100% 100%, 0 100%)", opacity: 0.6 }} />
           <div className="bq-wrap relative grid items-center gap-8 py-12 @3xl:grid-cols-[1fr_1.2fr] @3xl:py-20">
             <div className="flex flex-col items-start gap-4">
-              {eyebrow ? <p className="m-0 text-[13px] font-bold uppercase" style={{ color: t.accent, letterSpacing: "0.12em" }}>{eyebrow}</p> : null}
+              {eyebrow ? <p className="m-0 text-[13px] font-bold uppercase" style={{ color: t.accent, letterSpacing: "0.12em" }}>{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h m-0 max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 4.8cqi, 62px)", lineHeight: 1.06 }}>{titleRich}</h1>
               {body ? <p className="m-0 max-w-[420px] text-[15px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
               <button type="button" onClick={() => goHero()} className="mt-1 inline-flex cursor-pointer items-center gap-3 border-0 bg-transparent p-0 text-[13px] font-bold uppercase" style={{ color: t.ink, letterSpacing: "0.06em" }}>
                 <span aria-hidden className="grid h-11 w-11 place-items-center rounded-full" style={{ background: t.accent, color: t.ctaText }}><Icon name="chevRight" size={18} /></span>
-                {cta}
+                {ctaRich}
               </button>
             </div>
             <div className="bq-media aspect-[4/3]" style={{ background: "transparent", borderRadius: look.cardRadius + 6, boxShadow: "0 30px 60px rgba(0,0,0,.18)" }}>{img}</div>
@@ -2037,7 +2053,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       return (
         <section aria-labelledby={headingId} className="relative overflow-hidden" style={{ background: t.paperBg, color: t.ink }}>
           <div className="bq-wrap relative py-12 text-center @3xl:py-16">
-            {eyebrow ? <p className="m-0 text-[17px] @3xl:text-[20px]" style={{ color: t.muted }}>{eyebrow}</p> : null}
+            {eyebrow ? <p className="m-0 text-[17px] @3xl:text-[20px]" style={{ color: t.muted }}>{eyebrowRich}</p> : null}
             <h1 id={headingId} className="bq-h m-0 mt-2" style={{ ...look.headingStyle, fontSize: "clamp(32px, 4.4cqi, 54px)", lineHeight: 1.1 }}>{titleRich}</h1>
             {body ? <p className="mx-auto mt-3 max-w-[520px] text-[15px]" style={{ color: t.muted }}>{bodyRich}</p> : null}
             <div className="mt-8 grid grid-cols-2 gap-0">{half(image, 0)}{half(second, 1)}</div>
@@ -2051,10 +2067,10 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         <section aria-labelledby={headingId} className="relative overflow-hidden" style={{ background: t.heroBg, color: t.ink }}>
           <div className="bq-wrap grid items-center gap-8 pt-10 @3xl:grid-cols-2 @3xl:pt-0">
             <div className="flex flex-col items-start gap-4 @3xl:py-24">
-              {eyebrow ? <p className="m-0 text-[12.5px] font-bold uppercase" style={{ color: t.accent, letterSpacing: "0.18em" }}>{eyebrow}</p> : null}
+              {eyebrow ? <p className="m-0 text-[12.5px] font-bold uppercase" style={{ color: t.accent, letterSpacing: "0.18em" }}>{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h m-0 max-w-[13ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 4.6cqi, 58px)", lineHeight: 1.1 }}>{titleRich}</h1>
               {body ? <p className="m-0 max-w-[400px] text-[15px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
-              <button type="button" className="bq-btn mt-2" style={{ ...look.primaryButton, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 12.5, fontWeight: 700 }} onClick={() => goHero()}>{cta} <span aria-hidden className="ml-2">→</span></button>
+              <button type="button" className="bq-btn mt-2" style={{ ...look.primaryButton, textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 12.5, fontWeight: 700 }} onClick={() => goHero()}>{ctaRich} <span aria-hidden className="ml-2">→</span></button>
             </div>
             <div className="relative mx-auto w-full max-w-[520px] self-end">
               <div aria-hidden className="absolute left-[8%] top-[6%] aspect-square w-[78%] rounded-full" style={{ background: "#F6D9D2" }} />
@@ -2072,7 +2088,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         <section aria-labelledby={headingId} className="relative overflow-hidden" style={{ background: t.heroBg, color: t.heroText }}>
           <div className="bq-wrap grid items-center gap-8 py-12 @3xl:grid-cols-[1fr_1.15fr] @3xl:py-16">
             <div className="flex flex-col items-start gap-4">
-              {eyebrow ? <p className="m-0 px-2.5 py-1 text-[12px] font-semibold uppercase" style={{ background: "#111111", color: t.heroBg, letterSpacing: "0.14em" }}>#{eyebrow}</p> : null}
+              {eyebrow ? <p className="m-0 px-2.5 py-1 text-[12px] font-semibold uppercase" style={{ background: "#111111", color: t.heroBg, letterSpacing: "0.14em" }}>#{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h m-0 max-w-[14ch] uppercase" style={{ ...look.headingStyle, fontWeight: 300, fontSize: "clamp(34px, 4.4cqi, 56px)", lineHeight: 1.1 }}>{titleRich}</h1>
               {body ? <p className="m-0 max-w-[420px] text-[15px] leading-7" style={{ opacity: 0.8 }}>{bodyRich}</p> : null}
               <div className="mt-1">{ctaButton()}</div>
@@ -2092,7 +2108,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             <div className="absolute inset-0" style={{ background: image ? "rgba(0,0,0,.32)" : "transparent" }} />
             <div className="bq-wrap absolute inset-0 flex flex-col items-center justify-center gap-3 text-center text-white">
               <h1 id={headingId} className="m-0 max-w-[18ch] uppercase" style={{ fontFamily: look.headingFont, fontWeight: 300, letterSpacing: "0.06em", fontSize: "clamp(38px, 6cqi, 84px)", lineHeight: 1.04, textShadow: "0 2px 16px rgba(0,0,0,.35)" }}>{titleRich}</h1>
-              {eyebrow ? <p className="m-0 text-[12.5px] font-semibold uppercase" style={{ letterSpacing: "0.3em" }}>{eyebrow}</p> : null}
+              {eyebrow ? <p className="m-0 text-[12.5px] font-semibold uppercase" style={{ letterSpacing: "0.3em" }}>{eyebrowRich}</p> : null}
               {body ? <p className="m-0 max-w-[480px] text-[15px] opacity-90">{bodyRich}</p> : null}
               <div className="mt-2">{ctaButton()}</div>
             </div>
@@ -2111,13 +2127,13 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div aria-hidden className="absolute inset-0" style={{ background: shots.length ? "rgba(0,0,0,.36)" : "transparent" }} />
           <div className="bq-wrap relative">
             <div className="flex min-h-[420px] flex-col items-center justify-center gap-3 px-12 py-16 text-center @3xl:min-h-[560px]">
-              {eyebrow ? <p className="m-0 text-[13px] font-semibold uppercase" style={{ letterSpacing: "0.2em" }}>{eyebrow}</p> : null}
+              {eyebrow ? <p className="m-0 text-[13px] font-semibold uppercase" style={{ letterSpacing: "0.2em" }}>{eyebrowRich}</p> : null}
               <h1 id={headingId} className="m-0" style={{ fontFamily: look.headingFont, fontSize: "clamp(40px, 6.4cqi, 92px)", lineHeight: 1 }}>
                 <span className="block font-bold">{first}</span>
                 {rest.length ? <span className="block font-light">{rest.join(" ")}.</span> : null}
               </h1>
               {body ? <p className="m-0 max-w-[460px] text-[15px] opacity-90">{bodyRich}</p> : null}
-              <button type="button" className="bq-btn mt-2" style={{ background: "transparent", color: "#FFFFFF", border: "2px solid #FFFFFF", textTransform: "uppercase", fontSize: 12, letterSpacing: "0.12em" }} onClick={() => goHero()}>{cta}</button>
+              <button type="button" className="bq-btn mt-2" style={{ background: "transparent", color: "#FFFFFF", border: "2px solid #FFFFFF", textTransform: "uppercase", fontSize: 12, letterSpacing: "0.12em" }} onClick={() => goHero()}>{ctaRich}</button>
             </div>
           </div>
           {sideArrows(shots.length, "#FFFFFF")}
@@ -2137,12 +2153,12 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               <div className="bq-media relative aspect-square rounded-full" style={{ background: "transparent" }}>{img}</div>
             </div>
             <div className="flex flex-col items-start gap-4">
-              {eyebrow ? <p className="m-0 text-[13px] font-semibold uppercase" style={{ color: t.accent, letterSpacing: "0.16em" }}>{eyebrow}</p> : null}
+              {eyebrow ? <p className="m-0 text-[13px] font-semibold uppercase" style={{ color: t.accent, letterSpacing: "0.16em" }}>{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h m-0 max-w-[13ch]" style={{ ...look.headingStyle, fontSize: "clamp(38px, 5cqi, 66px)", lineHeight: 1.1 }}>
                 {lead} {tail ? <span style={{ color: t.accent }}>{tail}</span> : null}
               </h1>
               {body ? <p className="m-0 max-w-[420px] text-[15px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
-              <button type="button" className="bq-btn mt-1" style={{ background: "transparent", color: t.ink, border: `1.5px solid ${t.ink}`, textTransform: "uppercase", fontSize: 12.5, letterSpacing: "0.08em" }} onClick={() => goHero()}>{cta} <span aria-hidden className="ml-2">→</span></button>
+              <button type="button" className="bq-btn mt-1" style={{ background: "transparent", color: t.ink, border: `1.5px solid ${t.ink}`, textTransform: "uppercase", fontSize: 12.5, letterSpacing: "0.08em" }} onClick={() => goHero()}>{ctaRich} <span aria-hidden className="ml-2">→</span></button>
             </div>
           </div>
         </section>
@@ -2155,8 +2171,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         <section aria-labelledby={headingId} className="relative" style={{ background: t.paperBg, color: t.ink }}>
           <div className="grid @3xl:grid-cols-2">
             <div className="relative flex flex-col items-start justify-center gap-4 px-6 py-14 @3xl:min-h-[600px] @3xl:pl-24 @3xl:pr-12">
-              {eyebrow ? <p aria-hidden className="absolute bottom-24 left-6 m-0 hidden origin-left -rotate-90 text-[11px] uppercase @3xl:block" style={{ color: t.muted, letterSpacing: "0.24em" }}>{eyebrow}</p> : null}
-              {eyebrow ? <p className="m-0 text-[11.5px] uppercase" style={{ color: t.muted, letterSpacing: "0.24em" }}>{eyebrow}</p> : null}
+              {eyebrow ? <p aria-hidden className="absolute bottom-24 left-6 m-0 hidden origin-left -rotate-90 text-[11px] uppercase @3xl:block" style={{ color: t.muted, letterSpacing: "0.24em" }}>{eyebrowRich}</p> : null}
+              {eyebrow ? <p className="m-0 text-[11.5px] uppercase" style={{ color: t.muted, letterSpacing: "0.24em" }}>{eyebrowRich}</p> : null}
               <h1 id={headingId} className="m-0 max-w-[12ch]" style={{ fontFamily: look.headingFont, fontWeight: 300, fontSize: "clamp(34px, 4.4cqi, 56px)", lineHeight: 1.12 }}>
                 {words.map((word, i) => <span key={i} style={{ fontWeight: i === words.length - 2 ? 700 : 300 }}>{word}{i < words.length - 1 ? " " : ""}</span>)}
               </h1>
@@ -2180,7 +2196,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             {label ? (big
               ? <h1 id={headingId} className="m-0 px-5 py-3 uppercase" style={{ background: "rgba(42,37,34,.82)", color: "#FFFFFF", fontFamily: look.headingFont, fontWeight: 400, letterSpacing: "0.04em", fontSize: "clamp(28px, 3.6cqi, 46px)" }}>{label}</h1>
               : <p className="m-0 px-5 py-3 uppercase" style={{ background: "rgba(42,37,34,.82)", color: "#FFFFFF", fontFamily: look.headingFont, letterSpacing: "0.04em", fontSize: "clamp(22px, 2.6cqi, 34px)" }}>{label}</p>) : null}
-            {big ? <button type="button" className="bq-btn" style={{ background: "#FFFFFF", color: t.ink, border: "1.5px solid #FFFFFF", textTransform: "uppercase", fontSize: 12, letterSpacing: "0.12em" }} onClick={() => goHero()}>{cta}</button> : null}
+            {big ? <button type="button" className="bq-btn" style={{ background: "#FFFFFF", color: t.ink, border: "1.5px solid #FFFFFF", textTransform: "uppercase", fontSize: 12, letterSpacing: "0.12em" }} onClick={() => goHero()}>{ctaRich}</button> : null}
           </div>
         </div>
       );
@@ -2206,10 +2222,10 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div aria-hidden className="absolute inset-0 hidden @3xl:block" style={{ background: shots.length ? "linear-gradient(90deg, rgba(236,236,236,.92), rgba(236,236,236,.55) 40%, rgba(236,236,236,0) 62%)" : "transparent" }} />
           <div className="bq-wrap relative">
             <div className="flex min-h-[420px] flex-col items-start justify-center gap-4 px-10 py-16 @3xl:min-h-[580px] @3xl:px-0">
-              {eyebrow ? <p className="m-0 text-[13px] font-semibold uppercase" style={{ letterSpacing: "0.14em", color: t.muted }}>{eyebrow}</p> : null}
+              {eyebrow ? <p className="m-0 text-[13px] font-semibold uppercase" style={{ letterSpacing: "0.14em", color: t.muted }}>{eyebrowRich}</p> : null}
               <h1 id={headingId} className="m-0 max-w-[9ch]" style={{ fontFamily: look.headingFont, fontWeight: 800, fontSize: "clamp(44px, 6.4cqi, 88px)", lineHeight: 0.98, letterSpacing: "-0.03em" }}>{titleRich}</h1>
               {body ? <p className="m-0 max-w-[400px] text-[15px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
-              <button type="button" className="bq-btn mt-2" style={{ background: "#FFFFFF", color: t.ink, border: "1.5px solid #FFFFFF", textTransform: "uppercase", fontSize: 12.5, fontWeight: 700, letterSpacing: "0.06em" }} onClick={() => goHero()}>{cta} <span aria-hidden className="ml-2">→</span></button>
+              <button type="button" className="bq-btn mt-2" style={{ background: "#FFFFFF", color: t.ink, border: "1.5px solid #FFFFFF", textTransform: "uppercase", fontSize: 12.5, fontWeight: 700, letterSpacing: "0.06em" }} onClick={() => goHero()}>{ctaRich} <span aria-hidden className="ml-2">→</span></button>
             </div>
           </div>
           {sideArrows(shots.length, t.ink)}
@@ -2224,10 +2240,10 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             {img}
             <div className="absolute inset-0" style={{ background: image ? "rgba(20,12,6,.38)" : "transparent" }} />
             <div className="bq-wrap absolute inset-x-0 bottom-0 flex flex-col items-center gap-3 pb-10 text-center text-white">
-              {eyebrow ? <p className="text-[12px] uppercase" style={{ letterSpacing: "0.22em" }}>{eyebrow}</p> : null}
+              {eyebrow ? <p className="text-[12px] uppercase" style={{ letterSpacing: "0.22em" }}>{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h max-w-[980px]" style={{ ...look.headingStyle, fontWeight: 500, fontSize: "clamp(34px, 6cqi, 72px)", lineHeight: 1.04 }}>{titleRich}</h1>
               {body ? <p className="max-w-[560px] text-[15px] opacity-90">{bodyRich}</p> : null}
-              <button type="button" className="bq-btn mt-1" style={{ background: "transparent", color: "#fff", border: "1.5px solid #fff", borderRadius: 999 }} onClick={() => goHero()}>{cta}</button>
+              <button type="button" className="bq-btn mt-1" style={{ background: "transparent", color: "#fff", border: "1.5px solid #fff", borderRadius: 999 }} onClick={() => goHero()}>{ctaRich}</button>
             </div>
           </div>
         </section>
@@ -2239,11 +2255,11 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         <section aria-labelledby={headingId} className="bq-wrap pt-4">
           <div className="bq-split-hero overflow-hidden" style={{ borderRadius: look.cardRadius + 8 }}>
             <div className="flex flex-col justify-center gap-4 px-6 py-10 @3xl:px-12" style={{ background: t.heroBg, color: t.heroText }}>
-              {eyebrow ? <p className="text-[13px] font-bold uppercase" style={{ letterSpacing: "0.14em", opacity: 0.85 }}>{eyebrow}</p> : null}
+              {eyebrow ? <p className="text-[13px] font-bold uppercase" style={{ letterSpacing: "0.14em", opacity: 0.85 }}>{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(38px, 6.5cqi, 76px)", lineHeight: 0.98 }}>{titleRich}</h1>
               {body ? <p className="max-w-[460px] text-[16px] opacity-90">{bodyRich}</p> : null}
               <div>
-                <button type="button" className="bq-btn" style={look.secondaryButton} onClick={() => goHero()}>{cta}</button>
+                <button type="button" className="bq-btn" style={look.secondaryButton} onClick={() => goHero()}>{ctaRich}</button>
               </div>
             </div>
             <div className="bq-media" style={{ aspectRatio: "4 / 3", minHeight: "100%" }}>{img}</div>
@@ -2257,12 +2273,12 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         <section aria-labelledby={headingId} className="bq-wrap pb-4 pt-12 @3xl:pt-20">
           <div className="grid gap-5 @3xl:grid-cols-[1.2fr_1fr] @3xl:items-end">
             <div>
-              {eyebrow ? <p className="text-[12.5px] uppercase" style={{ letterSpacing: "0.2em", color: t.muted }}>{eyebrow}</p> : null}
+              {eyebrow ? <p className="text-[12.5px] uppercase" style={{ letterSpacing: "0.2em", color: t.muted }}>{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h mt-3 max-w-[14ch]" style={{ ...look.headingStyle, fontSize: "clamp(36px, 5.5cqi, 68px)", lineHeight: 1.04 }}>{titleRich}</h1>
             </div>
             <div className="flex flex-col items-start gap-4">
               {body ? <p className="max-w-[440px] text-[15.5px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
-              <button type="button" className="bq-btn" style={look.secondaryButton} onClick={() => goHero()}>{cta}</button>
+              <button type="button" className="bq-btn" style={look.secondaryButton} onClick={() => goHero()}>{ctaRich}</button>
             </div>
           </div>
           <div className="bq-media mt-10" style={{ aspectRatio: "16 / 9", borderRadius: look.cardRadius }}>{img}</div>
@@ -2275,11 +2291,11 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         <section aria-labelledby={headingId} style={{ background: t.heroBg, color: t.heroText }}>
           <div className="bq-wrap grid gap-8 py-12 @3xl:grid-cols-2 @3xl:items-center @3xl:py-16">
             <div className="flex flex-col items-start gap-4">
-              {eyebrow ? <p className="text-[12px] uppercase" style={{ fontFamily: look.eyebrowFont, color: t.accent, letterSpacing: "0.16em" }}>{eyebrow}</p> : null}
+              {eyebrow ? <p className="text-[12px] uppercase" style={{ fontFamily: look.eyebrowFont, color: t.accent, letterSpacing: "0.16em" }}>{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h" style={{ ...look.headingStyle, fontSize: "clamp(36px, 5.5cqi, 66px)", lineHeight: 1.02 }}>{titleRich}</h1>
               {body ? <p className="max-w-[480px] text-[15.5px]" style={{ color: t.muted }}>{bodyRich}</p> : null}
               <div className="flex flex-wrap gap-3">
-                <button type="button" className="bq-btn" style={look.primaryButton} onClick={() => goHero()}>{cta}</button>
+                <button type="button" className="bq-btn" style={look.primaryButton} onClick={() => goHero()}>{ctaRich}</button>
               </div>
             </div>
             <div className="relative grid place-items-center" style={{ aspectRatio: "1 / 1", borderRadius: look.cardRadius, background: `radial-gradient(circle at 50% 45%, ${t.accent}40, transparent 62%), ${t.cardBg}`, border: `1px solid ${t.border}` }}>
@@ -2297,10 +2313,10 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             {img}
             <div className="absolute inset-0" style={{ background: image ? "linear-gradient(to top, rgba(0,0,0,.6), rgba(0,0,0,0) 55%)" : "transparent" }} />
             <div className="bq-wrap absolute inset-x-0 bottom-0 flex flex-col items-start gap-4 pb-8 text-white">
-              {eyebrow ? <p className="px-3 py-1 text-[12px] font-extrabold uppercase" style={{ background: image ? t.accent : t.ink, letterSpacing: "0.14em" }}>{eyebrow}</p> : null}
+              {eyebrow ? <p className="px-3 py-1 text-[12px] font-extrabold uppercase" style={{ background: image ? t.accent : t.ink, letterSpacing: "0.14em" }}>{eyebrowRich}</p> : null}
               <h1 id={headingId} className="bq-h max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(46px, 10cqi, 140px)", lineHeight: 0.9 }}>{titleRich}</h1>
               {body ? <p className="max-w-[480px] text-[15.5px] font-medium opacity-90">{bodyRich}</p> : null}
-              <button type="button" className="bq-btn" style={{ background: "#fff", color: t.ink, border: "1.5px solid #fff", borderRadius: 999, textTransform: "uppercase", fontWeight: 800 }} onClick={() => goHero()}>{cta}</button>
+              <button type="button" className="bq-btn" style={{ background: "#fff", color: t.ink, border: "1.5px solid #fff", borderRadius: 999, textTransform: "uppercase", fontWeight: 800 }} onClick={() => goHero()}>{ctaRich}</button>
             </div>
           </div>
         </section>
@@ -2314,10 +2330,10 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             {img}
             <div className="absolute inset-0" style={{ background: "rgba(0,0,0,.55)" }} />
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6 text-center text-white">
-              {text(copy.eyebrow) ? <p className="text-[11.5px] font-bold uppercase" style={{ color: t.accent, letterSpacing: "0.22em" }}>{text(copy.eyebrow)}</p> : null}
+              {text(copy.eyebrow) ? <p className="text-[11.5px] font-bold uppercase" style={{ color: t.accent, letterSpacing: "0.22em" }}>{rich(copy, "eyebrow")}</p> : null}
               <h1 id={headingId} className="bq-h max-w-[900px]" style={{ ...look.headingStyle, fontSize: "clamp(30px, 6cqi, 60px)" }}>{titleRich}</h1>
               {body ? <p className="max-w-[560px] text-[15px] opacity-90">{bodyRich}</p> : null}
-              <button type="button" className="bq-btn" style={look.primaryButton} onClick={() => goHero()}>{cta}</button>
+              <button type="button" className="bq-btn" style={look.primaryButton} onClick={() => goHero()}>{ctaRich}</button>
             </div>
           </div>
         </section>
@@ -2393,7 +2409,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="bq-wrap absolute inset-x-0 bottom-0 flex flex-col items-start gap-3 py-6 text-white">
             <h1 id={headingId} className="bq-h max-w-[760px]" style={{ fontWeight: 700, letterSpacing: "-0.03em", fontSize: "clamp(32px, 6cqi, 68px)", lineHeight: 1.02 }}>{titleRich}</h1>
             {body ? <p className="max-w-[520px] text-[15px] opacity-90">{bodyRich}</p> : null}
-            <button type="button" className="bq-btn" style={{ ...look.primaryButton, borderRadius: 999 }} onClick={() => goHero()}>{cta}</button>
+            <button type="button" className="bq-btn" style={{ ...look.primaryButton, borderRadius: 999 }} onClick={() => goHero()}>{ctaRich}</button>
           </div>
         </div>
       </section>
@@ -2493,7 +2509,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       );
       return (
         <section aria-labelledby={headingId} className="bq-wrap pt-12">
-          <h2 id={headingId} className="sr-only">{text(copy.title) || "Collections"}</h2>
+          <h2 id={headingId} className="sr-only">{rich(copy, "title", "Collections")}</h2>
           <div className="grid gap-5 @3xl:grid-cols-[1.5fr_1fr]">
             {big ? card(big, true) : null}
             <div className="grid gap-5 @3xl:grid-rows-2">{rest.slice(0, 2).map((tile) => card(tile, false))}</div>
@@ -2515,7 +2531,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="grid gap-4 @3xl:grid-cols-[1fr_1fr_1fr]">
             <div className="grid gap-4">{tile(a)}{tile(c)}</div>
             <div className="flex flex-col items-center gap-3 text-center">
-              <h2 id={headingId} className="m-0 text-[28px]" style={{ fontFamily: BQ_SERIF, fontStyle: "italic", color: t.accent }}>{text(copy.title) || "Shop by category"}</h2>
+              <h2 id={headingId} className="m-0 text-[28px]" style={{ fontFamily: BQ_SERIF, fontStyle: "italic", color: t.accent }}>{rich(copy, "title", "Shop by category")}</h2>
               {text(store.description) ? <p className="m-0 text-[13.5px]" style={{ color: t.muted }}>{text(store.description)}</p> : null}
               <button type="button" className="bq-btn" style={look.primaryButton} onClick={() => go("products")}>Shop now</button>
               {centre ? (
@@ -2545,7 +2561,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       ) : null;
       return (
         <section aria-labelledby={headingId} className="bq-wrap pt-12">
-          <h2 id={headingId} className="sr-only">{text(copy.title) || "Collections"}</h2>
+          <h2 id={headingId} className="sr-only">{rich(copy, "title", "Collections")}</h2>
           <div className="grid gap-5 @3xl:grid-cols-2">
             <div className="grid gap-5">{card(a, t.cardBg)}{card(b, "#EFEFEF")}</div>
             {tall ? (
@@ -2566,7 +2582,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       // Two big rows, the photo and a words card overlapping it, alternating sides (Dára).
       return (
         <section aria-labelledby={headingId} className="bq-wrap py-12">
-          <h2 id={headingId} className="sr-only">{text(copy.title) || "Collections"}</h2>
+          <h2 id={headingId} className="sr-only">{rich(copy, "title", "Collections")}</h2>
           <div className="grid gap-12">
             {tiles.slice(0, 2).map((tile, i) => (
               <div key={tile.key} className={`relative grid items-center @3xl:grid-cols-[1.1fr_1fr] ${i % 2 ? "@3xl:grid-cols-[1fr_1.1fr]" : ""}`}>
@@ -2590,7 +2606,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       return (
         <section aria-labelledby={headingId} className="bq-wrap pt-12">
           <p className="m-0 text-center text-[11px] uppercase" style={{ color: t.muted, letterSpacing: "0.3em" }}>Only the best</p>
-          <h2 id={headingId} className="m-0 mb-8 mt-1 text-center text-[30px] uppercase @3xl:text-[38px]" style={{ fontFamily: look.headingFont, fontWeight: 400 }}>{text(copy.title) || "Shop the edit"}</h2>
+          <h2 id={headingId} className="m-0 mb-8 mt-1 text-center text-[30px] uppercase @3xl:text-[38px]" style={{ fontFamily: look.headingFont, fontWeight: 400 }}>{rich(copy, "title", "Shop the edit")}</h2>
           <div className="grid gap-5 @3xl:grid-cols-3">
             {tiles.slice(0, 3).map((tile) => (
               <button key={tile.key} type="button" onClick={tile.onSelect} className="group relative block cursor-pointer overflow-hidden border-0 p-0" style={{ background: look.placeholder }}>
@@ -2610,7 +2626,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       // Two tall photos, half the page each, the name in huge bold letters with an outline button (Rẹ̀wà).
       return (
         <section aria-labelledby={headingId}>
-          <h2 id={headingId} className="sr-only">{text(copy.title) || "Collections"}</h2>
+          <h2 id={headingId} className="sr-only">{rich(copy, "title", "Collections")}</h2>
           <div className="grid @3xl:grid-cols-2">
             {tiles.slice(0, 2).map((tile) => (
               <button key={tile.key} type="button" onClick={tile.onSelect} className="group relative block min-h-[340px] cursor-pointer overflow-hidden border-0 p-0 text-left @3xl:min-h-[480px]" style={{ background: look.placeholder }}>
@@ -2642,7 +2658,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="grid gap-3 @3xl:grid-cols-3">
             <div className="flex flex-col items-start justify-center gap-3 p-8" style={{ background: "#E9E9E9", borderRadius: look.cardRadius }}>
               <p className="m-0 text-[13px] font-semibold" style={{ color: t.muted }}>Exclusive collection</p>
-              <h2 id={headingId} className="bq-h m-0 text-[28px]" style={look.headingStyle}>{text(copy.title) || "Be exclusive"}</h2>
+              <h2 id={headingId} className="bq-h m-0 text-[28px]" style={look.headingStyle}>{rich(copy, "title", "Be exclusive")}</h2>
               {text(store.description) ? <p className="m-0 text-[13.5px] leading-6" style={{ color: t.muted }}>{text(store.description)}</p> : null}
               <button type="button" className="bq-btn mt-2" style={look.primaryButton} onClick={() => go("products")}>Explore</button>
             </div>
@@ -2665,7 +2681,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       );
       return (
         <section aria-labelledby={headingId} className="bq-wrap py-14">
-          <h2 id={headingId} className="sr-only">{text(copy.title) || "Collections"}</h2>
+          <h2 id={headingId} className="sr-only">{rich(copy, "title", "Collections")}</h2>
           <div className="grid gap-10 @3xl:grid-cols-12">{tiles.slice(0, 3).map(item)}</div>
         </section>
       );
@@ -2700,7 +2716,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               {colour(second, "#1A8FE3")}
               <div className={`flex min-h-[220px] flex-col items-center justify-center gap-3 p-8 text-center ${tiles[3] ? "" : "@xl:row-span-2"}`} style={{ background: "#FFFFFF", color: t.ink }}>
                 <p className="m-0 text-[11.5px] font-semibold uppercase" style={{ letterSpacing: "0.16em", color: t.muted }}>{store.name}</p>
-                <h2 id={headingId} className="bq-h m-0 text-[26px]" style={look.headingStyle}>{text(copy.title) || "Collections"}</h2>
+                <h2 id={headingId} className="bq-h m-0 text-[26px]" style={look.headingStyle}>{rich(copy, "title", "Collections")}</h2>
                 <button type="button" className="bq-btn" style={look.primaryButton} onClick={() => go("products")}>Shop all</button>
               </div>
               {colour(third, "#F7941D")}
@@ -2722,7 +2738,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       ) : null;
       return (
         <section aria-labelledby={headingId} className="bq-wrap pt-12">
-          <h2 id={headingId} className="sr-only">{text(copy.title) || "Shop by category"}</h2>
+          <h2 id={headingId} className="sr-only">{rich(copy, "title", "Shop by category")}</h2>
           <div className="grid gap-5 @3xl:grid-cols-[1fr_1.7fr_1fr]">
             {side(left)}
             {middle ? (
@@ -2744,7 +2760,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       // Two large photos with a serif "Shop …" caption under each (Bàtà).
       return (
         <section aria-labelledby={headingId} className="bq-wrap pt-10">
-          <h2 id={headingId} className="sr-only">{text(copy.title) || "Shop the collections"}</h2>
+          <h2 id={headingId} className="sr-only">{rich(copy, "title", "Shop the collections")}</h2>
           <div className="grid gap-6 @3xl:grid-cols-2">
             {tiles.slice(0, 2).map((tile) => (
               <button key={tile.key} type="button" onClick={tile.onSelect} className="group flex cursor-pointer flex-col gap-4 border-0 bg-transparent p-0 text-center" style={{ color: t.ink }}>
@@ -2760,7 +2776,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       // Square photos with the name on an accent bar underneath, lifted by a soft shadow (Ọgbà).
       return (
         <section aria-labelledby={headingId} className="bq-wrap pt-10">
-          <h2 id={headingId} className="sr-only">{text(copy.title) || "Shop by category"}</h2>
+          <h2 id={headingId} className="sr-only">{rich(copy, "title", "Shop by category")}</h2>
           <div className="grid gap-6 @3xl:grid-cols-3">
             {tiles.slice(0, 3).map((tile) => (
               <button key={tile.key} type="button" onClick={tile.onSelect} className="group flex cursor-pointer flex-col border-0 p-0 text-center" style={{ background: "#FFFFFF", boxShadow: "0 10px 30px rgba(0,0,0,.12)", borderRadius: look.cardRadius }}>
@@ -2776,7 +2792,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       // Light tiles with the photo on the right and a slanted accent panel holding the name (Ike).
       return (
         <section aria-labelledby={headingId} className="bq-wrap pt-10">
-          <h2 id={headingId} className="sr-only">{text(copy.title) || "Collections"}</h2>
+          <h2 id={headingId} className="sr-only">{rich(copy, "title", "Collections")}</h2>
           <div className="grid gap-5 @3xl:grid-cols-3">
             {tiles.slice(0, 3).map((tile) => (
               <button key={tile.key} type="button" onClick={tile.onSelect} className="group relative block h-[220px] cursor-pointer overflow-hidden border-0 p-0 text-left" style={{ background: t.cardBg, borderRadius: look.cardRadius }}>
@@ -2798,7 +2814,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       // Bordered cards with how many products each holds, the picture and the name (Ẹ̀wù).
       return (
         <section aria-labelledby={headingId} className="bq-wrap pt-10">
-          <h2 id={headingId} className="bq-h mb-6 text-center text-[26px] @3xl:text-[30px]" style={look.headingStyle}>{text(copy.title) || "Shop by category"}</h2>
+          <h2 id={headingId} className="bq-h mb-6 text-center text-[26px] @3xl:text-[30px]" style={look.headingStyle}>{rich(copy, "title", "Shop by category")}</h2>
           <div className="grid grid-cols-2 gap-4 @3xl:grid-cols-3 @3xl:gap-6">
             {tiles.slice(0, 6).map((tile) => (
               <button key={tile.key} type="button" onClick={tile.onSelect} className="group flex cursor-pointer flex-col gap-3 border p-4 text-left transition hover:shadow-md @3xl:p-6" style={{ borderColor: t.border, background: "#FFFFFF", color: t.ink, borderRadius: look.cardRadius }}>
@@ -2815,7 +2831,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       // Two wide panels, the name large in the accent colour beside a photo (Wuta, Ẹ̀wù).
       return (
         <section aria-labelledby={headingId} className="bq-wrap pt-10">
-          <h2 id={headingId} className="sr-only">{text(copy.title) || "Collections"}</h2>
+          <h2 id={headingId} className="sr-only">{rich(copy, "title", "Collections")}</h2>
           <div className="grid gap-5 @3xl:grid-cols-2">
             {tiles.slice(0, 2).map((tile) => (
               <button key={tile.key} type="button" onClick={tile.onSelect} className="group grid min-h-[200px] cursor-pointer grid-cols-[1.15fr_1fr] items-center gap-3 overflow-hidden border-0 p-0 text-left" style={{ background: look.storyBg, color: t.ink, borderRadius: look.cardRadius }}>
@@ -2835,7 +2851,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       // Photo banners with the name in a white box in the middle (Àwọ̀).
       return (
         <section aria-labelledby={headingId} className="bq-wrap pt-8">
-          <h2 id={headingId} className="sr-only">{text(copy.title) || "Shop by category"}</h2>
+          <h2 id={headingId} className="sr-only">{rich(copy, "title", "Shop by category")}</h2>
           <div className="grid gap-4 @3xl:grid-cols-3">
             {tiles.slice(0, 3).map((tile) => (
               <button key={tile.key} type="button" onClick={tile.onSelect} className="group relative block min-h-[220px] cursor-pointer overflow-hidden border-0 p-0" style={{ background: look.placeholder, borderRadius: look.cardRadius }}>
@@ -2853,7 +2869,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       // Bordered cards: the name and a short line on the left, a photo on the right; a tint slides in on hover (Kyau).
       return (
         <section aria-labelledby={headingId} className="bq-wrap pt-10">
-          <h2 id={headingId} className="sr-only">{text(copy.title) || "Shop by category"}</h2>
+          <h2 id={headingId} className="sr-only">{rich(copy, "title", "Shop by category")}</h2>
           <div className="grid gap-4 @3xl:grid-cols-3">
             {tiles.slice(0, 3).map((tile) => (
               <button key={tile.key} type="button" onClick={tile.onSelect} className="group relative grid min-h-[200px] cursor-pointer grid-cols-[1fr_1fr] items-stretch overflow-hidden border p-0 text-left" style={{ borderColor: t.border, background: "#FFFFFF", color: t.ink, borderRadius: look.cardRadius }}>
@@ -2875,7 +2891,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       const tints = [look.raised, `${t.accent}14`, t.cardBg, `${t.accent}0D`];
       return (
         <section aria-labelledby={headingId} className="bq-wrap pt-10">
-          <h2 id={headingId} className="bq-h mb-6 text-center text-[26px] @3xl:text-[30px]" style={look.headingStyle}>{text(copy.title) || "Featured categories"}</h2>
+          <h2 id={headingId} className="bq-h mb-6 text-center text-[26px] @3xl:text-[30px]" style={look.headingStyle}>{rich(copy, "title", "Featured categories")}</h2>
           <div className="grid gap-4 @3xl:grid-cols-[1.4fr_1fr]">
             {tiles.slice(0, 4).map((tile, i) => (
               <button key={tile.key} type="button" onClick={tile.onSelect} className={`group relative grid min-h-[200px] cursor-pointer grid-cols-[1fr_1fr] items-center overflow-hidden border-0 p-6 text-left @3xl:min-h-[260px] ${i === 1 || i === 2 ? "@3xl:order-none" : ""}`} style={{ background: tints[i % tints.length], color: t.ink, borderRadius: look.cardRadius }}>
@@ -2897,7 +2913,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       // Big words over pale photos with an outlined button (Imani): MEN, WOMEN, ACCESSORIES.
       return (
         <section aria-labelledby={headingId} className="bq-wrap pt-10">
-          <h2 id={headingId} className="sr-only">{text(copy.title) || "Shop by category"}</h2>
+          <h2 id={headingId} className="sr-only">{rich(copy, "title", "Shop by category")}</h2>
           <div className="grid gap-4 @3xl:grid-cols-3">
             {tiles.slice(0, 3).map((tile) => (
               <button key={tile.key} type="button" onClick={tile.onSelect} className="group relative block min-h-[240px] cursor-pointer overflow-hidden border-0 p-0 text-left @3xl:min-h-[300px]" style={{ background: look.raised, borderRadius: look.cardRadius }}>
@@ -2920,7 +2936,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       // Full-width banners, one per category, with the name large: for a short list of big departments.
       return (
         <section aria-labelledby={headingId} className="bq-wrap pt-10">
-          <SectionTitle look={look} id={headingId}>{text(copy.title) || "Shop by category"}</SectionTitle>
+          <SectionTitle look={look} id={headingId}>{rich(copy, "title", "Shop by category")}</SectionTitle>
           <div className="grid gap-3">
             {tiles.slice(0, 4).map((tile, i) => (
               <button key={tile.key} type="button" onClick={tile.onSelect} className="group relative block w-full cursor-pointer overflow-hidden border-0 p-0 text-left" style={{ borderRadius: look.cardRadius, background: look.placeholder }}>
@@ -2943,7 +2959,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       // A bento grid: the first category large, the next four around it.
       return (
         <section aria-labelledby={headingId} className="bq-wrap pt-10">
-          <SectionTitle look={look} id={headingId}>{text(copy.title) || "Shop by category"}</SectionTitle>
+          <SectionTitle look={look} id={headingId}>{rich(copy, "title", "Shop by category")}</SectionTitle>
           <div className="grid grid-cols-2 gap-3 @3xl:grid-cols-4 @3xl:grid-rows-2 @3xl:gap-4" style={{ gridAutoRows: "minmax(150px, auto)" }}>
             {tiles.slice(0, 5).map((tile, i) => (
               <button key={tile.key} type="button" onClick={tile.onSelect} className={`group relative block min-h-[160px] cursor-pointer overflow-hidden border-0 p-0 text-left ${i === 0 ? "col-span-2 row-span-2 min-h-[300px] @3xl:min-h-[420px]" : ""}`} style={{ borderRadius: look.cardRadius, background: look.placeholder }}>
@@ -2964,7 +2980,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     if (section.settings?.layout === "chips") {
       return (
         <section aria-labelledby={headingId} className="bq-wrap pt-8">
-          <SectionTitle look={look} id={headingId}>{text(copy.title) || "Shop by category"}</SectionTitle>
+          <SectionTitle look={look} id={headingId}>{rich(copy, "title", "Shop by category")}</SectionTitle>
           <div className="bq-chips">
             {tiles.map((tile) => (
               <button key={tile.key} type="button" onClick={tile.onSelect} className="inline-flex min-h-[44px] shrink-0 items-center gap-2 border px-4 text-[14px] font-medium" style={{ borderColor: t.border, background: look.raised, color: t.ink, borderRadius: look.buttonRadius, cursor: "pointer" }}>
@@ -2978,7 +2994,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     }
     return (
       <section aria-labelledby={headingId} className="bq-wrap pt-8">
-        <SectionTitle look={look} id={headingId}>{text(copy.title) || "Shop by category"}</SectionTitle>
+        <SectionTitle look={look} id={headingId}>{rich(copy, "title", "Shop by category")}</SectionTitle>
         <div className="bq-cats" data-shape={section.settings?.layout === "boutique-circles" ? "circles" : undefined}>
           {tiles.slice(0, themeId === "breeze" ? 6 : 8).map((tile) => (
             <button key={tile.key} type="button" className="bq-cat" onClick={tile.onSelect}>
@@ -3027,7 +3043,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     if (!list.length) {
       return live ? (
         <section className="bq-wrap py-10 text-center" aria-labelledby={headingId}>
-          <h2 id={headingId} className="bq-h text-[24px]" style={look.headingStyle}>{text(copy.title) || "Best sellers"}</h2>
+          <h2 id={headingId} className="bq-h text-[24px]" style={look.headingStyle}>{rich(copy, "title", "Best sellers")}</h2>
           <p className="mt-2 text-[14.5px]" style={{ color: t.muted }}>New pieces are on the way. Check back soon.</p>
         </section>
       ) : editorHint("Your best sellers show here once you add products.");
@@ -3060,17 +3076,17 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     );
     const shopAll = (
       <button type="button" onClick={() => go("products")} className="bq-only-narrow border-0 bg-transparent p-0 text-[14px] font-semibold underline-offset-4 hover:underline" style={{ color: t.ink, cursor: "pointer" }}>
-        {text(copy.cta) || "Shop all"}
+        {rich(copy, "cta", "Shop all")}
       </button>
     );
     const shopAllAlways = (
       <button type="button" onClick={() => go("products")} className="border-0 bg-transparent p-0 text-[14px] font-semibold underline underline-offset-4" style={{ color: t.ink, cursor: "pointer" }}>
-        {text(copy.cta) || "Shop all"}
+        {rich(copy, "cta", "Shop all")}
       </button>
     );
     return (
       <section aria-labelledby={headingId} className="bq-wrap py-10" style={look.dark ? { background: t.paperBg } : undefined}>
-        <SectionTitle look={look} id={headingId} action={railLayout === "tiles" || railLayout === "dense" ? shopAllAlways : <>{shopAll}{arrows}</>}>{text(copy.title) || "Best sellers"}</SectionTitle>
+        <SectionTitle look={look} id={headingId} action={railLayout === "tiles" || railLayout === "dense" ? shopAllAlways : <>{shopAll}{arrows}</>}>{rich(copy, "title", "Best sellers")}</SectionTitle>
         <div className={railLayout === "tiles" ? "bq-tiles" : railLayout === "dense" ? "bq-dense" : "bq-rail"} data-limit={explicitLimit ?? undefined} ref={(el) => { railRefs.current[section.id] = el; }}>
           {list.map((product, i) => (
             <ProductTile key={product.id} product={product} look={look} href={productHref(product.id)} onOpen={live ? undefined : () => openProduct(product.id)} wished={wished.includes(product.id)} onToggleWishlist={toggleWish} eager={i < 2} {...card} />
@@ -3089,7 +3105,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     const card = cardOptions(section);
     const shopAll = (
       <button type="button" onClick={() => go("products")} className="border-0 bg-transparent p-0 text-[14px] font-semibold underline underline-offset-4" style={{ color: t.ink, cursor: "pointer" }}>
-        {text(copy.cta) || "Shop all"}
+        {rich(copy, "cta", "Shop all")}
       </button>
     );
     const open = (product: ShopperProduct, className: string, children: React.ReactNode, style?: React.CSSProperties) => {
@@ -3112,7 +3128,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               </span>
             ))}
             <div className="flex flex-col items-start gap-3">
-              <h2 id={headingId} className="bq-h text-[30px] @3xl:text-[40px]" style={{ ...look.headingStyle, lineHeight: 1.08 }}>{text(copy.title) || "Best seller"}</h2>
+              <h2 id={headingId} className="bq-h text-[30px] @3xl:text-[40px]" style={{ ...look.headingStyle, lineHeight: 1.08 }}>{rich(copy, "title", "Best seller")}</h2>
               <span aria-hidden className="block h-[2px] w-12" style={{ background: t.accent }} />
               <p className="m-0 mt-2 text-[20px] font-semibold" style={{ fontFamily: look.headingFont }}>{product.name}</p>
               {text(product.description) ? <p className="m-0 max-w-[480px] text-[15.5px] leading-7" style={{ color: t.muted }}>{text(product.description)}</p> : null}
@@ -3127,7 +3143,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       // Alternating rows, each product on an angled colour panel with its number, price and a Buy now button (Keke).
       return (
         <section aria-labelledby={headingId} className="bq-wrap py-12">
-          <h2 id={headingId} className="bq-h mb-10 text-center text-[28px] @3xl:text-[34px]" style={look.headingStyle}>{text(copy.title) || "Our range"}</h2>
+          <h2 id={headingId} className="bq-h mb-10 text-center text-[28px] @3xl:text-[34px]" style={look.headingStyle}>{rich(copy, "title", "Our range")}</h2>
           <div className="grid gap-12 @3xl:gap-16">
             {list.slice(0, 4).map((product, i) => (
               <article key={product.id} className="grid items-center gap-6 @3xl:grid-cols-2 @3xl:gap-14">
@@ -3158,7 +3174,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     if (layout === "lookbook") {
       return (
         <section aria-labelledby={headingId} className="bq-wrap py-12">
-          <SectionTitle look={look} id={headingId} action={shopAll}>{text(copy.title) || "The lookbook"}</SectionTitle>
+          <SectionTitle look={look} id={headingId} action={shopAll}>{rich(copy, "title", "The lookbook")}</SectionTitle>
           <div className="grid gap-10 @3xl:gap-16">
             {list.slice(0, 3).map((product, i) => (
               <article key={product.id} className="grid items-center gap-5 @3xl:grid-cols-2 @3xl:gap-14">
@@ -3185,7 +3201,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     const [lead, ...rest] = list;
     return (
       <section aria-labelledby={headingId} className="bq-wrap py-12">
-        <SectionTitle look={look} id={headingId} action={shopAll}>{text(copy.title) || "Featured"}</SectionTitle>
+        <SectionTitle look={look} id={headingId} action={shopAll}>{rich(copy, "title", "Featured")}</SectionTitle>
         <div className="grid gap-4 @3xl:grid-cols-[1.15fr_1fr] @3xl:gap-6">
           {open(lead, "relative block overflow-hidden", (
             <>
@@ -3227,7 +3243,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     return (
       <section aria-labelledby={headingId} className="bq-wrap py-10">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-          <h2 id={headingId} className="bq-h text-[24px] @3xl:text-[28px]" style={look.headingStyle}>{text(copy.title) || "New products"}</h2>
+          <h2 id={headingId} className="bq-h text-[24px] @3xl:text-[28px]" style={look.headingStyle}>{rich(copy, "title", "New products")}</h2>
           <div role="tablist" aria-label="Filter by category" className="flex gap-5 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
             {tab("", "All")}
             {tabs.map((category) => tab(category.slug, category.name))}
@@ -3275,7 +3291,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     };
     return (
       <section aria-labelledby={headingId} className="bq-wrap py-10">
-        <h2 id={headingId} className="sr-only">{text(copy.title) || "Shop the lists"}</h2>
+        <h2 id={headingId} className="sr-only">{rich(copy, "title", "Shop the lists")}</h2>
         <div className={`grid gap-8 ${columns.length === 4 ? "@3xl:grid-cols-4" : "@3xl:grid-cols-3"}`}>
           {columns.map((column) => (
             <div key={column.key} className="min-w-0">
@@ -3308,13 +3324,13 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         {linkToProduct(product, "bq-media block aspect-square w-full border-0 p-0", product.images[0] ? <img src={product.images[0]} alt="" width={500} height={500} loading="lazy" style={{ objectFit: "contain" }} /> : null, { background: "transparent", borderRadius: look.cardRadius })}
         <div className="flex items-center justify-between text-[13.5px] font-semibold">
           {linkToProduct(product, "border-0 p-0", <span style={{ color: t.accent }}>Buy now</span>)}
-          <button type="button" onClick={() => (slug ? shopCategory(slug) : go("products"))} className="cursor-pointer border-0 bg-transparent p-0 text-[13.5px] font-semibold" style={{ color: t.ink }}>{text(copy.cta) || "See more"}</button>
+          <button type="button" onClick={() => (slug ? shopCategory(slug) : go("products"))} className="cursor-pointer border-0 bg-transparent p-0 text-[13.5px] font-semibold" style={{ color: t.ink }}>{rich(copy, "cta", "See more")}</button>
         </div>
       </div>
     );
     return (
       <section aria-labelledby={headingId} className="bq-wrap py-6">
-        <h2 id={headingId} className="sr-only">{text(copy.title) || "Shop by category"}</h2>
+        <h2 id={headingId} className="sr-only">{rich(copy, "title", "Shop by category")}</h2>
         {groups.filter((group) => group.list.length).map((group) => (
           <div key={group.key} className="py-6">
             <h3 className="bq-h mb-6 text-center text-[26px] @3xl:text-[32px]" style={{ ...look.headingStyle, fontWeight: 700 }}>{group.title}</h3>
@@ -3334,9 +3350,9 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       <section aria-labelledby={headingId} className="bq-wrap py-12 @3xl:py-16">
         <div className="grid items-start gap-8 @3xl:grid-cols-[1fr_3fr]">
           <div className="flex flex-col items-start gap-4">
-            <h2 id={headingId} className="bq-h m-0 text-[28px] leading-tight @3xl:text-[34px]" style={look.headingStyle}>{text(copy.title) || "Best sellers"}</h2>
-            {lead ? <p className="m-0 text-[14.5px] leading-7" style={{ color: t.muted }}>{lead}</p> : null}
-            <button type="button" className="bq-btn" style={look.secondaryButton} onClick={() => go("products")}>{text(copy.cta) || "Shop all"}</button>
+            <h2 id={headingId} className="bq-h m-0 text-[28px] leading-tight @3xl:text-[34px]" style={look.headingStyle}>{rich(copy, "title", "Best sellers")}</h2>
+            {lead ? <p className="m-0 text-[14.5px] leading-7" style={{ color: t.muted }}>{rich(copy, "body", lead)}</p> : null}
+            <button type="button" className="bq-btn" style={look.secondaryButton} onClick={() => go("products")}>{rich(copy, "cta", "Shop all")}</button>
           </div>
           <div className="grid grid-cols-2 gap-6 @3xl:grid-cols-3">
             {list.slice(0, 3).map((product) => linkToProduct(product, "group relative flex flex-col items-center gap-2 border-0 p-0 pb-8 text-center", (
@@ -3360,7 +3376,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     const priced = readProductCardOptions(section.settings).showPrice;
     return (
       <section aria-labelledby={headingId} className="bq-wrap py-12">
-        <h2 id={headingId} className="bq-h mb-8 text-center text-[26px] @3xl:text-[30px]" style={look.headingStyle}>{text(copy.title) || "New arrivals"}</h2>
+        <h2 id={headingId} className="bq-h mb-8 text-center text-[26px] @3xl:text-[30px]" style={look.headingStyle}>{rich(copy, "title", "New arrivals")}</h2>
         <div className="grid grid-cols-2 gap-3 @3xl:grid-cols-4">
           {list.slice(0, 4).map((product) => linkToProduct(product, "group relative block aspect-[3/4] overflow-hidden border-0 p-0", (
             <>
@@ -3396,7 +3412,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             {saving ? <span className="absolute -right-2 -top-3 grid h-20 w-20 place-items-center rounded-full text-center text-[13px] font-bold leading-tight" style={{ background: t.ink, color: "#FFFFFF" }}>Save<br />{saving}%</span> : null}
           </div>
           <div className="flex flex-col items-start gap-3">
-            <p className="m-0 text-[12.5px] font-bold uppercase" style={{ color: t.accent, letterSpacing: "0.16em" }}>{text(copy.title) || "Deal of the week"}</p>
+            <p className="m-0 text-[12.5px] font-bold uppercase" style={{ color: t.accent, letterSpacing: "0.16em" }}>{rich(copy, "title", "Deal of the week")}</p>
             <h2 id={headingId} className="bq-h m-0 text-[30px] leading-tight @3xl:text-[38px]" style={look.headingStyle}>{product.name}</h2>
             {priced ? (
               <p className="m-0 text-[20px] font-semibold">
@@ -3405,7 +3421,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               </p>
             ) : null}
             <DealTimer settings={section.settings} look={look} editor={!live && !props.demo} say={say} />
-            {linkToProduct(product, "bq-btn mt-2 border-0", <>{text(copy.cta) || "Shop now"}</>, look.primaryButton)}
+            {linkToProduct(product, "bq-btn mt-2 border-0", <>{rich(copy, "cta", "Shop now")}</>, look.primaryButton)}
           </div>
         </div>
       </section>
@@ -3422,14 +3438,14 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       : [{ key: "all", name: text(copy.title) || "Latest", slug: null, list: pool.slice(0, 8) }];
     return (
       <section aria-labelledby={headingId} className="bq-wrap py-6">
-        <h2 id={headingId} className="sr-only">{text(copy.title) || "Latest"}</h2>
+        <h2 id={headingId} className="sr-only">{rich(copy, "title", "Latest")}</h2>
         {groups.filter((group) => group.list.length).map((group) => (
           <div key={group.key} className="border-b py-10 last:border-b-0" style={{ borderColor: t.border }}>
             <div className="mb-6 flex items-end justify-between gap-4">
               <div>
                 <h3 className="bq-h m-0 text-[26px] @3xl:text-[30px]" style={{ ...look.headingStyle, fontWeight: 700 }}>{group.slug ? `${group.name}: ${(text(copy.title) || "Latest").toLowerCase()}` : group.name}</h3>
               </div>
-              <button type="button" onClick={() => (group.slug ? shopCategory(group.slug) : go("products"))} className="cursor-pointer border-0 bg-transparent p-0 text-[14px] font-semibold underline underline-offset-4" style={{ color: t.ink }}>{text(copy.cta) || "Shop all"}</button>
+              <button type="button" onClick={() => (group.slug ? shopCategory(group.slug) : go("products"))} className="cursor-pointer border-0 bg-transparent p-0 text-[14px] font-semibold underline underline-offset-4" style={{ color: t.ink }}>{rich(copy, "cta", "Shop all")}</button>
             </div>
             <div className="bq-tiles">
               {group.list.map((product, i) => (
@@ -3450,7 +3466,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     const round = section.settings?.round === true;
     return (
       <section aria-labelledby={headingId} className="bq-wrap py-10">
-        <SectionTitle look={look} id={headingId} action={<button type="button" onClick={() => go("products")} className="border-0 bg-transparent p-0 text-[14px] font-semibold underline underline-offset-4" style={{ color: t.ink, cursor: "pointer" }}>{text(copy.cta) || "Shop all"}</button>}>{text(copy.title) || "Best sellers"}</SectionTitle>
+        <SectionTitle look={look} id={headingId} action={<button type="button" onClick={() => go("products")} className="border-0 bg-transparent p-0 text-[14px] font-semibold underline underline-offset-4" style={{ color: t.ink, cursor: "pointer" }}>{rich(copy, "cta", "Shop all")}</button>}>{rich(copy, "title", "Best sellers")}</SectionTitle>
         <div className="grid gap-4 @xl:grid-cols-2 @3xl:grid-cols-3">
           {list.slice(0, 6).map((product) => linkToProduct(product, `flex min-w-0 items-center gap-4 p-3 ${round ? "border-0" : "border"}`, (
             <>
@@ -3496,9 +3512,9 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       <section aria-labelledby={headingId} className="bq-wrap py-10">
         <SectionTitle look={look} id={headingId} action={(
           <button type="button" onClick={() => go("products")} className="border-0 bg-transparent p-0 text-[14px] font-semibold underline underline-offset-4" style={{ color: t.ink, cursor: "pointer" }}>
-            {text(copy.cta) || "Full menu"}
+            {rich(copy, "cta", "Full menu")}
           </button>
-        )}>{text(copy.title) || "Today's menu"}</SectionTitle>
+        )}>{rich(copy, "title", "Today's menu")}</SectionTitle>
         <div className="bq-menu">{list.map(item)}</div>
         {whatsapp ? (
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-[var(--bq-card-radius)] px-5 py-4" style={{ background: t.heroBg, color: t.heroText }}>
@@ -3526,7 +3542,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           query={filter}
           onQuery={setFilter}
           title={text(copy.title) || "Shop all"}
-          renderTitle={(id, label) => <SectionTitle look={look} id={id}>{label}</SectionTitle>}
+          renderTitle={(id, label) => <SectionTitle look={look} id={id}>{label === text(copy.title) ? rich(copy, "title", label) : label}</SectionTitle>}
           renderTile={(product, i) => (
             <ProductTile product={product} look={look} href={productHref(product.id)} onOpen={live ? undefined : () => openProduct(product.id)} wished={wished.includes(product.id)} onToggleWishlist={toggleWish} eager={i < 4} {...card} />
           )}
@@ -3642,7 +3658,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         ) : null}
       </div>
     );
-    const title = <SectionTitle look={look} id={headingId}>{collection?.name ?? (filter.category ? categories.find((entry) => entry.slug === filter.category)?.name : null) ?? (text(copy.title) || "Shop all")}</SectionTitle>;
+    const title = <SectionTitle look={look} id={headingId}>{collection?.name ?? (filter.category ? categories.find((entry) => entry.slug === filter.category)?.name : null) ?? rich(copy, "title", "Shop all")}</SectionTitle>;
     if (sidebar) {
       return (
         <section aria-labelledby={headingId} className="bq-wrap py-8">
@@ -3683,7 +3699,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     const carousel = section.settings?.layout === "carousel";
     return (
       <section aria-labelledby={headingId} className="bq-wrap py-12">
-        <h2 id={headingId} className="bq-h text-center text-[28px]" style={look.headingStyle}>{text(copy.title) || "What customers say"}</h2>
+        <h2 id={headingId} className="bq-h text-center text-[28px]" style={look.headingStyle}>{rich(copy, "title", "What customers say")}</h2>
         {shopper.rating ? (
           <p className="mt-2 text-center text-[13.5px]" style={{ color: t.muted }}>
             <span aria-hidden style={{ color: "#F2A93B", letterSpacing: 1.5 }}>★★★★★</span> {shopper.rating.average.toFixed(1)} from {shopper.rating.count} {shopper.rating.count === 1 ? "review" : "reviews"}
@@ -3723,12 +3739,12 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     const onAbout = current === "about";
     const storyButton = (
       <button type="button" className="bq-btn mt-2" style={{ ...look.secondaryButton, minHeight: 44 }} onClick={() => go(onAbout ? "contact" : pageTypes.has("about") ? "about" : "contact")}>
-        {onAbout ? "Get in touch" : text(copy.primaryCta) || "Our story"}
+        {onAbout ? "Get in touch" : rich(copy, "primaryCta", "Our story")}
       </button>
     );
     // "Picture right" moves the picture after the words on wide screens; phones keep the picture on top.
     const pictureRight = section.settings?.imagePosition === "right";
-    const eyebrow = text(copy.eyebrow) ? <p className="text-[12px] uppercase" style={{ color: look.dark ? t.accent : t.muted, letterSpacing: "0.22em" }}>{text(copy.eyebrow)}</p> : null;
+    const eyebrow = text(copy.eyebrow) ? <p className="text-[12px] uppercase" style={{ color: look.dark ? t.accent : t.muted, letterSpacing: "0.22em" }}>{rich(copy, "eyebrow")}</p> : null;
     if (section.settings?.layout === "centered") {
       // Words only, centred: for a short statement or an About page that leads with the story.
       return (
@@ -3804,7 +3820,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             <div className="bq-media aspect-video w-full @3xl:aspect-auto @3xl:h-full" style={{ borderRadius: 0, minHeight: 220 }}>{image ? <img src={image} alt="" width={1600} height={900} loading="lazy" /> : null}</div>
           </div>
           <div className={`relative flex flex-col items-start gap-4 px-6 py-10 @3xl:min-h-[440px] @3xl:w-[44%] @3xl:justify-center @3xl:px-14 ${pictureRight ? "@3xl:ml-auto" : ""}`} style={{ background: "rgba(43,43,43,.86)" }}>
-            {text(copy.eyebrow) ? <p className="m-0 text-[12px] font-semibold uppercase" style={{ letterSpacing: "0.18em", color: t.accent }}>{text(copy.eyebrow)}</p> : null}
+            {text(copy.eyebrow) ? <p className="m-0 text-[12px] font-semibold uppercase" style={{ letterSpacing: "0.18em", color: t.accent }}>{rich(copy, "eyebrow")}</p> : null}
             <h2 id={headingId} className="bq-h m-0 text-[28px] @3xl:text-[36px]" style={{ ...look.headingStyle, lineHeight: 1.12 }}>{storyTitle}</h2>
             {body ? <p className="m-0 whitespace-pre-line text-[14.5px] leading-7 opacity-85">{bodyRich}</p> : null}
             <button type="button" className="bq-btn mt-1" style={look.primaryButton} onClick={() => go(onAbout ? "contact" : "products")}>{onAbout ? "Get in touch" : "View more"}</button>
@@ -3845,11 +3861,11 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             <div className="flex flex-col items-start gap-4">
               <h2 id={headingId} className="bq-h m-0 max-w-[12ch]" style={{ ...look.headingStyle, fontSize: "clamp(32px, 4.4cqi, 56px)", lineHeight: 1.08 }}>{storyTitle}</h2>
               {body ? <p className="m-0 max-w-[460px] whitespace-pre-line text-[15px] leading-7">{bodyRich}</p> : null}
-              <button type="button" className="bq-btn mt-1" style={{ background: "transparent", color: t.ink, border: `2px solid ${t.ink}` }} onClick={() => go(onAbout ? "contact" : "products")}>{onAbout ? "Get in touch" : text(copy.primaryCta) || "Shop now"}</button>
+              <button type="button" className="bq-btn mt-1" style={{ background: "transparent", color: t.ink, border: `2px solid ${t.ink}` }} onClick={() => go(onAbout ? "contact" : "products")}>{onAbout ? "Get in touch" : rich(copy, "primaryCta", "Shop now")}</button>
             </div>
             <div className="relative mx-auto w-full max-w-[460px]">
               <div className="bq-media aspect-[4/3]" style={{ borderRadius: look.cardRadius + 8 }}>{image ? <img src={image} alt="" width={900} height={675} loading="lazy" /> : null}</div>
-              {text(copy.eyebrow) ? <span className="absolute -left-4 -top-4 grid h-24 w-24 place-items-center rounded-full p-3 text-center text-[13px] font-bold leading-tight shadow-lg" style={{ background: "#FFFFFF", color: t.ink }}>{text(copy.eyebrow)}</span> : null}
+              {text(copy.eyebrow) ? <span className="absolute -left-4 -top-4 grid h-24 w-24 place-items-center rounded-full p-3 text-center text-[13px] font-bold leading-tight shadow-lg" style={{ background: "#FFFFFF", color: t.ink }}>{rich(copy, "eyebrow")}</span> : null}
             </div>
           </div>
         </section>
@@ -3862,10 +3878,10 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           <div className="grid items-center overflow-hidden @3xl:grid-cols-2" style={{ background: look.storyBg, borderRadius: look.cardRadius }}>
             <div className={`bq-media aspect-[4/3] h-full ${pictureRight ? "@3xl:order-2" : ""}`} style={{ borderRadius: 0 }}>{image ? <img src={image} alt="" width={900} height={675} loading="lazy" /> : null}</div>
             <div className="flex flex-col items-center gap-4 px-6 py-10 text-center @3xl:px-12">
-              {text(copy.eyebrow) ? <p className="m-0 text-[15px] uppercase" style={{ color: t.muted, letterSpacing: "0.06em" }}>{text(copy.eyebrow)}</p> : null}
+              {text(copy.eyebrow) ? <p className="m-0 text-[15px] uppercase" style={{ color: t.muted, letterSpacing: "0.06em" }}>{rich(copy, "eyebrow")}</p> : null}
               <h2 id={headingId} className="bq-h max-w-[12ch] uppercase" style={{ ...look.headingStyle, fontWeight: 700, fontSize: "clamp(34px, 4.6cqi, 60px)", lineHeight: 1.04 }}>{storyTitle}</h2>
               {body ? <p className="m-0 max-w-[420px] whitespace-pre-line text-[14.5px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
-              <button type="button" className="bq-btn mt-1" style={look.primaryButton} onClick={() => go(onAbout ? "contact" : "products")}>{onAbout ? "Get in touch" : text(copy.primaryCta) || "Shop now"}</button>
+              <button type="button" className="bq-btn mt-1" style={look.primaryButton} onClick={() => go(onAbout ? "contact" : "products")}>{onAbout ? "Get in touch" : rich(copy, "primaryCta", "Shop now")}</button>
             </div>
           </div>
         </section>
@@ -3879,9 +3895,9 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             {eyebrow}
             <h2 id={headingId} className="sr-only">{storyTitle}</h2>
             <blockquote className="bq-h m-0 text-[26px] @3xl:text-[36px]" style={{ ...look.headingStyle, lineHeight: 1.35 }}>
-              <span aria-hidden style={{ color: t.accent }}>“</span>{body || text(copy.title) || store.name}<span aria-hidden style={{ color: t.accent }}>”</span>
+              <span aria-hidden style={{ color: t.accent }}>“</span>{body ? bodyRich : rich(copy, "title", store.name)}<span aria-hidden style={{ color: t.accent }}>”</span>
             </blockquote>
-            {body && text(copy.title) ? <figcaption className="text-[14px]" style={{ color: t.muted }}>{text(copy.title)}</figcaption> : null}
+            {body && text(copy.title) ? <figcaption className="text-[14px]" style={{ color: t.muted }}>{rich(copy, "title")}</figcaption> : null}
           </figure>
         </section>
       );
@@ -3912,7 +3928,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
               {image ? <img src={image} alt="" width={800} height={1000} loading="lazy" /> : null}
             </div>
             <div className="flex flex-col items-start gap-4">
-              {text(copy.eyebrow) ? <p className="text-[12px] uppercase" style={{ color: t.muted, letterSpacing: "0.22em" }}>{text(copy.eyebrow)}</p> : null}
+              {text(copy.eyebrow) ? <p className="text-[12px] uppercase" style={{ color: t.muted, letterSpacing: "0.22em" }}>{rich(copy, "eyebrow")}</p> : null}
               <h2 id={headingId} className="bq-h text-[32px] @3xl:text-[44px]" style={{ ...look.headingStyle, lineHeight: 1.08 }}>{storyTitle}</h2>
               {body ? <p className="max-w-[520px] text-[15.5px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
               {storyButton}
@@ -3927,12 +3943,12 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
           {image ? <img src={image} alt="" width={900} height={675} loading="lazy" /> : null}
         </div>
         <div className="flex flex-col justify-center gap-3 px-6 py-10 @3xl:px-10">
-          {text(copy.eyebrow) ? <p className="text-[11.5px] font-bold uppercase" style={{ color: look.dark ? t.accent : t.muted, letterSpacing: "0.22em" }}>{text(copy.eyebrow)}</p> : null}
+          {text(copy.eyebrow) ? <p className="text-[11.5px] font-bold uppercase" style={{ color: look.dark ? t.accent : t.muted, letterSpacing: "0.22em" }}>{rich(copy, "eyebrow")}</p> : null}
           <h2 id={headingId} className="bq-h text-[28px] @3xl:text-[32px]" style={look.headingStyle}>{storyTitle}</h2>
           {body ? <p className="max-w-[520px] text-[15px] leading-7" style={{ color: t.muted }}>{bodyRich}</p> : null}
           <div>
             <button type="button" className="bq-btn mt-2" style={look.id === "noir" ? { ...look.primaryButton, minHeight: 42 } : look.primaryButton} onClick={() => go(onAbout ? "contact" : pageTypes.has("about") ? "about" : "contact")}>
-              {onAbout ? "Get in touch" : text(copy.primaryCta) || "Our story"}
+              {onAbout ? "Get in touch" : rich(copy, "primaryCta", "Our story")}
             </button>
           </div>
         </div>
@@ -3949,6 +3965,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     const headingId = `${uid}-${section.id}`;
     const layout = text(section.settings?.layout);
     const title = text(copy.title) || "Questions";
+    const titleRich = rich(copy, "title", "Questions");
     const missing = "Write your answer in the editor. Until then this question stays hidden from shoppers.";
     // Optional search box (FAQ settings): filters questions and answers as the shopper types.
     const searchable = section.settings?.searchable === true;
@@ -3970,7 +3987,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
       // Every answer open, in cards: quick to scan on a dedicated FAQ page.
       return (
         <section aria-labelledby={headingId} className="bq-wrap py-12">
-          <h2 id={headingId} className="bq-h text-center text-[30px]" style={look.headingStyle}>{title}</h2>
+          <h2 id={headingId} className="bq-h text-center text-[30px]" style={look.headingStyle}>{titleRich}</h2>
           {searchBox ? <div className="mx-auto max-w-[720px]">{searchBox}</div> : null}
           <FaqList items={shown} style="cards" look={look} missing={missing} className="mt-8" />
         </section>
@@ -3983,7 +4000,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         <section aria-labelledby={headingId} className="bq-wrap py-12">
           <div className="grid gap-6 @3xl:grid-cols-[0.8fr_1.2fr] @3xl:gap-14">
             <div className="flex flex-col items-start gap-3">
-              <h2 id={headingId} className="bq-h text-[30px] @3xl:text-[36px]" style={look.headingStyle}>{title}</h2>
+              <h2 id={headingId} className="bq-h text-[30px] @3xl:text-[36px]" style={look.headingStyle}>{titleRich}</h2>
               <p className="m-0 text-[14.5px]" style={{ color: t.muted }}>Can&apos;t find your answer? We&apos;re happy to help.</p>
               {pageTypes.has("contact") ? (
                 <button type="button" className="bq-btn mt-1" style={look.secondaryButton} onClick={() => go("contact")}>Contact us</button>
@@ -4000,7 +4017,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     return (
       <section aria-labelledby={headingId} className="bq-wrap py-12">
         <div className={`mx-auto ${style === "cards" || style === "split" ? "max-w-[960px]" : "max-w-[720px]"}`}>
-          <h2 id={headingId} className="bq-h text-center text-[30px]" style={look.headingStyle}>{title}</h2>
+          <h2 id={headingId} className="bq-h text-center text-[30px]" style={look.headingStyle}>{titleRich}</h2>
           {searchBox}
           {accordion}
         </div>
@@ -4023,12 +4040,12 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
             <div aria-hidden className="absolute inset-0" style={{ background: "rgba(20,16,14,.62)" }} />
             <div className="relative mx-auto max-w-[680px]">
               <p className="m-0 text-[11px] uppercase tracking-[0.3em] opacity-80">Only the best</p>
-              <h2 id={headingId} className="m-0 mt-2 text-[28px] uppercase @3xl:text-[40px]" style={{ fontFamily: look.headingFont, fontWeight: 400 }}>{text(copy.title) || "Subscribe to new drops"}</h2>
-              {text(copy.body) ? <p className="m-0 mt-2 text-[14.5px] opacity-85">{text(copy.body)}</p> : null}
+              <h2 id={headingId} className="m-0 mt-2 text-[28px] uppercase @3xl:text-[40px]" style={{ fontFamily: look.headingFont, fontWeight: 400 }}>{rich(copy, "title", "Subscribe to new drops")}</h2>
+              {text(copy.body) ? <p className="m-0 mt-2 text-[14.5px] opacity-85">{rich(copy, "body")}</p> : null}
               <form className="mt-6 flex flex-wrap gap-2" onSubmit={(event) => { event.preventDefault(); void submitForm("newsletter"); }}>
                 <label htmlFor={inputId} className="sr-only">{text(copy.placeholder) || "WhatsApp number or email"}</label>
                 <input id={inputId} required minLength={5} value={form.newsletter} onChange={(event) => setForm((prev) => ({ ...prev, newsletter: event.target.value }))} placeholder={text(copy.placeholder) || "WhatsApp number or email"} className="h-12 min-w-0 flex-1 border-0 bg-white px-4 text-[14.5px]" style={{ color: "#111" }} />
-                <button type="submit" className="bq-btn" style={{ background: t.accent, color: "#FFFFFF", border: `1.5px solid ${t.accent}` }} disabled={status === "sending"}>{status === "sending" ? "Sending…" : text(copy.buttonLabel) || "Subscribe"}</button>
+                <button type="submit" className="bq-btn" style={{ background: t.accent, color: "#FFFFFF", border: `1.5px solid ${t.accent}` }} disabled={status === "sending"}>{status === "sending" ? "Sending…" : rich(copy, "buttonLabel", "Subscribe")}</button>
               </form>
               <p className="m-0 mt-3 min-h-5 text-[13px]" role="status">{status === "sent" ? "Thanks, you're on the list." : status === "error" ? "That didn't go through. Please try again." : ""}</p>
             </div>
@@ -4042,14 +4059,14 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         <section aria-labelledby={headingId} className="bq-wrap py-10">
           <div className="grid items-center gap-8 p-8 @3xl:grid-cols-2 @3xl:p-14" style={{ background: look.newsletterBg, borderRadius: look.cardRadius + 8 }}>
             <div>
-              <h2 id={headingId} className="bq-h m-0 text-[30px] @3xl:text-[42px]" style={{ ...look.headingStyle, lineHeight: 1.1 }}>{text(copy.title) || "Subscribe to new drops"}</h2>
-              {text(copy.body) ? <p className="m-0 mt-3 max-w-[420px] text-[15px] leading-7" style={{ color: t.muted }}>{text(copy.body)}</p> : null}
+              <h2 id={headingId} className="bq-h m-0 text-[30px] @3xl:text-[42px]" style={{ ...look.headingStyle, lineHeight: 1.1 }}>{rich(copy, "title", "Subscribe to new drops")}</h2>
+              {text(copy.body) ? <p className="m-0 mt-3 max-w-[420px] text-[15px] leading-7" style={{ color: t.muted }}>{rich(copy, "body")}</p> : null}
             </div>
             <form className="grid gap-3" onSubmit={(event) => { event.preventDefault(); void submitForm("newsletter"); }}>
               <label htmlFor={inputId} className="text-[13px] font-semibold">{text(copy.placeholder) || "WhatsApp number or email"}</label>
               <input id={inputId} required minLength={5} value={form.newsletter} onChange={(event) => setForm((prev) => ({ ...prev, newsletter: event.target.value }))} className="h-12 min-w-0 rounded-[var(--bq-button-radius)] border bg-white px-4 text-[14.5px]" style={{ borderColor: t.border, color: "#111" }} />
               <button type="submit" className="bq-btn w-full" style={look.solidButton} disabled={status === "sending"}>
-                {status === "sending" ? "Sending…" : text(copy.buttonLabel) || "Subscribe"}
+                {status === "sending" ? "Sending…" : rich(copy, "buttonLabel", "Subscribe")}
               </button>
               <p className="m-0 min-h-5 text-[13px]" role="status" style={{ color: status === "error" ? "#B42318" : t.muted }}>
                 {status === "sent" ? "Thanks, you're on the list." : status === "error" ? "That didn't go through. Please try again." : ""}
@@ -4062,13 +4079,13 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     return (
       <section aria-labelledby={headingId} className="py-12" style={{ background: look.newsletterBg }}>
         <div className="bq-wrap text-center">
-          <h2 id={headingId} className="bq-h text-[28px] @3xl:text-[32px]" style={look.headingStyle}>{text(copy.title) || "Subscribe to new drops"}</h2>
-          {text(copy.body) ? <p className="mt-2 text-[14.5px]" style={{ color: t.muted }}>{text(copy.body)}</p> : null}
+          <h2 id={headingId} className="bq-h text-[28px] @3xl:text-[32px]" style={look.headingStyle}>{rich(copy, "title", "Subscribe to new drops")}</h2>
+          {text(copy.body) ? <p className="mt-2 text-[14.5px]" style={{ color: t.muted }}>{rich(copy, "body")}</p> : null}
           <form className="mx-auto mt-5 flex max-w-[460px] flex-wrap gap-2" onSubmit={(event) => { event.preventDefault(); void submitForm("newsletter"); }}>
             <label htmlFor={inputId} className="sr-only">{text(copy.placeholder) || "WhatsApp number or email"}</label>
             <input id={inputId} required minLength={5} value={form.newsletter} onChange={(event) => setForm((prev) => ({ ...prev, newsletter: event.target.value }))} placeholder={text(copy.placeholder) || "WhatsApp number or email"} className="h-12 min-w-0 flex-1 rounded-[var(--bq-button-radius)] border bg-white px-4 text-[14.5px]" style={{ borderColor: t.border, color: "#111" }} />
             <button type="submit" className="bq-btn" style={look.solidButton} disabled={status === "sending"}>
-              {status === "sending" ? "Sending…" : text(copy.buttonLabel) || "Subscribe"}
+              {status === "sending" ? "Sending…" : rich(copy, "buttonLabel", "Subscribe")}
             </button>
           </form>
           <p className="mt-3 min-h-5 text-[13px]" role="status" style={{ color: status === "error" ? "#B42318" : t.muted }}>
@@ -4106,7 +4123,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         </label>
         <div>
           <button type="submit" className="bq-btn" style={look.solidButton} disabled={status === "sending" || (!form.email.trim() && !form.phone.trim())}>
-            {status === "sending" ? "Sending…" : text(copy.buttonLabel) || "Send message"}
+            {status === "sending" ? "Sending…" : rich(copy, "buttonLabel", "Send message")}
           </button>
         </div>
         <p role="status" className="min-h-5 text-[13px]" style={{ color: status === "error" ? "#B42318" : t.muted }}>
@@ -4120,8 +4137,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         <section aria-labelledby={headingId} className="bq-wrap py-12">
           <div className="grid gap-6 @3xl:grid-cols-[0.9fr_1.1fr] @3xl:gap-10">
             <div className="flex flex-col items-start p-6 @3xl:p-10" style={{ background: t.heroBg, color: t.heroText, borderRadius: look.cardRadius + 4 }}>
-              <h1 id={headingId} className="bq-h text-[32px] @3xl:text-[40px]" style={look.headingStyle}>{text(copy.title) || "Get in touch"}</h1>
-              {text(copy.body) ? <p className="mt-3 text-[15px] leading-7 opacity-85">{text(copy.body)}</p> : null}
+              <h1 id={headingId} className="bq-h text-[32px] @3xl:text-[40px]" style={look.headingStyle}>{rich(copy, "title", "Get in touch")}</h1>
+              {text(copy.body) ? <p className="mt-3 text-[15px] leading-7 opacity-85">{rich(copy, "body")}</p> : null}
               {place ? <p className="mt-4 flex items-center gap-2 text-[14px] opacity-85"><Icon name="pin" size={15} /> {place}</p> : null}
               {whatsappButton}
             </div>
@@ -4132,8 +4149,8 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     }
     const intro = (
       <>
-        <h1 id={headingId} className="bq-h text-[32px]" style={look.headingStyle}>{text(copy.title) || "Get in touch"}</h1>
-        {text(copy.body) ? <p className="mt-2 text-[15px]" style={{ color: t.muted }}>{text(copy.body)}</p> : null}
+        <h1 id={headingId} className="bq-h text-[32px]" style={look.headingStyle}>{rich(copy, "title", "Get in touch")}</h1>
+        {text(copy.body) ? <p className="mt-2 text-[15px]" style={{ color: t.muted }}>{rich(copy, "body")}</p> : null}
         {whatsappButton}
       </>
     );
@@ -4166,7 +4183,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
     const headingId = `${uid}-${section.id}`;
     return (
       <section aria-labelledby={headingId} className="bq-wrap py-10">
-        <SectionTitle look={look} id={headingId}>{text(copy.title) || "Your wishlist"}</SectionTitle>
+        <SectionTitle look={look} id={headingId}>{rich(copy, "title", "Your wishlist")}</SectionTitle>
         {saved.length ? (
           <div className="bq-shop-grid">
             {saved.map((product) => (
@@ -4420,7 +4437,7 @@ export function BoutiqueStorefront(props: BoutiqueStorefrontProps) {
         {!live && !props.demo && shownContent.length === 0 ? <div aria-hidden style={{ minHeight: 280 }} /> : null}
       </main>
       {footerSection ? wrap(footerSection, (
-        <BoutiqueFooter store={store} look={look} shopper={shopper} links={footerLinks} showLogo={footerSection.settings?.showLogo !== false} summary={text(copyOf(footerSection).summary)} onTrackOrder={live ? () => setSheet("account") : undefined} legalLinks={policyLinks} editor={!live && !props.demo} say={say} />
+        <BoutiqueFooter store={store} look={look} shopper={shopper} links={footerLinks} showLogo={footerSection.settings?.showLogo !== false} summary={text(copyOf(footerSection).summary)} summaryCopy={copyOf(footerSection)} onTrackOrder={live ? () => setSheet("account") : undefined} legalLinks={policyLinks} editor={!live && !props.demo} say={say} />
       )) : null}
       </div>
       </div>

@@ -3,7 +3,7 @@
 import { SlideMedia } from "../../HeroSlider";
 import { mediaKind } from "@/lib/store-templates/section-content";
 import { choice, str } from "./block-logic";
-import type { BlockContext } from "./shared";
+import { words, type BlockContext } from "./shared";
 
 /** Split hero: picture or video on one side, eyebrow, headline, text and up to two buttons on the other. */
 export function SplitHero({ ctx }: { ctx: BlockContext }) {
@@ -23,13 +23,13 @@ export function SplitHero({ ctx }: { ctx: BlockContext }) {
           {media ? <SlideMedia slide={slide} eager /> : null}
         </div>
         <div className="flex flex-col justify-center gap-4 px-6 py-10 @3xl:px-14">
-          {str(copy.eyebrow) ? <p className="m-0 text-[12px] font-semibold uppercase" style={{ fontFamily: look.eyebrowFont, letterSpacing: "0.18em", color: t.accent }}>{str(copy.eyebrow)}</p> : null}
-          <h2 id={headingId} className="bq-h max-w-[16ch]" style={{ ...look.headingStyle, fontSize: "clamp(34px, 5.4cqi, 64px)", lineHeight: 1.04 }}>{title}</h2>
-          {str(copy.body) ? <p className="m-0 max-w-[480px] text-[16px] leading-7 opacity-85">{str(copy.body)}</p> : null}
+          {str(copy.eyebrow) ? <p className="m-0 text-[12px] font-semibold uppercase" style={{ fontFamily: look.eyebrowFont, letterSpacing: "0.18em", color: t.accent }}>{words(ctx, "eyebrow")}</p> : null}
+          <h2 id={headingId} className="bq-h max-w-[16ch]" style={{ ...look.headingStyle, fontSize: "clamp(34px, 5.4cqi, 64px)", lineHeight: 1.04 }}>{words(ctx, "title", title)}</h2>
+          {str(copy.body) ? <p className="m-0 max-w-[480px] text-[16px] leading-7 opacity-85">{words(ctx, "body")}</p> : null}
           {primary || secondary ? (
             <div className="mt-1 flex flex-wrap gap-3">
-              {primary ? <button type="button" className="bq-btn" style={look.primaryButton} onClick={() => ctx.go(str(settings.primaryAction) || "products")}>{primary}</button> : null}
-              {secondary ? <button type="button" className="bq-btn" style={{ background: "transparent", color: t.heroText, border: `1.5px solid ${t.heroText}` }} onClick={() => ctx.go(str(settings.secondaryAction) || "about")}>{secondary}</button> : null}
+              {primary ? <button type="button" className="bq-btn" style={look.primaryButton} onClick={() => ctx.go(str(settings.primaryAction) || "products")}>{words(ctx, "primaryCta", primary)}</button> : null}
+              {secondary ? <button type="button" className="bq-btn" style={{ background: "transparent", color: t.heroText, border: `1.5px solid ${t.heroText}` }} onClick={() => ctx.go(str(settings.secondaryAction) || "about")}>{words(ctx, "secondaryCta", secondary)}</button> : null}
             </div>
           ) : null}
         </div>

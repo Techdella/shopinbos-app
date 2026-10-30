@@ -1,8 +1,11 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { withSeller } from "@/lib/auth/middleware";
+import { creditBalance, liveCreditPrices } from "@/lib/ai/credits.server";
+import { DEFAULT_COSTS } from "@shared/ai-credits";
 import { apiError, ok } from "@/lib/api/response";
 import { libraryFor, loadRexBuild, RexBuildError, saveFirstName, saveRexBuild, trackOnboarding } from "@/lib/onboarding/rex-build.server";
+import { cleanSetTokens } from "@shared/colour-sets";
 import { EXTRA_SECTIONS, FLOW_SCREENS, LAYOUTS, SELL_CHIPS, isOnboardingEvent, type RexBuildMemory } from "@shared/seller-onboarding";
 
 export const runtime = "nodejs";
@@ -10,7 +13,8 @@ export const dynamic = "force-dynamic";
 
 // The phone's seller onboarding, "Rex builds your shop" (apps/mobile/src/app/onboarding/**, design RB-01…RB-16;
 // rules in shared/seller-onboarding.ts, server side in src/lib/onboarding/rex-build.server.ts).
-//   GET   → { store, owner, flow, products, collections, suggestedGroups, priceChecks, contact, library }
+//   GET   → { store, owner, flow, products, collections, suggestedGroups, priceChecks, contact, library, credits }
+//           credits: { bgRemove, balance }: what "Clean white backgrounds" costs per photo, shown before asking.
 //           Everything the screens need, and the saved answers so the app reopens on the same screen.
 //   PATCH { patch, firstName?, event?, props? } → { flow }
 //           Saves a step's answers (merged into Store.brandSettings.onboardingMemory.rexBuild); the first name also
@@ -20,7 +24,9 @@ export const dynamic = "force-dynamic";
 export const GET = withSeller(async (_req: NextRequest, { user }) => {
   const state = await loadRexBuild(user.id);
   const images = (state.products ?? []).map((product) => product.image).filter((url): url is string => Boolean(url));
-  return ok({ ...state, library: libraryFor(state.flow.categories, images) });
+  const [prices, balance] = await Promise.all([liveCreditPrices().catch(() => null), creditBalance(user.id).catch(() => null)]);
+  const credits = { bgRemove: prices?.costs.bg_remove ?? DEFAULT_COSTS.bg_remove ?? 3, balance };
+  return ok({ ...state, library: libraryFor(state.flow.categories, images), credits });
 });
 
 const text = (max: number) => z.string().max(max);
@@ -41,6 +47,8 @@ const Patch = z
     themeId: text(60).optional(),
     style: z.enum(["warm", "soft", "luxury", "bold"]).optional(),
     palette: text(40).optional(),
+    // A colour set made from the logo or photos (shared/colour-sets.ts): only #RRGGBB values that pass WCAG contrast.
+    paletteTokens: z.record(z.string().max(20), z.string().regex(/^#[0-9a-fA-F]{6}$/)).nullable().optional(),
     banner: z.object({ url: z.string().url().max(2000), source: z.enum(["product", "rex_library", "upload"]), assetId: text(120).nullable().optional(), swipes: z.number().int().min(0).max(500).optional() }).nullable().optional(),
     words: Words.extend({ options: z.array(Words).max(6).optional() }).nullable().optional(),
     layout: z.object({ layout: z.enum(LAYOUTS as [string, ...string[]]), show: z.enum(["best-sellers", "new", "collection"]), collectionId: text(60).nullable().optional(), showPrice: z.boolean() }).nullable().optional(),
@@ -69,6 +77,11 @@ export const PATCH = withSeller(async (req: NextRequest, { user }) => {
   if (!parsed.success) return apiError("BAD_REQUEST", parsed.error.issues[0]?.message ?? "That answer couldn't be saved.", 400);
   const { patch, event, props } = parsed.data;
   try {
+    if (patch.paletteTokens) {
+      const clean = cleanSetTokens(patch.paletteTokens);
+      if (!clean) return apiError("BAD_REQUEST", "Those colours don't read well together. Pick another set.", 400);
+      patch.paletteTokens = clean;
+    }
     if (patch.firstName) patch.firstName = (await saveFirstName(user.id, patch.firstName)) ?? patch.firstName;
     const flow = await saveRexBuild(user.id, patch as Partial<RexBuildMemory>);
     if (event && isOnboardingEvent(event)) await trackOnboarding(user.id, event, props ?? {});

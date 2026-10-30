@@ -274,3 +274,31 @@ export function richRunStyle(run: RichRun, themeColor: (name: "accent" | "ink" |
   }
   return style;
 }
+
+/**
+ * The text toolbar pressed while words are being typed (the phone's canvas and the web builder's inline editor):
+ * `saved` and `savedRuns` are the words and their formatting in the draft, `typed` what the text box holds now, and
+ * start/end the selection in it (equal: none, so all the words). Returns the runs for the typed words (null: no
+ * formatting left), to save together with them.
+ */
+export function formatTyped(savedRuns: RichRun[] | null, saved: string, typed: string, start: number, end: number, patch: RichPatch): RichRun[] | null {
+  return applyRichFormat(remapRuns(savedRuns, saved, typed), typed, start, end, patch);
+}
+
+/**
+ * A copy block's content with copy[key] set to `value`. `runs` says what its formatting is now (null: none);
+ * undefined means the words were typed over, so the formatting they had follows them (remapRuns). The web builder
+ * and the phone keep formatting the same way.
+ */
+export function copyWithWords(content: Record<string, unknown>, key: string, value: string, runs?: RichRun[] | null): Record<string, unknown> {
+  const next: Record<string, unknown> = { ...content, [key]: value };
+  const before = isRecord(content[RICH_KEY]) ? (content[RICH_KEY] as Record<string, unknown>) : {};
+  const old = typeof content[key] === "string" ? (content[key] as string) : "";
+  const kept = runs === undefined ? remapRuns(sanitizeRuns(before[key], old), old, value) : runs ? sanitizeRuns(runs, value) : null;
+  const map: Record<string, unknown> = { ...before };
+  if (kept) map[key] = kept;
+  else delete map[key];
+  if (Object.keys(map).length) next[RICH_KEY] = map;
+  else delete next[RICH_KEY];
+  return next;
+}

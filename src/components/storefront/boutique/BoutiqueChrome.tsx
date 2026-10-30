@@ -13,6 +13,7 @@ import { bannerLinkHref, readableText, readBarColor, readBarLink } from "@shared
 import { brandTagline, footerSummaryForShoppers, isPlaceholderCopy, shopperCopy } from "@shared/placeholder-copy";
 import { englishText, type EditorText } from "../editor-text";
 import { StoreMenuBar, StoreMenuButton, type MenuColors, type ShownMenuItem } from "../StoreMenu";
+import { richCopy, themeTone } from "../rich-copy";
 import type { MenuStyle, MobileMenuStyle } from "@/lib/storefront/menu";
 
 export interface ChromeStore {
@@ -345,6 +346,7 @@ export function BoutiqueFooter({
   shopper,
   links,
   summary,
+  summaryCopy,
   onTrackOrder,
   legalLinks = [],
   showLogo = true,
@@ -356,6 +358,8 @@ export function BoutiqueFooter({
   shopper: StorefrontShopperInfo;
   links: ChromeLink[];
   summary?: string;
+  /** The footer's copy block, so the summary keeps its bold, sizes and colours (shared/rich-text.ts). */
+  summaryCopy?: Record<string, unknown>;
   onTrackOrder?: () => void;
   /** The store's published legal pages, shown in the bottom row. */
   legalLinks?: ChromeHref[];
@@ -388,7 +392,7 @@ export function BoutiqueFooter({
               <p className="mt-2 rounded-[8px] border border-dashed px-2.5 py-1.5 text-[12.5px] leading-5" style={{ borderColor: t.border, color: t.muted }}>
                 {shown ? <><span style={{ opacity: 0.6 }}>{shown}</span><br />{say("Shoppers won't see this placeholder. Write your own line in the footer settings.")}</> : say("Add a line about your store in the footer settings. Until then shoppers see your store description.")}
               </p>
-            ) : shown ? <p className="mt-2 text-[13.5px] leading-6" style={{ color: t.muted }}>{shown}</p> : null}
+            ) : shown ? <p className="mt-2 text-[13.5px] leading-6" style={{ color: t.muted }}>{summaryCopy ? richCopy(summaryCopy, "summary", shown, themeTone(t)) : shown}</p> : null}
           </div>
           <nav aria-label="Footer">
             <ul className="flex flex-wrap gap-x-6 gap-y-2 text-[14px]">

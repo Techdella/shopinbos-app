@@ -5,7 +5,7 @@ import { CampaignContext, useStoreCampaigns } from "../../campaign/CampaignConte
 import { SectionTitle } from "../BoutiqueChrome";
 import { boolSetting, intSetting, str } from "./block-logic";
 import { sourcedProducts } from "./ProductCarousel";
-import { BlockProductCard, type BlockContext } from "./shared";
+import { BlockProductCard, type BlockContext, words } from "./shared";
 
 /**
  * Deal grid: sale products (or a collection, or picked ones) in a grid with was and now prices and the campaign's
@@ -25,9 +25,9 @@ export function CampaignDealGrid({ ctx }: { ctx: BlockContext }) {
       <SectionTitle
         look={look}
         id={headingId}
-        action={cta ? <button type="button" onClick={() => ctx.go("products")} className="border-0 bg-transparent p-0 text-[14px] font-semibold underline underline-offset-4" style={{ color: look.tokens.ink, cursor: "pointer" }}>{cta}</button> : undefined}
+        action={cta ? <button type="button" onClick={() => ctx.go("products")} className="border-0 bg-transparent p-0 text-[14px] font-semibold underline underline-offset-4" style={{ color: look.tokens.ink, cursor: "pointer" }}>{words(ctx, "cta", cta)}</button> : undefined}
       >
-        {title}
+        {words(ctx, "title", title)}
       </SectionTitle>
       <ul className="bqb-deals m-0 list-none p-0">
         {list.map((product, index) => (

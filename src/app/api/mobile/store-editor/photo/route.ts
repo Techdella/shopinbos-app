@@ -23,6 +23,9 @@ export const maxDuration = 180;
 //   POST { action: "brighten", url, level: 1-3 }  → { url }
 //        Brighter, with a little more contrast and colour (sharp, on our server; free). Always made from the photo
 //        the phone sends, which is the original it picked, so steps never stack up.
+//   POST { action: "brightenPreview", url, level: 1-3 } → { preview: "data:image/jpeg;base64,…" }
+//        The crop screen's true preview of Brighten before Done: the same sharp steps on a small copy (640 px), sent
+//        back inline and never stored. Free; the phone asks once per level, a moment after the last tap.
 //   POST { action: "cutout", url, clientKey? }    → { url, creditsLeft }
 //        Remove background: OpenAI's image edit (the same gpt-image model and remove_background prompt as Rex's
 //        tool and /api/ai/enhance-image) with a transparent background. One picture use, priced as bg_remove.
@@ -35,6 +38,7 @@ export const maxDuration = 180;
 
 const Body = z.discriminatedUnion("action", [
   z.object({ action: z.literal("brighten"), url: z.string().url().max(2000), level: z.number().int().min(1).max(3) }),
+  z.object({ action: z.literal("brightenPreview"), url: z.string().url().max(2000), level: z.number().int().min(1).max(3) }),
   z.object({ action: z.literal("cutout"), url: z.string().url().max(2000), clientKey: z.string().max(80).optional() }),
   z.object({
     action: z.literal("rex"),
@@ -58,9 +62,10 @@ async function loadSharp(): Promise<Sharp | null> {
   }
 }
 
-async function brighten(userId: string, url: string, level: number) {
+/** The photo at `url` made brighter (Brighten's sharp steps), at most `size` px on its longer side. */
+async function brightened(url: string, level: number, size: number) {
   const params = brightenParams(level);
-  if (!params) return url;
+  if (!params) return null;
   const sharp = await loadSharp();
   if (!sharp) throw new Error("Brighten isn't available right now.");
   const source = await fetch(url);
@@ -68,15 +73,27 @@ async function brighten(userId: string, url: string, level: number) {
   const bytes = Buffer.from(await source.arrayBuffer());
   if (bytes.byteLength > MAX_BYTES) throw new Error("That photo is too large (20 MB max).");
   // modulate: brightness and colour; linear: contrast around the middle grey (a*x + b, b keeps mid-grey in place).
-  const output = await sharp(bytes, { failOn: "error" })
+  return sharp(bytes, { failOn: "error" })
     .rotate()
-    .resize({ width: 2400, height: 2400, fit: "inside", withoutEnlargement: true })
+    .resize({ width: size, height: size, fit: "inside", withoutEnlargement: true })
     .modulate({ brightness: params.brightness, saturation: params.saturation })
-    .linear(params.contrast, 128 * (1 - params.contrast))
-    .webp({ quality: 86 })
-    .toBuffer();
+    .linear(params.contrast, 128 * (1 - params.contrast));
+}
+
+async function brighten(userId: string, url: string, level: number) {
+  const image = await brightened(url, level, 2400);
+  if (!image) return url;
+  const output = await image.webp({ quality: 86 }).toBuffer();
   const stored = await uploadFileServer("store-banners", new Blob([new Uint8Array(output)], { type: "image/webp" }), `store-banners/${userId}/bright-${Date.now()}.webp`);
   return stored.publicUrl;
+}
+
+/** A small JPEG of the brighter photo, inline (the crop screen's preview; nothing is stored). */
+async function brightenPreview(url: string, level: number) {
+  const image = await brightened(url, level, 640);
+  if (!image) return null;
+  const output = await image.jpeg({ quality: 72, mozjpeg: true }).toBuffer();
+  return `data:image/jpeg;base64,${output.toString("base64")}`;
 }
 
 export const POST = withSeller(async (req: NextRequest, { user }) => {
@@ -89,6 +106,17 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
     if (!isOwnImageUrl(input.url)) return apiError("BAD_REQUEST", "Put the photo in your shop first, then brighten it.", 400);
     try {
       return ok({ url: await brighten(user.id, input.url, input.level) });
+    } catch (error) {
+      return apiError("UNAVAILABLE", error instanceof Error ? error.message : "Couldn't brighten that photo.", 503);
+    }
+  }
+
+  if (input.action === "brightenPreview") {
+    const limited = await overLimit("store-editor-brighten-preview", user.id, 600);
+    if (limited) return limited;
+    if (!isOwnImageUrl(input.url)) return apiError("BAD_REQUEST", "Put the photo in your shop first, then brighten it.", 400);
+    try {
+      return ok({ preview: await brightenPreview(input.url, input.level) });
     } catch (error) {
       return apiError("UNAVAILABLE", error instanceof Error ? error.message : "Couldn't brighten that photo.", 503);
     }

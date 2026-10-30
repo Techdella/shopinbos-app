@@ -54,6 +54,7 @@ import {
   sectionGroup,
   setAppEnabled,
   setSectionCopy,
+  setSectionWords,
   toggleSectionHidden,
   updatePageSections,
   updateSection,
@@ -81,6 +82,7 @@ import { storefrontHost, useBuilder } from "./useBuilder";
 import { useEditorT } from "./i18n";
 import { customPageSlug } from "@shared/storefront-pages";
 import { uploadToFolder } from "@/components/media/media-client";
+import { ScheduleControl, useScheduledPublish } from "./SchedulePublish";
 
 type Panel = "sections" | "insert" | "theme" | "apps" | "rex";
 
@@ -131,6 +133,8 @@ export function Builder({
   const router = useRouter();
   const { t, tx } = useEditorT();
   const b = useBuilder();
+  // A publish set for later (the clock next to Publish); Publish now replaces it on the server, so it is read again after.
+  const scheduling = useScheduledPublish(!b.loading && Boolean(b.draft));
   const { draft, commit } = b;
 
   const wide = useMediaQuery("(min-width: 1280px)");
@@ -706,7 +710,8 @@ export function Builder({
       onMoveSection={editing ? (id, direction) => sectionAction(id, direction) : undefined}
       onToggleSectionVisibility={editing ? (id) => sectionAction(id, "hide") : undefined}
       onDeleteSection={editing ? (id) => sectionAction(id, "remove") : undefined}
-      onUpdateSectionCopy={editing ? (id, key, value) => editSection(id, (section) => setSectionCopy(section, key, value), `${id}:${key}`) : undefined}
+      onUpdateSectionCopy={editing ? (id, key, value) => editSection(id, (section) => setSectionWords(section, key, value), `${id}:${key}`) : undefined}
+      onUpdateSectionRich={editing ? (id, key, value, runs) => editSection(id, (section) => setSectionWords(section, key, value, runs), `${id}:${key}:format`) : undefined}
       onUploadImage={editing ? uploadImage : undefined}
       onUpdateStoreLogo={editing ? (url) => void updateStoreLogo(url) : undefined}
       onUpdateSectionItem={editing ? (id, index, changes) => editSection(id, (section) => ({ ...section, items: (section.items ?? []).map((item, i) => (i === index ? { ...item, ...changes } : item)) })) : undefined}
@@ -1000,7 +1005,17 @@ export function Builder({
         onUndo={b.undo}
         canRedo={b.canRedo && editing}
         onRedo={b.redo}
-        onPublish={() => void b.publish()}
+        onPublish={() => void b.publish().then(() => scheduling.refresh())}
+        schedule={draft && !preview ? (
+          <ScheduleControl
+            state={scheduling}
+            save={async () => (!b.dirty || (await b.save({ quiet: true })) ? b.draftVersion() : null)}
+            draftVersion={draft.updatedAt ?? null}
+            disabled={b.publishing}
+            compact={phone}
+            onMessage={(message, tone) => b.showToast(message, tone)}
+          />
+        ) : null}
         publishing={b.publishing}
         canPublish={Boolean(draft) && (b.status !== "live" || b.dirty)}
         onSave={() => void b.save()}

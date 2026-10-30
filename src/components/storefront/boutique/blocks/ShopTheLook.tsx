@@ -5,7 +5,7 @@ import { Icon } from "@/components/ui/Icon";
 import { useCart } from "@/hooks/useCart";
 import { needsOptions, type ShopperProduct } from "../../shopper/catalog";
 import { choice, hotspotTooltipPlacement, readHotspots, str, type Hotspot } from "./block-logic";
-import { money, SampleLabel, type BlockContext } from "./shared";
+import { money, SampleLabel, type BlockContext, words } from "./shared";
 
 /** Shop the look: a styled photo with pins on its products, a price card per pin, the list and "Add all to bag". */
 export function ShopTheLook({ ctx }: { ctx: BlockContext }) {
@@ -100,8 +100,8 @@ export function ShopTheLook({ ctx }: { ctx: BlockContext }) {
           })}
         </div>
         <div className="flex flex-col gap-4">
-          <h2 id={headingId} className="bq-h text-[28px] @3xl:text-[36px]" style={look.headingStyle}>{str(copy.title) || "Shop the look"}</h2>
-          {str(copy.body) ? <p className="m-0 text-[15.5px] leading-7" style={{ color: t.muted }}>{str(copy.body)}</p> : null}
+          <h2 id={headingId} className="bq-h text-[28px] @3xl:text-[36px]" style={look.headingStyle}>{words(ctx, "title", "Shop the look")}</h2>
+          {str(copy.body) ? <p className="m-0 text-[15.5px] leading-7" style={{ color: t.muted }}>{words(ctx, "body")}</p> : null}
           <ol className="m-0 grid list-none gap-2.5 p-0">
             {pinned.map(({ pin, product }, number) => (
               <li key={pin.index}>

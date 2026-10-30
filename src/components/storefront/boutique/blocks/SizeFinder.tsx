@@ -2,7 +2,7 @@
 
 import { useId, useState } from "react";
 import { readSizeChart, recommendSize, str } from "./block-logic";
-import type { BlockContext } from "./shared";
+import { words, type BlockContext } from "./shared";
 
 function measure(value: string) {
   const number = Number(value.replace(",", "."));
@@ -29,8 +29,8 @@ export function SizeFinder({ ctx }: { ctx: BlockContext }) {
   return (
     <section aria-labelledby={headingId} className="bq-wrap py-12">
       <div className="mx-auto max-w-[620px] rounded-[16px] p-6 @3xl:p-8" style={{ background: look.raised, borderRadius: Math.max(look.cardRadius, 10) }}>
-        <h2 id={headingId} className="bq-h text-[26px]" style={look.headingStyle}>{str(copy.title) || "Find your size"}</h2>
-        {str(copy.body) ? <p className="m-0 mt-2 text-[15px] leading-6" style={{ color: t.muted }}>{str(copy.body)}</p> : null}
+        <h2 id={headingId} className="bq-h text-[26px]" style={look.headingStyle}>{words(ctx, "title", "Find your size")}</h2>
+        {str(copy.body) ? <p className="m-0 mt-2 text-[15px] leading-6" style={{ color: t.muted }}>{words(ctx, "body")}</p> : null}
         <form className="mt-5 grid gap-3 @xl:grid-cols-[1fr_1fr_auto] @xl:items-end" onSubmit={(event) => { event.preventDefault(); find(); }}>
           {labels.map((label, index) => (
             <label key={index} htmlFor={`${id}-${index}`} className="grid gap-1 text-[13.5px] font-semibold" style={{ color: t.ink }}>
@@ -46,7 +46,7 @@ export function SizeFinder({ ctx }: { ctx: BlockContext }) {
               />
             </label>
           ))}
-          <button type="submit" className="bq-btn" style={look.solidButton}>{str(copy.buttonLabel) || "Find my size"}</button>
+          <button type="submit" className="bq-btn" style={look.solidButton}>{words(ctx, "buttonLabel", "Find my size")}</button>
         </form>
         <div role="status" aria-live="polite" className="mt-4 min-h-6">
           {result === "none" ? <p className="m-0 text-[14.5px]" style={{ color: t.muted }}>Type your measurement{labels.length > 1 ? "s" : ""} in {unit} to see your size.</p> : null}
@@ -57,7 +57,7 @@ export function SizeFinder({ ctx }: { ctx: BlockContext }) {
                 <strong className="text-[20px]" style={{ fontFamily: look.headingFont }}>{result.size}</strong>
               </p>
               {!result.exact ? <p className="m-0 mt-1 text-[13px]" style={{ color: t.muted }}>Your measurements fall between sizes, so check the chart below.</p> : null}
-              {str(copy.footnote) ? <p className="m-0 mt-1 text-[13px]" style={{ color: t.muted }}>{str(copy.footnote)}</p> : null}
+              {str(copy.footnote) ? <p className="m-0 mt-1 text-[13px]" style={{ color: t.muted }}>{words(ctx, "footnote")}</p> : null}
             </div>
           ) : null}
         </div>

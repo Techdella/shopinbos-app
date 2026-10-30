@@ -2443,6 +2443,13 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "rex.bp.photos": "Ana yin {count, plural, one {hoto #} other {hotuna #}}",
   "rex.bp.photosNote": "An yi {made} cikin {total}",
   "rex.bp.check": "Ana saka komai a preview",
+  "ed.Text size": "Girman rubutu",
+  "ed.Extra large": "Babba sosai",
+  "ed.Own colour": "Launinsa na asali",
+  "ed.Shop colour": "Launin shago",
+  "ed.Dark text": "Rubutu mai duhu",
+  "ed.Soft grey": "Toka mai laushi",
+  "ed.Text style": "Salon rubutu",
 };
 
 export default ha;

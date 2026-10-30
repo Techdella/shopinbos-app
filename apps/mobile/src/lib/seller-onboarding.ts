@@ -1,4 +1,5 @@
 import "expo-sqlite/localStorage/install";
+import type { LabelledColourSet } from "@shared/colour-sets";
 import { api } from "./api";
 import { rexApi } from "./rex-jobs";
 import {
@@ -25,6 +26,8 @@ export * from "@shared/seller-onboarding";
 //   POST  /api/mobile/onboarding/build           Rex builds the draft (a Rex job); PATCH { notify } when leaving
 //   GET / POST /api/mobile/onboarding/go-live    the blockers / publish (the editor's publish path)
 //   GET   /api/mobile/onboarding/ready           Home's "Get your shop ready"
+//   GET   /api/mobile/onboarding/colours         D2b colour sets from the logo and photos (WCAG-checked)
+//   POST  /api/mobile/onboarding/photos          "Clean white backgrounds" per photo (a Rex job) / restore (Undo)
 // Banner lines come from the banner helper's words (POST /api/mobile/banner, picture: false), also a Rex job.
 
 export interface OnboardingProduct {
@@ -57,6 +60,8 @@ export interface OnboardingState {
   priceChecks?: string[];
   contact?: { whatsapp: string; pickup: string };
   library?: LibraryPhoto[];
+  /** What one "Clean white backgrounds" photo costs (credits) and the seller's balance, shown before asking. */
+  credits?: { bgRemove: number; balance: number | null };
 }
 
 export const fetchOnboarding = () => api<OnboardingState>("/api/mobile/onboarding");
@@ -103,6 +108,18 @@ export interface ShopReady {
   complete: boolean;
   facts: { products: number };
 }
+
+/** D2b's colour sets from the seller's logo and product photos, with Rex's pick (shared/colour-sets.ts). */
+export const fetchColourSets = (style?: string | null) =>
+  api<{ sets: LabelledColourSet[] }>(`/api/mobile/onboarding/colours${style ? `?style=${encodeURIComponent(style)}` : ""}`).then((body) => body.sets);
+
+/** "Clean white backgrounds" for one product photo (a Rex job: one background removal, charged per photo). */
+export const cleanProductPhoto = (productId: string) =>
+  rexApi<{ productId: string; url: string; previous: string; creditsLeft: number | null }>("/api/mobile/onboarding/photos", { action: "clean", productId }, `onboarding-clean-${productId}`);
+
+/** Undo for one cleaned photo: puts the photo it had before back on the product (free). */
+export const restoreProductPhoto = (productId: string, url: string) =>
+  api<{ productId: string; url: string }>("/api/mobile/onboarding/photos", { method: "POST", json: { action: "restore", productId, url } });
 
 export const fetchShopReady = () => api<ShopReady>("/api/mobile/onboarding/ready");
 

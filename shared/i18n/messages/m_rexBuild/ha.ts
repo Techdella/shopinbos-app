@@ -328,6 +328,25 @@ const ha: Partial<Record<keyof typeof en, string>> = {
 
   "nudge.title": "Matakai {count} suka rage wa shagonka",
   "nudge.body": "Taɓa don ƙarasawa. Rex ya ajiye duk abin da ka yi.",
+  "colours.fromLogo": "Daga tambarin ka",
+  "colours.fromPhotos": "Daga hotunanka",
+  "colours.readable": "An duba: yana da sauƙin karantawa",
+  "colours.subPictures": "Na yi su daga tambarinka da hotunanka. Zaɓi ɗaya.",
+  "clean.switch": "Farin bango mai tsabta ({count, plural, one {credit #} other {credits #}} kowane hoto)",
+  "clean.sub": "Rex zai sa hotunan kayanka a kan farin bango mai tsabta. Ba zai fara ba sai ka amince.",
+  "clean.askTitle": "A tsabtace bangon hotuna?",
+  "clean.askBody": "Rex zai sa kowane hoton kaya a kan farin bango mai tsabta. Yana cin {count, plural, one {credit #} other {credits #}} kowane hoto, kuma za ka iya mayar da kowanne.",
+  "clean.askNow": "Hotunan da za a tsabtace yanzu: {count}. Jimilla: credits {credits}.",
+  "clean.balance": "Kana da {count, plural, one {credit #} other {credits #}}.",
+  "clean.yes": "Ee, kunna shi",
+  "clean.yesNow": "{count, plural, one {Ee, tsabtace su (credit #)} other {Ee, tsabtace su (credits #)}}",
+  "clean.no": "Ba yanzu ba",
+  "clean.one": "Tsabtace bango ({count, plural, one {credit #} other {credits #}})",
+  "clean.undo": "Mayar da tsohon hoto",
+  "clean.undoOne": "Mayar: {name}",
+  "clean.cleaning": "Ana tsabtacewa…",
+  "clean.done": "Farin bango",
+  "clean.failed": "Rex bai iya tsabtace wannan hoton ba. Ba a caje ka ba; sake gwadawa.",
 };
 
 export default ha;

@@ -10,7 +10,7 @@ import { api } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { addSupplierPick, createProducts, draftProducts } from "@/lib/onboarding";
 import { pickPhotos, type PhotoSource } from "@/lib/photos";
-import { forgetEntry, saveCategories, updateProduct, type OnboardingProduct } from "@/lib/seller-onboarding";
+import { cleanProductPhoto, forgetEntry, restoreProductPhoto, saveCategories, track, updateProduct, type OnboardingProduct } from "@/lib/seller-onboarding";
 import { colors, fonts, radii, surfaceCard } from "@/theme";
 import { RexFrame, RexHead, RexSays } from "./Frame";
 import { AddTile, ProductTile, SourceButton } from "./parts";
@@ -53,7 +53,7 @@ export function PlanStep({ ctx }: { ctx: StepCtx }) {
 }
 
 /** Name and price for one product (the price check), saved through the products route. */
-export function ProductSheet({ product, onClose, onSaved }: { product: OnboardingProduct | null; onClose: () => void; onSaved: () => void }) {
+export function ProductSheet({ product, onClose, onSaved, clean }: { product: OnboardingProduct | null; onClose: () => void; onSaved: () => void; clean?: CleanPhotos }) {
   const t = useT("m_rexBuild");
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
@@ -85,6 +85,14 @@ export function ProductSheet({ product, onClose, onSaved }: { product: Onboardin
     <Sheet visible={Boolean(product)} onClose={onClose} title={t("item.title")}>
       <View style={{ gap: 14 }}>
         {product?.image ? <Image source={{ uri: product.image }} style={{ width: 96, height: 96, borderRadius: 16 }} contentFit="cover" /> : null}
+        {product && clean && clean.canClean(product) ? (
+          clean.cleaned[product.id] ? (
+            <PillButton testID="item-clean-undo" size="sm" tone="white" icon="undo" title={t("clean.undo")} busy={clean.busy.has(product.id)} onPress={() => void clean.undo(product.id)} />
+          ) : (
+            // Pressing a button that says what it costs is the seller's yes for this one photo.
+            <PillButton testID="item-clean" size="sm" tone="white" icon="sparkle" title={t("clean.one", { count: clean.cost })} busy={clean.busy.has(product.id)} onPress={() => void clean.run([product.id])} />
+          )
+        ) : null}
         <View>
           <Label>{t("item.name")}</Label>
           <Field value={name} onChangeText={setName} maxLength={120} accessibilityLabel={t("item.name")} />
@@ -112,6 +120,7 @@ export function ProductsStep({ ctx }: { ctx: StepCtx }) {
   const intent = ctx.flow.intent;
   const reload = ctx.reload;
   const adding = useRef(false);
+  const clean = useCleanPhotos(ctx, setNote);
 
   // Came from the website's "Add to my shop": that product goes in first, tagged "Added from Trending".
   useEffect(() => {
@@ -152,12 +161,18 @@ export function ProductsStep({ ctx }: { ctx: StepCtx }) {
     if (!photos.length) return;
     setWriting(photos.length);
     try {
+      const before = new Set(products.map((product) => product.id));
       const made = await draftProducts(photos);
       const drafts = made.drafts.map((draft, index) => ({ ...draft, name: draft.name.trim() || `${t("products.untitled", { number: products.length + index + 1 })}` }));
       await createProducts(drafts);
       if (!made.drafted) setNote(t("products.noAi"));
       else if (made.error) setNote(t("products.partly", { reason: made.error }));
-      await reload();
+      const fresh = await reload();
+      // "Clean white backgrounds" is on (the seller said yes, with the price shown): the new photos get cleaned too.
+      if (clean.on) {
+        const added = (fresh?.products ?? []).filter((product) => !before.has(product.id) && clean.canClean(product)).map((product) => product.id);
+        if (added.length) void clean.run(added);
+      }
     } catch (cause) {
       ctx.setError(cause instanceof Error && cause.message ? cause.message : t("error.save"));
     } finally {
@@ -181,7 +196,7 @@ export function ProductsStep({ ctx }: { ctx: StepCtx }) {
             image={product.image}
             name={product.name}
             ok={Boolean(product.price)}
-            tag={intent?.addedProductId === product.id ? t("products.trending") : null}
+            tag={clean.busy.has(product.id) ? t("clean.cleaning") : clean.cleaned[product.id] ? t("clean.done") : intent?.addedProductId === product.id ? t("products.trending") : null}
             note={product.price ? null : t("products.noPrice")}
             onPress={() => setEditing(product)}
           />
@@ -199,9 +214,165 @@ export function ProductsStep({ ctx }: { ctx: StepCtx }) {
         <SourceButton testID="products-gallery" icon="image" label={t("products.gallery")} onPress={() => void add("library")} />
         <SourceButton testID="products-find" icon="box" label={t("products.find")} onPress={() => router.push("/find")} />
       </View>
+      {products.some((product) => clean.canClean(product)) ? <CleanPanel clean={clean} products={products} /> : null}
       {note ? <Notice tone="info">{note}</Notice> : null}
-      <ProductSheet product={editing} onClose={() => setEditing(null)} onSaved={() => void reload()} />
+      <ProductSheet product={editing ? products.find((product) => product.id === editing.id) ?? editing : null} onClose={() => setEditing(null)} onSaved={() => void reload()} clean={clean} />
     </RexFrame>
+  );
+}
+
+// ─── "Clean white backgrounds" (opt-in, paid per photo) ──────────────────────
+//
+// Rex can put the product photos on a clean white background (POST /api/mobile/onboarding/photos, the same paid
+// image edit as the editor's Remove background; a Rex job per photo). Never automatic: the switch says what a photo
+// costs, and turning it on asks first (how many photos, how many credits, what's left). Once on, photos added later
+// in this step are cleaned too. Each cleaned photo has its own Undo (the old photo goes back; the credits were used).
+
+interface CleanPhotos {
+  on: boolean;
+  /** Credits per photo. */
+  cost: number;
+  balance: number | null;
+  cleaned: Record<string, string>;
+  busy: Set<string>;
+  canClean: (product: OnboardingProduct) => boolean;
+  run: (ids: string[]) => Promise<void>;
+  undo: (id: string) => Promise<void>;
+  setOn: (on: boolean) => void;
+}
+
+function useCleanPhotos(ctx: StepCtx, setNote: (note: string | null) => void): CleanPhotos {
+  const t = useT("m_rexBuild");
+  const [on, setOn] = useState(false);
+  // Product → the photo it had before (for Undo), for photos cleaned on this screen.
+  const [cleaned, setCleaned] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState<Set<string>>(() => new Set());
+  const cost = ctx.data.credits?.bgRemove ?? 3;
+  const balance = ctx.data.credits?.balance ?? null;
+  const reload = ctx.reload;
+  const mark = (ids: string[], working: boolean) =>
+    setBusy((now) => {
+      const next = new Set(now);
+      for (const id of ids) {
+        if (working) next.add(id);
+        else next.delete(id);
+      }
+      return next;
+    });
+
+  async function run(ids: string[]) {
+    const todo = ids.filter((id) => !busy.has(id));
+    if (!todo.length) return;
+    setNote(null);
+    mark(todo, true);
+    let failed: string | null = null;
+    let done = 0;
+    // One at a time: each is its own charge, and running out of credits stops the rest (nothing more is charged).
+    for (const id of todo) {
+      try {
+        const result = await cleanProductPhoto(id);
+        setCleaned((now) => ({ ...now, [id]: result.previous }));
+        done += 1;
+      } catch (cause) {
+        failed = cause instanceof Error && cause.message ? cause.message : t("clean.failed");
+        mark(todo.slice(todo.indexOf(id)), false);
+        break;
+      } finally {
+        mark([id], false);
+      }
+    }
+    if (done) track("rex_step_completed", { step: "clean_photos", photos: done });
+    if (failed) setNote(failed);
+    await reload();
+  }
+
+  async function undo(id: string) {
+    const previous = cleaned[id];
+    if (!previous) return;
+    mark([id], true);
+    try {
+      await restoreProductPhoto(id, previous);
+      setCleaned((now) => {
+        const next = { ...now };
+        delete next[id];
+        return next;
+      });
+      await reload();
+    } catch (cause) {
+      setNote(cause instanceof Error && cause.message ? cause.message : t("error.save"));
+    } finally {
+      mark([id], false);
+    }
+  }
+
+  return {
+    on,
+    cost,
+    balance,
+    cleaned,
+    busy,
+    // The seller's own photos (not a supplier's stock photos), not cleaned yet on this screen or being cleaned.
+    canClean: (product) => Boolean(product.image) && !product.supplier,
+    run,
+    undo,
+    setOn,
+  };
+}
+
+/** The switch "Clean white backgrounds (3 credits a photo)", the ask before charging, and Undo per cleaned photo. */
+function CleanPanel({ clean, products }: { clean: CleanPhotos; products: OnboardingProduct[] }) {
+  const t = useT("m_rexBuild");
+  const [asking, setAsking] = useState(false);
+  const waiting = products.filter((product) => clean.canClean(product) && !clean.cleaned[product.id]);
+  const total = waiting.length * clean.cost;
+  const cleanedList = products.filter((product) => clean.cleaned[product.id]);
+  return (
+    <View style={{ ...surfaceCard(20), padding: 14, gap: 10 }}>
+      <Pressable
+        testID="clean-switch"
+        accessibilityRole="switch"
+        accessibilityState={{ checked: clean.on }}
+        accessibilityLabel={t("clean.switch", { count: clean.cost })}
+        onPress={() => (clean.on ? clean.setOn(false) : setAsking(true))}
+        style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 48 }}
+      >
+        <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: colors.mintTint, alignItems: "center", justifyContent: "center" }}>
+          <AppIcon name="sparkle" size={18} color={colors.forest} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <T weight="bold" style={{ fontSize: 15.5 }}>{t("clean.switch", { count: clean.cost })}</T>
+          <T style={{ fontSize: 13, lineHeight: 18, color: colors.inkSoft }}>{t("clean.sub")}</T>
+        </View>
+        <View style={{ width: 46, height: 28, borderRadius: 14, padding: 3, backgroundColor: clean.on ? colors.successFill : colors.grayTint, alignItems: clean.on ? "flex-end" : "flex-start" }}>
+          <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: "#FFFFFF" }} />
+        </View>
+      </Pressable>
+      {cleanedList.length ? (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+          {cleanedList.map((product) => (
+            <PillButton key={product.id} testID={`clean-undo-${product.id}`} size="sm" tone="white" icon="undo" title={t("clean.undoOne", { name: product.name })} busy={clean.busy.has(product.id)} onPress={() => void clean.undo(product.id)} />
+          ))}
+        </View>
+      ) : null}
+      <Sheet visible={asking} onClose={() => setAsking(false)} title={t("clean.askTitle")}>
+        <View style={{ gap: 12 }}>
+          <T style={{ fontSize: 15, lineHeight: 22 }}>{t("clean.askBody", { count: clean.cost })}</T>
+          {waiting.length ? <T weight="bold" style={{ fontSize: 15, lineHeight: 22 }}>{t("clean.askNow", { count: waiting.length, credits: total })}</T> : null}
+          {clean.balance !== null ? <T style={{ fontSize: 14, color: colors.inkSoft }}>{t("clean.balance", { count: clean.balance })}</T> : null}
+          <PillButton
+            testID="clean-yes"
+            tone="accent"
+            title={waiting.length ? t("clean.yesNow", { count: total }) : t("clean.yes")}
+            onPress={() => {
+              setAsking(false);
+              clean.setOn(true);
+              if (waiting.length) void clean.run(waiting.map((product) => product.id));
+            }}
+          />
+          <PillButton testID="clean-no" tone="white" title={t("clean.no")} onPress={() => setAsking(false)} />
+        </View>
+      </Sheet>
+    </View>
   );
 }
 

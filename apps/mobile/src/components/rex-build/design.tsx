@@ -9,6 +9,7 @@ import { useLocale, useT } from "@/lib/i18n";
 import { pickPhotos, uploadPhoto } from "@/lib/photos";
 import { useRexResume } from "@/lib/rex-jobs";
 import { applyLook } from "@/lib/templates";
+import type { LabelledColourSet } from "@shared/colour-sets";
 import {
   EXTRA_SECTIONS,
   LAYOUTS,
@@ -16,7 +17,8 @@ import {
   STYLES,
   bannerCandidates,
   defaultSections,
-  paletteDef,
+  fetchColourSets,
+  flowPalette,
   palettesFor,
   recommendLayout,
   recommendStyle,
@@ -25,6 +27,7 @@ import {
   track,
   writeBannerWords,
   type ExtraSection,
+  type PaletteDef,
   type LayoutChoice,
   type ShowFirst,
   type StyleId,
@@ -102,30 +105,78 @@ export function StyleStep({ ctx }: { ctx: StepCtx }) {
   );
 }
 
-/** D2b "Here are 3 colour sets for you." with the shop's banner in the picked colours underneath. */
+interface ColourCard {
+  id: string;
+  source: "logo" | "photos" | "rex" | "preset";
+  palette: PaletteDef;
+  /** The set's own tokens (saved with the pick); null for a preset used as it is. */
+  tokens: Record<string, string> | null;
+}
+
+/** A colour set as a card's palette (the shapes the swatches and the banner preview draw). */
+function asPalette(set: LabelledColourSet): PaletteDef {
+  return { id: set.id, swatch: set.swatch, tokens: set.tokens };
+}
+
+/**
+ * D2b "Here are 3 colour sets for you." Made from the seller's logo and product photos when they have them ("From
+ * your logo", "From your photos"), with Rex's pick for the style; every set is checked for contrast on the server
+ * (shared/colour-sets.ts). Without pictures (or offline) the style's presets show as before. The shop's banner in
+ * the picked colours underneath.
+ */
 export function ColoursStep({ ctx }: { ctx: StepCtx }) {
   const t = useT("m_rexBuild");
-  const sets = palettesFor(ctx.flow.style);
-  const [palette, setPalette] = useState(ctx.flow.palette && sets.some((set) => set.id === ctx.flow.palette) ? ctx.flow.palette : sets[0]!.id);
+  const [made, setMade] = useState<LabelledColourSet[] | null>(null);
+  useEffect(() => {
+    let gone = false;
+    fetchColourSets(ctx.flow.style)
+      .then((sets) => {
+        if (!gone && sets.length) setMade(sets);
+      })
+      .catch(() => undefined);
+    return () => {
+      gone = true;
+    };
+  }, [ctx.flow.style]);
+  // The cards: the server's sets, else the presets as they are.
+  const cards = useMemo<ColourCard[]>(
+    () =>
+      made
+        ? made.map((set) => ({ id: set.id, source: set.source, palette: asPalette(set), tokens: set.tokens }))
+        : palettesFor(ctx.flow.style).map((palette, index) => ({ id: palette.id, source: index === 0 ? "rex" : "preset", palette, tokens: null })),
+    [made, ctx.flow.style],
+  );
+  const [palette, setPalette] = useState(ctx.flow.palette ?? "");
+  const pickedCard = cards.find((card) => card.id === palette) ?? cards[0]!;
   const photos = useShopPhotos(ctx);
   const library = useLibraryUrls(ctx);
-  const picked = paletteDef(palette) ?? sets[0]!;
+  const first = cards[0]!;
+  const label = (card: ColourCard, index: number) =>
+    card.source === "logo" ? t("colours.fromLogo") : card.source === "photos" ? t("colours.fromPhotos") : card.source === "rex" && index === cards.findIndex((entry) => entry.source === "rex") ? t("colours.first") : t("colours.alt");
+  const choice = (card: ColourCard) => ({ palette: card.id, paletteTokens: card.tokens });
   return (
-    <RexFrame {...ctx.frame} primary={{ title: t("frame.next"), onPress: () => void ctx.next({ palette }), testID: "colours-next" }} onRexChoose={() => ctx.rexChose(t(`palette.${sets[0]!.id}` as "palette.warm"), { palette: sets[0]!.id })}>
-      <RexSays title={t("colours.title")} sub={t("colours.sub")} />
-      {sets.map((set, index) => (
-        <ChoiceCard key={set.id} testID={`palette-${set.id}`} on={palette === set.id} onPress={() => setPalette(set.id)} label={t.dynamic(`palette.${set.id}`, set.id)}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
-            <Swatches palette={set} />
-            <View style={{ flex: 1 }}>
-              <T weight="extrabold" style={{ fontSize: 17 }}>{t.dynamic(`palette.${set.id}`, set.id)}</T>
-              <T style={{ fontSize: 14, color: colors.inkSoft }}>{index === 0 ? t("colours.first") : t("colours.alt")}</T>
+    <RexFrame
+      {...ctx.frame}
+      primary={{ title: t("frame.next"), onPress: () => void ctx.next(choice(pickedCard)), testID: "colours-next" }}
+      onRexChoose={() => ctx.rexChose(first.source === "logo" ? t("colours.fromLogo") : first.source === "photos" ? t("colours.fromPhotos") : t.dynamic(`palette.${first.id}`, first.id), choice(first))}
+    >
+      <RexSays title={t("colours.title")} sub={made && made.some((set) => set.source !== "rex") ? t("colours.subPictures") : t("colours.sub")} />
+      {cards.map((card, index) => {
+        const name = card.source === "logo" || card.source === "photos" ? label(card, index) : t.dynamic(`palette.${card.id}`, card.id);
+        return (
+          <ChoiceCard key={card.id} testID={`palette-${card.id}`} on={pickedCard.id === card.id} onPress={() => setPalette(card.id)} label={name}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
+              <Swatches palette={card.palette} />
+              <View style={{ flex: 1 }}>
+                <T weight="extrabold" style={{ fontSize: 17 }}>{name}</T>
+                <T style={{ fontSize: 14, color: colors.inkSoft }}>{card.source === "logo" || card.source === "photos" ? t("colours.readable") : label(card, index)}</T>
+              </View>
             </View>
-          </View>
-        </ChoiceCard>
-      ))}
+          </ChoiceCard>
+        );
+      })}
       <View>
-        <ShopBanner name={ctx.data.store.name} photo={ctx.flow.banner?.url ?? photos[0] ?? library[0] ?? null} headline={currentHeadline(ctx, t("style.headline"))} cta={t("preview.shop")} palette={picked} height={170} serif={styleDef(ctx.flow.style).font === "elegant" || styleDef(ctx.flow.style).font === "clean"} />
+        <ShopBanner name={ctx.data.store.name} photo={ctx.flow.banner?.url ?? photos[0] ?? library[0] ?? null} headline={currentHeadline(ctx, t("style.headline"))} cta={t("preview.shop")} palette={pickedCard.palette} height={170} serif={styleDef(ctx.flow.style).font === "elegant" || styleDef(ctx.flow.style).font === "clean"} />
         <View style={{ position: "absolute", top: 8, right: 10, backgroundColor: colors.mintTint, borderRadius: radii.pill, paddingHorizontal: 12, paddingVertical: 4 }}>
           <T weight="bold" style={{ fontSize: 13, color: colors.forest }}>{t("colours.preview")}</T>
         </View>
@@ -144,7 +195,7 @@ export function BannerStep({ ctx }: { ctx: StepCtx }) {
   const [index, setIndex] = useState(startAt);
   const [swipes, setSwipes] = useState(0);
   const [uploading, setUploading] = useState(false);
-  const palette = paletteDef(ctx.flow.palette) ?? palettesFor(ctx.flow.style)[0]!;
+  const palette = flowPalette(ctx.flow);
   const option = options[index] ?? null;
 
   function takeBanner(choice: { url: string; source: "product" | "rex_library" | "upload" } | null, rexPicked = false) {
@@ -221,7 +272,7 @@ export function WordsStep({ ctx }: { ctx: StepCtx }) {
   const [own, setOwn] = useState("");
   const [writing, setWriting] = useState(false);
   const [offline, setOffline] = useState(false);
-  const palette = paletteDef(ctx.flow.palette) ?? palettesFor(ctx.flow.style)[0]!;
+  const palette = flowPalette(ctx.flow);
   const shown = options.length ? options : offline ? fallback : [];
 
   function take(list: { heading: string; text?: string; button?: string }[]) {

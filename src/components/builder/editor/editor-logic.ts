@@ -5,6 +5,7 @@ import type { StoreEditorSnapshot, TemplatePageSeed, TemplateSectionNode } from 
 import { STORE_BLOCKS, newStoreBlockSection, type BlockCategory, type BlockIcon } from "../../storefront/boutique/blocks/block-catalog.ts";
 import { LAYOUT_ROW_KIND, layoutElementLabel, newLayoutRowSection, normaliseLayoutRow } from "../../storefront/boutique/blocks/layout-logic.ts";
 import { fillMissingPageSeo } from "../../../lib/store-templates/seo-defaults.ts";
+import { copyWithWords, type RichRun } from "../../../../shared/rich-text.ts";
 
 // ─── Undo history ────────────────────────────────────────────────────────────
 
@@ -334,6 +335,27 @@ export function setSectionCopy(section: TemplateSectionNode, key: string, value:
       if (done || block.type !== "copy") return block;
       done = true;
       return { ...block, content: { ...block.content, [key]: value } };
+    }),
+  };
+}
+
+/**
+ * Sets one of a section's words typed on the page (inline editing), keeping their bold, sizes and colours as the
+ * phone does (shared/rich-text.ts): `runs` is their formatting now (null: none); left out, the formatting they had
+ * follows the edit.
+ */
+export function setSectionWords(section: TemplateSectionNode, key: string, value: string, runs?: RichRun[] | null): TemplateSectionNode {
+  const hasCopy = section.blocks.some((block) => block.type === "copy");
+  if (!hasCopy) {
+    return { ...section, blocks: [{ id: `${section.id}-copy`, type: "copy", content: copyWithWords({}, key, value, runs ?? null) }, ...section.blocks] };
+  }
+  let done = false;
+  return {
+    ...section,
+    blocks: section.blocks.map((block) => {
+      if (done || block.type !== "copy") return block;
+      done = true;
+      return { ...block, content: copyWithWords(block.content, key, value, runs) };
     }),
   };
 }

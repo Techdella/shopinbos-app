@@ -2443,6 +2443,13 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "rex.bp.photos": "Ń ṣe {count, plural, one {fọ́tò #} other {fọ́tò #}}",
   "rex.bp.photosNote": "A ti ṣe {made} nínú {total}",
   "rex.bp.check": "Ń fi gbogbo rẹ̀ sínú preview",
+  "ed.Text size": "Ìtóbi ọ̀rọ̀",
+  "ed.Extra large": "Ó tóbi gan-an",
+  "ed.Own colour": "Àwọ̀ tirẹ̀",
+  "ed.Shop colour": "Àwọ̀ ṣọ́ọ̀bù",
+  "ed.Dark text": "Ọ̀rọ̀ dúdú",
+  "ed.Soft grey": "Eérú fẹ́ẹ́rẹ́",
+  "ed.Text style": "Ìrísí ọ̀rọ̀",
 };
 
 export default yo;

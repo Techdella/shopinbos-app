@@ -6,7 +6,7 @@
 // Node's type stripping (tests/mobile-store-editor.test.mjs).
 
 import { customPageSlug } from "./storefront-pages.ts";
-import { RICH_KEY, remapRuns, sanitizeRuns, type RichPatch, type RichRun, type RichSize } from "./rich-text.ts";
+import { RICH_KEY, copyWithWords, sanitizeRuns, type RichPatch, type RichRun, type RichSize } from "./rich-text.ts";
 
 // ─── Snapshot shapes (structurally the web's StoreEditorSnapshot) ────────────
 
@@ -228,16 +228,7 @@ export function readRich(section: EdSection | null | undefined, key: string): Ri
 
 /** A copy block's content with `key` set to `value` and its formatting set to `runs` (null: none). */
 function withCopy(content: Record<string, unknown>, key: string, value: string, runs: RichRun[] | null | undefined): Record<string, unknown> {
-  const next: Record<string, unknown> = { ...content, [key]: value };
-  const before = content[RICH_KEY] && typeof content[RICH_KEY] === "object" && !Array.isArray(content[RICH_KEY]) ? (content[RICH_KEY] as Record<string, unknown>) : {};
-  // undefined: the words were typed over, so their formatting follows them (remapRuns).
-  const kept = runs === undefined ? remapRuns(sanitizeRuns(before[key], str(content[key])), str(content[key]), value) : runs ? sanitizeRuns(runs, value) : null;
-  const map: Record<string, unknown> = { ...before };
-  if (kept) map[key] = kept;
-  else delete map[key];
-  if (Object.keys(map).length) next[RICH_KEY] = map;
-  else delete next[RICH_KEY];
-  return next;
+  return copyWithWords(content, key, value, runs);
 }
 
 /**

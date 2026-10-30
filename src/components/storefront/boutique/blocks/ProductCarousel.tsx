@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { SectionTitle } from "../BoutiqueChrome";
 import { blockProducts, boolSetting, intSetting, str } from "./block-logic";
-import { BlockProductCard, useReducedMotion, type BlockContext } from "./shared";
+import { BlockProductCard, useReducedMotion, type BlockContext, words } from "./shared";
 
 export function pickedProductIds(items: Array<Record<string, unknown>>) {
   return items.map((item) => item.mappedStoreProductId).filter((id): id is string => typeof id === "string" && id.length > 0);
@@ -65,10 +65,10 @@ export function ProductCarousel({ ctx }: { ctx: BlockContext }) {
       <style>{`.bqb-car{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding-bottom:4px;-webkit-overflow-scrolling:touch}.bqb-car::-webkit-scrollbar{display:none}.bqb-car > li{flex:0 0 calc((100% - 12px)/2.2);scroll-snap-align:start;min-width:0}@container bq (min-width:760px){.bqb-car{gap:16px}.bqb-car > li{flex-basis:calc((100% - 48px)/4)}}@container bq (min-width:1100px){.bqb-car > li{flex-basis:calc((100% - 64px)/5)}}`}</style>
       <SectionTitle look={look} id={headingId} action={(
         <div className="flex items-center gap-3">
-          {str(copy.cta) ? <button type="button" onClick={() => ctx.go("products")} className="border-0 bg-transparent p-0 text-[14px] font-semibold underline underline-offset-4" style={{ color: t.ink, cursor: "pointer" }}>{str(copy.cta)}</button> : null}
+          {str(copy.cta) ? <button type="button" onClick={() => ctx.go("products")} className="border-0 bg-transparent p-0 text-[14px] font-semibold underline underline-offset-4" style={{ color: t.ink, cursor: "pointer" }}>{words(ctx, "cta")}</button> : null}
           <span className="bq-only-wide"><span className="flex gap-2">{arrow(-1, edges.start)}{arrow(1, edges.end)}</span></span>
         </div>
-      )}>{title}</SectionTitle>
+      )}>{words(ctx, "title", title)}</SectionTitle>
       <ul ref={track} className="bqb-car m-0 list-none p-0" aria-label={`${title}. Swipe or use the arrows for more.`} tabIndex={0}>
         {list.map((product, index) => (
           <li key={product.id} aria-roledescription="slide" aria-label={`${index + 1} of ${list.length}`}>
