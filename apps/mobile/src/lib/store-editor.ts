@@ -1,7 +1,9 @@
 import { api } from "./api";
-import type { EdSection, EdSnapshot, Renderer } from "@shared/store-editor";
+import { rexApi } from "./rex-jobs";
+import type { EdSection, EdSnapshot, Renderer, ScheduledPublish } from "@shared/store-editor";
 
 export * from "@shared/store-editor";
+export * from "@shared/rich-text";
 
 // The store editor on the phone (app/store-editor.tsx, design SE-00…SE-16). It edits the web builder's own draft:
 //   GET   /api/mobile/store-editor            the store (what the canvas draws), draft, published, version, catalogue
@@ -9,6 +11,8 @@ export * from "@shared/store-editor";
 //                                              when the draft changed on another device since)
 //   POST  /api/mobile/store-editor/publish    { version } → the live shop is the draft (publishStoreDraft, as the web)
 //   POST  /api/mobile/store-editor/rex        { message, section?, page?, baseVersion } → Rex changes the draft
+//   GET/POST/DELETE /api/mobile/store-editor/schedule   "Schedule for later" (SE-13): the draft as saved goes live then
+//   POST  /api/mobile/store-editor/photo      Brighten, Remove background, Make with Rex (SE-05/06): a new picture URL
 // The pure rules (undo history, changes, sections, theme, what changed) are shared/store-editor.ts.
 
 export interface EditorProduct {
@@ -40,6 +44,8 @@ export interface EditorLoad {
   pageBody: EdSection | null;
   collections: { id: string; name: string }[];
   live: boolean;
+  /** A publish set for later (null: none). */
+  scheduled?: ScheduledPublish | null;
 }
 
 export const fetchStoreEditor = () => api<EditorLoad>("/api/mobile/store-editor");
@@ -96,3 +102,27 @@ export function writeBackup(key: string, value: unknown | null) {
     // No storage (or full): the server copy is still saved by autosave.
   }
 }
+
+// ─── Schedule for later (SE-13) ──────────────────────────────────────────────
+
+export const fetchScheduledPublish = () => api<{ scheduled: ScheduledPublish | null }>("/api/mobile/store-editor/schedule").then((body) => body.scheduled ?? null);
+
+/** The draft as saved now (`version`: what the phone saved) goes live at `at`. Again: reschedules. */
+export const schedulePublish = (at: Date, version: string | null) =>
+  api<{ scheduled: ScheduledPublish }>("/api/mobile/store-editor/schedule", { method: "POST", json: { at: at.toISOString(), version } }).then((body) => body.scheduled);
+
+export const cancelScheduledPublish = () => api<{ cancelled: boolean }>("/api/mobile/store-editor/schedule", { method: "DELETE" });
+
+// ─── Photo tools (SE-05, SE-06) ──────────────────────────────────────────────
+
+/** A brighter copy of the photo (from the original each time; level 1-3). Free. */
+export const brightenPhoto = (url: string, level: number) =>
+  api<{ url: string }>("/api/mobile/store-editor/photo", { method: "POST", json: { action: "brighten", url, level } }).then((body) => body.url);
+
+/** The photo with its background removed (a Rex job: one picture use). */
+export const cutOutPhoto = (url: string) =>
+  rexApi<{ url: string; creditsLeft: number | null }>("/api/mobile/store-editor/photo", { action: "cutout", url }, "store-cutout").then((body) => body.url);
+
+/** "Make with Rex": one picture for the selected spot (a Rex job: one picture use, no banner words). */
+export const makeRexPhoto = (input: { label: string; words?: string; ask?: string; shape?: "wide" | "tall" | "square" }) =>
+  rexApi<{ url: string; creditsLeft: number | null }>("/api/mobile/store-editor/photo", { action: "rex", ...input, ask: input.ask?.trim() || undefined }, "store-photo").then((body) => body.url);

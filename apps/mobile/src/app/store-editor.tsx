@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Keyboard, Platform, Pressable, View } from "react-native";
+import { Keyboard, Platform, Pressable, ScrollView, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -11,7 +11,7 @@ import { WebButtonLabel } from "@/components/WebBadge";
 import { CANVAS_SUPPORTED, StoreCanvas, type CanvasHandle } from "@/components/store-editor/Canvas";
 import { Chip, Coach, FloatButton, Swatch, ToolButton, TopIcon, Toast, canvasBackground } from "@/components/store-editor/parts";
 import { CropOverlay, PhotoSheet, type PickedLocal } from "@/components/store-editor/photo";
-import { LiveScreen, PublishSheet, RexSheet } from "@/components/store-editor/rex-publish";
+import { LiveScreen, PublishSheet, RexSheet, useScheduleWords } from "@/components/store-editor/rex-publish";
 import { AddSheet, ConflictSheet, PagesSheet, ProductsSheet, SectionsSheet, ThemeSheet, type SheetContext } from "@/components/store-editor/sheets";
 import { useStoreEditor } from "@/components/store-editor/useStoreEditor";
 import { ApiError } from "@/lib/api";
@@ -19,6 +19,8 @@ import { useT } from "@/lib/i18n";
 import { openWeb } from "@/lib/web";
 import {
   FONT_CHOICES,
+  RICH_FIXED_COLORS,
+  RICH_SIZE_ORDER,
   THEME_PRESETS,
   addPage,
   applyThemePreset,
@@ -55,6 +57,8 @@ import {
   type EditorBlockDef,
   type EditorLoad,
   type RexEdit,
+  type RichSize,
+  type ScheduledPublish,
 } from "@/lib/store-editor";
 import { colors, radii } from "@/theme";
 
@@ -166,6 +170,12 @@ function Editor({ load, initialSheet }: { load: EditorLoad & { draft: EdSnapshot
   const [canvasKey, setCanvasKey] = useState(0);
   const [canvasFailed, setCanvasFailed] = useState(false);
   const [conflictBusy, setConflictBusy] = useState(false);
+  // "Schedule for later" (SE-13): shown in the top bar while it waits.
+  const [scheduled, setScheduled] = useState<ScheduledPublish | null>(load.scheduled ?? null);
+  const scheduleWords = useScheduleWords();
+  // SE-04: the style of the words being typed (from the canvas), and the colour row.
+  const [textState, setTextState] = useState<{ bold: boolean; size: RichSize; color: string | null }>({ bold: false, size: "m", color: null });
+  const [colours, setColours] = useState(false);
   // What the canvas should do after it gets the next draft (select a new section, mark Rex's changes).
   const after = useRef<{ select?: { id: string; tag?: string }; marks?: { id: string; tag: string }[] } | null>(null);
 
@@ -243,8 +253,15 @@ function Editor({ load, initialSheet }: { load: EditorLoad & { draft: EdSnapshot
       case "copy":
         ed.commit((current) => setCopy(current, page, message.id, message.key, message.value), `${message.id}:${message.key}`);
         break;
+      case "rich":
+        ed.commit((current) => setCopy(current, page, message.id, message.key, message.value, message.runs), `${message.id}:${message.key}`);
+        break;
+      case "textState":
+        setTextState({ bold: message.bold, size: message.size, color: message.color });
+        break;
       case "editing":
         setTyping(message.on);
+        if (!message.on) setColours(false);
         break;
       case "add":
         setAddAfter(message.afterId);
@@ -365,6 +382,18 @@ function Editor({ load, initialSheet }: { load: EditorLoad & { draft: EdSnapshot
     canvas.current?.send({ t: "marks", marks: [] });
   }
 
+  // ─── The text toolbar (SE-04): bold, size and colour on the selected words (all of them when none are selected) ──
+
+  function format(patch: { bold?: "toggle"; size?: RichSize; color?: string | null }) {
+    canvas.current?.send({ t: "format", patch });
+  }
+
+  function stepSize(direction: -1 | 1) {
+    const at = RICH_SIZE_ORDER.indexOf(textState.size);
+    const next = RICH_SIZE_ORDER[Math.max(0, Math.min(RICH_SIZE_ORDER.length - 1, at + direction))]!;
+    format({ size: next });
+  }
+
   function finishCoach() {
     markEditorSeen();
     setCoach(0);
@@ -394,6 +423,13 @@ function Editor({ load, initialSheet }: { load: EditorLoad & { draft: EdSnapshot
     return frame.height - TOOLBAR_H - 12;
   })();
   const showFloat = !previewing && !typing && !cropping && sheet === null && selectedSection && floatTop !== null && !toolbarHidden;
+
+  const themeColours = useMemo(() => {
+    const tokens = snapshot.themeTokens as Record<string, unknown>;
+    const pick = (key: string, fallback: string) => (typeof tokens[key] === "string" && /^#[0-9a-f]{3,8}$/i.test(tokens[key] as string) ? (tokens[key] as string) : fallback);
+    return { "theme:accent": pick("accent", "#FF6A2B"), "theme:ink": pick("ink", "#16141F"), "theme:muted": pick("muted", "#6B6779"), "theme:cta": pick("ctaBg", pick("accent", "#FF6A2B")) } as Record<string, string>;
+  }, [snapshot.themeTokens]);
+  const resolveColour = (color: string) => themeColours[color] ?? color;
 
   const tryPhotos = useMemo(() => shopPhotos(snapshot, load.store.storeProducts.flatMap((product) => product.images.slice(0, 1)), 4), [snapshot, load.store.storeProducts]);
   const heroSection = sections.find((section) => photoSlot(section));
@@ -434,10 +470,17 @@ function Editor({ load, initialSheet }: { load: EditorLoad & { draft: EdSnapshot
                 <T weight="extrabold" numberOfLines={1} style={{ fontSize: 15, flexShrink: 1 }}>{pageTitle}</T>
                 <AppIcon name="chevronDown" size={15} color={colors.ink} strokeWidth={2.2} />
               </View>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }} accessibilityLiveRegion="polite">
-                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: statusColor }} />
-                <T weight="semibold" numberOfLines={1} style={{ fontSize: 11.5, color: statusColor }}>{t(status)}</T>
-              </View>
+              {scheduled && ed.status !== "saving" && ed.status !== "offline" && ed.status !== "conflict" ? (
+                <View testID="editor-scheduled" style={{ flexDirection: "row", alignItems: "center", gap: 4 }} accessibilityLiveRegion="polite">
+                  <AppIcon name="clock" size={12} color={colors.warnInk} />
+                  <T weight="semibold" numberOfLines={1} style={{ fontSize: 11.5, color: colors.warnInk }}>{t("schedule.badge", { when: scheduleWords(scheduled.runAt) })}</T>
+                </View>
+              ) : (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }} accessibilityLiveRegion="polite">
+                  <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: statusColor }} />
+                  <T weight="semibold" numberOfLines={1} style={{ fontSize: 11.5, color: statusColor }}>{t(status)}</T>
+                </View>
+              )}
             </Pressable>
             <TopIcon testID="editor-preview" icon="eye" label={t("preview")} ghost onPress={() => showPreview("mobile")} />
             <Pressable testID="editor-publish" accessibilityRole="button" onPress={() => setSheet("publish")} style={({ pressed }) => ({ height: 40, paddingHorizontal: 16, borderRadius: radii.pill, backgroundColor: colors.accent, justifyContent: "center", opacity: pressed ? 0.85 : 1 })}>
@@ -520,6 +563,21 @@ function Editor({ load, initialSheet }: { load: EditorLoad & { draft: EdSnapshot
         </View>
       </View>
 
+      {/* SE-04: the colour row over the text toolbar (the shop's own colours first, then a few more). */}
+      {typing && !previewing && colours ? (
+        <View testID="text-colours" style={{ position: "absolute", left: 0, right: 0, bottom: keyboard + 52, backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.line, paddingVertical: 8, zIndex: 23 }}>
+          <ChipRowColours
+            current={textState.color}
+            theme={themeColours}
+            label={(key) => t.dynamic(key, key)}
+            onPick={(color) => {
+              format({ color });
+              setColours(false);
+            }}
+          />
+        </View>
+      ) : null}
+
       {/* SE-04: typing on the page. */}
       {typing && !previewing ? (
         <View style={{ position: "absolute", left: 0, right: 0, bottom: keyboard, height: 52, backgroundColor: colors.surface, flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, borderTopWidth: 1, borderTopColor: colors.line, zIndex: 23 }}>
@@ -538,7 +596,22 @@ function Editor({ load, initialSheet }: { load: EditorLoad & { draft: EdSnapshot
           >
             <T weight="extrabold" style={{ fontSize: 15 }}>Aa</T>
           </Pressable>
-          <T numberOfLines={1} style={{ flex: 1, fontSize: 12.5, color: colors.inkSoft, paddingHorizontal: 6 }}>{t("text.live")}</T>
+          <Pressable testID="text-bold" accessibilityRole="button" accessibilityLabel={t("text.bold")} accessibilityState={{ selected: textState.bold }} onPress={() => format({ bold: "toggle" })} style={{ height: 38, width: 38, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: textState.bold ? colors.inkFill : "transparent" }}>
+            <AppIcon name="bold" size={18} color={textState.bold ? "#FFFFFF" : colors.ink} strokeWidth={2.4} />
+          </Pressable>
+          <Pressable testID="text-colour" accessibilityRole="button" accessibilityLabel={t("text.colour")} accessibilityState={{ expanded: colours }} onPress={() => setColours(!colours)} style={{ height: 38, width: 38, alignItems: "center", justifyContent: "center" }}>
+            <View style={{ width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: colors.ink, backgroundColor: textState.color ? resolveColour(textState.color) : "transparent" }} />
+          </Pressable>
+          <View accessibilityRole="adjustable" accessibilityLabel={t("text.size")} accessibilityValue={{ text: t(`text.size.${textState.size}`) }} style={{ flexDirection: "row", alignItems: "center" }}>
+            <Pressable testID="text-smaller" accessibilityRole="button" accessibilityLabel={t("text.smaller")} disabled={textState.size === "s"} onPress={() => stepSize(-1)} hitSlop={4} style={{ height: 38, width: 26, alignItems: "center", justifyContent: "center", opacity: textState.size === "s" ? 0.35 : 1 }}>
+              <T weight="extrabold" style={{ fontSize: 17 }}>−</T>
+            </Pressable>
+            <T weight="extrabold" style={{ fontSize: 13.5, minWidth: 24, textAlign: "center" }}>{textState.size.toUpperCase()}</T>
+            <Pressable testID="text-bigger" accessibilityRole="button" accessibilityLabel={t("text.bigger")} disabled={textState.size === "xl"} onPress={() => stepSize(1)} hitSlop={4} style={{ height: 38, width: 26, alignItems: "center", justifyContent: "center", opacity: textState.size === "xl" ? 0.35 : 1 }}>
+              <T weight="extrabold" style={{ fontSize: 17 }}>+</T>
+            </Pressable>
+          </View>
+          <View style={{ flex: 1 }} />
           <Pressable
             testID="text-rewrite"
             accessibilityRole="button"
@@ -646,6 +719,8 @@ function Editor({ load, initialSheet }: { load: EditorLoad & { draft: EdSnapshot
         <PhotoSheet
           ctx={ctx}
           section={selectedSection}
+          frame={selected?.photo}
+          onEdited={() => setPicked(null)}
           canCrop={Boolean(picked && selected?.photo)}
           onCrop={() => { setSheet(null); setCropping(true); }}
           onSet={(url) => ed.commit((current) => setPhoto(current, page, selectedSection.id, url), `photo:${selectedSection.id}`)}
@@ -690,7 +765,24 @@ function Editor({ load, initialSheet }: { load: EditorLoad & { draft: EdSnapshot
           onClose={() => setSheet(null)}
         />
       ) : null}
-      {sheet === "publish" ? <PublishSheet ctx={ctx} onPublished={(url) => { setSheet(null); setLive({ url: url ?? load.store.storefrontUrl }); }} onClose={() => setSheet(null)} /> : null}
+      {sheet === "publish" ? (
+        <PublishSheet
+          ctx={ctx}
+          scheduled={scheduled}
+          onScheduled={(next, message) => {
+            setScheduled(next);
+            setSheet(null);
+            showToast(message, false);
+          }}
+          onPublished={(url) => {
+            // Publishing now replaces a publish scheduled for later (the server cancels it).
+            setScheduled(null);
+            setSheet(null);
+            setLive({ url: url ?? load.store.storefrontUrl });
+          }}
+          onClose={() => setSheet(null)}
+        />
+      ) : null}
 
       {ed.status === "conflict" ? (
         <ConflictSheet
@@ -706,5 +798,26 @@ function Editor({ load, initialSheet }: { load: EditorLoad & { draft: EdSnapshot
 
       {live ? <LiveScreen url={live.url} onClose={close} onKeepEditing={() => setLive(null)} /> : null}
     </View>
+  );
+}
+
+/** The text toolbar's colours (SE-04): the shop's theme colours, a few fixed ones, and "Own colour" (none). */
+function ChipRowColours({ current, theme, label, onPick }: { current: string | null; theme: Record<string, string>; label: (key: string) => string; onPick: (color: string | null) => void }) {
+  const entries: { id: string; hex: string; name: string }[] = [
+    ...Object.entries(theme).map(([id, hex]) => ({ id, hex, name: label(`text.colour.${id.slice(6)}`) })),
+    ...RICH_FIXED_COLORS.map((hex) => ({ id: hex, hex, name: hex })),
+  ];
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="always" contentContainerStyle={{ gap: 10, paddingHorizontal: 12, alignItems: "center" }}>
+      <Pressable testID="text-colour-none" accessibilityRole="button" accessibilityLabel={label("text.colour.none")} accessibilityState={{ selected: !current }} onPress={() => onPick(null)} style={{ height: 34, paddingHorizontal: 12, borderRadius: radii.pill, justifyContent: "center", backgroundColor: !current ? colors.inkFill : colors.grayTint }}>
+        <T weight="bold" style={{ fontSize: 12.5, color: !current ? "#FFFFFF" : colors.ink }}>{label("text.colour.none")}</T>
+      </Pressable>
+      {entries.map((entry) => {
+        const on = current === entry.id;
+        return (
+          <Pressable key={entry.id} testID={`text-colour-${entry.id}`} accessibilityRole="button" accessibilityLabel={entry.name} accessibilityState={{ selected: on }} onPress={() => onPick(entry.id)} style={{ width: 34, height: 34, borderRadius: 17, borderWidth: on ? 3 : 1, borderColor: on ? colors.accent : colors.line, backgroundColor: entry.hex }} />
+        );
+      })}
+    </ScrollView>
   );
 }

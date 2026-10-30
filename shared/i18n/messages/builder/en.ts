@@ -2291,6 +2291,8 @@ const en = {
   "ed.Products with sizes or colours open their page to choose one.": "Products with sizes or colours open their page to choose one.",
   "ed.Second photo on hover": "Second photo on hover",
   "ed.On computers, pointing at a product shows its next photo.": "On computers, pointing at a product shows its next photo.",
+  "ed.Show prices": "Show prices",
+  "ed.Product pages always show the price.": "Product pages always show the price.",
   "ed.Your page's own filter bar and category sections still show above. Hide them if this style already has what you need.": "Your page's own filter bar and category sections still show above. Hide them if this style already has what you need.",
   // Seasonal campaign sections (block-catalog.ts)
   "ed.Countdown banner": "Countdown banner",

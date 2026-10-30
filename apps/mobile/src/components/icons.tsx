@@ -7,7 +7,7 @@ import { BRAND_MARKS } from "@shared/brand-icons";
 
 export type AppIconName = "home" | "box" | "chat" | "bag" | "grid" | "plus" | "search" | "bell" | "mic" | "receipt" | "play" | "megaphone" | "sparkle" | "truck" | "mail" | "coin" | "chevron" | "store" | "user" | "printer" | "tag" | "wifiOff" | "star" | "check" | "clock" | "share" | "doc" | "send" | "settings" | "image" | "bot" | "phone" | "pin" | "camera" | "shield" | "users" | "help" | "wallet" | "logout" | "x" | "globe" | "link" | "route" | "filter" | "lock" | "copy" | "chart" | "zap" | "popup" | "sun" | "moon" | "contrast" | "info" | "volume" | "volumeOff" | "video" | "whatsapp" | "instagram" | "facebook" | "tiktok" | "download"
   // The store editor (app/store-editor.tsx, design SE-02…SE-16).
-  | "undo" | "redo" | "eye" | "eyeOff" | "chevronDown" | "type" | "palette" | "layers" | "arrowUp" | "arrowDown" | "arrowLeft" | "trash" | "grip" | "mobile" | "monitor" | "crop" | "folder" | "button" | "move";
+  | "undo" | "redo" | "eye" | "eyeOff" | "chevronDown" | "type" | "palette" | "layers" | "arrowUp" | "arrowDown" | "arrowLeft" | "trash" | "grip" | "mobile" | "monitor" | "crop" | "folder" | "button" | "move" | "scissors" | "sliders" | "bold";
 
 const PATHS: Record<AppIconName, (color: string) => React.ReactNode> = {
   home: () => <Path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />,
@@ -92,6 +92,9 @@ const PATHS: Record<AppIconName, (color: string) => React.ReactNode> = {
   folder: () => <Path d="M3 6h6l2 2h10v11H3z" />,
   button: () => <><Rect x="3" y="7" width="18" height="10" rx="5" /><Path d="M8 12h8" /></>,
   move: () => <Path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3" />,
+  scissors: () => <><Circle cx="6" cy="6" r="3" /><Circle cx="6" cy="18" r="3" /><Path d="M20 4L8.1 15.9M14.5 14.5L20 20M8.1 8.1L12 12" /></>,
+  sliders: () => <Path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0M14 4v4M8 10v4M16 16v4" />,
+  bold: () => <Path d="M7 4h6a4 4 0 0 1 0 8H7zM7 12h7a4 4 0 0 1 0 8H7z" />,
   whatsapp: (color) => <Path d={BRAND_MARKS.whatsapp.path} fill={color} stroke="none" />,
   instagram: (color) => <Path d={BRAND_MARKS.instagram.path} fill={color} stroke="none" />,
   facebook: (color) => <Path d={BRAND_MARKS.facebook.path} fill={color} stroke="none" />,

@@ -7,17 +7,27 @@ import { ApiError } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { shareOnWhatsApp } from "@/lib/share";
 import {
+  SCHEDULE_HOURS,
   askRexToEdit,
+  cancelScheduledPublish,
   changeLabelKey,
   changeTone,
+  defaultScheduleTime,
   findPage,
   kindLabelKey,
+  lagosParts,
+  lagosTime,
+  scheduleDays,
+  schedulePublish,
+  scheduleProblem,
+  scheduleWhen,
   shownHost,
   summariseChanges,
   type ChangeItem,
   type EdSection,
   type EdSnapshot,
   type RexEdit,
+  type ScheduledPublish,
 } from "@/lib/store-editor";
 import { TILE, type TileTone } from "@/components/design";
 import { colors, fonts, radii } from "@/theme";
@@ -167,14 +177,69 @@ export function useChangeWords() {
   };
 }
 
-export function PublishSheet({ ctx, onPublished, onClose }: { ctx: SheetContext; onPublished: (url: string | null) => void; onClose: () => void }) {
+/** "Sat 9:00", "Today 18:30", "Tomorrow 9:00" (Lagos time) in the seller's language. */
+export function useScheduleWords() {
+  const t = useT("storeEditor");
+  return (at: Date | string, now = new Date()) => {
+    const when = scheduleWhen(at, now);
+    const day = when.day === "today" ? t("day.today") : when.day === "tomorrow" ? t("day.tomorrow") : t.dynamic(`day.${when.weekday}`, "");
+    return when.day === "date" ? t("schedule.whenDate", { day, date: when.date, month: when.month + 1, time: when.time }) : t("schedule.when", { day, time: when.time });
+  };
+}
+
+export function PublishSheet({
+  ctx,
+  scheduled,
+  onScheduled,
+  onPublished,
+  onClose,
+}: {
+  ctx: SheetContext;
+  /** The publish set for later, if any. */
+  scheduled: ScheduledPublish | null;
+  /** Scheduled, rescheduled (the new one) or cancelled (null); `message` is what to tell the seller. */
+  onScheduled: (next: ScheduledPublish | null, message: string) => void;
+  onPublished: (url: string | null) => void;
+  onClose: () => void;
+}) {
   const t = useT("storeEditor");
   const words = useChangeWords();
+  const when = useScheduleWords();
   const changes = useMemo(() => summariseChanges(ctx.ed.published, ctx.ed.snapshot), [ctx.ed.published, ctx.ed.snapshot]);
   const first = !ctx.ed.published;
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
+  const [picking, setPicking] = useState(false);
   const nothing = !first && changes.length === 0;
+
+  if (picking) {
+    return (
+      <SchedulePicker
+        ctx={ctx}
+        initial={scheduled ? new Date(scheduled.runAt) : null}
+        onBack={() => setPicking(false)}
+        onDone={(next) => {
+          setPicking(false);
+          onScheduled(next, t("schedule.done", { when: when(next.runAt) }));
+        }}
+      />
+    );
+  }
+
+  async function cancelSchedule() {
+    setBusy(true);
+    setProblem(null);
+    try {
+      await cancelScheduledPublish();
+      onScheduled(null, t("schedule.cancelled"));
+    } catch (error) {
+      setProblem(error instanceof Error ? error.message : t("schedule.failed"));
+    } finally {
+      setBusy(false);
+    }
+  }
+  // Edited since scheduling: the scheduled version is what goes live.
+  const changedSince = Boolean(scheduled && ctx.ed.version() && scheduled.draftVersion && ctx.ed.version() !== scheduled.draftVersion);
 
   async function publish() {
     setBusy(true);
@@ -221,8 +286,87 @@ export function PublishSheet({ ctx, onPublished, onClose }: { ctx: SheetContext;
         <AppIcon name="clock" size={18} color={colors.inkSoft} />
         <T style={{ flex: 1, fontSize: 13, color: colors.inkSoft }}>{t("publish.note")}</T>
       </View>
+      {scheduled ? (
+        <View testID="publish-scheduled" style={{ borderRadius: 16, padding: 14, gap: 10, backgroundColor: colors.warnTint }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <AppIcon name="clock" size={18} color={colors.ink} />
+            <T weight="bold" style={{ flex: 1, fontSize: 14.5 }}>{t("schedule.badge", { when: when(scheduled.runAt) })}</T>
+          </View>
+          {changedSince ? <T style={{ fontSize: 13, lineHeight: 18, color: colors.inkSoft }}>{t("schedule.changed")}</T> : null}
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <PillButton testID="schedule-change" title={t("schedule.reschedule")} tone="white" size="sm" style={{ flex: 1 }} disabled={busy} onPress={() => setPicking(true)} />
+            <PillButton testID="schedule-cancel" title={t("schedule.cancel")} tone="white" size="sm" style={{ flex: 1 }} disabled={busy} onPress={() => void cancelSchedule()} />
+          </View>
+        </View>
+      ) : null}
       {problem ? <T style={{ fontSize: 14, color: colors.danger }}>{problem}</T> : null}
       <PillButton testID="publish-now" title={busy ? t("publish.publishing") : t("publish.now")} icon="check" tone="accent" busy={busy} disabled={nothing} onPress={() => void publish()} />
+      {!scheduled ? <PillButton testID="publish-later" title={t("schedule.button")} tone="white" disabled={busy || nothing} onPress={() => setPicking(true)} /> : null}
+    </EditorSheet>
+  );
+}
+
+// ─── Schedule for later (SE-13) ──────────────────────────────────────────────
+
+const HALF_HOURS = SCHEDULE_HOURS.flatMap((hour) => [{ hour, minute: 0 }, { hour, minute: 30 }]);
+
+/** A day (today and the next week) and a time (6:00 to 23:30), Lagos time; the draft as saved now goes live then. */
+function SchedulePicker({ ctx, initial, onBack, onDone }: { ctx: SheetContext; initial: Date | null; onBack: () => void; onDone: (scheduled: ScheduledPublish) => void }) {
+  const t = useT("storeEditor");
+  const when = useScheduleWords();
+  const [now] = useState(() => new Date());
+  const days = useMemo(() => scheduleDays(now, 8), [now]);
+  const start = initial && !scheduleProblem(initial, now) ? initial : defaultScheduleTime(now);
+  const startParts = lagosParts(start);
+  const [dayIndex, setDayIndex] = useState(() => Math.max(0, days.findIndex((day) => day.year === startParts.year && day.month === startParts.month && day.day === startParts.day)));
+  const [time, setTime] = useState({ hour: startParts.hour, minute: startParts.minute >= 30 ? 30 : 0 });
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+  const day = days[dayIndex] ?? days[0]!;
+  const at = lagosTime(day.year, day.month, day.day, time.hour, time.minute);
+  const wrong = scheduleProblem(at, new Date());
+
+  async function confirm() {
+    setBusy(true);
+    setProblem(null);
+    try {
+      // What goes live is exactly what the seller sees: the last change is saved first.
+      const version = await ctx.ed.flush();
+      if (version === null && (ctx.ed.status === "offline" || ctx.ed.status === "conflict")) throw new ApiError(t("publish.offline"), ctx.ed.status === "conflict" ? 409 : 0);
+      onDone(await schedulePublish(at, version ?? ctx.ed.version()));
+    } catch (error) {
+      setProblem(error instanceof ApiError && error.status === 409 ? t("conflict.body") : error instanceof ApiError && error.status === 0 ? t("publish.offline") : error instanceof Error ? error.message : t("schedule.failed"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const dayName = (entry: (typeof days)[number]) => (entry.offset === 0 ? t("day.today") : entry.offset === 1 ? t("day.tomorrow") : t.dynamic(`day.${entry.weekday}`, ""));
+  return (
+    <EditorSheet testID="editor-schedule-sheet" title={t("schedule.title")} dim onClose={onBack} right={<TopIcon icon="arrowLeft" label={t("schedule.back")} onPress={onBack} testID="schedule-back" />}>
+      <T style={{ fontSize: 14, lineHeight: 20, color: colors.inkSoft }}>{t("schedule.body")}</T>
+      <T weight="bold" style={{ fontSize: 13, color: colors.inkSoft }}>{t("schedule.day")}</T>
+      <ChipRow>
+        {days.map((entry, index) => (
+          <Chip key={entry.offset} testID={`schedule-day-${entry.offset}`} label={entry.offset > 1 ? `${dayName(entry)} ${entry.day}` : dayName(entry)} on={index === dayIndex} onPress={() => setDayIndex(index)} />
+        ))}
+      </ChipRow>
+      <T weight="bold" style={{ fontSize: 13, color: colors.inkSoft }}>{t("schedule.time")}</T>
+      <ChipRow>
+        {HALF_HOURS.map((entry) => {
+          const label = `${entry.hour}:${String(entry.minute).padStart(2, "0")}`;
+          const past = Boolean(scheduleProblem(lagosTime(day.year, day.month, day.day, entry.hour, entry.minute), now));
+          if (past) return null;
+          return <Chip key={label} testID={`schedule-time-${label}`} label={label} on={entry.hour === time.hour && entry.minute === time.minute} onPress={() => setTime(entry)} />;
+        })}
+      </ChipRow>
+      <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
+        <AppIcon name="clock" size={18} color={colors.inkSoft} />
+        <T style={{ flex: 1, fontSize: 13, color: colors.inkSoft }}>{t("schedule.note")}</T>
+      </View>
+      {wrong ? <T style={{ fontSize: 14, color: colors.danger }}>{t("schedule.tooSoon")}</T> : null}
+      {problem ? <T style={{ fontSize: 14, color: colors.danger }}>{problem}</T> : null}
+      <PillButton testID="schedule-confirm" title={busy ? t("schedule.scheduling") : t("schedule.confirm", { when: when(at) })} icon="clock" tone="accent" busy={busy} disabled={Boolean(wrong)} onPress={() => void confirm()} />
     </EditorSheet>
   );
 }

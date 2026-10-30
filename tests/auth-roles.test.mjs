@@ -155,7 +155,9 @@ test("phone app: one question per screen; the role is asked after the code unles
   assert.match(lib, /source: payload\.signup \? "signup" : undefined/);
   const verify = read("apps/mobile/src/app/verify.tsx");
   assert.match(verify, /if \(signup && !linkRole\) \{[\s\S]*?setAskRole\(true\)/, "What brings you to Shopinbos? comes after the code");
-  assert.match(verify, /t\("q\.role"\)/);
+  assert.match(verify, /t\("q\.roleDo"\)/, "spec A4: What do you want to do?");
+  assert.match(verify, /if \(next\.length === OTP_LENGTH\) void submit\(next\)/, "spec A3: the 6th digit checks the code");
+  assert.match(verify, /shakeBoxes\(\)/, "spec A3: a wrong code shakes");
   assert.match(verify, /explainSignupConflict\(actual, role, target\.kind \?\? "email"\)/);
   assert.match(verify, /params: \{ role, method: target\.kind \?\? "email", name: params\.name \?\? "", step: "contact" \}/, "Use a different email keeps the name and role");
   assert.match(verify, /useState\(params\.oauth === "1"\)/, "Google or Apple with no account: straight to What brings you?");

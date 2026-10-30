@@ -66,6 +66,10 @@ export function MediaStep({ ctx }: { ctx: StepCtx }) {
                 style={{ width: cell, height: cell * 1.12, borderRadius: 16, overflow: "hidden", borderWidth: number ? 3 : 0, borderColor: colors.accent }}
               >
                 <Image source={{ uri: photo.thumb }} style={{ width: "100%", height: "100%" }} contentFit="cover" />
+                {/* The photographer's credit (Unsplash), as the library asks where there's room. */}
+                {photo.credit ? (
+                  <T numberOfLines={1} style={{ position: "absolute", left: 6, right: 6, bottom: 4, fontSize: 9.5, color: "rgba(255,255,255,0.92)", textShadowColor: "rgba(0,0,0,0.6)", textShadowRadius: 3 }}>{`${photo.credit.name} / Unsplash`}</T>
+                ) : null}
                 {number ? (
                   <View style={{ position: "absolute", top: 6, right: 6, width: 28, height: 28, borderRadius: 14, backgroundColor: colors.accent, alignItems: "center", justifyContent: "center" }}>
                     <T weight="extrabold" style={{ color: colors.onAccent, fontSize: 14 }}>{number}</T>

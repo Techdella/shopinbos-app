@@ -231,10 +231,10 @@ test("web and phone send a clientKey per tap and pick up what Rex finished on th
   for (const path of ["src/components/onboarding/seller/api.ts", "src/app/studio/logo/LogoStudioClient.tsx", "src/app/studio/images/ImageGenClient.tsx", "src/app/home/labels/packaging/PackConceptStudio.tsx", "src/app/home/video/VideoStudio.tsx"]) {
     assert.match(read(path), /rexPost\(|rexPost</, path);
   }
-  for (const path of ["src/components/onboarding/seller/SellerOnboarding.tsx", "src/app/studio/logo/LogoStudioClient.tsx", "src/app/studio/images/ImageGenClient.tsx", "src/app/home/video/VideoStudio.tsx", "apps/mobile/src/app/onboarding/index.tsx", "apps/mobile/src/app/create/index.tsx"]) {
+  for (const path of ["src/components/onboarding/seller/SellerOnboarding.tsx", "src/app/studio/logo/LogoStudioClient.tsx", "src/app/studio/images/ImageGenClient.tsx", "src/app/home/video/VideoStudio.tsx", "apps/mobile/src/components/rex-build/design.tsx", "apps/mobile/src/components/rex-build/pages.tsx", "apps/mobile/src/app/onboarding/building.tsx", "apps/mobile/src/app/create/index.tsx"]) {
     assert.match(read(path), /useRexResume\(/, path);
   }
-  for (const path of ["apps/mobile/src/lib/onboarding.ts", "apps/mobile/src/lib/banner.ts", "apps/mobile/src/lib/familiar.ts", "apps/mobile/src/lib/video.ts"]) assert.match(read(path), /rexApi</, path);
+  for (const path of ["apps/mobile/src/lib/onboarding.ts", "apps/mobile/src/lib/seller-onboarding.ts", "apps/mobile/src/lib/banner.ts", "apps/mobile/src/lib/familiar.ts", "apps/mobile/src/lib/video.ts"]) assert.match(read(path), /rexApi</, path);
   assert.match(read("src/components/builder/rex/RexStudio.tsx"), /<RexFinishedStrip \/>/);
 });
 
@@ -242,7 +242,8 @@ test("onboarding keeps Rex's logos and the step server-side, so logging back in 
   const memory = read("src/lib/onboarding-memory.ts");
   assert.match(memory, /logoIdeas\?:/);
   assert.match(memory, /logoPicked\?:/);
-  for (const path of ["src/components/onboarding/seller/SellerOnboarding.tsx", "apps/mobile/src/app/onboarding/index.tsx"]) {
+  // The web sign-up draws logos; the phone's guided build keeps its answers in the same memory (rexBuild).
+  for (const path of ["src/components/onboarding/seller/SellerOnboarding.tsx"]) {
     const source = read(path);
     assert.match(source, /saveMemory\(\{ logoIdeas: ideas, logoRound: round/, path);
     assert.match(source, /saveMemory\(\{ logoPicked: logo\.url \}\)/, path);

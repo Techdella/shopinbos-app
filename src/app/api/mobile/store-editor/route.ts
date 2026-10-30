@@ -7,6 +7,7 @@ import { apiError, ok } from "@/lib/api/response";
 import { buildStorefrontUrl } from "@/lib/domains/storefront";
 import { loadShopperInfo } from "@/lib/storefront/shopper-info.server";
 import { getStoreEditorData } from "@/lib/store-editor/editor-data.server";
+import { loadScheduledPublish } from "@/lib/store-editor/scheduled-publish.server";
 import { editorCatalog, pageBodyTemplate, rendererOf, storedDraftVersion } from "@/lib/store-editor/mobile.server";
 import {
   buildEditorEnvelope,
@@ -26,7 +27,8 @@ export const dynamic = "force-dynamic";
 // The phone's store editor (apps/mobile/src/app/store-editor.tsx, design SE-02…SE-16). It edits the web builder's
 // own draft (brandSettings.editor.draft), so a change on the phone shows in the web builder and the other way round;
 // Publish (./publish) copies that same draft to the live shop through publishStoreDraft, like the web's Publish.
-//   GET   → { store, draft, published, version, renderer, catalog, pageBody, collections, live }
+//   GET   → { store, draft, published, version, renderer, catalog, pageBody, collections, live, scheduled }
+//           scheduled: the publish set for later ("Schedule for later", ./schedule), or null.
 //           store is what the canvas draws (the web builder's own store data: products, shopper info, address).
 //   PATCH { snapshot, baseVersion, force? } → { version }
 //           The phone's debounced autosave. baseVersion is the draft's save stamp the phone started from: when the
@@ -49,9 +51,10 @@ export const GET = withSeller(async (_req: NextRequest, { user }) => {
   const envelope = buildEditorEnvelope(brandSettings, manifest ? createSnapshotFromTemplate(manifest) : null);
   const draft = envelope.draft;
   const renderer = rendererOf(draft);
-  const [shopper, collections] = await Promise.all([
+  const [shopper, collections, scheduled] = await Promise.all([
     loadShopperInfo(store.id, store.brandSettings, store.storeProducts),
     db.collection.findMany({ where: { storeId: store.id }, orderBy: { createdAt: "desc" }, take: 30, select: { id: true, name: true } }).catch(() => []),
+    loadScheduledPublish(store.id, store.brandSettings).catch(() => null),
   ]);
 
   return ok({
@@ -64,6 +67,7 @@ export const GET = withSeller(async (_req: NextRequest, { user }) => {
     pageBody: draft ? pageBodyTemplate(renderer) : null,
     collections,
     live: store.status === "active" || store.status === "published",
+    scheduled,
   });
 });
 

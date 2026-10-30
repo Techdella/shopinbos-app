@@ -172,7 +172,7 @@ test("tips: no intro opens by itself; a Tips button on screens with a tip, after
 
 test("first-run Home tour: waits for setup, Home in front, and no Peggy call", () => {
   const home = read("apps/mobile/src/app/(tabs)/home.tsx");
-  assert.match(home, /const tourAllowed = useTourAllowed\(sellerSetupDone\(setup\)\);/);
+  assert.match(home, /const tourAllowed = useTourAllowed\(tourParam === "1" \? true : sellerSetupDone\(setup\)\);/, "waits for setup, except straight after going live (spec F1-F3)");
   assert.match(home, /const tourShowing = touring && tourAllowed && focused;/);
   assert.match(home, /visible=\{tourShowing\}/);
   assert.doesNotMatch(home, /visible=\{touring\}/);

@@ -3,7 +3,7 @@ import { PanResponder, Pressable, ScrollView, View } from "react-native";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import { AppIcon } from "@/components/icons";
-import { Field, PillButton, T } from "@/components/ui";
+import { Field, PillButton, T, Toggle } from "@/components/ui";
 import { useT } from "@/lib/i18n";
 import {
   BLOCK_GROUPS,
@@ -27,6 +27,8 @@ import {
   readPhoto,
   setProductsLayout,
   setProductsShow,
+  setShowPrices,
+  showsPrices,
   themePresetOf,
   toggleSection,
   type BlockGroup,
@@ -473,6 +475,14 @@ export function ProductsSheet({ ctx, section, onClose }: { ctx: SheetContext; se
             </Pressable>
           );
         })}
+      </View>
+      {/* SE-16: prices on this section's cards (product pages always show them). */}
+      <View testID="products-show-prices" style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 48 }}>
+        <View style={{ flex: 1, gap: 2 }}>
+          <T weight="semibold" style={{ fontSize: 15 }}>{t("products.prices")}</T>
+          <T style={{ fontSize: 12.5, color: colors.inkSoft }}>{t("products.pricesHint")}</T>
+        </View>
+        <Toggle label={t("products.prices")} on={showsPrices(section.settings)} onChange={(on) => ctx.ed.commit((current) => setShowPrices(current, ctx.page, section.id, on), `prices:${section.id}`)} />
       </View>
     </EditorSheet>
   );

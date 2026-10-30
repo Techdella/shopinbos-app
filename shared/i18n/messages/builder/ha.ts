@@ -2287,6 +2287,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "ed.Products with sizes or colours open their page to choose one.": "Kayan da ke da girma ko launi za su buɗe shafinsu don zaɓar ɗaya.",
   "ed.Second photo on hover": "Hoto na biyu idan an nuna",
   "ed.On computers, pointing at a product shows its next photo.": "A kwamfuta, nuna kaya yana nuna hotonsa na gaba.",
+  "ed.Show prices": "Nuna farashi",
+  "ed.Product pages always show the price.": "Shafukan kaya kullum suna nuna farashi.",
   "ed.Your page's own filter bar and category sections still show above. Hide them if this style already has what you need.": "Sandar matattara da sassan rukuni na shafinka har yanzu suna nuna a sama. Ɓoye su idan wannan salon yana da abin da kake buƙata.",
   // Seasonal campaign sections (block-catalog.ts)
   "ed.Countdown banner": "Banner na ƙidayar lokaci",

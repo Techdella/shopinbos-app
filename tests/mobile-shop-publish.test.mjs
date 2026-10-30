@@ -30,7 +30,7 @@ test("the keyboard never covers a chat's text box (Android draws edge to edge, s
   for (const file of ["components/ChatScreen.tsx", "app/peggy.tsx", "components/OnboardingFrame.tsx"]) assert.match(app(file), /useScrollToEndOnKeyboard\(/, file);
   // Sign-up's one-question screens use the shared frame (keyboard included), numbered "3 of 9"; a chat in the frame
   // still sticks to its newest message.
-  assert.match(app("app/onboarding/index.tsx"), /<OnboardingFrame\s+step="chat"\s+progress=\{\{ current: sellerQuestionNumber\(question\), total: SELLER_QUESTIONS\.length \}\}/);
+  assert.match(app("components/rex-build/Frame.tsx"), /<KeyboardShift>/, "Rex's guided build keeps the keyboard off its fields");
   assert.match(app("components/OnboardingFrame.tsx"), /onContentSizeChange=\{chat \?/);
   assert.equal(JSON.parse(app("../app.json")).expo.android.softwareKeyboardLayoutMode, "resize");
 });

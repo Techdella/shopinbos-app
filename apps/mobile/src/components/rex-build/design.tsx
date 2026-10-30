@@ -147,7 +147,7 @@ export function BannerStep({ ctx }: { ctx: StepCtx }) {
   const palette = paletteDef(ctx.flow.palette) ?? palettesFor(ctx.flow.style)[0]!;
   const option = options[index] ?? null;
 
-  function use(choice: { url: string; source: "product" | "rex_library" | "upload" } | null, rexPicked = false) {
+  function takeBanner(choice: { url: string; source: "product" | "rex_library" | "upload" } | null, rexPicked = false) {
     if (!choice) return;
     const banner = { url: choice.url, source: choice.source, swipes };
     track("banner_photo_choice", { source: choice.source, swipes });
@@ -161,7 +161,7 @@ export function BannerStep({ ctx }: { ctx: StepCtx }) {
     setUploading(true);
     try {
       const url = await uploadPhoto(picked[0]!, "store-banners");
-      use({ url, source: "upload" });
+      takeBanner({ url, source: "upload" });
     } catch (cause) {
       ctx.setError(cause instanceof Error && cause.message ? cause.message : t("error.save"));
     } finally {
@@ -173,7 +173,7 @@ export function BannerStep({ ctx }: { ctx: StepCtx }) {
     <RexFrame
       {...ctx.frame}
       secondary={options.length > 1 ? { title: t("banner.another"), onPress: () => { setIndex((value) => (value + 1) % options.length); setSwipes((value) => value + 1); } } : null}
-      primary={option ? { title: t("banner.yes"), icon: "check", onPress: () => use(option), testID: "banner-yes" } : null}
+      primary={option ? { title: t("banner.yes"), icon: "check", onPress: () => takeBanner(option), testID: "banner-yes" } : null}
       link={{ title: uploading ? t("banner.uploading") : t("banner.own"), icon: "image", onPress: () => void own(), testID: "banner-own" }}
     >
       <RexSays title={t("banner.title")} sub={t("banner.sub")} />
@@ -195,7 +195,7 @@ export function BannerStep({ ctx }: { ctx: StepCtx }) {
       )}
       {/* Rex's pick is the first photo: the seller's best product shot, else the library's. */}
       {option ? (
-        <Pressable accessibilityRole="button" onPress={() => use(options[0] ?? null, true)} style={{ alignSelf: "center", flexDirection: "row", alignItems: "center", gap: 6, minHeight: 40 }} testID="rex-choose">
+        <Pressable accessibilityRole="button" onPress={() => takeBanner(options[0] ?? null, true)} style={{ alignSelf: "center", flexDirection: "row", alignItems: "center", gap: 6, minHeight: 40 }} testID="rex-choose">
           <AppIcon name="sparkle" size={15} color={colors.forest} />
           <T weight="bold" style={{ color: colors.forest, fontSize: 14.5 }}>{t("frame.rexChoose")}</T>
         </Pressable>
@@ -224,7 +224,7 @@ export function WordsStep({ ctx }: { ctx: StepCtx }) {
   const palette = paletteDef(ctx.flow.palette) ?? palettesFor(ctx.flow.style)[0]!;
   const shown = options.length ? options : offline ? fallback : [];
 
-  function take(list: Array<{ heading: string; text?: string; button?: string }>) {
+  function take(list: { heading: string; text?: string; button?: string }[]) {
     const next = list.filter((item) => item.heading?.trim()).slice(0, 3).map((item) => ({ headline: item.heading.trim(), sub: item.text?.trim() || undefined, cta: item.button?.trim() || t("words.cta") }));
     if (!next.length) return false;
     setOptions(next);
@@ -235,7 +235,7 @@ export function WordsStep({ ctx }: { ctx: StepCtx }) {
 
   // Lines Rex finished while the seller was away come back here (already paid for).
   useRexResume(["banner"], (job) => {
-    const list = Array.isArray(job.result?.options) ? (job.result.options as Array<{ heading: string; text?: string; button?: string }>) : [];
+    const list = Array.isArray(job.result?.options) ? (job.result.options as { heading: string; text?: string; button?: string }[]) : [];
     if (!options.length) take(list);
   }, !options.length);
 
@@ -314,7 +314,7 @@ export function LayoutStep({ ctx }: { ctx: StepCtx }) {
   const photos = useShopPhotos(ctx);
   const rex = recommendLayout(products.length);
   const [layout, setLayout] = useState<LayoutChoice>(ctx.flow.layout?.layout ?? rex);
-  const firsts: Array<{ show: ShowFirst; id: string | null; label: string }> = [
+  const firsts: { show: ShowFirst; id: string | null; label: string }[] = [
     { show: "best-sellers", id: null, label: t("layout.best") },
     { show: "new", id: null, label: t("layout.new") },
     ...(ctx.data.collections ?? []).filter((collection) => collection.productIds.length).map((collection) => ({ show: "collection" as const, id: collection.id, label: collection.name })),

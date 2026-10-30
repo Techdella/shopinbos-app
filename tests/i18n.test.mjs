@@ -232,7 +232,7 @@ test("web and phone runtimes are mounted and the pickers are reachable", () => {
   assert.match(read("apps/mobile/src/app/welcome.tsx"), /<LanguageButton \/>/);
   assert.match(read("apps/mobile/src/components/AuthForm.tsx"), /<LanguageButton \/>/);
   for (const file of ["apps/mobile/src/app/(tabs)/shop.tsx", "apps/mobile/src/components/PartnerMore.tsx", "apps/mobile/src/app/logistics/(tabs)/more.tsx", "apps/mobile/src/app/supplier/(tabs)/money.tsx"]) assert.match(read(file), /<LanguageRow/, file);
-  assert.match(read("apps/mobile/src/app/onboarding/index.tsx"), /setAppLocale\(locale\)/);
+  assert.match(read("apps/mobile/src/components/rex-build/basics.tsx"), /<LanguageButton \/>/, "the language switch on the first onboarding screen");
   // The Riders app follows the app language.
   assert.match(read("apps/mobile/src/lib/rider-strings.ts"), /useLocale\(\)/);
 });

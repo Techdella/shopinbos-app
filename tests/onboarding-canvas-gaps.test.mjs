@@ -33,32 +33,19 @@ test("supplier review checklist: ID and selfie, the WhatsApp catalogue, CAC", ()
   assert.equal(supplierReviewItems({ ...base, tiers: { verifiedIndividual: true, registeredBusiness: true } }).at(-1).state, "done");
 });
 
-test("seller sign-up on the phone follows the canvas boards 05-15", () => {
-  const phone = read("apps/mobile/src/app/onboarding/index.tsx");
-  // 05: the free link under the name, checked with the same address route as the address step.
-  assert.match(phone, /checkAddress\(wanted\)[\s\S]*setNameAddress/);
-  assert.match(phone, /t\("name\.free", \{ host: nameAddress\.host \}\)/);
-  assert.match(phone, /t\("name\.welcome", \{ name \}\)/);
-  // 06 / 07: the sub line and Rex's note over the logo ideas.
-  assert.match(phone, /t\("logo\.sub", \{ name: displayName \}\)/);
-  assert.match(phone, /t\("logo\.rexSaid", \{ name: displayName \}\)/);
-  // 08 / 09 / 10.
-  assert.match(phone, /t\("sell\.picked", \{ count: chosen\.length \}\)/);
-  assert.match(phone, /t\("ready\.title"\), t\("ready\.sub"\)/);
-  assert.match(phone, /t\("product\.title"\), t\("product\.tip"\)/);
-  // 11: Add product, or save and snap another one.
-  assert.match(phone, /async function saveProduct\(another = false\)/);
-  assert.match(phone, /void saveProduct\(true\)/);
-  assert.match(phone, /if \(!another\) return forward\(\);/);
-  // 12 / 13: Rex's vibes fill the "describe the vibe" box sent with the build.
-  assert.match(phone, /const VIBES = \["bold", "soft", "gold", "clean"\] as const/);
-  assert.match(phone, /tweak: vibe\.trim\(\) \|\| undefined/);
-  // 14: no domain purchase on the phone, a free link to go on with.
-  assert.match(phone, /t\("address\.continueFree"\)/);
-  assert.doesNotMatch(phone, /searchDomains|\/api\/domains/);
-  // 15: next steps finish onboarding, then open their screen over Home.
-  for (const path of ["/wallet", "/delivery", "/add-products"]) assert.match(phone, new RegExp(`finish\\("${path}"\\)`));
-  assert.match(phone, /router\.replace\("\/home"\);\n\s+if \(next\) router\.push\(next\);/);
+test("seller sign-up on the phone: shop basics, then Rex's guided build (design RB-01…RB-16)", () => {
+  const basics = read("apps/mobile/src/components/rex-build/basics.tsx");
+  // B4: the free link under the name, checked with the same address route as before, with suggestions when taken.
+  assert.match(basics, /checkAddress\(slug\)/);
+  assert.match(basics, /t\("shop\.free", \{ host \}\)/);
+  assert.match(basics, /linkSuggestions\(slug,/);
+  assert.match(basics, /await saveAddress\(slug\)/);
+  // B3: the picked count; C1: Rex (recommended) or the editor with a starter template.
+  assert.match(basics, /t\("sell\.picked", \{ count: chosen\.length \}\)/);
+  assert.match(basics, /router\.push\("\/store-editor"\)/);
+  assert.match(basics, /await applyLook\(themeId\)/);
+  // No domain purchase on the phone.
+  for (const file of ["basics.tsx", "products.tsx", "design.tsx", "pages.tsx"]) assert.doesNotMatch(read(`apps/mobile/src/components/rex-build/${file}`), /searchDomains|\/api\/domains/, file);
 });
 
 test("supplier and delivery partner review screens, and the + sheet", () => {

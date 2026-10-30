@@ -138,7 +138,6 @@ test("Home's link in bio card: the link once saved, Set it up before", () => {
 });
 
 test("onboarding: after \"Your store is live!\" comes the link in bio step (skippable), then Home", () => {
-  assert.match(read("apps/mobile/src/app/onboarding/index.tsx"), /onPress=\{\(\) => router\.push\("\/onboarding\/bio"\)\}/);
   assert.match(read("apps/mobile/src/app/onboarding/live.tsx"), /router\.push\("\/onboarding\/bio"\)/);
   const step = read("apps/mobile/src/app/onboarding/bio.tsx");
   assert.match(step, /saveBio\(\{ published: true[^\n]*blocks: starterBioBlocks\(page\.blocks, socials\)/);

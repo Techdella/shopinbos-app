@@ -10,8 +10,6 @@ import { editorCatalog, rendererOf } from "@/lib/store-editor/mobile.server";
 import { replaceSetupDeliveryAreas, setPaymentMethods, SetupError } from "@/lib/setup/server";
 import { saveSellerBusinessAddress } from "@/lib/seller-settings.server";
 import { readBusinessAddress } from "@/lib/email/shell";
-import { DEMO_PHOTOS, unsplashUrl } from "@/lib/store-templates/demo-photos";
-import { themeLibraryEntry } from "@/lib/store-templates/theme-library";
 import {
   createSnapshotFromTemplate,
   getCurrentTemplateMeta,
@@ -33,14 +31,13 @@ import {
   dueOnboardingNudge,
   goLiveBlockers,
   groupProducts,
+  libraryPhotos,
   mergeRexBuild,
   pricesToCheck,
   readRexBuild,
   shopReadyChecklist,
   stepsLeft,
   type DeliveryAreaChoice,
-  type LibraryCategory,
-  type LibraryPhoto,
   type OnboardingEvent,
   type RexBuildMemory,
   type ShopReadyFacts,
@@ -237,27 +234,11 @@ export async function saveContact(userId: string, contact: { whatsapp: string; a
 // ─── D4a: Rex's photo library ────────────────────────────────────────────────
 
 /**
- * Rex's photo library: the hand-picked Unsplash photos the theme previews use (src/lib/store-templates/demo-photos.ts;
- * Unsplash's licence allows this and asks they load from images.unsplash.com), grouped as hair and beauty, people
- * and backgrounds, plus the seller's own product photos. TODO(licence): confirm before launch that sellers may use
- * these in their own shops (spec §8, "Rex's photo library").
+ * Rex's photo library for a seller (shared/rex-photo-library.ts via shared/seller-onboarding.ts libraryPhotos): the
+ * shop's own categories first, then people, backgrounds and markets, plus their own product photos ("mine").
  */
-export function rexLibrary(productImages: string[] = []): LibraryPhoto[] {
-  const photos: LibraryPhoto[] = [];
-  for (const [themeId, set] of Object.entries(DEMO_PHOTOS)) {
-    const beauty = (themeLibraryEntry(themeId)?.categories ?? []).includes("beauty");
-    photos.push({ id: `${themeId}-hero`, url: unsplashUrl(set.hero, 1600, 1000), thumb: unsplashUrl(set.hero, 400, 500), category: beauty ? "beauty" : "backgrounds", licence: "unsplash" });
-    photos.push({ id: `${themeId}-story`, url: unsplashUrl(set.story, 1000, 1250), thumb: unsplashUrl(set.story, 400, 500), category: beauty ? "beauty" : "people", licence: "unsplash" });
-  }
-  for (const [index, url] of productImages.slice(0, 24).entries()) photos.push({ id: `mine-${index}`, url, thumb: url, category: "mine", licence: "own" });
-  return photos;
-}
-
-/** The library for a seller: their shop's own category first (hair and beauty for a beauty shop). */
 export function libraryFor(categories: string[] | undefined, productImages: string[]) {
-  const all = rexLibrary(productImages);
-  const lead: LibraryCategory = (categories ?? []).includes("hair_beauty") ? "beauty" : "people";
-  return [...all.filter((photo) => photo.category === lead), ...all.filter((photo) => photo.category !== lead)];
+  return libraryPhotos(categories, productImages);
 }
 
 // ─── E1: building the draft ──────────────────────────────────────────────────

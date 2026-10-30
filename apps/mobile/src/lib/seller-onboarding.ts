@@ -52,8 +52,8 @@ export interface OnboardingState {
   owner: { firstName: string; phone: string };
   flow: RexBuildMemory;
   products?: OnboardingProduct[];
-  collections?: Array<{ id: string; name: string; productIds: string[] }>;
-  suggestedGroups?: Array<{ name: string; productIds: string[] }>;
+  collections?: { id: string; name: string; productIds: string[] }[];
+  suggestedGroups?: { name: string; productIds: string[] }[];
   priceChecks?: string[];
   contact?: { whatsapp: string; pickup: string };
   library?: LibraryPhoto[];
@@ -69,8 +69,8 @@ export function track(event: OnboardingEvent, props: Record<string, unknown> = {
   void api("/api/mobile/onboarding/events", { method: "POST", json: { event, props } }).catch(() => null);
 }
 
-export const saveCategories = (groups: Array<{ name: string; productIds: string[] }>) =>
-  api<{ collections: Array<{ id: string; name: string; productIds: string[] }> }>("/api/mobile/onboarding/categories", { method: "PUT", json: { groups } });
+export const saveCategories = (groups: { name: string; productIds: string[] }[]) =>
+  api<{ collections: { id: string; name: string; productIds: string[] }[] }>("/api/mobile/onboarding/categories", { method: "PUT", json: { groups } });
 
 export const saveContact = (contact: { whatsapp: string; areas: DeliveryAreaChoice[]; pickup?: string; pod: boolean }) =>
   api<{ podProblem: string | null }>("/api/mobile/onboarding/contact", { method: "PUT", json: contact });
@@ -83,7 +83,7 @@ export const writeAbout = (input: { started: string; different: string; round: n
 
 /** Rex's three banner lines in the chosen style's feel (the banner helper's words, no picture). */
 export const writeBannerWords = (input: { vibe: string; language?: string; round: number }) =>
-  rexApi<{ options?: Array<{ heading: string; text?: string; button?: string }> }>("/api/mobile/banner", { vibe: input.vibe, picture: false, language: input.language, prompt: input.round > 1 ? `Round ${input.round}: new lines` : "" }, "onboarding-words");
+  rexApi<{ options?: { heading: string; text?: string; button?: string }[] }>("/api/mobile/banner", { vibe: input.vibe, picture: false, language: input.language, prompt: input.round > 1 ? `Round ${input.round}: new lines` : "" }, "onboarding-words");
 
 /** Rex builds the draft (a Rex job). */
 export const buildShop = () => rexApi<{ version: string; pages: number; done: string[] }>("/api/mobile/onboarding/build", {}, "onboarding-build");
@@ -157,7 +157,7 @@ export function readEntry(): EntryIntent {
 }
 
 /** Forgets parts of the kept intent once they're used. */
-export function forgetEntry(keys: Array<keyof EntryIntent>) {
+export function forgetEntry(keys: (keyof EntryIntent)[]) {
   try {
     const next = { ...readEntry() };
     for (const key of keys) delete next[key];

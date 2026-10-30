@@ -53,6 +53,8 @@ export const JOBS = [
   { id: "social-posts", path: "/api/cron/social-posts", cron: "*/5 * * * *" },
   // "Time to post" reminders for the phone app's posts calendar (once per post).
   { id: "post-reminders", path: "/api/cron/post-reminders", cron: "*/5 * * * *" },
+  // "Schedule for later" shop publishes from the phone's store editor (each one at its time, then a push).
+  { id: "store-publish", path: "/api/cron/store-publish", cron: "*/5 * * * *" },
   // Monday 06:00 UTC, then every 20 minutes until 09:40 to carry on with a large send.
   { id: "weekly-summary", path: "/api/cron/weekly-summary", cron: "0 6 * * 1" },
   { id: "weekly-summary-continue", path: "/api/cron/weekly-summary", cron: "20,40 6-9 * * 1" },

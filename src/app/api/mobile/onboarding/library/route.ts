@@ -7,8 +7,9 @@ import { readRexBuild } from "@shared/seller-onboarding";
 export const dynamic = "force-dynamic";
 
 // GET /api/mobile/onboarding/library → { photos: [{ id, url, thumb, category, licence }] }
-// Rex's photo library (design RB-07 "From Rex's photo library", RB-11): hair and beauty, people, backgrounds, and the
-// seller's own product photos. TODO(licence): confirm sellers may use the library photos in their shops (spec §8).
+// Rex's photo library (design RB-07 "From Rex's photo library", RB-11; shared/rex-photo-library.ts): the shop's own
+// categories first, then people, backgrounds and markets, with each photographer's credit, plus the seller's own
+// product photos.
 export const GET = withSeller(async (_req, { user }) => {
   const store = await db.store.findUnique({ where: { userId: user.id }, select: { id: true, brandSettings: true } });
   const images = store

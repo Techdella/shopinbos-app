@@ -6232,3 +6232,28 @@ model GroupBuyMember {
 
   @@index([groupId, status])
 }
+
+/// A shop publish set for later from the phone's store editor ("Schedule for later", design SE-13). snapshot is the
+/// draft exactly as it was when scheduled (draftVersion: its save stamp); /api/cron/store-publish puts it live at
+/// runAt through publishStoreDraft (src/lib/store-editor/scheduled-publish.server.ts). draftChanged: the seller had
+/// edited the draft since, so the scheduled version went live and the newer changes stayed in the draft. status
+/// scheduled | publishing | published | failed | cancelled. One scheduled or publishing row per store (partial unique
+/// index in docs/migrations/2026-12-19-scheduled-publish.sql).
+model ScheduledStorePublish {
+  id           String    @id @default(cuid())
+  storeId      String
+  userId       String
+  runAt        DateTime
+  snapshot     Json
+  draftVersion String    @default("")
+  status       String    @default("scheduled")
+  draftChanged Boolean   @default(false)
+  error        String?
+  publishedAt  DateTime?
+  cancelledAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([status, runAt])
+  @@index([storeId, status])
+}

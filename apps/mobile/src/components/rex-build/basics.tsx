@@ -3,6 +3,7 @@ import { Pressable, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { Image } from "expo-image";
 import { AppIcon } from "@/components/icons";
+import { LanguageButton } from "@/components/LanguagePicker";
 import { Chip, Field, Label, Mascot, T } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useT } from "@/lib/i18n";
@@ -31,7 +32,11 @@ export function IntroStep({ ctx }: { ctx: StepCtx }) {
   const t = useT("m_rexBuild");
   return (
     <RexFrame {...ctx.frame} step={null} close primary={{ title: t("intro.start"), onPress: () => void ctx.next(), testID: "intro-start" }}>
-      <View style={{ alignItems: "center", gap: 16, paddingTop: 24 }}>
+      {/* English first; Pidgin, Yorùbá, Hausa and Igbo from the language switch (it changes the whole app). */}
+      <View style={{ alignItems: "flex-end" }}>
+        <LanguageButton />
+      </View>
+      <View style={{ alignItems: "center", gap: 16, paddingTop: 8 }}>
         <View style={{ width: 168, height: 168, borderRadius: 84, borderWidth: 5, borderColor: colors.forestFill, backgroundColor: colors.mintTint, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
           <Mascot name="rex" mood="wave" size={150} label="" />
         </View>

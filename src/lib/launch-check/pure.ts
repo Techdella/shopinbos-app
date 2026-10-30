@@ -108,6 +108,7 @@ export const SCHEDULED_JOBS: ScheduledJob[] = [
   { path: "/api/cron/pay-together", label: "Pay small small, ajo and group buy (reminders, autopay, missed payments)", pgCron: ["pay-together"], qstash: "pay-together" },
   { path: "/api/cron/price-notices", label: "Supplier price changes (7 days' notice)", pgCron: ["price-notices"], qstash: "price-notices" },
   { path: "/api/cron/social-posts", label: "Scheduled social posts", pgCron: ["social-posts"], qstash: "social-posts" },
+  { path: "/api/cron/store-publish", label: "Scheduled shop publishes", pgCron: ["store-publish"], qstash: "store-publish" },
   { path: "/api/cron/weekly-summary", label: "Weekly summary", pgCron: ["weekly-summary", "weekly-summary-continue"], qstash: "weekly-summary" },
   { path: "/api/cron/reviews", label: "Review requests", pgCron: [], qstash: null, vercel: true },
 ];

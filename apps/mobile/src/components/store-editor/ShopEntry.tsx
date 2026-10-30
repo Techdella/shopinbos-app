@@ -8,9 +8,10 @@ import { IconButton } from "@/components/seller/bits";
 import { T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
 import { openShop } from "@/lib/share";
-import { shownHost } from "@/lib/store-editor";
+import { fetchScheduledPublish, shownHost, type ScheduledPublish } from "@/lib/store-editor";
 import { colors, fonts, radii, surfaceCard } from "@/theme";
 import { canvasBackground } from "./parts";
+import { useScheduleWords } from "./rex-publish";
 import { StorePreview } from "./StorePreview";
 
 // The Shop tab's store area (design SE-01): the shop's logo, name and address; a big preview of the real shop with
@@ -35,7 +36,17 @@ export function ShopEntry({
   const t = useT("storeEditor", "m_shop");
   // The preview reloads when the tab comes back into view (after publishing, the new look shows).
   const [stamp, setStamp] = useState(() => Date.now());
-  useFocusEffect(useCallback(() => setStamp(Date.now()), []));
+  // A publish set for later in the editor (SE-13): "Scheduled for Sat 9:00" on the card.
+  const [scheduled, setScheduled] = useState<ScheduledPublish | null>(null);
+  const scheduleWords = useScheduleWords();
+  useFocusEffect(useCallback(() => {
+    setStamp(Date.now());
+    let gone = false;
+    fetchScheduledPublish().then((next) => !gone && setScheduled(next), () => undefined);
+    return () => {
+      gone = true;
+    };
+  }, []));
   const host = shownHost(store.url);
   const edit = () => router.push("/store-editor" as never);
 
@@ -86,6 +97,12 @@ export function ShopEntry({
             <T weight="bold" numberOfLines={1} style={{ fontSize: 16 }}>{t("entry.view")}</T>
           </Pressable>
         </View>
+        {scheduled ? (
+          <Pressable testID="shop-scheduled" accessibilityRole="button" onPress={edit} style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 10, borderRadius: radii.pill, paddingVertical: 8, paddingHorizontal: 12, backgroundColor: colors.warnTint }}>
+            <AppIcon name="clock" size={15} color={colors.warnInk} />
+            <T weight="bold" numberOfLines={1} style={{ fontSize: 13, color: colors.warnInk }}>{t("schedule.badge", { when: scheduleWords(scheduled.runAt) })}</T>
+          </Pressable>
+        ) : null}
         <T style={{ fontSize: 12.5, lineHeight: 18, color: colors.inkSoft, textAlign: "center", marginTop: 10, marginBottom: 2 }}>{t("entry.hint")}</T>
         {below}
       </View>

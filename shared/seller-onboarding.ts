@@ -31,6 +31,7 @@ import {
   type ProductsLayout,
   type Renderer,
 } from "./store-editor.ts";
+import { rexLibraryCategoriesFor, rexLibraryFor } from "./rex-photo-library.ts";
 
 // ─── Screens ─────────────────────────────────────────────────────────────────
 
@@ -391,7 +392,7 @@ export function pricesToCheck(products: readonly GroupableProduct[]): string[] {
     .filter((product) => {
       const price = Number(product.price ?? 0);
       if (!(price > 0)) return true;
-      return priced.length >= 3 && (price > median * 6 || price < median / 6);
+      return priced.length >= 3 && (price > median * 15 || price < median / 15);
     })
     .map((product) => product.id);
 }
@@ -542,16 +543,30 @@ export function defaultSections(): Record<ExtraSection, boolean> {
 // ─── D4: pages ───────────────────────────────────────────────────────────────
 
 /**
- * The photo library's tabs on D4a: the seller's own category first (shared/rex-photo-library.ts categories: hair_beauty,
- * fashion, food, gadgets, home, people, backgrounds, markets), then people and backgrounds, then "mine" (their own
- * product photos).
+ * Rex's photo library is shared/rex-photo-library.ts (Unsplash photos kept in Shopinbos's own storage, each with its
+ * photographer's credit). D4a's tabs: the seller's own categories first, then people, backgrounds and markets, then
+ * "mine" (their own product photos).
  */
 export const LIBRARY_SHOP_CATEGORIES = ["hair_beauty", "fashion", "food", "gadgets", "home"] as const;
 export type LibraryCategory = string;
 
 export function libraryTabs(categories: readonly string[] | null | undefined): string[] {
-  const own = (categories ?? []).filter((key) => (LIBRARY_SHOP_CATEGORIES as readonly string[]).includes(key));
-  return [...new Set([...own, "people", "backgrounds", "mine"])];
+  return [...rexLibraryCategoriesFor(categories ?? []), "mine"];
+}
+
+/** Rex's library photos for the shop (its own categories first), with the seller's own product photos as "mine". */
+export function libraryPhotos(categories: readonly string[] | null | undefined, productImages: readonly string[] = []): LibraryPhoto[] {
+  const photos: LibraryPhoto[] = rexLibraryFor(categories ?? []).map((photo) => ({
+    id: photo.id,
+    url: photo.url,
+    thumb: photo.thumbUrl,
+    category: photo.category,
+    alt: photo.alt,
+    credit: photo.credit,
+    licence: photo.licence,
+  }));
+  for (const [index, url] of productImages.slice(0, 24).entries()) photos.push({ id: `mine-${index}`, url, thumb: url, category: "mine", licence: "own" });
+  return photos;
 }
 
 export interface LibraryPhoto {

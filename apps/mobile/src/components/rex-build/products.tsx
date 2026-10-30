@@ -18,7 +18,7 @@ import type { StepCtx } from "./context";
 
 // The plan (D0, design RB-02), products (D1a, RB-03) and categories (D1b, RB-04).
 
-const PLAN: Array<{ key: "products" | "style" | "home" | "pages" | "golive"; min: number | null; tint: string; ink: string }> = [
+const PLAN: { key: "products" | "style" | "home" | "pages" | "golive"; min: number | null; tint: string; ink: string }[] = [
   { key: "products", min: 1, tint: "#FFEDE4", ink: "#B23E0A" },
   { key: "style", min: 1, tint: "#ECEAFB", ink: "#4B3FC4" },
   { key: "home", min: 2, tint: "#E2F6F1", ink: "#0C4A44" },

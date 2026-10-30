@@ -2287,6 +2287,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "ed.Products with sizes or colours open their page to choose one.": "Products wey get sizes or colours go open their page make shopper choose one.",
   "ed.Second photo on hover": "Second photo on hover",
   "ed.On computers, pointing at a product shows its next photo.": "For computer, if you point at product, e go show the next photo.",
+  "ed.Show prices": "Show prices",
+  "ed.Product pages always show the price.": "Product page go always show the price.",
   "ed.Your page's own filter bar and category sections still show above. Hide them if this style already has what you need.": "Your page own filter bar and category sections still dey show on top. Hide them if this style don already get wetin you need.",
   // Seasonal campaign sections (block-catalog.ts)
   "ed.Countdown banner": "Countdown banner",

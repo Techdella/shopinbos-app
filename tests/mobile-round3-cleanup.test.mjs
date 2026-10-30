@@ -77,9 +77,9 @@ test("shop looks: the server's lock names the plan, but the phone shows no plan 
   // The little shop (with its scrim under the theme name) is shared with sign-up's "Pick a look".
   assert.match(app("components/MiniShop.tsx"), /<LinearGradient/, "a scrim under the theme name");
   assert.match(screen, /<MiniShop /);
-  const signUp = app("app/onboarding/index.tsx");
-  assert.doesNotMatch(signUp, /themeTierPlanName|lockedPlan\}/, "sign-up's looks name no plan either");
-  assert.match(signUp, /tl\("notOnPlan"\)/);
+  // Sign-up's guided build puts the shop on a basic theme (open on every plan) and names no plan either.
+  const signUp = app("components/rex-build/design.tsx");
+  assert.doesNotMatch(signUp, /themeTierPlanName|lockedPlan/, "sign-up's styles name no plan either");
 });
 
 test("layout: one header gutter, one Back button, no Help on Help, short My shop", () => {
