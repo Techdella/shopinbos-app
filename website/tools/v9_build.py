@@ -179,18 +179,35 @@ def extract(path):
     return css, body, title
 
 
+def css_blocks(css):
+    """Top-level CSS blocks (a rule, or a whole @media/@keyframes block), split on balanced braces."""
+    out, depth, start = [], 0, 0
+    for k, ch in enumerate(css):
+        if ch == '{':
+            depth += 1
+        elif ch == '}':
+            depth -= 1
+            if depth == 0:
+                out.append(css[start:k + 1].strip())
+                start = k + 1
+    return [b for b in out if b]
+
+
 def build_css(files):
-    """One stylesheet: the rules of every artboard, each line once, in first-seen order."""
-    lines, seen = [], set()
+    """One stylesheet: every artboard's blocks, each once, in first-seen order. Whole blocks are compared, never
+    single lines: a line-by-line merge drops repeated closing braces of @media blocks and nests the rest."""
+    blocks, seen = [], set()
     for f in files:
         css, _, _ = extract(f)
-        for ln in css.split('\n'):
-            key = ln.strip()
-            if not key or key in seen:
+        for b in css_blocks(css):
+            key = re.sub(r'\s+', ' ', b)
+            if key in seen:
                 continue
             seen.add(key)
-            lines.append(ln)
-    return '\n'.join(lines) + '\n'
+            blocks.append(b)
+    out = '\n'.join(blocks) + '\n'
+    assert out.count('{') == out.count('}'), 'unbalanced CSS'
+    return out
 
 
 def build_images(src):
