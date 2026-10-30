@@ -72,6 +72,7 @@ export default async function AdminSupplierDetailPage(props: { params: Promise<{
         <>
           <PillLink href="/admin/suppliers" icon="arrowLeft" iconOnlyOnPhone>All suppliers</PillLink>
           <PillLink href={`/admin/support/new?to=user:${supplier.userId}`} icon="chat">Message</PillLink>
+          <PillLink href={`/admin/accounts?user=${supplier.userId}#account`} icon="settings">Manage account</PillLink>
           {supplier.verificationStatus !== "verified" && (
             <DecisionButtons
               action={updateSupplierVerification}

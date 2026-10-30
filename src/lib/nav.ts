@@ -420,6 +420,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
       group: "platform",
       label: "Platform",
       items: [
+        { id: "accounts", label: "Accounts", icon: "users", href: "/admin/accounts", core: true },
         { id: "sellers", label: "Sellers", icon: "store", href: "/admin/sellers", core: true },
         {
           id: "suppliers", label: "Suppliers", icon: "users", href: "/admin/suppliers", core: true,
