@@ -33,6 +33,6 @@ echo '<!-- wp:group {"className":"stack","style":{"spacing":{"margin":{"top":"40
 echo $card( '01', 'Tell Rex about your shop', 'Say what you sell in a sentence. Rex makes your logo, colours and store, and shows you before anything goes live.', 'white', 'ink', $logo_opts );
 echo $card( '02', 'Add products from a photo', 'Snap a photo. Rex cleans the background, writes the name and description and suggests a price. Or import from Instagram.', 'mint-soft', 'forest', $product );
 echo $card( '03', 'Sell where your customers are', 'One product list for your store, WhatsApp, Instagram, Facebook, TikTok Shop and Google. Peggy answers the chats.', 'forest', 'white', $channels );
-echo $card( '04', 'Deliver and get paid', 'Book a rider in one tap. Buyers pay by card, transfer or cash on delivery. Your money lands every Friday.', 'peach', 'ink', $paid );
+echo $card( '04', 'Deliver and get paid', 'Book a rider in one tap. Buyers pay by card, transfer or cash on delivery. Your money is paid out to your bank.', 'peach', 'ink', $paid );
 echo sib_block_group_close();
 echo sib_block_group_close() . sib_block_group_close( 'section' );

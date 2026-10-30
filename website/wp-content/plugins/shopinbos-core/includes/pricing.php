@@ -44,7 +44,7 @@ function sib_render_pricing(): string {
 	$out = sib_pricing_css() . '<div class="pr" data-pr data-period="month">'
 		. '<section class="pr-hero"><div class="wrap pr-center"><p class="eyebrow">' . esc_html__( 'Pricing', 'shopinbos' ) . '</p>'
 		. '<h1 class="disp h1 pr-h1">' . esc_html__( 'Simple prices in naira. Start free.', 'shopinbos' ) . '</h1>'
-		. '<p class="lead pr-lead">' . esc_html__( 'Sellers, suppliers and delivery partners each have a free plan. Payments go straight to your bank: Shopinbos never holds your money. Upgrade to pay a lower fee and get more tools.', 'shopinbos' ) . '</p>'
+		. '<p class="lead pr-lead">' . esc_html__( 'Sellers, suppliers and delivery partners each have a free plan. Payments are paid out to your bank account through Paystack. Upgrade to pay a lower fee and get more tools.', 'shopinbos' ) . '</p>'
 		. '<div class="pr-switches"><div class="seg pr-aud" role="tablist" aria-label="' . esc_attr__( 'Plans for', 'shopinbos' ) . '">';
 	$i = 0;
 	foreach ( $aud as $key => $a ) {
@@ -96,7 +96,7 @@ function sib_render_pricing(): string {
 
 	// How fees and payouts work, with an example order.
 	$out .= '<section class="pr-fees"><div class="wrap pr-split"><div><p class="eyebrow">' . esc_html__( 'Fees and payouts', 'shopinbos' ) . '</p><h2 class="disp pr-h2">' . esc_html__( 'Paid straight to your bank', 'shopinbos' ) . '</h2>'
-		. '<p class="pr-p">' . esc_html__( 'When a customer pays by card, transfer or USSD, Paystack splits the payment at checkout: each business’s share goes straight to its own bank, usually the next working day. Shopinbos never holds your money.', 'shopinbos' ) . '</p>'
+		. '<p class="pr-p">' . esc_html__( 'When a customer pays by card, transfer or USSD, Paystack splits the payment at checkout: each business’s share is paid out to its own bank account.', 'shopinbos' ) . '</p>'
 		. '<ul class="pr-list"><li><b>' . esc_html__( 'Payment fee:', 'shopinbos' ) . '</b> ' . esc_html__( 'Paystack charges 1.5% + ₦100 per local payment (the ₦100 is waived under ₦2,500), capped at ₦2,000. It is paid by the seller, like in any online store, and shown on every order.', 'shopinbos' ) . '</li>'
 		. '<li><b>' . esc_html__( 'Shopinbos fees:', 'shopinbos' ) . '</b> ' . esc_html__( 'sellers pay a fee on store sales (3% to 0.5% by plan), suppliers a commission on marketplace orders (6% to 3%), and delivery partners a fee on delivery fees earned in the app (5% to 2%).', 'shopinbos' ) . '</li>'
 		. '<li><b>' . esc_html__( 'Delivery:', 'shopinbos' ) . '</b> ' . esc_html__( 'the customer pays the delivery partner’s price, shown at checkout.', 'shopinbos' ) . '</li></ul></div>'
@@ -137,7 +137,7 @@ function sib_render_pricing(): string {
 	// Questions.
 	$faq = [
 		[ __( 'Is the Free plan really free?', 'shopinbos' ), __( 'Yes. Sellers can sell up to 20 products on yourname.mybos.store with no monthly price; a 3% fee applies to each store sale. Suppliers and delivery partners join and get verified free, and pay only when they earn through Shopinbos.', 'shopinbos' ) ],
-		[ __( 'Does Shopinbos hold my money?', 'shopinbos' ), __( 'No. Paystack splits every card, transfer and USSD payment at checkout, so each business’s share goes straight to its own bank, usually the next working day.', 'shopinbos' ) ],
+		[ __( 'When do I get my money?', 'shopinbos' ), __( 'Usually within a few working days. Paystack splits every card, transfer and USSD payment at checkout and pays each business’s share out to its own bank account. For pay on delivery, the payment is confirmed when the rider enters the customer’s code.', 'shopinbos' ) ],
 		[ __( 'Can I change plans later?', 'shopinbos' ), __( 'Yes. Upgrade or downgrade any time in the app. A lower fee starts on your next sale after you upgrade.', 'shopinbos' ) ],
 		[ __( 'What does yearly billing save?', 'shopinbos' ), __( 'Two months. You pay for 10 months and get 12.', 'shopinbos' ) ],
 		[ __( 'Is VAT included?', 'shopinbos' ), __( 'Prices are in naira and do not include VAT. VAT is added where it applies, and shown before you pay.', 'shopinbos' ) ],

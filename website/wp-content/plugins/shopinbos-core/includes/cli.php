@@ -140,8 +140,8 @@ class Sib_CLI {
 		sib_marketplace_rewrite_rules();
 		flush_rewrite_rules();
 		sib_build_sitemap();
+		$this->text_fixes(); // before the search fields, which are built from the (now fixed) excerpts
 		$this->seo_meta();
-		$this->text_fixes();
 		[ $webp, $alts ] = sib_media_optimise();
 		WP_CLI::log( "Images: {$webp} WebP copies made, {$alts} alt texts filled in" );
 		WP_CLI::success( 'Shopinbos is set up. Front page: ' . get_permalink( $home ) );
@@ -159,6 +159,22 @@ class Sib_CLI {
 		WP_CLI::log( 'Preview on:  ' . add_query_arg( 'v9', sib_v9_key(), home_url( '/' ) ) );
 		WP_CLI::log( 'Preview off: ' . add_query_arg( 'v9', 'off', home_url( '/' ) ) );
 		WP_CLI::log( sib_v9_launched() ? 'V9 is live for everyone.' : 'V9 goes live for everyone on ' . wp_date( 'j F Y, H:i T', function_exists( 'sib_launch_ts' ) ? sib_launch_ts() : time() ) . '.' );
+	}
+
+	/**
+	 * List the [placeholders] still showing on the new website, and the pages they are on.
+	 *
+	 * @subcommand v9-placeholders
+	 */
+	public function v9_placeholders() {
+		if ( ! function_exists( 'sib_v9_open_placeholders' ) ) {
+			WP_CLI::error( 'The Shopinbos theme with V9 is not active.' );
+		}
+		$open = sib_v9_open_placeholders();
+		foreach ( $open as $p => $pages ) {
+			WP_CLI::log( str_pad( $p, 48 ) . implode( ', ', array_unique( $pages ) ) );
+		}
+		WP_CLI::log( count( $open ) . ' open. Fill them in Settings → Shopinbos → Website text to fill in.' );
 	}
 
 	/** Rebuild the marketplace sitemap now. */
@@ -329,16 +345,20 @@ class Sib_CLI {
 		$fixes = (array) json_decode( (string) file_get_contents( SIB_CORE_DIR . '/includes/seed/text-fixes.json' ), true );
 		$fixes[] = [ '#\\b(yourname|adaezestudio|pluggadgets|mamateepantry|kemibeautyhub|funmicrowns|adaeze)\\.shopinbos\\.com#', '$1.mybos.store', true ];
 		$done  = 0;
-		$ids   = $wpdb->get_col( "SELECT ID FROM {$wpdb->posts} WHERE post_status IN ('publish','future','draft') AND post_type NOT IN ('revision','attachment','nav_menu_item') AND (post_content LIKE '%shopinbos.com%' OR post_content LIKE '%₦7,500%' OR post_content LIKE '%50 products%' OR post_content LIKE '%Starter plan%' OR post_content LIKE '%every Friday%' OR post_content LIKE '%pay on delivery built in%' OR post_content LIKE '%pay on delivery and rider booking%' OR post_content LIKE '%commission (2%')" ); // phpcs:ignore
-		foreach ( $ids as $id ) {
-			$post = get_post( (int) $id );
-			$new  = $post->post_content;
+		$ids   = $wpdb->get_col( "SELECT ID FROM {$wpdb->posts} WHERE post_status IN ('publish','future','draft') AND post_type NOT IN ('revision','attachment','nav_menu_item') AND (post_content LIKE '%shopinbos.com%' OR post_content LIKE '%₦7,500%' OR post_content LIKE '%50 products%' OR post_content LIKE '%Starter plan%' OR post_content LIKE '%every Friday%' OR post_content LIKE '%pay on delivery built in%' OR post_content LIKE '%pay on delivery and rider booking%' OR post_content LIKE '%commission (2%' OR post_content LIKE '%Friday%' OR post_content LIKE '%ithdraw%' OR post_content LIKE '%next working day%' OR post_content LIKE '%your balance%' OR post_content LIKE '%payout day%' OR post_content LIKE '%nstant%' OR post_content LIKE '%as soon as%' OR post_content LIKE '%straight away%' OR post_excerpt LIKE '%Friday%' OR post_excerpt LIKE '%ithdraw%' OR post_excerpt LIKE '%Shopinbos balance%' OR post_excerpt LIKE '%nstant%' OR post_excerpt LIKE '%s soon as%')" ); // phpcs:ignore
+		$fix  = function ( string $text ) use ( $fixes ): string {
 			foreach ( $fixes as $f ) {
-				$new = ! empty( $f[2] ) ? preg_replace( $f[0], $f[1], $new ) : str_replace( $f[0], $f[1], $new );
+				$text = ! empty( $f[2] ) ? preg_replace( $f[0], $f[1], $text ) : str_replace( $f[0], $f[1], $text );
 			}
-			if ( $new !== $post->post_content ) {
+			return $text;
+		};
+		foreach ( $ids as $id ) {
+			$post    = get_post( (int) $id );
+			$new     = $fix( $post->post_content );
+			$excerpt = $fix( $post->post_excerpt );
+			if ( $new !== $post->post_content || $excerpt !== $post->post_excerpt ) {
 				$was_seed = $this->replaceable( $post );
-				$wpdb->update( $wpdb->posts, [ 'post_content' => $new ], [ 'ID' => $post->ID ] );
+				$wpdb->update( $wpdb->posts, [ 'post_content' => $new, 'post_excerpt' => $excerpt ], [ 'ID' => $post->ID ] );
 				clean_post_cache( $post->ID );
 				if ( $was_seed ) {
 					$this->fingerprint( $post->ID );
@@ -346,18 +366,20 @@ class Sib_CLI {
 				$done++;
 			}
 		}
+		// The plain (non-regex) fixes also apply to gist text, plus the payout number on the money gist.
+		$plain = array_merge( [ [ 'a free shopinbos.com link', 'a free mybos.store link' ], [ '"number":"Every Friday"', '"number":"To your bank"' ], [ '"number":"Instant"', '"number":"To your bank"' ] ], array_values( array_filter( $fixes, fn( $f ) => empty( $f[2] ) ) ) );
 		// Gist stories keep their text in meta.
 		foreach ( get_posts( [ 'post_type' => 'sib_gist', 'post_status' => [ 'publish', 'future' ], 'numberposts' => -1 ] ) as $g ) {
 			$meta = get_post_meta( $g->ID, 'sib_gist', true );
 			$json = wp_json_encode( $meta, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
-			$new  = preg_replace( '#\\b(yourname|[a-z]+)\\.shopinbos\\.com#', '$1.mybos.store', str_replace( [ 'a free shopinbos.com link' ], [ 'a free mybos.store link' ], (string) $json ) );
+			$new  = preg_replace( '#\\b(yourname|[a-z]+)\\.shopinbos\\.com#', '$1.mybos.store', str_replace( array_column( $plain, 0 ), array_column( $plain, 1 ), (string) $json ) );
 			$new  = str_replace( 'app.mybos.store', 'app.shopinbos.com', $new );
-			if ( $new !== $json ) {
+			if ( $new !== $json && is_array( json_decode( $new, true ) ) ) {
 				update_post_meta( $g->ID, 'sib_gist', json_decode( $new, true ) );
 				$done++;
 			}
 		}
-		WP_CLI::log( "Text fixes (prices, store address): {$done} items updated" );
+		WP_CLI::log( "Text fixes (prices, store address, payouts): {$done} items updated" );
 	}
 
 	private function seo_meta(): void {
@@ -470,10 +492,10 @@ class Sib_CLI {
 	 *  one-line version or a version this command wrote and nobody has edited. */
 	private function integration_pages(): void {
 		$pages = [
-			'paystack' => [ 'Paystack', 'Paystack + Shopinbos: card, transfer and USSD payments', 'Card, bank transfer and USSD payments at checkout and on payment links. Built in, with nothing to set up, and your money is paid to your bank every Friday.', 'Card, bank transfer and USSD at checkout',
-				[ 'Customers pay by card (Visa, Mastercard, Verve), bank transfer or USSD at your store checkout.', 'Send a Paystack payment link in WhatsApp or Instagram DMs and Peggy confirms the payment for you.', 'The fee is 1.5% + ₦100 per payment, capped at ₦2,000. The ₦100 is waived on payments under ₦2,500.', 'Payments land in your Shopinbos balance straight away and are paid to your bank every Friday.' ],
+			'paystack' => [ 'Paystack', 'Paystack + Shopinbos: card, transfer and USSD payments', 'Card, bank transfer and USSD payments at checkout and on payment links. Built in, with nothing to set up, and your money is paid out to your bank account.', 'Card, bank transfer and USSD at checkout',
+				[ 'Customers pay by card (Visa, Mastercard, Verve), bank transfer or USSD at your store checkout.', 'Send a Paystack payment link in WhatsApp or Instagram DMs and Peggy confirms the payment for you.', 'The fee is 1.5% + ₦100 per payment, capped at ₦2,000. The ₦100 is waived on payments under ₦2,500.', 'Payments are paid out to your bank account through Paystack.' ],
 				[ 'Open your store | Paystack is switched on for every Shopinbos store.', 'Add your bank account | Under Payouts, add the account your money should go to.', 'Share your store link | Customers choose card, transfer or USSD at checkout.' ],
-				[ 'Do I need my own Paystack account? | No. Payments run through Shopinbos’s Paystack account and are paid out to your bank every Friday.', 'How much does Paystack charge? | 1.5% + ₦100 per payment, capped at ₦2,000. On payments under ₦2,500 the ₦100 is waived.', 'Can customers still pay on delivery? | Yes. Pay on delivery works alongside Paystack for orders up to ₦50,000 in Lagos, Abuja, Ibadan and Port Harcourt.' ] ],
+				[ 'Do I need my own Paystack account? | No. Payments run through Shopinbos’s Paystack account and are paid out to your bank account.', 'How much does Paystack charge? | 1.5% + ₦100 per payment, capped at ₦2,000. On payments under ₦2,500 the ₦100 is waived.', 'Can customers still pay on delivery? | Yes. Pay on delivery works alongside Paystack for orders up to ₦50,000 in Lagos, Abuja, Ibadan and Port Harcourt.' ] ],
 			'whatsapp' => [ 'WhatsApp Business', 'WhatsApp Business + Shopinbos: sell in chats', 'Sync your catalogue, answer every chat in one inbox, send payment links and order updates, and let Peggy reply to “how much?” while you rest.', 'Catalogue, chats, payment links and order updates',
 				[ 'Your Shopinbos products show in your WhatsApp Business catalogue, with prices and photos kept in sync.', 'Chats from WhatsApp, Instagram and Facebook arrive in one Shopinbos inbox.', 'Send a payment link or an order link in the chat, and the order is created when the customer pays.', 'Customers get order, delivery and pay on delivery code updates on WhatsApp automatically.' ],
 				[ 'Connect WhatsApp Business | In the app, go to Sales channels and connect your WhatsApp Business number.', 'Sync your catalogue | Choose the products to show in your WhatsApp catalogue.', 'Turn on Peggy | Let Peggy answer common questions and send pay links when you are busy.' ],
@@ -992,7 +1014,7 @@ class Sib_CLI {
 			. sib_block_group_open( 'g3' )
 			. sib_block_group_open( 'card benefit' ) . $hd( 3, 'No more “I’m not around”', 'tt' ) . $p( 'Customers confirm their order on WhatsApp before a rider leaves, so fewer wasted trips.', 'p' ) . sib_block_group_close()
 			. sib_block_group_open( 'card benefit' ) . $hd( 3, 'A code, not an argument', 'tt' ) . $p( 'The parcel is only marked delivered when the customer gives the rider their code.', 'p' ) . sib_block_group_close()
-			. sib_block_group_open( 'card benefit' ) . $hd( 3, 'Money the same evening', 'tt' ) . $p( 'Riders pay cash in by 6pm and it shows in your balance. Paid out every Friday.', 'p' ) . sib_block_group_close()
+			. sib_block_group_open( 'card benefit' ) . $hd( 3, 'Paid to your bank', 'tt' ) . $p( 'The payment is confirmed when the rider enters the customer’s code, then paid out to your bank account.', 'p' ) . sib_block_group_close()
 			. sib_block_group_close() . sib_block_group_close() . sib_block_group_close( 'section' )
 			. '<!-- wp:pattern {"slug":"shopinbos/faq"} /-->';
 		$this->cpt( 'sib_feature', 'pay-on-delivery', 'Pay on delivery', $feature, 'Take cash and transfer on delivery, confirmed with a 4-digit code. Riders pay in the same evening.', [ 'sib_reviewed' => gmdate( 'Y-m-d' ) ] );
@@ -1001,8 +1023,8 @@ class Sib_CLI {
 		$this->cpt( 'sib_integration', 'whatsapp', 'WhatsApp Business', $this->text_page( 'Your catalogue, chats, payment links and order updates, in WhatsApp.' ), 'Catalogue, chats, payment links and order updates', [ 'sib_integration_status' => 'live' ] );
 		$this->cpt( 'sib_integration', 'tiktok-shop', 'TikTok Shop', $this->text_page( 'Sell in videos and lives. Apply from the app.' ), 'Sell in videos and lives', [ 'sib_integration_status' => 'apply' ] );
 
-		$steps = "<!-- wp:list {\"ordered\":true} -->\n<ol class=\"wp-block-list\"><!-- wp:list-item -->\n<li>Card and transfer payments go into your Shopinbos balance straight away.</li>\n<!-- /wp:list-item -->\n\n<!-- wp:list-item -->\n<li>Every Friday we pay your balance to your bank account.</li>\n<!-- /wp:list-item -->\n\n<!-- wp:list-item -->\n<li>Need it sooner? Tap Withdraw in the app any time.</li>\n<!-- /wp:list-item -->\n\n<!-- wp:list-item -->\n<li>For dropship orders, your share is held for 48 hours after delivery in case of returns.</li>\n<!-- /wp:list-item --></ol>\n<!-- /wp:list -->\n\n";
-		$this->cpt( 'sib_help', 'when-do-i-get-paid', 'When do I get paid?', $this->text_page( 'Every Friday, to your bank account. You can also withdraw any time.' ) . $steps, 'Every Friday, to your bank. You can also withdraw any time.', [ 'sib_reviewed' => gmdate( 'Y-m-d' ), 'sib_help_area' => 'Money > Payouts' ], '', 0, [ 'sib_help_category' => [ 'payments-and-payouts' ] ] );
+		$steps = "<!-- wp:list {\"ordered\":true} -->\n<ol class=\"wp-block-list\"><!-- wp:list-item -->\n<li>Card and transfer payments are paid out to your bank account through Paystack, usually within a few working days.</li>\n<!-- /wp:list-item -->\n\n<!-- wp:list-item -->\n<li>Pay on delivery payments are confirmed when the rider enters the customer’s code, then paid out the same way.</li>\n<!-- /wp:list-item -->\n\n<!-- wp:list-item -->\n<li>You can see every payment and payout in the app.</li>\n<!-- /wp:list-item -->\n\n<!-- wp:list-item -->\n<li>For dropship orders, your share is held for 48 hours after delivery in case of returns.</li>\n<!-- /wp:list-item --></ol>\n<!-- /wp:list -->\n\n";
+		$this->cpt( 'sib_help', 'when-do-i-get-paid', 'When do I get paid?', $this->text_page( 'Paid out to your bank account through Paystack, usually within a few working days.' ) . $steps, 'Paid out to your bank through Paystack, usually within a few working days.', [ 'sib_reviewed' => gmdate( 'Y-m-d' ), 'sib_help_area' => 'Money > Payouts' ], '', 0, [ 'sib_help_category' => [ 'payments-and-payouts' ] ] );
 
 		$this->cpt( 'sib_resource', 'whatsapp-selling-playbook', 'The WhatsApp selling playbook', "<!-- wp:heading -->\n<h2 class=\"wp-block-heading\">What’s inside</h2>\n<!-- /wp:heading -->\n\n<!-- wp:list -->\n<ul class=\"wp-block-list\"><!-- wp:list-item -->\n<li>How to set up your WhatsApp Business catalogue</li>\n<!-- /wp:list-item -->\n\n<!-- wp:list-item -->\n<li>Status posts that sell, with 10 examples</li>\n<!-- /wp:list-item -->\n\n<!-- wp:list-item -->\n<li>Replies for price, delivery and “is it original?”</li>\n<!-- /wp:list-item --></ul>\n<!-- /wp:list -->\n\n", 'Set up your catalogue, post Status that sells and answer every buyer question. Free PDF.', [ 'sib_gated' => true, 'sib_list_tag' => 'whatsapp-playbook' ], 'peggy-wave.webp' );
 	}

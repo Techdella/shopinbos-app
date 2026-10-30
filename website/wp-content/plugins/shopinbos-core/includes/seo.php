@@ -130,7 +130,7 @@ add_filter( 'language_attributes', fn( $out ) => preg_replace( '/lang="[^"]*"/',
 /** Title and description for the home page and the main hubs, used when the editor hasn't set their own. */
 function sib_seo_defaults(): array {
 	return [
-		'home'      => [ 'Shopinbos: sell online in Nigeria from one app', 'Build your online store, sell on WhatsApp, Instagram and TikTok, take card, transfer and pay on delivery, book riders and get paid every Friday. Start free.' ],
+		'home'      => [ 'Shopinbos: sell online in Nigeria from one app', 'Build your online store, sell on WhatsApp, Instagram and TikTok, take card, transfer and pay on delivery, book riders and get paid to your bank. Start free.' ],
 		'blog'      => [ 'Online selling tips for Nigeria | Shopinbos blog', 'Plain-word guides on selling online in Nigeria: WhatsApp, Instagram and TikTok, pricing, payments, delivery, suppliers and getting repeat customers.' ],
 		'academy'   => [ 'Free online selling course for Nigerians | Shopinbos Academy', 'Short free lessons in English and Pidgin: start your shop, sell on WhatsApp, Instagram and TikTok, get paid, deliver and grow. No sign-up needed.' ],
 		'help'      => [ 'Help centre | Shopinbos', 'Step-by-step answers for your Shopinbos shop: orders, payments and payouts, delivery and pay on delivery, your store and design, and your account.' ],

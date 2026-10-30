@@ -11,7 +11,7 @@ function sib_seed_help_topics(): array {
 	return [
 		[ 'Getting started', 'getting-started', 'Create your shop, add products, go live' ],
 		[ 'Orders', 'orders', 'New orders, invoices, cancellations' ],
-		[ 'Payments and payouts', 'payments-and-payouts', 'Paystack, transfers, Friday payouts' ],
+		[ 'Payments and payouts', 'payments-and-payouts', 'Paystack, transfers, payouts to your bank' ],
 		[ 'Delivery and pay on delivery', 'delivery-and-pay-on-delivery', 'Riders, codes, cash, returns' ],
 		[ 'Your store and design', 'store-and-design', 'Templates, logo, domain' ],
 		[ 'WhatsApp and social', 'whatsapp-and-social', 'Catalogue, Instagram, TikTok, ads' ],
@@ -46,11 +46,11 @@ function sib_seed_help_articles(): array {
 			. $b( 'steps', [ 'title' => 'In the Shopinbos app', 'items' => "Open Orders | Tap the order.\nTap More, then Cancel or Refund | Choose a full or part refund.\nAdd a reason | The customer gets a message with the reason and the amount." ] )
 			. $b( 'callout', [ 'kind' => 'note', 'title' => 'Where the money goes', 'text' => 'Card, transfer and USSD refunds go back the way the customer paid, usually within 3 to 5 working days. Pay on delivery orders that were not paid have nothing to refund.' ] ) ],
 
-		[ 'when-will-i-get-my-money', 'When will I get my money?', 'payments-and-payouts', 'Every Friday, to your bank account. You can also withdraw early.',
-			$p( 'Every payment, whether by card, transfer, USSD or pay on delivery, lands in your Shopinbos balance. Your balance is paid to your bank account every Friday.' )
-			. $b( 'steps', [ 'title' => 'How money moves', 'items' => "Customer pays | By card, transfer or USSD at checkout, or cash to the rider.\nIt shows in your balance | Online payments straight away; pay on delivery cash the same evening.\nFriday payout | Your balance goes to your bank account every Friday." ] )
-			. $b( 'callout', [ 'kind' => 'tip', 'title' => 'Need it sooner?', 'text' => 'Tap Withdraw on the Money screen to send your balance to your bank any day.' ] )
-			. $b( 'faq', [ 'title' => 'Common questions', 'items' => "Is there a minimum payout? | No. Whatever is in your balance on Friday is paid out.\nWhere do I change my bank account? | Settings, then Payouts. For your safety, we confirm the change with a code." ] ) ],
+		[ 'when-will-i-get-my-money', 'When will I get my money?', 'payments-and-payouts', 'Paid out to your bank account through Paystack, usually within a few working days.',
+			$p( 'Every payment, whether by card, transfer, USSD or pay on delivery, is paid out to your bank account through Paystack, usually within a few working days. For pay on delivery, the payment is confirmed when the rider enters the customer’s 4-digit code.' )
+			. $b( 'steps', [ 'title' => 'How money moves', 'items' => "Customer pays | By card, transfer or USSD at checkout, or cash to the rider.\nThe payment is confirmed | Online payments at checkout; pay on delivery when the rider enters the customer’s code.\nPaid out to your bank | Paystack sends the money to your bank account, usually within a few working days." ] )
+			. $b( 'callout', [ 'kind' => 'tip', 'title' => 'Follow every payment', 'text' => 'Open the Money screen to see each payment, its fee and when it reached your bank.' ] )
+			. $b( 'faq', [ 'title' => 'Common questions', 'items' => "Is there a minimum payout? | No. Every confirmed payment is sent to your bank, whatever the amount.\nWhere do I change my bank account? | Settings, then Payouts. For your safety, we confirm the change with a code." ] ) ],
 
 		[ 'connect-your-own-domain', 'Connect your own domain name', 'store-and-design', 'Use a domain you own, like yourshop.com, with free SSL.',
 			$p( 'Your store works at yourname.mybos.store for free. On a paid plan you can also use a domain you own, like yourshop.com.ng.' )

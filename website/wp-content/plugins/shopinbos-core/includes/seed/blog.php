@@ -47,7 +47,7 @@ function sib_seed_blog_posts(): array {
 		. $b( 'stats', [ 'title' => 'Common busy times on WhatsApp', 'items' => "7–9am | On the way to work\n12–2pm | Lunch break\n8–10pm | After dinner, usually the busiest", 'foot' => 'These are common patterns. Your own Status views will show what works for your customers.' ] )
 		. $h( '3. Make ordering one tap' )
 		. $p( 'Every extra message between “I want it” and “I’ve paid” is a chance for the customer to get distracted. Put your store link in every third Status so people can order and pay without waiting for you.' )
-		. $b( 'steps', [ 'title' => 'What happens when someone taps your link', 'items' => "They pick the item | Size, colour and quantity, with the price you set.\nThey pay or choose pay on delivery | Card, transfer, USSD, or cash to the rider with a 4-digit code.\nYou get the order on WhatsApp | With the address and a button to book a rider.\nThe rider delivers | Your customer gets live updates. You get paid on Friday." ] )
+		. $b( 'steps', [ 'title' => 'What happens when someone taps your link', 'items' => "They pick the item | Size, colour and quantity, with the price you set.\nThey pay or choose pay on delivery | Card, transfer, USSD, or cash to the rider with a 4-digit code.\nYou get the order on WhatsApp | With the address and a button to book a rider.\nThe rider delivers | Your customer gets live updates. Your money is paid out to your bank account." ] )
 		. $b( 'cta-inline', [ 'title' => 'Get your store link in 5 minutes', 'linkLabel' => 'See how it works', 'linkUrl' => '/' ] )
 		. $h( '4. Let your customers sell for you' )
 		. $p( 'A photo from a happy customer does more than ten of your own posts. Ask for one after every delivery, and post it the next morning with the product link.' )
@@ -72,8 +72,8 @@ function sib_seed_blog_posts(): array {
 		. $p( 'Some buyers will refuse at the gate. Decide your rule before it happens and put it on your store, so you are not making it up on the phone.' )
 		. $b( 'do-dont', [ 'title' => 'When a buyer refuses the parcel', 'dos' => "Stay polite. Ask what is wrong and offer a swap if it is size or colour\nAsk the rider to bring the parcel back the same day\nNote the number. Ask for payment first next time", 'donts' => "Shout at the buyer or the rider\nLet the rider leave the parcel without the code\nKeep sending pay on delivery orders to the same number" ] )
 		. $h( '4. Know your money' )
-		. $p( 'Cash collected by riders shows in your Shopinbos balance the same evening. Your balance is paid to your bank every Friday, or you can withdraw any time.' )
-		. $b( 'stats', [ 'title' => 'Pay on delivery on Shopinbos', 'items' => "4 digits | Code only the buyer sees\n6pm | Riders pay in cash the same evening\nFriday | Your balance paid to your bank", 'foot' => 'Payout times can move on public holidays. Check the app for your next payout date.', 'tone' => 'teal' ] )
+		. $p( 'With pay on delivery, the payment is confirmed when the rider enters the customer’s 4-digit code, and your money is then paid out to your bank account.' )
+		. $b( 'stats', [ 'title' => 'Pay on delivery on Shopinbos', 'items' => "4 digits | Code only the buyer sees\n6pm | Riders pay in cash the same evening\nPaystack | Pays your money out to your bank", 'foot' => 'You can see every payout in the app, next to the order it came from.', 'tone' => 'teal' ] )
 		. $b( 'faq', [ 'items' => "Does pay on delivery cost extra on Shopinbos? | There is no payment fee on cash paid to the rider. You pay the delivery price you agreed with the rider or partner.\nWhat if the rider loses the cash? | Delivery partners on Shopinbos are responsible for the cash they collect. Report it in the app and we follow it up with the partner.\nCan I turn pay on delivery off for some products? | Yes. You can switch it on or off per product, or only allow it in some areas." ] )
 		. $b( 'cta-inline', [ 'title' => 'Take pay on delivery with codes', 'text' => 'Included on the Growth and Pro plans. Riders pass the cash on by 6pm the same day.', 'linkLabel' => 'How pay on delivery works', 'linkUrl' => '/delivery/' ] );
 
@@ -82,7 +82,7 @@ function sib_seed_blog_posts(): array {
 		. $h( '1. Where the ₦28,000 goes' )
 		. $p( 'Say the supplier’s price to you is ₦17,500. You choose your own selling price, here ₦28,000. The buyer pays for delivery separately.' )
 		. $b( 'stats', [ 'title' => 'One ₦28,000 tote bag, paid by card (Starter plan)', 'items' => "₦17,500 | Supplier price\n₦520 | Paystack fee (1.5% + ₦100)\n₦560 | Shopinbos fee (2% on Starter)\n₦9,420 | What you keep", 'foot' => 'Example numbers. Paystack fees are capped at ₦2,000 per payment. On Growth the fee is 1% (₦280), so you would keep ₦9,700.' ] )
-		. $p( 'The supplier is paid their price after delivery. Your share is held for 48 hours after delivery in case of a return, then joins your balance for Friday’s payout.' )
+		. $p( 'The supplier is paid their price after delivery. Your share is held for 48 hours after delivery in case of a return, then is paid out to your bank account.' )
 		. $h( '2. What you risk' )
 		. $p( 'You don’t risk money on stock. You risk your name. If the supplier is slow or the item is not what the photo showed, the customer blames you.' )
 		. $b( 'callout', [ 'kind' => 'warn', 'text' => 'Never sell a product you have not seen. Order one sample for yourself first, even if it costs you a little.' ] )
@@ -144,7 +144,7 @@ function sib_seed_blog_posts(): array {
 		. $p( 'Tola photographed the twenty best sellers by the stall window one morning. Rex built a store from the photos, with prices and a pay on delivery option, in about ten minutes. The link went on every Status and in the Instagram bio.' )
 		. $h( '3. Delivery across Lagos' )
 		. $p( 'Before, Tola only sold to people who could come to Yaba. With riders booked from the order, the shop started selling to Lekki, Ikeja and Ikorodu. Pay on delivery with codes meant new customers felt safe buying.' )
-		. $b( 'stats', [ 'title' => 'Tola’s first year online (example)', 'items' => "20 → 64 | Products in the store\n3 → 11 | Lagos areas delivered to\nFriday | Payouts instead of chasing transfers", 'foot' => 'Example figures to show the kind of change, not a real shop’s results.', 'tone' => 'light' ] )
+		. $b( 'stats', [ 'title' => 'Tola’s first year online (example)', 'items' => "20 → 64 | Products in the store\n3 → 11 | Lagos areas delivered to\nPaystack | Payouts to the bank instead of chasing transfers", 'foot' => 'Example figures to show the kind of change, not a real shop’s results.', 'tone' => 'light' ] )
 		. $h( '4. What Tola would do again' )
 		. $b( 'takeaways', [ 'items' => "Start with the 20 products that already sell\nPut the store link everywhere, every day\nUse pay on delivery to win new customers’ trust\nCheck the numbers every Friday, not every night" ] )
 		. $b( 'cta-inline', [ 'title' => 'Move your shop from a notebook to one app', 'linkLabel' => 'Read more seller stories', 'linkUrl' => '/blog/category/seller-stories/' ] );
@@ -180,7 +180,7 @@ function sib_seed_blog_posts(): array {
 	return [
 		[ 'how-to-get-your-first-10-orders-from-whatsapp-status', 'selling-on-whatsapp', 'How to get your first 10 orders from WhatsApp Status', 'No ad budget needed. Turn the people who already watch your Status into customers, one post at a time.', '2026-10-12 08:00', 'person-hero.webp', '#FFEDE4', 'contain', true, 420, 'turn-your-status-into-a-shop-window', $first10 ],
 		[ 'pay-on-delivery-without-the-stress', 'payments', 'Pay on delivery without the stress: codes, riders and refunds', 'How the 4-digit code stops “I never got it” arguments, and what to do when a buyer refuses at the gate.', '2026-10-09 08:00', 'tote-bag.webp', '#FDF0D5', 'cover', false, 380, '', $pod ],
-		[ 'dropshipping-in-nigeria-what-you-keep', 'find-stock', 'Dropshipping in Nigeria: what you keep and what you risk', 'Real numbers on a ₦28,000 tote bag, from supplier price to your bank on Friday.', '2026-10-06 08:00', 'leather-slides.webp', '#E3EEFD', 'cover', false, 350, '', $drop ],
+		[ 'dropshipping-in-nigeria-what-you-keep', 'find-stock', 'Dropshipping in Nigeria: what you keep and what you risk', 'Real numbers on a ₦28,000 tote bag, from supplier price to your bank account.', '2026-10-06 08:00', 'leather-slides.webp', '#E3EEFD', 'cover', false, 350, '', $drop ],
 		[ 'pricing-when-the-naira-moves', 'payments', 'Pricing your products when the naira moves every week', 'A simple rule for updating prices without scaring your regular customers.', '2026-10-02 08:00', 'camera.webp', '#F6F5F9', 'cover', false, 260, '', $naira ],
 		[ 'selling-on-tiktok-short-videos', 'instagram-and-tiktok', 'Selling on TikTok: short videos that make people ask “how much?”', 'Five video ideas you can shoot on your phone in under ten minutes.', '2026-09-28 08:00', 'person-gadgets.webp', '#E7E1FF', 'cover', false, 300, '', $tiktok ],
 		[ 'product-photo-tips-phone-and-window', 'instagram-and-tiktok', '10 product photo tips using only your phone and a window', 'Daylight, a plain sheet and one trick with a white cardboard. That is all.', '2026-09-24 08:00', 'block-heels.webp', '#FFEDE4', 'cover', false, 210, '', $photos ],

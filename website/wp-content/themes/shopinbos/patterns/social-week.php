@@ -47,7 +47,7 @@ ob_start();
 	<div class="tile" style="background:#FF6A2B;color:#fff">
 		<p class="tt">Creators and affiliates</p>
 		<div class="disp" style="font-size:40px;margin-top:auto">10%</div>
-		<p class="ts" style="opacity:0.92">Give creators a link. They earn on every delivered order, paid Fridays.</p>
+		<p class="ts" style="opacity:0.92">Give creators a link. They earn on every delivered order.</p>
 	</div>
 </div>
 <?php

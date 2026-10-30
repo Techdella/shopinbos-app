@@ -52,12 +52,12 @@
     "social"
    ],
    [
-    "Get paid on Friday",
-    "Every payment lands in your Shopinbos balance and goes to your bank every Friday.",
+    "Get paid to your bank",
+    "Every payment is paid out to your bank account through Paystack.",
     [
      "No minimum payout",
      "See exactly what each order made",
-     "Withdraw early any time"
+     "Paid out through Paystack"
     ],
     "pay"
    ]
@@ -313,7 +313,7 @@
   "title": "Payments",
   "eyebrow": "Payments",
   "h1": "Get paid by card, transfer, USSD or pay on delivery",
-  "sub": "Every way Nigerians like to pay, in naira, with your money sent to your bank every Friday.",
+  "sub": "Every way Nigerians like to pay, in naira, with your money paid out to your bank.",
   "img": "tote-bag.webp",
   "bg": "#FDF0D5",
   "fit": "cover",
@@ -333,8 +333,8 @@
     "Every payment lands in your Shopinbos balance with the order beside it."
    ],
    [
-    "Paid every Friday",
-    "Your balance goes to your bank every Friday, or withdraw any time."
+    "Paid to your bank",
+    "Your money is paid out to your bank account through Paystack."
    ]
   ],
   "rows": [
@@ -366,7 +366,7 @@
    ],
    [
     "When do I get paid?",
-    "Every Friday, to your bank account. You can also withdraw any time."
+    "Paid out to your bank account through Paystack, usually within a few working days."
    ],
    [
     "Do I need my own Paystack account?",
@@ -375,7 +375,7 @@
   ],
   "seo": [
    "Customers in Nigeria pay in many ways: card, bank transfer, USSD and cash on delivery. A shop that accepts all of them sells more, but checking transfers and chasing cash by hand takes time.",
-   "Shopinbos confirms every payment for you, matches it to the order and pays your balance to your bank every Friday."
+   "Shopinbos confirms every payment for you, matches it to the order and pays it out to your bank account."
   ],
   "rel": [
    [
@@ -395,7 +395,7 @@
     "/pricing/"
    ]
   ],
-  "excerpt": "Every way Nigerians like to pay, in naira, with your money sent to your bank every Friday."
+  "excerpt": "Every way Nigerians like to pay, in naira, with your money paid out to your bank."
  },
  {
   "type": "sib_feature",
@@ -460,7 +460,7 @@
    ],
    [
     "Can customers pay the rider by transfer?",
-    "Yes. They can pay the rider cash or by transfer, and the money is passed on to you the same day."
+    "Yes. They can pay the rider cash or by transfer, and the money is passed on to you."
    ],
    [
     "Which plans include pay on delivery?",
@@ -715,8 +715,8 @@
     "The order is only marked delivered when the customer gives the rider their code."
    ],
    [
-    "Cash comes back the same day",
-    "Riders pass the cash on by 6pm, paid straight to your bank in the app."
+    "Cash comes back by 6pm",
+    "Riders pay the cash in through the app, and it is paid out to your bank."
    ]
   ],
   "rows": [
@@ -752,7 +752,7 @@
    ],
    [
     "Can customers pay the rider by transfer?",
-    "Yes. They can pay the rider cash or by transfer, and the money is passed on to you the same day."
+    "Yes. They can pay the rider cash or by transfer, and the money is passed on to you."
    ],
    [
     "Which plans include pay on delivery?",
@@ -836,7 +836,7 @@
    ],
    [
     "Get paid after delivery",
-    "Your share is held for 48 hours after delivery in case of returns, then paid out on Friday.",
+    "Your share is held for 48 hours after delivery in case of returns, then paid out to your bank account.",
     [
      "Returns go back to the supplier",
      "Clear statement for every order",
@@ -1027,7 +1027,7 @@
     [
      "Set the percentage",
      "Track every sale",
-     "Pay them on Friday"
+     "Pay them from the app"
     ],
     "social"
    ]
