@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { db } from "@/lib/db/client";
 import { requireRole } from "@/lib/server-auth";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
+import { pilotNumbersOnForOwner } from "@/lib/pilot-numbers.server";
 import { Card, CardHead, EmptyState, FilterChips, Pill, PillLink, StatTile, TextLink, Thumb } from "@/components/app-kit";
 import { Bars, ShareBar, buttonClass, inputClass } from "@/components/growth/kit";
 import { Icon } from "@/components/ui/Icon";
@@ -103,6 +104,9 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
   ]);
   // When people buy, cohorts and cities look at the last 180 days whatever the range (they need the history).
   const insights = computeSellerInsights(orders);
+  // Shops in the pilot also get their Pilot numbers (link/QR visits, repeat buyers, resell, videos).
+  const pilotOn = await pilotNumbersOnForOwner(user.id);
+  const tPilot = await getT("pilotNumbers");
 
   const k = report.kpis;
   const query = (extra: Record<string, string>) => `?${new URLSearchParams(extra).toString()}`;
@@ -138,10 +142,13 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
       title={t("title")}
       sub={t("sub")}
       actions={
-        <a href={exportHref} className={buttonClass("white")} download>
-          <Icon name="download" size={16} />
-          {t("export")}
-        </a>
+        <>
+          {pilotOn ? <PillLink href="/home/pilot-numbers" icon="chart">{tPilot("open")}</PillLink> : null}
+          <a href={exportHref} className={buttonClass("white")} download>
+            <Icon name="download" size={16} />
+            {t("export")}
+          </a>
+        </>
       }
     >
       <div className="grid gap-5">

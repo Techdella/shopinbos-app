@@ -393,6 +393,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
           ],
         },
         { id: "analytics", label: "Analytics", icon: "chart", href: "/admin/analytics", core: true },
+        { id: "pilot-numbers", label: "Pilot numbers", icon: "chart", href: "/admin/pilot-numbers" },
         {
           id: "leads", label: "Leads", icon: "list", href: "/admin/leads", core: true,
           children: [
@@ -437,6 +438,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
         },
         { id: "wallets", label: "Wallets", icon: "coin", href: "/admin/wallets" },
         { id: "money-owed", label: "Money owed", icon: "coin", href: "/admin/money-owed" },
+        { id: "payouts", label: "Payouts", icon: "coin", href: "/admin/payouts" },
         { id: "contracts", label: "Contracts", icon: "document", href: "/admin/contracts" },
         {
           id: "pricing", label: "Pricing", icon: "percent", href: "/admin/pricing",

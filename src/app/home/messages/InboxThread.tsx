@@ -15,6 +15,8 @@ import type { InboxThread as ThreadData, InboxThreadMessage } from "@/lib/inbox/
 import { naira } from "@shared/onboarding";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { friendlyError } from "@/lib/errors/report-client";
+import { ChatContextBar } from "@/components/messaging/ChatContextBar";
+import { chatOrder } from "@shared/seller-inbox";
 
 // One customer conversation: the messages, a reply box that sends on the conversation's own channel (or saves
 // a private note), Peggy's suggested reply, saved replies, calls, and the customer sidebar.
@@ -80,6 +82,12 @@ function Attachments({ message }: { message: InboxThreadMessage }) {
       })}
     </div>
   );
+}
+
+/** The order this chat is about: the customer's order in progress, else their latest (shared/seller-inbox.ts). */
+function OrderBar({ orders }: { orders: ThreadData["customer"]["orders"] }) {
+  const order = chatOrder(orders);
+  return <ChatContextBar order={order ? { id: order.id, number: order.orderNumber, status: order.status, total: order.total, currency: "NGN" } : null} />;
 }
 
 function MessageBubble({ message }: { message: InboxThreadMessage }) {
@@ -433,6 +441,8 @@ export function InboxThread({ conversationId, me, team, canned, connected, aiAva
             </button>
           </div>
         </header>
+
+        <OrderBar orders={data.customer.orders} />
 
         {WEB_CALLS_ENABLED && showCall && <CallPanel conversationId={c.id} phone={phone} voiceOn={connected.includes("voice")} defaultPhone={me.phone} onDone={() => void load()} onClose={() => setShowCall(false)} />}
 

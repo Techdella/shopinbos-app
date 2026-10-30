@@ -83,7 +83,8 @@ test("every portal page needs a session and the right role (proxy table or requi
 // Public route handlers (not pages, so discoverPages doesn't see them) that must stay open to anyone.
 const PUBLIC_ROUTE_HANDLERS = [
   // A shop's short link and QR code (app.shopinbos.com/@handle, rewritten by the proxy): looks the handle up and
-  // redirects to the shop (shopLinkTarget). Reads nothing private and changes nothing.
+  // redirects to the shop (shopLinkTarget). Reads nothing private; the only write is the day's visit count
+  // (ShopLinkHit, for Pilot numbers).
   { route: "/h/[handle]", file: "src/app/h/[handle]/route.ts" },
   // A reseller's link (pilot "resell", app.shopinbos.com/rs/CODE): counts the tap and redirects to the product with
   // ?rs=CODE (resellRedirect). Reads nothing private; the only write is the link's tap count.

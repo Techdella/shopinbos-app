@@ -55,6 +55,8 @@ export interface InboxThread {
     createdAt: string;
   };
   messages: InboxMessage[];
+  /** The customer's orders with the shop, newest first (matched by email or phone; older servers leave it out). */
+  customer?: { orders: { id: string; orderNumber: string; total: number; status: string; createdAt: string }[] } | null;
 }
 
 export const fetchInbox = () => api<InboxListItem[]>("/api/app/inbox/conversations");

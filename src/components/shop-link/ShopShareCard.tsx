@@ -2,7 +2,7 @@
 
 import { forwardRef, useEffect, useState, type CSSProperties } from "react";
 import { useT } from "@/components/i18n/I18nProvider";
-import { PLUG_LIVE } from "@shared/shop-handle";
+import { PLUG_LIVE, shopQrUrl } from "@shared/shop-handle";
 
 // The shop's share card: logo and name, "Shop with us on Shopinbos", a QR code of the short link, the @handle and the
 // short link. Shown on Shop link & QR (/home/store/share), saved as a picture for print, and laid out as stickers
@@ -57,7 +57,8 @@ export const ShopShareCard = forwardRef<HTMLDivElement, ShopShareCardProps>(func
   ref,
 ) {
   const t = useT("shopLink");
-  const drawn = useQrDataUrl(qrSrc ? "" : shortUrl);
+  // The code carries ?src=qr so a scan counts as a QR visit (Pilot numbers); the printed link stays plain.
+  const drawn = useQrDataUrl(qrSrc ? "" : shopQrUrl(shortUrl));
   const qr = qrSrc ?? drawn;
   const initial = name.trim().charAt(0).toUpperCase() || "S";
 

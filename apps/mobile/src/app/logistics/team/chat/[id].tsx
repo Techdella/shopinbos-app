@@ -17,6 +17,7 @@ export default function TeamRiderChat() {
       load={async () => (await riderCompanyMessages(riderId)).messages}
       send={(body) => sendRiderCompanyMessage(riderId, body)}
       backTo="/logistics/riders"
+      voice
     />
   );
 }

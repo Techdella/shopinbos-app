@@ -59,6 +59,13 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "market.paidNote": "Kowane shago ne ke bin nasa resellers. Ana yin payout a ranar Juma'a.",
   "market.linkFailed": "Ba mu iya samo link ɗinka ba. Ka sake gwadawa.",
   "market.shareText": "{name}: {link}",
+
+  "ledger.title": "Biyan kuɗinka",
+  "ledger.owed": "Abin da ake binka",
+  "ledger.paid": "Abin da aka biya ka",
+  "ledger.airtime": "Ladan airtime: {amount}",
+  "ledger.lastPaid": "Biya na ƙarshe {date}",
+  "ledger.note": "Daga jerin biyan kuɗi na ranar Juma'a: sayayyar da aka kai da kuma lada. Shaguna ne ke biyan resellers ɗinsu; zai nuna an biya da zarar kuɗin ya isa.",
 };
 
 export default ha;

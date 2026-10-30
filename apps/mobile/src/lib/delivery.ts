@@ -1,6 +1,7 @@
 import { router } from "expo-router";
 import type { PartnerStats, RateRow } from "@shared/delivery-market";
 import { api } from "./api";
+import type { ShopRiderChat } from "@shared/seller-inbox";
 
 // The logistics marketplace for sellers and suppliers ("owners"), the same routes for both roles
 // (src/app/api/mobile/delivery/**). Pure helpers for these screens are in lib/delivery-pure.ts.
@@ -242,7 +243,13 @@ export interface JobRiderMessage {
   createdAt: string;
 }
 
-export const jobRiderMessages = (jobId: string) => api<{ messages: JobRiderMessage[] }>(`/api/mobile/delivery/jobs/${encodeURIComponent(jobId)}/messages`);
+/** The chat's header: the rider, the delivery's status and the order it carries (older servers leave it out). */
+export type JobRiderContext = Omit<ShopRiderChat, "last" | "unread" | "at">;
+
+export const jobRiderMessages = (jobId: string) => api<{ messages: JobRiderMessage[]; job?: JobRiderContext | null }>(`/api/mobile/delivery/jobs/${encodeURIComponent(jobId)}/messages`);
+
+/** The shop's chats with the riders carrying its parcels, one per job (the Chats tab's Riders). */
+export const fetchRiderChats = () => api<ShopRiderChat[]>("/api/mobile/delivery/rider-chats");
 
 export const sendJobRiderMessage = async (jobId: string, body: string) =>
   (await api<{ message: JobRiderMessage }>(`/api/mobile/delivery/jobs/${encodeURIComponent(jobId)}/messages`, { method: "POST", json: { body } })).message;

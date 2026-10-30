@@ -6,7 +6,7 @@ import { requireRole } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
 import { shopLinkFor } from "@/lib/shop-handle.server";
 import { getT } from "@/lib/i18n/server";
-import { PLUG_LIVE } from "@shared/shop-handle";
+import { PLUG_LIVE, shopQrUrl } from "@shared/shop-handle";
 import { PrintButton } from "@/app/home/labels/print/PrintButton";
 import { PrintCards } from "./PrintCards";
 import QRCode from "qrcode";
@@ -30,7 +30,7 @@ export default async function PrintShopCardPage({ searchParams }: { searchParams
   if (!store) redirect("/onboarding?role=seller");
   const link = await shopLinkFor(store);
   if (!link.handle) redirect("/home/store/share");
-  const qrSrc = await QRCode.toDataURL(link.shortUrl, { margin: 1, width: 640, errorCorrectionLevel: "M", color: { dark: "#16141F", light: "#FFFFFF" } }).catch(() => undefined);
+  const qrSrc = await QRCode.toDataURL(shopQrUrl(link.shortUrl), { margin: 1, width: 640, errorCorrectionLevel: "M", color: { dark: "#16141F", light: "#FFFFFF" } }).catch(() => undefined);
 
   return (
     <div className="min-h-dvh bg-app-canvas font-app text-app-ink print:bg-white">

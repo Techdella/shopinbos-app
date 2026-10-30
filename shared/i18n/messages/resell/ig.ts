@@ -59,6 +59,13 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "market.paidNote": "Ụlọ ahịa ọ bụla ji resellers nke ya. A na-eme payout na Fraịdee.",
   "market.linkFailed": "Anyị enweghị ike nweta link gị. Nwaa ọzọ.",
   "market.shareText": "{name}: {link}",
+
+  "ledger.title": "Ụgwọ a na-akwụ gị",
+  "ledger.owed": "Ihe a ji gị",
+  "ledger.paid": "Ihe a kwụrụ gị",
+  "ledger.airtime": "Onyinye airtime: {amount}",
+  "ledger.lastPaid": "Ịkwụ ụgwọ ikpeazụ {date}",
+  "ledger.note": "Site na ndepụta ịkwụ ụgwọ nke Fraịdee: ahịa ndị e zigarala na onyinye. Ụlọ ahịa na-akwụ resellers ha; ọ ga-egosi na a kwụọla ozugbo ego ahụ rutere.",
 };
 
 export default ig;

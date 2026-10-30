@@ -10,7 +10,8 @@ import { useFeature } from "@/lib/features";
 import { fetchResellMarket, getResellLink, type ResellableProduct } from "@/lib/resell";
 import { shareText } from "@/lib/share";
 import { useLoad } from "@/lib/useLoad";
-import { useT } from "@/lib/i18n";
+import { useLocale, useT } from "@/lib/i18n";
+import { formatDate } from "@shared/i18n";
 import { colors } from "@/theme";
 
 // Resell for resellers (web /resell; pilot "resell"): products from shops in the pilot they may resell, "Get my link"
@@ -19,6 +20,7 @@ import { colors } from "@/theme";
 export default function Resell() {
   const on = useFeature("resell");
   const t = useT("resell");
+  const locale = useLocale();
   const loaded = useLoad(fetchResellMarket);
   const [links, setLinks] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
@@ -49,6 +51,23 @@ export default function Resell() {
         <>
           <DarkCard eyebrow={t("market.owedToYou")} amount={naira(data.totals.owed)} line={`${t("sales.count", { count: data.totals.count })} · ${t("sales.paid")}: ${naira(data.totals.paid)}`} />
           <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{t("market.paidNote")}</T>
+
+          {data.ledger ? (
+            <>
+              <SectionTitle>{t("ledger.title")}</SectionTitle>
+              <List>
+                <Row lead={<Tile icon="clock" tone="butter" />} title={t("ledger.owed")} right={<T weight="extrabold" style={{ fontSize: 16 }}>{naira(data.ledger.owed)}</T>} />
+                <Row
+                  lead={<Tile icon="coin" tone="ok" />}
+                  title={t("ledger.paid")}
+                  sub={data.ledger.lastPaidAt ? t("ledger.lastPaid", { date: formatDate(new Date(data.ledger.lastPaidAt), locale, { day: "numeric", month: "short" }) }) : undefined}
+                  right={<T weight="extrabold" style={{ fontSize: 16 }}>{naira(data.ledger.paid)}</T>}
+                />
+                {data.ledger.airtime > 0 ? <Row lead={<Tile icon="phone" tone="sky" />} title={t("ledger.airtime", { amount: naira(data.ledger.airtime) })} /> : null}
+              </List>
+              <T style={{ color: colors.inkSoft, fontSize: 13, lineHeight: 19 }}>{t("ledger.note")}</T>
+            </>
+          ) : null}
 
           <SectionTitle>{t("market.products")}</SectionTitle>
           {data.products.length ? (

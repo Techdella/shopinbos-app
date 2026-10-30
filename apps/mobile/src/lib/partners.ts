@@ -26,6 +26,15 @@ export interface PartnerMessage {
   mine: boolean;
   text: string;
   createdAt: string;
+  /** The product, order, wholesale order or delivery linked to the message (newer servers, from `data`). */
+  context?: PartnerContext | null;
+}
+
+export interface PartnerContext {
+  kind: "product" | "order" | "wholesale_order" | "booking";
+  id: string;
+  label: string;
+  sub?: string | null;
 }
 
 interface RawContact {
@@ -78,12 +87,14 @@ export async function fetchPartnerContacts(): Promise<PartnerContact[]> {
 }
 
 export async function fetchPartnerMessages(contactId: string): Promise<PartnerMessage[]> {
-  const body = await apiBody<{ messages?: RawMessage[] }>(`/api/conversations/${encodeURIComponent(contactId)}/messages`);
+  const body = await apiBody<{ messages?: RawMessage[]; data?: { id: string; context?: PartnerContext | null }[] }>(`/api/conversations/${encodeURIComponent(contactId)}/messages`);
+  const contexts = new Map((Array.isArray(body.data) ? body.data : []).map((message) => [message.id, message.context ?? null]));
   return (body.messages ?? []).map((message) => ({
     id: message.id,
     mine: message.from === "me",
     text: message.text ?? "",
     createdAt: message.createdAt ?? new Date().toISOString(),
+    context: contexts.get(message.id) ?? null,
   }));
 }
 

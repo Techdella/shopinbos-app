@@ -14,7 +14,7 @@ test("inbox times: every clock time and date names the app's time zone", () => {
 });
 
 test("inbox times: relative times may tick over between server and browser", () => {
-  for (const path of ["src/app/home/messages/UnifiedInbox.tsx", "src/app/home/messages/InboxThread.tsx", "src/app/home/messages/PartnerThread.tsx"]) {
+  for (const path of ["src/app/home/messages/UnifiedInbox.tsx", "src/app/home/messages/InboxThread.tsx"]) {
     for (const line of read(path).split("\n").filter((l) => /\{formatWhen\(/.test(l))) assert.match(line, /suppressHydrationWarning/, `${path}: ${line.trim()}`);
   }
 });

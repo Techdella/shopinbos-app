@@ -5925,3 +5925,62 @@ model ResellSale {
   @@index([resellerUserId, createdAt])
   @@index([status])
 }
+
+// ─── Payout and rewards ledger (Admin › Payouts) ──────────────────────────────
+/// docs/migrations/2026-12-16-payout-ledger.sql, shared/payout-ledger.ts. One weekly list, named by its payday:
+/// weekStart is the Friday (Africa/Lagos) it's paid on. Unpaid lines on a closed list carry over to the next Friday's.
+model PayoutBatch {
+  id        String       @id @default(cuid())
+  weekStart DateTime     @unique @db.Date
+  status    String       @default("open") // open | paid
+  createdAt DateTime     @default(now())
+  closedAt  DateTime?
+  closedBy  String? // User.id
+  lines     PayoutLine[]
+}
+
+/// One amount owed to one earner. Shopinbos never holds it: a resell commission is owed by the shop (storeId); an
+/// admin marks the line paid once the money moved. sourceKind resell | creator_brief | personal_shopper |
+/// airtime_reward | adjustment; status owed | paid | void; method bank_transfer | shop_paid | airtime | cash | other.
+model PayoutLine {
+  id           String       @id @default(cuid())
+  batchId      String?
+  earnerUserId String // User.id
+  sourceKind   String
+  sourceId     String? // ResellSale.id for resell; null for hand-added lines
+  storeId      String? // the shop that owes it; null for Shopinbos's own rewards
+  amount       Int // whole naira
+  status       String       @default("owed")
+  method       String?
+  reference    String?
+  note         String?
+  phone        String? // airtime: the number it goes to (+234…)
+  network      String? // airtime: mtn | airtel | glo | 9mobile
+  paidAt       DateTime?
+  paidBy       String? // User.id of the admin who marked it paid
+  createdBy    String? // User.id of the admin who added it by hand
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @default(now()) @updatedAt
+  batch        PayoutBatch? @relation(fields: [batchId], references: [id], onDelete: SetNull)
+
+  @@unique([sourceKind, sourceId])
+  @@index([batchId, earnerUserId])
+  @@index([earnerUserId, status])
+  @@index([status, createdAt])
+  @@index([storeId])
+}
+
+// ─── Pilot numbers: short link and QR visits ──────────────────────────────────
+/// Visits to a shop's short link (app.shopinbos.com/@handle) per Lagos day and source (link | qr; the QR code adds
+/// ?src=qr). Counted by src/app/h/[handle]/route.ts; link previews left out.
+model ShopLinkHit {
+  id        String   @id @default(cuid())
+  storeId   String
+  day       DateTime @db.Date
+  source    String // link | qr
+  count     Int      @default(0)
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([storeId, day, source])
+  @@index([day])
+}

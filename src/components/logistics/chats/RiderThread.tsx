@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { cx } from "@/components/app-ui/cx";
 import { Icon } from "@/components/ui/Icon";
 import { PartnerAvatar, formatClock } from "@/components/conversations/parts";
@@ -12,12 +12,16 @@ import { formatDate } from "@shared/i18n";
 import { RIDER_MESSAGE_MAX, type RiderMessageView } from "@shared/rider-chat";
 import { RIDER_THREAD_POLL_MS, bubbleRuns } from "@shared/logistics-chats";
 import { friendlyError } from "@/lib/errors/report-client";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { ChatKindChip } from "./ChatKindChip";
 
 // The delivery company's chat with one rider on the Messages page (/logistics/inbox?rider=<id>): bubbles by day,
 // grouped runs, ticks on your own messages (sent, then seen once the rider opened the chat in the Riders app),
 // optimistic sending with retry, Enter to send (Shift+Enter for a new line), and a refresh every 10 seconds while
 // the tab is visible. Same JSON route as the phone (GET/POST /api/mobile/logistics/riders/<id>/messages).
+// The seller's unified inbox (/home/messages?r=<job>) reuses it for the shop's chat with the rider on one delivery:
+// `url` is then the job's route, `top` the order/delivery bar and `link` the order. Voice notes: the mic writes
+// down what you say (POST /api/ai/transcribe) and sends it, as in every other chat.
 
 type Line = RiderMessageView & { status?: "sending" | "failed"; error?: string };
 
@@ -28,10 +32,33 @@ export interface RiderThreadInfo {
   active: boolean;
 }
 
-export function RiderThread({ rider, onBack, onActivity }: { rider: RiderThreadInfo; onBack?: () => void; onActivity?: () => void }) {
+export function RiderThread({
+  rider,
+  onBack,
+  onActivity,
+  url: threadUrl,
+  subtitle,
+  link,
+  top,
+  voice = true,
+}: {
+  rider: RiderThreadInfo;
+  onBack?: () => void;
+  onActivity?: () => void;
+  /** The thread's JSON route; the company's chat with this rider when left out. */
+  url?: string;
+  /** The line under the name; "Rider on your team" (or "No longer on your team") when left out. */
+  subtitle?: string;
+  /** The button on the right of the header; the Riders page when left out, none when null. */
+  link?: { href: string; label: string } | null;
+  /** Shown under the header (the order and delivery a shop's rider chat belongs to). */
+  top?: ReactNode;
+  /** The mic next to Send (speak, and the words are sent). */
+  voice?: boolean;
+}) {
   const t = useT("logistics", "inbox", "common");
   const locale = useLocale();
-  const url = `/api/mobile/logistics/riders/${encodeURIComponent(rider.riderId)}/messages`;
+  const url = threadUrl ?? `/api/mobile/logistics/riders/${encodeURIComponent(rider.riderId)}/messages`;
   const [lines, setLines] = useState<Line[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -100,8 +127,8 @@ export function RiderThread({ rider, onBack, onActivity }: { rider: RiderThreadI
     }
   }
 
-  function send() {
-    const body = text.trim();
+  function send(spoken?: string) {
+    const body = (spoken ?? text).trim();
     if (!body) return;
     void deliver(body.slice(0, RIDER_MESSAGE_MAX), `local-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`);
     setText("");
@@ -132,17 +159,20 @@ export function RiderThread({ rider, onBack, onActivity }: { rider: RiderThreadI
             <h2 className="m-0 truncate text-[15px] font-extrabold">{rider.name}</h2>
             <ChatKindChip kind="rider" />
           </div>
-          <div className="truncate text-[12.5px] text-app-ink-soft">{rider.active ? t("chats.riderSub") : t("chats.riderOff")}</div>
+          <div className="truncate text-[12.5px] text-app-ink-soft">{subtitle ?? (rider.active ? t("chats.riderSub") : t("chats.riderOff"))}</div>
         </div>
         {rider.phone && (
           <a href={`tel:${rider.phone.replace(/[^\d+]/g, "")}`} aria-label={t("chats.call", { name: first })} title={t("chats.call", { name: first })} className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-app-line text-app-ink no-underline hover:border-app-line-strong">
             <Icon name="phone" size={16} />
           </a>
         )}
-        <Link href="/logistics/couriers" className="hidden min-h-[34px] shrink-0 items-center rounded-full border border-app-line px-3 text-[12.5px] font-bold text-app-ink no-underline hover:border-app-line-strong sm:inline-flex">
-          {t("chats.riderPage")}
-        </Link>
+        {link !== null && (
+          <Link href={link?.href ?? "/logistics/couriers"} className="hidden min-h-[34px] shrink-0 items-center rounded-full border border-app-line px-3 text-[12.5px] font-bold text-app-ink no-underline hover:border-app-line-strong sm:inline-flex">
+            {link?.label ?? t("chats.riderPage")}
+          </Link>
+        )}
       </header>
+      {top}
 
       <div
         ref={scrollRef}
@@ -253,6 +283,7 @@ export function RiderThread({ rider, onBack, onActivity }: { rider: RiderThreadI
             placeholder={t("partner.write")}
             className="max-h-[140px] min-h-[44px] min-w-0 flex-1 resize-none rounded-[22px] border border-app-line bg-white px-4 py-[10px] text-[16px] leading-[1.4] outline-none placeholder:text-app-ink-faint focus:border-app-ink sm:text-[15px]"
           />
+          {voice && <VoiceInputButton variant="icon" value={text} onChange={setText} onSpoken={(spoken) => send(spoken)} maxLength={RIDER_MESSAGE_MAX} context="a chat message to a delivery rider" />}
           <button type="submit" disabled={!text.trim()} aria-label={t("send")} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-app-accent text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-45">
             <Icon name="send" size={17} />
           </button>

@@ -4,7 +4,8 @@ import { ChatListScreen, HeaderIcon, type ChatRowData } from "@/components/ChatL
 import { EmptyState } from "@/components/kit";
 import { ChoiceRow, Sheet } from "@/components/Sheet";
 import { PillButton } from "@/components/ui";
-import { asSellerChatFilter, chatPreview, mergeSellerChats, SELLER_CHAT_FILTERS, sellerChatMatches, type MergedChat, type SellerChatFilter } from "@/lib/chats-pure";
+import { asSellerChatFilter, chatPreview, mergeSellerChats, sellerChatFilters, sellerChatMatches, type MergedChat, type SellerChatFilter } from "@/lib/chats-pure";
+import { fetchRiderChats } from "@/lib/delivery";
 import { fetchInbox } from "@/lib/inbox";
 import { channelLabel } from "@/lib/inbox-pure";
 import { fetchPartnerContacts } from "@/lib/partners";
@@ -12,16 +13,21 @@ import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
 import { colors, themed } from "@/theme";
 
-// Chats ("Familiar app" prototype `on.chats`): only the conversations. Customers on every channel (WhatsApp,
-// Instagram, Facebook, email, the shop's live chat…) and the seller's supplier and delivery-partner chats
-// (/api/conversations) in one list, newest first, with All / Customers / Riders / Suppliers / Unread (board A-Seller-Chats) and a search. Auto-replies,
-// the Peggy chatbot and connecting channels are behind the settings button. ?filter=partners opens on Partners.
+// Chats ("Familiar app" prototype `on.chats`): the seller's one chat inbox (founder's plan item 8, the web's
+// /home/messages). Customers on every channel (WhatsApp, Instagram, Facebook, email, the shop's live chat…), the
+// seller's supplier and delivery-partner chats (/api/conversations) and the riders carrying the shop's parcels
+// (/api/mobile/delivery/rider-chats) in one list, newest first, with All / Customers / Suppliers / Delivery / Riders /
+// Unread (Creators once there are creator chats) and a search. Each opens its own thread screen, which shows the
+// order or delivery it belongs to at the top. Auto-replies, the Peggy chatbot and connecting channels are behind the
+// settings button. ?filter=partners opens on Partners (old links), ?filter=riders on Riders.
 
-const FILTER_LABEL: Record<SellerChatFilter, "filter.all" | "chats.customers" | "chats.riders" | "chats.suppliers" | "chats.partners" | "view.unread"> = {
+const FILTER_LABEL: Record<SellerChatFilter, "filter.all" | "chats.customers" | "chats.riders" | "chats.suppliers" | "chats.delivery" | "chats.creators" | "chats.partners" | "view.unread"> = {
   all: "filter.all",
   customers: "chats.customers",
-  riders: "chats.riders",
   suppliers: "chats.suppliers",
+  delivery: "chats.delivery",
+  riders: "chats.riders",
+  creators: "chats.creators",
   partners: "chats.partners",
   unread: "view.unread",
 };
@@ -30,6 +36,7 @@ const TONE = themed(() => ({
   customer: { bg: colors.peach, fg: colors.accentInk },
   supplier: { bg: colors.blueTint, fg: colors.blueInk },
   logistics_partner: { bg: colors.mintTint, fg: colors.forest },
+  rider: { bg: colors.warnTint, fg: colors.warnInk },
 }));
 
 /** The source badge on each row: the customer's channel, or the partner's kind. */
@@ -45,15 +52,16 @@ const CHANNEL_TONE: Record<string, { bg: string; fg: string }> = themed(() => ({
 }));
 
 function open(chat: MergedChat) {
-  if (chat.kind === "partner") router.push({ pathname: "/partners/[id]", params: { id: chat.id, name: chat.name } });
+  if (chat.kind === "rider") router.push({ pathname: "/delivery/rider-chat", params: { job: chat.id, name: chat.name } });
+  else if (chat.kind === "partner") router.push({ pathname: "/partners/[id]", params: { id: chat.id, name: chat.name } });
   else router.push({ pathname: "/inbox/[id]", params: { id: chat.id } });
 }
 
 async function loadChats() {
-  // Either half can be missing (no shop yet, an older server): show what answers.
-  const [inbox, contacts] = await Promise.allSettled([fetchInbox(), fetchPartnerContacts()]);
+  // Any part can be missing (no shop yet, an older server): show what answers.
+  const [inbox, contacts, riders] = await Promise.allSettled([fetchInbox(), fetchPartnerContacts(), fetchRiderChats()]);
   if (inbox.status === "rejected" && contacts.status === "rejected") throw inbox.reason;
-  return mergeSellerChats(inbox.status === "fulfilled" ? inbox.value : null, contacts.status === "fulfilled" ? contacts.value : null);
+  return mergeSellerChats(inbox.status === "fulfilled" ? inbox.value : null, contacts.status === "fulfilled" ? contacts.value : null, riders.status === "fulfilled" ? riders.value : null);
 }
 
 export default function Chats() {
@@ -82,13 +90,16 @@ export default function Chats() {
             .map((chat) => ({
               key: chat.key,
               name: chat.name,
-              preview: chatPreview(chat.subject, chat.preview),
+              // A rider chat nobody wrote in yet: the order it's about.
+              preview: chatPreview(chat.subject, chat.preview) || (chat.kind === "rider" ? (chat.order ? t("chats.riderOrder", { number: chat.order.number }) : t("chats.riderSub")) : ""),
               at: chat.at,
               unread: chat.unread,
               avatarUrl: chat.avatarUrl,
-              tone: chat.kind === "customer" ? TONE.customer : chat.role === "logistics_partner" ? TONE.logistics_partner : TONE.supplier,
-              label: chat.kind === "partner" ? t.dynamic(`partners.kind.${chat.role}`, t("partners.partner")) : channelLabel(chat.channel, t),
-              badge: chat.kind === "partner" ? (chat.role === "logistics_partner" ? TONE.logistics_partner : TONE.supplier) : CHANNEL_TONE[chat.channel ?? ""] ?? GRAY,
+              tone: chat.kind === "customer" ? TONE.customer : chat.kind === "rider" ? TONE.rider : chat.role === "logistics_partner" ? TONE.logistics_partner : TONE.supplier,
+              label: chat.kind === "rider"
+                ? chat.order ? t("chats.riderOn", { number: chat.order.number }) : t("chats.rider")
+                : chat.kind === "partner" ? t.dynamic(`partners.kind.${chat.role}`, t("partners.partner")) : channelLabel(chat.channel, t),
+              badge: chat.kind === "rider" ? TONE.rider : chat.kind === "partner" ? (chat.role === "logistics_partner" ? TONE.logistics_partner : TONE.supplier) : CHANNEL_TONE[chat.channel ?? ""] ?? GRAY,
               onPress: () => open(chat),
             }))
         : null,
@@ -104,7 +115,7 @@ export default function Chats() {
     <>
       <ChatListScreen
         title={t("tab.chats")}
-        filters={(filter === "partners" ? [...SELLER_CHAT_FILTERS.slice(0, 2), "partners" as const, ...SELLER_CHAT_FILTERS.slice(2)] : SELLER_CHAT_FILTERS).map((key) => ({ key, label: t(FILTER_LABEL[key]), count: key === "unread" ? unread : undefined }))}
+        filters={sellerChatFilters(all, filter).map((key) => ({ key, label: t(FILTER_LABEL[key]), count: key === "unread" ? unread : undefined }))}
         filter={filter}
         onFilter={setFilter}
         chats={rows}
