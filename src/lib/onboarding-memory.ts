@@ -61,6 +61,13 @@ export interface StoreOnboardingMemory {
   palette?: OnboardingPaletteMemory | null;
   logo?: OnboardingLogoMemory | null;
   uploadedLogoUrl?: string | null;
+  /** The logo screen as the seller left it: Rex's ideas (stored URLs), the round, what they asked to change, and
+   * the one they tapped but haven't confirmed yet, so logging back in shows the same logos (no second charge). */
+  logoIdeas?: Array<{ style: string; label: string; url: string }>;
+  logoRound?: number;
+  logoNotes?: string;
+  logoMode?: "upload" | "rex" | null;
+  logoPicked?: string | null;
   aiCredits?: number;
   updatedAt?: string;
 }

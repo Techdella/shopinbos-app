@@ -5838,3 +5838,87 @@ model FollowerBlast {
   @@index([storeId, createdAt])
   @@index([status, updatedAt])
 }
+
+// ─── Rex jobs (resume after a disconnect) ─────────────────────────────────────
+/// docs/migrations/2026-12-14-rex-jobs.sql. One paid Rex generation per (user, clientKey): the key the app makes for
+/// one "Generate" tap. A retry with the same key never charges twice; a result made while the seller was away is
+/// kept until they see it (src/lib/ai/rex-jobs.server.ts, shared/rex-jobs.ts). No relation fields on purpose.
+model RexJob {
+  id             String    @id @default(cuid())
+  userId         String
+  storeId        String?
+  /// logo | image | flyer | post | status | reel_design | packaging | banner | video_script | reel_shots | voiceover | store_build
+  kind           String
+  clientKey      String
+  /// queued | running | done | failed
+  status         String    @default("queued")
+  /// A short copy of the ask (shared/rex-jobs.ts trimRexInput).
+  input          Json?
+  /// What the route answered with: stored picture / audio URLs and words.
+  result         Json?
+  /// Credits the job holds now (charges minus refunds); given back if it fails or is cut off.
+  creditsCharged Int       @default(0)
+  error          String?
+  seenAt         DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([userId, clientKey])
+  @@index([userId, status, updatedAt])
+}
+
+// ─── Resell (pilot feature "resell") ──────────────────────────────────────────
+/// docs/migrations/2026-12-14-resell.sql, shared/resell.ts. A shop lets resellers sell one of its products for a
+/// commission (1–50%). productId = StoreProduct.id. Shopinbos never holds the money: the shop owes it.
+model ResellSetting {
+  id            String   @id @default(cuid())
+  productId     String   @unique
+  storeId       String
+  enabled       Boolean  @default(false)
+  commissionPct Decimal  @default(10) @db.Decimal(5, 2)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now()) @updatedAt
+
+  @@index([storeId, enabled])
+  @@index([enabled, updatedAt])
+}
+
+/// A reseller's own short link for one product (app.shopinbos.com/rs/<code>). One per reseller per product.
+model ResellLink {
+  id             String       @id @default(cuid())
+  code           String       @unique
+  resellerUserId String // User.id
+  storeId        String
+  productId      String // StoreProduct.id
+  clicks         Int          @default(0)
+  createdAt      DateTime     @default(now())
+  sales          ResellSale[]
+
+  @@unique([resellerUserId, productId])
+  @@index([storeId])
+  @@index([resellerUserId, createdAt])
+}
+
+/// A product of an order credited to a reseller link: what the buyer paid for it (after discounts, no delivery, whole
+/// naira) and the commission the shop owes. status: awaiting_payment | pending | approved | paid | void (shared/resell.ts).
+model ResellSale {
+  id               String     @id @default(cuid())
+  linkId           String
+  orderId          String // RetailOrder.id
+  storeId          String
+  resellerUserId   String
+  productId        String
+  quantity         Int        @default(0)
+  lineTotal        Int        @default(0)
+  commissionPct    Decimal    @db.Decimal(5, 2)
+  commissionAmount Int        @default(0)
+  status           String     @default("awaiting_payment")
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @default(now()) @updatedAt
+  link             ResellLink @relation(fields: [linkId], references: [id], onDelete: Restrict)
+
+  @@unique([orderId, linkId])
+  @@index([storeId, createdAt])
+  @@index([resellerUserId, createdAt])
+  @@index([status])
+}

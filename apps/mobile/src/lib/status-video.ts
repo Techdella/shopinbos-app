@@ -40,7 +40,7 @@ export function pickedVideoProblem(input: VideoInput): StatusVideoProblem | null
 }
 
 /** The file's size on the phone, or null. */
-async function fileBytes(uri: string): Promise<number | null> {
+export async function fileBytes(uri: string): Promise<number | null> {
   if (Platform.OS === "web") return null;
   try {
     const fs = await import("expo-file-system");
@@ -52,7 +52,7 @@ async function fileBytes(uri: string): Promise<number | null> {
 }
 
 /** PUTs a local file to a signed Storage URL, streaming it from disk on a phone; `onProgress` gets 0..1. */
-async function putFile(signedUrl: string, uri: string, type: string, onProgress?: (fraction: number) => void) {
+export async function putFile(signedUrl: string, uri: string, type: string, onProgress?: (fraction: number) => void) {
   const headers = { "content-type": type, "x-upsert": "false" };
   if (Platform.OS === "web") {
     const blob = await (await fetch(uri)).blob();
@@ -82,7 +82,7 @@ const sign = (input: { kind: "video" | "poster"; type: string; size: number; dur
  * A still frame from the video as a small JPG on the phone (expo-video thumbnail → expo-image-manipulator), or null
  * when this build can't make one (the post still works: the viewer shows the video's own first frame).
  */
-async function makePoster(uri: string): Promise<{ uri: string; size: number | null } | null> {
+export async function makePoster(uri: string): Promise<{ uri: string; size: number | null } | null> {
   if (Platform.OS !== "web" && !requireOptionalNativeModule("ExpoImageManipulator")) return null;
   let player: import("expo-video").VideoPlayer | null = null;
   try {

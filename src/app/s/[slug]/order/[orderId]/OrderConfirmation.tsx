@@ -12,6 +12,7 @@ import { formatStoreMoney } from "@/lib/storefront/shopper-info";
 import { ItemThumb, Panel, PrimaryButton, ShopperShell } from "@/components/storefront/shopper/ShopperShell";
 import { payAtDoor as startPayAtDoor, payOrderBalance } from "./actions";
 import { RefundsPanel, type CustomerRefund } from "./RefundsPanel";
+import { WhatsAppNews } from "./WhatsAppNews";
 import { resolveShopperTheme, type ShopperTheme } from "@/components/storefront/shopper/theme";
 import { TransferInstructions, payByText, type TransferDetails } from "./TransferInstructions";
 import { OrderRewardsPanel, type OrderRewards } from "@/components/storefront/gamification/Rewards";
@@ -81,6 +82,8 @@ interface Props {
   /** Refunds the store sends from its own bank, guided (shared/order-refunds.ts). */
   refunds?: CustomerRefund[];
   refundBanks?: string[];
+  /** Notify my followers: whether the buyer gets the shop's news on WhatsApp; null/undefined hides the opt-in. */
+  whatsappNews?: boolean | null;
 }
 
 export interface PayAtDoorView {
@@ -110,7 +113,7 @@ export interface BalanceView {
 
 const PAID = ["paid", "processing", "packed", "shipped", "delivered"];
 
-export function OrderConfirmation({ order, store, storeBasePath, transfer = null, deliveryCode = null, rewards = null, delivery = null, brandedTracking = true, balance = null, payAtDoor = null, faults = null, refunds = [], refundBanks = [] }: Props) {
+export function OrderConfirmation({ order, store, storeBasePath, transfer = null, deliveryCode = null, rewards = null, delivery = null, brandedTracking = true, balance = null, payAtDoor = null, faults = null, refunds = [], refundBanks = [], whatsappNews = null }: Props) {
   const cart = useCart(store.slug);
   const theme = useMemo(() => resolveShopperTheme(store.brandSettings), [store.brandSettings]);
   const clearCart = cart.clear;
@@ -203,6 +206,8 @@ export function OrderConfirmation({ order, store, storeBasePath, transfer = null
           {rewards && (rewards.loyalty || rewards.postPurchase) && order.status !== "cancelled" ? (
             <OrderRewardsPanel rewards={rewards} storeSlug={store.slug} orderId={order.id} currency={order.currency} colors={shopperGameColors(theme)} />
           ) : null}
+
+          {typeof whatsappNews === "boolean" ? <WhatsAppNews theme={theme} orderId={order.id} storeName={store.name} initial={whatsappNews} /> : null}
 
           <Panel theme={theme} className="p-5" aria-labelledby="whats-next">
             <h2 id="whats-next" className="text-[18px] font-semibold" style={{ fontFamily: theme.heading }}>What happens next</h2>

@@ -53,6 +53,7 @@ import { publishShop } from "@/lib/publish";
 import { shareOnWhatsApp, shareText } from "@/lib/share";
 import { localeFromName } from "@shared/i18n";
 import { useLocale, useSetLocale, useT } from "@/lib/i18n";
+import { RexStillWorking, useRexResume } from "@/lib/rex-jobs";
 import { colors, fonts, radii } from "@/theme";
 
 // Seller sign-up to a live store, one question per screen (shared/onboarding.ts SELLER_QUESTIONS), the same flow as
@@ -74,6 +75,7 @@ export default function SellerQuestions() {
   const tb = useT("builder");
   const tl = useT("m_looks");
   const tSettings = useT("settings");
+  const tJobs = useT("rexJobs");
   const appLocale = useLocale();
   const setAppLocale = useSetLocale();
   const memory = status?.memory;
@@ -93,6 +95,7 @@ export default function SellerQuestions() {
   const [logoRound, setLogoRound] = useState(1);
   const [logoNotes, setLogoNotes] = useState("");
   const [logoUnavailable, setLogoUnavailable] = useState(false);
+  const [logoStillDrawing, setLogoStillDrawing] = useState(false);
   const [categories, setCategories] = useState<string[]>([]);
   const [chosen, setChosen] = useState<string[]>([]);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -135,10 +138,33 @@ export default function SellerQuestions() {
     setLiveUrl(status.store.url);
     setLive(status.store.live);
     if (saved?.templateId) setLookId(saved.templateId);
+    // The logo screen as they left it: the same ideas (already paid for), the one they tapped, the round.
+    if (saved?.logoIdeas?.length) {
+      setLogos(saved.logoIdeas);
+      setLogoMode("rex");
+    } else if (saved?.logoMode) setLogoMode(saved.logoMode);
+    setLogoUrl(saved?.logoPicked ?? saved?.logo?.url ?? saved?.uploadedLogoUrl ?? null);
+    if (saved?.logoRound) setLogoRound(saved.logoRound);
+    if (saved?.logoNotes) setLogoNotes(saved.logoNotes);
     setIntro((current) => current && !saved?.screen);
   }, [status, params.screen]);
 
   const name = firstNameOf(status?.ownerName);
+
+  // Logos Rex finished (or is still drawing) after the seller left the logo screen: shown here, already paid for.
+  const logoResume = useRexResume(
+    ["logo"],
+    (job) => {
+      const ideas = Array.isArray(job.result?.logos) ? (job.result.logos as LogoIdea[]).filter((logo) => typeof logo?.url === "string") : [];
+      if (!ideas.length) return;
+      setLogoMode("rex");
+      setLogos(ideas);
+      setLogoUnavailable(false);
+      setLogoStillDrawing(false);
+      void saveMemory({ logoIdeas: ideas, logoMode: "rex" }).catch(() => null);
+    },
+    question === "logo",
+  );
   const displayName = storeName.trim() || status?.store.name || "";
   const description = [displayName, chosen.length ? `sells ${chosen.join(", ")}` : ""].filter(Boolean).join(" ");
 
@@ -245,6 +271,7 @@ export default function SellerQuestions() {
       const url = await uploadPhoto(photos[0], "brand");
       await saveLogo(url);
       setLogoUrl(url);
+      void saveMemory({ uploadedLogoUrl: url, logoMode: "upload", logoPicked: url }).catch(() => null);
       setBusy(false);
     } catch (cause) {
       fail(cause);
@@ -255,12 +282,17 @@ export default function SellerQuestions() {
     setLogoMode("rex");
     setLogoRound(round);
     setLogoUnavailable(false);
+    setLogoStillDrawing(false);
     setBusy(true);
     setError(null);
     try {
-      setLogos(await drawLogos({ businessName: displayName, businessDescription: description, round, notes: notes.trim() || undefined }));
-    } catch {
-      setLogoUnavailable(true);
+      const ideas = await drawLogos({ businessName: displayName, businessDescription: description, round, notes: notes.trim() || undefined });
+      setLogos(ideas);
+      // Saved straight away: back, losing signal or closing the app doesn't lose (or re-charge) them.
+      void saveMemory({ logoIdeas: ideas, logoRound: round, logoNotes: notes.trim(), logoMode: "rex" }).catch(() => null);
+    } catch (cause) {
+      if (cause instanceof RexStillWorking) setLogoStillDrawing(true);
+      else setLogoUnavailable(true);
     } finally {
       setBusy(false);
     }
@@ -500,7 +532,9 @@ export default function SellerQuestions() {
         {logoMode === "rex" ? (
           <View style={{ marginTop: 18, gap: 12 }}>
             {/* Rex is drawing (the first round, a redraw or more ideas): the fun loader, above the old ideas. */}
-            {busy ? <FunLoader kind="logo" /> : null}
+            {busy || logoResume.waiting ? <FunLoader kind="logo" /> : null}
+            {(logoStillDrawing || logoResume.waiting) && !busy ? <Notice tone="info">{tJobs("resume.stillWorking")}</Notice> : null}
+            {logoResume.resumed && !busy ? <Notice tone="success">{tJobs("resume.logo")}</Notice> : null}
             {logoUnavailable ? (
               <>
                 <Notice tone="info">{t("logo.unavailable")}</Notice>
@@ -527,7 +561,10 @@ export default function SellerQuestions() {
                       accessibilityRole="button"
                       accessibilityLabel={t("logo.option", { number: index + 1 })}
                       accessibilityState={{ selected: logoUrl === logo.url }}
-                      onPress={() => setLogoUrl(logo.url)}
+                      onPress={() => {
+                        setLogoUrl(logo.url);
+                        void saveMemory({ logoPicked: logo.url }).catch(() => null);
+                      }}
                       style={{
                         width: (width - 50) / 2,
                         aspectRatio: 1,

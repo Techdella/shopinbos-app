@@ -206,6 +206,8 @@ export const TEMPLATE_VARIABLES = {
   delivery_partner: { label: "Delivery company", sample: "Standard delivery" },
   pickup_point: { label: "Pickup point", sample: "Ikeja Hub, 12 Allen Avenue, Ikeja (open Mon-Sat 9am-6pm)" },
   delivery_problem: { label: "Delivery problem", sample: "the delivery didn't go through today because the rider couldn't reach you on the phone" },
+  // Notify my followers (src/lib/followers/blasts.server.ts): the seller's news, only filled for those messages.
+  follower_news: { label: "Your news (Notify my followers)", sample: "New drop just landed: our Adire kaftans are back in 6 colours" },
 } as const;
 
 export type TemplateVariable = keyof typeof TEMPLATE_VARIABLES;
@@ -372,7 +374,7 @@ export function renderTemplateText(content: TemplateContent, params: string[]) {
 // ─── Ready-made templates ─────────────────────────────────────────────────────
 
 export interface TemplatePreset {
-  key: "order_confirmation" | "order_shipped" | "order_delivered" | "abandoned_cart" | "back_in_stock" | "promo" | DeliveryPresetKey;
+  key: "order_confirmation" | "order_shipped" | "order_delivered" | "abandoned_cart" | "back_in_stock" | "promo" | DeliveryPresetKey | "follower_news";
   title: string;
   description: string;
   name: string;
@@ -488,8 +490,25 @@ export const DELIVERY_TEMPLATE_PRESETS: TemplatePreset[] = [
   },
 ];
 
+/**
+ * Notify my followers (shared/follower-blasts.ts): one marketing template whose middle is the seller's news (a new drop,
+ * a pre-order or a live), set up from the Followers page when the shop first sends on WhatsApp. Kept out of the
+ * campaign gallery (TEMPLATE_PRESETS) because only follower news fills {{3}}.
+ */
+export const FOLLOWER_TEMPLATE_PRESETS: TemplatePreset[] = [
+  {
+    key: "follower_news",
+    title: "News for your followers",
+    description: "Tell the people who follow your shop about a new drop, a pre-order or a live.",
+    name: "follower_news",
+    category: "MARKETING",
+    content: { header: { format: "NONE" }, body: "Hi {{1}}, news from {{2}} for you: {{3}}. Take a look here: {{4}} and reply if you have a question.", footer: "Not interested? Tap Stop promotions", buttons: [STOP_BUTTON] },
+    variables: ["first_name", "store_name", "follower_news", "link"],
+  },
+];
+
 export function presetTemplate(key: string) {
-  return TEMPLATE_PRESETS.find((preset) => preset.key === key) ?? DELIVERY_TEMPLATE_PRESETS.find((preset) => preset.key === key) ?? null;
+  return TEMPLATE_PRESETS.find((preset) => preset.key === key) ?? DELIVERY_TEMPLATE_PRESETS.find((preset) => preset.key === key) ?? FOLLOWER_TEMPLATE_PRESETS.find((preset) => preset.key === key) ?? null;
 }
 
 /** Turns a free-text name into a valid Meta template name ("Order shipped!" → "order_shipped"). */

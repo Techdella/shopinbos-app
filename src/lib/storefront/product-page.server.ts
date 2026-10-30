@@ -16,6 +16,7 @@ import { sellerCardLine, sellerReach, type StoreSellerCard, type StorefrontShopp
 import { PREVIEW_PRODUCT_STATUSES, storeUnavailableReason } from "./store-visibility";
 import { relatedProducts } from "@/components/storefront/shopper/catalog";
 import { forShoppers } from "@shared/product-stock";
+import { productPageVideos } from "@/lib/product-videos/service.server";
 import { bundleStocks } from "@shared/bundles";
 import { bundleForProductPage } from "@/lib/products/bundles.server";
 import { storefrontTrust } from "@shared/storefront-trust";
@@ -193,7 +194,7 @@ export const loadProductPage = cache(async (slug: string, productId: string, pre
   const ratingCounts = [0, 0, 0, 0, 0];
   for (const review of reviews) ratingCounts[review.rating - 1]++;
 
-  const [catalog, shopper, deliverySettings, trustFacts, bundle] = await Promise.all([
+  const [catalog, shopper, deliverySettings, trustFacts, bundle, videos] = await Promise.all([
     db.storeProduct
       .findMany({ where: { storeId: store.id, status: { in: [...statuses] } }, select: catalogSelect, orderBy: { createdAt: "desc" }, take: 200 })
       .catch(() => []),
@@ -206,6 +207,9 @@ export const loadProductPage = cache(async (slug: string, productId: string, pre
     productTrustFacts(store.id, product.id).catch(() => ({ supplierVerificationStatus: null, onlinePayments: false })),
     // A bundle: "What's inside", the saving and its stock (from its items).
     bundleForProductPage(store.id, product, statuses).catch(() => null),
+    // Product videos (Post to Plug pilot, shared/product-videos.ts): the shop's own, and its supplier's for an imported
+    // product (never with the supplier's name). [] unless post_to_plug is on for the shop.
+    productPageVideos(store.id, product.id),
   ]);
   const info = shopper as StorefrontShopperInfo;
   const place = [deliverySettings?.originArea, deliverySettings?.originState].map((part) => part?.trim()).filter(Boolean).join(", ") || store.city?.trim() || null;
@@ -230,7 +234,7 @@ export const loadProductPage = cache(async (slug: string, productId: string, pre
   const publicStore = { ...rest, brandSettings: publicBrandSettings(brandSettings) };
   const { status: _productStatus, ...productRow } = product;
   void _productStatus;
-  const publicProduct = { ...forShoppers(productRow), ...(bundle ? { stock: bundle.stock } : {}), bundle: bundle?.summary ?? null };
+  const publicProduct = { ...forShoppers(productRow), ...(bundle ? { stock: bundle.stock } : {}), bundle: bundle?.summary ?? null, videos };
   const shopperCatalog = withBundleStock(catalog);
 
   return {

@@ -57,6 +57,7 @@ import { Confetti, DancingRex } from "@/components/brand/Celebrate";
 import { FunLoader } from "@/components/brand/FunLoader";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { downloadPicture } from "@/lib/download-picture";
+import { useRexResume } from "@/lib/ai/rex-jobs-client";
 import { ThemePreviewDialog, ThemeThumbnail, TIER_BADGE } from "@/components/builder/theme-preview/ThemePreview";
 import { ALL_THEMES_FREE } from "@shared/plans";
 import { TIER_PLAN_LABEL } from "@/lib/theme-access";
@@ -96,6 +97,7 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
   const t = useT("sellerStart", "common");
   const tb = useT("builder");
   const tSettings = useT("settings");
+  const tJobs = useT("rexJobs");
   const appLocale = useLocale();
   const setAppLocale = useSetLocale();
   const status = initialStatus;
@@ -109,12 +111,14 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
   // 1 Name
   const [storeName, setStoreName] = useState(status.store.name && !/'s Store$/.test(status.store.name) ? status.store.name : memory?.storeName ?? "");
   // 2 Logo
-  const [logoMode, setLogoMode] = useState<"upload" | "rex" | null>(null);
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const [logos, setLogos] = useState<LogoIdea[]>([]);
-  const [logoRound, setLogoRound] = useState(1);
-  const [logoNotes, setLogoNotes] = useState("");
+  // Kept in the onboarding memory as the seller goes, so logging back in shows the same logos (already paid for).
+  const [logoMode, setLogoMode] = useState<"upload" | "rex" | null>(() => memory?.logoMode ?? (memory?.logoIdeas?.length ? "rex" : memory?.uploadedLogoUrl ? "upload" : null));
+  const [logoUrl, setLogoUrl] = useState<string | null>(() => memory?.logoPicked ?? memory?.logo?.url ?? memory?.uploadedLogoUrl ?? null);
+  const [logos, setLogos] = useState<LogoIdea[]>(() => memory?.logoIdeas ?? []);
+  const [logoRound, setLogoRound] = useState(() => memory?.logoRound ?? 1);
+  const [logoNotes, setLogoNotes] = useState(() => memory?.logoNotes ?? "");
   const [logoUnavailable, setLogoUnavailable] = useState(false);
+  const [logoStillDrawing, setLogoStillDrawing] = useState(false);
   // 3 What you sell
   const [categories, setCategories] = useState<string[]>([]);
   const [chosen, setChosen] = useState<string[]>(memory?.categories ?? (memory?.category ? [memory.category] : []));
@@ -149,6 +153,21 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
   const [shareNote, setShareNote] = useState<string | null>(null);
 
   const name = firstNameOf(status.ownerName);
+
+  // Logos Rex finished (or is still drawing) after the seller left the logo screen: shown here, already paid for.
+  const logoResume = useRexResume(
+    ["logo"],
+    (job) => {
+      const ideas = Array.isArray(job.result?.logos) ? (job.result.logos as LogoIdea[]).filter((logo) => typeof logo?.url === "string") : [];
+      if (!ideas.length) return;
+      setLogoMode("rex");
+      setLogos(ideas);
+      setLogoUnavailable(false);
+      setLogoStillDrawing(false);
+      void saveMemory({ logoIdeas: ideas, logoMode: "rex" }).catch(() => null);
+    },
+    question === "logo",
+  );
   const description = useMemo(() => [storeName, chosen.length ? `sells ${chosen.join(", ")}` : ""].filter(Boolean).join(" "), [storeName, chosen]);
 
   function go(next: SellerQuestion | null, patch: Record<string, unknown> = {}) {
@@ -243,6 +262,7 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
       const url = await uploadPicture(file, "brand");
       await saveLogo(url);
       setLogoUrl(url);
+      void saveMemory({ uploadedLogoUrl: url, logoMode: "upload", logoPicked: url }).catch(() => null);
       setBusy(false);
     } catch (cause) {
       fail(cause);
@@ -253,12 +273,17 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
     setLogoMode("rex");
     setLogoRound(round);
     setLogoUnavailable(false);
+    setLogoStillDrawing(false);
     setBusy(true);
     setError(null);
     try {
-      setLogos(await drawLogos({ businessName: storeName.trim() || status.store.name, businessDescription: description, round, notes: notes.trim() || undefined }));
-    } catch {
-      setLogoUnavailable(true);
+      const ideas = await drawLogos({ businessName: storeName.trim() || status.store.name, businessDescription: description, round, notes: notes.trim() || undefined });
+      setLogos(ideas);
+      // Saved straight away: back, a dropped connection or logging out doesn't lose (or re-charge) them.
+      void saveMemory({ logoIdeas: ideas, logoRound: round, logoNotes: notes.trim(), logoMode: "rex" }).catch(() => null);
+    } catch (cause) {
+      if ((cause as { pending?: boolean }).pending) setLogoStillDrawing(true);
+      else setLogoUnavailable(true);
     } finally {
       setBusy(false);
     }
@@ -546,7 +571,13 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
         {logoMode === "rex" && (
           <div className="mt-5">
             {/* Rex is drawing (the first round, a redraw or more ideas): the fun loader, over the old ideas. */}
-            {busy && <FunLoader kind="logo" className="mb-4" />}
+            {(busy || logoResume.waiting) && <FunLoader kind="logo" className="mb-4" />}
+            {(logoStillDrawing || logoResume.waiting) && !busy && <Notice tone="info">{tJobs("resume.stillWorking")}</Notice>}
+            {logoResume.resumed && !busy && (
+              <div className="mb-3">
+                <Notice tone="success">{tJobs("resume.logo")}</Notice>
+              </div>
+            )}
             {logoUnavailable && (
               <div className="grid gap-3">
                 <Notice tone="info">{t("logo.unavailable")}</Notice>
@@ -564,7 +595,10 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
                     <button
                       key={logo.url}
                       type="button"
-                      onClick={() => setLogoUrl(logo.url)}
+                      onClick={() => {
+                        setLogoUrl(logo.url);
+                        void saveMemory({ logoPicked: logo.url }).catch(() => null);
+                      }}
                       aria-pressed={logoUrl === logo.url}
                       aria-label={t("logo.option", { number: index + 1 })}
                       className={cx(

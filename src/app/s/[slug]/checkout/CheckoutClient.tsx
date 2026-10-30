@@ -7,7 +7,7 @@ import { useStoreCheckoutStart } from "@/lib/analytics/storefront-events";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
 import { useCart } from "@/hooks/useCart";
-import { readLinkCode, readOrderChannel, useCampaignAttribution } from "@/hooks/useCampaignAttribution";
+import { readLinkCode, readOrderChannel, readResellCodes, useCampaignAttribution } from "@/hooks/useCampaignAttribution";
 import { readRememberedStoreVisitor, rememberStoreVisitor, useStoreVisitor } from "@/hooks/useStoreVisitor";
 import { getPublicStorefrontPath } from "@/lib/domains/storefront";
 import { checkoutLegalLinks, legalPagePath } from "@/lib/legal/pages";
@@ -485,6 +485,7 @@ export function CheckoutClient({ store, storeBasePath, commerce, preview = false
           channel: readOrderChannel(store.slug) ?? undefined,
           affiliateCode: readLinkCode("aff", store.slug) ?? undefined,
           adCode: readLinkCode("ad", store.slug) ?? undefined,
+          resellCodes: preview ? undefined : readResellCodes(store.slug),
           phoneToken: phoneCheck.phoneToken,
         }),
       });

@@ -13,6 +13,8 @@ import { shopperBalanceView } from "@/lib/commerce/store-balance.server";
 import { payAtDoorView } from "@/lib/commerce/pay-at-door.server";
 import { customerFaultView } from "@/lib/faults/customer.server";
 import { customerRefundPanel } from "@/lib/commerce/order-refunds.server";
+import { featureOn } from "@/lib/feature-switches.server";
+import { orderWhatsAppNews } from "@/lib/followers/followers.server";
 
 // A shopper's own order: never listed by search engines.
 export const metadata: Metadata = { title: "Your order", robots: { index: false, follow: false } };
@@ -58,6 +60,8 @@ export default async function OrderPage({ params, searchParams }: Props) {
     // Refunds the store sends from its own bank, guided (shared/order-refunds.ts).
     customerRefundPanel(order.id).catch(() => ({ refunds: [], refundBanks: [] as string[] })),
   ]);
+  // "Get news from <shop> on WhatsApp" (Notify my followers pilot): null hides it. Never blocks the page.
+  const whatsappNews = order.status !== "cancelled" && (await featureOn(store.userId, "notify_followers")) ? await orderWhatsAppNews(order, store.currency).catch(() => null) : null;
   const publicStore = { name: store.name, slug: store.slug, logoUrl: store.logoUrl, currency: store.currency, brandSettings: next.brandSettings };
 
   return (
@@ -73,6 +77,7 @@ export default async function OrderPage({ params, searchParams }: Props) {
       balance={shopperBalanceView(order)}
       payAtDoor={payAtDoorView(order)}
       faults={faults}
+      whatsappNews={whatsappNews}
       {...refundPanel}
     />
   );

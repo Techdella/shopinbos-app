@@ -1,0 +1,31 @@
+// Rex jobs (shared/rex-jobs.ts): what Rex finished while the seller was away, on the web (src/lib/ai/rex-jobs-client.ts,
+// src/components/builder/rex/RexFinishedStrip.tsx) and the phone (apps/mobile/src/lib/rex-jobs.ts).
+const en = {
+  "resume.logo": "Rex finished your logos while you were away. Pick one below.",
+  "resume.image": "Rex finished your picture while you were away.",
+  "resume.packaging": "Rex finished your pack design while you were away.",
+  "resume.banner": "Rex finished your banner while you were away.",
+  "resume.create": "Rex finished your designs while you were away.",
+  "resume.video": "Rex finished this while you were away. Carry on where you left off.",
+  "resume.waiting": "Rex is still working on what you asked for. It will show here when it's done.",
+  "resume.stillWorking": "Rex is still working on it. It will be here when it's done, and you won't pay again.",
+  "resume.free": "Already paid for. Nothing more to pay.",
+  "resume.dismiss": "OK",
+  "strip.title": "Rex finished something for you",
+  "strip.open": "Open",
+  "strip.hide": "Hide",
+  "kind.logo": "Logos",
+  "kind.image": "Picture",
+  "kind.flyer": "Flyer",
+  "kind.post": "Post",
+  "kind.status": "Status",
+  "kind.reel_design": "Reel cover",
+  "kind.packaging": "Pack design",
+  "kind.banner": "Banner",
+  "kind.video_script": "Video script",
+  "kind.reel_shots": "Reel shots",
+  "kind.voiceover": "Voiceover",
+  "kind.store_build": "Store build",
+} as const;
+
+export default en;

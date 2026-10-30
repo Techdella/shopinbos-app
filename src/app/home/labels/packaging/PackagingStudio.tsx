@@ -7,6 +7,7 @@ import { Notice, PillButton, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { useT } from "@/components/i18n/I18nProvider";
 import { useMediaLibrary } from "@/components/media/useMediaLibrary";
+import { rexPost, RexRequestError } from "@/lib/ai/rex-jobs-client";
 import { BuyCreditsButton, creditsChanged, isCreditsError } from "@/components/credits/CreditsBadge";
 import { PackRender } from "@/components/packaging/PackRender";
 import { PackConceptStudio } from "./PackConceptStudio";
@@ -208,20 +209,13 @@ export function PackagingStudio({
       artPrompt.trim() ||
       `A mouth-watering, premium studio photo of ${subject} (${typeInfo.name.toLowerCase()}), the product itself only, not its packaging, arranged ${design.productType === "food" || design.productType === "pet" ? "in a round bowl seen from above" : "as a clean hero shot"}, soft natural shadow, centred, on a plain solid background in ${design.colours.ground}. No text, no labels, no logos.`;
     try {
-      const response = await fetch("/api/ai/generate-image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, size: "1024x1024", useLogo: false, useBrand: false, referenceUrls: product?.images.slice(0, 1) ?? [] }),
-      });
-      const json = (await response.json().catch(() => null)) as { image?: { url: string }; error?: { code?: string; message?: string } } | null;
-      if (!response.ok || !json?.image) {
-        setStatus({ tone: "error", text: json?.error?.message ?? t("err.art"), credits: isCreditsError(json?.error?.code) });
-        return;
-      }
+      // A Rex job: a retry after a dropped connection gets the same picture without paying again.
+      const json = await rexPost<{ image: { url: string } }>("/api/ai/generate-image", { prompt, size: "1024x1024", useLogo: false, useBrand: false, referenceUrls: product?.images.slice(0, 1) ?? [] }, { slot: "label-art" });
       update({ image: { url: json.image.url, fit: design.image?.fit && design.image.fit !== "none" ? design.image.fit : fitFor(design.style) } });
       setStatus({ tone: "success", text: t("art.done") });
-    } catch {
-      setStatus({ tone: "error", text: t("err.art") });
+    } catch (cause) {
+      if (cause instanceof RexRequestError) setStatus({ tone: "error", text: cause.message || t("err.art"), credits: isCreditsError(cause.code) });
+      else setStatus({ tone: "error", text: t("err.art") });
     } finally {
       setBusy(null);
       creditsChanged();

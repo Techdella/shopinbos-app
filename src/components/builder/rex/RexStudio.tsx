@@ -1,5 +1,6 @@
 "use client";
 
+import { RexFinishedStrip } from "@/components/builder/rex/RexFinishedStrip";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -573,6 +574,7 @@ export function RexStudio(props: RexStudioProps) {
           </div>
         </div>
       </header>
+      <RexFinishedStrip />
 
       <div className="flex min-h-0 flex-1">
         <section

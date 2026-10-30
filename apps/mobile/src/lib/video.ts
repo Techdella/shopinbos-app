@@ -1,4 +1,5 @@
 import { naira } from "@shared/onboarding";
+import { rexApi } from "./rex-jobs";
 import { api } from "./api";
 import { rexCardProject, type StudioProduct, type VideoConfig, type VideoLanguage, type VideoPurpose, type VideoRow, type VideoScript } from "./video-pure";
 
@@ -36,11 +37,11 @@ export async function fetchStudioProducts(): Promise<StudioProduct[]> {
 
 /** Rex (or Peggy offline) writes the captions, voiceover and last screen. `drafted` is false for a starter script. */
 export const writeVideoScript = (body: { name: string; price: string; description: string; language: VideoLanguage; photos: number }) =>
-  api<VideoScript & { drafted?: boolean }>("/api/ai/video-script", { method: "POST", json: body });
+  rexApi<VideoScript & { drafted?: boolean }>("/api/ai/video-script", body, "video-script");
 
 /** "Make shots with Rex": product photos cleaned up for the reel (cut out, studio backdrop or brand ad shot). */
 export const makeReelShots = (body: { photos: string[]; look: string; product?: string }) =>
-  api<{ shots: { source: string; url: string | null; error?: string }[]; creditsNeeded: boolean; message?: string }>("/api/ai/reel-shots", { method: "POST", json: body });
+  rexApi<{ shots: { source: string; url: string | null; error?: string }[]; creditsNeeded: boolean; message?: string }>("/api/ai/reel-shots", body, "reel-shots");
 
 /** A Rex Studio video card becomes a draft with his words; returns its id. */
 export async function startVideoFromRex(card: Parameters<typeof rexCardProject>[0]) {

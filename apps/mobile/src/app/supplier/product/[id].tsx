@@ -8,6 +8,7 @@ import { noticeDay } from "@shared/price-notice";
 import { Heading, List, Pill, Row, Stepper, Sub, Tile } from "@/components/design";
 import { ErrorState, LoadingBlock } from "@/components/kit";
 import { Screen } from "@/components/Screen";
+import { ProductVideosCard } from "@/components/ProductVideos";
 import { Field, Label, LinkButton, Notice, PillButton, T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
 import { parseAmount, productStage } from "@/lib/partner-pure";
@@ -220,6 +221,9 @@ export default function SupplierProductScreen() {
         <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 20 }}>{hidden ? t("product.showHint") : t("product.hideHint")}</T>
         <PillButton title={hidden ? t("showToShops") : t("product.hide")} tone="white" size="md" busy={busy === "publish"} disabled={Boolean(busy)} onPress={() => void publish(hidden)} />
       </View>
+
+      {/* Product videos (Post to Plug pilot): shows only while post_to_plug is on for this supplier. */}
+      <ProductVideosCard ownerKind="supplier" productId={data.id} />
 
       <LinkButton title={t("product.editAll")} color={colors.inkSoft} onPress={() => router.push({ pathname: "/supplier/product/edit", params: { id: data.id } })} />
     </Screen>

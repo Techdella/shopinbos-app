@@ -74,6 +74,7 @@ import ads from "./messages/ads/index.ts";
 import packaging from "./messages/packaging/index.ts";
 import video from "./messages/video/index.ts";
 import affiliates from "./messages/affiliates/index.ts";
+import resell from "./messages/resell/index.ts";
 import analytics from "./messages/analytics/index.ts";
 import traffic from "./messages/traffic/index.ts";
 import reviews from "./messages/reviews/index.ts";
@@ -109,6 +110,9 @@ import tips from "./messages/tips/index.ts";
 import mail from "./messages/mail/index.ts";
 import bulkAdd from "./messages/bulkAdd/index.ts";
 import details from "./messages/details/index.ts";
+import followers from "./messages/followers/index.ts";
+import productVideos from "./messages/productVideos/index.ts";
+import rexJobs from "./messages/rexJobs/index.ts";
 
 export const CATALOGS = {
   common,
@@ -182,6 +186,7 @@ export const CATALOGS = {
   packaging,
   video,
   affiliates,
+  resell,
   analytics,
   traffic,
   reviews,
@@ -217,6 +222,9 @@ export const CATALOGS = {
   mail,
   bulkAdd,
   details,
+  productVideos,
+  rexJobs,
+  followers,
 } satisfies Record<string, Catalog>;
 
 export type Namespace = keyof typeof CATALOGS;

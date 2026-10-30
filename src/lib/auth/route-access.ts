@@ -27,6 +27,8 @@ export const PUBLIC_PORTAL_PAGES = ["/logistics/partners", "/email", "/rider"];
  */
 export const PROTECTED_AREAS: { prefix: string; roles: PortalRole[] }[] = [
   { prefix: "/home/notifications", roles: ALL_ROLES },
+  // Resell (pilot): any signed-in account the feature is on for (the page checks the switch).
+  { prefix: "/resell", roles: ALL_ROLES },
   { prefix: "/home", roles: ["seller"] },
   { prefix: "/seller", roles: ["seller"] },
   { prefix: "/onboarding", roles: ["seller"] },
