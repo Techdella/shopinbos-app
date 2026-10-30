@@ -21,7 +21,7 @@ test("audience: sellers see suppliers and partners; suppliers see partners and t
   assert.equal(s.canSee(me("seller"), them("supplier"), false), true);
   assert.equal(s.canSee(me("seller"), them("logistics_partner"), false), true);
   assert.equal(s.canSee(me("seller"), them("seller"), true), false, "never the viewer's own role");
-  assert.equal(s.canSee(me("supplier"), them("seller"), false), false, "a supplier only sees sellers who sell its products");
+  assert.equal(s.canSee(me("supplier"), them("seller"), false), true, "suppliers see sellers too (a tie only puts them first)");
   assert.equal(s.canSee(me("supplier"), them("seller"), true), true);
   assert.equal(s.canSee(me("supplier"), them("supplier"), true), false);
   assert.equal(s.canSee(me("logistics_partner"), them("seller"), false), true);

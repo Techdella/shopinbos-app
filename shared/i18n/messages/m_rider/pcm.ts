@@ -208,6 +208,10 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "offer.km": "{km} km",
   "done.earned": "You don earn",
   "done.cash": "Cash wey you collect",
+  "me.addPlate": "Tap to add your plate number",
+  "me.plateTitle": "Your plate number",
+  "me.plateSave": "Save",
+  "me.plateFailed": "We no fit save the plate number. Try again.",
 };
 
 export default pcm;

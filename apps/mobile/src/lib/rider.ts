@@ -166,7 +166,8 @@ export type RiderAction =
   | { action: "help"; jobId: string; reason: string }
   | { action: "check_code"; jobId: string; code: string }
   | { action: "language"; language: "en" | "pcm" | "yo" | "ha" | "ig" }
-  | { action: "pay_link"; jobId: string };
+  | { action: "pay_link"; jobId: string }
+  | { action: "plate"; plate: string };
 
 export const riderAction = (body: RiderAction) =>
   riderFetch<{ done: true }>("", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });

@@ -211,6 +211,10 @@ const en = {
   "offer.km": "{km} km",
   "done.earned": "Earned",
   "done.cash": "Cash collected",
+  "me.addPlate": "Tap to add your plate number",
+  "me.plateTitle": "Your plate number",
+  "me.plateSave": "Save",
+  "me.plateFailed": "Couldn't save the plate number. Try again.",
 } satisfies Record<string, string>;
 
 export default en;

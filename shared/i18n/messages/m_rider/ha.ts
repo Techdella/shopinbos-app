@@ -208,6 +208,10 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "offer.km": "{km} km",
   "done.earned": "Ka samu",
   "done.cash": "Kuɗin hannu da ka karɓa",
+  "me.addPlate": "Taɓa don ƙara lambar plate ɗin ka",
+  "me.plateTitle": "Lambar plate ɗin ka",
+  "me.plateSave": "Ajiye",
+  "me.plateFailed": "Ba a iya ajiye lambar plate ba. Sake gwadawa.",
 };
 
 export default ha;

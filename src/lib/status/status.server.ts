@@ -121,14 +121,14 @@ export async function authorProfiles(userIds: string[]): Promise<Map<string, Aut
       const base = { userId: user.id, role: user.role, partnerId: null, supplierId: null, storeId: null };
       if (user.role === "supplier" && user.supplier) {
         const s = user.supplier;
-        return [user.id, { ...base, supplierId: s.id, name: s.displayName, logoUrl: s.logoUrl ?? user.avatarUrl, slug: s.slug, states: statesOf([s.city, user.city]) }];
+        return [user.id, { ...base, supplierId: s.id, name: s.displayName, logoUrl: s.logoUrl || user.avatarUrl || null, slug: s.slug, states: statesOf([s.city, user.city]) }];
       }
       if (user.role === "logistics_partner" && user.logisticsPartner) {
         const p = user.logisticsPartner;
-        return [user.id, { ...base, partnerId: p.id, name: p.displayName, logoUrl: p.logoUrl ?? user.avatarUrl, slug: p.slug, states: statesOf([p.city, ...p.pickupAreas, ...p.deliveryAreas]) }];
+        return [user.id, { ...base, partnerId: p.id, name: p.displayName, logoUrl: p.logoUrl || user.avatarUrl || null, slug: p.slug, states: statesOf([p.city, ...p.pickupAreas, ...p.deliveryAreas]) }];
       }
       const store = user.store;
-      return [user.id, { ...base, storeId: store?.id ?? null, name: store?.name ?? user.name, logoUrl: store?.logoUrl ?? user.avatarUrl ?? null, slug: store?.slug ?? null, states: statesOf([store?.city, user.city]) }];
+      return [user.id, { ...base, storeId: store?.id ?? null, name: store?.name ?? user.name, logoUrl: store?.logoUrl || user.avatarUrl || null, slug: store?.slug ?? null, states: statesOf([store?.city, user.city]) }];
     }),
   );
 }
@@ -172,9 +172,7 @@ export async function relatedUserIds(viewer: StatusViewer): Promise<Set<string>>
 
 /** Whether this viewer may see (view, like) this author's posts. */
 export async function viewerCanSee(viewer: StatusViewer, author: { id: string; role: Role }) {
-  if (!audienceRoles(viewer.role).includes(author.role as StatusRole)) return false;
-  const needsTie = viewer.role === "supplier" && author.role === "seller";
-  return canSee({ userId: viewer.id, role: viewer.role }, { userId: author.id, role: author.role }, needsTie ? (await relatedUserIds(viewer)).has(author.id) : false);
+  return canSee({ userId: viewer.id, role: viewer.role }, { userId: author.id, role: author.role }, false);
 }
 
 /** The posts in the contract's shape, for this viewer (views, likes, liked, product, button). */
