@@ -1,8 +1,8 @@
-// Pay on delivery is the seller's own arrangement with their customer and their delivery people (Shopinbos only
-// provides the platform: shared/checkout-payments.ts PAY_ON_DELIVERY_ON). The customer pays the seller or their rider at
-// the door, by cash or transfer as they agree, and the seller marks the order paid (paystackStatus "offline"); or the
-// customer pays in the app from their order page (Paystack: transfer to a one-time account, card or USSD), split like
-// a card order. Shopinbos sets no rider rules: a drop isn't held for payment and the delivery code isn't hidden.
+// Pay on delivery: the customer never pays the rider or the delivery company. When the parcel arrives they pay the
+// SHOP, from the link sent to their WhatsApp, SMS and email or the rider's QR code (Paystack: transfer to a one-time
+// account, card or USSD), split like a card order; or the shop marks it paid when the customer paid the shop another
+// way (paystackStatus "offline"). Once paid, the customer gets the delivery code; the rider types it in, the app says
+// Paid, and only then is the parcel handed over. So the code stays hidden, and the drop can't close, until it's paid.
 // Pure, unit-tested in tests/pay-at-door.test.mjs; the in-app payment is src/lib/commerce/pay-at-door.server.ts.
 //
 // When the store takes card payments, the delivery fee can be paid at checkout (POD_FEE_PREFIX), settled straight to
@@ -69,15 +69,16 @@ export function payAtDoorDue(order: FeeOrder) {
   return isPayOnDelivery(order) && !payAtDoorPaid(order) && !CLOSED.has(order.status) && !podFeeDue(order);
 }
 
-/**
- * Why a job can't be marked delivered yet, or null. Never for payment: how the customer pays at the door is between
- * the seller, their customer and their rider, so Shopinbos doesn't hold a drop for it.
- */
-export function payAtDoorBlock(_order: DoorOrder | null | undefined, _job: { codAmount: number | null }): string | null {
-  return null;
+/** The words when a pay-on-delivery parcel is about to be handed over before the shop is paid. */
+export const NOT_PAID_YET = "The customer hasn't paid the shop yet. They pay with the link sent to their phone and email (or scan your QR code), then give you the code they get.";
+
+/** Why a job can't be marked delivered yet, or null: a pay-on-delivery order the shop hasn't been paid for. */
+export function payAtDoorBlock(order: DoorOrder | null | undefined, _job: { codAmount: number | null }): string | null {
+  if (!order || !isPayOnDelivery(order) || CLOSED.has(order.status)) return null;
+  return payAtDoorPaid(order) ? null : NOT_PAID_YET;
 }
 
-/** The delivery code the customer may see: always (it proves who received the parcel, not that it's paid). */
-export function codeVisible(_order: DoorOrder) {
-  return true;
+/** The delivery code the customer may see: for pay on delivery, only once the shop is paid (it's the proof). */
+export function codeVisible(order: DoorOrder) {
+  return !isPayOnDelivery(order) || payAtDoorPaid(order);
 }

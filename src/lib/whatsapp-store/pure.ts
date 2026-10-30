@@ -270,7 +270,7 @@ export function buildOptionList(product: SaleProduct, money: Money): WhatsAppInt
 /** The checkout message: the order and one "Pay now" button that opens the store's secure payment page. */
 export function buildPayMessage(priced: ReturnType<typeof priceCart>, money: Money, url: string, opts: { payOnDeliveryOnly: boolean; hours: number }): { body: string; interactive: WhatsAppInteractive } {
   const how = opts.payOnDeliveryOnly
-    ? "Tap *Place order* to choose your delivery. You pay the rider when it arrives."
+    ? "Tap *Place order* to choose your delivery. When it arrives, you pay the shop with the link we send you, never the rider."
     : "Tap *Pay now* to choose your delivery and pay securely.";
   const text = `Here's your order:\n${cartText(priced, money)}\n\n${how} The link works for ${opts.hours} hours. You'll get your order confirmation right here.`;
   return {

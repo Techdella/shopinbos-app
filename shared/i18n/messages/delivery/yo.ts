@@ -39,9 +39,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "decline.other": "Ìdí mìíràn",
   "decline.none": "Wọn kò sọ ìdí",
   "pod.disclaimer":
-    "Pay on delivery wà láàrin ìwọ, oníbàárà rẹ àti delivery partner rẹ. Oníbàárà rẹ yóò san owó fún ọ tàbí rider rẹ nígbà tí ó bá dé, pẹ̀lú cash tàbí transfer bí ẹ ṣe fohùn ṣọ̀kan, tàbí nínú app láti ojú-ìwé order wọn; samisi order náà gẹ́gẹ́ bí èyí tí a ti san lẹ́yìn tí owó bá dé ọ̀dọ̀ rẹ. Tí o bá ń gba ìsanwó kaadi, oníbàárà lè san owó ìfijíṣẹ́ nígbà checkout. Shopinbos kì í gba, kì í dì mú, kì í sì í ṣe ìdánilójú owó pay on delivery.",
+    "Pẹ̀lú sísanwó nígbà tí ó bá dé, oníbàárà rẹ yóò san owó fún ọ, ṣọ́ọ̀bù, nígbà tí ẹrù bá dé: pẹ̀lú ìjápọ̀ tí a fi ránṣẹ́ sí fóònù àti ímeèlì wọn, tàbí QR code ọlọ́kadà (tàbí kí o sàmì sí i pé wọ́n ti sanwó). Lẹ́yìn náà wọn yóò gba kóòdù, ọlọ́kadà yóò tẹ̀ ẹ́, kí wọ́n tó fi ẹrù lé wọn lọ́wọ́. Àwọn ọlọ́kadà àti ilé-iṣẹ́ ìfijíṣẹ́ kì í gba owó rẹ.",
   "pod.disclaimerPartner":
-    "Pay on delivery wà láàrin ìwọ àti ṣọ́ọ̀bù náà. Oníbàárà yóò san owó fún rider rẹ tàbí ṣọ́ọ̀bù ní ẹnu ọ̀nà, pẹ̀lú cash tàbí transfer bí ìwọ àti ṣọ́ọ̀bù ṣe fohùn ṣọ̀kan, tàbí nínú app. Fi cash èyíkéyìí lé wọn lọ́wọ́ bí ẹ ṣe fohùn ṣọ̀kan. Shopinbos kì í gba, kì í dì mú, kì í sì í ṣe ìdánilójú owó pay on delivery.",
+    "Pẹ̀lú sísanwó nígbà tí ó bá dé, oníbàárà ń san owó fún ṣọ́ọ̀bù, kì í ṣe ìwọ tàbí ọlọ́kadà rẹ: pẹ̀lú ìjápọ̀ tí a fi ránṣẹ́ sí wọn tàbí QR code ọlọ́kadà rẹ. Tí wọ́n bá ti sanwó wọn yóò gba kóòdù; ọlọ́kadà rẹ yóò tẹ̀ ẹ́, áàpù yóò sọ pé Paid, lẹ́yìn náà yóò fi ẹrù lé wọn lọ́wọ́. Àwọn ọlọ́kadà rẹ kì í gba owó lọ́wọ́.",
   "offPlatform.warning": "Ẹ jẹ́ kí iṣẹ́ àti ìsanwó wà nínú Shopinbos. Ìsanwó fún iṣẹ́ inú app máa ń ṣẹlẹ̀ fúnra rẹ̀, a máa ń tọpinpin iṣẹ́ náà, ó sì máa ń kà kún rating rẹ. Shopinbos kò dáàbò bo ìsanwó tí ẹ bá ṣètò lóde app.",
   "time.sameDay": "Ọjọ́ kan náà",
   "time.days": "{count, plural, other {ọjọ́ #}}",
@@ -118,8 +118,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "pod.title": "Pay on delivery",
   "pod.partnerDoesNotOffer": "Partner kì í ṣe pay on delivery",
   "pod.waitingForPartner": "Pay on delivery: a ń dúró de partner",
-  "pod.partnerCollects": "Partner ń gba cash",
-  "pod.letCustomersPay": "Jẹ́ kí oníbàárà san owó ní ọwọ́ fún rider ti partner yìí nígbà tí ẹrù bá dé",
+  "pod.partnerCollects": "Oníbàárà ń san owó fún ṣọ́ọ̀bù",
+  "pod.letCustomersPay": "Jẹ́ kí àwọn oníbàárà sanwó fún ọ nígbà tí ẹrù bá dé (pẹ̀lú ìjápọ̀, kì í ṣe ọlọ́kadà)",
   "pod.iUnderstand": "Ó yé mi",
   "pod.bothOn": "Àwọn oníbàárà yóò rí pay on delivery nìkan tí ìwọ àti partner bá ti tàn án méjèèjì.",
   "pod.waitingSwitchOn": "A ń dúró kí partner tàn án.",

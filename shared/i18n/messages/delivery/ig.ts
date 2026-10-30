@@ -39,9 +39,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "decline.other": "Ihe ọzọ",
   "decline.none": "Ha ekwughị ihe kpatara ya",
   "pod.disclaimer":
-    "Pay on delivery dị n'etiti gị, onye ahịa gị na onye na-ebuga gị ngwa. Onye ahịa gị ga-akwụ gị ma ọ bụ rider gị mgbe ọ rutere, site na cash ma ọ bụ transfer dịka unu kwekọrịtara, ma ọ bụ n'ime app site na peeji order ha; kaa order ahụ akara dị ka akwụọla mgbe ego ahụ rutere gị. Ọ bụrụ na ị na-anara ịkwụ ụgwọ kaadị, onye ahịa nwere ike ịkwụ ụgwọ nnyefe na checkout. Shopinbos anaghị anara, anaghị ejide, anaghịkwa ekwe nkwa maka ego pay on delivery.",
+    "Na ịkwụ ụgwọ mgbe ọ rutere, onye ahịa gị na-akwụ gị, ụlọ ahịa, ụgwọ mgbe ngwugwu rutere: site na njikọ anyị na-ezitere ekwentị na email ha, ma ọ bụ QR code nke onye na-ebuga (ma ọ bụ ị kaa ya akara na akwụọla ya). Mgbe ahụ ha ga-enweta koodu, onye na-ebuga ga-etinye ya, tupu e nye ngwugwu ahụ. Ndị na-ebuga ihe anaghị ana ego gị.",
   "pod.disclaimerPartner":
-    "Pay on delivery dị n'etiti gị na ụlọ ahịa ahụ. Onye ahịa ga-akwụ rider gị ma ọ bụ ụlọ ahịa n'ọnụ ụzọ, site na cash ma ọ bụ transfer dịka gị na ụlọ ahịa kwekọrịtara, ma ọ bụ n'ime app. Nyefee cash ọ bụla dịka unu kwekọrịtara. Shopinbos anaghị anara, anaghị ejide, anaghịkwa ekwe nkwa maka ego pay on delivery.",
+    "Na ịkwụ ụgwọ mgbe ọ rutere, onye ahịa na-akwụ ụlọ ahịa ụgwọ, ọ bụghị gị ma ọ bụ onye na-ebugara gị: site na njikọ anyị zitere ha ma ọ bụ QR code nke onye na-ebugara gị. Ozugbo ha kwụrụ, ha ga-enweta koodu; onye na-ebuga ga-etinye ya, ngwa ga-ekwu Paid, wee nye ngwugwu ahụ. Ndị na-ebugara gị anaghị ana ego aka.",
   "offPlatform.warning":
     "Debe ọrụ na ịkwụ ụgwọ n'ime Shopinbos. A na-akwụ ụgwọ ọrụ dị n'ime app n'onwe ya, a na-esochi ha, ha na-agụkwa na rating gị. Shopinbos anaghị echebe ịkwụ ụgwọ unu hazịrị n'èzí app.",
   "time.sameDay": "N'otu ụbọchị",
@@ -119,8 +119,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "pod.title": "Pay on delivery",
   "pod.partnerDoesNotOffer": "Partner anaghị eme pay on delivery",
   "pod.waitingForPartner": "Pay on delivery: a na-eche partner",
-  "pod.partnerCollects": "Partner na-anara cash",
-  "pod.letCustomersPay": "Kwe ka ndị ahịa kwụọ rider partner a ego cash mgbe ngwugwu ruru",
+  "pod.partnerCollects": "Onye ahịa na-akwụ ụlọ ahịa",
+  "pod.letCustomersPay": "Kwe ka ndị ahịa kwụọ gị mgbe ngwugwu rutere (site na njikọ, ọ bụghị onye na-ebuga)",
   "pod.iUnderstand": "Aghọtala m",
   "pod.bothOn": "Ndị ahịa ga-ahụ pay on delivery naanị mgbe gị na partner ahụ abụọ gbanyere ya.",
   "pod.waitingSwitchOn": "A na-eche ka partner gbanye ya.",

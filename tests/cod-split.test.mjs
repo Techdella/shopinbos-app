@@ -64,8 +64,8 @@ test("supplier pickups and the seller's own booking use the split, not the whole
   const pickup = readFileSync("src/lib/supplier-orders/pickup.server.ts", "utf8");
   assert.doesNotMatch(pickup, /supplierPartCollect\(/);
   assert.match(pickup, /collect: 0,\n\s+payOnDelivery: unpaidPod/);
+  // The seller's own booking carries no cash either: riders never collect money (shared/pay-at-door.ts).
   const route = readFileSync("src/app/api/app/logistics/bookings/route.ts", "utf8");
-  assert.match(route, /ownPartCollect\(/);
+  assert.match(route, /const codAmount: number \| undefined = undefined;/);
   assert.doesNotMatch(route, /\? order\.total : undefined/);
-  assert.match(route, /order\.paymentMethod !== "pay_on_delivery" &&/, "a pay-on-delivery booking carries no cash");
 });

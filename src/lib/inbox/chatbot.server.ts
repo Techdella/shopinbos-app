@@ -78,7 +78,7 @@ async function knowledge(storeId: string, bot: ChatbotSettings, rules: AutoReply
 export async function payLinkText(input: { storeId: string; conversationId: string; channel: "livechat" | "whatsapp"; customerRef?: string | null; productId: string; variantId?: string | null; quantity?: number | null }): Promise<{ text: string; handoff: boolean } | null> {
   const made = await createCustomerChatLink({ storeId: input.storeId, productId: input.productId, variantId: input.variantId, quantity: input.quantity, conversationId: input.conversationId, customerRef: input.customerRef, channel: input.channel });
   if (made.ok) {
-    const how = made.payOnDeliveryOnly ? "Choose your delivery and place your order there; you pay the rider when it arrives." : "Choose your delivery and pay securely there.";
+    const how = made.payOnDeliveryOnly ? "Choose your delivery and place your order there; when it arrives, you pay the shop with the link we send you, never the rider." : "Choose your delivery and pay securely there.";
     return { text: `Here's your payment link for ${made.quantity > 1 ? `${made.quantity} × ` : ""}${made.productName}:\n${made.url}\n\n${how} The link works for 24 hours.`, handoff: false };
   }
   if (made.reason === "no_payment") {

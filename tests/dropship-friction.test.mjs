@@ -105,8 +105,8 @@ test("wallet-less suppliers: a warning period, then the block", () => {
 
 test("the pay-on-delivery terms are published: the seller's arrangement with their customer and delivery partner", async () => {
   const market = await import("../shared/delivery-market.ts");
-  assert.match(market.POD_DISCLAIMER, /cash or transfer as you agree/);
-  assert.match(market.POD_DISCLAIMER, /Shopinbos doesn't collect, hold or guarantee/);
+  assert.match(market.POD_DISCLAIMER, /with the link we send to their phone and email, or the rider's QR code/);
+  assert.match(market.POD_DISCLAIMER, /never collect your money/);
   assert.doesNotMatch(read("shared/i18n/messages/delivery/en.ts"), /LEGAL REVIEW|needs legal review/);
   for (const loc of ["pcm", "yo", "ha", "ig"]) assert.doesNotMatch(read(`shared/i18n/messages/delivery/${loc}.ts`), /legal review/, loc);
 });

@@ -737,7 +737,7 @@ const en = {
   "partner-coverage.3.caption": "Pick the services you offer.",
   "partner-coverage.3.sub": "Doorstep, pickup points, same-day or interstate. Shops’ checkouts show only what you offer.",
   "partner-coverage.4.caption": "Pay on delivery is your choice.",
-  "partner-coverage.4.sub": "Switch it on only if your riders collect cash. Shops must switch it on too.",
+  "partner-coverage.4.sub": "Customers pay the shop at the door with a link; your rider types in the code they get. Riders never handle cash.",
   "partner-coverage.5.caption": "Your prices live on the Rate card.",
   "partner-coverage.5.sub": "Set a price per route, service and parcel size there. That’s what buyers see.",
   "partner-rate-card.title": "Your rate card",

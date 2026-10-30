@@ -47,11 +47,11 @@ const en = {
   "decline.none": "No reason given",
   // The published pay-on-delivery terms (see the note at the top).
   "pod.disclaimer":
-    "Pay on delivery is between you, your customer and your delivery partner. Your customer pays you or your rider when it arrives, by cash or transfer as you agree, or in the app from their order page; mark the order paid once you have the money. When you take card payments, the delivery fee can be paid at checkout. Shopinbos doesn't collect, hold or guarantee pay-on-delivery money.",
+    "With pay on delivery, your customer pays you, the shop, when the parcel arrives: with the link we send to their phone and email, or the rider's QR code (or you mark it paid if they paid you another way). Then they get a code, the rider types it in, and only then is the parcel handed over. Riders and delivery partners never collect your money. When you take card payments, the delivery fee can be paid at checkout.",
   // The partner's side of
   // "pod.disclaimer" (POD_DISCLAIMER_PARTNER in shared/delivery-market.ts).
   "pod.disclaimerPartner":
-    "Pay on delivery is between you and the shop. The customer pays your rider or the shop at the door, by cash or transfer as you and the shop agree, or in the app. Pass on any cash as you agreed with the shop. Shopinbos doesn't collect, hold or guarantee pay-on-delivery money.",
+    "With pay on delivery, the customer pays the shop, never you or your rider: with the link we send them or your rider's QR code. Once it's paid they get a code; your rider types it in and the app says Paid, then hands over the parcel. Your riders never collect cash for these orders.",
   "offPlatform.warning":
     "Keep jobs and payments in Shopinbos. In-app jobs are paid automatically, tracked, and count towards your rating. Payments arranged outside the app aren't protected by Shopinbos.",
   "time.sameDay": "Same day",
@@ -131,8 +131,8 @@ const en = {
   "pod.title": "Pay on delivery",
   "pod.partnerDoesNotOffer": "Partner doesn't offer pay on delivery",
   "pod.waitingForPartner": "Pay on delivery: waiting for partner",
-  "pod.partnerCollects": "Partner collects cash",
-  "pod.letCustomersPay": "Let customers pay this partner's rider in cash when the parcel arrives",
+  "pod.partnerCollects": "Customer pays the shop",
+  "pod.letCustomersPay": "Let customers pay you when the parcel arrives (with a link, never the rider)",
   "pod.iUnderstand": "I understand",
   "pod.bothOn": "Customers only see pay on delivery when you and the partner both switch it on.",
   "pod.waitingSwitchOn": "Waiting for the partner to switch it on.",

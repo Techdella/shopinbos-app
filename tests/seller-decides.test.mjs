@@ -74,7 +74,9 @@ test("pay on delivery is the seller's own arrangement: on, no card needed, their
   assert.match(page, /t\("methods\.codTerms"\)/);
   assert.match(page, /t\("methods\.codNoLimit"\)/);
   const door = await import("../shared/pay-at-door.ts");
-  assert.equal(door.payAtDoorBlock({ paymentMethod: "pay_on_delivery", status: "shipped" }, { codAmount: null }), null, "no Shopinbos rider rule");
+  // The customer pays the shop (in the app, or the shop marks it paid), then the parcel is handed over.
+  assert.equal(door.payAtDoorBlock({ paymentMethod: "pay_on_delivery", status: "shipped" }, { codAmount: null }), door.NOT_PAID_YET);
+  assert.equal(door.payAtDoorBlock({ paymentMethod: "pay_on_delivery", status: "shipped", paystackStatus: "offline" }, { codAmount: null }), null);
   // The delivery fee upfront only when the store takes cards.
   assert.match(read("src/app/api/public/store/[slug]/checkout/route.ts"), /paymentMethod === "pay_on_delivery" && paymentSettings\.paystackReady \? podFeeKobo/);
 });

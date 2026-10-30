@@ -117,10 +117,11 @@ export async function GET(req: NextRequest) {
       areaShort: areaFromText(job.destination)?.name ?? null,
       buyerName: order?.buyerName ?? null,
       buyerPhone: order?.buyerPhone ? toE164(order.buyerPhone) : null,
-      collect: job.codAmount && job.codAmount > 0 ? job.codAmount : 0,
+      // Riders never collect money (shared/pay-at-door.ts); pay on delivery is paid to the shop in the app.
+      collect: 0,
       // Pay on delivery (shared/pay-at-door.ts): the customer pays in the app at the door and gets the code; the rider
       // shows `url` as a QR code. No cash.
-      payInApp: order && isPayOnDelivery(order) && !(job.codAmount && job.codAmount > 0)
+      payInApp: order && isPayOnDelivery(order)
         ? { amount: doorAmountNaira(order), paid: payAtDoorPaid(order), url: buildStorefrontUrl(order.store, `/order/${order.id}#pay`) }
         : null,
       // What this one drop pays the rider once their pay is set, else its delivery fee (the run's fees add these up).

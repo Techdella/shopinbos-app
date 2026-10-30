@@ -71,7 +71,7 @@ function Closed({ theme, link, storeName, storeHome, storeBasePath, money }: { t
       <Panel theme={theme} className="p-6 text-center">
         <span className="mx-auto grid h-14 w-14 place-items-center rounded-full" style={{ background: theme.cta, color: theme.ctaText }}><Icon name="check" size={26} /></span>
         <h1 className="mt-4 text-[26px] font-semibold" style={{ fontFamily: theme.heading }}>{onDelivery ? "Order placed. Thank you!" : "Paid. Thank you!"}</h1>
-        <p className="mt-1.5 text-[15px]" style={{ color: theme.muted }}>{onDelivery ? `${storeName} has your order. Pay the rider when it arrives.` : `${storeName} has your order. We'll send updates and a tracking link by SMS and WhatsApp.`}</p>
+        <p className="mt-1.5 text-[15px]" style={{ color: theme.muted }}>{onDelivery ? `${storeName} has your order. When it arrives, pay ${storeName} with the link we send you, then give the rider your code. Never pay the rider.` : `${storeName} has your order. We'll send updates and a tracking link by SMS and WhatsApp.`}</p>
         {order ? (
           <div className="mt-5 text-left">
             <p className="text-[13px] font-semibold uppercase tracking-wide" style={{ color: theme.muted }}>Order {order.orderNumber}</p>
