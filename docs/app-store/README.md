@@ -135,5 +135,5 @@ python3 docs/app-store/make-screenshots.py docs/play-store/listing/screenshots d
 | `screenshots/iphone-6.9/` | 7 screenshots, 1320×2868 |
 | `review-notes.txt` | App Review notes and demo account |
 | `app-privacy.md` | App Privacy answers |
-| `creative/` | Header and Search Results assets, and the page + `render.js` that make them |
+| `creative/` | Header and Search Results assets; `header.html`, `search-results.html` and `render.js` make them (`node docs/app-store/creative/render.js`). Apple's rules for these: no prices, URLs or © symbols, key content centred, one clear idea in the header, real app screens in search results. |
 | `make-screenshots.py` | Makes the iPhone screenshots from the Play ones |
