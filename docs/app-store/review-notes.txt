@@ -16,7 +16,8 @@ shop, add products from photos, answer customer chats, record orders and arrange
   or linked to from the iOS app, including on the few website tools it opens.
 - No stored balance or wallet in the app: the Money screen shows sales that Paystack pays straight to the business's
   own bank account. Shopinbos doesn't hold anyone's money in the app.
-- Sign in with Apple is offered next to Google sign-in. Phone sign-in uses SMS codes.
+- Sign in with Apple is on the log-in and sign-up screens, under the main button (Google sign-in is under "Other
+  ways to sign in"). Phone sign-in uses SMS codes.
 - Account deletion: the "My shop" tab › "Delete my account" (under "Log out"); suppliers and delivery partners have it
   under More.
 - Microphone: only when the person taps the mic to speak, or calls Peggy (the AI assistant, a voice call).
