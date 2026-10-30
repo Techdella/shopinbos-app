@@ -431,6 +431,18 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "bo.badge": "Tsarinka yana da alamar fitacce a jerinka.",
   "bo.kind.supplier_boost": "Fitaccen mai kawo kaya",
   "bo.kind.product_boost": "Kayan da aka haɓaka",
+  "lock.title": "Haɓaka don buɗe wannan fasalin",
+  "lock.notOnPlan": "Wannan ba ya cikin tsarin ka",
+  "lock.body": "Tsarin ka bai ƙunshi wannan ba tukuna. Zaɓi tsarin da ya ƙunsa, zai buɗe nan take.",
+  "lock.bodyApp": "Tsarin ka bai ƙunshi wannan ba.",
+  "lock.creditsTitle": "Kiredit ɗin AI ɗin ka sun ƙare",
+  "lock.creditsBody": "Ƙara kiredit don ci gaba, ko ka jira farkon wata mai zuwa.",
+  "lock.creditsBodyApp": "Kiredit ɗin tsarin ka zai cika a farkon wata mai zuwa.",
+  "lock.topUp": "Ƙara kiredit",
+  "lock.seePlans": "Duba tsare-tsare",
+  "lock.notNow": "Ba yanzu ba",
+  "lock.close": "Rufe",
+  "lock.badge": "Haɓaka",
 };
 
 export default ha;

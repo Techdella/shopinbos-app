@@ -431,6 +431,18 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "bo.badge": "Plan gị nwere akara featured na ndepụta gị.",
   "bo.kind.supplier_boost": "Featured supplier",
   "bo.kind.product_boost": "Ngwaahịa e buliri",
+  "lock.title": "Kwalite ka ịmeghe atụmatụ a",
+  "lock.notOnPlan": "Nke a adịghị na atụmatụ gị",
+  "lock.body": "Atụmatụ gị enweghị nke a ugbu a. Họrọ atụmatụ nwere ya, ọ ga-emepe ozugbo.",
+  "lock.bodyApp": "Atụmatụ gị enweghị nke a.",
+  "lock.creditsTitle": "Kredit AI gị agwụla",
+  "lock.creditsBody": "Tinye kredit ka ị gaa n'ihu, ma ọ bụ chere mmalite ọnwa ọzọ.",
+  "lock.creditsBodyApp": "Kredit atụmatụ gị ga-ejupụta na mmalite ọnwa ọzọ.",
+  "lock.topUp": "Tinye kredit",
+  "lock.seePlans": "Lee atụmatụ",
+  "lock.notNow": "Ọ bụghị ugbu a",
+  "lock.close": "Mechie",
+  "lock.badge": "Kwalite",
 };
 
 export default ig;

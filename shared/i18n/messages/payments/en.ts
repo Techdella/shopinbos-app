@@ -429,6 +429,18 @@ const en = {
   "bo.badge": "Your plan includes the featured badge on your listing.",
   "bo.kind.supplier_boost": "Featured supplier",
   "bo.kind.product_boost": "Boosted product",
+  "lock.title": "Upgrade to unlock this feature",
+  "lock.notOnPlan": "This isn't on your plan",
+  "lock.body": "Your plan doesn't include this yet. Pick a plan that does, and it unlocks straight away.",
+  "lock.bodyApp": "Your plan doesn't include this.",
+  "lock.creditsTitle": "You're out of AI credits",
+  "lock.creditsBody": "Top up to carry on, or wait for your plan's credits to refill at the start of next month.",
+  "lock.creditsBodyApp": "Your plan's credits refill at the start of next month.",
+  "lock.topUp": "Top up credits",
+  "lock.seePlans": "See plans",
+  "lock.notNow": "Not now",
+  "lock.close": "Close",
+  "lock.badge": "Upgrade",
 } satisfies Record<string, string>;
 
 export default en;

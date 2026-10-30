@@ -9,8 +9,8 @@ export interface PeggyNote {
   /** note: something she noted during the call · summary: the end-of-call summary. */
   kind: "note" | "summary";
   text: string;
-  /** peggy: saved by Peggy during the call · elevenlabs: the post-call webhook's summary. */
-  via: "peggy" | "elevenlabs";
+  /** peggy: saved by Peggy during a call · chat: sent from Ask Peggy (note_to_team) · elevenlabs: the post-call summary. */
+  via: "peggy" | "chat" | "elevenlabs";
   conversationId: string | null;
   createdAt: string;
 }
@@ -23,7 +23,7 @@ export function readPeggyNote(row: { id: string; answer: unknown; createdAt: Dat
     id: row.id,
     kind: answer?.kind === "summary" ? "summary" : "note",
     text,
-    via: answer?.via === "elevenlabs" ? "elevenlabs" : "peggy",
+    via: answer?.via === "elevenlabs" ? "elevenlabs" : answer?.via === "chat" ? "chat" : "peggy",
     conversationId: typeof answer?.conversationId === "string" ? answer.conversationId : null,
     createdAt: new Date(row.createdAt).toISOString(),
   };

@@ -1,7 +1,8 @@
-import { Platform } from "react-native";
+import { DeviceEventEmitter, Platform } from "react-native";
 import { supabase } from "./supabase";
 import { tNow } from "./app-locale";
 import { APP_CLIENT_HEADER, APP_CLIENT_VALUE, storeSafeKind } from "@shared/store-payments";
+import { PLAN_PROMPT_EVENT, planPromptFor, type PlanPromptDetail } from "@shared/plan-prompts";
 
 // Calls the Shopinbos Next.js API (the same backend as the web app) with the Supabase access token.
 export const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? "https://app.shopinbos.com").replace(/\/$/, "");
@@ -9,6 +10,9 @@ export const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? "https://app.shopinbo
 export class ApiError extends Error {
   constructor(message: string, readonly status: number, readonly code?: string) {
     super(message);
+    // Not on the plan, or out of AI credits: the slide-in (components/PlanPrompt.tsx) says so on any screen.
+    const kind = planPromptFor(code);
+    if (kind) DeviceEventEmitter.emit(PLAN_PROMPT_EVENT, { kind, message } satisfies PlanPromptDetail);
   }
 }
 

@@ -277,3 +277,12 @@ export function planFeatureLines(key: PlanKey): PlanFeatureLine[] {
     { id: "credits", values: { count: p.aiCreditsMonthly }, included: true },
   ];
 }
+
+/** Voice calls with Peggy a free plan gets each calendar month (UTC); paid plans have no monthly cap. */
+export const FREE_PEGGY_CALLS_PER_MONTH = 3;
+
+/** Calls with Peggy left this month: null when the plan has no monthly cap. */
+export function peggyCallsLeft(key: PlanKey, usedThisMonth: number): number | null {
+  const free = key === "seller_free" || key === "supplier_free" || key === "logistics_free";
+  return free ? Math.max(0, FREE_PEGGY_CALLS_PER_MONTH - usedThisMonth) : null;
+}

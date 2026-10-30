@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { apiError, ok } from "@/lib/api/response";
 import { checkRateLimitShared, rateLimitKey } from "@/lib/rate-limit";
-import { PeggyVoiceError, VOICE_CALLS_PER_DAY, startPeggyCall, userFromCallToken } from "@/lib/ai/peggy-voice.server";
+import { PeggyVoiceError, VOICE_CALLS_PER_DAY, noCallsLeftMessage, peggyCallsLeftFor, startPeggyCall, userFromCallToken } from "@/lib/ai/peggy-voice.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,6 +15,8 @@ export async function POST(req: NextRequest) {
   if (!(await checkRateLimitShared(rateLimitKey("peggy-call", userId), { maxRequests: VOICE_CALLS_PER_DAY, windowMs: 86_400_000 })).allowed) {
     return apiError("RATE_LIMITED", "You've called Peggy a few times today. Message us on WhatsApp instead.", 429);
   }
+  // Opened from the phone app: free plans' monthly calls, worded without upgrading (store rules).
+  if ((await peggyCallsLeftFor(userId)) === 0) return apiError("PLAN_LIMIT", noCallsLeftMessage(true), 402);
   try {
     return ok(await startPeggyCall(userId));
   } catch (error) {

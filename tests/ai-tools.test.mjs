@@ -492,6 +492,7 @@ function NO_CHANGE(fields = {}) {
 // One valid input per tool. Each test below runs it, and every tool also refuses the same input with a
 // storeId, userId or other field the model might try to slip in.
 const PEGGY_VALID = {
+  note_to_team: { topic: "feature_request", note: "They want to sell gift cards in their shop." },
   sales_summary: { period: "7d" },
   list_orders: { filter: "recent", limit: null },
   get_order: { orderNumber: "SIB-1001" },

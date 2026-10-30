@@ -431,6 +431,18 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "bo.badge": "Plan rẹ ní àmì àfihàn lórí listing rẹ.",
   "bo.kind.supplier_boost": "Featured supplier",
   "bo.kind.product_boost": "Ọjà tí a gbé ga",
+  "lock.title": "Ṣe àfikún láti ṣí ẹ̀yà yìí",
+  "lock.notOnPlan": "Èyí kò sí lórí ètò rẹ",
+  "lock.body": "Ètò rẹ kò ní èyí síbẹ̀. Yan ètò tó ní i, yóò sì ṣí lẹ́sẹ̀kẹsẹ̀.",
+  "lock.bodyApp": "Ètò rẹ kò ní èyí.",
+  "lock.creditsTitle": "Àwọn kirẹ́dítì AI rẹ ti tán",
+  "lock.creditsBody": "Fi kún un láti máa bá a lọ, tàbí dúró de ìbẹ̀rẹ̀ oṣù tó ń bọ̀.",
+  "lock.creditsBodyApp": "Kirẹ́dítì ètò rẹ yóò kún ní ìbẹ̀rẹ̀ oṣù tó ń bọ̀.",
+  "lock.topUp": "Fi kirẹ́dítì kún un",
+  "lock.seePlans": "Wo àwọn ètò",
+  "lock.notNow": "Kì í ṣe báyìí",
+  "lock.close": "Pa á dé",
+  "lock.badge": "Àfikún",
 };
 
 export default yo;

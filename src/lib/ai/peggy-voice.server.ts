@@ -11,6 +11,8 @@ import { screenList } from "@shared/peggy-screens";
 import { canonicalState } from "@shared/delivery-market";
 import { areasText, citiesText } from "@shared/ng-places";
 import { PEGGY_LANGUAGE_QUESTION, peggyVoicePrompt } from "./peggy-voice-prompt";
+import { planOfUser } from "@/lib/plan-limits";
+import { FREE_PEGGY_CALLS_PER_MONTH, peggyCallsLeft } from "@shared/plans";
 
 // "Call Peggy": a free voice call with Peggy (ElevenLabs Conversational AI) while people set up on Shopinbos. She
 // says she's Shopinbos's AI customer support, knows where they are in setup, and talks them through the next step.
@@ -32,6 +34,35 @@ export const VOICE_CALLS_PER_DAY = 5;
 const MAX_CALL_SECONDS = 900;
 
 export class PeggyVoiceError extends Error {}
+
+// Free plans get FREE_PEGGY_CALLS_PER_MONTH calls a month (shared/plans.ts), counted as AiUsage rows of this kind.
+const CALL_KIND = "peggy_call";
+
+function monthStart(now = new Date()) {
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+}
+
+/** Calls with Peggy this person has left this month (null: no monthly cap on their plan). */
+export async function peggyCallsLeftFor(userId: string): Promise<number | null> {
+  const [plan, used] = await Promise.all([
+    planOfUser(userId),
+    db.aiUsage.count({ where: { userId, kind: CALL_KIND, createdAt: { gte: monthStart() } } }),
+  ]);
+  return peggyCallsLeft(plan, used);
+}
+
+/** The words when a free plan has used this month's calls (the phone app's leave out upgrading: store rules). */
+export function noCallsLeftMessage(inApp: boolean) {
+  const used = `You've used your ${FREE_PEGGY_CALLS_PER_MONTH} free calls with Peggy this month.`;
+  return inApp
+    ? `${used} Chat with her instead; calls come back on the 1st.`
+    : `${used} Upgrade your plan for more calls, or chat with her instead. Calls come back on the 1st.`;
+}
+
+/** Counts a call that started (only once ElevenLabs gave a link or token). */
+async function recordCall(userId: string) {
+  await db.aiUsage.create({ data: { userId, kind: CALL_KIND, units: 1 } }).catch((error) => console.error("[peggy-call] count", error));
+}
 
 export function peggyVoiceReady() {
   return Boolean(process.env.ELEVENLABS_API_KEY?.trim());
@@ -193,6 +224,7 @@ export async function startPeggyCall(userId: string) {
   const signed = await eleven(`/convai/conversation/get-signed-url?agent_id=${encodeURIComponent(id)}`);
   const signedUrl = typeof signed.signed_url === "string" ? signed.signed_url : null;
   if (!signedUrl) throw new PeggyVoiceError("ElevenLabs didn't return a call link.");
+  await recordCall(userId);
   return { signedUrl, dynamicVariables };
 }
 
@@ -207,6 +239,7 @@ export async function startPeggyAppCall(userId: string) {
   const issued = await eleven(`/convai/conversation/token?agent_id=${encodeURIComponent(id)}`);
   const conversationToken = typeof issued.token === "string" ? issued.token : null;
   if (!conversationToken) throw new PeggyVoiceError("ElevenLabs didn't return a call token.");
+  await recordCall(userId);
   return { conversationToken, dynamicVariables, maxSeconds: MAX_CALL_SECONDS };
 }
 

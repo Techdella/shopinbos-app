@@ -566,3 +566,8 @@ body {
   .confetti-piece { display: none; }
   .rex-dance, .fun-line, .fun-dot { animation: none; }
 }
+
+/* The plan / credits slide-in (src/components/plans/PlanPrompts.tsx): up from the bottom on phones. */
+@keyframes plan-slide-in { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+.plan-slide-in { animation: plan-slide-in 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
+@media (prefers-reduced-motion: reduce) { .plan-slide-in { animation: none; } }
