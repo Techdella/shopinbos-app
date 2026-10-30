@@ -56,13 +56,19 @@ add_action( 'init', function () {
 			'why'       => [ 'string', '' ],
 			'video'     => [ 'string', '' ],
 			'videoTitle' => [ 'string', '' ],
-		], [ 'multiline' => [ 'introEn', 'introPcm', 'learn', 'steps', 'tryEn', 'tryPcm', 'checks', 'options', 'why' ], 'help' => [
+			'bizEn'     => [ 'string', '' ],
+			'bizPcm'    => [ 'string', '' ],
+			'bizCta'    => [ 'string', '' ],
+		], [ 'multiline' => [ 'introEn', 'introPcm', 'learn', 'steps', 'tryEn', 'tryPcm', 'checks', 'options', 'why', 'bizEn', 'bizPcm' ], 'help' => [
 			'learn'   => __( '“In this lesson you’ll learn”: 4 lines.', 'shopinbos' ),
 			'steps'   => __( 'One per line: heading | description', 'shopinbos' ),
 			'checks'  => __( 'Checklist: one per line.', 'shopinbos' ),
 			'options' => __( 'Quick check answers: one per line.', 'shopinbos' ),
 			'correct' => __( 'Number of the right answer (1, 2 or 3).', 'shopinbos' ),
 			'video'   => __( 'YouTube video ID or link. Leave empty if there is no video yet.', 'shopinbos' ),
+			'bizEn'   => __( '“Do this in Shopinbos Business” box: how the app helps with this lesson. Leave empty for no box.', 'shopinbos' ),
+			'bizPcm'  => __( 'The same box in Pidgin.', 'shopinbos' ),
+			'bizCta'  => __( 'Box button: label | link (a page like /pricing/, or %%SIGNUP%% for sign-up).', 'shopinbos' ),
 		] ] ],
 		'academy-hero'      => [ __( 'Academy: hero with search', 'shopinbos' ), 'sib_render_academy_hero', [] ],
 		'academy-stats'     => [ __( 'Academy: numbers strip', 'shopinbos' ), 'sib_render_academy_stats', [] ],
@@ -153,7 +159,7 @@ function sib_lesson_data( $post ): array {
 			break;
 		}
 	}
-	$defaults = [ 'minutes' => 4, 'introEn' => '', 'introPcm' => '', 'learn' => '', 'steps' => '', 'tryEn' => '', 'tryPcm' => '', 'checks' => '', 'quiz' => '', 'options' => '', 'correct' => 1, 'why' => '', 'video' => '', 'videoTitle' => '' ];
+	$defaults = [ 'minutes' => 4, 'introEn' => '', 'introPcm' => '', 'learn' => '', 'steps' => '', 'tryEn' => '', 'tryPcm' => '', 'checks' => '', 'quiz' => '', 'options' => '', 'correct' => 1, 'why' => '', 'video' => '', 'videoTitle' => '', 'bizEn' => '', 'bizPcm' => '', 'bizCta' => '' ];
 	$data     = array_merge( $defaults, $attrs );
 	$data['minutes'] = max( 1, (int) $data['minutes'] );
 	return $cache[ $post->ID ] = $data;

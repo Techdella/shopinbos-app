@@ -69,6 +69,7 @@ class Sib_CLI {
 		}
 		$this->refresh_page( 'careers', 'Careers', $this->careers_text(), 'page-article', 'Work on the app that helps Nigerian sellers run their shops from a phone.' );
 		$this->refresh_page( 'press', 'Press', $this->press_text(), 'page-article', 'Facts, logos and contacts for journalists writing about Shopinbos.' );
+		$this->academy_curriculum();
 		$this->academy();
 		$thanks = $this->page( 'thanks', 'You’re in', $this->text_page( 'Thanks for confirming. Your first tip is on its way.' ), 'page-article' );
 		update_post_meta( $thanks, 'sib_noindex', true );
@@ -682,6 +683,94 @@ class Sib_CLI {
 			}
 			foreach ( $lessons[ $slug ] ?? [] as $n => $l ) {
 				$this->cpt( 'sib_lesson', sanitize_title( $l[0] ), $l[0], sib_seed_lesson_markup( $l ), $l[2], [], '', $n + 1, [ 'sib_track' => [ $tid ] ] );
+			}
+		}
+	}
+
+	/**
+	 * Academy curriculum (seed/academy.json): bring stored tracks and lessons up to date, before academy() adds
+	 * anything missing. A lesson is found by its slug or an old slug in "was" (renamed in place, so WordPress keeps
+	 * the old address as a redirect), and only rewritten while nobody has edited it (replaceable()). Track names
+	 * and descriptions change only while they still hold what setup wrote. Seeded lessons no longer in the
+	 * curriculum go back to draft.
+	 */
+	private function academy_curriculum(): void {
+		global $wpdb;
+		require_once SIB_CORE_DIR . '/includes/seed/blog.php';
+		require_once SIB_CORE_DIR . '/includes/seed/academy.php';
+		$tuples = sib_seed_academy_lessons();
+		$keep   = [];
+		// name + description hashes written by setup before the curriculum had fingerprints.
+		$legacy = [ 'ddfd3ef4643f1b5bed309c68b7019216', 'a613f8a94fd864ea5f573b8b1723ecdb', '2d8bfb00d32f6c96a91133bc2624f12b', '30b745ed22795cbf46ef7d3888a01f7b', '6bd41bea0ec76e0c92990b9fc0ca1de9', '9884f89eee892fc4ae4771ff95236999', 'c20ee3cb9fe24bcf287854e4f1775aa0', '28f28c2580aaf17f83188416de05e515' ];
+		foreach ( sib_seed_academy_data() as $t ) {
+			$term = get_term_by( 'slug', $t['slug'], 'sib_track' );
+			if ( ! $term ) {
+				$made = wp_insert_term( $t['name'], 'sib_track', [ 'slug' => $t['slug'], 'description' => $t['about'] ] );
+				if ( is_wp_error( $made ) ) {
+					WP_CLI::warning( $made->get_error_message() );
+					continue;
+				}
+				$tid  = (int) $made['term_id'];
+				$mine = true;
+				WP_CLI::log( "Created Academy track {$t['slug']}" );
+			} else {
+				$tid  = (int) $term->term_id;
+				$was  = md5( $term->name . "\n" . $term->description );
+				$mine = ( $print = get_term_meta( $tid, '_sib_seed_hash', true ) ) ? $print === $was : in_array( $was, $legacy, true );
+				if ( $mine && $was !== md5( $t['name'] . "\n" . $t['about'] ) ) {
+					wp_update_term( $tid, 'sib_track', [ 'name' => $t['name'], 'description' => $t['about'] ] );
+					WP_CLI::log( "Updated Academy track {$t['slug']}" );
+				} elseif ( ! $mine ) {
+					WP_CLI::log( "Kept Academy track {$t['slug']} (edited by hand)" );
+				}
+			}
+			if ( $mine ) {
+				update_term_meta( $tid, '_sib_seed_hash', md5( $t['name'] . "\n" . $t['about'] ) );
+			}
+			update_term_meta( $tid, 'sib_for', (string) ( $t['for'] ?? '' ) );
+			update_term_meta( $tid, 'sib_learn', implode( "\n", (array) ( $t['learn'] ?? [] ) ) );
+			update_term_meta( $tid, 'sib_biz', (string) ( $t['biz'] ?? '' ) );
+			update_term_meta( $tid, 'sib_biz_cta', implode( ' | ', (array) ( $t['biz_cta'] ?? [] ) ) );
+
+			foreach ( $t['lessons'] as $n => $l ) {
+				$slug    = sanitize_title( $l['title'] );
+				$content = sib_seed_lesson_markup( $tuples[ $t['slug'] ][ $n ] );
+				$names   = array_values( array_unique( array_merge( [ $slug ], (array) ( $l['was'] ?? [] ) ) ) );
+				$keep    = array_merge( $keep, $names );
+				$ids     = $wpdb->get_col( $wpdb->prepare( "SELECT ID FROM {$wpdb->posts} WHERE post_type = 'sib_lesson' AND post_status <> 'trash' AND post_name IN (" . implode( ',', array_fill( 0, count( $names ), '%s' ) ) . ') ORDER BY post_name = %s DESC, ID ASC', ...array_merge( $names, [ $slug ] ) ) ); // phpcs:ignore
+				$post    = $ids ? get_post( (int) $ids[0] ) : null;
+				if ( ! $post ) {
+					$id = wp_insert_post( wp_slash( [ 'post_type' => 'sib_lesson', 'post_status' => 'publish', 'post_name' => $slug, 'post_title' => $l['title'], 'post_content' => $content, 'post_excerpt' => $l['intro'], 'menu_order' => $n + 1 ] ) );
+					if ( is_wp_error( $id ) || ! $id ) {
+						continue;
+					}
+					wp_set_object_terms( $id, [ $tid ], 'sib_track' );
+					update_post_meta( $id, '_sib_seed_src', md5( $content ) );
+					$this->fingerprint( $id );
+					WP_CLI::log( "Created lesson {$slug}" );
+					continue;
+				}
+				if ( ! $this->replaceable( $post ) ) {
+					if ( $post->post_name !== $slug ) {
+						WP_CLI::warning( "Lesson {$post->post_name} was edited by hand, so it was not replaced by “{$l['title']}”." );
+					}
+					continue;
+				}
+				$terms = wp_get_object_terms( $post->ID, 'sib_track', [ 'fields' => 'ids' ] );
+				if ( md5( $content ) === get_post_meta( $post->ID, '_sib_seed_src', true ) && $post->post_name === $slug && $post->post_title === $l['title'] && (int) $post->menu_order === $n + 1 && 'publish' === $post->post_status && [ $tid ] === array_map( 'intval', (array) $terms ) ) {
+					continue; // already up to date
+				}
+				wp_update_post( wp_slash( [ 'ID' => $post->ID, 'post_name' => $slug, 'post_title' => $l['title'], 'post_content' => $content, 'post_excerpt' => $l['intro'], 'menu_order' => $n + 1, 'post_status' => 'publish' ] ) );
+				wp_set_object_terms( $post->ID, [ $tid ], 'sib_track' );
+				update_post_meta( $post->ID, '_sib_seed_src', md5( $content ) );
+				$this->fingerprint( $post->ID );
+				WP_CLI::log( 'Updated lesson ' . ( $post->post_name !== $slug ? "{$post->post_name} → " : '' ) . $slug );
+			}
+		}
+		foreach ( get_posts( [ 'post_type' => 'sib_lesson', 'post_status' => 'publish', 'numberposts' => -1 ] ) as $old ) {
+			if ( ! in_array( $old->post_name, $keep, true ) && get_post_meta( $old->ID, '_sib_seed_hash', true ) && $this->replaceable( $old ) ) {
+				wp_update_post( [ 'ID' => $old->ID, 'post_status' => 'draft' ] );
+				WP_CLI::log( "Retired lesson {$old->post_name} (no longer in the curriculum)" );
 			}
 		}
 	}

@@ -1,0 +1,4007 @@
+[
+ {
+  "slug": "start-your-shop",
+  "name": "Start your online business",
+  "about": "For first-time sellers in Nigeria. Learn what you need to start, how to choose who you sell to, test your idea before you spend, write product listings that sell, set simple shop rules and win your first ten customers.",
+  "bg": "#FFEDE4",
+  "fg": "#B23E0A",
+  "icon": "store",
+  "for": "New sellers, side hustlers and market traders going online for the first time.",
+  "learn": [
+   "What you need on day one, and what can wait",
+   "How to choose who you sell to and say it in one line",
+   "How to test an idea before you buy stock",
+   "How to write listings and shop rules that answer questions before buyers ask",
+   "Where your first ten customers come from"
+  ],
+  "biz": "Shopinbos Business gives you a store at yourname.mybos.store, built with Rex from your phone. Start on the Free plan (₦0 a month, 3% per sale) and move up when you sell more.",
+  "biz_cta": [
+   "Start free with Shopinbos Business",
+   "%%SIGNUP%%"
+  ],
+  "lessons": [
+   {
+    "title": "What you need before you start",
+    "minutes": 4,
+    "intro": "You don’t need a shop, a laptop or a big budget. You need a phone, a few products and a way for people to pay. This lesson shows what to get ready before you open your store.",
+    "intro_pcm": "You no need shop, laptop or big money. Na phone, small products and way wey people go take pay you. For this lesson, you go see wetin to arrange before you open your store.",
+    "learn": [
+     "What you need on day one",
+     "What can wait until later",
+     "How to choose your first products",
+     "How to name your shop"
+    ],
+    "steps": [
+     [
+      "Pick 5 to 10 products",
+      "Start with what you already sell or can get quickly."
+     ],
+     [
+      "Get your bank details ready",
+      "Your account name should match your name or business name."
+     ],
+     [
+      "Choose a shop name",
+      "Short, easy to say on a voice note, and not used by a big brand."
+     ],
+     [
+      "Take photos in daylight",
+      "One clear photo of each product is enough to start."
+     ]
+    ],
+    "try_pcm": "Write your shop name and the first five products wey you go sell, with their price.",
+    "checks": [
+     "I have a shop name",
+     "I picked my first 5 products",
+     "I know my bank account details",
+     "I have one photo of each product"
+    ],
+    "quiz": "What do you need most on your first day?",
+    "options": [
+     "A website designer",
+     "A phone, a few products and a way to get paid",
+     "A big ad budget"
+    ],
+    "correct": 2,
+    "why": "You can start from your phone with a few products. Everything else can come later.",
+    "video": "Start with what you have.",
+    "biz": {
+     "en": "Shopinbos Business builds your store from your phone. Rex asks what you sell and sets it up, and you can start on the Free plan.",
+     "pcm": "Shopinbos Business dey build your store from your phone. Rex go ask wetin you dey sell come set am up, and you fit start for Free plan.",
+     "cta": [
+      "Start free",
+      "%%SIGNUP%%"
+     ]
+    },
+    "was": [
+     "what-you-need-before-you-start"
+    ],
+    "try": "Write down your shop name and the first five products you will sell, with their prices."
+   },
+   {
+    "title": "Choose who you sell to",
+    "minutes": 5,
+    "intro": "Trying to sell to everybody usually means nobody feels you are talking to them. When you pick one clear group of buyers, your products, prices and posts all get easier to decide.",
+    "intro_pcm": "If you wan sell to everybody, nobody go feel say na dem you dey talk to. When you pick one clear group of buyers, e go easy to decide your products, price and posts.",
+    "learn": [
+     "Why “everybody” is not a customer",
+     "How to describe your best buyer",
+     "Where your buyers spend time online",
+     "How your buyer changes your price and words"
+    ],
+    "steps": [
+     [
+      "Think of your last five buyers",
+      "Or the people who ask you for things most. What do they have in common?"
+     ],
+     [
+      "Describe one real person",
+      "Age, city, job, what they earn, what they worry about. “Working mums in Abuja who have no time to go to market.”"
+     ],
+     [
+      "Find where they are",
+      "WhatsApp groups, Instagram, TikTok, church, school, office, market."
+     ],
+     [
+      "Check your products fit them",
+      "Would this person want it, and can they afford your price?"
+     ]
+    ],
+    "try_pcm": "Write one paragraph about your best buyer: who dem be, where dem dey stay, wetin dem need and where dem dey spend time online.",
+    "checks": [
+     "I looked at my last five buyers",
+     "I described one real person",
+     "I know where they spend time online",
+     "I checked my products fit them"
+    ],
+    "quiz": "Which of these is a clear customer?",
+    "options": [
+     "Everybody in Nigeria",
+     "Students in Ibadan who want affordable going-out outfits",
+     "Anyone who likes nice things"
+    ],
+    "correct": 2,
+    "why": "A clear customer tells you what to stock, what to charge and where to post.",
+    "video": "Know your buyer.",
+    "biz": {
+     "en": "When you set up Shopinbos Business, tell Rex who you sell to. He uses it for your store’s words, photos and first products.",
+     "pcm": "When you dey set up Shopinbos Business, tell Rex who you dey sell to. E go use am for your store words, pictures and first products.",
+     "cta": [
+      "Build my store with Rex",
+      "%%SIGNUP%%"
+     ]
+    },
+    "was": [
+     "tell-rex-what-you-sell"
+    ],
+    "try": "Write one paragraph about your best buyer: who they are, where they live, what they need and where they spend time online."
+   },
+   {
+    "title": "Describe your business in one sentence",
+    "minutes": 4,
+    "intro": "If you can’t say what you sell in one sentence, buyers won’t remember it. A clear line helps people understand you fast and tell their friends about you.",
+    "intro_pcm": "If you no fit talk wetin you dey sell for one sentence, buyers no go remember am. One clear line go make people understand you quick and tell their friends about you.",
+    "learn": [
+     "The three parts of a good one-liner",
+     "Why specific beats fancy",
+     "Where to use your line",
+     "How to test it on real people"
+    ],
+    "steps": [
+     [
+      "Say what you sell",
+      "“Ready-to-wear ankara dresses”, not “fashion”."
+     ],
+     [
+      "Say who it is for",
+      "“For working women who need office-ready outfits”."
+     ],
+     [
+      "Add what makes you different",
+      "“Delivered in Lagos within two days” or “sizes up to 22”."
+     ],
+     [
+      "Test it on three people",
+      "Read it out. Ask them to repeat what you sell. If they can’t, make it simpler."
+     ]
+    ],
+    "try_pcm": "Write your one sentence, then put am for your WhatsApp bio, your Instagram bio and for the top of your store.",
+    "checks": [
+     "I wrote what I sell",
+     "I said who it is for",
+     "I added one thing that makes me different",
+     "Three people understood it"
+    ],
+    "quiz": "Which one-liner is best?",
+    "options": [
+     "The best shop in Nigeria for all your needs",
+     "Quality, affordable, classy",
+     "Hair bundles and wigs for women in Port Harcourt, delivered in 48 hours"
+    ],
+    "correct": 3,
+    "why": "It says what you sell, who it is for and why to pick you. Fancy words say nothing.",
+    "video": "One line, said clearly.",
+    "try": "Write your one sentence, then put it in your WhatsApp bio, your Instagram bio and at the top of your store."
+   },
+   {
+    "title": "Test your idea before you spend big",
+    "minutes": 5,
+    "intro": "The most expensive mistake is buying a lot of stock nobody wants. You can test demand with pre-orders, a small batch or a supplier’s stock before you put your money down.",
+    "intro_pcm": "The mistake wey cost pass na to buy plenty stock wey nobody want. You fit test if people want am with pre-order, small batch or supplier stock before you put your money down.",
+    "learn": [
+     "What demand looks like",
+     "Three cheap ways to test",
+     "How many sales are “enough”",
+     "When to stop and try something else"
+    ],
+    "steps": [
+     [
+      "Post the product before you buy it",
+      "Use the supplier’s photo or a sample. Ask who wants it, with the price."
+     ],
+     [
+      "Take pre-orders or deposits",
+      "A deposit shows a buyer is serious. Likes and “nice” do not."
+     ],
+     [
+      "Start with a small batch",
+      "Buy 5 to 10 pieces, or dropship so you buy nothing upfront."
+     ],
+     [
+      "Set your test rule",
+      "For example: if 5 people pay in two weeks, buy more. If not, try the next idea."
+     ]
+    ],
+    "try_pcm": "Pick one product idea. Post am this week with price and count how many people ask to buy or pay deposit.",
+    "checks": [
+     "I picked one idea to test",
+     "I posted it with a price",
+     "I set a rule for “enough” sales",
+     "I counted real buyers, not likes"
+    ],
+    "quiz": "What is the strongest sign people want your product?",
+    "options": [
+     "Lots of likes on your post",
+     "Buyers paying a deposit before you stock it",
+     "A friend saying it is a good idea"
+    ],
+    "correct": 2,
+    "why": "Money is the real test. Likes and compliments cost nothing.",
+    "video": "Test small, then buy.",
+    "biz": {
+     "en": "In Shopinbos Business you can add supplier products from Find stock and sell them without buying stock first, which makes testing cheaper.",
+     "pcm": "For Shopinbos Business you fit add supplier products from Find stock and sell dem without buying stock first, so to test go cheap.",
+     "cta": [
+      "See how Find stock works",
+      "/find-stock/"
+     ]
+    },
+    "try": "Pick one product idea. Post it this week with a price and count how many people ask to buy or pay a deposit."
+   },
+   {
+    "title": "Write product listings that sell",
+    "minutes": 6,
+    "intro": "Five good products beat fifty rushed ones. A good listing answers the buyer’s questions so they can decide without sending you a message.",
+    "intro_pcm": "Five correct products better pass fifty wey you rush. Good listing go answer buyer questions so dem fit decide without dem message you.",
+    "learn": [
+     "What makes a good product title",
+     "The details buyers always ask for",
+     "Photos that show the truth",
+     "How to write two lines that sell"
+    ],
+    "steps": [
+     [
+      "Write a clear title",
+      "What it is, plus one detail: “Leather tote bag, brown”."
+     ],
+     [
+      "Add 3 photos",
+      "Front, back and one close-up. Show the real colour."
+     ],
+     [
+      "Give sizes, colours and price",
+      "Say exactly what is available, and the full price."
+     ],
+     [
+      "Write two lines",
+      "Material, size, who it is for and how long delivery takes."
+     ]
+    ],
+    "try_pcm": "Rewrite the listing for your best product. Ask yourself: buyer fit order without asking me anything?",
+    "checks": [
+     "My title says what it is",
+     "I have three clear photos",
+     "Sizes, colours and price are there",
+     "I wrote two helpful lines"
+    ],
+    "quiz": "A buyer keeps asking “what size is it?”. What should you fix?",
+    "options": [
+     "Lower the price",
+     "Add size details to the listing",
+     "Post it more often"
+    ],
+    "correct": 2,
+    "why": "If people ask the same question, the answer belongs in the listing.",
+    "video": "Listings that answer questions.",
+    "biz": {
+     "en": "In Shopinbos Business, Rex can write your product description from a photo, and each product can have sizes and colours with their own stock.",
+     "pcm": "For Shopinbos Business, Rex fit write your product description from picture, and each product fit get sizes and colours with their own stock.",
+     "cta": [
+      "Try the free description writer",
+      "/tools/product-description-generator/"
+     ]
+    },
+    "was": [
+     "add-your-first-five-products"
+    ],
+    "try": "Rewrite the listing for your best product. Ask yourself: could a buyer order without asking me anything?"
+   },
+   {
+    "title": "Set simple shop rules: delivery, payment and returns",
+    "minutes": 5,
+    "intro": "Most arguments with buyers start because nobody agreed the rules. Write down how you deliver, how people pay and what happens if something is wrong, and show it before they buy.",
+    "intro_pcm": "Most quarrel with buyers dey start because nobody agree the rules. Write how you dey deliver, how people go pay and wetin go happen if something wrong, and show am before dem buy.",
+    "learn": [
+     "The three rules every shop needs",
+     "How to write them in plain words",
+     "Where buyers should see them",
+     "When to change them"
+    ],
+    "steps": [
+     [
+      "Delivery",
+      "Where you deliver, how long it takes and what it costs."
+     ],
+     [
+      "Payment",
+      "How buyers can pay, and when you send the order."
+     ],
+     [
+      "Returns",
+      "What you accept, how many days buyers have and who pays delivery."
+     ],
+     [
+      "Show them everywhere",
+      "On your store, in your WhatsApp catalogue and in a saved reply."
+     ]
+    ],
+    "try_pcm": "Write your three rules for three short sentences each. Share am with one friend make dem tell you if anything no clear.",
+    "checks": [
+     "I wrote my delivery rule",
+     "I wrote my payment rule",
+     "I wrote my returns rule",
+     "I put them where buyers can see them"
+    ],
+    "quiz": "A buyer says “you never told me delivery costs ₦3,000”. What would have prevented this?",
+    "options": [
+     "A cheaper rider",
+     "A delivery rule shown before they ordered",
+     "Blocking the buyer"
+    ],
+    "correct": 2,
+    "why": "Rules shown before the sale stop most arguments after it.",
+    "video": "Rules that stop wahala.",
+    "biz": {
+     "en": "Shopinbos Business has ready refund, privacy and delivery pages you fill in, and checkout shows your delivery fee before the buyer pays.",
+     "pcm": "Shopinbos Business get ready refund, privacy and delivery pages wey you go fill, and checkout dey show your delivery fee before buyer pay.",
+     "cta": [
+      "Start free",
+      "%%SIGNUP%%"
+     ]
+    },
+    "try": "Write your three rules in three short sentences each. Share them with one friend and ask if anything is unclear."
+   },
+   {
+    "title": "Get your first 10 customers",
+    "minutes": 4,
+    "intro": "Your first customers almost always come from people who already know you. This lesson shows who to tell, what to say and how to turn the first few buyers into the next ten.",
+    "intro_pcm": "Your first customers go mostly come from people wey don know you before. This lesson go show you who to tell, wetin to talk and how the first few buyers go bring the next ten.",
+    "learn": [
+     "Why people who know you buy first",
+     "What to say when you share",
+     "How to ask happy buyers to share",
+     "What to do when the first order comes"
+    ],
+    "steps": [
+     [
+      "List 30 people you know",
+      "Family, friends, old classmates, colleagues, your church or mosque."
+     ],
+     [
+      "Send a personal message",
+      "Not a broadcast. Say what you now sell and who it is for, with one photo and the price."
+     ],
+     [
+      "Post on your Status and bios",
+      "Your best product, the price and how to order."
+     ],
+     [
+      "Ask every buyer to share",
+      "After delivery: “If you like it, please tell one friend.”"
+     ]
+    ],
+    "try_pcm": "Write 30 people wey you know and send personal message to ten of dem today.",
+    "checks": [
+     "I listed 30 people",
+     "I sent ten personal messages",
+     "I posted on my Status",
+     "I will ask every buyer to share"
+    ],
+    "quiz": "Where do most first orders come from?",
+    "options": [
+     "Strangers on Google",
+     "People who already know you",
+     "Paid ads on day one"
+    ],
+    "correct": 2,
+    "why": "Your contacts already trust you. Start with them, then grow from there.",
+    "video": "Your first ten buyers.",
+    "biz": {
+     "en": "Shopinbos Business gives you one store link to share everywhere, and every order lands in one list, whether it came from WhatsApp, Instagram or your store.",
+     "pcm": "Shopinbos Business go give you one store link wey you fit share everywhere, and every order go land for one list, whether e come from WhatsApp, Instagram or your store.",
+     "cta": [
+      "Get my store link",
+      "%%SIGNUP%%"
+     ]
+    },
+    "was": [
+     "share-your-link-and-get-your-first-order"
+    ],
+    "try": "Write down 30 people you know and send a personal message to ten of them today."
+   }
+  ]
+ },
+ {
+  "slug": "money-and-pricing",
+  "name": "Money and pricing",
+  "about": "For small business owners who want to know if they are really making money. Learn your true cost per item, how to price for profit, how to price against the market, what to do when costs rise, cash flow, keeping money apart and simple bookkeeping.",
+  "bg": "#FFF4D6",
+  "fg": "#7A5200",
+  "icon": "naira",
+  "for": "Sellers who are busy but not sure they are making a profit.",
+  "learn": [
+   "How to find your real cost per item",
+   "How to set a price that leaves profit, and margin vs markup",
+   "How to compete without a price war",
+   "How cash flow works and why busy shops run out of money",
+   "How to keep simple books in ten minutes a week"
+  ],
+  "biz": "Shopinbos Business shows the margin on each product, records every sale (including ones you record by hand) and pays your money out to your bank through Paystack.",
+  "biz_cta": [
+   "Start free with Shopinbos Business",
+   "%%SIGNUP%%"
+  ],
+  "lessons": [
+   {
+    "title": "Know your real cost per item",
+    "minutes": 5,
+    "intro": "Many sellers think their cost is what they paid the supplier. Your real cost also includes transport, packing, payment fees and the delivery you don’t charge for. Miss these and your profit disappears.",
+    "intro_pcm": "Plenty sellers think say their cost na wetin dem pay supplier. Your real cost still include transport, packing, payment fee and delivery wey you no charge for. If you miss dem, your profit go disappear.",
+    "learn": [
+     "The costs most sellers forget",
+     "How to share one cost across many items",
+     "Fixed costs vs costs per item",
+     "Why your cost changes over time"
+    ],
+    "steps": [
+     [
+      "Start with the buying price",
+      "What you paid per piece."
+     ],
+     [
+      "Add the trip and transport",
+      "Your market trip or waybill, shared across the pieces you bought."
+     ],
+     [
+      "Add packing and fees",
+      "Nylon, box, label, and the payment fee on each sale."
+     ],
+     [
+      "Add any delivery you cover",
+      "If you give free delivery, it is your cost."
+     ]
+    ],
+    "try_pcm": "Pick your best seller and calculate the real cost for each one, with every cost wey dey this lesson.",
+    "checks": [
+     "I know the buying price",
+     "I shared my transport across the pieces",
+     "I added packing and payment fees",
+     "I added any delivery I cover"
+    ],
+    "quiz": "You bought 20 bags for ₦100,000 and paid ₦10,000 for transport. What does each bag cost you before packing?",
+    "options": [
+     "₦5,000",
+     "₦5,500",
+     "₦10,000"
+    ],
+    "correct": 2,
+    "why": "₦110,000 divided by 20 bags is ₦5,500 per bag. Transport is part of your cost.",
+    "video": "Your real cost.",
+    "biz": {
+     "en": "The free profit margin calculator does this sum for you. In Shopinbos Business, each product shows its margin once you add your cost.",
+     "pcm": "The free profit margin calculator go do this calculation for you. For Shopinbos Business, each product go show the margin once you add your cost.",
+     "cta": [
+      "Open the profit margin calculator",
+      "/tools/profit-margin-calculator/"
+     ]
+    },
+    "try": "Pick your best seller and work out its real cost per item, with every cost in this lesson."
+   },
+   {
+    "title": "Setting a price that leaves profit",
+    "minutes": 6,
+    "intro": "Price too low and you work for nothing. Price too high and nobody buys. Use your real costs and a margin to find the right price.",
+    "intro_pcm": "If your price too low, you go dey work for nothing. If e too high, nobody go buy. Use your real cost and margin find correct price.",
+    "learn": [
+     "Listing all your costs",
+     "Margin vs markup",
+     "Including payment fees",
+     "Rounding prices"
+    ],
+    "steps": [
+     [
+      "Add up your costs",
+      "Product, transport, packing and any delivery you cover."
+     ],
+     [
+      "Choose your margin",
+      "Many small shops aim for 30% to 50%. Check what is normal for your product."
+     ],
+     [
+      "Include the fees",
+      "The payment fee (Paystack is 1.5% + ₦100, capped at ₦2,000) and any platform fee per sale."
+     ],
+     [
+      "Round up",
+      "To the next ₦100 or ₦500."
+     ]
+    ],
+    "try_pcm": "Use the free selling price calculator for your top three products and compare am with your price now.",
+    "checks": [
+     "I know my real costs",
+     "I picked a margin",
+     "I included payment fees",
+     "I rounded my prices"
+    ],
+    "quiz": "What is a 50% margin on a ₦10,000 cost?",
+    "options": [
+     "A ₦15,000 price",
+     "A ₦20,000 price",
+     "A ₦10,500 price"
+    ],
+    "correct": 2,
+    "why": "Margin is profit as a share of the price. ₦10,000 profit on a ₦20,000 price is 50%.",
+    "video": "Prices that pay you.",
+    "biz": {
+     "en": "The selling price calculator works it out in naira. On Shopinbos Business the fee per sale is 3% on the Free plan and lower on paid plans, so include it in your price.",
+     "pcm": "The selling price calculator go calculate am for naira. For Shopinbos Business, the fee for each sale na 3% for Free plan and e dey lower for paid plans, so put am inside your price.",
+     "cta": [
+      "Open the selling price calculator",
+      "/tools/selling-price-calculator/"
+     ]
+    },
+    "was": [
+     "setting-a-price-that-leaves-profit"
+    ],
+    "try": "Use the free selling price calculator for your top three products and compare the result with your current prices."
+   },
+   {
+    "title": "Price against the market without a price war",
+    "minutes": 5,
+    "intro": "Someone will always sell cheaper. If you only compete on price, you work harder for less. You can charge a fair price when buyers can see why you are worth it.",
+    "intro_pcm": "Person go always dey wey dey sell cheaper. If na only price you dey take compete, you go work hard for small money. You fit charge correct price when buyers fit see why you worth am.",
+    "learn": [
+     "How to check market prices",
+     "Why the cheapest seller often struggles",
+     "What buyers pay more for",
+     "When a lower price makes sense"
+    ],
+    "steps": [
+     [
+      "Check five other sellers",
+      "Note their price, delivery fee and what they include."
+     ],
+     [
+      "Find your edge",
+      "Faster delivery, better photos, original items, a warranty, pay on delivery, kind service."
+     ],
+     [
+      "Show the edge clearly",
+      "Put it in your listing and your posts, not only in your head."
+     ],
+     [
+      "Use bundles, not cuts",
+      "“Buy 2, save ₦1,500” keeps your price strong and raises order size."
+     ]
+    ],
+    "try_pcm": "Compare your best seller with five other sellers. Write one reason why buyer go pay your price, and add am to your listing.",
+    "checks": [
+     "I checked five other sellers",
+     "I know my edge",
+     "My edge is in my listing",
+     "I planned one bundle instead of a cut"
+    ],
+    "quiz": "Another seller drops their price below your cost. What is the smartest move?",
+    "options": [
+     "Drop yours even lower",
+     "Show why you are worth your price and offer a bundle",
+     "Insult them online"
+    ],
+    "correct": 2,
+    "why": "Selling below cost is a race to zero. Compete on value you can afford.",
+    "video": "Worth the price.",
+    "try": "Compare your best seller with five other sellers. Write down one reason a buyer should pay your price, and add it to your listing."
+   },
+   {
+    "title": "When your costs go up, check your prices",
+    "minutes": 6,
+    "intro": "Supplier prices, fuel and delivery costs change often. If your price stays the same, your profit quietly shrinks. Here is how to spot it and adjust without losing buyers.",
+    "intro_pcm": "Supplier price, fuel and delivery cost dey change anyhow. If your price no change, your profit go dey reduce quietly. See how to notice am and adjust without losing your buyers.",
+    "learn": [
+     "Spotting a cost change early",
+     "Working out your profit per item",
+     "Raising prices kindly",
+     "Other ways to protect your profit"
+    ],
+    "steps": [
+     [
+      "Recheck your costs every month",
+      "Product, packing and any delivery you cover."
+     ],
+     [
+      "Work out profit per item",
+      "Price minus all costs, including the payment fee."
+     ],
+     [
+      "Adjust in small steps",
+      "₦500 now is easier for buyers than ₦3,000 later."
+     ],
+     [
+      "Tell your regulars first",
+      "A short, honest message before the new price starts."
+     ]
+    ],
+    "try_pcm": "Pick your three best sellers, check how much each one dey cost you today, and see if your profit still dey where you want am.",
+    "checks": [
+     "I checked today’s cost for my best sellers",
+     "I know my profit per item",
+     "I planned any price change in small steps",
+     "I will tell my regulars first"
+    ],
+    "quiz": "You sell a bag for ₦15,000. Your cost went from ₦9,000 to ₦10,500. How much less do you now make on each bag?",
+    "options": [
+     "₦1,500",
+     "₦4,500",
+     "₦500"
+    ],
+    "correct": 1,
+    "why": "Every naira added to your cost comes out of your profit unless you change your price.",
+    "video": "Prices that keep up.",
+    "was": [
+     "when-your-costs-go-up-check-your-prices"
+    ],
+    "try": "Pick your three best sellers, check what each one costs you today, and see if your profit is still where you want it."
+   },
+   {
+    "title": "Cash flow: why a busy shop can still run out of money",
+    "minutes": 6,
+    "intro": "Profit is what you make on paper. Cash flow is the money you actually have today. A shop can sell a lot and still have no money to restock, because cash is stuck in stock, debts or delayed payments.",
+    "intro_pcm": "Profit na wetin you make for paper. Cash flow na the money wey dey your hand today. Shop fit sell plenty and still no get money to restock, because the cash don hook for stock, debt or payment wey never land.",
+    "learn": [
+     "Profit vs cash in hand",
+     "Where cash gets stuck",
+     "Planning when money comes in and goes out",
+     "Keeping a small buffer"
+    ],
+    "steps": [
+     [
+      "List money coming in",
+      "Sales you expect this month, and when the money will reach your bank."
+     ],
+     [
+      "List money going out",
+      "Stock, rent, data, salaries, and the dates you must pay."
+     ],
+     [
+      "Watch slow stock and credit",
+      "Stock that doesn’t move and customers who owe you are cash you can’t use."
+     ],
+     [
+      "Keep a buffer",
+      "Set aside a little from every sale until you have one month of fixed costs saved."
+     ]
+    ],
+    "try_pcm": "Write every payment wey you must make for the next four weeks and the money wey you expect make e enter. Mark any week where wetin dey comot pass wetin dey enter.",
+    "checks": [
+     "I listed money coming in",
+     "I listed money going out",
+     "I found my tight weeks",
+     "I started a small buffer"
+    ],
+    "quiz": "You have ₦400,000 of stock but ₦20,000 in your account and rent is due. What is the problem?",
+    "options": [
+     "You are not making profit",
+     "Your cash is stuck in stock",
+     "Your prices are too high"
+    ],
+    "correct": 2,
+    "why": "Stock is not cash until it sells. Buy in smaller amounts and keep a buffer.",
+    "video": "Cash in hand.",
+    "biz": {
+     "en": "Shopinbos Business pays your money out to your bank through Paystack, usually within a few working days. Plan your restocks around that timing.",
+     "pcm": "Shopinbos Business dey pay your money out to your bank through Paystack, usually within few working days. Plan your restock around that time.",
+     "cta": [
+      "See how payments work",
+      "/payments/"
+     ]
+    },
+    "try": "Write down every payment you must make in the next four weeks and the money you expect in. Mark any week where out is bigger than in."
+   },
+   {
+    "title": "Keep business money and personal money apart",
+    "minutes": 4,
+    "intro": "When shop money and house money share one account, you can’t tell if you are making profit. A separate account and a simple pay-yourself rule fix that.",
+    "intro_pcm": "When shop money and house money dey the same account, you no go fit know if you dey make profit. Separate account and simple rule for how you go pay yourself go solve am.",
+    "learn": [
+     "Why mixing money hides losses",
+     "Opening a separate account",
+     "Paying yourself a fixed amount",
+     "What to do when you borrow from the shop"
+    ],
+    "steps": [
+     [
+      "Open a separate account",
+      "Ask your bank what they need for a business account."
+     ],
+     [
+      "Send all shop money there",
+      "Make it the account your sales are paid into."
+     ],
+     [
+      "Pay yourself on a set day",
+      "A fixed amount, like ₦30,000 at the end of each month."
+     ],
+     [
+      "Write down any borrowing",
+      "If you take shop money for home, note it and pay it back."
+     ]
+    ],
+    "try_pcm": "Decide how much you go pay yourself every month and the day wey you go do am. Write am down.",
+    "checks": [
+     "My shop money has its own account",
+     "My payouts go to that account",
+     "I set my monthly pay and pay day",
+     "I write down anything I borrow from the shop"
+    ],
+    "quiz": "You took ₦10,000 of shop money for school fees. What should you do?",
+    "options": [
+     "Write it down and pay it back",
+     "Forget it, it’s all your money",
+     "Close the shop account"
+    ],
+    "correct": 1,
+    "why": "A simple note keeps your profit numbers honest, even when life happens.",
+    "video": "Two pockets, clear numbers.",
+    "biz": {
+     "en": "In Shopinbos Business, set your business account as your payout account, so every sale lands in the shop’s account, not your personal one.",
+     "pcm": "For Shopinbos Business, put your business account as your payout account, so every sale go land for shop account, no be your personal own.",
+     "cta": [
+      "Start free",
+      "%%SIGNUP%%"
+     ]
+    },
+    "was": [
+     "keep-business-money-and-personal-money-apart"
+    ],
+    "try": "Decide how much you will pay yourself each month and the day you will do it. Write it down."
+   },
+   {
+    "title": "Simple bookkeeping on your phone",
+    "minutes": 5,
+    "intro": "Bookkeeping is just writing down money in and money out. Ten minutes a week on your phone tells you what you really made.",
+    "intro_pcm": "Bookkeeping na just to write money wey enter and money wey comot. Ten minutes every week for your phone go tell you wetin you really make.",
+    "learn": [
+     "What to write down",
+     "Recording sales as they happen",
+     "Recording costs as they happen",
+     "Your weekly money check"
+    ],
+    "steps": [
+     [
+      "Record every sale",
+      "Including cash sales at your stall and orders from chats."
+     ],
+     [
+      "Note every cost",
+      "Date, what it was for and how much, in a note or spreadsheet."
+     ],
+     [
+      "Snap your receipts",
+      "Keep them in one photo album for each month."
+     ],
+     [
+      "Total it once a week",
+      "Money in minus money out. Same day every week."
+     ]
+    ],
+    "try_pcm": "Start costs note today and add everything wey you spend for the shop this week, even ₦500 for nylon.",
+    "checks": [
+     "I record every sale",
+     "I have a costs note on my phone",
+     "I keep my receipts in one album",
+     "I set a weekly money check"
+    ],
+    "quiz": "This week your sales were ₦120,000 and your costs were ₦85,000. What did you make?",
+    "options": [
+     "₦120,000",
+     "₦205,000",
+     "₦35,000"
+    ],
+    "correct": 3,
+    "why": "Profit is money in minus money out: ₦120,000 minus ₦85,000 is ₦35,000.",
+    "video": "Ten minutes, once a week.",
+    "biz": {
+     "en": "Shopinbos Business records every order for you, and you can record a sale made at your stall or on WhatsApp so your sales and stock stay right.",
+     "pcm": "Shopinbos Business dey record every order for you, and you fit record sale wey you make for your stall or for WhatsApp so your sales and stock go correct.",
+     "cta": [
+      "Start free",
+      "%%SIGNUP%%"
+     ]
+    },
+    "was": [
+     "simple-bookkeeping-on-your-phone"
+    ],
+    "try": "Start a costs note today and add everything you spent on the shop this week, even ₦500 for nylon."
+   }
+  ]
+ },
+ {
+  "slug": "find-stock-and-dropship",
+  "name": "Sourcing: find stock and dropship",
+  "about": "For sellers deciding what to stock and where to get it. Learn dropshipping vs wholesale, how to choose products that sell, check suppliers, ask for quotes and negotiate, decide how much stock to buy and import step by step.",
+  "bg": "#E3EEFD",
+  "fg": "#1F5FBF",
+  "icon": "box",
+  "for": "Sellers looking for products, better supplier prices or a way to sell without buying stock.",
+  "learn": [
+   "When to dropship and when to buy wholesale",
+   "Four checks before you add a product",
+   "How to check a supplier before you pay",
+   "How to ask for a quote and negotiate",
+   "How much stock to buy, and how importing works"
+  ],
+  "biz": "Find stock in Shopinbos Business lists products from checked suppliers. Registered sellers can dropship them, buy wholesale or send a quote request.",
+  "biz_cta": [
+   "See Find stock",
+   "/find-stock/"
+  ],
+  "lessons": [
+   {
+    "title": "Dropship or wholesale: which one is for you",
+    "minutes": 5,
+    "intro": "With dropshipping you sell without holding stock. With wholesale you buy stock at a lower price. Most shops use both. Here is how to choose.",
+    "intro_pcm": "For dropship, you dey sell without holding stock. For wholesale, you dey buy stock for lower price. Most shops dey use both. See how to choose.",
+    "learn": [
+     "How dropshipping works",
+     "How wholesale works",
+     "What you keep with each",
+     "When to switch"
+    ],
+    "steps": [
+     [
+      "Start with dropship to test",
+      "No money tied up in stock."
+     ],
+     [
+      "Watch what sells every week",
+      "Those are your winners."
+     ],
+     [
+      "Buy your winners wholesale",
+      "Better price, faster delivery."
+     ],
+     [
+      "Keep dropshipping the rest",
+      "Test new products without risk."
+     ]
+    ],
+    "try_pcm": "Pick one product wey you fit dropship and one wey you fit buy wholesale. Write wetin you go keep from each sale.",
+    "checks": [
+     "I understand dropshipping",
+     "I understand wholesale",
+     "I compared what I keep",
+     "I picked a product to test"
+    ],
+    "quiz": "When should you buy a product wholesale?",
+    "options": [
+     "Before you know if it sells",
+     "When it sells every week",
+     "Never"
+    ],
+    "correct": 2,
+    "why": "Test first. Buy stock once a product proves itself.",
+    "video": "Two ways to stock.",
+    "biz": {
+     "en": "In Shopinbos Business, Find stock lets you dropship a supplier’s product (they send it to your buyer) or buy it wholesale, from one place.",
+     "pcm": "For Shopinbos Business, Find stock go let you dropship supplier product (dem go send am to your buyer) or buy am wholesale, from one place.",
+     "cta": [
+      "See Find stock",
+      "/find-stock/"
+     ]
+    },
+    "was": [
+     "dropship-or-wholesale-which-one-is-for-you"
+    ],
+    "try": "Pick one product you could dropship and one you could buy wholesale. Write what you would keep from each sale."
+   },
+   {
+    "title": "Choosing products that sell",
+    "minutes": 5,
+    "intro": "The best products solve a need, travel well and leave you enough profit. Here is a simple test before you add anything.",
+    "intro_pcm": "Better products dey solve need, dey travel well and dey leave you enough profit. See simple test before you add anything.",
+    "learn": [
+     "Signs a product will sell",
+     "Products that travel well",
+     "Checking supplier quality",
+     "Avoiding fakes"
+    ],
+    "steps": [
+     [
+      "Check demand",
+      "Do people ask for it in your chats or comments?"
+     ],
+     [
+      "Check margin",
+      "Can you keep at least 25% after fees?"
+     ],
+     [
+      "Check delivery",
+      "Will it arrive safe and on time?"
+     ],
+     [
+      "Order a sample",
+      "See it with your own eyes."
+     ]
+    ],
+    "try_pcm": "Do the four checks for three products wey you dey think to sell.",
+    "checks": [
+     "Buyers ask for it",
+     "I keep at least 25%",
+     "It travels well",
+     "I ordered a sample"
+    ],
+    "quiz": "Which product is the safest first choice?",
+    "options": [
+     "A fragile glass set",
+     "A popular bag that travels well",
+     "Fresh fish for other states"
+    ],
+    "correct": 2,
+    "why": "Products that don’t break or spoil are easier to deliver and return.",
+    "video": "Pick winners.",
+    "biz": {
+     "en": "See which products are trending in Nigeria right now, with naira prices and where to get stock.",
+     "pcm": "See which products dey trend for Nigeria now now, with naira price and where to get stock.",
+     "cta": [
+      "See trending products",
+      "/trending/"
+     ]
+    },
+    "was": [
+     "choosing-products-that-sell"
+    ],
+    "try": "Run the four checks on three products you are thinking of selling."
+   },
+   {
+    "title": "Check a supplier before you pay",
+    "minutes": 5,
+    "intro": "A bad supplier can ruin your name: late stock, wrong items or money gone. A few checks before you pay protect your money and your customers.",
+    "intro_pcm": "Bad supplier fit spoil your name: stock wey late, wrong items or money wey don go. Small checks before you pay go protect your money and your customers.",
+    "learn": [
+     "Signs of a reliable supplier",
+     "Questions to ask first",
+     "Why you should start with a small order",
+     "Red flags to walk away from"
+    ],
+    "steps": [
+     [
+      "Check they are real",
+      "A physical address, a registered business, and other sellers who buy from them."
+     ],
+     [
+      "Ask the key questions",
+      "Minimum order, price per piece, delivery time and what happens if items are faulty."
+     ],
+     [
+      "Order a sample or small batch",
+      "Check quality before you buy in bulk."
+     ],
+     [
+      "Watch for red flags",
+      "Prices far below everyone else, pressure to pay fast, no address, refusing a small order."
+     ]
+    ],
+    "try_pcm": "Pick one supplier wey you dey use or wey you wan use. Ask dem the four main questions and write their answers.",
+    "checks": [
+     "I checked they are a real business",
+     "I asked about minimum order and delivery",
+     "I asked what happens with faulty items",
+     "I started with a small order"
+    ],
+    "quiz": "A supplier offers iPhones at half the market price, but only if you pay today. What should you do?",
+    "options": [
+     "Pay fast before the deal ends",
+     "Walk away. It has two red flags",
+     "Pay half now"
+    ],
+    "correct": 2,
+    "why": "A price far below the market plus pressure to pay fast is a classic scam.",
+    "video": "Trust, then check.",
+    "biz": {
+     "en": "Suppliers on Find stock in Shopinbos Business are checked, and a verified badge shows suppliers who added their CAC registration.",
+     "pcm": "Suppliers wey dey Find stock for Shopinbos Business don pass check, and verified badge dey show suppliers wey add their CAC registration.",
+     "cta": [
+      "See Find stock",
+      "/find-stock/"
+     ]
+    },
+    "try": "Pick one supplier you use or want to use. Ask them the four key questions and write down their answers."
+   },
+   {
+    "title": "Ask suppliers for a quote and negotiate",
+    "minutes": 4,
+    "intro": "When you want to buy more, ask suppliers for a quote. A clear request gets you a better price, faster.",
+    "intro_pcm": "When you wan buy plenty, ask suppliers for quote. Clear request go give you better price quick quick.",
+    "learn": [
+     "What to include in a request",
+     "Comparing quotes fairly",
+     "Negotiating politely",
+     "Payment and delivery terms"
+    ],
+    "steps": [
+     [
+      "Say exactly what you want",
+      "Product, colours, sizes and quantity."
+     ],
+     [
+      "Ask for price per piece at two quantities",
+      "For example 20 pieces and 50 pieces, so you see the discount."
+     ],
+     [
+      "Ask about delivery and payment",
+      "How long it takes, who pays delivery and when you pay."
+     ],
+     [
+      "Compare at least two quotes",
+      "Price, time and how reliable they have been. Then ask the best one to match on one point."
+     ]
+    ],
+    "try_pcm": "Send clear quote request to two suppliers for product wey you dey sell well, with two quantities. Compare wetin dem reply.",
+    "checks": [
+     "I listed what I want",
+     "I asked for prices by quantity",
+     "I asked about delivery time",
+     "I compared two quotes"
+    ],
+    "quiz": "What makes a supplier reply faster with a good price?",
+    "options": [
+     "A vague message",
+     "A clear request with quantities",
+     "Asking for free samples only"
+    ],
+    "correct": 2,
+    "why": "Suppliers price faster when they know exactly what you need.",
+    "video": "Ask well, pay less.",
+    "biz": {
+     "en": "In Shopinbos Business you can send a quote request to a supplier on Find stock and see their reply in one place.",
+     "pcm": "For Shopinbos Business you fit send quote request to supplier for Find stock and see their reply for one place.",
+     "cta": [
+      "Start free",
+      "%%SIGNUP%%"
+     ]
+    },
+    "was": [
+     "asking-suppliers-for-a-quote"
+    ],
+    "try": "Send a clear quote request to two suppliers for a product you sell often, with two quantities. Compare the replies."
+   },
+   {
+    "title": "How much stock to buy",
+    "minutes": 5,
+    "intro": "Too little stock and you miss sales. Too much and your cash is stuck on the shelf. A simple rule based on what you sell each week helps you buy the right amount.",
+    "intro_pcm": "If stock small, you go miss sales. If e too much, your money go hook for shelf. Simple rule based on wetin you dey sell every week go help you buy correct amount.",
+    "learn": [
+     "How to work out weekly sales",
+     "Lead time: how long restocking takes",
+     "A simple reorder point",
+     "What to do with slow stock"
+    ],
+    "steps": [
+     [
+      "Count weekly sales",
+      "For each product, how many sold in the last four weeks, divided by four."
+     ],
+     [
+      "Know your lead time",
+      "How many weeks from ordering to having it in hand."
+     ],
+     [
+      "Set a reorder point",
+      "Weekly sales × lead time, plus one extra week. Reorder when stock falls to that number."
+     ],
+     [
+      "Clear slow stock",
+      "If something has not sold in 60 days, bundle it or discount it, and don’t reorder."
+     ]
+    ],
+    "try_pcm": "Calculate reorder point for your three best sellers and write am beside each one.",
+    "checks": [
+     "I know my weekly sales",
+     "I know my lead time",
+     "I set reorder points",
+     "I listed my slow stock"
+    ],
+    "quiz": "You sell 5 wigs a week and restocking takes 2 weeks. When should you reorder?",
+    "options": [
+     "When you have 15 left",
+     "When you have 1 left",
+     "Every six months"
+    ],
+    "correct": 1,
+    "why": "5 a week × 2 weeks, plus one extra week, is 15. Reorder then and you won’t run out.",
+    "video": "Buy the right amount.",
+    "biz": {
+     "en": "Shopinbos Business counts your stock as you sell, including sales you record, and shows Low stock so you can restock before you run out.",
+     "pcm": "Shopinbos Business dey count your stock as you dey sell, including sales wey you record, and e go show Low stock so you fit restock before e finish.",
+     "cta": [
+      "Start free",
+      "%%SIGNUP%%"
+     ]
+    },
+    "try": "Work out the reorder point for your three best sellers and write it next to each one."
+   },
+   {
+    "title": "Importing from China, step by step",
+    "minutes": 5,
+    "intro": "Importing can lower your costs, but there are more steps and more risk. Here is the path most small shops follow.",
+    "intro_pcm": "Import fit reduce your cost, but e get more steps and more risk. See the road wey most small shops dey follow.",
+    "learn": [
+     "Finding products on Chinese wholesale sites",
+     "Using a sourcing agent",
+     "Air vs sea shipping",
+     "Working out landed cost"
+    ],
+    "steps": [
+     [
+      "Find the product and ask for samples",
+      "Check quality before you order more."
+     ],
+     [
+      "Use a trusted agent",
+      "They buy, check and ship for you."
+     ],
+     [
+      "Choose air or sea",
+      "Air: 1–2 weeks per kg. Sea: 6–10 weeks per CBM."
+     ],
+     [
+      "Work out your landed cost",
+      "Price, shipping, clearing and local delivery."
+     ]
+    ],
+    "try_pcm": "Use the landed cost calculator for one product wey you dey think to import.",
+    "checks": [
+     "I found a product and supplier",
+     "I have a trusted agent",
+     "I chose air or sea",
+     "I worked out my landed cost"
+    ],
+    "quiz": "What is “landed cost”?",
+    "options": [
+     "Only the factory price",
+     "Everything it costs to get the item to you",
+     "The shipping price only"
+    ],
+    "correct": 2,
+    "why": "Your real cost includes shipping, clearing and local delivery, not just the factory price.",
+    "video": "From China to your shelf.",
+    "biz": {
+     "en": "The free landed cost calculator adds shipping, clearing and local delivery so you see your real cost per piece before you order.",
+     "pcm": "The free landed cost calculator go add shipping, clearing and local delivery so you see your real cost for each piece before you order.",
+     "cta": [
+      "Open the landed cost calculator",
+      "/tools/landed-cost-calculator/"
+     ]
+    },
+    "was": [
+     "importing-from-china-step-by-step"
+    ],
+    "try": "Use the landed cost calculator for one product you are thinking of importing."
+   }
+  ]
+ },
+ {
+  "slug": "branding-and-growth",
+  "name": "Branding and growth",
+  "about": "For sellers who want to stand out and charge what they are worth. Learn what a brand really is, how to pick a name and web address people remember, keep one look everywhere, find your voice, tell your story, use packaging and launch product drops.",
+  "bg": "#F3E8FF",
+  "fg": "#6B2FB3",
+  "icon": "spark",
+  "for": "Sellers who are tired of competing on price and want buyers to remember them.",
+  "learn": [
+   "What a brand really is (it is not your logo)",
+   "How to pick a name and web address people remember",
+   "How to look and sound the same everywhere",
+   "How your story and packaging make people talk",
+   "How to launch a product drop"
+  ],
+  "biz": "Shopinbos Business keeps your logo, colours and fonts in a brand kit, lets you connect your own domain and has a packaging designer for print-ready labels.",
+  "biz_cta": [
+   "Start free with Shopinbos Business",
+   "%%SIGNUP%%"
+  ],
+  "lessons": [
+   {
+    "title": "What a brand really is",
+    "minutes": 4,
+    "intro": "A brand is not your logo. It is what people say about you when you are not in the room. It comes from a promise you keep every time: the quality, the service, the way you talk and deliver.",
+    "intro_pcm": "Brand no be your logo. Na wetin people dey talk about you when you no dey there. E dey come from promise wey you dey keep every time: quality, service, how you dey talk and deliver.",
+    "learn": [
+     "Brand vs logo",
+     "The promise behind a brand",
+     "Why small shops can have strong brands",
+     "How to find out what people already say"
+    ],
+    "steps": [
+     [
+      "Ask five customers",
+      "“What three words would you use to describe my shop?”"
+     ],
+     [
+      "Write your promise",
+      "One thing buyers can always count on: “Original items, delivered in two days.”"
+     ],
+     [
+      "Check you keep it",
+      "Look at your last ten orders. Did each one keep the promise?"
+     ],
+     [
+      "Fix the gaps first",
+      "A new logo won’t help if deliveries are late. Fix the experience."
+     ]
+    ],
+    "try_pcm": "Ask five customers make dem give you three words wey describe your shop. Write your one-line promise from wetin you hear.",
+    "checks": [
+     "I asked five customers",
+     "I wrote my promise",
+     "I checked my last ten orders",
+     "I picked one gap to fix"
+    ],
+    "quiz": "What builds a brand the most?",
+    "options": [
+     "A fancy logo",
+     "Keeping the same promise on every order",
+     "Posting every hour"
+    ],
+    "correct": 2,
+    "why": "People trust what they experience again and again. The logo only reminds them.",
+    "video": "A promise you keep.",
+    "try": "Ask five customers for three words that describe your shop. Write your one-line promise based on what you hear."
+   },
+   {
+    "title": "A name and web address people remember",
+    "minutes": 4,
+    "intro": "A good business name is easy to say, easy to spell and easy to find. Your own web address, like yourshop.com.ng, makes you look established and keeps your name safe.",
+    "intro_pcm": "Good business name suppose easy to talk, easy to spell and easy to find. Your own web address, like yourshop.com.ng, go make you look like correct business and keep your name safe.",
+    "learn": [
+     "What makes a name stick",
+     "Checking a name is free to use",
+     ".com vs .com.ng vs .ng",
+     "Keeping your name renewed"
+    ],
+    "steps": [
+     [
+      "Say it out loud",
+      "Could someone spell it after hearing it on a voice note?"
+     ],
+     [
+      "Check it is free",
+      "Search Instagram, TikTok, the CAC portal and domain sellers for the same name."
+     ],
+     [
+      "Avoid big brand names",
+      "Using a famous name can get your page taken down."
+     ],
+     [
+      "Buy the domain and turn on auto-renew",
+      "So nobody else takes it when it expires."
+     ]
+    ],
+    "try_pcm": "Write three name ideas. Check each one for Instagram, TikTok and domain seller, and keep the one wey free everywhere.",
+    "checks": [
+     "I wrote three ideas",
+     "I said each one out loud",
+     "I checked they are free online",
+     "I know how I will keep the domain renewed"
+    ],
+    "quiz": "What makes a good business name?",
+    "options": [
+     "Long and full of numbers",
+     "Short, easy to say and easy to spell",
+     "Exactly like a big brand"
+    ],
+    "correct": 2,
+    "why": "If people can say it and spell it, they can find you and tell others.",
+    "video": "A name that sticks.",
+    "biz": {
+     "en": "Try the free business name generator. In Shopinbos Business you can connect a domain you own, or buy a .com or .ng that points to your store.",
+     "pcm": "Try the free business name generator. For Shopinbos Business you fit connect domain wey you own, or buy .com or .ng wey go point to your store.",
+     "cta": [
+      "Open the name generator",
+      "/tools/business-name-generator/"
+     ]
+    },
+    "was": [
+     "your-own-domain-name"
+    ],
+    "try": "Write three name ideas. Check each one on Instagram, TikTok and a domain seller, and keep the one that is free everywhere."
+   },
+   {
+    "title": "Make your brand look the same everywhere",
+    "minutes": 4,
+    "intro": "When your store, posts, packaging and WhatsApp all look alike, people recognise you before they read your name. You only need one colour, one or two fonts and a style for your photos.",
+    "intro_pcm": "When your store, posts, packaging and WhatsApp all resemble, people go know you before dem read your name. You only need one colour, one or two fonts and one style for your pictures.",
+    "learn": [
+     "Why the same look builds trust",
+     "Picking one brand colour",
+     "Fonts and photo style",
+     "Where to use them"
+    ],
+    "steps": [
+     [
+      "Pick one main colour",
+      "Use it for buttons, labels and highlights. Not everywhere."
+     ],
+     [
+      "Pick one or two fonts",
+      "One for names and headings, one for normal text."
+     ],
+     [
+      "Choose one photo style",
+      "Same background and light for every product."
+     ],
+     [
+      "Use them everywhere",
+      "Store, Status pictures, profile photos, labels and receipts."
+     ]
+    ],
+    "try_pcm": "Write your colour, your fonts and your picture style. Then change one thing wey no match, like your profile picture or label.",
+    "checks": [
+     "I picked one colour",
+     "I picked my fonts",
+     "I chose one photo style",
+     "I fixed one thing that didn’t match"
+    ],
+    "quiz": "What should you do with your brand colour?",
+    "options": [
+     "Use it on everything, everywhere",
+     "Use it for buttons and highlights",
+     "Change it every month"
+    ],
+    "correct": 2,
+    "why": "One colour used with care looks professional. Too much looks messy.",
+    "video": "One look, everywhere.",
+    "biz": {
+     "en": "Shopinbos Business keeps your logo, colours and fonts in a brand kit, so your store, posts and labels match. Rex can design your logo and posts too.",
+     "pcm": "Shopinbos Business dey keep your logo, colours and fonts for brand kit, so your store, posts and labels go match. Rex fit design your logo and posts too.",
+     "cta": [
+      "See the store templates",
+      "/templates/"
+     ]
+    },
+    "was": [
+     "pick-a-look-that-fits-your-brand"
+    ],
+    "try": "Write down your colour, your fonts and your photo style. Then change one thing that doesn’t match, like your profile picture or a label."
+   },
+   {
+    "title": "Find your brand voice",
+    "minutes": 4,
+    "intro": "Your voice is how your shop sounds in captions, replies and voice notes. A clear voice makes you feel like a real person buyers know, not just another seller.",
+    "intro_pcm": "Your voice na how your shop dey sound for captions, replies and voice notes. Clear voice go make you feel like real person wey buyers know, no be just another seller.",
+    "learn": [
+     "What brand voice means",
+     "Choosing three words for your voice",
+     "English, Pidgin or both",
+     "Keeping helpers in the same voice"
+    ],
+    "steps": [
+     [
+      "Pick three words",
+      "For example “warm, quick, honest” or “bold, fun, direct”."
+     ],
+     [
+      "Decide your language",
+      "English, Pidgin or a mix. Use what your buyers use."
+     ],
+     [
+      "Write five example lines",
+      "A greeting, a price reply, a “sorry”, a thank-you and a caption."
+     ],
+     [
+      "Share them with anyone who replies",
+      "So your helper sounds like you too."
+     ]
+    ],
+    "try_pcm": "Pick your three voice words and write your five example lines. Keep dem where you and your helper fit see dem.",
+    "checks": [
+     "I picked three words",
+     "I decided my language",
+     "I wrote five example lines",
+     "My helper has them"
+    ],
+    "quiz": "A buyer complains about a late delivery. Which reply fits a “warm and honest” voice?",
+    "options": [
+     "“Delivery delays are not our fault.”",
+     "“So sorry, the rider was delayed. It will reach you by 4pm today, and I’ll update you.”",
+     "“Ok.”"
+    ],
+    "correct": 2,
+    "why": "Warm and honest means owning the problem and giving a clear next step.",
+    "video": "Sound like you.",
+    "biz": {
+     "en": "Peggy in Shopinbos Business drafts replies in English or Pidgin using your shop’s rules, and you can check them before they go.",
+     "pcm": "Peggy for Shopinbos Business dey draft replies for English or Pidgin with your shop rules, and you fit check dem before dem go.",
+     "cta": [
+      "Meet Rex and Peggy",
+      "/rex-and-peggy/"
+     ]
+    },
+    "try": "Pick your three voice words and write your five example lines. Save them where you and your helper can see them."
+   },
+   {
+    "title": "Tell your story so people buy from you",
+    "minutes": 4,
+    "intro": "People buy from people. A short, true story about why you started and who you serve makes buyers trust you and choose you over a faceless shop.",
+    "intro_pcm": "People dey buy from people. Short, true story about why you start and who you dey serve go make buyers trust you and choose you over shop wey no get face.",
+    "learn": [
+     "Why stories sell",
+     "The three parts of a short story",
+     "Where to share it",
+     "Keeping it true"
+    ],
+    "steps": [
+     [
+      "Why you started",
+      "“I couldn’t find shoes in my size, so I started importing them.”"
+     ],
+     [
+      "Who you serve",
+      "The people you help and how."
+     ],
+     [
+      "What you promise",
+      "The one thing you always do for them."
+     ],
+     [
+      "Share it in many places",
+      "Your About page, a pinned post, your Status and a short video."
+     ]
+    ],
+    "try_pcm": "Write your story for five sentences and post am as pinned post or Status with your picture.",
+    "checks": [
+     "I wrote why I started",
+     "I said who I serve",
+     "I added my promise",
+     "I posted it with my photo"
+    ],
+    "quiz": "What makes a business story work?",
+    "options": [
+     "Big words about being the best",
+     "A short, true reason you started and who you help",
+     "A long history of your family"
+    ],
+    "correct": 2,
+    "why": "Short and true beats long and fancy. Buyers want to know who they are buying from.",
+    "video": "Your why.",
+    "try": "Write your story in five sentences and post it as a pinned post or a Status with your photo."
+   },
+   {
+    "title": "Packaging that makes people talk",
+    "minutes": 4,
+    "intro": "The moment a buyer opens your parcel is part of your brand. Simple, neat packaging with a small personal touch turns a delivery into something people photograph and share.",
+    "intro_pcm": "The time wey buyer dey open your parcel na part of your brand. Simple, neat packaging with small personal touch go turn delivery to something wey people go snap and share.",
+    "learn": [
+     "Why unboxing matters",
+     "Cheap touches that feel special",
+     "Labels with your brand",
+     "Asking buyers to share"
+    ],
+    "steps": [
+     [
+      "Keep it clean and neat",
+      "A clean nylon or box beats a fancy one that arrives crushed."
+     ],
+     [
+      "Add your label or sticker",
+      "Your name, logo and how to order again."
+     ],
+     [
+      "Add a small note",
+      "A handwritten thank-you or a printed card with their name."
+     ],
+     [
+      "Invite a photo",
+      "“Tag us when you open it” on the card."
+     ]
+    ],
+    "try_pcm": "Design one thank-you card for your parcels with your name, how to order again and make dem tag you. Put am for your next five orders.",
+    "checks": [
+     "My parcels look clean",
+     "I have a label or sticker",
+     "I add a thank-you note",
+     "I invite buyers to share"
+    ],
+    "quiz": "Which touch costs little but gets buyers talking?",
+    "options": [
+     "An expensive gift box",
+     "A handwritten thank-you note",
+     "Extra tape"
+    ],
+    "correct": 2,
+    "why": "A personal note costs almost nothing and people remember it.",
+    "video": "Open, smile, share.",
+    "biz": {
+     "en": "Shopinbos Business has a packaging designer: pick a template, add your words and picture, and download a print-ready file for your printer.",
+     "pcm": "Shopinbos Business get packaging designer: pick template, add your words and picture, then download file wey ready for your printer.",
+     "cta": [
+      "Start free",
+      "%%SIGNUP%%"
+     ]
+    },
+    "try": "Design one thank-you card for your parcels with your name, how to reorder and an invite to tag you. Add it to your next five orders."
+   },
+   {
+    "title": "Launch a product drop",
+    "minutes": 5,
+    "intro": "A drop is a new product or collection released on a set date, often in limited numbers. Done well, it gives people a reason to watch your page and buy quickly.",
+    "intro_pcm": "Drop na new product or collection wey you release for one date, many times in small number. If you do am well, e go give people reason to dey watch your page and buy quick.",
+    "learn": [
+     "What makes a drop work",
+     "Building excitement before the date",
+     "Limited quantity, honestly",
+     "What to do after the drop"
+    ],
+    "steps": [
+     [
+      "Pick a date and time",
+      "Give people at least five days’ notice."
+     ],
+     [
+      "Tease it",
+      "Close-ups, behind the scenes and a countdown on Status and stories."
+     ],
+     [
+      "Say how many",
+      "Only say “limited” if it really is. Say the number."
+     ],
+     [
+      "Follow up",
+      "Thank buyers, post their photos and tell others when the next drop is."
+     ]
+    ],
+    "try_pcm": "Plan one small drop for next month: the product, how many, the date and four teaser posts.",
+    "checks": [
+     "I picked a date",
+     "I planned four teasers",
+     "I know how many I will sell",
+     "I planned the follow-up"
+    ],
+    "quiz": "What makes a drop honest and effective?",
+    "options": [
+     "Saying “limited” when you have hundreds",
+     "A clear date and a real quantity",
+     "Keeping it a secret until the day"
+    ],
+    "correct": 2,
+    "why": "Real numbers and a clear date build trust and excitement. Fake scarcity breaks trust.",
+    "video": "Drop day.",
+    "biz": {
+     "en": "In Shopinbos Business, a seasonal campaign can dress up your store for a set time with a countdown. Shopinbos Plug, our shopper app (coming soon), will let buyers follow shops and see their drops.",
+     "pcm": "For Shopinbos Business, seasonal campaign fit dress your store for some time with countdown. Shopinbos Plug, our shopper app (e dey come soon), go let buyers follow shops and see their drops.",
+     "cta": [
+      "About Shopinbos Plug",
+      "/plug/"
+     ]
+    },
+    "try": "Plan one small drop for the next month: the product, how many, the date and four teaser posts."
+   }
+  ]
+ },
+ {
+  "slug": "sell-on-whatsapp",
+  "name": "Sell on WhatsApp",
+  "about": "For sellers who take orders in WhatsApp chats. Learn to set up a business profile buyers trust, sell on Status, answer common questions fast, turn chats into confirmed orders, send broadcasts people read, follow up and use groups without spamming.",
+  "bg": "#E2F6F1",
+  "fg": "#0C4A44",
+  "icon": "wa",
+  "for": "Sellers who get most of their orders through WhatsApp chats and Status.",
+  "learn": [
+   "How to make your profile look like a real business",
+   "How to sell on Status",
+   "How to answer the same questions once",
+   "How to turn a chat into a confirmed order",
+   "How to send broadcasts, follow up and use groups without spamming"
+  ],
+  "biz": "Shopinbos Business brings your WhatsApp, Instagram and store chats into one inbox, with auto-replies, payment links and Peggy to draft answers.",
+  "biz_cta": [
+   "Start free with Shopinbos Business",
+   "%%SIGNUP%%"
+  ],
+  "lessons": [
+   {
+    "title": "Make your WhatsApp look like a real business",
+    "minutes": 5,
+    "intro": "Buyers decide whether to trust you before they send the first message. A complete WhatsApp Business profile, a catalogue and a greeting message make you look like a real shop.",
+    "intro_pcm": "Buyers dey decide whether dem go trust you before dem send first message. Complete WhatsApp Business profile, catalogue and greeting message go make you look like real shop.",
+    "learn": [
+     "Business app vs personal app",
+     "What to put in your profile",
+     "Why a catalogue helps buyers",
+     "Greeting and away messages"
+    ],
+    "steps": [
+     [
+      "Use WhatsApp Business",
+      "It is free, and you can move your number from personal WhatsApp."
+     ],
+     [
+      "Fill your profile",
+      "Shop name, area, hours, a one-line description and your store link."
+     ],
+     [
+      "Add a catalogue",
+      "Your best products with prices, so buyers can browse in the chat."
+     ],
+     [
+      "Set greeting and away messages",
+      "Say hello, share your link and say when you will reply."
+     ]
+    ],
+    "try_pcm": "Fill every space for your business profile and set greeting message with your store link.",
+    "checks": [
+     "I use WhatsApp Business",
+     "My profile has hours and my area",
+     "My store link is in my profile",
+     "My greeting message is on"
+    ],
+    "quiz": "What should your greeting message include?",
+    "options": [
+     "Your bank account number",
+     "A hello and your store link",
+     "Your full price list"
+    ],
+    "correct": 2,
+    "why": "A link lets people browse and order on their own, even when you are busy.",
+    "video": "Set up in 5 minutes.",
+    "biz": {
+     "en": "Shopinbos Business can show your products as a WhatsApp catalogue, and orders from WhatsApp land in the same list as your store orders.",
+     "pcm": "Shopinbos Business fit show your products as WhatsApp catalogue, and orders from WhatsApp go land for the same list as your store orders.",
+     "cta": [
+      "See social selling",
+      "/social-selling/"
+     ]
+    },
+    "was": [
+     "set-up-whatsapp-business-properly"
+    ],
+    "try": "Fill every field in your business profile and set a greeting message with your store link."
+   },
+   {
+    "title": "Turn your Status into a shop window",
+    "minutes": 4,
+    "intro": "Your Status is seen by people who already know you. In this lesson you’ll set it up like a shop window: the right product, the right words, at the right time.",
+    "intro_pcm": "Na people wey sabi you dey watch your Status. For this lesson, you go learn how to arrange am like shop window: correct product, correct talk, for correct time.",
+    "learn": [
+     "What makes a Status post sell",
+     "The 4 things every product post needs",
+     "When to post for the most views",
+     "How to add your store link without spamming"
+    ],
+    "steps": [
+     [
+      "Take one clear photo",
+      "Daylight from a window, plain background, the product filling most of the picture."
+     ],
+     [
+      "Write the price on it",
+      "Use the text tool. Big and easy to read: ₦28,000."
+     ],
+     [
+      "Say how to order",
+      "One line: “Reply BAG to order” or “Tap the link in my Status”."
+     ],
+     [
+      "Post between 8 and 10pm",
+      "That is usually when most of your contacts are on their phones."
+     ]
+    ],
+    "try_pcm": "Post one product for your Status tonight with these four steps. Tomorrow, count how many people reply.",
+    "checks": [
+     "I took a photo in daylight",
+     "The price is on the picture",
+     "I wrote how to order",
+     "I added my store link to one Status today"
+    ],
+    "quiz": "A customer replies “how much?” to your Status. What does that tell you?",
+    "options": [
+     "The photo was not good enough",
+     "The price was not on the picture",
+     "They are not serious"
+    ],
+    "correct": 2,
+    "why": "When the price is missing, people have to ask, and many never do. Put it on the picture.",
+    "video": "Price on the picture. Every time.",
+    "biz": {
+     "en": "Rex in Shopinbos Business can turn your product photos into clean pictures and short videos for Status, and the social planner keeps a week of posts ready.",
+     "pcm": "Rex for Shopinbos Business fit turn your product pictures to clean pictures and short videos for Status, and social planner go keep one week of posts ready.",
+     "cta": [
+      "Meet Rex and Peggy",
+      "/rex-and-peggy/"
+     ]
+    },
+    "was": [
+     "turn-your-status-into-a-shop-window"
+    ],
+    "try": "Post one product to your Status tonight using these four steps. Tomorrow, count how many people replied."
+   },
+   {
+    "title": "Quick replies that save you hours",
+    "minutes": 4,
+    "intro": "Most chats ask the same five questions. Saved replies answer them in one tap, so you spend your time on orders, not typing.",
+    "intro_pcm": "Most chat dey ask the same five questions. Saved reply go answer dem one tap, so your time go dey for orders, no be typing.",
+    "learn": [
+     "Which questions to save",
+     "How to set up quick replies",
+     "Writing replies that sound like you",
+     "Adding your link to replies"
+    ],
+    "steps": [
+     [
+      "List your top 5 questions",
+      "Price, delivery, sizes, “is it original?”, how to pay."
+     ],
+     [
+      "Write a short answer for each",
+      "Friendly, clear, with the next step."
+     ],
+     [
+      "Save them as quick replies",
+      "In WhatsApp Business: Business tools, Quick replies."
+     ],
+     [
+      "End with a next step",
+      "Your store link, or “reply with your size to order”."
+     ]
+    ],
+    "try_pcm": "Save five quick reply today. Use dem for every chat tomorrow and count how much time you save.",
+    "checks": [
+     "I listed my 5 most common questions",
+     "I wrote a reply for each",
+     "I saved them as quick replies",
+     "Each reply ends with a next step"
+    ],
+    "quiz": "What should every quick reply end with?",
+    "options": [
+     "A long apology",
+     "A next step, like your store link",
+     "Your full life story"
+    ],
+    "correct": 2,
+    "why": "A clear next step turns an answer into an order.",
+    "video": "Answer in one tap.",
+    "biz": {
+     "en": "Shopinbos Business has auto-replies for common questions, even at night, and Peggy can draft answers from your products, prices and policies.",
+     "pcm": "Shopinbos Business get auto-replies for common questions, even for night, and Peggy fit draft answers from your products, prices and policies.",
+     "cta": [
+      "Meet Rex and Peggy",
+      "/rex-and-peggy/"
+     ]
+    },
+    "was": [
+     "quick-replies-that-save-you-hours"
+    ],
+    "try": "Save five quick replies today. Use them for every chat tomorrow and count the time you save."
+   },
+   {
+    "title": "Turn a chat into an order",
+    "minutes": 5,
+    "intro": "Many chats end with “ok, I’ll get back to you” because the next step was not clear. A simple order routine helps the buyer say yes and stops mix-ups about size, address or payment.",
+    "intro_pcm": "Plenty chat dey end with “ok, I go get back to you” because the next step no clear. Simple order routine go help buyer talk yes and stop mix-up about size, address or payment.",
+    "learn": [
+     "The five details every order needs",
+     "Sending one clear summary",
+     "Asking for payment kindly",
+     "Confirming before you send"
+    ],
+    "steps": [
+     [
+      "Confirm the item",
+      "Product, size, colour and quantity. Send the photo back."
+     ],
+     [
+      "Give the full price",
+      "Item plus delivery, in one number: “₦18,500 delivered to Yaba.”"
+     ],
+     [
+      "Get name, phone and address",
+      "With a landmark the rider can find."
+     ],
+     [
+      "Send one summary and how to pay",
+      "Then confirm the delivery day once they pay."
+     ]
+    ],
+    "try_pcm": "Write your order summary template with the five details. Use am for every order this week.",
+    "checks": [
+     "I confirm the item with a photo",
+     "I give one full price",
+     "I get the address with a landmark",
+     "I send one clear summary"
+    ],
+    "quiz": "A buyer says “I want it”. What should you send next?",
+    "options": [
+     "“Ok.”",
+     "A summary with the item, total price, delivery and how to pay",
+     "Your full price list"
+    ],
+    "correct": 2,
+    "why": "A clear summary turns interest into a paid order and avoids mistakes.",
+    "video": "From chat to order.",
+    "biz": {
+     "en": "In Shopinbos Business you can send a payment link in the chat for the exact products, and the buyer picks delivery and pays. The order lands in Orders.",
+     "pcm": "For Shopinbos Business you fit send payment link for chat for the exact products, and buyer go pick delivery and pay. The order go land for Orders.",
+     "cta": [
+      "Start free",
+      "%%SIGNUP%%"
+     ]
+    },
+    "was": [
+     "let-peggy-answer-when-youre-busy"
+    ],
+    "try": "Write your order summary template with the five details. Use it for every order this week."
+   },
+   {
+    "title": "Broadcasts people don’t mute",
+    "minutes": 5,
+    "intro": "A broadcast reaches everyone on your list at once. Send the right ones and people look forward to them. Send too many and they mute you.",
+    "intro_pcm": "Broadcast dey reach everybody for your list one time. If you send correct ones, people go dey wait for am. If e too much, dem go mute you.",
+    "learn": [
+     "Broadcast lists vs groups",
+     "Who to add and how to ask",
+     "What to send and how often",
+     "How to stay within WhatsApp rules"
+    ],
+    "steps": [
+     [
+      "Ask before you add",
+      "Only add people who said yes."
+     ],
+     [
+      "Split your lists",
+      "New customers, regulars, and wholesale buyers."
+     ],
+     [
+      "Send one offer at a time",
+      "One product, one price, one way to order."
+     ],
+     [
+      "Keep it to once or twice a week",
+      "Always tell people how to stop."
+     ]
+    ],
+    "try_pcm": "Create one broadcast list of people wey agree to hear from you, and send dem one product this week.",
+    "checks": [
+     "Everyone on my list said yes",
+     "My message has one product and one price",
+     "I said how to stop",
+     "I will send at most twice a week"
+    ],
+    "quiz": "How often should most shops send a broadcast?",
+    "options": [
+     "Every hour",
+     "Once or twice a week",
+     "Never"
+    ],
+    "correct": 2,
+    "why": "Enough to stay in mind, not so much that people mute you. Always give people a way to stop.",
+    "video": "Messages people want.",
+    "biz": {
+     "en": "In Shopinbos Business, Campaigns send one message to a group of customers by WhatsApp, email or SMS, and Segments let you pick the right group.",
+     "pcm": "For Shopinbos Business, Campaigns dey send one message to group of customers by WhatsApp, email or SMS, and Segments go let you pick the correct group.",
+     "cta": [
+      "See social selling",
+      "/social-selling/"
+     ]
+    },
+    "was": [
+     "broadcasts-people-dont-mute"
+    ],
+    "try": "Create one broadcast list of people who agreed to hear from you and send them one product this week."
+   },
+   {
+    "title": "Follow up without begging",
+    "minutes": 4,
+    "intro": "Most lost orders are not “no”. They are “later” that nobody followed up. A short, friendly message brings many of them back.",
+    "intro_pcm": "Most orders wey you lose no be “no”. Na “later” wey nobody follow up. Short, friendly message fit bring many of dem back.",
+    "learn": [
+     "When to follow up",
+     "What to say",
+     "When to stop",
+     "Following up after delivery"
+    ],
+    "steps": [
+     [
+      "Follow up the same evening",
+      "While they still remember the product."
+     ],
+     [
+      "Be helpful, not pushy",
+      "“Still interested? It’s back in your size.”"
+     ],
+     [
+      "Follow up once more after 3 days",
+      "Then stop."
+     ],
+     [
+      "Ask for a review after delivery",
+      "A voice note or a photo is perfect."
+     ]
+    ],
+    "try_pcm": "Find three chat from this week wey quiet and send friendly follow-up to each one.",
+    "checks": [
+     "I followed up 3 quiet chats",
+     "My message was friendly, not pushy",
+     "I will stop after two follow-ups",
+     "I asked one customer for a review"
+    ],
+    "quiz": "A buyer asked the price yesterday and went quiet. What should you do?",
+    "options": [
+     "Send a friendly follow-up today",
+     "Message them every hour",
+     "Block them"
+    ],
+    "correct": 1,
+    "why": "One kind reminder brings many buyers back. More than two feels like pressure.",
+    "video": "Follow up, kindly.",
+    "biz": {
+     "en": "Shopinbos Business can remind buyers who left items in their cart, starting on WhatsApp, so you don’t have to remember every chat.",
+     "pcm": "Shopinbos Business fit remind buyers wey leave items for their cart, starting for WhatsApp, so you no need remember every chat.",
+     "cta": [
+      "Start free",
+      "%%SIGNUP%%"
+     ]
+    },
+    "was": [
+     "follow-up-without-begging"
+    ],
+    "try": "Find three chats from this week that went quiet and send a friendly follow-up to each."
+   },
+   {
+    "title": "Use WhatsApp groups without spamming",
+    "minutes": 4,
+    "intro": "Groups can bring buyers, but dropping links everywhere gets you removed and ignored. Give value first, follow each group’s rules and let people come to you.",
+    "intro_pcm": "Groups fit bring buyers, but if you dey drop link everywhere dem go remove you or ignore you. Give value first, follow each group rules and let people come meet you.",
+    "learn": [
+     "Finding groups your buyers are in",
+     "Reading the group rules",
+     "Posting value, not just adverts",
+     "Starting your own group"
+    ],
+    "steps": [
+     [
+      "Pick a few good groups",
+      "Estate, school, church, office or hobby groups where your buyers are."
+     ],
+     [
+      "Read the rules",
+      "Some allow adverts only on certain days. Ask the admin."
+     ],
+     [
+      "Help first",
+      "Answer questions and share tips. Then post an offer when allowed."
+     ],
+     [
+      "Invite buyers to your own list",
+      "People who say yes can join your broadcast or community."
+     ]
+    ],
+    "try_pcm": "Pick three groups wey you dey. Read their rules and plan one helpful post for each before you post any offer.",
+    "checks": [
+     "I picked three groups",
+     "I read the rules",
+     "I planned helpful posts",
+     "I invite people to my own list"
+    ],
+    "quiz": "What gets you removed from groups fastest?",
+    "options": [
+     "Answering questions",
+     "Posting your link many times a day",
+     "Following the admin’s rules"
+    ],
+    "correct": 2,
+    "why": "Spam annoys people. Help first and post offers when the group allows.",
+    "video": "Help first, sell next.",
+    "try": "Pick three groups you are in. Read their rules and plan one helpful post for each before you post any offer."
+   }
+  ]
+ },
+ {
+  "slug": "instagram-tiktok-and-ads",
+  "name": "Instagram, TikTok and ads",
+  "about": "For sellers who want new customers beyond their contacts. Learn phone photos that sell, a profile that converts, a weekly content plan, short videos, live selling, working with creators, small test ads and how to read ad results.",
+  "bg": "#E7E1FF",
+  "fg": "#5B3FD6",
+  "icon": "cam",
+  "for": "Sellers ready to reach strangers on social media and try small ads.",
+  "learn": [
+   "How to take phone photos that sell",
+   "How to set up a profile that turns visitors into buyers",
+   "How to plan a week of posts and short videos",
+   "How to sell live and work with creators",
+   "How to run a small test ad and read the numbers"
+  ],
+  "biz": "Shopinbos Business has a social planner for a week of posts, Rex Studio for product photos and videos, a link-in-bio page and creator links that count every sale.",
+  "biz_cta": [
+   "Start free with Shopinbos Business",
+   "%%SIGNUP%%"
+  ],
+  "lessons": [
+   {
+    "title": "Phone photos that sell",
+    "minutes": 5,
+    "intro": "Good photos sell before you say a word. You only need a window, a plain background and your phone.",
+    "intro_pcm": "Fine photo dey sell before you talk anything. Na only window, plain background and your phone you need.",
+    "learn": [
+     "Using daylight",
+     "Choosing a background",
+     "The five shots every product needs",
+     "Mistakes that cause returns"
+    ],
+    "steps": [
+     [
+      "Shoot near a window",
+      "Morning or late afternoon light, room light off."
+     ],
+     [
+      "Use a plain background",
+      "A white sheet, wall or cardboard."
+     ],
+     [
+      "Take five shots",
+      "Front, back, side, detail and in use."
+     ],
+     [
+      "Keep the colours true",
+      "No heavy filters."
+     ]
+    ],
+    "try_pcm": "Snap your best-selling product again near window with plain background. Compare am with the old photo.",
+    "checks": [
+     "I used daylight",
+     "The background is plain",
+     "I took five shots",
+     "The colour matches real life"
+    ],
+    "quiz": "Why do heavy filters cause problems?",
+    "options": [
+     "They make files bigger",
+     "They change the colour, so buyers return items",
+     "Instagram blocks them"
+    ],
+    "correct": 2,
+    "why": "If the item looks different in real life, buyers feel cheated. Keep colours true.",
+    "video": "Your phone is enough.",
+    "biz": {
+     "en": "Rex Studio in Shopinbos Business can clean up product photos and put them on a plain background, so every product looks the same.",
+     "pcm": "Rex Studio for Shopinbos Business fit clean product pictures and put dem for plain background, so every product go resemble.",
+     "cta": [
+      "Meet Rex and Peggy",
+      "/rex-and-peggy/"
+     ]
+    },
+    "was": [
+     "phone-photos-that-sell"
+    ],
+    "try": "Reshoot your best-selling product by a window with a plain background. Compare it with the old photo."
+   },
+   {
+    "title": "Instagram bio, highlights and link",
+    "minutes": 3,
+    "intro": "Your Instagram profile is a mini shop front. In three minutes you can make it clear what you sell and how to buy.",
+    "intro_pcm": "Your Instagram profile na small shop front. For three minutes, you fit make am clear wetin you dey sell and how people go buy.",
+    "learn": [
+     "Writing a bio that sells",
+     "Using highlights",
+     "Adding your store link",
+     "Pinning your best posts"
+    ],
+    "steps": [
+     [
+      "Write a 3-line bio",
+      "What you sell, where you deliver, how to order."
+     ],
+     [
+      "Add your store link",
+      "One link for everything."
+     ],
+     [
+      "Make 4 highlights",
+      "New in, Prices, Delivery, Reviews."
+     ],
+     [
+      "Pin 3 posts",
+      "Your best sellers."
+     ]
+    ],
+    "try_pcm": "Rewrite your bio for three lines and add your store link.",
+    "checks": [
+     "My bio says what I sell",
+     "My bio says where I deliver",
+     "My store link is in my bio",
+     "I have a Reviews highlight"
+    ],
+    "quiz": "What is the job of your bio?",
+    "options": [
+     "Tell your life story",
+     "Say what you sell and how to buy",
+     "List every product"
+    ],
+    "correct": 2,
+    "why": "Visitors decide in seconds. Make the next step obvious.",
+    "video": "A shop front in your bio.",
+    "biz": {
+     "en": "Shopinbos Business gives you a link-in-bio page with your products, Buy now buttons and WhatsApp, for your Instagram or TikTok bio.",
+     "pcm": "Shopinbos Business go give you link-in-bio page with your products, Buy now buttons and WhatsApp, for your Instagram or TikTok bio.",
+     "cta": [
+      "See social selling",
+      "/social-selling/"
+     ]
+    },
+    "was": [
+     "instagram-bio-highlights-and-link"
+    ],
+    "try": "Rewrite your bio in three lines and add your store link."
+   },
+   {
+    "title": "Plan a week of posts in one hour",
+    "minutes": 5,
+    "intro": "Posting only when you remember makes your page go quiet for days. One hour a week with a simple plan keeps you showing up without stress.",
+    "intro_pcm": "If you dey post only when you remember, your page go quiet for days. One hour every week with simple plan go keep you dey show face without stress.",
+    "learn": [
+     "Content pillars: the four kinds of posts",
+     "How often to post",
+     "Batching photos and captions",
+     "Reusing what works"
+    ],
+    "steps": [
+     [
+      "Pick four kinds of posts",
+      "Product, how to use it, a customer review, behind the scenes."
+     ],
+     [
+      "Plan seven posts",
+      "Mix the four kinds across the week."
+     ],
+     [
+      "Shoot and write in one go",
+      "Take all the photos and write all the captions in one sitting."
+     ],
+     [
+      "Repeat what worked",
+      "Each week, do more of the post that got the most replies or orders."
+     ]
+    ],
+    "try_pcm": "Plan next week seven posts for paper: the day, the kind of post and the product.",
+    "checks": [
+     "I picked my four kinds of posts",
+     "I planned seven posts",
+     "I shot and wrote them in one go",
+     "I know which post worked best last week"
+    ],
+    "quiz": "Which mix keeps a page interesting?",
+    "options": [
+     "Only price lists every day",
+     "Products, how-to, reviews and behind the scenes",
+     "Nothing for a week, then ten posts in a day"
+    ],
+    "correct": 2,
+    "why": "A mix gives people reasons to watch, trust you and buy.",
+    "video": "One hour, one week.",
+    "biz": {
+     "en": "The social planner in Shopinbos Business plans a week of posts for Facebook, Instagram, TikTok and WhatsApp, so each goes out on time.",
+     "pcm": "Social planner for Shopinbos Business dey plan one week of posts for Facebook, Instagram, TikTok and WhatsApp, so each one go comot on time.",
+     "cta": [
+      "See social selling",
+      "/social-selling/"
+     ]
+    },
+    "try": "Plan next week’s seven posts on paper: the day, the kind of post and the product."
+   },
+   {
+    "title": "Your first 5 TikTok videos",
+    "minutes": 6,
+    "intro": "TikTok rewards videos that feel real and quick. These five ideas work for almost any shop, and each takes under ten minutes.",
+    "intro_pcm": "TikTok like video wey real and quick. These five ideas fit almost any shop, and each one no pass ten minutes.",
+    "learn": [
+     "Five video ideas",
+     "What to show in the first 2 seconds",
+     "Captions and prices",
+     "How often to post"
+    ],
+    "steps": [
+     [
+      "Unbox a delivery",
+      "Packing, product, one close-up."
+     ],
+     [
+      "Three ways to use it",
+      "Three seconds each."
+     ],
+     [
+      "Pack an order",
+      "Hide the customer’s name."
+     ],
+     [
+      "Answer a real question",
+      "Take it from your chats."
+     ]
+    ],
+    "try_pcm": "Shoot one of the five video ideas today. Make am no pass 20 seconds and put price for caption.",
+    "checks": [
+     "The product shows in the first 2 seconds",
+     "It is under 20 seconds",
+     "The price is in the caption",
+     "My store link is in my bio"
+    ],
+    "quiz": "What matters most in the first two seconds?",
+    "options": [
+     "Your logo",
+     "The product",
+     "A long introduction"
+    ],
+    "correct": 2,
+    "why": "People decide fast. Show the product straight away.",
+    "video": "Five videos, one phone.",
+    "biz": {
+     "en": "Rex in Shopinbos Business can turn your product photos into short videos for TikTok, Reels and Status.",
+     "pcm": "Rex for Shopinbos Business fit turn your product pictures to short videos for TikTok, Reels and Status.",
+     "cta": [
+      "Meet Rex and Peggy",
+      "/rex-and-peggy/"
+     ]
+    },
+    "was": [
+     "your-first-5-tiktok-videos"
+    ],
+    "try": "Film one of the five video ideas today. Keep it under 20 seconds and put the price in the caption."
+   },
+   {
+    "title": "Going live to sell",
+    "minutes": 4,
+    "intro": "A live video lets buyers ask questions and order while you talk. Plan it like a small show and it can sell a week’s stock in an hour.",
+    "intro_pcm": "Live video dey make buyers ask question and order while you dey talk. Plan am like small show and e fit sell one week stock for one hour.",
+    "learn": [
+     "Planning a live",
+     "What to show",
+     "Taking orders during the live",
+     "Following up after"
+    ],
+    "steps": [
+     [
+      "Tell people the time a day before",
+      "Post it on Status and stories."
+     ],
+     [
+      "Pick 5 to 8 products",
+      "In order, with prices ready."
+     ],
+     [
+      "Show each one up close",
+      "Answer questions as they come."
+     ],
+     [
+      "Share your store link often",
+      "Say it and pin it."
+     ]
+    ],
+    "try_pcm": "Plan 20-minute live for next week: date, time and products wey you go show.",
+    "checks": [
+     "I picked a date and time",
+     "I chose my products",
+     "I prepared my prices",
+     "I will announce it a day before"
+    ],
+    "quiz": "What should you do during a live to get orders?",
+    "options": [
+     "Avoid mentioning prices",
+     "Share your store link often",
+     "Talk only about yourself"
+    ],
+    "correct": 2,
+    "why": "People join at different times. Repeat the link and the prices.",
+    "video": "Sell while you talk.",
+    "was": [
+     "going-live-to-sell"
+    ],
+    "try": "Plan a 20-minute live for next week: date, time and the products you will show."
+   },
+   {
+    "title": "Working with influencers",
+    "minutes": 5,
+    "intro": "The right small creator can sell more than a big celebrity. Here is how to find them, what to agree and how to see if it worked.",
+    "intro_pcm": "Correct small creator fit sell pass big celebrity. See how to find dem, wetin to agree, and how to know if e work.",
+    "learn": [
+     "Small vs big creators",
+     "What to agree before you pay",
+     "Giving them a code or link",
+     "Measuring results"
+    ],
+    "steps": [
+     [
+      "Find creators your buyers follow",
+      "Look at who comments on your posts."
+     ],
+     [
+      "Agree in writing",
+      "Price, number of posts, dates."
+     ],
+     [
+      "Give them their own link or code",
+      "So you can count orders."
+     ],
+     [
+      "Pay in parts",
+      "Half before, half after posting."
+     ]
+    ],
+    "try_pcm": "Write list of five small creators wey your customers dey follow, with their followers and engagement.",
+    "checks": [
+     "I listed 5 creators",
+     "I checked their comments are real",
+     "I wrote what I will ask for",
+     "I made a discount code for one"
+    ],
+    "quiz": "How do you know an influencer post worked?",
+    "options": [
+     "Count the likes",
+     "Count orders from their code or link",
+     "Ask them"
+    ],
+    "correct": 2,
+    "why": "Likes are nice. Orders pay the bills. Give each creator their own code.",
+    "video": "Real people, real sales.",
+    "biz": {
+     "en": "In Shopinbos Business, give each creator their own link. When someone buys through it and the order is delivered, you see what they earned.",
+     "pcm": "For Shopinbos Business, give each creator their own link. When person buy through am and the order deliver, you go see wetin dem earn.",
+     "cta": [
+      "Start free",
+      "%%SIGNUP%%"
+     ]
+    },
+    "was": [
+     "working-with-influencers"
+    ],
+    "try": "Make a list of five small creators your customers follow, with their follower count and engagement."
+   },
+   {
+    "title": "Your first small ad",
+    "minutes": 6,
+    "intro": "A small ad can test what works before you spend more. This lesson shows how to spend ₦5,000 so you learn something, even if you don’t sell much.",
+    "intro_pcm": "Small ad fit test wetin dey work before you spend more. This lesson go show you how to spend ₦5,000 make you learn something, even if you no sell plenty.",
+    "learn": [
+     "Choosing what to advertise",
+     "Picking your audience",
+     "Setting a small budget",
+     "What to measure"
+    ],
+    "steps": [
+     [
+      "Pick a product that already sells",
+      "Ads make good products sell more; they don’t fix weak ones."
+     ],
+     [
+      "Choose your area and age group",
+      "Where you deliver, who buys."
+     ],
+     [
+      "Set ₦1,000 a day for 5 days",
+      "Small and steady."
+     ],
+     [
+      "Send people to your store link",
+      "So you see who orders."
+     ]
+    ],
+    "try_pcm": "Plan your first ad for paper: product, area, age group, budget and the link wey people go tap.",
+    "checks": [
+     "I picked a product that already sells",
+     "I chose my delivery areas only",
+     "I set a daily budget",
+     "The ad sends people to my store"
+    ],
+    "quiz": "Which product should you advertise first?",
+    "options": [
+     "Your newest, untested product",
+     "One that already sells without ads",
+     "The cheapest thing you have"
+    ],
+    "correct": 2,
+    "why": "Ads multiply what already works. Start with a proven product.",
+    "video": "Small budget, real lessons.",
+    "biz": {
+     "en": "The free ad budget calculator shows what a small budget can buy. Shopinbos Business can run ads on Facebook, Instagram and TikTok and send the clicks to your store.",
+     "pcm": "The free ad budget calculator go show wetin small budget fit buy. Shopinbos Business fit run ads for Facebook, Instagram and TikTok and send the clicks to your store.",
+     "cta": [
+      "Open the ad budget calculator",
+      "/tools/ad-budget-calculator/"
+     ]
+    },
+    "was": [
+     "your-first-%e2%82%a65000-ad",
+     "your-first-5-000-ad"
+    ],
+    "try": "Plan your first ad on paper: product, area, age group, budget and the link people will tap."
+   },
+   {
+    "title": "Reading your ad results",
+    "minutes": 5,
+    "intro": "Ad numbers can feel confusing. Only three of them really matter for a small shop. Here is what they mean and what to do next.",
+    "intro_pcm": "Ad numbers fit confuse person. Na only three of dem matter for small shop. See wetin dem mean and wetin to do next.",
+    "learn": [
+     "Reach, clicks and orders",
+     "Cost per order",
+     "When to stop an ad",
+     "When to spend more"
+    ],
+    "steps": [
+     [
+      "Check clicks",
+      "Are people interested enough to tap?"
+     ],
+     [
+      "Check orders",
+      "How many taps became orders in your store?"
+     ],
+     [
+      "Work out cost per order",
+      "Ad spend divided by orders."
+     ],
+     [
+      "Compare with your profit",
+      "If cost per order is more than profit, stop or change the ad."
+     ]
+    ],
+    "try_pcm": "Take your last ad (or your friend own) and calculate cost per order.",
+    "checks": [
+     "I know my clicks",
+     "I know my orders",
+     "I worked out cost per order",
+     "I compared it with my profit"
+    ],
+    "quiz": "Your ad cost ₦5,000 and brought 2 orders with ₦2,000 profit each. What now?",
+    "options": [
+     "Spend more on the same ad",
+     "Change the ad or stop it",
+     "Nothing, it worked"
+    ],
+    "correct": 2,
+    "why": "Each order cost ₦2,500 but earned ₦2,000. Change the picture, audience or product first.",
+    "video": "Three numbers that matter.",
+    "biz": {
+     "en": "Shopinbos Business analytics show where each buyer came from, so you can see which ad or post actually brought orders.",
+     "pcm": "Shopinbos Business analytics dey show where each buyer come from, so you fit see which ad or post really bring orders.",
+     "cta": [
+      "Start free",
+      "%%SIGNUP%%"
+     ]
+    },
+    "was": [
+     "reading-your-ad-results"
+    ],
+    "try": "Take your last ad (or a friend’s) and work out the cost per order."
+   }
+  ]
+ },
+ {
+  "slug": "get-paid-and-deliver",
+  "name": "Payments and delivery",
+  "about": "For sellers who want to get paid safely and deliver without wahala. Learn which payment options build trust, how to spot fake transfer alerts, when pay on delivery is worth it, how to set delivery fees, pack well, keep delivery promises and handle returns calmly.",
+  "bg": "#FDF0D5",
+  "fg": "#8A5A08",
+  "icon": "truck",
+  "for": "Sellers who have lost money to fake alerts, failed deliveries or delivery costs.",
+  "learn": [
+   "Which ways to get paid build trust",
+   "How to spot fake alerts and payment scams",
+   "When pay on delivery helps and how to cut failed deliveries",
+   "How to set delivery fees that don’t eat your profit",
+   "How to pack, keep delivery promises and handle returns"
+  ],
+  "biz": "Shopinbos Business takes card, transfer and USSD through Paystack and pays your money out to your bank. Pay on delivery comes with a 4-digit code on Growth and Pro, and you can book riders from an order.",
+  "biz_cta": [
+   "See payments",
+   "/payments/"
+  ],
+  "lessons": [
+   {
+    "title": "Choose how customers pay you",
+    "minutes": 5,
+    "intro": "Every way of paying has a cost and a risk. Offering the right mix makes new buyers comfortable, cuts arguments and keeps more money in your pocket.",
+    "intro_pcm": "Every way wey people dey take pay get cost and risk. If you offer correct mix, new buyers go comfortable, quarrel go reduce and more money go remain for your pocket.",
+    "learn": [
+     "Transfer, card, USSD and cash compared",
+     "What new buyers trust",
+     "The real cost of each option",
+     "Matching payment options to order size"
+    ],
+    "steps": [
+     [
+      "Bank transfer",
+      "Cheap, but you must confirm every alert in your bank app."
+     ],
+     [
+      "Card and USSD at checkout",
+      "A small fee, but payment is confirmed for you and buyers feel safer."
+     ],
+     [
+      "Pay on delivery",
+      "Builds trust with new buyers, but riders, cash and failed trips add cost."
+     ],
+     [
+      "Choose your mix",
+      "For example: online payment for everyone, pay on delivery only for nearby orders under a limit."
+     ]
+    ],
+    "try_pcm": "Write how your last 20 orders take pay and which one cause wahala. Decide your payment mix for next month.",
+    "checks": [
+     "I checked how my last 20 orders paid",
+     "I know the cost of each option",
+     "I chose my payment mix",
+     "I wrote it in my shop rules"
+    ],
+    "quiz": "Which option confirms a payment for you, so you don’t have to check alerts?",
+    "options": [
+     "A transfer to your account number",
+     "Card or transfer through a checkout",
+     "Cash in an envelope"
+    ],
+    "correct": 2,
+    "why": "A checkout confirms the payment, which stops most fake-alert tricks.",
+    "video": "The right way to get paid.",
+    "biz": {
+     "en": "Shopinbos Business takes card, transfer and USSD at checkout through Paystack, and pays your money out to your bank, usually within a few working days.",
+     "pcm": "Shopinbos Business dey collect card, transfer and USSD for checkout through Paystack, and e dey pay your money out to your bank, usually within few working days.",
+     "cta": [
+      "Open the Paystack fee calculator",
+      "/tools/paystack-fee-calculator/"
+     ]
+    },
+    "was": [
+     "how-payments-reach-your-bank"
+    ],
+    "try": "Write down how your last 20 orders were paid and which caused problems. Decide your payment mix for next month."
+   },
+   {
+    "title": "Spot fake transfer alerts and payment scams",
+    "minutes": 5,
+    "intro": "Fake alerts are messages or screenshots that look like a payment but no money arrived. They cost sellers real stock. One rule stops most of them: only trust your own bank app.",
+    "intro_pcm": "Fake alert na message or screenshot wey resemble payment but no money land. E dey cost sellers real stock. One rule go stop most of dem: trust only your own bank app.",
+    "learn": [
+     "How fake alerts work",
+     "Screenshots and SMS are not proof",
+     "Other common payment tricks",
+     "What to do if you are scammed"
+    ],
+    "steps": [
+     [
+      "Check your bank app or statement",
+      "Not an SMS, not a screenshot. The money must show in your balance."
+     ],
+     [
+      "Don’t rush because a buyer rushes",
+      "“My rider is waiting outside” is a common trick."
+     ],
+     [
+      "Watch for overpayments",
+      "A buyer “pays too much” and asks for a refund of the difference. Wait until the money is really there."
+     ],
+     [
+      "Report it",
+      "Tell your bank fast and keep the chat as evidence."
+     ]
+    ],
+    "try_pcm": "Write your payment check rule for one line (“No item go comot until I see the money for my bank app”) and share am with anybody wey dey help you.",
+    "checks": [
+     "I only trust my bank app",
+     "I don’t release items under pressure",
+     "I know the overpayment trick",
+     "My helper knows the rule"
+    ],
+    "quiz": "A buyer sends a screenshot of a transfer and says the rider should leave now. What do you do?",
+    "options": [
+     "Release the item, the screenshot is proof",
+     "Check your bank app first",
+     "Ask for a second screenshot"
+    ],
+    "correct": 2,
+    "why": "Screenshots and SMS can be faked. Only money in your account counts.",
+    "video": "Trust your bank app.",
+    "biz": {
+     "en": "With checkout payments in Shopinbos Business, an order is marked paid only when the payment is confirmed, so you don’t have to judge screenshots.",
+     "pcm": "With checkout payment for Shopinbos Business, order go show paid only when the payment don confirm, so you no need judge screenshot.",
+     "cta": [
+      "See payments",
+      "/payments/"
+     ]
+    },
+    "try": "Write your payment check rule on one line (“No item leaves until I see the money in my bank app”) and share it with anyone who helps you."
+   },
+   {
+    "title": "Pay on delivery without losing money",
+    "minutes": 5,
+    "intro": "Pay on delivery makes new buyers comfortable, but every refused or failed delivery costs you the rider fee. A few simple rules keep the trust and cut the losses.",
+    "intro_pcm": "Pay on delivery dey make new buyers comfortable, but every delivery wey dem refuse or wey fail go cost you the rider money. Small rules go keep the trust and reduce the loss.",
+    "learn": [
+     "When pay on delivery is worth it",
+     "Confirming orders before dispatch",
+     "Setting a limit and areas",
+     "What to do when buyers refuse"
+    ],
+    "steps": [
+     [
+      "Confirm every order first",
+      "Call or message the buyer and ask them to reply YES with the delivery day."
+     ],
+     [
+      "Set a limit and areas",
+      "Offer it only for orders under a set amount, in areas you know."
+     ],
+     [
+      "Ask for a delivery fee upfront for far areas",
+      "It shows the buyer is serious."
+     ],
+     [
+      "Track refusals",
+      "If a buyer refuses twice, ask them to pay online next time."
+     ]
+    ],
+    "try_pcm": "Count how many pay on delivery orders fail last month and how much dem cost you. Then set your limit, areas and confirmation rule.",
+    "checks": [
+     "I know my failed delivery cost",
+     "I confirm every order first",
+     "I set a limit and areas",
+     "I have a rule for repeat refusals"
+    ],
+    "quiz": "What cuts failed pay on delivery orders the most?",
+    "options": [
+     "Sending the parcel without calling",
+     "Confirming every order before dispatch",
+     "Offering it everywhere with no limit"
+    ],
+    "correct": 2,
+    "why": "A quick confirmation filters out buyers who are not ready, before you pay a rider.",
+    "video": "Trust without losses.",
+    "biz": {
+     "en": "Pay on delivery in Shopinbos Business (Growth and Pro plans) gives the buyer a 4-digit code. The parcel only counts as delivered when the rider enters it, and you choose the order limit.",
+     "pcm": "Pay on delivery for Shopinbos Business (Growth and Pro plans) dey give buyer 4-digit code. Parcel go count as delivered only when rider enter am, and you go choose the order limit.",
+     "cta": [
+      "See plans and pricing",
+      "/pricing/"
+     ]
+    },
+    "was": [
+     "pay-on-delivery-and-the-4-digit-code"
+    ],
+    "try": "Count how many pay on delivery orders failed last month and what they cost you. Then set your limit, areas and confirmation rule."
+   },
+   {
+    "title": "Set delivery fees that don’t eat your profit",
+    "minutes": 5,
+    "intro": "Delivery is often where small shops quietly lose money: a far address, a second trip, a “free delivery” that wasn’t planned. Clear zones and rules keep it fair for you and your buyer.",
+    "intro_pcm": "Delivery na where plenty small shops dey lose money quietly: far address, second trip, “free delivery” wey you no plan. Clear zones and rules go keep am fair for you and your buyer.",
+    "learn": [
+     "Delivery zones",
+     "Who pays for delivery",
+     "When free delivery makes sense",
+     "Waybill and interstate orders"
+    ],
+    "steps": [
+     [
+      "Group areas into zones",
+      "By distance from you: near, middle, far, other states."
+     ],
+     [
+      "Price each zone from real costs",
+      "Ask riders and waybill companies what they charge."
+     ],
+     [
+      "Offer free delivery only above a minimum",
+      "Make sure your margin on that order covers it."
+     ],
+     [
+      "Say delivery times per zone",
+      "So buyers know what to expect."
+     ]
+    ],
+    "try_pcm": "Set three or four delivery zones for your city with price and delivery time for each.",
+    "checks": [
+     "I grouped my areas into zones",
+     "I priced each zone from real costs",
+     "I set a minimum for free delivery",
+     "I wrote delivery times per zone"
+    ],
+    "quiz": "What should delivery prices be based on?",
+    "options": [
+     "Guesswork",
+     "Distance zones and real rider prices",
+     "Whatever the buyer offers"
+    ],
+    "correct": 2,
+    "why": "Zones keep prices fair and stop you losing money on far deliveries.",
+    "video": "Fair delivery fees.",
+    "biz": {
+     "en": "Shopinbos Business lets you set delivery zones with their own fees, shows them at checkout, and lets you book a delivery partner from the order.",
+     "pcm": "Shopinbos Business go let you set delivery zones with their own fees, show dem for checkout, and let you book delivery partner from the order.",
+     "cta": [
+      "See delivery",
+      "/delivery/"
+     ]
+    },
+    "was": [
+     "booking-riders-and-setting-delivery-prices"
+    ],
+    "try": "Set three or four delivery zones for your city with a price and a delivery time for each."
+   },
+   {
+    "title": "Packing that survives Lagos roads",
+    "minutes": 4,
+    "intro": "Good packing prevents returns. A few cheap materials keep your products safe and make your shop look professional.",
+    "intro_pcm": "Better packing dey stop returns. Small cheap materials go keep your products safe and make your shop look professional.",
+    "learn": [
+     "Materials to keep in stock",
+     "Packing by product type",
+     "Labels and notes",
+     "Photos before dispatch"
+    ],
+    "steps": [
+     [
+      "Use a strong outer bag or box",
+      "Waterproof for rainy season."
+     ],
+     [
+      "Protect fragile items",
+      "Paper or bubble wrap around them."
+     ],
+     [
+      "Add a label",
+      "Order number and buyer’s name."
+     ],
+     [
+      "Take a photo before it leaves",
+      "Proof if something goes wrong."
+     ]
+    ],
+    "try_pcm": "Pack your next order with these four steps and snap photo before e comot.",
+    "checks": [
+     "My packing is waterproof",
+     "Fragile items are wrapped",
+     "Every parcel has a label",
+     "I photograph every parcel"
+    ],
+    "quiz": "Why take a photo of every parcel?",
+    "options": [
+     "For Instagram",
+     "As proof if something goes wrong",
+     "Because riders ask"
+    ],
+    "correct": 2,
+    "why": "A five-second photo settles most delivery arguments.",
+    "video": "Pack it right.",
+    "biz": {
+     "en": "Shopinbos Business prints labels with the address and order number, and has a packaging designer for your own branded labels.",
+     "pcm": "Shopinbos Business dey print labels with address and order number, and e get packaging designer for your own branded labels.",
+     "cta": [
+      "See delivery",
+      "/delivery/"
+     ]
+    },
+    "was": [
+     "packing-that-survives-lagos-roads"
+    ],
+    "try": "Pack your next order using these four steps and take a photo before it goes."
+   },
+   {
+    "title": "Delivery promises you can keep",
+    "minutes": 4,
+    "intro": "A late parcel hurts more when you promised “today”. Promise what you can really do, update buyers before they ask, and deliveries stop being a source of complaints.",
+    "intro_pcm": "Parcel wey late go pain buyer more when you promise “today”. Promise wetin you fit really do, update buyers before dem ask, and delivery no go dey bring complaint again.",
+    "learn": [
+     "Why under-promising wins",
+     "Cut-off times",
+     "Updating buyers",
+     "What to do when a delivery fails"
+    ],
+    "steps": [
+     [
+      "Set a daily cut-off",
+      "For example: orders confirmed by 12 noon go out the same day."
+     ],
+     [
+      "Give a window, not a minute",
+      "“Between 2pm and 6pm” is easier to keep than “2pm”."
+     ],
+     [
+      "Update before they ask",
+      "Send a message when it leaves and when it is close."
+     ],
+     [
+      "Own the delay",
+      "If it will be late, say so early, say why and give a new time."
+     ]
+    ],
+    "try_pcm": "Write your cut-off time and delivery windows, and send “your order dey come” message for every order this week.",
+    "checks": [
+     "I set a cut-off time",
+     "I give delivery windows",
+     "I update buyers before they ask",
+     "I own delays early"
+    ],
+    "quiz": "Which promise is easiest to keep?",
+    "options": [
+     "“It will reach you in one hour”",
+     "“It will reach you between 2pm and 6pm today”",
+     "“Very soon”"
+    ],
+    "correct": 2,
+    "why": "A clear window is honest and realistic. Vague or tight promises cause complaints.",
+    "video": "Promise, then deliver.",
+    "biz": {
+     "en": "When you book delivery in Shopinbos Business, the buyer gets live updates, and late or failed deliveries show up for you to act on.",
+     "pcm": "When you book delivery for Shopinbos Business, buyer go dey get live updates, and delivery wey late or fail go show make you act.",
+     "cta": [
+      "See delivery",
+      "/delivery/"
+     ]
+    },
+    "try": "Write your cut-off time and delivery windows, and send a “your order is on the way” message on every order this week."
+   },
+   {
+    "title": "Refunds and returns, calmly",
+    "minutes": 4,
+    "intro": "Returns happen to every shop. A clear policy and a calm reply keep customers coming back, even when something went wrong.",
+    "intro_pcm": "Return dey happen to every shop. Clear policy and calm reply go make customers still come back, even when something spoil.",
+    "learn": [
+     "Writing a simple return policy",
+     "What buyers must report and when",
+     "Swap, refund or redeliver",
+     "Staying calm in the chat"
+    ],
+    "steps": [
+     [
+      "Write your policy",
+      "What you accept, how long buyers have, who pays delivery."
+     ],
+     [
+      "Ask for a photo",
+      "Of the item and packaging."
+     ],
+     [
+      "Offer one clear fix",
+      "Swap, refund or redelivery, with a time."
+     ],
+     [
+      "Keep your word",
+      "Tell the buyer when the refund or swap will happen, and do it then."
+     ]
+    ],
+    "try_pcm": "Write your return policy for three short sentences and add am to your store.",
+    "checks": [
+     "My policy is on my store",
+     "I ask for photos",
+     "I offer one clear fix",
+     "I keep to the time I promise"
+    ],
+    "quiz": "A buyer got the wrong colour. What first?",
+    "options": [
+     "Argue about who is right",
+     "Apologise and offer a swap",
+     "Ignore the message"
+    ],
+    "correct": 2,
+    "why": "Fix it fast and kindly. The customer remembers how you handled it.",
+    "video": "Calm fixes keep customers.",
+    "biz": {
+     "en": "Shopinbos Business has a ready refund policy page you fill in, so buyers see your rules before they order.",
+     "pcm": "Shopinbos Business get ready refund policy page wey you go fill, so buyers go see your rules before dem order.",
+     "cta": [
+      "Start free",
+      "%%SIGNUP%%"
+     ]
+    },
+    "was": [
+     "refunds-and-returns-calmly"
+    ],
+    "try": "Write your return policy in three short sentences and add it to your store."
+   }
+  ]
+ },
+ {
+  "slug": "grow-and-keep-customers",
+  "name": "Grow and keep customers",
+  "about": "For sellers with regular orders who want more repeat buyers. Learn the weekly numbers to watch, customer service that brings people back, getting reviews, discounts that keep your profit, rewarding regulars, referrals and winning back old customers.",
+  "bg": "#F6F5F9",
+  "fg": "#16141F",
+  "icon": "grow",
+  "for": "Sellers who have customers and want them to buy again and bring friends.",
+  "learn": [
+   "The three numbers to check every week",
+   "Customer service that turns complaints into loyalty",
+   "How to get and use reviews",
+   "Discounts and rewards that don’t kill your profit",
+   "Referrals and win-back messages"
+  ],
+  "biz": "Shopinbos Business has reviews, discounts and bundles, rewards, creator links, customer groups and automatic messages like review requests and win-backs.",
+  "biz_cta": [
+   "Start free with Shopinbos Business",
+   "%%SIGNUP%%"
+  ],
+  "lessons": [
+   {
+    "title": "The 3 numbers to check every week",
+    "minutes": 4,
+    "intro": "You don’t need complicated reports. Three numbers, checked once a week, tell you if your shop is growing.",
+    "intro_pcm": "You no need complicated report. Three numbers wey you check once every week go tell you if your shop dey grow.",
+    "learn": [
+     "Orders this week",
+     "Average order value",
+     "Repeat customers",
+     "What to do with the numbers"
+    ],
+    "steps": [
+     [
+      "Count orders",
+      "Up or down from last week?"
+     ],
+     [
+      "Check average order value",
+      "Total sales divided by orders."
+     ],
+     [
+      "Check repeat customers",
+      "How many bought before?"
+     ],
+     [
+      "Pick one thing to improve",
+      "Just one, for next week."
+     ]
+    ],
+    "try_pcm": "This week, write your three numbers and one thing wey you go try next week.",
+    "checks": [
+     "I know my orders this week",
+     "I know my average order value",
+     "I know my repeat customers",
+     "I picked one thing to improve"
+    ],
+    "quiz": "Your orders went up but average order value fell. What could you try?",
+    "options": [
+     "Close the shop",
+     "Offer a bundle",
+     "Raise every price by 50%"
+    ],
+    "correct": 2,
+    "why": "Bundles encourage people to buy more at once.",
+    "video": "Three numbers, once a week.",
+    "biz": {
+     "en": "Analytics in Shopinbos Business show your orders, sales and repeat customers, and where buyers came from.",
+     "pcm": "Analytics for Shopinbos Business dey show your orders, sales and repeat customers, and where buyers come from.",
+     "cta": [
+      "Start free",
+      "%%SIGNUP%%"
+     ]
+    },
+    "was": [
+     "the-3-numbers-to-check-every-week"
+    ],
+    "try": "This week, write down your three numbers and one thing you will try next week."
+   },
+   {
+    "title": "Customer service that brings people back",
+    "minutes": 5,
+    "intro": "Something will go wrong sometimes. How you handle it decides whether the customer leaves angry or becomes a regular who tells others how well you treated them.",
+    "intro_pcm": "Something go spoil sometimes. How you handle am na im go decide whether customer go comot vex or become regular wey go tell others how you treat dem well.",
+    "learn": [
+     "Fast, kind first replies",
+     "Listening before explaining",
+     "Fixing it and following up",
+     "Learning from complaints"
+    ],
+    "steps": [
+     [
+      "Reply quickly",
+      "Even “I’m checking now, I’ll get back to you by 3pm” calms people down."
+     ],
+     [
+      "Listen and say sorry for the experience",
+      "Don’t argue about who is right first."
+     ],
+     [
+      "Offer a clear fix",
+      "Swap, refund, redelivery or a small extra, with a time."
+     ],
+     [
+      "Follow up and learn",
+      "Check they are happy, then fix the cause so it doesn’t happen again."
+     ]
+    ],
+    "try_pcm": "Look your last three complaints. For each one, write wetin you go do differently with these four steps.",
+    "checks": [
+     "I reply quickly to complaints",
+     "I listen before I explain",
+     "I offer one clear fix",
+     "I fix the cause"
+    ],
+    "quiz": "An angry buyer says their order is late. What is the best first reply?",
+    "options": [
+     "“It’s not my fault, it’s the rider.”",
+     "“Sorry about this. Let me check with the rider now and update you in 10 minutes.”",
+     "No reply until you know more"
+    ],
+    "correct": 2,
+    "why": "A fast, calm reply with a next step turns anger into trust.",
+    "video": "Service people remember.",
+    "biz": {
+     "en": "The Shopinbos Business inbox puts WhatsApp, Instagram and store chats in one list, so no complaint gets lost.",
+     "pcm": "Shopinbos Business inbox dey put WhatsApp, Instagram and store chats for one list, so no complaint go loss.",
+     "cta": [
+      "See social selling",
+      "/social-selling/"
+     ]
+    },
+    "try": "Look at your last three complaints. For each, write what you would do differently with these four steps."
+   },
+   {
+    "title": "Getting reviews and using them",
+    "minutes": 4,
+    "intro": "Reviews from real customers sell better than anything you say. Ask at the right time and use them everywhere.",
+    "intro_pcm": "Review from real customers dey sell pass anything wey you talk. Ask for correct time and use dem everywhere.",
+    "learn": [
+     "When to ask",
+     "How to ask",
+     "Where to use reviews",
+     "Handling a bad review"
+    ],
+    "steps": [
+     [
+      "Ask the day after delivery",
+      "When they are still happy."
+     ],
+     [
+      "Make it easy",
+      "A voice note or photo is enough."
+     ],
+     [
+      "Ask permission to share",
+      "Always."
+     ],
+     [
+      "Post on Status and your store",
+      "With the product link."
+     ]
+    ],
+    "try_pcm": "Ask your last three customers for short review and permission to share am.",
+    "checks": [
+     "I asked 3 customers",
+     "I asked permission",
+     "I posted one review",
+     "I replied kindly to any complaint"
+    ],
+    "quiz": "When is the best time to ask for a review?",
+    "options": [
+     "Before delivery",
+     "The day after delivery",
+     "Six months later"
+    ],
+    "correct": 2,
+    "why": "Ask while the experience is fresh and happy.",
+    "video": "Let customers sell for you.",
+    "biz": {
+     "en": "Shopinbos Business can send a review request after delivery and keeps your reviews from your store, WhatsApp and other places in one list.",
+     "pcm": "Shopinbos Business fit send review request after delivery and e dey keep your reviews from your store, WhatsApp and other places for one list.",
+     "cta": [
+      "Start free",
+      "%%SIGNUP%%"
+     ]
+    },
+    "was": [
+     "getting-reviews-and-using-them"
+    ],
+    "try": "Ask your last three customers for a short review and permission to share it."
+   },
+   {
+    "title": "Discounts that don’t kill your profit",
+    "minutes": 5,
+    "intro": "A discount should bring in sales you would not have made. Here is how to give one without giving your profit away.",
+    "intro_pcm": "Discount suppose bring sales wey you for no make. See how to give am without dashing your profit away.",
+    "learn": [
+     "When discounts help",
+     "Percentage vs naira off",
+     "Bundles and free delivery",
+     "Setting an end date"
+    ],
+    "steps": [
+     [
+      "Know your margin first",
+      "Never discount more than your profit."
+     ],
+     [
+      "Prefer bundles",
+      "Buy 2, save ₦2,000."
+     ],
+     [
+      "Try free delivery above a minimum",
+      "It raises order size."
+     ],
+     [
+      "Always set an end date",
+      "It creates a reason to buy now."
+     ]
+    ],
+    "try_pcm": "Plan one bundle offer for this month with end date.",
+    "checks": [
+     "I know my margin",
+     "My discount is less than my profit",
+     "I set an end date",
+     "I told my regular customers"
+    ],
+    "quiz": "Your margin is 30%. Is a 40% discount a good idea?",
+    "options": [
+     "Yes, more sales",
+     "No, you lose money on every sale",
+     "Only on weekends"
+    ],
+    "correct": 2,
+    "why": "A discount bigger than your margin means you pay people to buy.",
+    "video": "Discounts that pay.",
+    "biz": {
+     "en": "Check any discount with the free discount calculator. In Shopinbos Business you can make discount codes and bundles with an end date.",
+     "pcm": "Check any discount with the free discount calculator. For Shopinbos Business you fit make discount codes and bundles with end date.",
+     "cta": [
+      "Open the discount calculator",
+      "/tools/discount-calculator/"
+     ]
+    },
+    "was": [
+     "discounts-that-dont-kill-your-profit"
+    ],
+    "try": "Plan one bundle offer for this month with an end date."
+   },
+   {
+    "title": "Reward your regulars",
+    "minutes": 4,
+    "intro": "Your regular customers are worth more than any ad. A simple reward tells them you noticed, and gives them a reason to keep choosing you.",
+    "intro_pcm": "Your regular customers worth pass any ad. Simple reward go show dem say you notice, and give dem reason to dey choose you.",
+    "learn": [
+     "Who your regulars are",
+     "Simple rewards that don’t cost much",
+     "Points vs surprises",
+     "Keeping it fair and clear"
+    ],
+    "steps": [
+     [
+      "Find your top 20 buyers",
+      "By how often they buy or how much they spend."
+     ],
+     [
+      "Pick a simple reward",
+      "Free delivery on the next order, early access to new stock, or a small gift."
+     ],
+     [
+      "Tell them personally",
+      "A message with their name: “You’re one of our best customers.”"
+     ],
+     [
+      "Keep the rules clear",
+      "Say what they get and until when."
+     ]
+    ],
+    "try_pcm": "List your top 20 customers and send each one personal thank-you with one small reward this month.",
+    "checks": [
+     "I listed my top 20",
+     "I picked a reward I can afford",
+     "I sent personal messages",
+     "The rules are clear"
+    ],
+    "quiz": "Which reward is cheap but feels special?",
+    "options": [
+     "50% off everything forever",
+     "Early access to new stock",
+     "Nothing, they’ll buy anyway"
+    ],
+    "correct": 2,
+    "why": "Early access costs you nothing and makes regulars feel like insiders.",
+    "video": "Thank your regulars.",
+    "biz": {
+     "en": "Rewards in Shopinbos Business give customers points that pay for part of a later order. Shopinbos Plug, our shopper app (coming soon), will let buyers follow your shop.",
+     "pcm": "Rewards for Shopinbos Business dey give customers points wey fit pay part of another order. Shopinbos Plug, our shopper app (e dey come soon), go let buyers follow your shop.",
+     "cta": [
+      "Start free",
+      "%%SIGNUP%%"
+     ]
+    },
+    "try": "List your top 20 customers and send each a personal thank-you with one small reward this month."
+   },
+   {
+    "title": "Turn happy customers into referrals",
+    "minutes": 4,
+    "intro": "A friend’s recommendation is the strongest advert there is. Most happy customers will tell others if you ask at the right time and make it easy.",
+    "intro_pcm": "When friend recommend you, na the strongest advert. Most happy customers go tell others if you ask for correct time and make am easy.",
+    "learn": [
+     "When to ask for a referral",
+     "Making it easy to share",
+     "Thank-you rewards",
+     "Tracking who referred whom"
+    ],
+    "steps": [
+     [
+      "Ask after a happy moment",
+      "When they say thank you or post a photo."
+     ],
+     [
+      "Give them something to share",
+      "Your store link and one photo."
+     ],
+     [
+      "Thank both people",
+      "A small discount for the friend and a reward for the person who referred."
+     ],
+     [
+      "Keep track",
+      "Note who sent each new buyer so you can thank them."
+     ]
+    ],
+    "try_pcm": "Ask your five happiest customers make dem share your link with one friend, and plan how you go thank dem.",
+    "checks": [
+     "I ask after happy moments",
+     "I give them a link to share",
+     "I thank both people",
+     "I track referrals"
+    ],
+    "quiz": "When is the best time to ask for a referral?",
+    "options": [
+     "Before they receive the order",
+     "Right after they say they love it",
+     "A year later"
+    ],
+    "correct": 2,
+    "why": "People share most when they are happiest.",
+    "video": "Friends bring friends.",
+    "biz": {
+     "en": "In Shopinbos Business, give a loyal customer or creator their own link. Each delivered order through it is counted for you.",
+     "pcm": "For Shopinbos Business, give loyal customer or creator their own link. Each delivered order through am go dey counted for you.",
+     "cta": [
+      "Start free",
+      "%%SIGNUP%%"
+     ]
+    },
+    "try": "Ask your five happiest customers to share your link with one friend, and plan how you will thank them."
+   },
+   {
+    "title": "Bring back old customers",
+    "minutes": 4,
+    "intro": "It is cheaper to sell again to an old customer than to find a new one. A simple message at the right time brings them back.",
+    "intro_pcm": "E cheap pass to sell again to old customer than to find new one. Simple message for correct time go bring dem back.",
+    "learn": [
+     "Finding customers who haven’t bought in a while",
+     "What to send",
+     "Personal touches",
+     "Timing"
+    ],
+    "steps": [
+     [
+      "Find customers from 60+ days ago",
+      "Look through your orders and chats."
+     ],
+     [
+      "Send something new",
+      "A new product they might like."
+     ],
+     [
+      "Use their name",
+      "And mention what they bought before."
+     ],
+     [
+      "Give a small reason to act",
+      "Free delivery this week."
+     ]
+    ],
+    "try_pcm": "Send personal message to five customers wey never order for two months.",
+    "checks": [
+     "I found my old customers",
+     "I picked something new to show",
+     "I used their names",
+     "I gave a small reason to act"
+    ],
+    "quiz": "Who is easiest to sell to?",
+    "options": [
+     "A stranger",
+     "A happy past customer",
+     "A competitor"
+    ],
+    "correct": 2,
+    "why": "Past customers already trust you. Remind them you’re here.",
+    "video": "Old customers, new orders.",
+    "biz": {
+     "en": "Shopinbos Business can group customers who haven’t bought in a while and send them a win-back message automatically.",
+     "pcm": "Shopinbos Business fit group customers wey never buy for some time and send dem win-back message automatically.",
+     "cta": [
+      "Start free",
+      "%%SIGNUP%%"
+     ]
+    },
+    "was": [
+     "bring-back-old-customers"
+    ],
+    "try": "Send a personal message to five customers who haven’t ordered in two months."
+   }
+  ]
+ },
+ {
+  "slug": "run-it-like-a-business",
+  "name": "Run it like a business",
+  "about": "For owners ready to run their shop like a real company. Learn to register your business name with CAC, hire and train your first helper, protect your business from scams, plan for the busy season and review your month in 30 minutes.",
+  "bg": "#EAF1E4",
+  "fg": "#2F5A1E",
+  "icon": "chart",
+  "for": "Owners who are growing and want the business to run without them doing everything.",
+  "learn": [
+   "How to register your business name with CAC",
+   "How to hire and train your first helper",
+   "How to protect your accounts and money from scams",
+   "How to plan stock for the busy season",
+   "How to review your month and set goals"
+  ],
+  "biz": "Shopinbos Business lets staff sign in with their own email while billing, payouts and your bank account stay with you. Add your CAC number to become a verified Registered Business.",
+  "biz_cta": [
+   "Start free with Shopinbos Business",
+   "%%SIGNUP%%"
+  ],
+  "lessons": [
+   {
+    "title": "Register your business name with CAC",
+    "minutes": 5,
+    "intro": "A registered business name helps buyers, suppliers and banks take you seriously. You can start online on the CAC portal. This lesson shows what to get ready and the steps to follow.",
+    "intro_pcm": "When your business name don register, buyers, suppliers and banks go take you serious. You fit start am online for CAC portal. This lesson go show you wetin to arrange and the steps to follow.",
+    "learn": [
+     "Business name vs limited company",
+     "What to have ready",
+     "Checking your name is free",
+     "What to do with your certificate"
+    ],
+    "steps": [
+     [
+      "Pick two or three names",
+      "In case your first choice is already taken."
+     ],
+     [
+      "Search on the CAC portal",
+      "Check the name is available before you pay anything."
+     ],
+     [
+      "Check the current fee there",
+      "Fees change, so read it on the CAC portal, not on a flyer."
+     ],
+     [
+      "Keep your certificate safe",
+      "Save one copy on your phone and one in your email."
+     ]
+    ],
+    "try_pcm": "Write three names for your business and search each one for CAC portal today.",
+    "checks": [
+     "I wrote three name ideas",
+     "I searched them on the CAC portal",
+     "I checked the current fee there",
+     "I know where I will keep my certificate"
+    ],
+    "quiz": "Where should you check the current fee to register a business name?",
+    "options": [
+     "A flyer shared in a WhatsApp group",
+     "The CAC portal",
+     "A friend who registered last year"
+    ],
+    "correct": 2,
+    "why": "Fees can change, so the official CAC portal is the place to trust.",
+    "video": "Your name, made official.",
+    "biz": {
+     "en": "Once you are registered, add your CAC number in Shopinbos Business to become a verified Registered Business.",
+     "pcm": "Once you don register, add your CAC number for Shopinbos Business make you become verified Registered Business.",
+     "cta": [
+      "Start free",
+      "%%SIGNUP%%"
+     ]
+    },
+    "was": [
+     "register-your-business-name-with-cac"
+    ],
+    "try": "Write three names for your business and search each one on the CAC portal today."
+   },
+   {
+    "title": "Hiring your first helper",
+    "minutes": 5,
+    "intro": "When orders grow, you can’t do everything. A helper can pack, reply and deliver while you focus on stock and growth.",
+    "intro_pcm": "When orders dey grow, you no fit do everything. Helper fit pack, reply and deliver while you focus on stock and growth.",
+    "learn": [
+     "Which tasks to hand over first",
+     "Finding someone you trust",
+     "Giving staff their own sign-in",
+     "Paying fairly"
+    ],
+    "steps": [
+     [
+      "List your weekly tasks",
+      "Mark what only you can do."
+     ],
+     [
+      "Hand over packing first",
+      "It is easy to teach and check."
+     ],
+     [
+      "Give them their own sign-in",
+      "Never share your password."
+     ],
+     [
+      "Agree pay and hours in writing",
+      "Clear from day one."
+     ]
+    ],
+    "try_pcm": "Write every work wey you do last week and mark the ones wey helper fit do.",
+    "checks": [
+     "I listed my tasks",
+     "I picked what to hand over",
+     "I know how to give them their own sign-in",
+     "I wrote down pay and hours"
+    ],
+    "quiz": "Should your helper use your sign-in?",
+    "options": [
+     "Yes, it’s easier",
+     "No, give them their own staff sign-in",
+     "Only on weekends"
+    ],
+    "correct": 2,
+    "why": "Their own sign-in keeps your money and settings safe.",
+    "video": "Grow with help.",
+    "was": [
+     "hiring-your-first-helper"
+    ],
+    "try": "Write down every task you did last week and mark the ones a helper could do."
+   },
+   {
+    "title": "Train your helper and set their access",
+    "minutes": 5,
+    "intro": "Hiring a helper is the first step. Training them well and giving them only the access they need is what lets you rest. This lesson shows how to set up your first helper so mistakes stay small.",
+    "intro_pcm": "To hire helper na first step. To train dem well and give dem only the access wey dem need, na im go make you rest. This lesson go show you how to set up your first helper so mistake no go big.",
+    "learn": [
+     "Writing simple how-we-do-it notes",
+     "Giving staff only the access they need",
+     "Checking work in the first weeks",
+     "Removing access when someone leaves"
+    ],
+    "steps": [
+     [
+      "Write one page of rules",
+      "How you pack, reply to chats and confirm orders."
+     ],
+     [
+      "Add them as staff",
+      "Their own sign-in, never yours."
+     ],
+     [
+      "Give only what they need",
+      "A packer does not need payouts or bank settings."
+     ],
+     [
+      "Remove access the day they leave",
+      "Then change any passwords you shared."
+     ]
+    ],
+    "try_pcm": "Write your packing and reply rules for one page. Then add your helper as staff with small access.",
+    "checks": [
+     "I wrote my rules on one page",
+     "My helper has their own staff sign-in",
+     "They only have the access they need",
+     "I know how to remove access"
+    ],
+    "quiz": "Your helper only packs orders. What access should they have?",
+    "options": [
+     "Everything, including bank settings",
+     "Your own sign-in and password",
+     "Only what they need to see and pack orders"
+    ],
+    "correct": 3,
+    "why": "Limited access keeps your money and settings safe, and makes mistakes easy to trace.",
+    "video": "Train once, rest more.",
+    "biz": {
+     "en": "In Shopinbos Business, staff sign in with their own email and work on products, orders and customers. Billing, payouts and your bank account stay with you.",
+     "pcm": "For Shopinbos Business, staff dey sign in with their own email and work on products, orders and customers. Billing, payouts and your bank account go still dey with you.",
+     "cta": [
+      "Start free",
+      "%%SIGNUP%%"
+     ]
+    },
+    "was": [
+     "train-your-helper-and-set-their-access"
+    ],
+    "try": "Write your packing and reply rules on one page. Then add your helper as staff with limited access."
+   },
+   {
+    "title": "Protect your business from scams and account theft",
+    "minutes": 5,
+    "intro": "Losing your WhatsApp or Instagram account can stop your sales for weeks. A few habits keep your accounts, your money and your customers safe.",
+    "intro_pcm": "If you lose your WhatsApp or Instagram account, your sales fit stop for weeks. Small habits go keep your accounts, your money and your customers safe.",
+    "learn": [
+     "Two-step verification",
+     "Codes you must never share",
+     "Fake “support” messages",
+     "What to do if you are hacked"
+    ],
+    "steps": [
+     [
+      "Turn on two-step verification",
+      "On WhatsApp, Instagram, email and your bank app."
+     ],
+     [
+      "Never share a code",
+      "No real company asks for the code sent to your phone."
+     ],
+     [
+      "Ignore fake support",
+      "Messages saying your page will be deleted unless you click a link are scams."
+     ],
+     [
+      "Have a backup plan",
+      "Keep your customer list somewhere else, so you can reach them if you lose an account."
+     ]
+    ],
+    "try_pcm": "On two-step verification for your WhatsApp, Instagram and email today.",
+    "checks": [
+     "Two-step is on for WhatsApp",
+     "Two-step is on for Instagram and email",
+     "I never share codes",
+     "My customer list is backed up"
+    ],
+    "quiz": "Someone says they are from Instagram and asks for the code sent to your phone. What do you do?",
+    "options": [
+     "Send it quickly",
+     "Never share it. It’s a scam",
+     "Send half of it"
+    ],
+    "correct": 2,
+    "why": "The code is the key to your account. Real companies never ask for it.",
+    "video": "Lock it down.",
+    "biz": {
+     "en": "Your customers and orders are kept in Shopinbos Business, so if you lose a social account you can still reach the people who bought from you.",
+     "pcm": "Your customers and orders dey inside Shopinbos Business, so if you lose social account you fit still reach the people wey buy from you.",
+     "cta": [
+      "Start free",
+      "%%SIGNUP%%"
+     ]
+    },
+    "try": "Turn on two-step verification on your WhatsApp, Instagram and email today."
+   },
+   {
+    "title": "Plan stock for Black Friday, Christmas and Detty December",
+    "minutes": 6,
+    "intro": "November and December bring more buyers, but suppliers and riders get busy too. Planning stock early means you have what people want when they want it.",
+    "intro_pcm": "November and December dey bring plenty buyers, but suppliers and riders go busy too. If you plan your stock early, you go get wetin people want when dem want am.",
+    "learn": [
+     "Using last year’s sales",
+     "Ordering before the rush",
+     "Keeping dropship backups",
+     "Setting delivery cut-off dates"
+    ],
+    "steps": [
+     [
+      "Look back at last year",
+      "Which products sold most in November and December? If you are new, ask your chats what people plan to buy."
+     ],
+     [
+      "Order your winners early",
+      "Suppliers and markets like Balogun get crowded close to Christmas."
+     ],
+     [
+      "Keep dropship backups",
+      "Pick similar supplier products for when you sell out."
+     ],
+     [
+      "Set a last order date",
+      "Tell buyers the last day to order for delivery before Christmas."
+     ]
+    ],
+    "try_pcm": "List five products wey you think say you go sell for December and how many of each one you go need.",
+    "checks": [
+     "I checked what sold last season",
+     "I listed my December products",
+     "I picked dropship backups",
+     "I set a last order date for Christmas"
+    ],
+    "quiz": "Your best seller may run out in December. What is the safest plan?",
+    "options": [
+     "Order early and add a dropship backup",
+     "Wait and see what happens",
+     "Stop posting it"
+    ],
+    "correct": 1,
+    "why": "Early stock covers the rush, and dropship products keep you selling if you run out.",
+    "video": "Ready before the rush.",
+    "biz": {
+     "en": "A seasonal campaign in Shopinbos Business dresses up your store for Black Friday or Christmas with a countdown, then switches back by itself.",
+     "pcm": "Seasonal campaign for Shopinbos Business go dress your store for Black Friday or Christmas with countdown, then e go switch back by itself.",
+     "cta": [
+      "Start free",
+      "%%SIGNUP%%"
+     ]
+    },
+    "was": [
+     "plan-stock-for-black-friday-christmas-and-detty-december"
+    ],
+    "try": "List five products you expect to sell in December and how many of each you will need."
+   },
+   {
+    "title": "Review your month in 30 minutes",
+    "minutes": 5,
+    "intro": "Busy months pass without you learning from them. Thirty minutes at the end of each month shows what worked, what didn’t and one goal for next month.",
+    "intro_pcm": "Busy months dey pass without you learn from dem. Thirty minutes for end of every month go show wetin work, wetin no work and one goal for next month.",
+    "learn": [
+     "The five questions to ask",
+     "Looking at sales, profit and cash",
+     "Choosing one goal",
+     "Writing it down and checking it"
+    ],
+    "steps": [
+     [
+      "Look at the numbers",
+      "Sales, profit, orders and cash in the bank, compared with last month."
+     ],
+     [
+      "Find your best and worst",
+      "Best-selling product, best channel, biggest problem."
+     ],
+     [
+      "Pick one goal",
+      "One clear thing: “20 repeat orders” or “cut failed deliveries by half”."
+     ],
+     [
+      "Write the plan",
+      "Three actions for the goal, and a date to check."
+     ]
+    ],
+    "try_pcm": "Block 30 minutes for end of this month. Answer the five questions and write one goal for next month.",
+    "checks": [
+     "I compared this month with last month",
+     "I found my best and worst",
+     "I picked one goal",
+     "I wrote three actions"
+    ],
+    "quiz": "What makes a monthly goal useful?",
+    "options": [
+     "It is vague, like “grow more”",
+     "It is one clear number with a few actions",
+     "There are ten of them"
+    ],
+    "correct": 2,
+    "why": "One clear goal gets done. Ten vague goals get forgotten.",
+    "video": "Learn from every month.",
+    "biz": {
+     "en": "Analytics in Shopinbos Business show your sales and orders by month and where your buyers came from, so the review takes minutes.",
+     "pcm": "Analytics for Shopinbos Business dey show your sales and orders by month and where your buyers come from, so the review go take few minutes.",
+     "cta": [
+      "Start free",
+      "%%SIGNUP%%"
+     ]
+    },
+    "try": "Block 30 minutes at the end of this month. Answer the five questions and write one goal for next month."
+   }
+  ]
+ },
+ {
+  "slug": "sell-food-and-beauty-products",
+  "name": "Sell food and beauty products",
+  "about": "For people who make or sell food, drinks, creams, soaps and hair products. Learn NAFDAC basics, labels and expiry dates buyers trust, packaging for heat and delivery, photos that show the truth, stock rotation and how to handle health complaints.",
+  "bg": "#FCE4EC",
+  "fg": "#A0204F",
+  "icon": "box",
+  "for": "Small food, drinks, skincare and haircare makers and sellers.",
+  "learn": [
+   "NAFDAC basics and where to check the current rules",
+   "Labels and expiry dates buyers trust",
+   "Packaging that survives heat and delivery",
+   "Photos that show texture and real size",
+   "Stock rotation and handling health complaints"
+  ],
+  "biz": "Shopinbos Business has a packaging designer with templates for food, drinks, skincare and hair care, and a store that shows ingredients and sizes for every product.",
+  "biz_cta": [
+   "Start free with Shopinbos Business",
+   "%%SIGNUP%%"
+  ],
+  "lessons": [
+   {
+    "title": "NAFDAC basics for food and cosmetics",
+    "minutes": 5,
+    "intro": "If you make or sell packaged food, drinks or cosmetics, NAFDAC rules may apply to you. Many buyers and shops look for a NAFDAC number before they trust a product. This lesson explains the basics and where to check the details.",
+    "intro_pcm": "If you dey make or sell packaged food, drinks or cosmetics, NAFDAC rules fit concern you. Plenty buyers and shops dey look for NAFDAC number before dem trust product. This lesson go explain the basics and where to check the full details.",
+    "learn": [
+     "Why NAFDAC registration matters",
+     "Which of your products it may cover",
+     "Where to check the current guidance",
+     "What to do while you prepare"
+    ],
+    "steps": [
+     [
+      "List your products",
+      "Mark which ones are packaged food, drinks or cosmetics."
+     ],
+     [
+      "Read NAFDAC’s current guidance",
+      "On NAFDAC’s official website or at their office, not from hearsay."
+     ],
+     [
+      "Plan before you sell widely",
+      "Products sold widely need to be registered."
+     ],
+     [
+      "Ask NAFDAC when unsure",
+      "Rules and fees change, so check with them directly."
+     ]
+    ],
+    "try_pcm": "List your products and mark the packaged food, drinks or cosmetics. Then find NAFDAC current guidance for one of dem.",
+    "checks": [
+     "I listed my products",
+     "I marked my food and cosmetics",
+     "I read NAFDAC’s current guidance",
+     "I know where to ask when I’m unsure"
+    ],
+    "quiz": "Where should you get the rules for registering your shea butter cream?",
+    "options": [
+     "A seller in a WhatsApp group",
+     "NAFDAC’s current official guidance",
+     "A comment on TikTok"
+    ],
+    "correct": 2,
+    "why": "Rules and fees can change, so go to NAFDAC directly.",
+    "video": "Check with NAFDAC first.",
+    "was": [
+     "nafdac-basics-for-food-and-cosmetics"
+    ],
+    "try": "List your products and mark the packaged food, drinks or cosmetics. Then find NAFDAC’s current guidance for one of them."
+   },
+   {
+    "title": "Labels and expiry dates buyers trust",
+    "minutes": 4,
+    "intro": "A clear label answers questions before buyers ask them. It also shows you take food and skin safety seriously.",
+    "intro_pcm": "Clear label dey answer question before buyers ask am. E still show say you take food and skin safety serious.",
+    "learn": [
+     "What a clear label shows",
+     "Writing expiry dates people can read",
+     "Why batch numbers help",
+     "Checking NAFDAC’s labelling guidance"
+    ],
+    "steps": [
+     [
+      "Name and size",
+      "What it is and how much: “Zobo drink, 50cl”."
+     ],
+     [
+      "Every ingredient",
+      "So buyers with allergies can check for themselves."
+     ],
+     [
+      "A clear expiry date",
+      "Write the month in words, like “Best before March 2027”."
+     ],
+     [
+      "Your name and contact",
+      "So buyers know who made it and how to reach you."
+     ]
+    ],
+    "try_pcm": "Check one product label with these four steps and fix anything wey no dey there.",
+    "checks": [
+     "My label shows name and size",
+     "Every ingredient is listed",
+     "The expiry date is easy to read",
+     "My name and contact are on it"
+    ],
+    "quiz": "A buyer with a nut allergy asks about your chin chin. What helps them most?",
+    "options": [
+     "A full ingredient list on the label",
+     "A nice logo",
+     "A lower price"
+    ],
+    "correct": 1,
+    "why": "Clear ingredients let buyers decide for themselves and save you guesswork.",
+    "video": "Labels that answer questions.",
+    "biz": {
+     "en": "The packaging designer in Shopinbos Business has label templates for food, drinks, skincare and hair care. Add your words and download a print-ready file.",
+     "pcm": "Packaging designer for Shopinbos Business get label templates for food, drinks, skincare and hair care. Add your words and download file wey ready to print.",
+     "cta": [
+      "Start free",
+      "%%SIGNUP%%"
+     ]
+    },
+    "was": [
+     "labels-and-expiry-dates-buyers-trust"
+    ],
+    "try": "Check one product label against these four steps and fix anything that is missing."
+   },
+   {
+    "title": "Packaging that survives delivery and heat",
+    "minutes": 5,
+    "intro": "Drinks can leak, soups can spill and creams can melt in a hot delivery box. Packing for heat and bumps keeps your products safe until the buyer opens them.",
+    "intro_pcm": "Drink fit leak, soup fit pour and cream fit melt inside hot delivery box. If you pack for heat and shaking, your products go reach buyer safe.",
+    "learn": [
+     "Sealing liquids and oils",
+     "Keeping heat away",
+     "Products that should not travel far",
+     "Testing your packing"
+    ],
+    "steps": [
+     [
+      "Seal and tape every lid",
+      "Then put each jar or bottle in its own nylon."
+     ],
+     [
+      "Use a strong inner box",
+      "So jars and bottles don’t knock each other."
+     ],
+     [
+      "Keep heat-sensitive items cool",
+      "Send them in the morning and never leave parcels in the sun."
+     ],
+     [
+      "Test one parcel",
+      "Shake it, leave it somewhere warm for an hour, then open it."
+     ]
+    ],
+    "try_pcm": "Pack one product the way wey you dey always pack. Shake am, leave am for hot place for one hour, then check am.",
+    "checks": [
+     "Every lid is sealed and taped",
+     "Each jar or bottle has its own nylon",
+     "I send heat-sensitive items in the morning",
+     "I tested one parcel"
+    ],
+    "quiz": "Your body butter arrived melted in Abuja. What should you change first?",
+    "options": [
+     "Send it in the afternoon sun",
+     "Seal it well, send it in the morning and keep it out of the sun",
+     "Stop selling body butter"
+    ],
+    "correct": 2,
+    "why": "Heat is the problem, so cut the time your parcel spends in it.",
+    "video": "Packed for the heat.",
+    "was": [
+     "packaging-that-survives-delivery-and-heat"
+    ],
+    "try": "Pack one product the way you normally do. Shake it, leave it somewhere warm for an hour, then check it."
+   },
+   {
+    "title": "Photos for food and beauty products",
+    "minutes": 5,
+    "intro": "With food and beauty, buyers want to see texture, size and colour on real skin. These photos answer their questions and cut down complaints.",
+    "intro_pcm": "For food and beauty, buyers wan see texture, size and how colour be for real skin. These photos go answer their question and reduce complain.",
+    "learn": [
+     "Showing texture",
+     "Showing the real size",
+     "Shooting the label",
+     "Showing shades on different skin tones"
+    ],
+    "steps": [
+     [
+      "Show the texture",
+      "Cream on a finger, soup in a spoon, a slice of cake."
+     ],
+     [
+      "Show the real size",
+      "Next to a hand or a spoon so nobody is surprised."
+     ],
+     [
+      "Shoot the label",
+      "One clear photo of the ingredients and expiry date."
+     ],
+     [
+      "Try shades on different skin tones",
+      "For lipsticks, powders and hair colour."
+     ]
+    ],
+    "try_pcm": "Snap four photos of one product: the texture, the size near your hand, the label and the product as people dey use am.",
+    "checks": [
+     "I have a texture photo",
+     "I have a photo that shows size",
+     "I photographed the label",
+     "My shade photos show real skin tones"
+    ],
+    "quiz": "Buyers say your small chops tray looks smaller than the picture. What should you add?",
+    "options": [
+     "More filters",
+     "A bigger caption",
+     "A photo with a hand or plate for scale"
+    ],
+    "correct": 3,
+    "why": "A hand or plate shows the real size, so the buyer knows what to expect.",
+    "video": "Show the texture.",
+    "was": [
+     "photos-for-food-and-beauty-products"
+    ],
+    "try": "Take four photos of one product: the texture, its size next to your hand, the label and the product in use."
+   },
+   {
+    "title": "Shelf life and stock rotation",
+    "minutes": 5,
+    "intro": "Food and beauty products don’t last forever. Selling your oldest stock first and making smaller batches stops you throwing money away.",
+    "intro_pcm": "Food and beauty products no dey last forever. If you sell the old stock first and make small batches, you no go dey throw money away.",
+    "learn": [
+     "First in, first out",
+     "Tracking expiry dates",
+     "Making smaller batches",
+     "What to do with stock near expiry"
+    ],
+    "steps": [
+     [
+      "Date everything",
+      "When you made or received it, and when it expires."
+     ],
+     [
+      "Put older stock in front",
+      "So it goes out first."
+     ],
+     [
+      "Make smaller batches",
+      "Only what you can sell well before it expires."
+     ],
+     [
+      "Check expiry every week",
+      "Bundle items early. Never sell anything expired."
+     ]
+    ],
+    "try_pcm": "Arrange your stock today: the old ones for front. Then list anything wey go expire for the next two months.",
+    "checks": [
+     "Every item has a date on it",
+     "My oldest stock is in front",
+     "My batches match what I sell",
+     "I check expiry dates every week"
+    ],
+    "quiz": "You have face cream that expires in four months and a fresh batch just in. Which goes out with the next order?",
+    "options": [
+     "The one that expires sooner",
+     "The fresh batch",
+     "Whichever is closest"
+    ],
+    "correct": 1,
+    "why": "First in, first out keeps stock moving so nothing expires on your shelf.",
+    "video": "Oldest first.",
+    "was": [
+     "shelf-life-and-stock-rotation"
+    ],
+    "try": "Sort your stock today: oldest in front. Then list anything that expires in the next two months."
+   },
+   {
+    "title": "Handling complaints about taste, allergies or skin reactions",
+    "minutes": 6,
+    "intro": "When a buyer says food tasted off or a cream irritated their skin, it is more serious than a wrong size. A calm, careful reply protects them and your shop.",
+    "intro_pcm": "When buyer talk say food taste somehow or cream scratch their skin, e serious pass wrong size. Calm, careful reply go protect dem and your shop.",
+    "learn": [
+     "Taking health complaints seriously",
+     "What to ask the buyer",
+     "When to point them to a pharmacist or doctor",
+     "Preventing repeats with allergy notes and patch tests"
+    ],
+    "steps": [
+     [
+      "Reply fast and kindly",
+      "Thank them and say you are looking into it."
+     ],
+     [
+      "Ask for details and photos",
+      "The product, the expiry date and what happened."
+     ],
+     [
+      "Ask them to stop using it",
+      "For a reaction, tell them to see a pharmacist or doctor."
+     ],
+     [
+      "Check the rest of that batch",
+      "Pause sales if anything looks wrong."
+     ]
+    ],
+    "try_pcm": "Write the calm reply wey you go send if buyer talk say your soap make their body scratch. Save am as quick reply.",
+    "checks": [
+     "I reply to health complaints fast",
+     "I ask for details and photos",
+     "I tell buyers to stop and see a pharmacist or doctor",
+     "I check the rest of the batch"
+    ],
+    "quiz": "A buyer says your cream gave them a rash. What should you do first?",
+    "options": [
+     "Tell them it’s their skin, not your cream",
+     "Offer a discount on another jar",
+     "Apologise, ask them to stop using it and see a pharmacist or doctor"
+    ],
+    "correct": 3,
+    "why": "Their health comes first. Then check your batch so it doesn’t happen again.",
+    "video": "Calm care, kept customers.",
+    "was": [
+     "handling-complaints-about-taste-allergies-or-skin-reactions"
+    ],
+    "try": "Write the calm reply you would send if a buyer said your soap made their skin itch. Save it as a quick reply."
+   }
+  ]
+ }
+]
