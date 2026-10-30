@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useFeature } from "@/lib/features";
 import { View } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 import { Small } from "@/components/design";
@@ -43,6 +44,8 @@ export function ShopQrCard({ name, logoUrl, handle, shortUrl, shortHost, plug = 
 
 export default function ShopLinkScreen() {
   const t = useT("shopLink", "m_ui");
+  // "Follow us on Shopinbos Plug": a pilot switch (plug_follow_card) until Plug ships for everyone.
+  const plugCard = useFeature("plug_follow_card");
   const loaded = useLoad(fetchShopLink);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
@@ -81,7 +84,7 @@ export default function ShopLinkScreen() {
 
       {link && handle ? (
         <>
-          <ShopQrCard name={link.storeName} logoUrl={link.logoUrl} handle={handle} shortUrl={link.shortUrl} shortHost={link.shortHost} />
+          <ShopQrCard name={link.storeName} logoUrl={link.logoUrl} handle={handle} shortUrl={link.shortUrl} shortHost={link.shortHost} plug={PLUG_LIVE || plugCard} />
 
           {/* The @handle: shown, or edited (owner only). */}
           <Card style={{ gap: 10 }}>

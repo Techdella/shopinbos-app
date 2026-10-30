@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { featureOn } from "@/lib/feature-switches.server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/server-auth";
@@ -50,7 +51,7 @@ export default async function PrintShopCardPage({ searchParams }: { searchParams
           size={size}
           count={size === "flyer" ? 2 : 12}
           card={{ name: link.storeName, logoUrl: link.logoUrl, handle: link.handle, shortUrl: link.shortUrl, shortHost: link.shortHost, qrSrc }}
-          plug={PLUG_LIVE}
+          plug={PLUG_LIVE || (await featureOn(user.id, "plug_follow_card"))}
         />
       </div>
     </div>

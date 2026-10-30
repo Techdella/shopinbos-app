@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { featureOn } from "@/lib/feature-switches.server";
 import { requireRole } from "@/lib/server-auth";
 import { db } from "@/lib/db/client";
 import { SellerPage, storeSummary } from "@/components/seller/SellerPage";
@@ -36,7 +37,7 @@ export default async function ShopLinkPage() {
       {link.handle ? (
         <ShopLinkPanel
           initial={{ handle: link.handle, shortUrl: link.shortUrl, shortHost: link.shortHost, storeUrl: link.storeUrl, storeName: link.storeName, logoUrl: link.logoUrl, canEdit: !user.staff }}
-          plug={PLUG_LIVE}
+          plug={PLUG_LIVE || (await featureOn(user.id, "plug_follow_card"))}
         />
       ) : (
         <p className="text-[15px] text-app-ink-soft">{t("handle.none")}</p>

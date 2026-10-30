@@ -114,7 +114,7 @@ async function findTargets(kind: TargetKind, query: string): Promise<Match[]> {
   const q = query.trim();
   if (kind === "store") {
     const slug = q.toLowerCase().replace(/^https?:\/\//, "").replace(/\.mybos\.store.*$/, "").replace(/^.*\/s\//, "").replace(/^@/, "").replace(/\/.*$/, "");
-    const exact = await db.store.findMany({ where: { OR: [{ slug }, { previousSlugs: { has: slug } }] }, select: { id: true, name: true, slug: true }, take: 2 });
+    const exact = await db.store.findMany({ where: { OR: [{ slug }, { handle: slug }, { previousSlugs: { has: slug } }] }, select: { id: true, name: true, slug: true }, take: 2 });
     if (exact.length) return exact.map((row) => ({ value: row.id, label: `${row.name} (${row.slug})` }));
     const named = await db.store.findMany({ where: { name: { contains: q, mode: "insensitive" } }, select: { id: true, name: true, slug: true }, take: 6, orderBy: { createdAt: "asc" } });
     return named.map((row) => ({ value: row.id, label: `${row.name} (${row.slug})` }));
