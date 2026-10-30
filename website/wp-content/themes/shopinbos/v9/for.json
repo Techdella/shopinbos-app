@@ -1,0 +1,702 @@
+{
+  "_note": "Who it's for pages (/for/ and /for/{slug}/), rendered by inc/v9-for.php. Only describe what the Shopinbos app really does (shared/glossary.ts, shared/i18n/messages/**/en.ts on the app's main branch). Plans come from the plugin's seed/pricing.json at render time; 'plan' names the audience and plan key. 'links' are search words: blog posts, help articles, Academy lessons and trend reports that match are listed at render time.",
+  "hub": {
+    "title": "Who Shopinbos is for: online stores for every kind of Nigerian business",
+    "description": "Online sellers, boutiques, market traders, food brands, gadget shops, importers, suppliers and delivery companies: see how Shopinbos fits the way you sell in Nigeria.",
+    "eyebrow": "Who it’s for",
+    "h1": "Built for how Nigeria sells.",
+    "lead": "Whether you sell from your DMs, a market stall or a warehouse, Shopinbos Business gives you a shop, payments, delivery and help in one app. Find your kind of business below.",
+    "groups": [
+      { "label": "By what you sell", "slugs": [ "fashion-and-beauty", "hair-and-wigs", "food-and-drinks", "gadgets-and-electronics", "home-and-kitchen", "kids-and-babies" ] },
+      { "label": "By how you sell", "slugs": [ "online-sellers", "market-traders", "students-and-side-hustles", "creators-and-influencers", "resellers-and-dropshippers", "small-brands-and-makers", "importers" ] },
+      { "label": "Partners", "slugs": [ "wholesalers-and-distributors", "delivery-companies", "riders" ] }
+    ],
+    "faq": [
+      [ "Is Shopinbos only for big businesses?", "No. Most people start on the Free plan with a few products and a phone. You pay ₦0 a month and 3% per sale, and move to a paid plan only when it makes sense." ],
+      [ "I don’t see my kind of business. Can I still use it?", "Yes. If you sell physical products, digital products or a service in Nigeria, you can build a shop, take payments and arrange delivery on Shopinbos Business." ],
+      [ "Do I need a website or a laptop?", "No. You can set up and run your whole shop from your phone. Rex, our AI builder, makes your shop from a few answers, and your address is yourname.mybos.store until you add your own domain." ],
+      [ "How do I get paid?", "Card and transfer payments are paid out to your bank through Paystack, usually within a few working days. On Growth and Pro you can also offer pay on delivery." ]
+    ]
+  },
+  "pages": {
+    "online-sellers": {
+      "name": "Online sellers",
+      "short": "From DMs to a real shop",
+      "img": "49aaca8689ef488a9b24ea9dce101f56.webp",
+      "pos": "50% 20%",
+      "seo_title": "Online store for Instagram and WhatsApp sellers in Nigeria",
+      "seo_desc": "Selling in DMs, on WhatsApp Status or Instagram? Get an online store with checkout, payment links, one inbox and delivery booking. Start free on Shopinbos.",
+      "eyebrow": "For online sellers",
+      "h1": "From “DM for price” to a real shop.",
+      "lead": "You already sell on WhatsApp, Instagram and TikTok. Shopinbos Business gives those chats a shop, a checkout and one place to keep every order, so you stop losing sales in your DMs.",
+      "problems": [
+        [ "“How much?” all day", "The same questions come in on three apps. You answer late at night and still miss some." ],
+        [ "Orders live in screenshots", "Who paid, who didn’t, who wants it delivered to Ikeja? It’s all in chats and your memory." ],
+        [ "Buyers don’t trust a DM", "New customers worry about paying a stranger. A proper shop and checkout make you look serious." ],
+        [ "Delivery is a new chat every time", "You call riders one by one, agree prices and chase updates for every parcel." ]
+      ],
+      "helps": [
+        [ "A shop Rex builds for you", "Answer a few questions and Rex makes your shop on yourname.mybos.store. Add products with a photo, a name and a price." ],
+        [ "Payment links and link in bio", "Send a payment link in any chat. The customer picks delivery and pays, and the order lands in Orders. Put your link in bio on Instagram and TikTok." ],
+        [ "One inbox", "WhatsApp, Instagram, live chat and form messages in one list, with auto-replies and Peggy to answer common questions when you’re busy." ],
+        [ "Your WhatsApp catalogue, moved in", "Already have a WhatsApp catalogue? Peggy can add your products from screenshots, so you don’t type them again." ],
+        [ "Delivery from the order", "Pick a delivery partner on the order, print the label and share tracking with your customer." ],
+        [ "Shop link and QR", "Your @handle, a short link and a QR code to print on parcels and flyers." ]
+      ],
+      "plan": { "audience": "sellers", "key": "starter", "why": "Start on Free to test it. When orders come every week, Starter gives you your own domain, up to 200 products and a lower 2% fee per sale." },
+      "day": {
+        "who": "Example: Tolu sells perfume oils from her phone in Lagos.",
+        "steps": [
+          [ "Morning", "She posts three products to WhatsApp Status with her shop link. Two people tap through and buy without messaging." ],
+          [ "Afternoon", "An Instagram follower asks for a bundle. Tolu makes a payment link for the two oils and sends it in the DM. It’s paid within the hour." ],
+          [ "Evening", "She opens Orders, books delivery for the day’s parcels and prints the labels. Peggy answers price questions while she packs." ]
+        ]
+      },
+      "links": [ "WhatsApp", "Instagram", "first order" ],
+      "faq": [
+        [ "Do I have to stop selling on WhatsApp and Instagram?", "No. Keep selling where your customers are. Shopinbos connects those chats to your shop, so every order ends up in one place." ],
+        [ "What is a payment link?", "A link you send in a chat so a customer can pay for exact products and pick delivery. The order then shows in Orders." ],
+        [ "Can I start without paying?", "Yes. The Free plan is ₦0 a month with a 3% fee per sale, up to 20 products and 20 AI credits a month." ],
+        [ "Can customers pay on delivery?", "Yes, on the Growth and Pro plans. The buyer pays the shop when the parcel arrives, then gives the rider a code." ],
+        [ "How does my money get to me?", "Card and transfer payments are paid out to your bank through Paystack, usually within a few working days." ]
+      ],
+      "cta": { "kind": "signup", "title": "Turn your DMs into a shop.", "text": "Start free. Rex builds your shop while you keep selling.", "button": "Start free" }
+    },
+    "fashion-and-beauty": {
+      "name": "Fashion and beauty",
+      "short": "Boutiques, salons and brands",
+      "img": "410f5d3b300191628a8b094a03160ece.webp",
+      "pos": "50% 20%",
+      "seo_title": "Online store for fashion and beauty businesses in Nigeria",
+      "seo_desc": "Boutiques, cosmetics brands and salons: sell clothes, shoes, skincare and makeup online with sizes and colours, reviews, payments and delivery. Start free.",
+      "eyebrow": "For fashion and beauty",
+      "h1": "A boutique that’s open all night.",
+      "lead": "For boutiques, ready-to-wear and Ankara brands, shoe and bag sellers, cosmetics and skincare brands, and salons that sell products. Show every size and shade, take payment and send it out, from one app.",
+      "problems": [
+        [ "Sizes and colours get mixed up", "Someone pays for the size 12 in red, but you sold the last one this morning on Instagram." ],
+        [ "Photos don’t show the quality", "Your pieces look better in person. Plain phone photos don’t sell them." ],
+        [ "Skincare buyers need to trust you", "They want ingredients, how to use it and real reviews before they pay." ],
+        [ "Sales come in waves", "New drops, Black Friday and Detty December bring rushes you can’t answer fast enough." ]
+      ],
+      "helps": [
+        [ "Sizes, colours and stock", "Add each size and colour as a variant with its own stock and price. When one sells out, the shop stops selling it." ],
+        [ "Fields for your products", "Clothing asks for material, fit and care. Beauty asks for skin type, ingredients, volume and how to use it." ],
+        [ "Rex Studio and Video studio", "Rex makes product photos and posts, and turns your photos into short videos for TikTok, Reels and Status." ],
+        [ "Reviews", "Stars and comments from buyers show on your shop and help new customers trust you." ],
+        [ "Seasonal campaigns", "Plan a sale once. Your shop dresses up for the season with a countdown, then switches back by itself." ],
+        [ "Templates for fashion", "Pick a ready-made design and fill it with your own photos, words and colours." ]
+      ],
+      "plan": { "audience": "sellers", "key": "growth", "why": "Growth gives you unlimited products for all your sizes and colours, pay on delivery for first-time buyers, 5 staff accounts and seasonal campaigns, at 1% per sale." },
+      "day": {
+        "who": "Example: Bisi runs a small ready-to-wear label in Ibadan.",
+        "steps": [
+          [ "9am", "She snaps the new collection by the window. Rex cleans up the photos and makes a short video for Reels." ],
+          [ "1pm", "The drop goes live on her shop and WhatsApp Status. Variants keep count, so the size 10s stop selling when they’re gone." ],
+          [ "6pm", "A customer asks about fit in the inbox. Bisi replies with a payment link for the size she recommends." ]
+        ]
+      },
+      "links": [ "fashion", "beauty", "photo" ],
+      "faq": [
+        [ "Can I sell clothes in different sizes and colours?", "Yes. Each size or colour is a variant with its own stock and price, so customers can only buy what you have." ],
+        [ "I sell skincare. Can I list ingredients and NAFDAC numbers?", "Yes. Beauty products have fields for ingredients, skin type, how to use it, expiry and the NAFDAC number." ],
+        [ "I run a salon. Can I sell services too?", "You can list a service as a product type, with what’s included, where and how long it takes, next to the products you sell." ],
+        [ "Can I use my own brand name and domain?", "Yes. Every shop has a name.mybos.store address, and Starter, Growth and Pro let you connect your own domain." ],
+        [ "Can I get custom packaging?", "Shopinbos has a packaging designer and labels in the app, and you can request custom packaging from there." ]
+      ],
+      "cta": { "kind": "signup", "title": "Give your collection a proper home.", "text": "Start free with a fashion template. Upgrade when you’re ready.", "button": "Start my boutique" }
+    },
+    "market-traders": {
+      "name": "Market traders",
+      "short": "Keep your stall, sell online too",
+      "img": "86f1ea80340c28e0e96252b23d2ecce5.webp",
+      "pos": "50% 40%",
+      "seo_title": "Online store for market traders in Nigeria: keep your stall, sell online",
+      "seo_desc": "Sell from your shop in Balogun, Onitsha, Aba or Kano and online too. Record stall sales, keep stock right, print a QR code for your stall and deliver anywhere.",
+      "eyebrow": "For market traders",
+      "h1": "Keep your stall. Sell online too.",
+      "lead": "Your customers already know your shop in the market. Shopinbos Business lets them buy from you when they can’t come, while your stock stays right for both the stall and the shop online.",
+      "problems": [
+        [ "Customers can’t always come", "Regulars travel, move or just can’t face the traffic, and they buy from someone else." ],
+        [ "Stock counts drift", "You sell at the stall and on WhatsApp, and nobody knows what’s really left." ],
+        [ "Records are in a notebook", "End of the month, it’s hard to tell what sold, what you made and who owes you." ],
+        [ "Sending goods out of town is stressful", "Each interstate order means finding a park, a driver and a price." ]
+      ],
+      "helps": [
+        [ "Record a sale", "Add sales made at your stall, by phone or on WhatsApp, so stock and money stay right." ],
+        [ "Inventory", "See how many of each product you have now, for the stall and the online shop together." ],
+        [ "QR code for your stall", "Print your shop QR on stickers or a flyer. Customers scan it and can buy from you any day." ],
+        [ "Delivery partners", "Book doorstep or pickup-point delivery from the order, inside your city or to other states." ],
+        [ "Receipts and invoices", "Send a receipt after a sale, or an invoice with your logo for bigger buyers." ],
+        [ "Analytics", "See sales, visits and your best sellers without adding up a notebook." ]
+      ],
+      "plan": { "audience": "sellers", "key": "free", "why": "Free is enough to put up to 20 of your best products online and see who buys. Move to Starter for up to 200 products and your own domain." },
+      "day": {
+        "who": "Example: Emeka sells phone accessories from a shop in a busy Lagos market.",
+        "steps": [
+          [ "Opening", "He records the morning’s walk-in sales on his phone. The online shop’s stock updates with them." ],
+          [ "Midday", "A former customer in Abuja scans the QR on an old receipt and orders two chargers online." ],
+          [ "Closing", "Emeka books delivery for the Abuja parcel and checks the day’s sales on the dashboard." ]
+        ]
+      },
+      "links": [ "suppliers", "WhatsApp Status", "delivery" ],
+      "faq": [
+        [ "Do I need to put all my goods online?", "No. Start with your best sellers. The Free plan holds up to 20 products; Starter holds 200." ],
+        [ "Can I record cash sales at my stall?", "Yes. Use Record a sale for stall, phone or WhatsApp sales, so stock and your sales numbers stay right." ],
+        [ "Can I send goods to other states?", "Yes. Pick a delivery partner that covers the route, or use pickup points where customers collect their parcel." ],
+        [ "Can my shop assistant use it?", "Yes. Add a staff member and choose what they can see and do. Free has 1 account, Starter 2, Growth 5 and Pro 15." ]
+      ],
+      "cta": { "kind": "signup", "title": "Your stall, open online.", "text": "Start free. Put your best sellers online this week.", "button": "Start free" }
+    },
+    "food-and-drinks": {
+      "name": "Food and drinks",
+      "short": "Home kitchens and packaged food",
+      "img": "91e12bedd0de81dc60e0206930f1a076.webp",
+      "pos": "50% 50%",
+      "seo_title": "Online store for food and drinks businesses in Nigeria",
+      "seo_desc": "Home kitchens, snack brands, drinks and packaged foodstuff: take orders and payment online, show expiry and NAFDAC details, set delivery areas and fees. Start free.",
+      "eyebrow": "For food and drinks",
+      "h1": "Orders in, food out, nothing missed.",
+      "lead": "For home kitchens, small chops and cake makers, snack and drinks brands, and anyone selling packaged foodstuff. Take orders and payment in one place, deliver within your areas, and show buyers the details that build trust.",
+      "problems": [
+        [ "Orders come in all at once", "Lunch and weekend rushes bring more chats than you can answer while cooking." ],
+        [ "Delivery fees are a guessing game", "Every area costs something different, and you agree a new price each time." ],
+        [ "Buyers ask what’s inside", "They want ingredients, best-before dates and proof your product is approved." ],
+        [ "Stock runs out or goes off", "Fresh food and packaged goods both need you to watch quantities and dates." ]
+      ],
+      "helps": [
+        [ "Fields made for food", "Food products have fields for ingredients, weight, expiry, best before, storage and the NAFDAC number." ],
+        [ "Delivery zones", "Set the areas you deliver to yourself, each with its own fee, so customers see the price at checkout." ],
+        [ "Self-pickup", "Let customers collect from you. It’s at checkout on every plan." ],
+        [ "Auto-replies and Peggy", "Answer “are you open?” and “how much is delivery?” without stopping what you’re doing." ],
+        [ "Bundles", "Sell combos like a party pack at one price. A bundle sells while every item in it has stock." ],
+        [ "Repeat customers", "Segments and campaigns let you message people who ordered before, by WhatsApp, email or SMS." ]
+      ],
+      "plan": { "audience": "sellers", "key": "starter", "why": "Starter gives you your own domain, all themes and a branded tracking page at 2% per sale. Move to Growth if you want pay on delivery." },
+      "day": {
+        "who": "Example: Hauwa makes granola and tiger nut drinks in Abuja.",
+        "steps": [
+          [ "6am", "Overnight orders are waiting in Orders, already paid. She plans the morning’s batch from the list." ],
+          [ "11am", "Peggy answers three “do you deliver to Gwarinpa?” questions with her delivery zones and prices." ],
+          [ "4pm", "She marks the batch packed. Customers near her pick up; the rest go out with her delivery partner." ]
+        ]
+      },
+      "links": [ "NAFDAC", "food", "snack" ],
+      "faq": [
+        [ "Do I need NAFDAC registration to sell food online?", "Most packaged food and drinks sold to the public need a NAFDAC registration number. Rules depend on the product, so check NAFDAC’s current guidance. Our free Academy lesson “NAFDAC basics for food and cosmetics” explains the basics." ],
+        [ "Can I show expiry and storage details?", "Yes. Food products have fields for expiry, best before, storage, weight and ingredients." ],
+        [ "Can I charge different delivery fees by area?", "Yes. Set delivery zones with their own fee, or use a delivery partner’s rate card at checkout." ],
+        [ "Can customers pick up from my kitchen?", "Yes. Self-pickup is available at checkout on every plan." ],
+        [ "Can I sell cakes made to order?", "Yes. List them with options like size or flavour, and use a payment link for a custom order you agreed in chat." ]
+      ],
+      "cta": { "kind": "signup", "title": "Let the orders come to you.", "text": "Start free and set your delivery areas in minutes.", "button": "Start free" }
+    },
+    "gadgets-and-electronics": {
+      "name": "Gadgets and electronics",
+      "short": "Phones, accessories and appliances",
+      "img": "9728f68c97371f3e601911f5fa800a7e.webp",
+      "pos": "50% 50%",
+      "seo_title": "Online store for phones, gadgets and electronics sellers in Nigeria",
+      "seo_desc": "Sell phones, accessories and appliances online with model, condition, battery health and warranty details, pay on delivery and tracked delivery. Start free.",
+      "eyebrow": "For gadgets and electronics",
+      "h1": "Sell gadgets buyers can trust.",
+      "lead": "For phone and accessory sellers, UK-used and new, and shops selling TVs, fans, generators and kitchen appliances. Show the details buyers check, offer pay on delivery, and track every parcel.",
+      "problems": [
+        [ "Buyers fear fakes and bad units", "They want the model, condition, battery health and warranty before they pay." ],
+        [ "Prices move with the naira", "You update prices all the time and old prices keep circulating in chats." ],
+        [ "High-value parcels need care", "A lost or swapped phone is a big loss for you and your customer." ],
+        [ "Customers want to see it first", "Many buyers will only pay when the item reaches them." ]
+      ],
+      "helps": [
+        [ "Fields for gadgets", "Phones and electronics have fields for model, condition, storage, RAM, battery health, warranty, brand and power." ],
+        [ "Pay on delivery", "On Growth and Pro, buyers pay the shop when the parcel arrives, then give the rider a code." ],
+        [ "One price, everywhere", "Change a price once and your shop, link in bio and payment links use it." ],
+        [ "Tracked delivery", "Book a delivery partner from the order and share a tracking page with your customer." ],
+        [ "Reviews", "Reviews from real buyers show on your products and help new customers decide." ],
+        [ "Find stock", "Registered sellers can find checked suppliers, buy wholesale, or import from China through our sourcing partner." ]
+      ],
+      "plan": { "audience": "sellers", "key": "growth", "why": "Growth adds pay on delivery, which many gadget buyers ask for, plus unlimited products, the problem deliveries inbox and a 1% fee per sale." },
+      "day": {
+        "who": "Example: Kunle sells UK-used phones and accessories in Ikeja.",
+        "steps": [
+          [ "10am", "He lists two new phones with battery health, storage and warranty filled in. Rex makes a short video for TikTok." ],
+          [ "2pm", "A buyer in Ibadan orders with pay on delivery. Kunle books a delivery partner from the order." ],
+          [ "Next day", "The buyer pays and gives the rider the code. The order shows as delivered and paid." ]
+        ]
+      },
+      "links": [ "gadget", "phone", "pricing" ],
+      "faq": [
+        [ "Can I show if a phone is new or used?", "Yes. Phones and gadgets have a condition field, plus battery health, storage, RAM and warranty." ],
+        [ "Can buyers pay when the phone arrives?", "Yes, on Growth and Pro. The buyer pays the shop when it arrives, never the rider, then gives the rider a code." ],
+        [ "How do I handle a delivery that goes wrong?", "Delivery exceptions show orders that were declined, late, failed or returned, so you can act. On Growth and Pro you can switch partner." ],
+        [ "Can I update prices quickly when the naira moves?", "Yes. Change a product’s price once and every place it’s sold uses the new price." ]
+      ],
+      "cta": { "kind": "signup", "title": "Show the details. Close the sale.", "text": "Start free, then add pay on delivery on Growth.", "button": "Start free" }
+    },
+    "home-and-kitchen": {
+      "name": "Home and kitchen",
+      "short": "Decor, bedding and kitchenware",
+      "img": "86bc1a515881045813bfc963a6fd890e.webp",
+      "pos": "50% 50%",
+      "seo_title": "Online store for home and kitchen products in Nigeria",
+      "seo_desc": "Sell kitchenware, bedding, decor and furniture online with sizes, collections, bundles and delivery to any state. Build your home goods shop with Shopinbos.",
+      "eyebrow": "For home and kitchen",
+      "h1": "Home goods, sold beautifully.",
+      "lead": "For sellers of kitchenware, bedding, decor, small furniture and the gadgets everyone saw on TikTok. Group your products like shelves, sell sets at one price and send bulky parcels with the right partner.",
+      "problems": [
+        [ "Big catalogues are hard to browse", "Pots, throw pillows and organisers all in one long chat list." ],
+        [ "Sizes matter", "Buyers want the measurements before they order a duvet or a shelf." ],
+        [ "Bulky items cost more to send", "You need delivery partners who can carry big parcels, priced fairly." ],
+        [ "Trends change fast", "What’s selling on TikTok this week may be gone next month." ]
+      ],
+      "helps": [
+        [ "Collections", "Group products like shelves, such as Kitchen, Bedroom or Under ₦10k, so buyers find things fast." ],
+        [ "Size and assembly details", "Home products have fields for size (L × W × H), material, needs assembly and power." ],
+        [ "Bundles", "Sell sets, like a pot set or a bedding pack, at one price." ],
+        [ "Delivery partners with rate cards", "Compare partners’ prices by route and parcel size, shown at checkout." ],
+        [ "Trending products", "Our daily trend reports show home products trending on TikTok that you can stock." ],
+        [ "Social posts", "Plan posts for Facebook, Instagram, TikTok and WhatsApp on one calendar." ]
+      ],
+      "plan": { "audience": "sellers", "key": "starter", "why": "Starter fits most home goods shops: up to 200 products, all themes and your own domain, at 2% per sale." },
+      "day": {
+        "who": "Example: Funmi sells kitchen organisers and bedding in Port Harcourt.",
+        "steps": [
+          [ "Morning", "She checks the trend report, sees a storage rack trending and finds a supplier for it." ],
+          [ "Afternoon", "She makes a “Kitchen under ₦15k” collection and a bundle of three organisers." ],
+          [ "Evening", "Orders from Lagos and Enugu go out with a partner whose rate card fits bulky parcels." ]
+        ]
+      },
+      "links": [ "home", "kitchen", "bundles" ],
+      "faq": [
+        [ "Can I group my products by room?", "Yes. Collections let you show groups of products together on your shop, like shelves." ],
+        [ "Can I sell sets at one price?", "Yes. Make a bundle from two or more products and set one price." ],
+        [ "How do I deliver big items?", "Pick a delivery partner whose rate card covers your parcel size and route. Prices show at checkout." ],
+        [ "Where do I find new stock?", "Registered sellers can use Find stock to dropship or buy wholesale from checked suppliers, or import from China." ]
+      ],
+      "cta": { "kind": "signup", "title": "Set up your home goods shop.", "text": "Start free with a template made for home and living.", "button": "Start free" }
+    },
+    "kids-and-babies": {
+      "name": "Kids and babies",
+      "short": "Baby items, toys and school needs",
+      "img": "7551380ffd28983d5ebf8e6f5a9d2968.webp",
+      "pos": "50% 50%",
+      "seo_title": "Online store for baby products, toys and kids’ clothes in Nigeria",
+      "seo_desc": "Sell baby clothes, toys, diapers and school supplies online with age ranges, safety notes, bundles and delivery. Busy parents buy faster from a proper shop.",
+      "eyebrow": "For kids and babies",
+      "h1": "Busy parents, easy orders.",
+      "lead": "For sellers of baby clothes, diapers, toys, books and school supplies. Parents are short on time and careful about safety. Give them a shop with clear details and a quick checkout.",
+      "problems": [
+        [ "Parents ask the same safety questions", "What age is it for? Is it safe? What is it made of?" ],
+        [ "Back-to-school and Christmas rushes", "Demand jumps for a few weeks and you can’t keep up in chats." ],
+        [ "Repeat buys are easy to lose", "Diapers and wipes run out monthly, but parents forget where they bought them." ],
+        [ "Sizes change every few months", "Baby clothes need clear sizes and stock for each one." ]
+      ],
+      "helps": [
+        [ "Age range and safety notes", "Baby and kids products have fields for the age range and safety notes, so parents get answers before they ask." ],
+        [ "Variants for sizes", "Each size has its own stock and price." ],
+        [ "Bundles", "Sell a school starter pack or a newborn set at one price." ],
+        [ "Automations", "Messages that send themselves, like a reminder to customers who bought diapers a month ago." ],
+        [ "Abandoned carts", "See carts parents filled but didn’t pay for, so you can remind them." ],
+        [ "Seasonal campaigns", "Plan a back-to-school or Christmas sale once and let it switch on and off by itself." ]
+      ],
+      "plan": { "audience": "sellers", "key": "starter", "why": "Starter covers up to 200 products and all themes at 2% per sale. Growth adds pay on delivery and seasonal campaigns for the big rushes." },
+      "day": {
+        "who": "Example: Ngozi sells baby clothes and school supplies in Enugu.",
+        "steps": [
+          [ "August", "She sets up a back-to-school campaign with a countdown, and a bundle of bags, books and bottles." ],
+          [ "Each morning", "Paid orders are waiting. She packs them and books delivery from each order." ],
+          [ "A month later", "An automation reminds parents who bought diapers that it may be time to restock." ]
+        ]
+      },
+      "links": [ "back-to-school", "toys", "repeat customers" ],
+      "faq": [
+        [ "Can I show the age range for a toy?", "Yes. Baby and kids products have an age range field and a place for safety notes." ],
+        [ "Can I remind parents to buy again?", "Yes. Automations can send messages by themselves, for example some weeks after a customer’s last order." ],
+        [ "Can I sell school packs?", "Yes. Make a bundle from the items and set one price. It sells while every item has stock." ],
+        [ "Can I offer pay on delivery?", "Yes, on Growth and Pro." ]
+      ],
+      "cta": { "kind": "signup", "title": "Make it easy for parents to buy.", "text": "Start free and add your first products today.", "button": "Start free" }
+    },
+    "hair-and-wigs": {
+      "name": "Hair and wigs",
+      "short": "Wigs, bundles and hair care",
+      "img": "93d65954f1094d851cf04b6da7e85936.webp",
+      "pos": "50% 30%",
+      "seo_title": "Online store for wig and hair vendors in Nigeria",
+      "seo_desc": "Wig and hair vendors: list bundles, closures and frontals with hair type, lace, length and density, take payment and deliver nationwide. Start free on Shopinbos.",
+      "eyebrow": "For hair and wigs",
+      "h1": "Every inch, lace and shade, listed right.",
+      "lead": "For wig makers, hair vendors and stylists selling bundles, closures, frontals, braids and hair care. Show the details buyers ask about, take payment up front or on delivery, and send wigs anywhere in Nigeria.",
+      "problems": [
+        [ "Endless “what length?” questions", "Every wig has lengths, lace types and densities, and buyers ask about each one." ],
+        [ "Pricing is complicated", "A 20-inch frontal costs more than a 12-inch closure, and your price list lives in a picture." ],
+        [ "Buyers worry about quality", "They’ve been burnt before, so they want videos, details and reviews." ],
+        [ "Custom orders get lost", "Colouring and custom units take days, and it’s easy to lose track in chats." ]
+      ],
+      "helps": [
+        [ "Fields for hair", "Hair products have fields for hair type, lace, density and whether it can be dyed." ],
+        [ "Variants for lengths", "Each length or lace type is a variant with its own price and stock." ],
+        [ "Video studio", "Rex turns your photos into short videos for TikTok, Reels and Status." ],
+        [ "Payment links for custom units", "Agree a custom unit in chat, then send a payment link with the agreed price." ],
+        [ "Order status", "Track every order from New to Paid, Packed, On the way and Delivered." ],
+        [ "Reviews", "Let happy buyers leave stars and comments on your shop." ]
+      ],
+      "plan": { "audience": "sellers", "key": "growth", "why": "Growth gives unlimited products for every length and lace, pay on delivery for nervous first-time buyers, and a 1% fee per sale." },
+      "day": {
+        "who": "Example: Adaeze makes and sells wigs in Lagos.",
+        "steps": [
+          [ "Morning", "She adds a new bone straight unit with lengths from 12 to 24 inches as variants, each with its price." ],
+          [ "Afternoon", "A customer wants a custom colour. They agree in the inbox and Adaeze sends a payment link with the agreed price." ],
+          [ "Friday", "Finished units are marked packed and go out with her delivery partner, with tracking for each buyer." ]
+        ]
+      },
+      "links": [ "beauty", "TikTok", "pay on delivery" ],
+      "faq": [
+        [ "Can I list one wig with different lengths and prices?", "Yes. Add each length as a variant with its own price and stock." ],
+        [ "Can I show lace type and density?", "Yes. Hair products have fields for hair type, lace, density and whether it can be dyed." ],
+        [ "How do I charge for a custom unit?", "Agree it in chat, then send a payment link with the agreed price. The order lands in Orders." ],
+        [ "Can I send wigs to other states?", "Yes. Book a delivery partner that covers the route and share tracking with your buyer." ]
+      ],
+      "cta": { "kind": "signup", "title": "List your hair the way buyers shop.", "text": "Start free. Add lengths and prices in minutes.", "button": "Start free" }
+    },
+    "students-and-side-hustles": {
+      "name": "Students and side hustles",
+      "short": "Start small, start free",
+      "img": "aac068a93886106d3c82dc3a25dc18fb.webp",
+      "pos": "50% 30%",
+      "seo_title": "Start an online business as a student in Nigeria, free",
+      "seo_desc": "Students and side hustlers: start an online store free from your phone. Sell your own products or dropship with no stock, get paid to your bank and learn as you go.",
+      "eyebrow": "For students and side hustles",
+      "h1": "Start small. Start today. Start free.",
+      "lead": "For students, NYSC members and anyone with a job who wants extra income. Open a shop from your phone in minutes, sell with little or no stock, and learn as you go with free lessons.",
+      "problems": [
+        [ "Little money to start", "You can’t buy a lot of stock or pay for a website." ],
+        [ "Little time", "Lectures, a job or service year leave a few hours a day." ],
+        [ "Not sure what to sell", "You don’t know what people will actually buy." ],
+        [ "Looking legit", "Buyers trust a shop more than a personal WhatsApp number." ]
+      ],
+      "helps": [
+        [ "A free shop", "The Free plan is ₦0 a month: a shop on yourname.mybos.store, up to 20 products and 3% per sale." ],
+        [ "Dropship with no stock", "Registered sellers can add supplier products and sell them without buying stock first. The supplier sends it to your customer." ],
+        [ "Rex sets it up", "Rex builds your shop and can design a logo from your shop name." ],
+        [ "Peggy answers while you’re in class", "Auto-replies and the Peggy chatbot answer common questions with your prices and policies." ],
+        [ "Free Academy", "Short lessons on choosing products, pricing for profit and getting your first order." ],
+        [ "Trending products", "Daily reports on products trending on TikTok that sellers in Nigeria can stock." ]
+      ],
+      "plan": { "audience": "sellers", "key": "free", "why": "Free costs nothing a month and includes up to 5 dropship products, so you can test what sells before spending anything." },
+      "day": {
+        "who": "Example: Musa is a final-year student in Zaria.",
+        "steps": [
+          [ "Before class", "He adds three trending gadgets from a supplier as dropship products. He didn’t buy any stock." ],
+          [ "Lunch break", "He shares his shop link on his WhatsApp Status and in two campus groups." ],
+          [ "Evening", "One order came in while he was in class. The supplier ships it to the buyer and Musa keeps the difference between his price and theirs, minus fees." ]
+        ]
+      },
+      "links": [ "little capital", "dropshipping", "first order" ],
+      "faq": [
+        [ "Is it really free?", "The Free plan is ₦0 a month. You pay 3% on each sale through your shop." ],
+        [ "Can I sell without buying stock?", "Yes. Dropship lets you sell a supplier’s product without buying it first. The Free plan allows 5 dropship products; Starter allows 50." ],
+        [ "Can I run it from my phone?", "Yes. Shopinbos Business works on your phone, and you can do everything there." ],
+        [ "Do I need to register a business?", "You can start without one. When you grow, our guide and Academy lesson explain how to register your business name with CAC." ]
+      ],
+      "cta": { "kind": "signup", "title": "Your first shop costs ₦0.", "text": "Start free from your phone. No stock needed.", "button": "Start free" }
+    },
+    "small-brands-and-makers": {
+      "name": "Small brands and makers",
+      "short": "Your own products and labels",
+      "img": "870a9c2a3963d2e26cd96491c17970b1.webp",
+      "pos": "50% 50%",
+      "seo_title": "Online store for small brands and makers in Nigeria",
+      "seo_desc": "Makers and small brands: sell your own products or white label goods under your name, with a brand kit, custom packaging, your own domain and staff accounts.",
+      "eyebrow": "For small brands and makers",
+      "h1": "Your name on the label. Your shop online.",
+      "lead": "For people who make things, like candles, soaps, leather goods, art and clothing, and for brands that sell white label products under their own name. Look like a brand everywhere, from the shop to the parcel.",
+      "problems": [
+        [ "Your brand looks different everywhere", "Logo, colours and fonts change from Instagram to the parcel to the invoice." ],
+        [ "Making takes your time", "Every hour spent answering chats is an hour not making." ],
+        [ "Packaging is hard to source", "Labels and branded boxes are expensive and hard to find in small quantities." ],
+        [ "Growing means help", "You need a helper, but you don’t want them seeing everything." ]
+      ],
+      "helps": [
+        [ "Brand kit", "Your logo, colours and fonts in one place, so your shop, posts and invoices look like you." ],
+        [ "White label", "Registered sellers can find supplier products to sell under their own brand name and packaging." ],
+        [ "Labels and packaging", "Design labels and tags, use the packaging designer, or request custom packaging in the app." ],
+        [ "Own domain", "Use your own web address on Starter, Growth and Pro." ],
+        [ "Staff accounts", "Add helpers with their own login and choose what they can do." ],
+        [ "Content and SEO", "Write blog posts on your shop and make it easy to find on Google." ]
+      ],
+      "plan": { "audience": "sellers", "key": "growth", "why": "Growth suits a brand that sells every day: unlimited products, 5 staff accounts, pay on delivery and seasonal campaigns, at 1% per sale." },
+      "day": {
+        "who": "Example: Kemi makes scented candles in Ibadan and is adding a white label diffuser.",
+        "steps": [
+          [ "Monday", "She sets her logo and colours in the brand kit. Her shop, posts and invoices pick them up." ],
+          [ "Wednesday", "She requests a quote from a supplier for 100 diffusers to sell under her own label." ],
+          [ "Friday", "Her helper packs orders with a staff account that can’t see payouts." ]
+        ]
+      },
+      "links": [ "brand", "packaging", "CAC" ],
+      "faq": [
+        [ "What is white label?", "A supplier’s product sold under your own brand name and packaging." ],
+        [ "Can I get branded packaging?", "You can design labels and tags in the app, use the packaging designer, and request custom packaging." ],
+        [ "Can my staff use the app without seeing my money?", "Yes. Each staff member gets their own login, and you choose what they can see and do." ],
+        [ "Can I connect my own domain?", "Yes, on Starter, Growth and Pro." ],
+        [ "Can I sell to shops too, not just to customers?", "Yes. If you make products other shops could sell, join as a supplier as well." ]
+      ],
+      "cta": { "kind": "signup", "title": "Build a brand, not just a page.", "text": "Start free, then grow into your own domain and team.", "button": "Start free" }
+    },
+    "importers": {
+      "name": "Importers",
+      "short": "Bring goods in from China",
+      "img": "3290c3ad5ff8b1f9cd73729e543bb803.webp",
+      "pos": "50% 50%",
+      "seo_title": "Import from China and sell online in Nigeria",
+      "seo_desc": "Import from China without the stress: paste a 1688 link, get a landed price in naira with shipping and duty, then sell it in your Shopinbos online store.",
+      "eyebrow": "For importers",
+      "h1": "Import from China. Sell in naira.",
+      "lead": "For sellers who bring in goods from China, or want to start. Paste a 1688 link or send a photo, get a landed price in naira, then sell it from your own shop when it lands.",
+      "problems": [
+        [ "You don’t know the final cost", "Shipping, duty and fees turn a cheap price into an expensive one." ],
+        [ "Quality is a gamble", "You can’t check the goods before they leave China." ],
+        [ "Agents are hard to trust", "Finding someone reliable to buy and ship for you takes time and luck." ],
+        [ "Stock lands with no plan to sell it", "Goods arrive and you still need a shop, photos and buyers." ]
+      ],
+      "helps": [
+        [ "Import from China", "Paste a 1688 link or a photo of what you want. Our sourcing partner sends a quote." ],
+        [ "Landed price in naira", "The quote shows the price in naira, with shipping and duty included, before you pay." ],
+        [ "Checked and tracked", "The sourcing partner buys, checks and ships the goods, and you track them to your door." ],
+        [ "My imports", "See your quotes and shipments on the way in one place." ],
+        [ "Sell it the day it lands", "Add the products to your shop, with photos from Rex Studio and a video for TikTok." ],
+        [ "Or sell to other shops", "Importing in bulk? Join as a supplier and let shops across Nigeria dropship or buy wholesale." ]
+      ],
+      "plan": { "audience": "sellers", "key": "starter", "why": "Import from China needs Starter or above (Free can browse only). Pro adds priority imports and priority support." },
+      "day": {
+        "who": "Example: Chinedu sells kitchen gadgets in Aba and imports twice a year.",
+        "steps": [
+          [ "Week 1", "He pastes two 1688 links and gets a landed price in naira for 300 pieces." ],
+          [ "Weeks 2 to 6", "He pays, and tracks the shipment in My imports while he sets up the product pages." ],
+          [ "Landing day", "The goods arrive. He sets the stock, posts a video, and orders start." ]
+        ]
+      },
+      "links": [ "China", "suppliers", "pricing" ],
+      "faq": [
+        [ "How does import from China work?", "Paste a 1688 link or send a photo of what you want. Our sourcing partner sends a quote with a landed price in naira, shipping and duty included. You pay, and track it to your door." ],
+        [ "Which plan do I need?", "Starter or above. The Free plan can browse only. Pro gets priority imports." ],
+        [ "Who checks the goods?", "The sourcing partner checks the goods before shipping them to you." ],
+        [ "Can I sell imported goods to other shops?", "Yes. Join as a supplier and shops can dropship your products or buy wholesale from you." ]
+      ],
+      "cta": { "kind": "signup", "title": "Know your landed cost before you pay.", "text": "Start on Free to explore, then import on Starter.", "button": "Start free", "second": [ "supplier", "Sell to shops as a supplier" ] }
+    },
+    "wholesalers-and-distributors": {
+      "name": "Wholesalers and distributors",
+      "short": "Sell to shops across Nigeria",
+      "img": "d119f97dc6671b17f9586f6db83030e4.webp",
+      "pos": "50% 50%",
+      "seo_title": "Sell wholesale to online shops in Nigeria: suppliers and distributors",
+      "seo_desc": "Wholesalers, distributors and manufacturers: list your products once and let online shops across Nigeria dropship them or buy wholesale. Free to join.",
+      "eyebrow": "For wholesalers and distributors",
+      "h1": "Thousands of shops. One supplier portal.",
+      "lead": "For wholesalers, distributors, manufacturers and importers who sell in bulk. List your products once on Shopinbos, and online shops across Nigeria can dropship them or buy wholesale from you.",
+      "problems": [
+        [ "Buyers come one by one", "You wait for shops to visit or call, and most only come at certain times of the year." ],
+        [ "Price requests eat your day", "Every buyer wants a quote, on WhatsApp, at different quantities." ],
+        [ "Small shops want small orders", "Online sellers want to sell your goods without buying a carton first." ],
+        [ "You can’t check every buyer", "You don’t know who is selling your products or how." ]
+      ],
+      "helps": [
+        [ "One catalogue for every shop", "List your products and prices once. Registered sellers find them in Find stock." ],
+        [ "Dropship orders", "Shops sell your product without buying stock. You send it to their customer." ],
+        [ "Wholesale orders and quote requests", "Shops order in bulk or ask for your best price on a quantity, all in the supplier portal." ],
+        [ "Dropship agreements", "Set the rules shops accept before they list your products." ],
+        [ "Buyers and followers", "See which shops sell your products. Shops can follow you to hear about new stock and price drops." ],
+        [ "Free verification", "Get checked for free and show a verified badge, so shops trust you." ]
+      ],
+      "plan": { "audience": "suppliers", "key": "plus", "why": "Join free with up to 30 products. Supplier Plus suits growing catalogues: up to 500 products, bulk upload, a boost in search and 4% per marketplace order." },
+      "day": {
+        "who": "Example: Ibrahim distributes snacks and drinks from a warehouse in Kano.",
+        "steps": [
+          [ "Morning", "Three quote requests from shops in Lagos and Abuja are waiting. He answers each with a carton price." ],
+          [ "Midday", "Dropship orders from five shops come in. He packs them and hands them to a delivery partner." ],
+          [ "Evening", "He checks Performance to see which products shops sell most, and restocks." ]
+        ]
+      },
+      "links": [ "suppliers", "wholesale", "quote" ],
+      "faq": [
+        [ "How much does it cost to join as a supplier?", "Joining and verification are free. You pay a commission only when a shop sells your product: 6% on Free, 4% on Supplier Plus and 3% on Supplier Pro." ],
+        [ "Who can see my products?", "Find stock is for registered sellers on Shopinbos. It isn’t a public marketplace." ],
+        [ "What is dropshipping for a supplier?", "A shop sells your product without buying it first. When it sells, you send it to the shop’s customer." ],
+        [ "Can shops ask for a price for bulk?", "Yes. Shops send quote requests for a quantity, and you reply in the supplier portal." ],
+        [ "How do I get paid?", "Your earnings are paid out to your bank through Paystack." ]
+      ],
+      "cta": { "kind": "supplier", "title": "Put your products in front of shops.", "text": "Free to join and verify. Pay only when shops sell.", "button": "Join as a supplier", "second": [ "/suppliers/", "How it works for suppliers" ] }
+    },
+    "resellers-and-dropshippers": {
+      "name": "Resellers and dropshippers",
+      "short": "Sell without holding stock",
+      "img": "6503e5d6d8d60a3928228499bfc7744b.webp",
+      "pos": "50% 50%",
+      "seo_title": "Dropshipping in Nigeria: sell from local suppliers without stock",
+      "seo_desc": "Dropship and resell in Nigeria with Shopinbos: add products from checked suppliers to your store, set your own price, and the supplier delivers to your customer.",
+      "eyebrow": "For resellers and dropshippers",
+      "h1": "Sell it before you buy it.",
+      "lead": "For resellers who want to sell more without filling a room with stock. Add products from checked Nigerian suppliers to your shop, set your price, and the supplier sends it to your customer.",
+      "problems": [
+        [ "Stock ties up your money", "Buying goods up front means cash sitting on a shelf." ],
+        [ "Copying pictures from suppliers", "You repost photos and prices by hand, and they go out of date." ],
+        [ "Supplier says “it’s finished”", "You sold it, but the supplier ran out." ],
+        [ "Delivery is between three people", "You, the supplier and the rider, all in different chats." ]
+      ],
+      "helps": [
+        [ "Find stock", "Browse products from checked suppliers, filter by category and see the supplier price." ],
+        [ "Add to my store", "Add a product in one tap and set your own selling price." ],
+        [ "Dropship agreements", "Read and accept each supplier’s rules before you list, so you know what to expect." ],
+        [ "Orders go to the supplier", "When a customer buys, the supplier gets the order and sends it to your customer." ],
+        [ "Quote requests", "Ready to buy in bulk? Ask a supplier for their best price on a quantity." ],
+        [ "Inbox for suppliers", "Talk to suppliers and delivery partners from the same inbox." ]
+      ],
+      "plan": { "audience": "sellers", "key": "starter", "why": "Free allows 5 dropship products to test. Starter allows 50, and Growth and Pro have no limit." },
+      "day": {
+        "who": "Example: Blessing resells bags and shoes from suppliers, from her phone in Benin City.",
+        "steps": [
+          [ "Morning", "She finds two new handbags in Find stock, accepts the supplier’s dropship agreement and adds them with her price." ],
+          [ "Afternoon", "She posts them to TikTok and WhatsApp Status. One sells by evening." ],
+          [ "Next day", "The supplier packs and sends the bag to her customer. Blessing follows the order status in Orders." ]
+        ]
+      },
+      "links": [ "dropshipping", "suppliers", "price" ],
+      "faq": [
+        [ "What is dropshipping?", "You sell a supplier’s product without buying stock first. When it sells, the supplier sends it to your customer." ],
+        [ "How many products can I dropship?", "5 on Free, 50 on Starter, and no limit on Growth and Pro." ],
+        [ "Is Find stock open to the public?", "No. Find stock is for registered Shopinbos sellers, not a public marketplace." ],
+        [ "Who handles delivery?", "The supplier sends the order to your customer. You follow its status in Orders." ],
+        [ "Can I buy in bulk later?", "Yes. Place a wholesale order or send a quote request when you’re ready to hold stock." ]
+      ],
+      "cta": { "kind": "signup", "title": "Start reselling without stock.", "text": "Sign up free and add your first supplier products.", "button": "Start free" }
+    },
+    "creators-and-influencers": {
+      "name": "Creators and influencers",
+      "short": "Turn followers into sales",
+      "img": "5ac187f7c7212965a47d0b3268ab2138.webp",
+      "pos": "50% 20%",
+      "seo_title": "Link in bio store for creators and influencers in Nigeria",
+      "seo_desc": "Creators and influencers: sell merch or products from one link in bio page, make short videos with Rex, and earn from products you share. Start free on Shopinbos.",
+      "eyebrow": "For creators and influencers",
+      "h1": "Your followers are ready. Give them a link.",
+      "lead": "For creators on TikTok, Instagram and YouTube who sell merch, their own products or other shops’ products. One link in bio, short videos made from your photos, and ways to earn from the products you share.",
+      "problems": [
+        [ "Followers ask where to buy", "Your comments fill with “link?” and you can only paste one link in your bio." ],
+        [ "Brand deals come and go", "You want income that doesn’t depend on the next campaign." ],
+        [ "Making content takes hours", "Every product needs photos, posts and a video." ],
+        [ "No time for customer service", "You make content; you don’t want to answer delivery questions all day." ]
+      ],
+      "helps": [
+        [ "Link in bio", "One page with your products, Buy now buttons and WhatsApp, for your Instagram or TikTok bio." ],
+        [ "Video studio and Rex Studio", "Rex turns product photos into short videos and makes posts for TikTok, Reels and Status." ],
+        [ "Affiliates", "Shops can run affiliate programmes: people share the shop’s link and earn a commission on each sale it brings." ],
+        [ "Resell links (pilot)", "Being tested with pilot shops: share a shop’s product with your own link and earn the shop’s commission when someone buys." ],
+        [ "Peggy and auto-replies", "Answer questions about price, sizes and delivery without stopping your content." ],
+        [ "Shopinbos Plug, coming soon", "Our shopper app is coming soon, with an Earn mode for people who share products." ]
+      ],
+      "plan": { "audience": "sellers", "key": "free", "why": "Free gives you a shop and link in bio at ₦0 a month and 3% per sale. Move up when your merch or product line grows." },
+      "day": {
+        "who": "Example: Zainab makes beauty content on TikTok and sells her own lip oil.",
+        "steps": [
+          [ "Morning", "She films a get-ready-with-me video. Rex turns her product photos into a second short clip for Status." ],
+          [ "Afternoon", "Followers tap her link in bio and buy without sending a DM." ],
+          [ "Evening", "Peggy has answered delivery questions. Zainab packs the day’s orders and books delivery." ]
+        ]
+      },
+      "links": [ "influencer", "TikTok", "Instagram" ],
+      "faq": [
+        [ "What is a link in bio page?", "One page with your products, Buy now buttons and WhatsApp, made for your Instagram or TikTok bio." ],
+        [ "Can I earn from other shops’ products?", "Some shops run affiliate programmes you can join. Resell links, where you share a shop’s product with your own link, are being tested with pilot shops now." ],
+        [ "What is Shopinbos Plug?", "Plug is our shopper app. It’s coming soon, with an Earn mode for people who share products." ],
+        [ "Do I need to hold stock to sell merch?", "If you make your own merch, you hold it. You can also find supplier products to sell under your brand as white label." ]
+      ],
+      "cta": { "kind": "signup", "title": "Put a shop behind your link.", "text": "Start free and share your link in bio today.", "button": "Start free" }
+    },
+    "delivery-companies": {
+      "name": "Delivery companies",
+      "short": "Get jobs from shops",
+      "img": "ef6aebb9140f9eeb0aae47ce5c8eecfb.webp",
+      "pos": "50% 50%",
+      "seo_title": "Get delivery jobs from online shops in Nigeria: logistics partners",
+      "seo_desc": "Logistics and delivery companies: get delivery jobs from Shopinbos shops and suppliers, set your coverage and rates, manage riders and pay on delivery. Free to join.",
+      "eyebrow": "For delivery companies",
+      "h1": "More jobs. Less phone calls.",
+      "lead": "For logistics companies, dispatch businesses and interstate carriers. Join Shopinbos as a delivery partner, and shops and suppliers book you straight from their orders, at your rates and in the areas you cover.",
+      "problems": [
+        [ "Jobs come by phone and WhatsApp", "Pickup details, addresses and prices are spread across calls and chats." ],
+        [ "Riders and cash are hard to track", "You need to know who has which parcel and how much cash." ],
+        [ "Price fights every time", "Every shop haggles over the fee for every route." ],
+        [ "Finding new shops is slow", "Growing means knocking on doors one by one." ]
+      ],
+      "helps": [
+        [ "Jobs", "Delivery requests from shops arrive as jobs you can accept and complete." ],
+        [ "Coverage and rate card", "Set the areas you deliver to and your prices by route, service and parcel size. Shops see them at checkout." ],
+        [ "Riders", "Add your riders. They use the Shopinbos Riders app on their phone to get jobs and update deliveries." ],
+        [ "Pickup points", "List places where customers can collect parcels." ],
+        [ "Private rates and connections", "Give special rates to a business. Shops and suppliers that add you send their orders as jobs." ],
+        [ "Connect your system", "Use an API key to link your own dispatch software with Shopinbos." ]
+      ],
+      "plan": { "audience": "delivery", "key": "plus", "why": "Join free (up to 3 states, 5% of each delivery fee). Logistics Plus suits growing companies: up to 15 states, 20 pickup points, private rates and 3% per fee." },
+      "day": {
+        "who": "Example: a dispatch company with eight riders in Lagos.",
+        "steps": [
+          [ "8am", "Overnight jobs from shops in Lekki and Yaba are waiting. The dispatcher accepts them and assigns riders." ],
+          [ "Noon", "Riders pick up, and shops and customers follow each parcel’s status." ],
+          [ "Evening", "Delivery problems are flagged in one place, and the day’s earnings show in Earnings." ]
+        ]
+      },
+      "links": [ "delivery", "logistics", "interstate" ],
+      "faq": [
+        [ "How much does it cost to join?", "Joining and verification are free. You pay a fee only on delivery fees you earn through Shopinbos: 5% on Free, 3% on Logistics Plus and 2% on Logistics Pro." ],
+        [ "How do shops find us?", "When a seller picks a delivery partner, they see partners that cover the route, with your company profile and rate card." ],
+        [ "Can we use our own riders?", "Yes. Add them under Riders. They use the Shopinbos Riders app to take jobs." ],
+        [ "Can we connect our own software?", "Yes. Use an API key from Connect your system." ],
+        [ "How do we get paid?", "Your earnings are paid out to your bank through Paystack." ]
+      ],
+      "cta": { "kind": "partner", "title": "Get jobs from shops across Nigeria.", "text": "Free to join and verify. Set your areas and rates.", "button": "Join as a delivery partner", "second": [ "/delivery/", "How delivery works" ] }
+    },
+    "riders": {
+      "name": "Riders",
+      "short": "Deliver with the Riders app",
+      "img": "c2685b20a2bb5c05219051cf90f0ba88.webp",
+      "pos": "50% 50%",
+      "seo_title": "Dispatch rider jobs in Nigeria: deliver for online shops",
+      "seo_desc": "Dispatch riders: deliver for online shops with the Shopinbos Riders app. Join with your delivery company, or start your own as a free delivery partner.",
+      "eyebrow": "For riders",
+      "h1": "Ride with clear jobs and clear pay.",
+      "lead": "For dispatch riders, on a bike, a car or a van. Work with your delivery company on the Shopinbos Riders app, or register your own small delivery business as a Shopinbos delivery partner.",
+      "problems": [
+        [ "Addresses come as voice notes", "You call the customer three times to find the gate." ],
+        [ "No record of your work", "At the end of the day it’s hard to show what you delivered and earned." ],
+        [ "Cash disputes", "Pay on delivery orders can lead to arguments about who paid what." ],
+        [ "Work comes and goes", "Some days are full, some days are empty." ]
+      ],
+      "helps": [
+        [ "Shopinbos Riders app", "Go online when you’re ready to work. Your company gives you jobs, and you see the pickup and drop-off details." ],
+        [ "Earned today", "The app shows what you’ve earned today and any cash you’re holding." ],
+        [ "Delivery codes", "On pay on delivery orders, the buyer pays the shop, then gives you a code to confirm the delivery." ],
+        [ "Your own delivery business", "Riding solo? Join as a delivery partner on the Free plan, set your coverage and rates, and take jobs from shops." ],
+        [ "Verification", "Get verified so shops and buyers trust you." ],
+        [ "Five languages", "The app works in English, Pidgin, Yoruba, Hausa and Igbo." ]
+      ],
+      "plan": { "audience": "delivery", "key": "free", "why": "Riding for yourself? The Free plan is made for riders and new delivery companies: free verification, up to 3 states and 5% of each delivery fee." },
+      "day": {
+        "who": "Example: Sule rides for a small delivery company in Abuja.",
+        "steps": [
+          [ "Morning", "He switches to online in the Riders app. His company gives him six jobs around Wuse and Garki." ],
+          [ "Afternoon", "At a pay on delivery drop, the buyer pays the shop and reads him the code. The job closes." ],
+          [ "Evening", "He checks Earned today, then switches to offline." ]
+        ]
+      },
+      "links": [ "rider", "pay on delivery", "delivery" ],
+      "faq": [
+        [ "How do I start as a rider?", "If you work for a delivery company on Shopinbos, they add you as a rider and you use the Shopinbos Riders app. If you work for yourself, join as a delivery partner on the Free plan." ],
+        [ "Do I collect money on pay on delivery orders?", "On pay on delivery, the buyer pays the shop, never the rider, then gives you a code to confirm the delivery." ],
+        [ "Is it free to join?", "Yes. Joining and verification are free. On the Free plan, Shopinbos takes 5% of each delivery fee you earn through it." ],
+        [ "What languages does the app speak?", "English, Pidgin, Yoruba, Hausa and Igbo." ]
+      ],
+      "cta": { "kind": "partner", "title": "Get on the road with Shopinbos.", "text": "Free to join. Your own rates and areas.", "button": "Join as a delivery partner", "second": [ "/delivery/", "How delivery works" ] }
+    }
+  }
+}
