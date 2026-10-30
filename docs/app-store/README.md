@@ -100,7 +100,10 @@ App Store Connect › the app › the version:
 | Copyright | 2026 <the company's registered name> |
 | Header asset (optional) | `creative/header-3840x1646.png` (image) or `creative/header-3840x1646.mp4` (12 s loop) |
 | Search Results asset (optional) | `creative/search-results-3840x2560.png` (image) or `creative/search-results-1920x1280.mp4` (13.5 s loop) |
-| Screenshots, 6.9" iPhone | `screenshots/iphone-6.9/` (7 at 1320×2868, in order). Apple scales them down for smaller iPhones. |
+| Screenshots, iPhone with Dynamic Island (medium display), **required** | `screenshots/iphone-6.3/` (7 at 1206×2622, in order) |
+| Screenshots, iPhone with Dynamic Island (large display) | `screenshots/iphone-6.9/` (7 at 1320×2868, in order) |
+| Screenshots, iPhone Duo, iPad, Apple Watch | Leave empty. Duo is optional until April 2027 (then required for apps built with the iOS 27.1 SDK); the app is iPhone-only (`supportsTablet: false`) and has no Watch app. |
+| App previews | Optional. They should be screen recordings of the app (886×1920, 15–30 s, 30 fps), so record them from the TestFlight build rather than from the screenshots. |
 | App Review information | `review-notes.txt`: create the demo seller account first and put its email and password there. |
 | App Privacy | `app-privacy.md` |
 | Price | Free. No in-app purchases. |
@@ -112,7 +115,7 @@ wallet screenshot is left out: it shows the prepaid balance's Top up and "Pays f
 don't have (Apple 3.1.1). After changing the Play screenshots, run it again from the repo root:
 
 ```bash
-python3 docs/app-store/make-screenshots.py docs/play-store/listing/screenshots docs/app-store/screenshots/iphone-6.9
+python3 docs/app-store/make-screenshots.py docs/play-store/listing/screenshots docs/app-store/screenshots/iphone-6.9 docs/app-store/screenshots/iphone-6.3
 ```
 
 ## 5. Before "Submit for Review"
@@ -133,6 +136,7 @@ python3 docs/app-store/make-screenshots.py docs/play-store/listing/screenshots d
 | --- | --- |
 | `listing/` | Name, subtitle, keywords, promotional text, description |
 | `screenshots/iphone-6.9/` | 7 screenshots, 1320×2868 |
+| `screenshots/iphone-6.3/` | The same 7 at 1206×2622 (the required medium-display size) |
 | `review-notes.txt` | App Review notes and demo account |
 | `app-privacy.md` | App Privacy answers |
 | `creative/` | Header and Search Results images and videos; the `.html` pages and `render.js` make them (`node docs/app-store/creative/render.js`, about 3 minutes). Apple's rules for these: no prices, URLs or © symbols, key content centred, one clear idea in the header, real app screens in search results. |

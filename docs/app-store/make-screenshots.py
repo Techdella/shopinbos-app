@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 # Usage, from the repo root:
-#   python3 docs/app-store/make-screenshots.py docs/play-store/listing/screenshots docs/app-store/screenshots/iphone-6.9
+#   python3 docs/app-store/make-screenshots.py docs/play-store/listing/screenshots docs/app-store/screenshots/iphone-6.9 docs/app-store/screenshots/iphone-6.3
+#
+# The optional third folder gets the same set at 1206x2622 for App Store Connect's required "iPhone with Dynamic
+# Island (medium display)" slot (Apple doesn't scale the 6.9" set into it).
 #
 # Google Play phone screenshots (1080x1920) -> App Store 6.9" iPhone (1320x2868):
 # 1. The phone frame's round front camera (an Android look; Apple guideline 2.3.10) becomes an iPhone Dynamic Island,
@@ -12,6 +15,7 @@ import glob, math, os, sys
 from PIL import Image, ImageDraw
 
 W, H = 1320, 2868
+W_MEDIUM, H_MEDIUM = 1206, 2622
 PERIOD = 44  # the dot grid's spacing in the Play screenshots
 CAMERAS = {
     "01-onb.jpg": (350, 638), "02-home.jpg": (710, 638), "03-products.jpg": (348, 638), "04-chats.jpg": (705, 744),
@@ -81,12 +85,22 @@ def extend_top(im):
 
 
 src, out = sys.argv[1], sys.argv[2]
+out_medium = sys.argv[3] if len(sys.argv) > 3 else None
 os.makedirs(out, exist_ok=True)
+if out_medium:
+    os.makedirs(out_medium, exist_ok=True)
 for path in sorted(glob.glob(os.path.join(src, "*.jpg"))):
     name = os.path.basename(path)
     if name in SKIP:
         continue
     im = Image.open(path).convert("RGB")
     cx, cy, angle = add_island(im, name)
-    extend_top(im).resize((W, H), Image.LANCZOS).save(os.path.join(out, name), quality=92)
+    big = extend_top(im).resize((W, H), Image.LANCZOS)
+    big.save(os.path.join(out, name), quality=92)
+    if out_medium:
+        # Same shape to within a pixel: scale to the height, trim the width evenly.
+        w = round(W * H_MEDIUM / H)
+        medium = big.resize((w, H_MEDIUM), Image.LANCZOS)
+        left = (w - W_MEDIUM) // 2
+        medium.crop((left, 0, left + W_MEDIUM, H_MEDIUM)).save(os.path.join(out_medium, name), quality=92)
     print(f"{name}: camera ({cx:.0f}, {cy:.0f}), tilt {angle:.1f}°")
