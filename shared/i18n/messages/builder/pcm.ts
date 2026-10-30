@@ -2443,13 +2443,13 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "rex.bp.photos": "Dey make {count, plural, one {# photo} other {# photos}}",
   "rex.bp.photosNote": "{made} of {total} don make",
   "rex.bp.check": "Dey put everything for the preview",
-  "ed.Text size": "Text size",
-  "ed.Extra large": "Big well well",
+  "ed.Text size": "Size of the words",
+  "ed.Extra large": "Very big",
   "ed.Own colour": "Im own colour",
   "ed.Shop colour": "Shop colour",
-  "ed.Dark text": "Dark text",
+  "ed.Dark text": "Dark words",
   "ed.Soft grey": "Soft grey",
-  "ed.Text style": "Text style",
+  "ed.Text style": "Style of the words",
 };
 
 export default pcm;

@@ -4,6 +4,7 @@ import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { buildStorefrontUrl, buildPlatformStoreBase } from "@/lib/domains/storefront";
 import { notify } from "@/lib/notifications/notify.server";
+import { grantRexStudioWelcome } from "@/lib/ai/rex-studio-welcome.server";
 import { trackServerEvent } from "@/lib/platform-analytics/track.server";
 import { publishStoreDraft } from "@/lib/store-publishing";
 import { editorCatalog, rendererOf } from "@/lib/store-editor/mobile.server";
@@ -294,7 +295,9 @@ export async function buildShopDraft(userId: string) {
       pushPlatforms: ["app"],
     }).catch((error) => console.error("[rex-build] ready push failed", error));
   }
-  return { version: stamp, pages: built.pages, done: built.done };
+  // Free plan: credits topped up to 20 to try Rex Studio, once (src/lib/ai/rex-studio-welcome.server.ts; never throws).
+  const studioCredits = await grantRexStudioWelcome(userId, { storeId: store.id });
+  return { version: stamp, pages: built.pages, done: built.done, studioCredits };
 }
 
 // ─── E2 / E3: go live ────────────────────────────────────────────────────────
@@ -366,10 +369,10 @@ export async function shopReadyFor(userId: string) {
 
 // ─── Analytics (spec §7) ─────────────────────────────────────────────────────
 
-/** One onboarding event to the analytics tools, as the seller (never throws). */
+/** One onboarding event to the analytics tools, as the seller (never throws). The web sends app: "web". */
 export async function trackOnboarding(userId: string, event: OnboardingEvent, props: unknown = {}) {
   const user = await db.user.findUnique({ where: { id: userId }, select: { supabaseId: true } }).catch(() => null);
-  await trackServerEvent({ event, distinctId: user?.supabaseId ?? userId, properties: { ...cleanEventProps(props), app: "mobile" } }).catch(() => undefined);
+  await trackServerEvent({ event, distinctId: user?.supabaseId ?? userId, properties: { app: "mobile", ...cleanEventProps(props) } }).catch(() => undefined);
 }
 
 // ─── Re-engagement: Peggy's nudge after 24 hours (two at most) ───────────────

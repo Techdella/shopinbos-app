@@ -385,7 +385,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "refunds.awaiting": "A ti béèrè àkáǹtì bánkì oníbàárà rẹ. Wà á rí i níbí.",
   "refunds.sendTo": "Fi {amount} ránṣẹ́ láti bánkì rẹ sí àkáǹtì yìí, lẹ́yìn náà tẹ Refund sent.",
   "refunds.reference": "Ìtọ́kasí ìfiránṣẹ́ (kò pọndandan)",
-  "refunds.markSent": "Refund sent",
+  "refunds.markSent": "A ti fi refund ránṣẹ́",
   "refunds.sentWaiting": "A ti fi ránṣẹ́ sí {name}. À ń dúró kí oníbàárà rẹ sọ pé ó dé.",
   "refunds.disputed": "Oníbàárà rẹ sọ pé kò tíì dé. Ṣàyẹ̀wò bánkì rẹ, lẹ́yìn náà fi ránṣẹ́ lẹ́ẹ̀kan sí i tàbí bá oníbàárà rẹ sọ̀rọ̀.",
   "refunds.sendAgain": "Fi ránṣẹ́ lẹ́ẹ̀kan sí i",

@@ -23,6 +23,13 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "seller.more.body": "Anything wey get › go open menu when you put mouse on top, like Marketing → Broadcasts and Automations.",
   "seller.peggy.title": "Ask Peggy",
   "seller.peggy.body": "Your shop assistant. She fit check sales, create discount, update stock or draft post, and she go tell you exactly wetin she change.",
+  // The three tips after Rex builds the shop (spec F1–F3; GuidedTour ?tour=quick).
+  "seller.quickAdd.title": "Add anything here",
+  "seller.quickAdd.body": "Add product, make post or create payment link.",
+  "seller.quickMoney.title": "Money and shortcuts",
+  "seller.quickMoney.body": "Your money, delivery, finding stock and sharing your shop dey here.",
+  "seller.quickAsk.title": "Ask Rex or Peggy",
+  "seller.quickAsk.body": "Rex dey change your shop. Peggy dey answer about sales and reply customers.",
   "seller.search.title": "Search",
   "seller.search.body": "Press / to find any order, product, customer or page.",
   "seller.settings.title": "Make am your own",

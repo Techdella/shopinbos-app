@@ -23,6 +23,13 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "seller.more.body": "Ihe nwere › na-emepe menu ma ị bunye mouse n'elu ya, dịka Marketing → Broadcasts na Automations.",
   "seller.peggy.title": "Jụọ Peggy",
   "seller.peggy.body": "Onye enyemaka ụlọ ahịa gị. O nwere ike ilele ire ahịa, mee mbelata ọnụ ahịa, melite stock ma ọ bụ dee post, ma gwa gị kpọmkwem ihe ọ gbanwere.",
+  // The three tips after Rex builds the shop (spec F1–F3; GuidedTour ?tour=quick).
+  "seller.quickAdd.title": "Tinye ihe ọ bụla ebe a",
+  "seller.quickAdd.body": "Tinye ngwaahịa, mee post ma ọ bụ mepụta payment link.",
+  "seller.quickMoney.title": "Ego na ụzọ mkpirisi",
+  "seller.quickMoney.body": "Ego gị, nnyefe, ịchọ ngwaahịa na ịkesa ụlọ ahịa gị nọ ebe a.",
+  "seller.quickAsk.title": "Jụọ Rex ma ọ bụ Peggy",
+  "seller.quickAsk.body": "Rex na-agbanwe ụlọ ahịa gị. Peggy na-aza gbasara ire ahịa ma na-azaghachi ndị ahịa.",
   "seller.search.title": "Chọọ",
   "seller.search.body": "Pịa / iji chọta order, ngwaahịa, onye ahịa ma ọ bụ peeji ọ bụla.",
   "seller.settings.title": "Mee ya nke gị",

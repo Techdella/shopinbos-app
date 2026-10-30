@@ -742,7 +742,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "reach.unlock.highValue": "Kaya masu tsada (wayoyi, kwamfutoci, zinariya)",
   "reach.unlock.featured": "Nemi a fito da kai",
   "reach.unlock.fasterPayouts": "Biyan kuɗi da sauri",
-  "reach.comingSoon": "Yana zuwa nan ba da jimawa ba",
+  "reach.comingSoon": "Na nan tafe",
   "reach.needs.verified": "ID da selfie sun wuce",
   "reach.needs.trusted": "50 da aka isar · ƙima 4.3+ · gazawar isarwa ƙasa da 2% · an tabbatar da adireshin tushe",
   "reach.needs.cash_trusted": "150 da aka isar · kwanaki 60+ a Shopinbos · CAC ko mai tsaya maka",

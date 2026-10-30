@@ -30,7 +30,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "earn.title": "Abin da ka samu a wannan order",
   "earn.customerPaid": "Abokin ciniki ya biya",
   "earn.suppliers": "Suppliers",
-  "earn.delivery": "Delivery partners",
+  "earn.delivery": "Abokan delivery",
   "earn.fee": "Kuɗin Shopinbos",
   "earn.you": "Ka samu",
   "earn.toDebts": "{amount} daga ciki ya tafi ga bashin da kake ci",

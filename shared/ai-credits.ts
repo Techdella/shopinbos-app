@@ -86,6 +86,8 @@ export const ACTION_COST = {
   performance_report: 5,
   /** Rex designing something in the store builder (a menu, a section, a new layout): previews are free, applying it costs this. */
   store_design: 3,
+  /** A minute of a voice call with Peggy, after a free plan's 3 free calls a month (shared/peggy-call-limits.ts). */
+  peggy_call_minute: 10,
 } as const;
 export type CreditAction = keyof typeof ACTION_COST;
 export type CreditCosts = Record<string, number>;
@@ -94,9 +96,9 @@ export const DEFAULT_COSTS: CreditCosts = { ...CREDIT_COST, ...ACTION_COST };
 
 /** The prices each kind of account sees on its credits page ("build" is AI store setup). */
 export const COSTS_BY_ROLE: Record<"seller" | "supplier" | "logistics_partner", readonly string[]> = {
-  seller: ["product_copy", "seo", "bg_remove", "photo", "caption", "translate", "build", "store_design", "campaign", "chat_reply", "insights", "voice", "video", "text"],
-  supplier: ["bulk_description", "auto_tag", "import_cleanup", "photo_cleanup", "inquiry_reply", "text"],
-  logistics_partner: ["rate_card", "coverage_listing", "chat_reply", "performance_report", "text"],
+  seller: ["product_copy", "seo", "bg_remove", "photo", "caption", "translate", "build", "store_design", "campaign", "chat_reply", "insights", "voice", "video", "peggy_call_minute", "text"],
+  supplier: ["bulk_description", "auto_tag", "import_cleanup", "photo_cleanup", "inquiry_reply", "peggy_call_minute", "text"],
+  logistics_partner: ["rate_card", "coverage_listing", "chat_reply", "performance_report", "peggy_call_minute", "text"],
 };
 
 export function isCreditAction(value: unknown): value is CreditAction {

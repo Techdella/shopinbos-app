@@ -80,7 +80,7 @@ export interface PublishOptions {
 export async function publishStoreDraft(where: { userId?: string; storeId?: string }, options: PublishOptions = {}) {
   const store = await db.store.findFirst({
     where: where.storeId ? { id: where.storeId } : { userId: where.userId },
-    select: { id: true, slug: true, name: true, brandSettings: true },
+    select: { id: true, userId: true, slug: true, name: true, onboardingState: true, brandSettings: true },
   });
   if (!store) throw new StorePublishError("Store not found", "NOT_FOUND", 404);
 
@@ -160,6 +160,13 @@ export async function publishStoreDraft(where: { userId?: string; storeId?: stri
 
   // Live now: tell Google (sitemap) and IndexNow engines (every page) instead of waiting to be crawled.
   announceStore(store.slug);
+
+  // A shop's first time live (the end of onboarding on the web and the phone): a free seller's credits are topped up
+  // to 20 to try Rex Studio, once (src/lib/ai/rex-studio-welcome.server.ts; never throws, does nothing on paid plans).
+  if (store.onboardingState !== "LIVE" && !options.scheduled) {
+    const { grantRexStudioWelcome } = await import("@/lib/ai/rex-studio-welcome.server");
+    await grantRexStudioWelcome(store.userId, { storeId: store.id });
+  }
 
   return { storeId: store.id, envelope: buildEditorEnvelope(published.brandSettings, options.keepDraft && savedDraft ? savedDraft : draft) };
 }

@@ -1,10 +1,12 @@
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { PanResponder, Pressable, ScrollView, View } from "react-native";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import { AppIcon } from "@/components/icons";
 import { Field, PillButton, T, Toggle } from "@/components/ui";
 import { useT } from "@/lib/i18n";
+import { api } from "@/lib/api";
+import type { LabelledColourSet } from "@shared/colour-sets";
 import {
   BLOCK_GROUPS,
   BUTTON_CHOICES,
@@ -308,6 +310,29 @@ export function SectionsSheet({ ctx, onAdd, onClose }: { ctx: SheetContext; onAd
 
 // ─── Theme: colours, headline font, buttons (SE-10) ──────────────────────────
 
+// Colour sets made from the seller's logo and product photos (shared/colour-sets.ts, WCAG-checked on the server;
+// the same as onboarding's D2b). Asked once per app session: the pictures rarely change while editing.
+let pictureSets: Promise<LabelledColourSet[]> | null = null;
+function usePictureSets() {
+  const [sets, setSets] = useState<LabelledColourSet[]>([]);
+  useEffect(() => {
+    let gone = false;
+    pictureSets ??= api<{ sets: LabelledColourSet[] }>("/api/mobile/onboarding/colours")
+      .then((body) => body.sets.filter((set) => set.source !== "rex"))
+      .catch(() => {
+        pictureSets = null;
+        return [];
+      });
+    void pictureSets.then((found) => {
+      if (!gone) setSets(found);
+    });
+    return () => {
+      gone = true;
+    };
+  }, []);
+  return sets;
+}
+
 export function ThemeSheet({ ctx, onClose }: { ctx: SheetContext; onClose: () => void }) {
   const t = useT("storeEditor");
   const tokens = ctx.ed.snapshot.themeTokens;
@@ -317,8 +342,26 @@ export function ThemeSheet({ ctx, onClose }: { ctx: SheetContext; onClose: () =>
   const [custom, setCustom] = useState(false);
   const accent = typeof tokens.accent === "string" ? tokens.accent.toUpperCase() : "";
   const headlineFont: Record<string, string | undefined> = { bold: fonts.display, elegant: undefined, clean: fonts.semibold };
+  const fromPictures = usePictureSets();
+  const onSet = (set: LabelledColourSet) => Boolean(tokens.ctaBg === set.tokens.ctaBg && tokens.paperBg === set.tokens.paperBg && tokens.ink === set.tokens.ink);
   return (
     <EditorSheet testID="editor-theme-sheet" title={t("theme.title")} onClose={onClose}>
+      {fromPictures.length ? (
+        <>
+          <SheetLabel>{t("theme.fromPictures")}</SheetLabel>
+          <View style={{ flexDirection: "row", gap: 18 }}>
+            {fromPictures.map((set) => {
+              const label = set.source === "logo" ? t("theme.fromLogo") : t("theme.fromPhotos");
+              return (
+                <Pressable key={set.id} testID={`theme-${set.id}`} accessibilityRole="radio" accessibilityState={{ checked: onSet(set) }} accessibilityLabel={label} onPress={() => { setCustom(false); ctx.ed.commit((current) => applyTokens(current, set.tokens), "theme"); }} style={{ alignItems: "center", gap: 6 }}>
+                  <Swatch colours={set.swatch} on={onSet(set)} />
+                  <T weight="semibold" style={{ fontSize: 11.5 }}>{label}</T>
+                </Pressable>
+              );
+            })}
+          </View>
+        </>
+      ) : null}
       <SheetLabel>{t("theme.colours")}</SheetLabel>
       <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
         {THEME_PRESETS.map((entry) => (

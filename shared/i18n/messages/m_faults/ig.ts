@@ -30,7 +30,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "earn.title": "Ihe ị na-enweta na order a",
   "earn.customerPaid": "Onye ahịa kwụrụ",
   "earn.suppliers": "Suppliers",
-  "earn.delivery": "Delivery partners",
+  "earn.delivery": "Ndị mmekọ delivery",
   "earn.fee": "Ụgwọ Shopinbos",
   "earn.you": "Ị na-enweta",
   "earn.toDebts": "{amount} n'ime ya gara n'ụgwọ ị ji",

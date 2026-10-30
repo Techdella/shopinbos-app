@@ -23,6 +23,13 @@ const en = {
   "seller.more.body": "Items with a › open a menu when you hover them, like Marketing → Broadcasts and Automations.",
   "seller.peggy.title": "Ask Peggy",
   "seller.peggy.body": "Your shop assistant. She can check sales, create a discount, update stock or draft a post, and tells you exactly what she changed.",
+  // The three tips after Rex builds the shop (spec F1–F3; GuidedTour ?tour=quick).
+  "seller.quickAdd.title": "Add anything here",
+  "seller.quickAdd.body": "Add a product, make a post or create a payment link.",
+  "seller.quickMoney.title": "Money and shortcuts",
+  "seller.quickMoney.body": "Your money, delivery, finding stock and sharing your shop are all here.",
+  "seller.quickAsk.title": "Ask Rex or Peggy",
+  "seller.quickAsk.body": "Rex changes your shop. Peggy answers about sales and replies to customers.",
   "seller.search.title": "Search",
   "seller.search.body": "Press / to find any order, product, customer or page.",
   "seller.settings.title": "Make it yours",

@@ -146,6 +146,7 @@ export const PRICE_SETTINGS = {
   "credits.cost.coverage_listing": credits("Cost (logistics): coverage and pickup point listings", 5, { min: 1 }),
   "credits.cost.performance_report": credits("Cost (logistics): performance summary report", 5, { min: 1 }),
   "credits.cost.store_design": credits("Cost: apply a Rex design in the store builder (menu, section, layout)", 3, { min: 1 }),
+  "credits.cost.peggy_call_minute": credits("Cost: a minute of a voice call with Peggy, after a free plan's 3 free calls a month (10 minutes held, unused minutes given back)", 10, { min: 1 }),
 
   // Every new account (src/lib/admin/gifts.server.ts giveJoinOffer), once, when it's created.
   "join.seller_months": months("New sellers: free months of Starter", 0),

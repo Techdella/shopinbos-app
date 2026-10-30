@@ -333,6 +333,9 @@ const en = {
   "day.4": "Thu",
   "day.5": "Fri",
   "day.6": "Sat",
+  "theme.fromPictures": "Made from your pictures",
+  "theme.fromLogo": "Your logo",
+  "theme.fromPhotos": "Your photos",
 } satisfies Record<string, string>;
 
 export default en;

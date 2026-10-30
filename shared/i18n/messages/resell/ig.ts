@@ -16,9 +16,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "switch.saved": "Echekwala ya",
   "switch.badPct": "Tinye commission dị n'etiti 1% na 50%.",
   "switch.failed": "Echekwaghị ya. Nwaa ọzọ.",
-  "switch.seeSales": "Resell sales",
+  "switch.seeSales": "Ire resell",
 
-  "sales.title": "Resell sales",
+  "sales.title": "Ire resell",
   "sales.sub": "Ihe e rere site na link resellers na commission ị ji onye ọ bụla. Ọ bụ gị ga-akwụ ha; Shopinbos na-edebe ndekọ naanị.",
   "sales.owed": "Ihe ị ji",
   "sales.ready": "Eruola, dị njikere ịkwụ",

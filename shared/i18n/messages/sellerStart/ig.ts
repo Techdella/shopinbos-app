@@ -143,7 +143,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "preview.logo": "logo",
   "name.welcome": "Nnọọ, {name}",
   "name.hintKnown": "Jiri aha ndị ahịa gị ma. Ị nwere ike ịgbanwe ya emesịa.",
-  "name.free": "{host} ka dị, ọ nwere ike ịbụ nke gị",
+  "name.free": "{host} dị",
   "logo.sub": "Enweghị logo? Ọ dịghị nsogbu. Rex nwere ike imere {name} otu.",
   "logo.rexSaid": "Emere m ndị a site na \"{name}\". Pịa otu, ma ọ bụ gwa m ihe m ga-agbanwe.",
   "sell.picked": "Ahọrọla {count}",

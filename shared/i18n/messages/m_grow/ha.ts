@@ -172,7 +172,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "studio.partnerIntro": "Mu sa shaguna su lura da kai. Zaɓi ɗaya, zan yi aiki mai wahala.",
   "studio.picturesSubPartner": "Nuna mahayanka, babura da isar da kaya a rana ɗaya",
   "studio.flyersSubPartner": "Farashinka, yankunan da kake rufewa da yadda za a yi maka booking",
-  "studio.status": "Status posts",
+  "studio.status": "Rubuce-rubucen Status",
   "studio.statusSubPartner": "Don WhatsApp status da groups ɗinka",
   "studio.videosSubPartner": "Gajerun bidiyo na mahayan ka, isar da kaya da farashinka",
   "studio.posts": "Posts ɗina",

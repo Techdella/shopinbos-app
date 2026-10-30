@@ -288,6 +288,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "day.4": "Thu",
   "day.5": "Fri",
   "day.6": "Sat",
+  "theme.fromPictures": "From your own pictures",
+  "theme.fromLogo": "Your logo",
+  "theme.fromPhotos": "Your photos",
 };
 
 export default pcm;

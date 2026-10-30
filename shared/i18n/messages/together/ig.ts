@@ -83,7 +83,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "plans.refundHint": "Ọ bụ gị ga-eziga ya site n'ụlọ akụ gị. Shopinbos anaghị ejide ego a.",
   "plans.refundSent": "Kaa akara na e zigala refund",
   "plans.order": "Mepee order",
-  "plans.settlements": "Settlement report",
+  "plans.settlements": "Akụkọ settlement",
   "plans.settlementsSub": "Akụkụ ọ bụla batara: ihe onye ahịa kwụrụ, fee Shopinbos, na ihe batara n'ụlọ akụ gị.",
   "plans.part": "Akụkụ {n} n'ime {weeks}",
   "plans.fee": "Fee",
@@ -95,7 +95,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "ajoList.empty": "Enweghị group ọ bụla ka. Malite otu site na peeji ngwaahịa.",
   "ajoList.line": "{members} n'ime {size} ndị otu · {weekly} kwa izu · ọ ga-amalite {date}",
 
-  "groups.title": "Group buys",
+  "groups.title": "Ịzụ ahịa otu",
   "groups.sub": "Groups maka ngwaahịa gị. Ndị otu ga-akwụ naanị mgbe group jupụtara, ozugbo n'ụlọ akụ gị.",
   "groups.empty": "Enweghị group buy ọ bụla ka. Gbanye Zụta ya na ndị enyi na ngwaahịa.",
   "groups.line": "{joined} n'ime {size} · {price} onye ọ bụla · ọ ga-akwụsị {date}",

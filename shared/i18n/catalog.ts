@@ -40,6 +40,7 @@ import m_marketing from "./messages/m_marketing/index.ts";
 import m_chats from "./messages/m_chats/index.ts";
 import m_onboarding from "./messages/m_onboarding/index.ts";
 import m_rexBuild from "./messages/m_rexBuild/index.ts";
+import rexBuild from "./messages/rexBuild/index.ts";
 import m_auth from "./messages/m_auth/index.ts";
 import m_notifications from "./messages/m_notifications/index.ts";
 import m_help from "./messages/m_help/index.ts";
@@ -156,6 +157,7 @@ export const CATALOGS = {
   m_chats,
   m_onboarding,
   m_rexBuild,
+  rexBuild,
   m_auth,
   m_notifications,
   m_help,

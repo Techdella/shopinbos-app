@@ -879,7 +879,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "uni.chip.unread": "Ndị a na-agụbeghị",
   "uni.kind.customer": "Onye ahịa",
   "uni.kind.supplier": "Supplier",
-  "uni.kind.delivery": "Delivery partner",
+  "uni.kind.delivery": "Onye mmekọ delivery",
   "uni.kind.rider": "Rider",
   "uni.kind.creator": "Creator",
   "uni.riderOrder": "Order {number}",

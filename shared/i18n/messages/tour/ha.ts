@@ -23,6 +23,13 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "seller.more.body": "Abubuwan da ke da › suna buɗe menu idan ka kai mouse kansu, kamar Marketing → Broadcasts da Automations.",
   "seller.peggy.title": "Tambayi Peggy",
   "seller.peggy.body": "Mataimakiyar shagonka. Za ta iya duba sayarwa, yi rangwame, sabunta stock ko rubuta post, kuma za ta faɗa maka ainihin abin da ta canza.",
+  // The three tips after Rex builds the shop (spec F1–F3; GuidedTour ?tour=quick).
+  "seller.quickAdd.title": "Ƙara komai a nan",
+  "seller.quickAdd.body": "Ƙara kaya, yi post ko ƙirƙiri payment link.",
+  "seller.quickMoney.title": "Kuɗi da gajerun hanyoyi",
+  "seller.quickMoney.body": "Kuɗinka, isarwa, nemo kaya da raba shagonka duk suna nan.",
+  "seller.quickAsk.title": "Tambayi Rex ko Peggy",
+  "seller.quickAsk.body": "Rex yana canza shagonka. Peggy tana amsa game da sayarwa kuma tana ba abokan ciniki amsa.",
   "seller.search.title": "Bincike",
   "seller.search.body": "Danna / don nemo kowane order, kaya, abokin ciniki ko shafi.",
   "seller.settings.title": "Mai da shi naka",

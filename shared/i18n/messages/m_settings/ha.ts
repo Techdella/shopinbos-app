@@ -194,7 +194,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "money.state.unavailable": "An dakatar da biyan kati a Shopinbos a yanzu.",
   "money.state.needs_whatsapp": "Ƙara lambar WhatsApp ɗinka don kunna wannan.",
   "money.bankRecheck": "Sake ƙara wannan banki don Paystack ya duba shi. Sannan biyan kati zai tafi kai tsaye zuwa gare shi.",
-  "pilot.section": "Pilot features",
+  "pilot.section": "Sababbin abubuwa na gwaji",
   "pilot.title": "Kana da pilot invite code?",
   "pilot.hint": "Idan ƙungiyar Shopinbos ta ba ka code don gwada sabon abu, rubuta shi a nan.",
   "pilot.redeem": "Yi amfani da code",

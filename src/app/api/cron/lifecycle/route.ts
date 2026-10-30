@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { cronDenied } from "@/lib/auth/cron-request";
 import { sendLifecycleEmails } from "@/lib/setup/lifecycle.server";
 import { sendOnboardingNudges } from "@/lib/onboarding/rex-build.server";
+import { sendRexStudioNudges } from "@/lib/ai/rex-studio-welcome.server";
+import { sweepPeggyCallHolds } from "@/lib/ai/peggy-voice.server";
 import { provisionPendingWallets, returnQueuedWithdrawals } from "@/lib/wallet/balance.server";
 import { recordSettlements } from "@/lib/wallet/settlements.server";
 
@@ -35,7 +37,17 @@ export async function GET(req: NextRequest) {
       console.error("[cron lifecycle] onboarding nudges failed", error instanceof Error ? error.message : "unknown");
       return { checked: 0, sent: 0 };
     });
-    return NextResponse.json({ data: { ...(await sendLifecycleEmails()), wallets, withdrawals, settlements, onboardingNudges } });
+    // Free sellers who got 20 credits to try Rex Studio and haven't made anything: a reminder on day 1 and day 3.
+    const rexStudioNudges = await sendRexStudioNudges().catch((error) => {
+      console.error("[cron lifecycle] rex studio nudges failed", error instanceof Error ? error.message : "unknown");
+      return { checked: 0, sent: 0 };
+    });
+    // Peggy calls paid with credits that weren't settled yet (no webhook): settled from ElevenLabs, or the hold given back.
+    const peggyCalls = await sweepPeggyCallHolds().catch((error) => {
+      console.error("[cron lifecycle] peggy call sweep failed", error instanceof Error ? error.message : "unknown");
+      return { checked: 0, settled: 0 };
+    });
+    return NextResponse.json({ data: { ...(await sendLifecycleEmails()), wallets, withdrawals, settlements, onboardingNudges, rexStudioNudges, peggyCalls } });
   } catch (error) {
     console.error("[cron lifecycle] failed", error instanceof Error ? error.message : "unknown");
     return NextResponse.json({ error: { code: "INTERNAL_ERROR", message: "Lifecycle emails failed" } }, { status: 500 });

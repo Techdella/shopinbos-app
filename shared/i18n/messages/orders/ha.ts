@@ -385,7 +385,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "refunds.awaiting": "Mun nemi lambar asusun bankin abokin cinikinka. Za ka gan shi a nan.",
   "refunds.sendTo": "Tura {amount} daga bankinka zuwa wannan asusun, sannan ka danna Refund sent.",
   "refunds.reference": "Lambar tura kuɗi (ba dole ba)",
-  "refunds.markSent": "Refund sent",
+  "refunds.markSent": "An tura refund",
   "refunds.sentWaiting": "An tura zuwa {name}. Ana jiran abokin cinikinka ya ce ya iso.",
   "refunds.disputed": "Abokin cinikinka ya ce bai iso ba. Duba bankinka, sannan ka sake turawa ko ka yi magana da abokin cinikinka.",
   "refunds.sendAgain": "Sake turawa",

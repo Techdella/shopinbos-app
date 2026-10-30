@@ -194,7 +194,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "money.state.unavailable": "Akwụsịtụla ịkwụ ụgwọ kaadị na Shopinbos ugbu a.",
   "money.state.needs_whatsapp": "Tinye nọmba WhatsApp gị ka ị gbanye nke a.",
   "money.bankRecheck": "Tinye ụlọ akụ a ọzọ ka Paystack nyochaa ya. Mgbe ahụ ịkwụ ụgwọ kaadị ga-aga ozugbo n'ime ya.",
-  "pilot.section": "Pilot features",
+  "pilot.section": "Njirimara nnwale",
   "pilot.title": "Ị nwere pilot invite code?",
   "pilot.hint": "Ọ bụrụ na ndị otu Shopinbos nyere gị code ka ị nwalee ihe ọhụrụ, dee ya ebe a.",
   "pilot.redeem": "Jiri code",

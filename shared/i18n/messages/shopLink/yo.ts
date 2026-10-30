@@ -2,9 +2,9 @@
 import type en from "./en.ts";
 
 const yo: Partial<Record<keyof typeof en, string>> = {
-  title: "Link shop àti QR",
+  title: "Link ṣọ́ọ̀bù àti QR",
   sub: "@handle rẹ, link kúkúrú àti QR code tí o lè tẹ̀ sórí parcel àti flyer.",
-  menu: "Link shop àti QR",
+  menu: "Link ṣọ́ọ̀bù àti QR",
   menuHint: "@handle rẹ àti QR code láti tẹ̀",
   "handle.label": "@handle rẹ",
   "handle.help": "Lẹ́tà, nọ́mbà tàbí _ láti 3 sí 24. Fi lẹ́tà bẹ̀rẹ̀.",
@@ -13,10 +13,10 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "handle.cancel": "Fagilé",
   "handle.saved": "A ti fi pamọ́. Link tuntun rẹ ti ń ṣiṣẹ́ báyìí.",
   "handle.warn": "Tí o bá yí i padà, link àtijọ́ àti QR code rẹ kò ní ṣiṣẹ́ mọ́. Tẹ̀ àwọn tuntun lẹ́yìn náà.",
-  "handle.ownerOnly": "Ẹni tó ni shop nìkan ló lè yí @handle padà.",
+  "handle.ownerOnly": "Ẹni tó ni ṣọ́ọ̀bù nìkan ló lè yí @handle padà.",
   "handle.none": "Link rẹ kò tíì ṣetán. Gbìyànjú lẹ́ẹ̀kan sí i láìpẹ́.",
   "link.label": "Link kúkúrú",
-  "link.opens": "Ó ń ṣí shop rẹ: {url}",
+  "link.opens": "Ó ń ṣí ṣọ́ọ̀bù rẹ: {url}",
   copy: "Daakọ",
   copied: "A ti daakọ",
   share: "Pín in",
@@ -33,7 +33,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "print.png": "Ṣe download fún títẹ̀",
   "print.stickers": "Tẹ̀ àwọn sticker",
   "print.flyer": "Tẹ̀ flyer",
-  "print.pageTitle": "Tẹ̀ káàdì shop rẹ",
+  "print.pageTitle": "Tẹ̀ káàdì ṣọ́ọ̀bù rẹ",
   "print.back": "Padà",
   "print.print": "Tẹ̀ ẹ́",
   "print.stickersNote": "Sticker 12 lórí ìwé A4 kan. Gé e ní ojú ìlà oníkókó.",
@@ -47,7 +47,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "problem.chars": "Lo lẹ́tà, nọ́mbà àti _ nìkan (kò sí àlàfo).",
   "problem.underscore": "Má lo __ méjì pọ̀, má sì fi _ parí i.",
   "problem.reserved": "Shopinbos ló ni ìyẹn. Gbìyànjú òmíràn.",
-  "problem.taken": "Shop míì ti mú ìyẹn. Gbìyànjú òmíràn.",
+  "problem.taken": "Ṣọ́ọ̀bù míì ti mú ìyẹn. Gbìyànjú òmíràn.",
   "problem.rate_limited": "O ti yí i padà ní ìgbà púpọ̀. Gbìyànjú lẹ́ẹ̀kan sí i lẹ́yìn wákàtí kan.",
   "problem.generic": "A kò lè fi ìyẹn pamọ́. Gbìyànjú lẹ́ẹ̀kan sí i.",
 };

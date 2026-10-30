@@ -33,3 +33,26 @@ export function readPostCall(payload: unknown): { userId: string; conversationId
   if (!userId || !summary) return null;
   return { userId, conversationId: typeof data.conversation_id === "string" ? data.conversation_id : null, summary: summary.slice(0, 4000) };
 }
+
+/**
+ * How long a call lasted, as ElevenLabs measured it (data.metadata.call_duration_secs), and which call it was
+ * (the call_ref and user_ref dynamic variables we start every call with). For settling calls paid with credits
+ * (src/lib/ai/peggy-voice.server.ts settleFromWebhook); doesn't need a summary.
+ */
+export function readCallLength(payload: unknown): { userId: string; callRef: string | null; conversationId: string | null; seconds: number | null } | null {
+  const body = payload && typeof payload === "object" ? (payload as Record<string, unknown>) : null;
+  if (body?.type !== "post_call_transcription") return null;
+  const data = body.data && typeof body.data === "object" ? (body.data as Record<string, unknown>) : {};
+  const init = data.conversation_initiation_client_data && typeof data.conversation_initiation_client_data === "object" ? (data.conversation_initiation_client_data as Record<string, unknown>) : {};
+  const vars = init.dynamic_variables && typeof init.dynamic_variables === "object" ? (init.dynamic_variables as Record<string, unknown>) : {};
+  const metadata = data.metadata && typeof data.metadata === "object" ? (data.metadata as Record<string, unknown>) : {};
+  const userId = typeof vars.user_ref === "string" ? vars.user_ref.trim() : "";
+  if (!userId) return null;
+  const seconds = typeof metadata.call_duration_secs === "number" && Number.isFinite(metadata.call_duration_secs) ? Math.max(0, metadata.call_duration_secs) : null;
+  return {
+    userId,
+    callRef: typeof vars.call_ref === "string" && vars.call_ref.trim() ? vars.call_ref.trim() : null,
+    conversationId: typeof data.conversation_id === "string" ? data.conversation_id : null,
+    seconds,
+  };
+}

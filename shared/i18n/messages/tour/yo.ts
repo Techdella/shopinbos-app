@@ -23,6 +23,13 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "seller.more.body": "Àwọn tó ní › máa ṣí menu tí o bá gbé mouse lé wọn, bíi Marketing → Broadcasts àti Automations.",
   "seller.peggy.title": "Bi Peggy",
   "seller.peggy.body": "Olùrànlọ́wọ́ ṣọ́ọ̀bù rẹ. Ó lè wo títà, ṣe ẹ̀dínwó, ṣàtúnṣe ọjà tó kù tàbí kọ post, ó sì máa sọ ohun tó yí padà fún ọ gan-an.",
+  // The three tips after Rex builds the shop (spec F1–F3; GuidedTour ?tour=quick).
+  "seller.quickAdd.title": "Fi ohunkóhun kún un níbí",
+  "seller.quickAdd.body": "Fi ọjà kún un, ṣe post tàbí ṣe payment link.",
+  "seller.quickMoney.title": "Owó àti ọ̀nà àbùjá",
+  "seller.quickMoney.body": "Owó rẹ, ìfijiṣẹ́, wíwá ọjà àti pínpín ṣọ́ọ̀bù rẹ wà níbí.",
+  "seller.quickAsk.title": "Bi Rex tàbí Peggy",
+  "seller.quickAsk.body": "Rex máa yí ṣọ́ọ̀bù rẹ padà. Peggy máa dáhùn nípa títà, ó sì máa fèsì sí àwọn oníbàárà.",
   "seller.search.title": "Wá",
   "seller.search.body": "Tẹ / láti rí order, ọjà, oníbàárà tàbí ojú-ewé èyíkéyìí.",
   "seller.settings.title": "Ṣe é bí o ṣe fẹ́",

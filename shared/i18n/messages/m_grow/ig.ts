@@ -172,7 +172,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "studio.partnerIntro": "Ka anyị mee ka ụlọ ahịa hụ gị. Họrọ otu, m ga-eme akụkụ siri ike.",
   "studio.picturesSubPartner": "Gosi ndị rider gị, ọgba tum tum na nnyefe otu ụbọchị",
   "studio.flyersSubPartner": "Ọnụahịa gị, mpaghara ị na-ekpuchi na otu esi akpọ gị",
-  "studio.status": "Status posts",
+  "studio.status": "Post Status",
   "studio.statusSubPartner": "Maka WhatsApp status na group gị",
   "studio.videosSubPartner": "Obere vidiyo nke ndị rider gị, nnyefe na ọnụahịa gị",
   "studio.posts": "Post m",

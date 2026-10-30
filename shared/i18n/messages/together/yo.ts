@@ -83,7 +83,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "plans.refundHint": "Ẹ̀yin lẹ máa fi ránṣẹ́ láti bánkì yín. Shopinbos kò di owó yìí mú.",
   "plans.refundSent": "Sàmì sí i pé refund ti lọ",
   "plans.order": "Ṣí order",
-  "plans.settlements": "Settlement report",
+  "plans.settlements": "Ìròyìn settlement",
   "plans.settlementsSub": "Gbogbo apá tó wọlé: ohun tí oníbàárà san, fee Shopinbos, àti ohun tó wọ bánkì yín.",
   "plans.part": "Apá {n} nínú {weeks}",
   "plans.fee": "Fee",

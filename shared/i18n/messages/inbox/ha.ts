@@ -879,7 +879,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "uni.chip.unread": "Ba a karanta ba",
   "uni.kind.customer": "Kwastoma",
   "uni.kind.supplier": "Supplier",
-  "uni.kind.delivery": "Delivery partner",
+  "uni.kind.delivery": "Abokin delivery",
   "uni.kind.rider": "Rider",
   "uni.kind.creator": "Creator",
   "uni.riderOrder": "Order {number}",

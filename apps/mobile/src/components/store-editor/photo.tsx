@@ -281,30 +281,23 @@ export function CropOverlay({ picked, frame, onDone, onUndo, onFailed }: { picke
   const [cut, setCut] = useState(false);
   // Brighten's true look before Done: the server's own steps on a small copy (a data: URL per level, asked a moment
   // after the last tap and kept, so tapping round the levels again is instant). Until it's back, the photo as picked.
-  const [previews, setPreviews] = useState<Record<number, string>>({});
-  const [previewing, setPreviewing] = useState(false);
+  // null: that level's preview couldn't be made (the photo as picked shows; Done still makes the real one).
+  const [previews, setPreviews] = useState<Record<number, string | null>>({});
   useEffect(() => {
-    if (!bright || previews[bright]) {
-      setPreviewing(false);
-      return;
-    }
+    if (!bright || bright in previews) return;
     let stale = false;
-    setPreviewing(true);
+    const keep = (preview: string | null) => {
+      if (!stale) setPreviews((now) => ({ ...now, [bright]: preview }));
+    };
     const timer = setTimeout(() => {
-      brightenPreview(picked.url, bright)
-        .then((preview) => {
-          if (!stale && preview) setPreviews((now) => ({ ...now, [bright]: preview }));
-        })
-        .catch(() => undefined)
-        .finally(() => {
-          if (!stale) setPreviewing(false);
-        });
+      brightenPreview(picked.url, bright).then(keep, () => keep(null));
     }, 350);
     return () => {
       stale = true;
       clearTimeout(timer);
     };
   }, [bright, picked.url, previews]);
+  const previewing = bright > 0 && !(bright in previews);
   const shownUri = (bright && previews[bright]) || picked.photo.uri;
   const photo = { width: picked.photo.width || frame.width, height: picked.photo.height || frame.height };
   const crop = coverCrop(photo, frame, zoom, offset);

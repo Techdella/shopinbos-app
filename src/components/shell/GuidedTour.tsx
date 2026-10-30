@@ -58,6 +58,16 @@ const STEPS: Record<Role, Step[]> = {
   ],
 };
 
+/**
+ * Right after Rex builds a seller's shop (src/components/onboarding/seller/finish.tsx sends /home?tour=quick): just
+ * three tips (spec F1–F3): the add button, money and shortcuts, and asking Rex or Peggy.
+ */
+const QUICK_SELLER: Step[] = [
+  { target: "add-product", id: "quickAdd" },
+  { target: "nav-money", id: "quickMoney" },
+  { target: "ask-peggy", id: "quickAsk" },
+];
+
 // Admin screens stay in English, so the admin tour's words live here rather than in the catalog.
 const ADMIN_COPY: Record<string, { title: string; body: string }> = {
   welcome: { title: "Welcome to the admin console", body: "A quick tour of the review queues." },
@@ -87,10 +97,15 @@ export function GuidedTour({ role }: { role: Role }) {
   const [step, setStep] = useState<number | null>(null);
   const [rect, setRect] = useState<DOMRect | null>(null);
   const t = useT("tour", "common");
+  // ?tour=quick (read after mount, so pages needn't wrap the shell in Suspense): the three tips after Rex's build.
+  const [quick, setQuick] = useState(false);
+  useEffect(() => {
+    setQuick(role === "seller" && new URLSearchParams(window.location.search).get("tour") === "quick");
+  }, [role, pathname]);
   // The Start here steps only make sense on Start here; from Home the tour skips them.
   const steps = useMemo(
-    () => STEPS[role].filter((item) => pathname === "/home/start" || !(item.target?.startsWith("start-") || item.target === "nav-start")),
-    [role, pathname],
+    () => (quick ? QUICK_SELLER : STEPS[role].filter((item) => pathname === "/home/start" || !(item.target?.startsWith("start-") || item.target === "nav-start"))),
+    [role, pathname, quick],
   );
 
   // Shows once, on the portal's home page after onboarding, and never again on its own: it is marked seen the

@@ -143,7 +143,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "preview.logo": "logo",
   "name.welcome": "Barka da zuwa, {name}",
   "name.hintKnown": "Yi amfani da sunan da kwastomominka suka sani. Za ka iya canza shi daga baya.",
-  "name.free": "{host} yana nan, zai iya zama naka",
+  "name.free": "{host} yana nan",
   "logo.sub": "Babu tambari? Ba damuwa. Rex zai iya yi wa {name} ɗaya.",
   "logo.rexSaid": "Na yi waɗannan daga \"{name}\". Taɓa ɗaya, ko ka faɗa min abin da zan canza.",
   "sell.picked": "An zaɓi {count}",

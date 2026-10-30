@@ -385,7 +385,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "refunds.awaiting": "Anyị ajụọla onye ahịa gị maka akaụntụ ụlọ akụ ya. Ị ga-ahụ ya ebe a.",
   "refunds.sendTo": "Zipu {amount} site n'ụlọ akụ gị gaa n'akaụntụ a, wee pịa Refund sent.",
   "refunds.reference": "Ntụaka nnyefe (nhọrọ)",
-  "refunds.markSent": "Refund sent",
+  "refunds.markSent": "Ezigara refund",
   "refunds.sentWaiting": "Ezigara {name}. Na-eche ka onye ahịa gị kwuo na ọ rutere.",
   "refunds.disputed": "Onye ahịa gị kwuru na o rubeghị. Lelee ụlọ akụ gị, wee zigaghachi ya ma ọ bụ gwa onye ahịa gị okwu.",
   "refunds.sendAgain": "Zigaghachi ya",

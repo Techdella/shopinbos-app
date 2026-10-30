@@ -6257,3 +6257,51 @@ model ScheduledStorePublish {
   @@index([status, runAt])
   @@index([storeId, status])
 }
+
+// ─── Rex Studio welcome credits and Peggy call minutes (docs/migrations/2026-12-20-credits-peggy.sql) ─────────────
+
+/// One-off AI credit grants that may only ever happen once per person (src/lib/ai/rex-studio-welcome.server.ts, rules in
+/// shared/rex-studio-welcome.ts). reason "rex_studio_welcome": a free seller's credits topped up to 20 when Rex finished
+/// building their shop; `credits` is what was added (0 when they already had 20 or more), `balanceBefore` what they had.
+/// The row is the "already given" marker (unique per person and reason) and counts the reminders sent (`nudges`).
+model AiCreditGrant {
+  id            String    @id @default(cuid())
+  userId        String
+  reason        String
+  storeId       String?
+  credits       Int       @default(0)
+  balanceBefore Int       @default(0)
+  expiresAt     DateTime?
+  nudges        Int       @default(0)
+  lastNudgeAt   DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@unique([userId, reason])
+  @@index([reason, createdAt])
+}
+
+/// One "Talk to Peggy" voice call (src/lib/ai/peggy-voice.server.ts, rules in shared/peggy-call-limits.ts). mode plan |
+/// free | credits. A credits call holds `heldCredits` (the full 10 minutes) when it starts; when ElevenLabs reports its
+/// real length (post-call webhook, or the conversation API when the app says it ended) it is settled once: status open →
+/// settled, `chargedCredits` kept and `refundedCredits` given back as a refund lot. The id goes to ElevenLabs as the
+/// call_ref dynamic variable, so the webhook finds the call.
+model PeggyCallSession {
+  id              String    @id @default(cuid())
+  userId          String
+  mode            String
+  planKey         String
+  maxSeconds      Int
+  perMinute       Int       @default(0)
+  heldCredits     Int       @default(0)
+  chargedCredits  Int       @default(0)
+  refundedCredits Int       @default(0)
+  conversationId  String?   @unique
+  seconds         Int?
+  status          String    @default("open")
+  settledBy       String?
+  createdAt       DateTime  @default(now())
+  settledAt       DateTime?
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+}

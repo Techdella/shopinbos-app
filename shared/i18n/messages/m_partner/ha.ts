@@ -673,7 +673,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "lvl.unlock.highValue": "Kaya masu tsada (wayoyi, kwamfutoci, zinariya)",
   "lvl.unlock.featured": "Nemi a fito da kai",
   "lvl.unlock.fasterPayouts": "Biyan kuɗi da sauri",
-  "lvl.comingSoon": "Yana zuwa nan ba da jimawa ba",
+  "lvl.comingSoon": "Na nan tafe",
   "lvl.needs.verified": "ID da selfie sun wuce",
   "lvl.needs.trusted": "50 da aka isar · ƙima 4.3+ · gazawar isarwa ƙasa da 2% · an tabbatar da adireshin tushe",
   "lvl.needs.cash_trusted": "150 da aka isar · kwanaki 60+ a Shopinbos · CAC ko mai tsaya maka",

@@ -2,9 +2,9 @@
 import type en from "./en.ts";
 
 const ig: Partial<Record<keyof typeof en, string>> = {
-  title: "Link shop na QR",
+  title: "Link ụlọ ahịa na QR",
   sub: "@handle gị, link dị mkpụmkpụ na QR code ị ga-ebipụta n'elu parcel na flyer.",
-  menu: "Link shop na QR",
+  menu: "Link ụlọ ahịa na QR",
   menuHint: "@handle gị na QR code maka ibipụta",
   "handle.label": "@handle gị",
   "handle.help": "Mkpụrụedemede, nọmba ma ọ bụ _ site na 3 ruo 24. Jiri mkpụrụedemede malite.",
@@ -13,10 +13,10 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "handle.cancel": "Kagbuo",
   "handle.saved": "Echekwala ya. Link ọhụrụ gị na-arụ ọrụ ugbu a.",
   "handle.warn": "Ọ bụrụ na ị gbanwee ya, link ochie na QR code gị agaghị arụ ọrụ ọzọ. Bipụta ndị ọhụrụ mgbe ahụ.",
-  "handle.ownerOnly": "Naanị onye nwe shop nwere ike ịgbanwe @handle.",
+  "handle.ownerOnly": "Naanị onye nwe ụlọ ahịa nwere ike ịgbanwe @handle.",
   "handle.none": "Link gị adịbeghị njikere. Nwaa ọzọ n'oge na-adịghị anya.",
   "link.label": "Link dị mkpụmkpụ",
-  "link.opens": "Ọ na-emeghe shop gị: {url}",
+  "link.opens": "Ọ na-emeghe ụlọ ahịa gị: {url}",
   copy: "Detuo",
   copied: "Edetuola ya",
   share: "Kesaa",
@@ -33,7 +33,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "print.png": "Budata maka ibipụta",
   "print.stickers": "Bipụta stickers",
   "print.flyer": "Bipụta flyer",
-  "print.pageTitle": "Bipụta kaadị shop gị",
+  "print.pageTitle": "Bipụta kaadị ụlọ ahịa gị",
   "print.back": "Laghachi",
   "print.print": "Bipụta",
   "print.stickersNote": "Stickers 12 n'otu akwụkwọ A4. Bee ya n'ahịrị ntụpọ.",
@@ -47,7 +47,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "problem.chars": "Jiri naanị mkpụrụedemede, nọmba na _ (enweghị oghere).",
   "problem.underscore": "Ọ dịghị __ abụọ n'usoro, ọ dịghịkwa _ na njedebe.",
   "problem.reserved": "Nke ahụ bụ nke Shopinbos. Nwaa ọzọ.",
-  "problem.taken": "Shop ọzọ ewerela nke ahụ. Nwaa ọzọ.",
+  "problem.taken": "Ụlọ ahịa ọzọ ewerela nke ahụ. Nwaa ọzọ.",
   "problem.rate_limited": "Ị gbanweela ya ọtụtụ ugboro. Nwaa ọzọ mgbe otu awa gachara.",
   "problem.generic": "Anyị enweghị ike ịchekwa nke ahụ. Nwaa ọzọ.",
 };

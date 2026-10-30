@@ -16,9 +16,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "switch.saved": "Ó ti wà ní ìpamọ́",
   "switch.badPct": "Ẹ kọ commission tó wà láàrin 1% àti 50%.",
   "switch.failed": "Kò fi pamọ́. Ẹ tún gbìyànjú.",
-  "switch.seeSales": "Resell sales",
+  "switch.seeSales": "Títà resell",
 
-  "sales.title": "Resell sales",
+  "sales.title": "Títà resell",
   "sales.sub": "Àwọn ọjà tí wọ́n tà láti link àwọn reseller àti commission tí ẹ jẹ ẹnìkọ̀ọ̀kan. Ẹ̀yin lẹ máa san án; Shopinbos kàn ń kọ ọ́ sílẹ̀ ni.",
   "sales.owed": "Ohun tí ẹ jẹ",
   "sales.ready": "Ó ti dé, ẹ lè sanwó",

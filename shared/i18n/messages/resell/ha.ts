@@ -16,9 +16,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "switch.saved": "An ajiye",
   "switch.badPct": "Saka commission tsakanin 1% da 50%.",
   "switch.failed": "Ba a ajiye ba. Ka sake gwadawa.",
-  "switch.seeSales": "Resell sales",
+  "switch.seeSales": "Cinikin resell",
 
-  "sales.title": "Resell sales",
+  "sales.title": "Cinikin resell",
   "sales.sub": "Sayayya ta link na resellers da commission da kake bin kowanne. Kai ne za ka biya su; Shopinbos na ajiye bayanin kawai.",
   "sales.owed": "Abin da kake bi",
   "sales.ready": "An kai, a shirye don biya",

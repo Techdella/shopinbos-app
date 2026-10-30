@@ -742,7 +742,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "reach.unlock.highValue": "Ngwugwu dị oke ọnụ (ekwentị, laptọọpụ, ọlaedo)",
   "reach.unlock.featured": "Tinye akwụkwọ ka e gosipụta gị",
   "reach.unlock.fasterPayouts": "Ịkwụ ụgwọ ngwa ngwa",
-  "reach.comingSoon": "Ọ na-abịa n'oge na-adịghị anya",
+  "reach.comingSoon": "Ọ na-abịa",
   "reach.needs.verified": "ID na selfie gafere",
   "reach.needs.trusted": "50 ebunyere · ọkwa 4.3+ · nnyefe dara ada erughị 2% · akwadoro adreesị isi",
   "reach.needs.cash_trusted": "150 ebunyere · ụbọchị 60+ na Shopinbos · CAC ma ọ bụ onye nkwado",

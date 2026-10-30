@@ -83,7 +83,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "plans.refundHint": "Ku ne za ku aika daga bankinku. Shopinbos ba ta riƙe wannan kuɗi.",
   "plans.refundSent": "Nuna cewa an aika refund",
   "plans.order": "Buɗe order",
-  "plans.settlements": "Settlement report",
+  "plans.settlements": "Rahoton settlement",
   "plans.settlementsSub": "Kowane kashi da ya shigo: abin da abokin ciniki ya biya, fee na Shopinbos, da abin da ya shiga bankinku.",
   "plans.part": "Kashi {n} cikin {weeks}",
   "plans.fee": "Fee",
@@ -95,7 +95,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "ajoList.empty": "Babu group tukuna. Fara ɗaya daga shafin kaya.",
   "ajoList.line": "{members} cikin {size} membobi · {weekly} kowane mako · zai fara {date}",
 
-  "groups.title": "Group buys",
+  "groups.title": "Sayayyar ƙungiya",
   "groups.sub": "Groups na kayanku. Membobi za su biya ne kawai idan group ya cika, kai tsaye zuwa bankinku.",
   "groups.empty": "Babu group buy tukuna. Kunna Saya tare da abokai a kan wani kaya.",
   "groups.line": "{joined} cikin {size} · {price} kowanne · zai ƙare {date}",

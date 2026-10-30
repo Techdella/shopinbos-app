@@ -278,7 +278,10 @@ export function planFeatureLines(key: PlanKey): PlanFeatureLine[] {
   ];
 }
 
-/** Voice calls with Peggy a free plan gets each calendar month (UTC); paid plans have no monthly cap. */
+/**
+ * Voice calls with Peggy a free plan gets each calendar month (Lagos time), each up to 10 minutes; after them a call
+ * costs AI credits (shared/peggy-call-limits.ts). Paid plans have no monthly cap.
+ */
 export const FREE_PEGGY_CALLS_PER_MONTH = 3;
 
 /** Calls with Peggy left this month: null when the plan has no monthly cap. */

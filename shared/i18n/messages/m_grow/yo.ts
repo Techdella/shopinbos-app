@@ -172,7 +172,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "studio.partnerIntro": "Jẹ́ ká jẹ́ kí àwọn ṣọ́ọ̀bù kíyèsí ọ. Yan ọ̀kan, màá ṣe apá tó le.",
   "studio.picturesSubPartner": "Fi àwọn rider rẹ, ọ̀kadà àti ìfijíṣẹ́ ọjọ́ kan náà hàn",
   "studio.flyersSubPartner": "Iye owó rẹ, àwọn agbègbè tí o ń bò àti bí wọ́n ṣe lè gbà ọ́",
-  "studio.status": "Status posts",
+  "studio.status": "Àwọn post Status",
   "studio.statusSubPartner": "Fún WhatsApp status àti àwọn group rẹ",
   "studio.videosSubPartner": "Fídíò kúkúrú ti àwọn rider rẹ, ìfijíṣẹ́ àti iye owó rẹ",
   "studio.posts": "Àwọn post mi",
