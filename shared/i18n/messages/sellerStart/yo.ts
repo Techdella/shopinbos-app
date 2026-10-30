@@ -169,6 +169,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "live.next.products": "Fi ọjà mìíràn kún un",
   "product.titleNext": "Fi ọjà rẹ tó kàn kún un.",
   "live.next.productsSub": "Ya wọ́n ní ọ̀kọ̀ọ̀kan",
+  "logo.yourLogo": "Àmì ìdánimọ̀ rẹ",
+  "logo.download": "Gbà á sílẹ̀",
+  "logo.downloadFailed": "A kò lè fi àmì náà pamọ́. Ṣàyẹ̀wò íńtánẹ́ẹ̀tì rẹ kí o sì tún gbìyànjú.",
 };
 
 export default yo;

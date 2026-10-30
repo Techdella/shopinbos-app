@@ -53,6 +53,10 @@ import { friendlyError } from "@/lib/errors/report-client";
 import { whatsappChatUrl } from "@/lib/support-contact";
 import { PLAY_STORE_WEB_URL } from "@shared/app-release";
 import { StorePreview } from "./StorePreview";
+import { Confetti, DancingRex } from "@/components/brand/Celebrate";
+import { FunLoader } from "@/components/brand/FunLoader";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
+import { downloadPicture } from "@/lib/download-picture";
 import { ThemePreviewDialog, ThemeThumbnail, TIER_BADGE } from "@/components/builder/theme-preview/ThemePreview";
 import { ALL_THEMES_FREE } from "@shared/plans";
 import { TIER_PLAN_LABEL } from "@/lib/theme-access";
@@ -245,14 +249,14 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
     }
   }
 
-  async function askForLogos(round: number) {
+  async function askForLogos(round: number, notes = logoNotes) {
     setLogoMode("rex");
     setLogoRound(round);
     setLogoUnavailable(false);
     setBusy(true);
     setError(null);
     try {
-      setLogos(await drawLogos({ businessName: storeName.trim() || status.store.name, businessDescription: description, round, notes: logoNotes.trim() || undefined }));
+      setLogos(await drawLogos({ businessName: storeName.trim() || status.store.name, businessDescription: description, round, notes: notes.trim() || undefined }));
     } catch {
       setLogoUnavailable(true);
     } finally {
@@ -541,9 +545,8 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
 
         {logoMode === "rex" && (
           <div className="mt-5">
-            {busy && !logos.length && (
-              <p className="flex items-center gap-2 text-[15px] text-app-ink-soft" aria-live="polite"><Spinner className="h-4 w-4" /> {t("logo.drawing", { name: storeName.trim() || status.store.name })}</p>
-            )}
+            {/* Rex is drawing (the first round, a redraw or more ideas): the fun loader, over the old ideas. */}
+            {busy && <FunLoader kind="logo" className="mb-4" />}
             {logoUnavailable && (
               <div className="grid gap-3">
                 <Notice tone="info">{t("logo.unavailable")}</Notice>
@@ -565,16 +568,34 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
                       aria-pressed={logoUrl === logo.url}
                       aria-label={t("logo.option", { number: index + 1 })}
                       className={cx(
-                        "relative aspect-square overflow-hidden rounded-[20px] border-[3px] bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-ink focus-visible:ring-offset-2",
-                        logoUrl === logo.url ? "border-app-accent shadow-[0_0_0_3px_var(--color-app-peach)]" : "border-app-line",
+                        "relative aspect-square overflow-hidden rounded-[20px] border-[3px] bg-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-ink focus-visible:ring-offset-2",
+                        logoUrl === logo.url ? "scale-[1.02] border-app-accent shadow-[0_0_0_4px_var(--color-app-peach)]" : "border-app-line",
+                        logoUrl && logoUrl !== logo.url && "opacity-55 hover:opacity-100",
+                        busy && "opacity-40",
                       )}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={logo.url} alt="" className="h-full w-full object-contain" />
-                      {logoUrl === logo.url && <span className="absolute right-2 top-2 rounded-full bg-app-ink px-2.5 py-1 text-[12px] font-bold text-white">{t("logo.chosen")}</span>}
+                      <img src={logo.url} alt="" className="h-full w-full object-contain p-2" />
+                      {logoUrl === logo.url && (
+                        <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-app-ink px-2.5 py-1 text-[12px] font-bold text-white">
+                          <Icon name="check" size={12} strokeWidth={3} /> {t("logo.chosen")}
+                        </span>
+                      )}
                     </button>
                   ))}
                 </div>
+                {logoUrl && logos.some((logo) => logo.url === logoUrl) && (
+                  <div className="mt-4 flex items-center gap-4 rounded-[22px] border-2 border-app-accent bg-white p-4">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={logoUrl} alt={t("logo.yourLogo")} className="h-28 w-28 shrink-0 rounded-[16px] bg-white object-contain" />
+                    <div className="grid min-w-0 gap-2">
+                      <p className="m-0 text-[16px] font-extrabold">{t("logo.yourLogo")}</p>
+                      <PillButton size="sm" tone="white" onClick={() => void downloadPicture(logoUrl, `${(storeName.trim() || status.store.name || "logo").replace(/[^\w-]+/g, "-").toLowerCase()}-logo`)}>
+                        <Icon name="download" size={15} /> {t("logo.download")}
+                      </PillButton>
+                    </div>
+                  </div>
+                )}
                 <div className="mt-4 flex items-center gap-2 rounded-full border border-app-line bg-white py-1.5 pl-5 pr-1.5 focus-within:border-app-ink">
                   <input
                     value={logoNotes}
@@ -588,6 +609,18 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
                     placeholder={t("logo.changePlaceholder")}
                     aria-label={t("logo.changeAria")}
                     className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-app-ink-faint"
+                  />
+                  {/* A voice note to Rex: the words go in the box and Rex redraws straight away. */}
+                  <VoiceInputButton
+                    variant="icon"
+                    mode="replace"
+                    value={logoNotes}
+                    onChange={(spoken) => {
+                      setLogoNotes(spoken);
+                      if (spoken.trim()) void askForLogos(logoRound, spoken);
+                    }}
+                    context="changes to a logo design"
+                    disabled={busy}
                   />
                   <PillButton size="sm" tone="forest" busy={busy} disabled={!logoNotes.trim()} onClick={() => void askForLogos(logoRound)}>{t("logo.redo")}</PillButton>
                 </div>
@@ -926,8 +959,9 @@ export function SellerOnboarding({ initialStatus }: { initialStatus: OnboardingS
     } else {
       body = (
         <>
+          <Confetti />
           <div className="flex flex-col items-start gap-4">
-            <span aria-hidden className="grid h-[76px] w-[76px] place-items-center rounded-full bg-app-success text-white"><Icon name="check" size={36} strokeWidth={2.8} /></span>
+            <DancingRex size={150} />
             <h1 className="m-0 text-[32px] font-extrabold leading-[1.08] tracking-[-0.025em] sm:text-[40px]">{t("live.title")}</h1>
             <p className="m-0 text-[15px] leading-[1.5] text-app-ink-soft sm:text-[17px]">{t("live.sub", { name: name || storeName.trim() || status.store.name })}</p>
             <a href={liveUrl} target="_blank" rel="noreferrer" className="break-all font-mono text-[15px] font-bold text-app-forest underline underline-offset-4">{host}</a>

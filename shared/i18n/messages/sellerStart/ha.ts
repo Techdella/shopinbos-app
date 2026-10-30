@@ -169,6 +169,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "live.next.products": "Ƙara wasu kayayyaki",
   "product.titleNext": "Ƙara kayanka na gaba.",
   "live.next.productsSub": "Ɗauki hotunansu ɗaya bayan ɗaya",
+  "logo.yourLogo": "Tambarin ka",
+  "logo.download": "Sauke",
+  "logo.downloadFailed": "Ba mu iya ajiye tambarin ba. Duba haɗin intanet ɗin ka ka sake gwadawa.",
 };
 
 export default ha;

@@ -41,6 +41,7 @@ import { WebButtonLabel } from "@/components/WebBadge";
 import { openWeb } from "@/lib/web";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
+import { FunLoader } from "@/components/FunLoader";
 
 // The phone's video studio (web /home/video/studio): photos from a product or the phone, Rex's shots, a style,
 // the words (Rex writes them), the voice and music. Everything saves itself as a draft (the web studio's
@@ -329,6 +330,7 @@ function Studio({ products, project, startPurpose, startProduct }: { products: S
           </ChipRow>
           <T style={{ color: colors.inkSoft, fontSize: 13.5 }}>{t(`shots.${state.look}Hint`)}</T>
           <PillButton size="md" title={step === "shots" ? t("shots.making") : t("shots.make", { count: state.photos.length })} busy={step === "shots"} disabled={busy || !state.photos.length} onPress={() => void makeShots()} />
+          {step === "shots" ? <FunLoader kind="image" size="sm" /> : null}
           {originals ? <LinkButton title={t("shots.undo")} onPress={() => { update((current) => ({ ...current, photos: originals })); setOriginals(null); }} /> : null}
           <T style={{ color: colors.inkSoft, fontSize: 12.5 }}>{t("shots.cost", { credits: CREDIT_COST.image })}</T>
         </View>
@@ -376,6 +378,7 @@ function Studio({ products, project, startPurpose, startProduct }: { products: S
           ))}
         </ChipRow>
         <PillButton size="md" tone="white" title={state.script ? t("words.again") : t("words.write")} busy={step === "writing"} disabled={busy} onPress={() => void writeWords()} />
+        {step === "writing" ? <FunLoader kind="video" size="sm" /> : null}
         {captions.map((caption, index) => (
           <View key={index}>
             <Label>{t("captionN", { n: index + 1 })}</Label>

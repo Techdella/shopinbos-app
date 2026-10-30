@@ -169,6 +169,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "live.next.products": "Add more products",
   "product.titleNext": "Add your next product.",
   "live.next.productsSub": "Snap dem one by one",
+  "logo.yourLogo": "Your logo",
+  "logo.download": "Download am",
+  "logo.downloadFailed": "We no fit save the logo. Check your network, try again.",
 };
 
 export default pcm;

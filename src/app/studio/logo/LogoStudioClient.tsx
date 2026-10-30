@@ -13,6 +13,7 @@ import { useT } from "@/components/i18n/I18nProvider";
 import { RexProgress } from "@/components/builder/rex/RexProgress";
 import { RexImageActions } from "@/components/builder/rex/RexImageActions";
 import { friendlyError } from "@/lib/errors/report-client";
+import { FunLoader } from "@/components/brand/FunLoader";
 
 interface LogoResult {
   style: string;
@@ -261,6 +262,7 @@ export function LogoStudioClient({ storeName, about = "", currentLogo = null }: 
             <PillButton tone="accent" size="md" className="w-full" onClick={() => void generate()} disabled={loading !== null || uploading || !businessName.trim()}>
               {loading === "ideas" ? <><Spinner /> {t("logo.drawing")}</> : <><Icon name="sparkle" size={16} /> {batches.length ? t("logo.newIdeas") : t("logo.make")}</>}
             </PillButton>
+            {loading === "ideas" && <FunLoader kind="logo" size="sm" />}
             <div className="grid gap-1 text-center text-[12.5px] text-app-ink-soft">
               <p className="m-0">{t("logo.cost")}</p>
               {pictures ? <p className="m-0">{t("logo.freeUsed", { used: pictures.used, limit: pictures.limit })}</p> : null}

@@ -5,7 +5,7 @@ import { BRAND_MARKS } from "@shared/brand-icons";
 // Line icons for the app chrome (tab bar, quick actions, Peggy tasks). 24px grid, 1.9 stroke. The brand logos
 // (whatsapp, instagram, facebook, tiktok) are the real marks from shared/brand-icons.ts, drawn filled.
 
-export type AppIconName = "home" | "box" | "chat" | "bag" | "grid" | "plus" | "search" | "bell" | "mic" | "receipt" | "play" | "megaphone" | "sparkle" | "truck" | "mail" | "coin" | "chevron" | "store" | "user" | "printer" | "tag" | "wifiOff" | "star" | "check" | "clock" | "share" | "doc" | "send" | "settings" | "image" | "bot" | "phone" | "pin" | "camera" | "shield" | "users" | "help" | "wallet" | "logout" | "x" | "globe" | "link" | "route" | "filter" | "lock" | "copy" | "chart" | "zap" | "popup" | "sun" | "moon" | "contrast" | "info" | "volume" | "volumeOff" | "video" | "whatsapp" | "instagram" | "facebook" | "tiktok";
+export type AppIconName = "home" | "box" | "chat" | "bag" | "grid" | "plus" | "search" | "bell" | "mic" | "receipt" | "play" | "megaphone" | "sparkle" | "truck" | "mail" | "coin" | "chevron" | "store" | "user" | "printer" | "tag" | "wifiOff" | "star" | "check" | "clock" | "share" | "doc" | "send" | "settings" | "image" | "bot" | "phone" | "pin" | "camera" | "shield" | "users" | "help" | "wallet" | "logout" | "x" | "globe" | "link" | "route" | "filter" | "lock" | "copy" | "chart" | "zap" | "popup" | "sun" | "moon" | "contrast" | "info" | "volume" | "volumeOff" | "video" | "whatsapp" | "instagram" | "facebook" | "tiktok" | "download";
 
 const PATHS: Record<AppIconName, (color: string) => React.ReactNode> = {
   home: () => <Path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />,
@@ -14,6 +14,7 @@ const PATHS: Record<AppIconName, (color: string) => React.ReactNode> = {
   bag: () => <><Path d="M5 8h14l-1 13H6L5 8z" /><Path d="M9 8V6a3 3 0 0 1 6 0v2" /></>,
   grid: () => <><Rect x="4" y="4" width="6.5" height="6.5" rx="1.5" /><Rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5" /><Rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5" /><Rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5" /></>,
   plus: () => <Path d="M12 5v14M5 12h14" />,
+  download: () => <Path d="M12 4v11M7 10l5 5 5-5M5 20h14" />,
   search: () => <><Circle cx="11" cy="11" r="6.5" /><Path d="M20 20l-4-4" /></>,
   bell: () => <><Path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15L6 16z" /><Path d="M10 20a2 2 0 0 0 4 0" /></>,
   mic: () => <><Rect x="9" y="3" width="6" height="11" rx="3" /><Path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></>,

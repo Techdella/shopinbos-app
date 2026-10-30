@@ -33,6 +33,9 @@ const en = {
   "logo.useInitials": "Use my initials for now",
   "logo.option": "Logo idea {number}",
   "logo.chosen": "Chosen",
+  "logo.yourLogo": "Your logo",
+  "logo.download": "Download",
+  "logo.downloadFailed": "Couldn't save the logo. Check your connection and try again.",
 
   "sell.title": "What do you sell?",
   "sell.hint": "Pick as many as you like.",

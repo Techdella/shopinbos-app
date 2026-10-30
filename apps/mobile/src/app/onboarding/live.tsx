@@ -7,6 +7,7 @@ import QRCode from "react-native-qrcode-svg";
 import { withChannelRef } from "@shared/channels";
 import { LinkButton, Mascot, PillButton, T, Wash } from "@/components/ui";
 import { MascotVideo } from "@/components/MascotVideo";
+import { Confetti, DancingRex } from "@/components/Celebrate";
 import { useOnboarding } from "@/components/OnboardingContext";
 import { finishOnboarding } from "@/lib/onboarding";
 import { useT } from "@/lib/i18n";
@@ -66,9 +67,9 @@ export default function Live() {
           </T>
         </View>
         <View style={{ ...surfaceCard(), overflow: "hidden" }}>
-          {/* Shop ready: Rex's double thumbs-up in a spotlight that fades into the shop's colour (Prototype 10). */}
+          {/* Live: Rex dances in the shop's colour (with confetti over the screen). Not live yet: his thumbs-up clip. */}
           <View style={{ height: 190, backgroundColor: palette.swatches[1], alignItems: "center", justifyContent: "center" }}>
-            <MascotVideo clip="rex-thumbs" size={178} decorative fadeTo={palette.swatches[1]} />
+            {live ? <DancingRex size={150} /> : <MascotVideo clip="rex-thumbs" size={178} decorative fadeTo={palette.swatches[1]} />}
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 16 }}>
             <View style={{ flex: 1 }}>
@@ -112,6 +113,7 @@ export default function Live() {
         )}
         <LinkButton title={leaving ? t("live.opening") : t("live.goToShop")} style={{ marginTop: 4, marginBottom: 6 }} onPress={goToShop} />
       </SafeAreaView>
+      {live ? <Confetti /> : null}
       {toast && (
         <View style={{ position: "absolute", bottom: 120, alignSelf: "center", backgroundColor: colors.inkFill, borderRadius: radii.pill, paddingHorizontal: 18, paddingVertical: 12 }}>
           <T weight="bold" style={{ color: "#FFFFFF" }}>{toast}</T>

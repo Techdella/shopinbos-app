@@ -169,6 +169,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "live.next.products": "Tinye ngwaahịa ndị ọzọ",
   "product.titleNext": "Tinye ngwaahịa gị ọzọ.",
   "live.next.productsSub": "Sere ha otu otu",
+  "logo.yourLogo": "Akara gị",
+  "logo.download": "Budata",
+  "logo.downloadFailed": "Anyị enweghị ike ịchekwa akara ahụ. Lelee ịntanetị gị ma nwaa ọzọ.",
 };
 
 export default ig;
