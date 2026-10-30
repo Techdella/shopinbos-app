@@ -121,6 +121,12 @@ const en = {
   "review.failed": "We couldn't send that. Try again.",
   "review.badTitle": "This link doesn't work",
   "review.badSub": "It may be for a delivery that isn't finished yet. Ask your rider for a new one.",
+  "chat.messageCompany": "Message {company}",
+  "chat.messageShop": "Message the shop",
+  "chat.placeholder": "Type a message",
+  "chat.send": "Send",
+  "chat.empty": "No messages yet. Say hello.",
+  "chat.failed": "That didn't send. Try again.",
 } satisfies Record<string, string>;
 
 export default en;

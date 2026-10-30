@@ -783,6 +783,11 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "reach.day.4": "Thursday",
   "reach.day.5": "Friday",
   "reach.day.6": "Saturday",
+  "riders.message": "Message {name}",
+  "riders.chatPlaceholder": "Type message",
+  "riders.chatSend": "Send",
+  "riders.chatEmpty": "No message yet. Say hello.",
+  "riders.chatFailed": "E no send. Try again.",
 };
 
 export default pcm;

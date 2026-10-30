@@ -392,6 +392,11 @@ const en = {
   "refunds.status.sent": "Sent",
   "refunds.status.confirmed": "Received",
   "refunds.status.disputed": "Not received",
+  "detail.messageRider": "Message {name}",
+  "detail.chatPlaceholder": "Type a message",
+  "detail.chatSend": "Send",
+  "detail.chatEmpty": "No messages yet. Say hello.",
+  "detail.chatFailed": "That didn't send. Try again.",
 } satisfies Record<string, string>;
 
 export default en;

@@ -120,6 +120,12 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "review.failed": "O zighị. Nwaa ọzọ.",
   "review.badTitle": "Njikọ a anaghị arụ ọrụ",
   "review.badSub": "O nwere ike ịbụ na e zighebeghị ngwa ahụ. Rịọ onye ozi gị ka o nye gị nke ọhụrụ.",
+  "chat.messageCompany": "Zigara {company} ozi",
+  "chat.messageShop": "Zigara ụlọ ahịa ahụ ozi",
+  "chat.placeholder": "Dee ozi",
+  "chat.send": "Zipu",
+  "chat.empty": "Enwebeghị ozi. Kelee.",
+  "chat.failed": "O zighị. Nwaa ọzọ.",
 };
 
 export default ig;

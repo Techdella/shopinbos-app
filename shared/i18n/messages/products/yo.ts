@@ -313,6 +313,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "code.invalid": "Kóòdù ọjà jẹ́ lẹ́tà àti nọ́ńbà 2 sí 8, bíi BAG2.",
   "code.taken": "Ọjà mìíràn ti ń lo {code}. Yan kóòdù mìíràn.",
   "code.sub": "Kóòdù {code}. Ṣàtúnṣe àlàyé, ìfarahàn, ọjà àti bí ojú-ìwé ọjà ṣe rí.",
+  "list.bundle": "Àkójọpọ̀",
+  "list.bundleStock": "Iye rẹ̀ wá láti inú àwọn ọjà inú rẹ̀",
 };
 
 export default yo;

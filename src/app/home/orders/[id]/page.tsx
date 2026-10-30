@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { RiderChatToggle } from "@/components/logistics/RiderChatBox";
 import { notFound } from "next/navigation";
 import { AppPage, Card, CardHead, Pill, PillLink, StageDot, Thumb } from "@/components/app-kit";
 import { sellerFrame } from "@/components/seller-core";
@@ -328,6 +329,14 @@ export default async function OrderDetailPage({ params, searchParams }: { params
                     <div className="font-bold">
                       {booking.rider ? `${booking.rider.name} · ` : ""}{booking.status === "pending" ? t("detail.waitingPartner") : t.dynamic(`booking.${booking.status}`, booking.status.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase()))}
                     </div>
+                    {/* Chat with the rider carrying it (shared/rider-chat.ts); they answer from the Riders app. */}
+                    {booking.rider && !["delivered", "failed", "cancelled"].includes(booking.status) && (
+                      <RiderChatToggle
+                        title={t("detail.messageRider", { name: booking.rider.name.split(" ")[0] })}
+                        url={`/api/mobile/delivery/jobs/${booking.id}/messages`}
+                        labels={{ placeholder: t("detail.chatPlaceholder"), send: t("detail.chatSend"), empty: t("detail.chatEmpty"), failed: t("detail.chatFailed") }}
+                      />
+                    )}
                     {booking.deliveryCode && !["delivered", "failed"].includes(booking.status) && (
                       <div className="mt-1 rounded-[14px] bg-app-mint px-3.5 py-2.5">
                         <div className="text-[12.5px] text-app-forest">{t("detail.shareCode")}</div>

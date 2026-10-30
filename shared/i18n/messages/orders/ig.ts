@@ -394,6 +394,11 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "refunds.status.sent": "Ezigara",
   "refunds.status.confirmed": "Ọ natara",
   "refunds.status.disputed": "Ọ natabeghị",
+  "detail.messageRider": "Zigara {name} ozi",
+  "detail.chatPlaceholder": "Dee ozi",
+  "detail.chatSend": "Zipu",
+  "detail.chatEmpty": "Enwebeghị ozi. Kelee.",
+  "detail.chatFailed": "O zighị. Nwaa ọzọ.",
 };
 
 export default ig;

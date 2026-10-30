@@ -102,6 +102,7 @@ const en = {
   "list.stockHintShort": "Tap + or − when you sell or restock.",
   "list.stockTipTitle": "Keeping stock right",
   "dropship.subShort": "You don't buy these. The supplier sends them.",
+  "list.bundle": "Bundle: stock comes from its products",
 } satisfies Record<string, string>;
 
 export default en;

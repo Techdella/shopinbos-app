@@ -14,6 +14,7 @@ import { riderPresence } from "@/components/logistics/dispatch";
 import { riderWhereWords } from "@shared/delivery-geo";
 import { isRiderOut, riderEarning } from "@/lib/logistics/job-rules";
 import { PageTip } from "@/components/learn/PageTip";
+import { RiderChatToggle } from "@/components/logistics/RiderChatBox";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -31,11 +32,11 @@ function initials(name: string) {
   return name.split(" ").map((part) => part[0]).join("").toUpperCase().slice(0, 2) || "·";
 }
 
-export default async function LogisticsCouriersPage({ searchParams }: { searchParams: Promise<{ role?: string; saved?: string; error?: string }> }) {
+export default async function LogisticsCouriersPage({ searchParams }: { searchParams: Promise<{ role?: string; saved?: string; error?: string; chat?: string }> }) {
   const user = await requireRole(["logistics_partner"], "/logistics/login");
   const partner = await getLogisticsPartnerForUser(user);
   ensureLogisticsAccess(partner);
-  const { role, saved, error } = await searchParams;
+  const { role, saved, error, chat } = await searchParams;
   const t = await getT("logistics", "common");
   const tipT = await getT("tips");
   const roleLabel = (value: string) => {
@@ -65,6 +66,11 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
       select: { riderId: true, status: true, deliveredAt: true, deliveryFee: true, platformFee: true, netAmount: true, riderPay: true, codCollected: true, codMethod: true, remittanceId: true },
     }),
   ]);
+  // Customers' ratings from the review links riders send after a drop.
+  const ratings = await db.riderReview
+    .groupBy({ by: ["riderId"], where: { logisticsPartnerId: partner.id }, _avg: { rating: true }, _count: { _all: true } })
+    .catch(() => []);
+  const ratingByRider = new Map(ratings.map((row) => [row.riderId, { average: Math.round((row._avg.rating ?? 0) * 10) / 10, count: row._count._all }]));
   const payByRider = new Map(teamMembers.map((member) => [member.id, { payType: member.payType, payRate: member.payRate }]));
   const workByRider = new Map<string, RiderWorkToday>();
   for (const job of riderJobs) {
@@ -127,7 +133,12 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:flex-nowrap">
                     <span aria-hidden className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-app-canvas text-[15px] font-extrabold">{initials(member.name)}</span>
                     <div className="min-w-0 flex-1 basis-[180px]">
-                      <div className="truncate text-[15px] font-extrabold">{member.name}</div>
+                      <div className="truncate text-[15px] font-extrabold">
+                        {member.name}
+                        {ratingByRider.get(member.id) ? (
+                          <span className="ml-2 text-[13.5px] font-bold text-app-ink-soft">★ {ratingByRider.get(member.id)!.average.toFixed(1)} ({ratingByRider.get(member.id)!.count})</span>
+                        ) : null}
+                      </div>
                       <div className="truncate text-[15px] text-app-ink-soft">{[member.email, member.phone].filter(Boolean).join(" · ")}</div>
                       {member.role === "rider" && member.lastLocationAt && (
                         <div className="truncate text-[15px] text-app-ink-soft">{riderWhereWords({ lat: member.lastLat, lng: member.lastLng, locationAt: member.lastLocationAt }, now)}</div>
@@ -154,6 +165,17 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
                   </div>
                   {member.role === "rider" && member.status === "active" && <RiderWork work={workByRider.get(member.id)} t={t} />}
                   {member.role === "rider" && member.status === "active" && <RiderPayForm member={member} t={t} />}
+                  {/* Chat with the rider (shared/rider-chat.ts); opened straight away from "<rider> sent a message". */}
+                  {member.role === "rider" && member.status === "active" && (
+                    <div className="mt-2">
+                      <RiderChatToggle
+                        title={t("riders.message", { name: member.name.split(" ")[0] })}
+                        open={chat === member.id}
+                        url={`/api/mobile/logistics/riders/${member.id}/messages`}
+                        labels={{ placeholder: t("riders.chatPlaceholder"), send: t("riders.chatSend"), empty: t("riders.chatEmpty"), failed: t("riders.chatFailed") }}
+                      />
+                    </div>
+                  )}
                   {member.role === "rider" && member.status === "active" && (
                     <div className="mt-2 flex w-full min-w-0 flex-wrap items-start gap-2 sm:pl-[60px]">
                       <div className="min-w-0 flex-1">

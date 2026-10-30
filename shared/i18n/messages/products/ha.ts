@@ -313,6 +313,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "code.invalid": "Kodin kaya haruffa da lambobi ne guda 2 zuwa 8, kamar BAG2.",
   "code.taken": "Wani kaya yana amfani da {code} tuni. Zaɓi wata kodi.",
   "code.sub": "Kodi {code}. Gyara bayanai, ganuwa, kaya da yadda shafin kaya yake.",
+  "list.bundle": "Haɗaɗɗe",
+  "list.bundleStock": "Yawansa daga kayan da ke ciki",
 };
 
 export default ha;
