@@ -1088,7 +1088,8 @@ test("AI routes that spend money are metered", () => {
   for (const route of ["voiceover", "video-script", "product-drafts", "rex", "generate-image", "enhance-image", "generate-logo", "transcribe", "marketing-copy", "copy"]) {
     const source = readFileSync(new URL(`../src/app/api/ai/${route}/route.ts`, import.meta.url), "utf8");
     // Either meterAi (returns the 429) or meterAiCharged (returns { blocked, credits }); both must stop the request.
-    assert.match(source, /const (\w+) = await meterAi\(user\.id[^\n]*\n\s*if \(\1\) return \1;|const (\w+) = await meterAiCharged\(user\.id[^\n]*\n\s*if \(\2\.blocked\) return \2\.blocked;/, `${route} is metered`);
+    // Or a Rex job (src/lib/ai/rex-jobs.server.ts): rex.charge inside it, and a blocked job returns its 402/429.
+    assert.match(source, /const (\w+) = await meterAi\(user\.id[^\n]*\n\s*if \(\1\) return \1;|const (\w+) = await meterAiCharged\(user\.id[^\n]*\n\s*if \(\2\.blocked\) return \2\.blocked;|await rex\.charge\([^]*if \(job\.status === "blocked"\) return job\.response;/, `${route} is metered`);
   }
   assert.match(readFileSync(new URL("../src/app/api/app/peggy/route.ts", import.meta.url), "utf8"), /meterAi\(user\.id, "text"\)/);
 });

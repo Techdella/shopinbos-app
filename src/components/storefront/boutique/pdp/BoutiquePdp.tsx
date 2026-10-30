@@ -18,6 +18,7 @@ import { PdpBundle } from "./PdpBundle";
 import { productDepositKobo } from "../../../../../shared/preorder.ts";
 import { PdpGallery } from "./PdpGallery";
 import { PdpReviews, Stars } from "./PdpReviews";
+import { PdpVideos } from "./PdpVideos";
 import { PDP_CSS } from "./pdp-css";
 import { useT } from "@/components/i18n/I18nProvider";
 import {
@@ -526,6 +527,9 @@ export function BoutiquePdp(props: Props) {
         </div>
         <div className="bq-pdp2-info">{buyBox}</div>
       </div>
+
+      {/* Product videos (Post to Plug pilot): poster first, plays on tap. */}
+      <PdpVideos videos={product.videos} name={product.name} look={look} id={`${uid}-videos`} />
 
       <div className="bq-pdp2-blocks mt-12 gap-14">
         {settings.sections.map((id) => pageBlocks[id]())}

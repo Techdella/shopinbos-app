@@ -12,6 +12,7 @@ import { useRole } from "@/lib/role";
 import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
+import { RexStillWorking, useRexResume } from "@/lib/rex-jobs";
 
 // Create with Rex, step 1 ("Familiar app" prototype `create`): pick a format (Status, Reel, Post, Flyer), tap
 // "Make it" on one of Rex's ideas for you, or say what you want. Rex makes 3 designs (POST /api/mobile/create) and the
@@ -28,6 +29,13 @@ export default function Create() {
   const [problem, setProblem] = useState<string | null>(null);
   const ideas = useLoad(fetchIdeas);
   const credits = useLoad(fetchCredits);
+  const tJobs = useT("rexJobs");
+  // Designs Rex finished while the person was away (lost signal, pressed back): one tap opens them, already paid for.
+  const [finishedId, setFinishedId] = useState<string | null>(null);
+  const resume = useRexResume(["status", "post", "flyer", "reel_design"], (job) => {
+    const made = job.result?.job as { id?: unknown } | undefined;
+    if (typeof made?.id === "string") setFinishedId(made.id);
+  });
 
   const make = async (input: { format: CreateFormat; ideaId?: string; prompt?: string }, key: string) => {
     if (busy) return;
@@ -39,6 +47,7 @@ export default function Create() {
       void credits.reload();
     } catch (error) {
       // A missing route reads as an outage: "Rex couldn't start just now. Try again."
+      if (error instanceof RexStillWorking) return setProblem(tJobs("resume.stillWorking"));
       setProblem(error instanceof ApiError && (error.status === 404 || error.status === 501) ? t("cr.failed") : error instanceof Error ? error.message : t("cr.failed"));
     } finally {
       setBusy(null);
@@ -107,6 +116,14 @@ export default function Create() {
         />
       </View>
 
+      {finishedId ? (
+        <View style={{ gap: 6 }}>
+          <Notice tone="success">{tJobs("resume.create")}</Notice>
+          <LinkButton title={tJobs("strip.open")} onPress={() => router.push({ pathname: "/create/[id]", params: { id: finishedId } })} />
+        </View>
+      ) : resume.waiting ? (
+        <Notice tone="info">{tJobs("resume.waiting")}</Notice>
+      ) : null}
       {problem ? <Notice>{problem}</Notice> : null}
 
       <View style={{ backgroundColor: TILE.butter.bg, borderRadius: 24, padding: 18, gap: 6 }}>

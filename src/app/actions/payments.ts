@@ -13,6 +13,7 @@ import { getCurrentAppUser } from "@/lib/server-auth";
 import { creditCampaignConversion } from "@/lib/campaigns/send";
 import { notifyOrderCustomer } from "@/lib/notifications/customer-messages";
 import { recoverExpiredOrderPayment } from "@/lib/commerce/order-expiry.server";
+import { syncResellSales } from "@/lib/resell/service.server";
 import { ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server";
 import { settlePaymentLinkForOrder } from "@/lib/payment-links/service.server";
 import { recordOrderShares } from "@/lib/wallet/wallet.server";
@@ -199,6 +200,8 @@ export async function updateOrderPayment(
     await ensureSupplierOrdersSafely(orderId);
     await settlePaymentLinkForOrder(orderId);
     await recordOrderShares(orderId);
+    // Sales through a reseller's link now count (idempotent; the webhook may do the same).
+    await syncResellSales(orderId);
     revalidatePath("/home/orders");
     revalidatePath(`/s/*/order/${orderId}`);
     return { success: true };

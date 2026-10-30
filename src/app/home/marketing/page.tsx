@@ -14,6 +14,9 @@ import { naira } from "@shared/onboarding";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { formatNumber } from "@shared/i18n";
 import type { MessageKey } from "@shared/i18n/catalog";
+import { featureOn } from "@/lib/feature-switches.server";
+import { followerCount } from "@/lib/followers/followers.server";
+import { blastAllowance, blastWindowStart } from "@shared/follower-blasts";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -63,6 +66,13 @@ export default async function MarketingOverviewPage({ searchParams }: { searchPa
     channelStatus(store.id),
     db.customerSegment.count({ where: { storeId: store.id } }),
   ]);
+  // Notify my followers (pilot): follower count and this week's blasts left.
+  const followers = (await featureOn(user.id, "notify_followers"))
+    ? await Promise.all([followerCount(store.id), db.followerBlast.findMany({ where: { storeId: store.id, createdAt: { gt: blastWindowStart() } }, select: { status: true, createdAt: true } })])
+        .then(([count, recent]) => ({ count, allowance: blastAllowance(recent) }))
+        .catch(() => null)
+    : null;
+  const tf = await getT("followers");
   const sent = sentTotals._sum.sentCount ?? 0;
   const flowsOn = flows.filter((f) => f.active);
   const flowSends = flows.reduce((sum, f) => sum + f.sent30d, 0);
@@ -90,6 +100,16 @@ export default async function MarketingOverviewPage({ searchParams }: { searchPa
       }
     >
       <div className="grid gap-5">
+        {followers ? (
+          <a href="/home/marketing/followers" className="flex items-center gap-3 rounded-[22px] border border-app-line bg-white p-4 text-app-ink no-underline hover:border-app-line-strong">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[14px] bg-app-mint"><Icon name="megaphone" size={18} /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[15px] font-extrabold">{tf("hub.title")}</span>
+              <span className="block truncate text-[12.5px] text-app-ink-soft">{tf("hub.sub", { count: followers.count, left: followers.allowance.left, cap: followers.allowance.cap })}</span>
+            </span>
+            <Icon name="chevRight" size={16} />
+          </a>
+        ) : null}
         <StatGrid className="xl:grid-cols-4">
           <StatTile tone="card" label={t("hub.stat.subscribers")} value={formatNumber(subscribers, locale)} hint={t("hub.stat.subscribersHint", { count: newSubs })} />
           <StatTile tone="card" label={t("hub.stat.campaignMessages")} value={formatNumber(sent, locale)} hint={sent ? t("hub.stat.openedClicked", { opened: pct(sentTotals._sum.openCount ?? 0, sent), clicked: pct(sentTotals._sum.clickCount ?? 0, sent) }) : t("hub.stat.noneSent")} />

@@ -4,6 +4,7 @@ import { isColourOption, normalizeVariants, totalVariantStock } from "../../../.
 import { listingSoldOut, type ShopperStock } from "../../../../shared/product-stock.ts";
 import type { PreorderState } from "../../../../shared/preorder.ts";
 import type { BundleSummary } from "../../../../shared/bundles.ts";
+import type { ShopperVideo } from "../../../../shared/product-videos.ts";
 
 export interface ShopperVariant {
   id?: string;
@@ -42,6 +43,8 @@ export interface ShopperProduct {
   preorder?: (PreorderState & { depositPct?: number }) | null;
   /** A bundle's "What's inside" and saving (shared/bundles.ts), on its product page; null or absent otherwise. */
   bundle?: BundleSummary | null;
+  /** Product videos on its page (Post to Plug pilot, shared/product-videos.ts); never who posted them. */
+  videos?: ShopperVideo[];
 }
 
 export function readVariants(value: unknown): ShopperVariant[] {

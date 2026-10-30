@@ -11,6 +11,7 @@ import { sendOrderConfirmationEmail, sendSellerNotification } from "@/lib/email/
 import { triggerAutomations } from "@/lib/automations/engine";
 import { validCampaignToken } from "@/lib/campaigns/send";
 import { notifyOrderCustomer } from "@/lib/notifications/customer-messages";
+import { attachResellToOrder } from "@/lib/resell/service.server";
 import { cleanAffiliateCode, commissionFor } from "@shared/affiliates";
 import { priceOrder } from "@/lib/commerce/pricing.server";
 import { markCartRecovered } from "@/lib/commerce/abandoned-cart.server";
@@ -86,6 +87,8 @@ const CheckoutSchema = z.object({
   channel: z.enum(LINK_CHANNELS).optional(),
   affiliateCode: z.string().max(32).optional(),
   adCode: z.string().max(32).optional(),
+  // Reseller link codes this browser opened (?rs=, newest first, within 7 days; shared/resell.ts).
+  resellCodes: z.array(z.string().max(32)).max(10).optional(),
   // Loyalty points to use (src/lib/gamification); checked against the buyer's email and phone.
   redeemPoints: z.number().int().min(0).max(10_000_000).optional(),
   // A payment link (/pay/<code>): its own products are charged, never `items`. The buyer may pick an option the
@@ -338,6 +341,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       ? error.message
       : "Could not place this order. Please try again.";
     return withCors(req, apiError("BAD_REQUEST", message), CHECKOUT_CORS);
+  }
+
+  // Reseller links (pilot "resell"): which products of this order came through whose link, awaiting payment. The
+  // commission is owed by the shop once the order is paid (src/lib/resell). Never fails the checkout.
+  if (parsed.data.resellCodes?.length && !link) {
+    await attachResellToOrder({ storeId: store.id, ownerUserId: store.userId, orderId: order.id, codes: parsed.data.resellCodes, items: orderItems, productDiscount: priced.totals.productDiscount });
   }
 
   // Card: start the Paystack transaction on the server, split so each business's share settles straight to its own

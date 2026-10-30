@@ -84,3 +84,19 @@ export async function answerRefund(orderId: string, refundId: string, received: 
   const { customerAnswersRefund } = await import("@/lib/commerce/order-refunds.server");
   return customerAnswersRefund(orderId, refundId, received === true, typeof note === "string" ? note : undefined);
 }
+
+// ─── WhatsApp news from the shop (Notify my followers) ───────────────────────
+// The buyer's own opt-in, from their order page (src/lib/followers/followers.server.ts). Only while the shop has the
+// notify_followers pilot feature; rate limited per order so the button can't be hammered.
+
+export async function setWhatsAppNews(orderId: string, on: boolean): Promise<{ ok: true; on: boolean } | { ok: false; error: string }> {
+  if (!validId(orderId)) return { ok: false, error: "Order not found." };
+  const { checkRateLimitShared, rateLimitKey } = await import("@/lib/rate-limit");
+  if (!(await checkRateLimitShared(rateLimitKey("order-whatsapp-news", orderId), { maxRequests: 10, windowMs: 60_000 })).allowed) return { ok: false, error: "Too many tries. Wait a minute and try again." };
+  const order = await db.retailOrder.findUnique({ where: { id: orderId }, select: { store: { select: { userId: true } } } });
+  if (!order) return { ok: false, error: "Order not found." };
+  const { featureOn } = await import("@/lib/feature-switches.server");
+  if (!(await featureOn(order.store.userId, "notify_followers"))) return { ok: false, error: "This shop isn't sending news yet." };
+  const { setOrderWhatsAppNews } = await import("@/lib/followers/followers.server");
+  return setOrderWhatsAppNews(orderId, on === true);
+}

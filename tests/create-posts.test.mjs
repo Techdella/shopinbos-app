@@ -232,8 +232,9 @@ test("wiring: routes for every role, metered, a protected once-only cron, schedu
     assert.doesNotMatch(source, /withSeller/, path);
   }
   const create = read("src/app/api/mobile/create/route.ts");
-  assert.match(create, /meterAi\(user\.id, CREATE_USAGE_KIND\)/);
-  assert.match(create, /if \(limited\) return limited;/);
+  // Metered inside a Rex job (src/lib/ai/rex-jobs.server.ts): charged once per tap, given back if no designs come.
+  assert.match(create, /rex\.charge\(CREATE_USAGE_KIND\)/);
+  assert.match(create, /if \(outcome\.status === "blocked"\) return outcome\.response;/);
 
   const cron = read("src/app/api/cron/post-reminders/route.ts");
   assert.match(cron, /cronDenied\(req\)/);

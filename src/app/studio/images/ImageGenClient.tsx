@@ -16,6 +16,7 @@ import { isVideoFile, videoFrames } from "@/components/builder/rex/video-frames"
 import { wantsLogo } from "@shared/brand-context";
 import { CREATIVE_CONCEPTS, CREATIVE_CONCEPT_INFO, CREATIVE_CONCEPT_PHOTO, CREATIVE_PLACEMENTS, CREATIVE_PLACEMENT_INFO, type CreativeConcept, type CreativePlacement } from "@shared/creatives";
 import { friendlyError } from "@/lib/errors/report-client";
+import { rexPost, RexRequestError, useRexResume } from "@/lib/ai/rex-jobs-client";
 
 const SIZES = [
   { id: "1024x1024", label: "img.square" },
@@ -84,6 +85,13 @@ export function ImageGenClient({
   const [credits, setCredits] = useState<number | null>(null);
   const [pictures, setPictures] = useState<{ used: number; limit: number } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const tJobs = useT("rexJobs");
+  // A picture or flyer Rex finished while the seller was away: shown as the result, already paid for.
+  const resume = useRexResume(["image", "flyer"], (job) => {
+    const made = job.result?.image as { url?: unknown; size?: unknown; style?: unknown } | undefined;
+    if (typeof made?.url !== "string") return;
+    setImage({ url: made.url, size: typeof made.size === "string" ? made.size : "1024x1024", style: typeof made.style === "string" ? made.style : null, usedLogo: Boolean(job.result?.usedLogo) });
+  });
 
   // "…with my logo" or "branded" turns the logo on, until the seller sets the switch themselves.
   useEffect(() => {
@@ -99,24 +107,22 @@ export function ImageGenClient({
     setNote("");
     setImage(null);
     try {
-      const res = await fetch("/api/ai/generate-image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: p, size, style, useLogo, useBrand, referenceUrls: refs.map((ref) => ref.url), creative: concept ? { concept, placement, headline, subline, cta } : null }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error?.message ?? t("img.failed"));
-        setNeedCredits(isCreditsError(data.error?.code));
-        return;
-      }
+      type Made = { image: { url: string; size: string; style: string | null }; usedLogo?: boolean; logoProblem?: string | null; creditsRemaining?: number; pictures?: { used: number; limit: number } };
+      const data = await rexPost<Made>(
+        "/api/ai/generate-image",
+        { prompt: p, size, style, useLogo, useBrand, referenceUrls: refs.map((ref) => ref.url), creative: concept ? { concept, placement, headline, subline, cta } : null },
+        { slot: "studio-image" },
+      );
       setImage({ ...data.image, usedLogo: Boolean(data.usedLogo) });
       if (data.logoProblem === "no_logo") setNote(t("img.noLogoNote"));
       if (data.logoProblem === "unreadable") setNote(t("img.badLogoNote"));
       setCredits(data.creditsRemaining ?? null);
       setPictures(data.pictures ?? null);
-    } catch {
-      setError(t("studio.offline"));
+    } catch (cause) {
+      if (cause instanceof RexRequestError) {
+        setError(cause.code === "REX_PENDING" ? tJobs("resume.stillWorking") : cause.message || t("img.failed"));
+        setNeedCredits(isCreditsError(cause.code));
+      } else setError(t("studio.offline"));
     } finally {
       setLoading(false);
       creditsChanged();
@@ -444,6 +450,8 @@ export function ImageGenClient({
           </section>
         )}
 
+        {resume.resumed && image?.url === (resume.resumed.result?.image as { url?: string } | undefined)?.url ? <Notice tone="success">{tJobs("resume.image")}</Notice> : null}
+        {resume.waiting && !loading ? <Notice tone="info">{tJobs("resume.waiting")}</Notice> : null}
         {note && <Notice>{note}</Notice>}
         {error && <Notice>{error}</Notice>}
         {error && needCredits ? <BuyCreditsButton className="min-h-[44px] px-5 text-[14px]" label={t("img.buyCredits")} /> : null}

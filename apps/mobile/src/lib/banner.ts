@@ -1,4 +1,5 @@
 import type { BannerCopy, BannerVibe } from "@shared/store-banner";
+import { rexApi } from "./rex-jobs";
 import { api } from "./api";
 import { appLocale } from "./app-locale";
 
@@ -17,8 +18,9 @@ export interface RexBanner {
   creditsLeft: number | null;
 }
 
+/** A Rex job (lib/rex-jobs.ts): tapping again after losing signal gets the same banner without paying twice. */
 export const buildBanner = (input: { prompt: string; vibe: BannerVibe | null; picture: boolean }) =>
-  api<RexBanner>("/api/mobile/banner", { method: "POST", json: { ...input, prompt: input.prompt.trim(), language: appLocale() } });
+  rexApi<RexBanner>("/api/mobile/banner", { ...input, prompt: input.prompt.trim(), language: appLocale() }, "banner");
 
 export const writeTaglines = (current: string) =>
   api<{ taglines: string[] }>("/api/mobile/banner/taglines", { method: "POST", json: { current: current.trim(), language: appLocale() } });
@@ -31,7 +33,7 @@ export interface LogoIdea {
 
 /** Three logo ideas; `round` > 1 asks for a fresh direction, `notes` says what to change. */
 export async function drawShopLogos(input: { businessName: string; round: number; notes?: string }) {
-  const body = await api<{ logos?: LogoIdea[] }>("/api/ai/generate-logo", { method: "POST", json: { businessName: input.businessName, round: input.round, notes: input.notes?.trim() || undefined } });
+  const body = await rexApi<{ logos?: LogoIdea[] }>("/api/ai/generate-logo", { businessName: input.businessName, round: input.round, notes: input.notes?.trim() || undefined }, "shop-logo");
   return body?.logos ?? [];
 }
 

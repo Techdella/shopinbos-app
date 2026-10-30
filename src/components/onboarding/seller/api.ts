@@ -3,6 +3,7 @@
 import type { BrandLook, BrandPalette, DeliveryZone, PaymentMethodKey } from "@shared/onboarding";
 import type { StoreOnboardingMemory } from "@/lib/onboarding-memory";
 import { friendlyError } from "@/lib/errors/report-client";
+import { rexPost, RexRequestError } from "@/lib/ai/rex-jobs-client";
 
 // Browser calls for the redesigned seller onboarding. They rely on the Supabase session cookie.
 
@@ -131,17 +132,24 @@ export interface LogoIdea {
   url: string;
 }
 
-/** Four logo ideas from the store name ("Show me more" passes the next round; `notes` is what to change). */
+/**
+ * Four logo ideas from the store name ("Show me more" passes the next round; `notes` is what to change). A Rex job
+ * (src/lib/ai/rex-jobs-client.ts): if the connection drops mid-way, trying again gets the same logos without paying
+ * twice, and logos finished while the seller was away come back when the logo screen opens.
+ */
 export async function drawLogos(input: { businessName: string; businessDescription?: string; round: number; notes?: string }) {
-  const response = await fetch("/api/ai/generate-logo", json("POST", { ...input, count: 4 }));
-  const body = (await response.json().catch(() => null)) as { logos?: LogoIdea[]; error?: { code?: string; message?: string } } | null;
-  if (!response.ok || !body?.logos?.length) {
-    const error = new Error(body?.error?.message ?? "Rex couldn't draw logos just now.") as Error & { unavailable?: boolean };
+  try {
+    const body = await rexPost<{ logos?: LogoIdea[] }>("/api/ai/generate-logo", { ...input, count: 4 }, { slot: "onboarding-logo" });
+    if (!body.logos?.length) throw new RexRequestError("Rex couldn't draw logos just now.", 500);
+    return body.logos;
+  } catch (cause) {
+    const error = new Error(cause instanceof Error ? cause.message : "Rex couldn't draw logos just now.") as Error & { unavailable?: boolean; pending?: boolean };
+    // Still drawing after the wait: the logos turn up when the seller comes back to this screen.
+    if (cause instanceof RexRequestError && cause.code === "REX_PENDING") error.pending = true;
     // No image key, no allowance or credits left, or the model failed: the seller carries on with initials.
-    error.unavailable = true;
+    else error.unavailable = true;
     throw error;
   }
-  return body.logos;
 }
 
 /** Root marketplace categories for "What do you sell?" (names only). */

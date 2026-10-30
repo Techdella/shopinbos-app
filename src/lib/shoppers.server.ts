@@ -2,6 +2,7 @@ import "server-only";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { mergeShopper, shopperFactsFromOrder, type ShopperOrderFacts } from "@shared/shoppers";
+import { addOrderFollower } from "@/lib/followers/followers.server";
 
 // Keeps the phone-keyed customer records ("Shopper", "ShopperStore"; shared/shoppers.ts) up to date as sellers take
 // orders. Called once when an order is created: storefront checkout (and payment links, which check out there) and
@@ -70,6 +71,8 @@ export async function recordShopperOrder(order: ShopperOrder): Promise<void> {
     if (!facts) return;
     const shopperId = await saveShopper(facts);
     await countStoreOrder(shopperId, order, facts);
+    // Everyone who buys from a shop follows it (Notify my followers); never throws.
+    await addOrderFollower(order.storeId, shopperId);
   } catch (error) {
     console.error(`[shoppers] could not record order ${order.id}`, error);
   }

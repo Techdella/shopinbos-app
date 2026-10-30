@@ -1,4 +1,5 @@
 import type { BrandLook, BrandPalette, DeliveryZone, PaymentMethodKey, ProductPath, SellerQuestion } from "@shared/onboarding";
+import { rexApi } from "./rex-jobs";
 import { api, ApiError, API_URL } from "./api";
 import { supabase } from "./supabase";
 import { filePart, preparePhoto, sendPhotoForm, type PhotoInput, type ReadyPhoto } from "./upload-photo";
@@ -16,6 +17,15 @@ export interface OnboardingMemory {
   languages?: string[];
   screen?: "chat" | "brand" | "products" | "where" | "payments" | SellerQuestion;
   palette?: { id?: string; name?: string; colors?: Record<string, string> } | null;
+  /** The logo screen as the seller left it (src/lib/onboarding-memory.ts): Rex's ideas, the round, the notes and the
+   * one tapped, so coming back shows the same logos (already paid for). */
+  logo?: { url?: string | null; style?: string } | null;
+  uploadedLogoUrl?: string | null;
+  logoIdeas?: LogoIdea[];
+  logoRound?: number;
+  logoNotes?: string;
+  logoMode?: "upload" | "rex" | null;
+  logoPicked?: string | null;
 }
 
 export interface OnboardingStatus {
@@ -127,9 +137,13 @@ export interface LogoIdea {
   url: string;
 }
 
-/** Four logo ideas from the store name. Throws when Rex can't draw now (the seller carries on with initials). */
+/**
+ * Four logo ideas from the store name. Throws when Rex can't draw now (the seller carries on with initials). A Rex
+ * job (lib/rex-jobs.ts): after losing signal, asking again gets the same logos without paying twice, and logos
+ * finished while the seller was away come back when the logo screen opens. RexStillWorking: still drawing.
+ */
 export async function drawLogos(input: { businessName: string; businessDescription?: string; round: number; notes?: string }) {
-  const body = await api<{ logos?: LogoIdea[] }>("/api/ai/generate-logo", { method: "POST", json: { ...input, count: 4 } });
+  const body = await rexApi<{ logos?: LogoIdea[] }>("/api/ai/generate-logo", { ...input, count: 4 }, "onboarding-logo");
   if (!body?.logos?.length) throw new ApiError("", 503);
   return body.logos;
 }

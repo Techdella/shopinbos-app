@@ -28,6 +28,7 @@ import { ErrorState, LoadingBlock } from "@/components/kit";
 import { IconButton } from "@/components/seller/bits";
 import { CodeBadge, ShareProductButton } from "@/components/seller/ProductCode";
 import { OneLine, PreorderEditor } from "@/components/Preorder";
+import { ProductVideosCard } from "@/components/ProductVideos";
 import { ApiError } from "@/lib/api";
 import { Screen } from "@/components/Screen";
 import { ChoiceRow, Sheet } from "@/components/Sheet";
@@ -62,6 +63,7 @@ import { fetchSetup } from "@/lib/setup";
 import { shareOnWhatsApp, shareText } from "@/lib/share";
 import { PREORDER_PROBLEM_KEY, isDropshipProduct, preorderFormFrom, preorderLineText, preorderPatch, type PreorderForm } from "@/lib/preorder-pure";
 import { useT } from "@/lib/i18n";
+import { ResellCard } from "@/components/ResellCard";
 import { colors, fonts, radii, surfaceCard } from "@/theme";
 
 // Edit product (web /products/[id]): everything the web product form fills in. Always open: photos (order, main
@@ -542,6 +544,8 @@ export default function EditProductScreen() {
           <IconButton icon="share" label={t("preorder.share")} onPress={() => void shareText(preorderShare)} />
         </View>
       ) : null}
+      {/* Resell (pilot): "Let resellers sell this" + commission; nothing unless resell is on for this shop. */}
+      <ResellCard productId={product.id} price={product.retailPrice} />
       <Eyebrow>{t("view.editDetails")}</Eyebrow>
 
       {/* Dropship: who sends it and what each sale leaves (live as the price changes). */}
@@ -1049,6 +1053,8 @@ export default function EditProductScreen() {
         </View>
       </Fold>
 
+      {/* Product videos (Post to Plug pilot): shows only while post_to_plug is on for this shop. */}
+      <ProductVideosCard ownerKind="store" productId={product.id} />
 
       <Sheet visible={typePicking} onClose={() => setTypePicking(false)} title={t("ptype.title")}>
         <ScrollView style={{ maxHeight: 420 }} keyboardShouldPersistTaps="handled">

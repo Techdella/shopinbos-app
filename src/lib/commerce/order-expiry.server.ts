@@ -22,6 +22,7 @@ import {
 import { readTransferWindowHours } from "@shared/checkout-payments";
 import { refundLatePayment } from "@/lib/commerce/refunds.server";
 import { ensureSupplierOrdersSafely } from "@/lib/supplier-orders/service.server";
+import { syncResellSales } from "@/lib/resell/service.server";
 
 // Unpaid orders stop holding stock: card orders after UNPAID_ORDER_TTL_MINUTES (default 30), bank-transfer orders
 // after UNPAID_TRANSFER_TTL_HOURS (default 24) or the seller's own choice (Money page). Checkout saves the deadline
@@ -210,6 +211,7 @@ export async function recoverExpiredOrderPayment(orderId: string, payment: { ref
     if (!reinstated) return "not_expired";
     console.warn(`[order expiry] order ${order.orderNumber} was paid after it expired; stock was still there, so it is paid again`);
     await ensureSupplierOrdersSafely(order.id);
+    await syncResellSales(order.id);
     return "reinstated";
   } catch (error) {
     if (!(error instanceof InsufficientStockError)) throw error;

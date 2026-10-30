@@ -39,7 +39,7 @@ export default async function OrderMessagesPage() {
     getMessagingSettings(store.id),
     channelStatus(store.id),
     listWhatsAppTemplates(store.id),
-    db.customerMessage.findMany({ where: { storeId: store.id }, orderBy: { createdAt: "desc" }, take: 30 }),
+    db.customerMessage.findMany({ where: { storeId: store.id, event: { not: "follower_blast" } }, orderBy: { createdAt: "desc" }, take: 30 }),
     db.marketingOptOut.groupBy({ by: ["channel"], where: { storeId: store.id }, _count: true }),
   ]);
   const optedOut = (channel: string) => optOuts.find((row) => row.channel === channel)?._count ?? 0;

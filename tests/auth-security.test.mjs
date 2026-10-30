@@ -85,6 +85,9 @@ const PUBLIC_ROUTE_HANDLERS = [
   // A shop's short link and QR code (app.shopinbos.com/@handle, rewritten by the proxy): looks the handle up and
   // redirects to the shop (shopLinkTarget). Reads nothing private and changes nothing.
   { route: "/h/[handle]", file: "src/app/h/[handle]/route.ts" },
+  // A reseller's link (pilot "resell", app.shopinbos.com/rs/CODE): counts the tap and redirects to the product with
+  // ?rs=CODE (resellRedirect). Reads nothing private; the only write is the link's tap count.
+  { route: "/rs/[code]", file: "src/app/rs/[code]/route.ts" },
 ];
 
 test("public route handlers stay open and only redirect", () => {

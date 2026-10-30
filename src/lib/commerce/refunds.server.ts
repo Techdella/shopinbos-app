@@ -1,5 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db/client";
+import { voidResellSales } from "@/lib/resell/service.server";
 import { createNotification } from "@/lib/notifications/create";
 import { formatFromAddress, sendEmail } from "@/lib/notifications/resend";
 import { appBase, loadStoreSender } from "@/lib/email/compliance.server";
@@ -182,6 +183,8 @@ export async function applyRefundEvent(event: string, data: Record<string, unkno
  * is flagged for the seller to refund by hand. Unpaid orders (pay when it arrives) have nothing to refund.
  */
 export async function refundCancelledOrder(orderId: string, why: string, options: { amountNaira?: number; emailBuyer?: boolean } = {}): Promise<RefundOutcome> {
+  // A cancelled order earns no reseller commission (unless the shop already paid it). Never throws.
+  await voidResellSales(orderId);
   try {
     const order = await loadOrder(orderId);
     if (!order || !canStartRefund(order)) return "skipped";
@@ -246,6 +249,8 @@ export async function refundFault(input: { orderId: string; caseKey: string; eve
     const order = await loadOrder(input.orderId);
     if (!order || input.refundKobo <= 0) return none;
     const plan = faultRefundPlan(order, input.refundKobo, input.fromShopinbosKobo);
+    // The whole order refunded: no reseller commission on it (src/lib/resell). Never throws.
+    if (input.refundKobo >= Math.round(Number(order.total) * 100)) await voidResellSales(order.id);
     const naira = (kobo: number) => money(kobo / 100, order.currency);
     let status: "processed" | "processing" | "manual" | "failed" = plan.sellerKobo > 0 ? "manual" : "processing";
     let paystackFailed: string | null = null;

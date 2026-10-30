@@ -11,11 +11,12 @@ import { shareShop } from "@/lib/share";
 import { createDiscount, discountLabel, fetchMarketing, suggestCode, type CampaignRow, type QuickDiscount } from "@/lib/marketing";
 import { useLoad } from "@/lib/useLoad";
 import { useT } from "@/lib/i18n";
+import { useFeature } from "@/lib/features";
 import { colors, themed } from "@/theme";
 
 // Marketing (web /home/marketing and /home/discounts): share the shop, an ad, a discount code, ask for reviews;
 // then the campaigns already sent and the codes; links to ads, automations, templates and subscribers in the app.
-// Writing email campaigns stays on the web.
+// Writing email campaigns stays on the web. Notify my followers (pilot) has its own screen (marketing/followers.tsx).
 
 // Labels are m_marketing keys.
 const STATUS_TONE: Record<string, { bg: string; fg: string; label: "campaign.draft" | "campaign.scheduled" | "campaign.sending" | "campaign.sent" | "campaign.cancelled" }> = themed(() => ({
@@ -69,6 +70,8 @@ function CampaignCard({ campaign }: { campaign: CampaignRow }) {
 
 export default function Marketing() {
   const t = useT("m_marketing", "m_ui", "common");
+  const tf = useT("followers");
+  const followersOn = useFeature("notify_followers");
   const data = useLoad(fetchMarketing);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState<QuickDiscount>({ name: "", code: "", type: "percentage", value: 10, expiresAt: null });
@@ -106,6 +109,7 @@ export default function Marketing() {
   return (
     <Screen title={t("title")} sub={t("sub")} refreshing={data.refreshing} onRefresh={() => void data.refresh()}>
       {note ? <Notice tone={note.tone}>{note.text}</Notice> : null}
+      {followersOn ? <ChoiceRow icon="megaphone" tint={colors.peach} iconColor={colors.accentInk} title={tf("hub.title")} sub={tf("sub")} onPress={() => router.push("/marketing/followers")} /> : null}
       <ChoiceRow icon="share" tint={colors.lilac} title={t("action.share")} sub={t("action.shareSub")} onPress={() => void share()} />
       <ChoiceRow icon="megaphone" tint={colors.mintTint} iconColor={colors.forest} title={t("action.ad")} sub={t("action.adSub")} onPress={() => router.push("/ads")} />
       <ChoiceRow icon="tag" tint={colors.peach} iconColor={colors.accentInk} title={t("action.discount")} sub={t("action.discountSub")} onPress={() => setCreating(true)} />

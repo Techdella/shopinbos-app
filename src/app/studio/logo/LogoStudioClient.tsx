@@ -14,6 +14,7 @@ import { RexProgress } from "@/components/builder/rex/RexProgress";
 import { RexImageActions } from "@/components/builder/rex/RexImageActions";
 import { friendlyError } from "@/lib/errors/report-client";
 import { FunLoader } from "@/components/brand/FunLoader";
+import { rexPost, RexRequestError, useRexResume } from "@/lib/ai/rex-jobs-client";
 
 interface LogoResult {
   style: string;
@@ -54,6 +55,12 @@ export function LogoStudioClient({ storeName, about = "", currentLogo = null }: 
   const [saving, setSaving] = useState(false);
   const [credits, setCredits] = useState<number | null>(null);
   const [pictures, setPictures] = useState<{ used: number; limit: number } | null>(null);
+  const tJobs = useT("rexJobs");
+  // Logos Rex finished while the seller was away (a dropped connection, back, a closed tab): shown first, already paid.
+  const resume = useRexResume(["logo"], (job) => {
+    const logos = Array.isArray(job.result?.logos) ? (job.result.logos as LogoResult[]).filter((logo) => typeof logo?.url === "string") : [];
+    if (logos.length) setBatches((prev) => [{ id: Date.now(), kind: "ideas", logos }, ...prev]);
+  });
 
   async function generate(likeUrl?: string) {
     if (!businessName.trim() || loading) return;
@@ -62,10 +69,9 @@ export function LogoStudioClient({ storeName, about = "", currentLogo = null }: 
     setError("");
     setNeedCredits(false);
     try {
-      const res = await fetch("/api/ai/generate-logo", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const data = await rexPost<{ logos?: LogoResult[]; creditsRemaining?: number; pictures?: { used: number; limit: number } }>(
+        "/api/ai/generate-logo",
+        {
           businessName: businessName.trim(),
           businessDescription: description.trim(),
           paletteHint: paletteHint.trim(),
@@ -73,21 +79,19 @@ export function LogoStudioClient({ storeName, about = "", currentLogo = null }: 
           referenceUrls: inspiration.map((item) => item.url),
           round: nextRound,
           ...(likeUrl ? { likeUrl } : {}),
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error?.message ?? t("logo.failed"));
-        setNeedCredits(isCreditsError(data.error?.code));
-        return;
-      }
+        },
+        { slot: "studio-logo" },
+      );
       setRound(nextRound);
       setBatches((prev) => [{ id: Date.now(), kind: likeUrl ? "like" : "ideas", logos: data.logos ?? [] }, ...prev]);
       setCredits(data.creditsRemaining ?? null);
       setPictures(data.pictures ?? null);
       if (!likeUrl) setChosen(null);
-    } catch {
-      setError(t("studio.offline"));
+    } catch (cause) {
+      if (cause instanceof RexRequestError) {
+        setError(cause.code === "REX_PENDING" ? tJobs("resume.stillWorking") : cause.message || t("logo.failed"));
+        setNeedCredits(isCreditsError(cause.code));
+      } else setError(t("studio.offline"));
     } finally {
       setLoading(null);
       creditsChanged();
@@ -276,6 +280,8 @@ export function LogoStudioClient({ storeName, about = "", currentLogo = null }: 
           </div>
         </section>
 
+        {resume.resumed ? <Notice tone="success">{tJobs("resume.logo")}</Notice> : null}
+        {resume.waiting ? <Notice tone="info">{tJobs("resume.waiting")}</Notice> : null}
         {error && <Notice>{error}</Notice>}
         {error && needCredits ? <BuyCreditsButton className="mx-auto min-h-[44px] px-5 text-[14px]" /> : null}
 

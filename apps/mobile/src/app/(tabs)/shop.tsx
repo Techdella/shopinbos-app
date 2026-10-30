@@ -22,6 +22,7 @@ import { shopIsLive } from "@/lib/publish";
 import { PublishButton, ShopLiveSheet } from "@/components/seller/PublishShop";
 import type { PublishedShop } from "@/lib/publish";
 import { useT } from "@/lib/i18n";
+import { useFeature } from "@/lib/features";
 import { colors, surfaceCard } from "@/theme";
 import { DeleteAccountButton } from "@/components/DeleteAccountButton";
 
@@ -172,6 +173,9 @@ function ToolGrid({ tools, counts, label }: { tools: GridTool[]; counts: { live:
 export default function Menu() {
   const t = useT("m_shop", "m_grow", "m_onboarding", "nav", "common");
   const tBulk = useT("bulkAdd");
+  // Resell (pilot): the shop's resell sales and reselling other shops' products, only while it is on.
+  const resellOn = useFeature("resell");
+  const tResell = useT("resell");
   const [notSeller, setNotSeller] = useState(false);
   const [setup, setSetup] = useState<SetupOverview | null>(null);
   // Held here, not in the button: once the shop is live the button (and anything inside it) goes away.
@@ -304,6 +308,8 @@ export default function Menu() {
           <List>
             {group.key === "sell" ? <Row testID="shop-add-product" lead={<Tile icon="camera" tone="peach" />} title={t("products.add")} onPress={() => router.push("/add-products")} /> : null}
             {group.key === "sell" ? <Row testID="shop-bulk-add" lead={<Tile icon="sparkle" tone="lilac" />} title={tBulk("entry.title")} onPress={() => router.push("/bulk-add")} /> : null}
+            {group.key === "sell" && resellOn ? <Row testID="shop-resell-sales" lead={<Tile icon="link" tone="mint" />} title={tResell("sales.title")} onPress={() => router.push("/resell-sales")} /> : null}
+            {group.key === "sell" && resellOn ? <Row testID="shop-resell" lead={<Tile icon="share" tone="sky" />} title={tResell("sales.resellYourself")} onPress={() => router.push("/resell")} /> : null}
             {group.links
               .filter((link) => !ON_SCREEN.has(link.id))
               .map((link) => (

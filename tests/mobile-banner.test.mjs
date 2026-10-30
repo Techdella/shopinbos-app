@@ -125,12 +125,14 @@ test("the routes: seller only, checked bodies, a per-seller cap, metered and giv
     assert.match(source, /export const POST = withSeller\(/);
     assert.match(source, /readJson\(req, Body\)/);
     assert.match(source, /overLimit\("mobile-/);
-    assert.match(source, /meterAiCharged\(user\.id, "text", 1/);
-    assert.match(source, /refundAi\(user\.id, "text", 1/);
+    // The banner meters inside a Rex job (src/lib/ai/rex-jobs.server.ts): one charge per tap, parts given back.
+    assert.match(source, /meterAiCharged\(user\.id, "text", 1|rex\.charge\("text", 1\)/);
+    assert.match(source, /refundAi\(user\.id, "text", 1|rex\.refund\("text", 1/);
     assert.doesNotMatch(source, /top up|buy credits|upgrade/i, "no purchase words in what the phone shows");
   }
-  assert.match(build, /meterAiCharged\(user\.id, "image", 1, "photo"\)/, "the picture costs what Rex Studio's does");
-  assert.match(build, /refundAi\(user\.id, "image", 1, picture\.credits\)/);
+  assert.match(build, /rex\.charge\("image", 1, "photo"\)/, "the picture costs what Rex Studio's does");
+  assert.match(build, /rex\.refund\("image", 1, pictureCredits\)/);
+  assert.match(build, /if \(job\.status === "blocked"\) return job\.response;/);
   assert.match(build, /makeBrandImage\(\{ brand, prompt: bannerImagePrompt\(brief\), size: "1536x1024"/, "Rex's own picture maker, wide");
   assert.match(read("src/app/api/mobile/banner/_shared.ts"), /checkRateLimitShared\(rateLimitKey\(scope, userId\)/);
 });

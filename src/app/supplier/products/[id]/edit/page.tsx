@@ -11,6 +11,9 @@ import { supplierLevelView } from "@/lib/supplier-levels.server";
 import { pendingPriceView } from "@/lib/marketplace/price-notice.server";
 import { noticeDay } from "@shared/price-notice";
 import { naira } from "@/lib/marketplace/find";
+import { featureOn } from "@/lib/feature-switches.server";
+import { ProductVideosPanel } from "@/components/product-videos/ProductVideosPanel";
+import { POST_TO_PLUG } from "@shared/product-videos";
 
 export default async function EditSupplierProductPage({
   params,
@@ -25,7 +28,7 @@ export default async function EditSupplierProductPage({
   const { id } = await params;
   const query = searchParams ? await searchParams : {};
 
-  const [product, categories, level] = await Promise.all([
+  const [product, categories, level, videosOn] = await Promise.all([
     db.supplierProduct.findFirst({
       where: { id, supplierId: supplier.id },
       select: {
@@ -73,6 +76,8 @@ export default async function EditSupplierProductPage({
     }),
     // Pre-orders open at Established: the form shows the goals left until then.
     supplierLevelView(supplier.id).catch(() => null),
+    // Product videos (Post to Plug): only for suppliers in the pilot.
+    featureOn(user.id, POST_TO_PLUG),
   ]);
 
   if (!product) notFound();
@@ -114,6 +119,7 @@ export default async function EditSupplierProductPage({
         saved={query?.saved === "1"}
         level={level}
       />
+      {videosOn ? <ProductVideosPanel ownerKind="supplier" productId={product.id} /> : null}
     </AppPage>
   );
 }

@@ -1,4 +1,5 @@
 import { api, ApiError } from "./api";
+import { rexApi } from "./rex-jobs";
 import { appLocale } from "./app-locale";
 import { uploadOnePhoto, type PhotoInput } from "./upload-photo";
 
@@ -152,7 +153,8 @@ export interface CreateJob {
 }
 
 export const fetchIdeas = () => optional(api<{ ideas: CreateIdea[] }>("/api/mobile/create/ideas"));
-export const startCreate = (input: { format: CreateFormat; ideaId?: string; prompt?: string; productId?: string }) => api<{ job: CreateJob }>("/api/mobile/create", { method: "POST", json: input });
+/** A Rex job (lib/rex-jobs.ts): tapping "Make it" again after losing signal gets the same designs without paying twice. */
+export const startCreate = (input: { format: CreateFormat; ideaId?: string; prompt?: string; productId?: string }) => rexApi<{ job: CreateJob }>("/api/mobile/create", { ...input }, "create");
 export const fetchCreateJob = (id: string) => api<{ job: CreateJob }>(`/api/mobile/create/${encodeURIComponent(id)}`);
 
 // ─── Posts calendar ──────────────────────────────────────────────────────────

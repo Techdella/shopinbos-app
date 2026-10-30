@@ -6,6 +6,8 @@ import { Notice, PillButton, cx } from "@/components/app-ui";
 import { Icon } from "@/components/ui/Icon";
 import { useT } from "@/components/i18n/I18nProvider";
 import { BuyCreditsButton, creditsChanged, isCreditsError } from "@/components/credits/CreditsBadge";
+import { rexPost, RexRequestError, useRexResume } from "@/lib/ai/rex-jobs-client";
+import { isPackConcept } from "@shared/pack-concepts";
 import { PRODUCT_TYPE_INFO, type ProductType } from "@shared/packaging";
 import {
   MAX_PACK_VARIANTS,
@@ -50,6 +52,16 @@ export function PackConceptStudio({ brand, product, type, aiReady }: { brand: St
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<{ tone: "error" | "info" | "success"; text: string; credits?: boolean } | null>(null);
   const [renders, setRenders] = useState<Render[]>([]);
+  const tJobs = useT("rexJobs");
+  // A pack Rex finished while the seller was away: back on the shelf, already paid for.
+  useRexResume(["packaging"], (job) => {
+    const url = job.result?.url;
+    const made = job.result?.shape as Render["shape"] | undefined;
+    const input = (job.result ?? {}) as { concept?: unknown };
+    if (typeof url !== "string" || !made) return;
+    setRenders((current) => (current.some((item) => item.url === url) ? current : [{ url, concept: isPackConcept(input.concept) ? input.concept : concept, shape: made }, ...current].slice(0, 8)));
+    setStatus({ tone: "success", text: tJobs("resume.packaging") });
+  });
 
   // Follow the product picked above until the seller types their own name.
   if ((product?.id ?? null) !== nameFor) {
@@ -73,10 +85,9 @@ export function PackConceptStudio({ brand, product, type, aiReady }: { brand: St
     setBusy(true);
     setStatus({ tone: "info", text: t("pc.making") });
     try {
-      const response = await fetch("/api/app/packaging/concept", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const data = await rexPost<{ url: string; shape: Render["shape"] }>(
+        "/api/app/packaging/concept",
+        {
           concept,
           shape,
           scene,
@@ -87,17 +98,14 @@ export function PackConceptStudio({ brand, product, type, aiReady }: { brand: St
           tagline: tagline.trim() || null,
           brief: brief.trim() || null,
           useLogo,
-        }),
-      });
-      const json = (await response.json().catch(() => null)) as { data?: { url: string; shape: Render["shape"] }; error?: { code?: string; message?: string } } | null;
-      if (!response.ok || !json?.data) {
-        setStatus({ tone: "error", text: json?.error?.message ?? t("pc.err"), credits: isCreditsError(json?.error?.code) });
-        return;
-      }
-      setRenders((current) => [{ url: json.data!.url, concept, shape: json.data!.shape }, ...current].slice(0, 8));
+        },
+        { slot: "pack-concept", envelope: true },
+      );
+      setRenders((current) => [{ url: data.url, concept, shape: data.shape }, ...current].slice(0, 8));
       setStatus({ tone: "success", text: t("pc.done") });
-    } catch {
-      setStatus({ tone: "error", text: t("pc.err") });
+    } catch (cause) {
+      if (cause instanceof RexRequestError) setStatus({ tone: cause.code === "REX_PENDING" ? "info" : "error", text: cause.code === "REX_PENDING" ? tJobs("resume.stillWorking") : cause.message || t("pc.err"), credits: isCreditsError(cause.code) });
+      else setStatus({ tone: "error", text: t("pc.err") });
     } finally {
       setBusy(false);
       creditsChanged();

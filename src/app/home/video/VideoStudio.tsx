@@ -1,5 +1,6 @@
 "use client";
 
+import { markRexJobsSeen, rexKey, rexKeyDone, rexPost, RexRequestError, useRexResume, waitForRexJob } from "@/lib/ai/rex-jobs-client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -63,6 +64,8 @@ class StudioError extends Error {
     super(message);
   }
 }
+
+type ShotsResult = { shots: Array<{ source: string; url: string | null; error?: string }>; creditsNeeded: boolean; message?: string };
 
 async function postJson(url: string, body: unknown) {
   return fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -160,6 +163,28 @@ export function VideoStudio({
   const voiceCache = useRef(new Map<string, ArrayBuffer>());
   const stopSound = useRef<(() => void) | null>(null);
   const product = products.find((item) => item.id === productId) ?? null;
+
+  const tJobs = useT("rexJobs");
+  // A script or shots Rex finished while the seller was away (already paid for): picked up where they left off.
+  useRexResume(["video_script", "reel_shots"], (job) => {
+    const result = job.result ?? {};
+    if (job.kind === "video_script" && Array.isArray(result.captions) && typeof result.voiceover === "string") {
+      setScript((before) => before ?? { captions: result.captions as string[], voiceover: result.voiceover as string, cta: typeof result.cta === "string" ? result.cta : "" });
+      setNotice({ tone: "success", text: tJobs("resume.video") });
+    }
+    if (job.kind === "reel_shots" && Array.isArray(result.shots)) {
+      const shots = result.shots as ShotsResult["shots"];
+      setPhotos((list) => {
+        if (!list.some((photo) => shots.some((shot) => shot.source === photo.src && shot.url))) return list;
+        setOriginals((before) => before ?? list);
+        setNotice({ tone: "success", text: tJobs("resume.video") });
+        return list.map((photo) => {
+          const shot = shots.find((item) => item.source === photo.src && item.url);
+          return shot?.url ? { key: shot.url, src: shot.url } : photo;
+        });
+      });
+    }
+  });
 
   useEffect(() => setSupported(reelSupported()), []);
   useEffect(() => () => stopSound.current?.(), []);
@@ -306,11 +331,16 @@ export function VideoStudio({
     setStep("writing");
     setNotice(null);
     try {
-      const response = await postJson("/api/ai/video-script", { name, price, description: product?.description ?? "", language, photos: Math.max(1, photos.length) });
-      const body = await response.json().catch(() => null);
-      if (!response.ok) throw new StudioError(body?.error?.message ?? t("err.write"), body?.error?.code);
-      setScript({ captions: body.data.captions, voiceover: body.data.voiceover, cta: body.data.cta });
-      if (!body.data.drafted) setNotice({ tone: "info", text: t("offline") });
+      // A Rex job: a retry after a dropped connection gets the same script without paying again.
+      const data = await rexPost<{ captions: string[]; voiceover: string; cta: string; drafted?: boolean }>(
+        "/api/ai/video-script",
+        { name, price, description: product?.description ?? "", language, photos: Math.max(1, photos.length) },
+        { slot: "video-script", envelope: true },
+      ).catch((cause: unknown) => {
+        throw cause instanceof RexRequestError ? new StudioError(cause.code === "REX_PENDING" ? tJobs("resume.stillWorking") : cause.message || t("err.write"), cause.code) : cause;
+      });
+      setScript({ captions: data.captions, voiceover: data.voiceover, cta: data.cta });
+      if (!data.drafted) setNotice({ tone: "info", text: t("offline") });
     } catch (scriptError) {
       setScript(fallbackScript(name, price, language, photos.length));
       const credits = scriptError instanceof StudioError && isCreditsError(scriptError.code);
@@ -326,9 +356,10 @@ export function VideoStudio({
     setStep("shots");
     setNotice(null);
     try {
-      const response = await postJson("/api/ai/reel-shots", { photos: photos.map((photo) => photo.src), look, product: name || undefined });
-      if (!response.ok) throw await errorFrom(response, t("err.shots"));
-      const body = (await response.json()) as { data: { shots: Array<{ source: string; url: string | null; error?: string }>; creditsNeeded: boolean; message?: string } };
+      const data = await rexPost<ShotsResult>("/api/ai/reel-shots", { photos: photos.map((photo) => photo.src), look, product: name || undefined }, { slot: "reel-shots", envelope: true }).catch((cause: unknown) => {
+        throw cause instanceof RexRequestError ? new StudioError(cause.code === "REX_PENDING" ? tJobs("resume.stillWorking") : cause.message || t("err.shots"), cause.code) : cause;
+      });
+      const body = { data };
       const made = body.data.shots.filter((shot) => shot.url);
       if (made.length) {
         setOriginals((before) => before ?? photos);
@@ -365,9 +396,26 @@ export function VideoStudio({
     if (!current.voiceover.trim()) return null;
     const cached = voiceCache.current.get(voiceKey);
     if (cached) return cached;
-    const response = await postJson("/api/ai/voiceover", { text: current.voiceover, language, gender, provider: voiceSource === "elevenlabs" ? "elevenlabs" : "rex" });
+    // A Rex job: if the connection drops, asking again gets the same voice (stored) without paying twice.
+    const ask = { text: current.voiceover, language, gender, provider: voiceSource === "elevenlabs" ? "elevenlabs" : "rex" };
+    const response = await postJson("/api/ai/voiceover", { ...ask, clientKey: rexKey("voiceover", ask) });
     if (!response.ok) throw await errorFrom(response, t("noVoice"));
-    const audio = await response.arrayBuffer();
+    let audio: ArrayBuffer;
+    if (response.status === 202) {
+      const pending = (await response.json().catch(() => null)) as { rexJobId?: string } | null;
+      const job = pending?.rexJobId ? await waitForRexJob(pending.rexJobId) : null;
+      const url = typeof job?.result?.url === "string" ? job.result.url : null;
+      if (!job || job.status !== "done" || !url) throw new StudioError(job ? t("noVoice") : tJobs("resume.stillWorking"));
+      const stored = await fetch(url);
+      if (!stored.ok) throw new StudioError(t("noVoice"));
+      audio = await stored.arrayBuffer();
+      void markRexJobsSeen([job.id]);
+    } else {
+      audio = await response.arrayBuffer();
+      const jobId = response.headers.get("X-Rex-Job");
+      if (jobId) void markRexJobsSeen([jobId]);
+    }
+    rexKeyDone("voiceover");
     voiceCache.current.set(voiceKey, audio);
     setVoiceSeconds(await audioSeconds(audio));
     return audio;

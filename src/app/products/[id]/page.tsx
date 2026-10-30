@@ -13,6 +13,11 @@ import { ShareWhatsAppButton } from "@/components/products/ShareWhatsAppButton";
 import { storefrontProductUrl } from "@shared/product-codes";
 import { storeUrl } from "@/lib/marketing/brand";
 import { productChannels } from "@/lib/sales-channels/product-view.server";
+import { featureOn } from "@/lib/feature-switches.server";
+import { ProductVideosPanel } from "@/components/product-videos/ProductVideosPanel";
+import { POST_TO_PLUG } from "@shared/product-videos";
+import { ProductResellCard } from "@/components/resell/ProductResellCard";
+import { RESELL_FEATURE } from "@shared/resell";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +49,7 @@ export default async function ProductEditPage({
     notFound();
   }
 
-  const [categories, others, readiness, channels] = await Promise.all([
+  const [categories, others, readiness, channels, videosOn] = await Promise.all([
     db.category.findMany({
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       select: { id: true, name: true, slug: true },
@@ -58,7 +63,11 @@ export default async function ProductEditPage({
     }),
     paymentReadiness(store.id),
     productChannels(store.id),
+    // Product videos (Post to Plug): only for shops in the pilot.
+    featureOn(user.id, POST_TO_PLUG),
   ]);
+  // Resell (pilot): "Let resellers sell this" + commission, only for shops in the pilot.
+  const resellOn = await featureOn(user.id, RESELL_FEATURE);
 
   return (
     <AppPage
@@ -84,6 +93,8 @@ export default async function ProductEditPage({
         storeName={store.name}
         storeProducts={others.map((entry) => ({ id: entry.id, name: entry.name, image: entry.images[0] ?? null, price: entry.retailPrice }))}
       />
+      {videosOn ? <ProductVideosPanel ownerKind="store" productId={product.id} /> : null}
+      {resellOn ? <ProductResellCard productId={product.id} price={product.retailPrice} currency={product.currency} /> : null}
     </AppPage>
   );
 }

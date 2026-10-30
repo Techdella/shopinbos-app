@@ -12,6 +12,7 @@ import { settlePaymentLinkForOrder } from "@/lib/payment-links/service.server";
 import { recordOrderShares } from "@/lib/wallet/wallet.server";
 import { storeHasDeposit } from "@shared/preorder";
 import { afterStoreDepositPaid } from "@/lib/commerce/store-balance.server";
+import { syncResellSales } from "@/lib/resell/service.server";
 
 // What happens once a storefront order's online payment is confirmed (the Paystack webhook). `newlyPaid` is true only for the caller that moved the order to paid, so the buyer and seller hear about
 // it once; the supplier orders and payment link are idempotent and run again on replays. Only settling the payment
@@ -37,6 +38,8 @@ export async function afterRetailOrderPaid(orderId: string, newlyPaid: boolean, 
   await settlePaymentLinkForOrder(orderId);
   // Each business's share of the split goes on its wallet statement (once).
   await recordOrderShares(orderId);
+  // Sales through a reseller's link now count (the shop owes the commission; nothing moves). Idempotent.
+  await syncResellSales(orderId);
   if (!newlyPaid || deposit) return;
 
   const resendKey = process.env.RESEND_API_KEY;

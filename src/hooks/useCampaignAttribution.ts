@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { channelFromRef, type LinkChannel } from "@shared/channels";
 import { AFFILIATE_WINDOW_DAYS, cleanAffiliateCode } from "@shared/affiliates";
+import { RESELL_PARAM, cleanResellCode, liveResellCodes, readRememberedCodes, rememberResellCode } from "@shared/resell";
 import { storageSet } from "@/lib/safe-storage";
 
 // Email campaign links arrive with ?sib_c=<recipient token>. Remember it per store so a purchase
@@ -31,6 +32,30 @@ function rememberLinkCodes(storeSlug: string, params: URLSearchParams) {
     const code = cleanAffiliateCode(params.get(kind));
     if (code) storageSet("localStorage", codeKey(kind, storeSlug), JSON.stringify({ code, at: Date.now() }));
   }
+}
+
+// Reseller links (pilot "resell", /rs/<code> → ?rs=<code>): every code opened in the last 7 days, newest first, so a
+// buyer who opened two resellers' links for two products credits each for its own product (shared/resell.ts).
+function resellKey(storeSlug: string) {
+  return `shopinbos:rs:${storeSlug}`;
+}
+
+function storedResellCodes(storeSlug: string) {
+  try {
+    return readRememberedCodes(JSON.parse(localStorage.getItem(resellKey(storeSlug)) ?? "null"));
+  } catch {
+    return [];
+  }
+}
+
+function rememberResell(storeSlug: string, params: URLSearchParams) {
+  const code = cleanResellCode(params.get(RESELL_PARAM));
+  if (code) storageSet("localStorage", resellKey(storeSlug), JSON.stringify(rememberResellCode(storedResellCodes(storeSlug), code, Date.now())));
+}
+
+/** The reseller link codes that brought this visitor (newest first, within 7 days), for checkout. */
+export function readResellCodes(storeSlug: string): string[] {
+  return liveResellCodes(storedResellCodes(storeSlug), Date.now());
 }
 
 /** The creator (?aff=) or ad (?ad=) code that brought this visitor, if still within its window. */
@@ -63,6 +88,7 @@ export function useCampaignAttribution(storeSlug: string) {
       const channel = channelFromRef(params.get("ref") ?? params.get("utm_source"));
       if (channel) localStorage.setItem(channelKey(storeSlug), JSON.stringify({ channel, at: Date.now() }));
       rememberLinkCodes(storeSlug, params);
+      rememberResell(storeSlug, params);
     } catch {
       // Best effort, like the campaign token below.
     }
