@@ -6,11 +6,13 @@ import { Screen } from "@/components/Screen";
 import { fetchNotificationSettings, saveNotificationSettings, sendTestNotification, type NotificationSettings } from "@/lib/notifications";
 import { pushPermission, pushSupported, pushTurnedOffHere, turnOnPush, unregisterPushDevice, type PushPermission } from "@/lib/push";
 import type { NotifyCategory } from "@shared/notifications";
+import type { MessageSource } from "@shared/message-notifications";
 import { useT } from "@/lib/i18n";
 import { colors } from "@/theme";
 
-// Notification settings on the phone: push on this phone, which kinds of update buzz it, quiet hours and a test.
-// Email, SMS and WhatsApp choices are on the website (Settings › Notifications).
+// Notification settings on the phone: push on this phone, which kinds of update buzz it, new messages (push per
+// source for delivery partners, the unread-message email), quiet hours and a test. The other email, SMS and
+// WhatsApp choices are on the website (Settings › Notifications).
 
 function hourWords(value: string, t: ReturnType<typeof useT<["m_notifications"]>>) {
   const hour = Number(value.slice(0, 2));
@@ -53,6 +55,23 @@ export default function NotificationSettingsScreen() {
   const setPush = (key: NotifyCategory, on: boolean) =>
     save({ categories: { [key]: { push: on } } }, (current) => ({ ...current, categories: current.categories.map((row) => (row.key === key ? { ...row, channels: { ...row.channels, push: on } } : row)) }));
 
+  const setSourcePush = (source: MessageSource, on: boolean) =>
+    save({ messages: { sources: { [source]: { push: on } } } }, (current) => ({
+      ...current,
+      messages: current.messages ? { ...current.messages, sources: current.messages.sources.map((row) => (row.key === source ? { ...row, push: on } : row)) } : current.messages,
+    }));
+
+  const setUnreadEmail = (on: boolean) =>
+    save({ messages: { unreadEmail: on } }, (current) => ({ ...current, messages: current.messages ? { ...current.messages, unreadEmail: on } : current.messages }));
+
+  const sourceWords = (key: MessageSource) =>
+    key === "riders"
+      ? { label: t("messages.fromRiders"), help: t("messages.fromRidersHelp") }
+      : key === "business"
+      ? { label: t("messages.fromBusiness"), help: t("messages.fromBusinessHelp") }
+      : { label: t("messages.fromCustomers"), help: t("messages.fromCustomersHelp") };
+
+  const messages = settings?.messages;
   const phoneOn = permission === "granted" && !offHere;
 
   return (
@@ -126,6 +145,37 @@ export default function NotificationSettingsScreen() {
               </View>
             ))}
           </Card>
+
+          {messages && (messages.sources.length > 0 || messages.unreadEmail !== null) ? (
+            <Card style={{ gap: 4 }}>
+              <T weight="extrabold" style={{ fontSize: 16 }}>{t("messages.title")}</T>
+              <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 19, marginBottom: 4 }}>{messages.push ? t("messages.text") : t("messages.pushOff")}</T>
+              {messages.push
+                ? messages.sources.map((row) => {
+                    const words = sourceWords(row.key);
+                    return (
+                      <View key={row.key} style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, borderTopWidth: 1, borderTopColor: colors.line }}>
+                        <View style={{ flex: 1 }}>
+                          <T weight="bold" style={{ fontSize: 15.5 }}>{words.label}</T>
+                          <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 19 }}>{words.help}</T>
+                        </View>
+                        <Toggle on={row.push} label={t("messages.pushFor", { source: words.label })} onChange={(on) => void setSourcePush(row.key, on)} />
+                      </View>
+                    );
+                  })
+                : null}
+              {messages.unreadEmail !== null ? (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, borderTopWidth: 1, borderTopColor: colors.line }}>
+                  <View style={{ flex: 1 }}>
+                    <T weight="bold" style={{ fontSize: 15.5 }}>{t("messages.unreadEmail")}</T>
+                    <T style={{ color: colors.inkSoft, fontSize: 14, lineHeight: 19 }}>{t("messages.unreadEmailHelp")}</T>
+                  </View>
+                  <Toggle on={messages.unreadEmail} label={t("messages.unreadEmail")} onChange={(on) => void setUnreadEmail(on)} />
+                </View>
+              ) : null}
+              <T style={{ color: colors.inkSoft, fontSize: 13.5, lineHeight: 19, marginTop: 4 }}>{t("messages.quietNote")}</T>
+            </Card>
+          ) : null}
 
           <Card style={{ gap: 6 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>

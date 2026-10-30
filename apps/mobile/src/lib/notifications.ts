@@ -51,7 +51,7 @@ export interface NotificationSettings {
   available: { webPush: boolean; email: boolean; sms: boolean; whatsapp: boolean };
   devices: number;
   /** New messages (shared/message-notifications.ts): per-source push (delivery partners) and the unread email. Older servers leave it out. */
-  messages?: { push: boolean; sources: { key: MessageSource; push: boolean }[]; unreadEmail: boolean };
+  messages?: { push: boolean; sources: { key: MessageSource; push: boolean }[]; unreadEmail: boolean | null };
 }
 
 export interface NotificationSettingsChange {

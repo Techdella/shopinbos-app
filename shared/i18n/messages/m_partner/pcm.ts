@@ -715,6 +715,12 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "rider.message": "Message {name}",
   "rider.rating": "Customer rating",
   "rider.ratingValue": "{average} stars from {count, plural, one {# customer} other {# customers}}",
+  "chats.filter.rider": "Riders",
+  "chat.role.rider": "Rider",
+  "chat.you": "You:",
+  "home.chats": "Messages",
+  "home.chatsAll": "See all",
+  "home.chatsUnread": "{count, plural, one {# never read} other {# never read}}",
 };
 
 export default pcm;

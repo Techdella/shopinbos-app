@@ -89,6 +89,19 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "channel.whatsapp": "WhatsApp",
   "category.announcements": "Akụkọ Shopinbos",
   "help.announcements": "Ihe ọhụrụ, onyinye na ndụmọdụ sitere n'aka ndị otu Shopinbos.",
+  "messages.title": "Ozi",
+  "messages.text": "Họrọ ozi ọhụrụ ndị ga-eme ka ekwentị gị kpọọ. Ha na-apụta mgbe niile na Messages na n'okpuru mgbịrịgba.",
+  "messages.pushOff": "Push maka Messages gbanyụrụ n'elu, ya mere ozi ọhụrụ ga-apụta naanị n'ime ngwa. Gbanye ya ka ị họrọ ebe a.",
+  "messages.fromRiders": "Ozi sitere n'aka ndị rider",
+  "messages.fromRidersHelp": "Ndị rider gị na-ede site na Riders app.",
+  "messages.fromBusiness": "Ozi sitere n'ụlọ ahịa na ndị na-ebubata ngwa",
+  "messages.fromBusinessHelp": "Mkparịta ụka gị na ụlọ ahịa, ndị na-ebubata ngwa na azụmahịa ndị ọzọ.",
+  "messages.fromCustomers": "Ozi sitere n'aka ndị ahịa",
+  "messages.fromCustomersHelp": "WhatsApp, live chat na ozi ndị ahịa ndị ọzọ.",
+  "messages.pushFor": "Push maka {source}",
+  "messages.unreadEmail": "Zitere m email ma ọ bụrụ na agụbeghị m ya n'ime nkeji 15",
+  "messages.unreadEmailHelp": "Maka mkparịta ụka gị na ụlọ ahịa, ndị na-ebubata ngwa na ndị na-ebuga ngwa. Otu email maka ihe niile na-echere.",
+  "messages.quietNote": "Oge nkịtị metụtara ozi kwa: ha ka na-abata n'ime ngwa na-enweghị ụda, ị ga-enwetakwa otu nchịkọta n'ụtụtụ.",
 };
 
 export default ig;

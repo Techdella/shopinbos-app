@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { addLogisticsTeamMember, revokeRiderLink, setRiderPay, updateLogisticsTeamMemberStatus } from "@/app/actions/logistics";
 import { Card, CardHead, EmptyState, FilterChips, ListCard, Pill, PillLink, StatGrid, StatTile } from "@/components/app-kit";
 import { Notice } from "@/components/app-ui";
@@ -14,7 +15,8 @@ import { riderPresence } from "@/components/logistics/dispatch";
 import { riderWhereWords } from "@shared/delivery-geo";
 import { isRiderOut, riderEarning } from "@/lib/logistics/job-rules";
 import { PageTip } from "@/components/learn/PageTip";
-import { RiderChatToggle } from "@/components/logistics/RiderChatBox";
+import { legacyRiderChatRedirect, riderInboxHref } from "@shared/logistics-chats";
+import { riderUnreadByRider } from "@/lib/logistics/rider-messages.server";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
@@ -37,6 +39,9 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
   const partner = await getLogisticsPartnerForUser(user);
   ensureLogisticsAccess(partner);
   const { role, saved, error, chat } = await searchParams;
+  // Older "<rider> sent a message" links (?chat=<rider>) open that rider's chat on the Messages page.
+  const chatHref = legacyRiderChatRedirect(chat);
+  if (chatHref) redirect(chatHref);
   const t = await getT("logistics", "common");
   const tipT = await getT("tips");
   const roleLabel = (value: string) => {
@@ -46,7 +51,7 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
 
   const now = new Date();
   const startOfToday = lagosStartOfToday(now);
-  const [teamMembers, dbUser, riderJobs] = await Promise.all([
+  const [teamMembers, dbUser, riderJobs, unreadByRider] = await Promise.all([
     db.logisticsTeamMember.findMany({
       where: { logisticsPartnerId: partner.id },
       orderBy: [{ status: "asc" }, { invitedAt: "desc" }],
@@ -65,6 +70,8 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
       },
       select: { riderId: true, status: true, deliveredAt: true, deliveryFee: true, platformFee: true, netAmount: true, riderPay: true, codCollected: true, codMethod: true, remittanceId: true },
     }),
+    // Each rider's unread messages, on their "Message" button.
+    riderUnreadByRider(partner.id).catch(() => new Map<string, number>()),
   ]);
   // Customers' ratings from the review links riders send after a drop.
   const ratings = await db.riderReview
@@ -165,15 +172,14 @@ export default async function LogisticsCouriersPage({ searchParams }: { searchPa
                   </div>
                   {member.role === "rider" && member.status === "active" && <RiderWork work={workByRider.get(member.id)} t={t} />}
                   {member.role === "rider" && member.status === "active" && <RiderPayForm member={member} t={t} />}
-                  {/* Chat with the rider (shared/rider-chat.ts); opened straight away from "<rider> sent a message". */}
+                  {/* Chat with the rider: the Messages page (/logistics/inbox?rider=<id>), with their unread count. */}
                   {member.role === "rider" && member.status === "active" && (
-                    <div className="mt-2">
-                      <RiderChatToggle
-                        title={t("riders.message", { name: member.name.split(" ")[0] })}
-                        open={chat === member.id}
-                        url={`/api/mobile/logistics/riders/${member.id}/messages`}
-                        labels={{ placeholder: t("riders.chatPlaceholder"), send: t("riders.chatSend"), empty: t("riders.chatEmpty"), failed: t("riders.chatFailed") }}
-                      />
+                    <div className="mt-2 flex sm:pl-[60px]">
+                      <PillLink href={riderInboxHref(member.id)} size="sm" icon="chat" tone={unreadByRider.get(member.id) ? "ink" : "white"}>
+                        <span className="sr-only">{t("riders.message", { name: member.name.split(" ")[0] })}</span>
+                        <span aria-hidden>{t("riders.messageShort")}</span>
+                        {unreadByRider.get(member.id) ? <span className="grid h-[18px] min-w-[18px] place-items-center rounded-full bg-app-accent px-1 text-[10.5px] font-extrabold text-white">{unreadByRider.get(member.id)}</span> : null}
+                      </PillLink>
                     </div>
                   )}
                   {member.role === "rider" && member.status === "active" && (

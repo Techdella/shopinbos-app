@@ -89,6 +89,19 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "channel.whatsapp": "WhatsApp",
   "category.announcements": "Labaran Shopinbos",
   "help.announcements": "Sababbin abubuwa, tayi da shawarwari daga ƙungiyar Shopinbos.",
+  "messages.title": "Saƙonni",
+  "messages.text": "Zaɓi waɗanne sababbin saƙonni za su sa wayarka ta yi ƙara. Kullum suna bayyana a Messages da ƙarƙashin ƙararrawa.",
+  "messages.pushOff": "Push na Messages a kashe yake a sama, don haka sababbin saƙonni za su bayyana a manhaja kawai. Kunna shi don zaɓa a nan.",
+  "messages.fromRiders": "Saƙonni daga mahaya",
+  "messages.fromRidersHelp": "Mahayanka da ke rubutu daga Riders app.",
+  "messages.fromBusiness": "Saƙonni daga shaguna da masu kawo kaya",
+  "messages.fromBusinessHelp": "Hira da shaguna, masu kawo kaya da sauran kasuwanci.",
+  "messages.fromCustomers": "Saƙonni daga abokan ciniki",
+  "messages.fromCustomersHelp": "WhatsApp, live chat da sauran saƙonnin abokan ciniki.",
+  "messages.pushFor": "Push na {source}",
+  "messages.unreadEmail": "Aiko min imel idan ban karanta ba cikin minti 15",
+  "messages.unreadEmailHelp": "Don hira da shaguna, masu kawo kaya da kamfanonin isar da kaya. Imel ɗaya don duk abin da ke jira.",
+  "messages.quietNote": "Lokacin shiru ya shafi saƙonni ma: suna shigowa manhaja ba tare da ƙara ba, kuma za ka sami taƙaitawa ɗaya da safe.",
 };
 
 export default ha;

@@ -126,6 +126,22 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "chat.send": "Aika",
   "chat.empty": "Babu saƙo tukuna. Ka gaisa.",
   "chat.failed": "Bai tafi ba. Sake gwadawa.",
+  "notify.title": "Sanarwa",
+  "notify.sub": "Zaɓi waɗanne saƙonni za su sa wayarka ta yi ƙara. Saƙonni kullum suna jira a hira.",
+  "notify.company": "Saƙonni daga {company}",
+  "notify.companyHint": "Mai tura ka aiki da ofis.",
+  "notify.shops": "Saƙonni daga shaguna",
+  "notify.shopsHint": "Shagunan ayyukan da kake ɗauka.",
+  "notify.quiet": "Lokacin shiru",
+  "notify.quietOn": "Babu ƙara daga {start} zuwa {end} (lokacin Lagos). Saƙonni suna jira a hira.",
+  "notify.quietOff": "A kashe. Saƙonni za su iya yin ƙara a kowane lokaci.",
+  "notify.saveFailed": "Ba a ajiye ba. Sake gwadawa.",
+  "notify.loadFailed": "Ba mu iya loda saitunan sanarwarka ba.",
+  "notify.phoneNote": "Waɗannan saitunan na Riders app ne a wayarka. Sabon aiki kullum yana yin ƙara.",
+  "msgs.title": "Saƙonni",
+  "msgs.new": "{count, plural, one {Sabon saƙo #} other {Sababbin saƙonni #}}",
+  "msgs.company": "Kamfaninka",
+  "msgs.shop": "Shago",
 };
 
 export default ha;

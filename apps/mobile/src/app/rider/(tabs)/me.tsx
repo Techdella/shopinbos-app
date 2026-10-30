@@ -16,7 +16,8 @@ import { RIDER_LANGS, useRiderStrings } from "@/lib/rider-strings";
 import { useLoad } from "@/lib/useLoad";
 import { colors } from "@/theme";
 
-// Riders app, Me (E2E-Rider "me"): name and company, language, the bike's plate (the rider or the company types it),
+// Riders app, Me (E2E-Rider "me"): name and company, language, notifications (which messages buzz the phone, quiet
+// hours), the bike's plate (the rider or the company types it),
 // call the company, Help, and removing the Riders link from this phone (log out).
 
 export default function RiderMe() {
@@ -80,6 +81,7 @@ export default function RiderMe() {
             sub={rating.data?.rating ? say("me.ratingValue", { average: rating.data.rating.average.toFixed(1), count: rating.data.rating.count }) : say("me.noRating")}
           />
           <Row lead={<Tile icon="globe" />} title={t.language} sub={language} onPress={() => router.push({ pathname: "/rider/language", params: { id: data.rider.id ?? "" } })} />
+          <Row lead={<Tile icon="bell" />} title={say("me.notifications")} sub={say("me.notificationsHint")} chevron onPress={() => router.push({ pathname: "/rider/notifications", params: { company } })} />
           <AppearanceRow tile />
           <Row
             lead={<Tile icon="truck" />}

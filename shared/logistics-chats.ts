@@ -6,6 +6,10 @@
 export type ChatKind = "rider" | "seller" | "supplier" | "logistics_partner" | "admin";
 export type ChatFilter = "all" | "rider" | "seller" | "supplier" | "unread";
 
+/** How often an open rider chat and the chat list refresh while the page is visible (the rider replies from their app). */
+export const RIDER_THREAD_POLL_MS = 10_000;
+export const CHAT_LIST_POLL_MS = 15_000;
+
 /** The filter chips on the delivery partner's Messages page: All, Riders, Shops, Suppliers, Unread. */
 export const CHAT_FILTERS: readonly ChatFilter[] = ["all", "rider", "seller", "supplier", "unread"];
 
@@ -148,6 +152,22 @@ export function recentChats<T extends { unread: number; at: string }>(items: T[]
 /** Sum of unread messages (riders and conversations), for badges. */
 export function totalUnread(items: Array<{ unread: number }>): number {
   return items.reduce((sum, item) => sum + Math.max(0, item.unread || 0), 0);
+}
+
+/**
+ * WhatsApp-style runs: messages in a row from the same side, a few minutes apart, sit close together and only the
+ * last of a run gets the bubble's tail. Returns message id → { first, last } of its run.
+ */
+export function bubbleRuns(messages: Array<{ id: string; mine: boolean; createdAt: string }>, gapMs = 5 * 60_000): Map<string, { first: boolean; last: boolean }> {
+  const runs = new Map<string, { first: boolean; last: boolean }>();
+  const sameRun = (a: { mine: boolean; createdAt: string }, b: { mine: boolean; createdAt: string }) =>
+    a.mine === b.mine && a.createdAt.slice(0, 10) === b.createdAt.slice(0, 10) && Math.abs(Date.parse(b.createdAt) - Date.parse(a.createdAt)) <= gapMs;
+  messages.forEach((message, index) => {
+    const before = messages[index - 1];
+    const after = messages[index + 1];
+    runs.set(message.id, { first: !before || !sameRun(before, message), last: !after || !sameRun(message, after) });
+  });
+  return runs;
 }
 
 const SAFE_ID = /^[\w-]{1,64}$/;

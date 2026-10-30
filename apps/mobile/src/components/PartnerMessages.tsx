@@ -11,6 +11,7 @@ import { shortTime } from "@/lib/inbox-pure";
 import { roleChatFilters, roleChatMatches, type RoleChatFilter } from "@/lib/chats-pure";
 import { fetchChatContacts, ROLE_LABEL } from "@/lib/partner-chat";
 import { fetchPartnerMessages, sendPartnerMessage } from "@/lib/partners";
+import { fetchRiderChats } from "@/lib/logistics";
 import { useT } from "@/lib/i18n";
 import { useLoad } from "@/lib/useLoad";
 import { colors, themed } from "@/theme";
@@ -21,6 +22,8 @@ import { colors, themed } from "@/theme";
 // Suppliers) and Unread, and a search. In a thread everyone sees "Keep it on Shopinbos" when a message (or what
 // they're typing) looks like moving the job off the app (shared offPlatformSignals). Delivery partners also get quick
 // replies before their first message and "Send them a private rate" when they're talking to a seller or supplier.
+// A delivery partner's list also holds their riders' chats (/api/mobile/logistics/rider-chats, a Riders chip), which
+// open the chat with that rider (/logistics/team/chat/<id>).
 
 type Base = "/supplier" | "/logistics";
 
@@ -28,10 +31,12 @@ const AVATAR: Record<string, { bg: string; fg: string }> = themed(() => ({
   seller: { bg: colors.peach, fg: colors.accentInk },
   supplier: { bg: colors.blueTint, fg: colors.blueInk },
   logistics_partner: { bg: colors.mintTint, fg: colors.forest },
+  rider: { bg: colors.warnTint, fg: colors.warnInk },
 }));
 
-const FILTER_WORD: Record<RoleChatFilter, "chats.filter.all" | "chats.filter.seller" | "chats.filter.supplier" | "chats.filter.logistics_partner" | "chats.filter.unread"> = {
+const FILTER_WORD: Record<RoleChatFilter, "chats.filter.all" | "chats.filter.rider" | "chats.filter.seller" | "chats.filter.supplier" | "chats.filter.logistics_partner" | "chats.filter.unread"> = {
   all: "chats.filter.all",
+  rider: "chats.filter.rider",
   seller: "chats.filter.seller",
   supplier: "chats.filter.supplier",
   logistics_partner: "chats.filter.logistics_partner",
@@ -41,9 +46,23 @@ const FILTER_WORD: Record<RoleChatFilter, "chats.filter.all" | "chats.filter.sel
 export function MessagesTab({ base }: { base: Base }) {
   const t = useT("m_partner");
   const contacts = useLoad(fetchChatContacts);
+  // Riders only in the delivery partner app; an older server without the list just shows none.
+  const riders = useLoad(() => (base === "/logistics" ? fetchRiderChats().catch(() => []) : Promise.resolve([])), base);
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<RoleChatFilter>("all");
-  const all = contacts.data;
+  const all = useMemo(() => {
+    if (!contacts.data) return null;
+    const team = (riders.data ?? []).map((rider) => ({
+      id: rider.riderId,
+      name: rider.name,
+      role: "rider",
+      lastMessage: rider.last ? `${rider.last.mine ? `${t("chat.you")} ` : ""}${rider.last.text}` : null,
+      lastMessageAt: rider.last?.createdAt ?? null,
+      unread: rider.unread,
+    }));
+    // Newest first; riders never messaged at the bottom.
+    return [...contacts.data, ...team].sort((a, b) => (b.lastMessageAt ?? "").localeCompare(a.lastMessageAt ?? ""));
+  }, [contacts.data, riders.data, t]);
   const unread = (all ?? []).filter((contact) => contact.unread > 0).length;
   const rows = useMemo<ChatRowData[] | null>(
     () =>
@@ -51,14 +70,17 @@ export function MessagesTab({ base }: { base: Base }) {
         ? all
             .filter((contact) => roleChatMatches(contact, filter, q))
             .map((contact) => ({
-              key: contact.id,
+              key: `${contact.role === "rider" ? "r" : "c"}:${contact.id}`,
               name: contact.name,
               preview: contact.lastMessage ?? "",
               at: contact.lastMessageAt,
               unread: contact.unread,
               tone: AVATAR[contact.role] ?? AVATAR.logistics_partner,
               label: t.dynamic(`chat.role.${contact.role}`, ROLE_LABEL[contact.role] ?? t("chat.role.other")),
-              onPress: () => router.push({ pathname: `${base}/chat/[id]` as never, params: { id: contact.id, name: contact.name, role: contact.role } }),
+              onPress: () =>
+                contact.role === "rider"
+                  ? router.push({ pathname: "/logistics/team/chat/[id]", params: { id: contact.id, name: contact.name } })
+                  : router.push({ pathname: `${base}/chat/[id]` as never, params: { id: contact.id, name: contact.name, role: contact.role } }),
             }))
         : null,
     [all, filter, q, t, base],
@@ -77,7 +99,10 @@ export function MessagesTab({ base }: { base: Base }) {
       error={contacts.error}
       onRetry={() => void contacts.reload()}
       refreshing={contacts.refreshing}
-      onRefresh={() => void contacts.refresh()}
+      onRefresh={() => {
+        void contacts.refresh();
+        void riders.refresh();
+      }}
       empty={all && !all.length ? <EmptyState icon="chat" title={t("chat.none")}>{t("chat.noneBody")}</EmptyState> : undefined}
     />
   );

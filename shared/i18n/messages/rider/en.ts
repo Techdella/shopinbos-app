@@ -127,6 +127,22 @@ const en = {
   "chat.send": "Send",
   "chat.empty": "No messages yet. Say hello.",
   "chat.failed": "That didn't send. Try again.",
+  "notify.title": "Notifications",
+  "notify.sub": "Choose which messages buzz your phone. Messages always wait in the chat.",
+  "notify.company": "Messages from {company}",
+  "notify.companyHint": "Your dispatcher and the office.",
+  "notify.shops": "Messages from shops",
+  "notify.shopsHint": "Shops on the jobs you carry.",
+  "notify.quiet": "Quiet hours",
+  "notify.quietOn": "No buzz from {start} to {end} (Lagos time). Messages still wait in the chat.",
+  "notify.quietOff": "Off. Messages can buzz any time.",
+  "notify.saveFailed": "Couldn't save. Try again.",
+  "notify.loadFailed": "Couldn't load your notification settings.",
+  "notify.phoneNote": "These settings are for the Riders app on your phone. A new job always buzzes.",
+  "msgs.title": "Messages",
+  "msgs.new": "{count, plural, one {# new message} other {# new messages}}",
+  "msgs.company": "Your company",
+  "msgs.shop": "Shop",
 } satisfies Record<string, string>;
 
 export default en;

@@ -46,6 +46,7 @@ import { partnerLevelOf } from "@shared/dropship-rules";
 import { WEEKDAY_WORDS } from "@shared/partner-reach";
 import { tierName } from "@/components/logistics/PartnerLevel";
 import { earnedThisWeek } from "@/lib/logistics/partner-reach.server";
+import { MessagesCard, recentPartnerChats } from "@/components/logistics/chats/MessagesCard";
 
 // Partner "Today", following the 2026 "Shopinbos Partners · web dispatch console" and mobile mockups.
 
@@ -103,7 +104,15 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
     }),
   ]);
   // Closest rider first in "Accept and assign": riders' open jobs and the new jobs' pickup coordinates.
-  const [riders, pickupGeo, overdue, brief, week] = await Promise.all([withOpenJobs(partner.id, ridersBase), ensurePickupCoords(newBookings, partner.country), payInOverdueView(partner.id, now), partnerBriefFor(partner, now), earnedThisWeek(partner.id, now)]);
+  const [riders, pickupGeo, overdue, brief, week, chats] = await Promise.all([
+    withOpenJobs(partner.id, ridersBase),
+    ensurePickupCoords(newBookings, partner.country),
+    payInOverdueView(partner.id, now),
+    partnerBriefFor(partner, now),
+    earnedThisWeek(partner.id, now),
+    // The latest chats with riders, shops and suppliers (unread first) for the Messages card.
+    recentPartnerChats({ id: user.id, role: user.role, name: user.name }, partner.id, 5),
+  ]);
 
   const pointIds = [...new Set(newBookings.map((job) => job.pickupPointId).filter((id): id is string => Boolean(id)))];
   const pointNames = new Map(
@@ -192,6 +201,9 @@ export default async function LogisticsDashboardPage({ searchParams }: { searchP
               </ul>
             )}
           </Card>
+
+          {/* Messages: riders, shops and suppliers; each opens the chat on /logistics/inbox. */}
+          <MessagesCard items={chats.items} unread={chats.unread} now={now} t={t} />
 
           <section aria-labelledby="active-jobs" className="min-w-0">
             <div className="mb-3 flex items-baseline justify-between gap-3">

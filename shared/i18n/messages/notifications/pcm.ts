@@ -89,6 +89,19 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "channel.whatsapp": "WhatsApp",
   "category.announcements": "Shopinbos news",
   "help.announcements": "New things, offers and tips from the Shopinbos team.",
+  "messages.title": "Messages",
+  "messages.text": "Choose which new messages go buzz your phone. Dem go always show for Messages and under the bell.",
+  "messages.pushOff": "Push for Messages dey off for up, so new messages go only show for the app. Turn am on to choose here.",
+  "messages.fromRiders": "Messages from riders",
+  "messages.fromRidersHelp": "Your riders wey dey write from the Riders app.",
+  "messages.fromBusiness": "Messages from shops & suppliers",
+  "messages.fromBusinessHelp": "Chats with shops, suppliers and other business people.",
+  "messages.fromCustomers": "Messages from customers",
+  "messages.fromCustomersHelp": "WhatsApp, live chat and other customer messages.",
+  "messages.pushFor": "Push for {source}",
+  "messages.unreadEmail": "Email me if I never read am after 15 minutes",
+  "messages.unreadEmailHelp": "For chats with shops, suppliers and delivery partners. One email for everything wey dey wait.",
+  "messages.quietNote": "Quiet hours dey work for messages too: dem go still enter the app, no buzz, and you go get one summary for morning.",
 };
 
 export default pcm;

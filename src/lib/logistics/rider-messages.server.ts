@@ -130,6 +130,12 @@ export async function riderUnreadForPartner(partnerId: string) {
   return db.riderMessage.count({ where: { logisticsPartnerId: partnerId, audience: "company", bookingId: null, fromRider: true, readAt: null } });
 }
 
+/** Rider id → their unread messages to the company (the Riders page's "Message" buttons). */
+export async function riderUnreadByRider(partnerId: string) {
+  const rows = await db.riderMessage.groupBy({ by: ["riderId"], where: { logisticsPartnerId: partnerId, audience: "company", bookingId: null, fromRider: true, readAt: null }, _count: { _all: true } });
+  return new Map(rows.map((row) => [row.riderId, row._count._all]));
+}
+
 /** The rider's "Messages" card: the company chat and the shops on their recent jobs, with unread counts. */
 export async function riderInbox(rider: { riderId: string; partnerName: string }): Promise<RiderInboxSummary> {
   const rows = await db.riderMessage.findMany({

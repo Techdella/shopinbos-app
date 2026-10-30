@@ -93,6 +93,19 @@ const en = {
   "channel.whatsapp": "WhatsApp",
   "category.announcements": "Shopinbos news",
   "help.announcements": "New features, offers and tips from the Shopinbos team.",
+  "messages.title": "Messages",
+  "messages.text": "Choose which new messages buzz your phone. They always show in Messages and under the bell.",
+  "messages.pushOff": "Push for Messages is off above, so new messages only show in the app. Turn it on to choose here.",
+  "messages.fromRiders": "Messages from riders",
+  "messages.fromRidersHelp": "Your riders writing from the Riders app.",
+  "messages.fromBusiness": "Messages from shops & suppliers",
+  "messages.fromBusinessHelp": "Chats with shops, suppliers and other businesses.",
+  "messages.fromCustomers": "Messages from customers",
+  "messages.fromCustomersHelp": "WhatsApp, live chat and other customer messages.",
+  "messages.pushFor": "Push for {source}",
+  "messages.unreadEmail": "Email me if I haven't read it in 15 minutes",
+  "messages.unreadEmailHelp": "For chats with shops, suppliers and delivery partners. One email for everything waiting.",
+  "messages.quietNote": "Quiet hours apply to messages too: they still arrive in the app, without a buzz, and you get one summary in the morning.",
 } satisfies Record<string, string>;
 
 export default en;

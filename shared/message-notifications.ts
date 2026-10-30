@@ -143,3 +143,13 @@ export function shouldPushMessage(
 export function riderMessagePush(prefs: RiderNotifyPrefs, source: RiderMessageSource, now: Date): MessagePushDecision {
   return shouldPushMessage({ sources: { company: prefs.company, shops: prefs.shops }, quietHours: riderQuietHours(prefs) }, source, now);
 }
+
+/** "22:00" → "10pm", "07:30" → "7:30am", "00:00" → "12am": quiet hours in a line riders read at a glance. */
+export function clockWords(value: string): string {
+  const minutes = parseClock(value);
+  if (minutes === null) return value;
+  const hour = Math.floor(minutes / 60);
+  const minute = minutes % 60;
+  const twelve = hour % 12 === 0 ? 12 : hour % 12;
+  return `${twelve}${minute ? `:${String(minute).padStart(2, "0")}` : ""}${hour < 12 ? "am" : "pm"}`;
+}

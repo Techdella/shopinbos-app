@@ -126,6 +126,22 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "chat.send": "Send",
   "chat.empty": "No message yet. Say hello.",
   "chat.failed": "E no send. Try again.",
+  "notify.title": "Notifications",
+  "notify.sub": "Choose which messages go buzz your phone. Messages go always wait for the chat.",
+  "notify.company": "Messages from {company}",
+  "notify.companyHint": "Your dispatcher and the office.",
+  "notify.shops": "Messages from shops",
+  "notify.shopsHint": "Shops for the jobs wey you dey carry.",
+  "notify.quiet": "Quiet hours",
+  "notify.quietOn": "No buzz from {start} reach {end} (Lagos time). Messages go still wait for the chat.",
+  "notify.quietOff": "E dey off. Messages fit buzz anytime.",
+  "notify.saveFailed": "E no save. Try again.",
+  "notify.loadFailed": "We no fit load your notification settings.",
+  "notify.phoneNote": "These settings na for the Riders app for your phone. New job go always buzz.",
+  "msgs.title": "Messages",
+  "msgs.new": "{count, plural, one {# new message} other {# new messages}}",
+  "msgs.company": "Your company",
+  "msgs.shop": "Shop",
 };
 
 export default pcm;

@@ -501,6 +501,9 @@ export function appRouteFor(link: string | null | undefined): AppRoute | null {
   if (pathname === "/home/messages/partners" && conversation) return { pathname: "/partners/[id]", params: { id: conversation } };
   if (pathname === "/supplier/inbox" && conversation) return { pathname: "/supplier/chat/[id]", params: { id: conversation } };
   if (pathname === "/logistics/inbox" && conversation) return { pathname: "/logistics/chat/[id]", params: { id: conversation } };
+  // A rider wrote to their company (the web Messages page on that rider): the chat with that rider.
+  const inboxRider = queryParam(query, "rider");
+  if (pathname === "/logistics/inbox" && inboxRider && /^[\w-]+$/.test(inboxRider)) return { pathname: "/logistics/team/chat/[id]", params: { id: inboxRider } };
   if ((match = /^\/supplier\/orders\/([\w-]+)$/.exec(pathname))) {
     return { pathname: "/supplier/order/[id]", params: queryParam(query, "kind") === "wholesale" ? { id: match[1], kind: "wholesale" } : { id: match[1] } };
   }
@@ -512,7 +515,7 @@ export function appRouteFor(link: string | null | undefined): AppRoute | null {
   if ((match = /^\/logistics\/(?:bookings|jobs)\/([\w-]+)$/.exec(pathname))) return { pathname: "/logistics/job/[id]", params: { id: match[1] } };
   const job = queryParam(query, "job");
   if (/^\/logistics\/(bookings|jobs)$/.test(pathname) && job) return { pathname: "/logistics/job/[id]", params: { id: job } };
-  // A rider wrote to their company: the chat with that rider.
+  // Older "<rider> sent a message" links (the web Riders page): the chat with that rider.
   const chatRider = queryParam(query, "chat");
   if (pathname === "/logistics/couriers" && chatRider && /^[\w-]+$/.test(chatRider)) return { pathname: "/logistics/team/chat/[id]", params: { id: chatRider } };
   if ((match = /^\/rider\/drop\/([\w-]+)$/.exec(pathname))) return { pathname: "/rider/drop/[id]", params: { id: match[1] } };

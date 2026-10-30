@@ -1,6 +1,7 @@
 import "expo-sqlite/localStorage/install";
 import { ApiError, API_URL, send } from "./api";
 import { filePart, preparePhoto, type PhotoInput } from "./upload-photo";
+import type { RiderInboxSummary } from "@shared/logistics-chats";
 import type { RiderNotifyPrefs } from "@shared/message-notifications";
 
 // The Riders app inside the mobile app. Riders don't have a Shopinbos account: their dispatcher shares a private
@@ -239,6 +240,9 @@ export function riderMessages(input: { with: "company" | "shop"; job?: string })
 
 export const sendRiderMessage = (input: { with: "company" | "shop"; job?: string; body: string }) =>
   riderFetch<{ message: RiderChatMessage }>("/messages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) });
+
+/** Unread messages from the company and the shops on the rider's jobs (the "Messages" card on Today). */
+export const fetchRiderMessageSummary = () => riderFetch<RiderInboxSummary>("/messages/summary");
 
 /** The rider's own rating from customers (Me). */
 export const fetchRiderRating = () => riderFetch<{ rating: { average: number; count: number } | null }>("/reviews");
