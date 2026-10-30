@@ -196,7 +196,9 @@ export async function confirmAjoContribution(reference: string, now = new Date()
   const member = row.member;
   // Already paid this week (two tabs, autopay and a pay link): recorded, and the seller sends it back.
   const dupe = await db.ajoContribution.count({ where: { memberId: member.id, week: row.week, status: "paid", extra: false, NOT: { reference } } });
-  const late = member.status === "removed" || member.status === "left" || group.status === "cancelled" || group.status === "completed";
+  // A first payment that lands after the group filled or started (another tab, a slow bank) can't take a place.
+  const noPlace = member.status === "pending" && (group.status !== "forming" || (await db.ajoMember.count({ where: { groupId: group.id, status: "active" } })) >= group.size);
+  const late = noPlace || member.status === "removed" || member.status === "left" || group.status === "cancelled" || group.status === "completed";
   if (dupe > 0 || late) {
     await db.ajoContribution.update({ where: { reference }, data: { extra: true } });
     await tellSeller(group.storeId, { title: `Send a payment back: ${member.name}`, description: `${member.name} paid ${naira(row.amountKobo)} for week ${row.week} of the ${group.productName} ajo, but ${dupe > 0 ? "that week was already paid" : "they're no longer in the group"}. The money is in your bank: send it back to them.`, link: `/home/ajo/${group.id}`, dedupeKey: `ajo.extra:${reference}`, priority: "critical" });
@@ -207,6 +209,11 @@ export async function confirmAjoContribution(reference: string, now = new Date()
     const card = member.autopay ? sealAuthorization(verified) : null;
     await db.ajoMember.update({ where: { id: member.id }, data: { status: "active", joinedAt: now, ...(card ? { authorizationCode: card.code, authorizationEmail: (verified.customer?.email ?? member.email).toLowerCase(), cardLast4: card.last4 } : { autopay: false }) } });
     await tellSeller(group.storeId, { title: `New ajo member: ${member.name}`, description: `${member.name} joined the ${group.productName} ajo and paid week 1${row.depositKobo ? ` and the ${naira(row.depositKobo)} deposit` : ""} (to your bank through Paystack).`, link: `/home/ajo/${group.id}`, dedupeKey: `ajo.joined:${member.id}`, priority: "success" });
+    const store = await db.store.findUnique({ where: { id: group.storeId }, select: { slug: true, customDomain: true, name: true } });
+    if (store) {
+      const link = memberLink(store, group.id, member.id);
+      await messageShopper({ storeId: group.storeId, phone: member.phone, email: member.email, name: member.name, event: "ajo_joined", refId: member.id, sms: `${store.name}: you're in the ${group.productName} ajo! ${naira(group.weeklyKobo)} a week from ${group.startDay}. Your page (pay here each week): ${link}`, email_: { subject: `You're in the ${group.productName} ajo`, heading: "You've joined the ajo", body: `you're in the ${group.productName} ajo at ${store.name}: ${naira(group.weeklyKobo)} a week for ${group.size} weeks, starting ${group.startDay}. Keep this link: it shows your turn and lets you pay each week.`, cta: { label: "Your ajo page", url: link } } });
+    }
     const active = await db.ajoMember.count({ where: { groupId: group.id, status: "active" } });
     if (active >= group.size) await drawCollectionOrder(group.id);
   }

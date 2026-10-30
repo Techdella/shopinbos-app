@@ -149,3 +149,25 @@ test("every part payment goes through the seller's split (server module)", () =>
   // Card checks for group buy are the only charge without the seller's split, and they are refunded at once.
   assert.match(server, /refundPaystackTransaction/);
 });
+
+test("the Paystack webhook routes every pay-together reference, before the retail-order branch", () => {
+  const hook = readFileSync(new URL("../src/app/api/webhooks/paystack/route.ts", import.meta.url), "utf8");
+  const together = hook.indexOf("isTogetherReference(event.data?.reference)");
+  const retail = hook.indexOf("// ── Retail order payment (storefront checkout)");
+  assert.ok(together > 0 && together < retail);
+  const payments = readFileSync(new URL("../src/lib/pay-together/payments.server.ts", import.meta.url), "utf8");
+  for (const prefix of ["INSTALMENT_REF_PREFIX", "AJO_REF_PREFIX", "GROUP_VERIFY_PREFIX", "GROUP_CHARGE_PREFIX"]) assert.match(payments, new RegExp(prefix));
+});
+
+test("saved-card charges carry the seller's split (charge_authorization with subaccount + transaction_charge)", () => {
+  const client = readFileSync(new URL("../src/lib/paystack.ts", import.meta.url), "utf8");
+  assert.match(client, /split\?: \{ subaccount: string; transaction_charge\?: number; bearer\?: string \}/);
+  assert.match(client, /\.\.\.\(input\.split \?\? \{\}\)/);
+  const plans = readFileSync(new URL("../src/lib/paystack/plans.server.ts", import.meta.url), "utf8");
+  assert.match(plans, /split: singleSplit\(input\.plan\)/);
+  // Every pay-together payment start goes through the split helpers, never a bare initialize.
+  for (const file of ["instalments", "ajo", "group-buy"]) {
+    const source = readFileSync(new URL(`../src/lib/pay-together/${file}.server.ts`, import.meta.url), "utf8");
+    assert.doesNotMatch(source, /initializePaystackTransaction|chargePaystackAuthorization/);
+  }
+});

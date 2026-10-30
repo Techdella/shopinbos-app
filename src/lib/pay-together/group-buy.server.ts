@@ -151,6 +151,11 @@ export async function confirmGroupVerify(reference: string): Promise<ConfirmResu
   if (moved.count !== 1) return { ok: true, fresh: false };
   if (refund.status === "failed") console.error(`[group-buy] the card check ${reference} couldn't be refunded: ${refund.error}`);
   if (!open) return { ok: true, fresh: true };
+  const store = await db.store.findUnique({ where: { id: group.storeId }, select: { slug: true, customDomain: true, name: true } });
+  if (store) {
+    const link = memberUrl(store, group.id, member.id);
+    await messageShopper({ storeId: group.storeId, phone: member.phone, email: member.email, name: member.name, event: "group_buy_joined", refId: member.id, sms: `${store.name}: you're in the group for ${group.productName} (${naira(group.priceKobo)} each when ${group.size} join). Nobody pays unless it fills. Share it: ${groupUrl(store, group.id)} Your place: ${link}`, email_: { subject: `You're in the group for ${group.productName}`, heading: "You've joined the group", body: `you're in the group buy for ${group.productName} at ${store.name}: ${naira(group.priceKobo)} each when ${group.size} people join. Your card is charged only if the group fills; the ₦50 card check is on its way back to you. Share the group to fill it faster: ${groupUrl(store, group.id)}`, cta: { label: "Your place in the group", url: link } } });
+  }
   const joined = await db.groupBuyMember.count({ where: { groupId: group.id, status: { in: ["joined", "charged", "pay_link"] } } });
   if (joined >= group.size) await fillGroup(group.id);
   else {

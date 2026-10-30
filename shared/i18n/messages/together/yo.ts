@@ -24,7 +24,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "small.priceLock": "Jẹ́ kí iye owó dúró fún gbogbo ọ̀sẹ̀ plan náà",
   "small.refund": "Òfin refund yín (àwọn oníbàárà máa rí i)",
   "small.refundPreset": "Lo: Owó padà láàrin ọjọ́ 7, ẹ yọ ₦1,000",
-  "small.seePlans": "Wo àwọn plan",
+  "small.seePlans": "Wo àwọn tó ń sanwó lọ́sọ̀ọ̀sẹ̀",
 
   "group.title": "Rà á pẹ̀lú ọ̀rẹ́",
   "group.sub": "Iye owó máa dín kù tí èèyàn tó bá darapọ̀ lásìkò. Kò sí ẹni tó máa sanwó tí group kò bá kún.",

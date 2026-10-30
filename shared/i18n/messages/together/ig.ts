@@ -24,7 +24,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "small.priceLock": "Mee ka ọnụahịa kwụsie ike ruo na njedebe plan",
   "small.refund": "Iwu refund gị (ndị ahịa ga-ahụ ya)",
   "small.refundPreset": "Jiri: Ego ga-alọghachi n'ime ụbọchị 7, wepụ ₦1,000",
-  "small.seePlans": "Lee plans",
+  "small.seePlans": "Lee ndị na-akwụ kwa izu",
 
   "group.title": "Zụta ya na ndị enyi",
   "group.sub": "Ọnụahịa ga-agbada ma ọ bụrụ na mmadụ zuru oke abanye n'oge. Ọ dịghị onye ga-akwụ ụgwọ ma group ejupụtaghị.",

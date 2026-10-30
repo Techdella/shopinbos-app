@@ -24,7 +24,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "small.priceLock": "A riƙe farashin ɗaya har ƙarshen plan",
   "small.refund": "Dokar refund ɗinku (abokan ciniki za su gani)",
   "small.refundPreset": "Yi amfani da: A dawo da kuɗi cikin kwana 7, a cire ₦1,000",
-  "small.seePlans": "Duba plans",
+  "small.seePlans": "Duba masu biya kowane mako",
 
   "group.title": "Saya tare da abokai",
   "group.sub": "Farashi zai sauka idan mutane isassu sun shiga a kan lokaci. Babu wanda zai biya idan group bai cika ba.",

@@ -30,7 +30,7 @@ const KEY_ALIASES: Readonly<Record<string, string>> = { shop: "products", menu: 
  * "links" is the link in bio page (/links): it always wins over a page with that slug.
  */
 export const STOREFRONT_ROUTE_SEGMENTS: ReadonlySet<string> = new Set([
-  "api", "blog", "cart", "checkout", "collections", "join", "links", "order", "orders", "pay", "policies", "preview", "product",
+  "ajo", "api", "blog", "buy", "cart", "checkout", "group", "plan", "collections", "join", "links", "order", "orders", "pay", "policies", "preview", "product",
   "review", "reviews", "wishlist", "s", "_next",
   "llms.txt", "llms-full.txt", "robots.txt", "sitemap.xml",
 ]);

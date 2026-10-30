@@ -23,7 +23,7 @@ const en = {
   "small.priceLock": "Fix the price for the plan's weeks",
   "small.refund": "Your refund rule (customers see it)",
   "small.refundPreset": "Use: Money back within 7 days, minus ₦1,000",
-  "small.seePlans": "See plans",
+  "small.seePlans": "See who's paying weekly",
 
   "group.title": "Buy with friends",
   "group.sub": "A lower price when enough people join in time. Nobody pays unless the group fills.",

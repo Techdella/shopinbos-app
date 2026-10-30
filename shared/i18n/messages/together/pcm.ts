@@ -24,7 +24,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "small.priceLock": "Hold the price steady for the weeks of the plan",
   "small.refund": "Your refund rule (customers go see am)",
   "small.refundPreset": "Use: Money back within 7 days, minus ₦1,000",
-  "small.seePlans": "See plans",
+  "small.seePlans": "See who dey pay every week",
 
   "group.title": "Buy with friends",
   "group.sub": "Price go come down when enough people join on time. Nobody go pay if the group no full.",
