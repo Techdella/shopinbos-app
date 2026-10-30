@@ -16,6 +16,7 @@ import {
   designId,
   designPalette,
   designSpecs,
+  flyerPrompt,
   ideaFromPrompt,
   selectIdeas,
   type CreateFormat,
@@ -24,6 +25,7 @@ import {
   type IdeaFacts,
 } from "@shared/create-with-rex";
 import { loadPhoto, renderDesign, storeDesign } from "./render.server";
+import { generateImage, loadReferences } from "@/lib/ai/images";
 
 // Create with Rex for every role (src/app/api/mobile/create/**): the person's facts → ideas, and a job → 3 templated
 // designs (src/lib/create/render.server.tsx) with a caption each, saved as a CreateJob. Runs synchronously (a few
@@ -248,12 +250,30 @@ export async function runCreateJob(jobId: string, user: Who, context: CreateCont
     const photo = await loadPhoto(idea.imageUrl ?? context.facts.logoUrl ?? null);
     const specs = designSpecs(idea.format, Boolean(photo));
     const content = { headline: idea.headline, subline: idea.subline, brand: context.name, link: context.link ? context.link.replace(/^https?:\/\//, "") : null, palette: context.palette };
+    // Flyers are drawn by OpenAI's image model for a premium finish (with the product photo and logo as
+    // references); any one that can't be made falls back to the template, so the seller always gets three.
+    const premium = idea.format === "flyer" && aiImagesConfigured() ? await flyerReferences(idea.imageUrl ?? null, context.facts.logoUrl ?? null) : null;
+    const templated = async (spec: (typeof specs)[number]) => {
+      const rendered = await renderDesign(spec, content, photo);
+      return storeDesign({ userId: user.id, jobId, n: spec.n, bytes: rendered.bytes, type: rendered.type, width: spec.width, height: spec.height, name: `${idea.title} (${CREATE_FORMATS[idea.format].label} ${spec.n})` });
+    };
     const [captions, urls] = await Promise.all([
       writeCaptions(context, idea, prompt),
       Promise.all(
-        specs.map(async (spec) => {
-          const rendered = await renderDesign(spec, content, photo);
-          return storeDesign({ userId: user.id, jobId, n: spec.n, bytes: rendered.bytes, type: rendered.type, width: spec.width, height: spec.height, name: `${idea.title} (${CREATE_FORMATS[idea.format].label} ${spec.n})` });
+        specs.map(async (spec, index) => {
+          if (!premium) return templated(spec);
+          try {
+            return await generateImage({
+              prompt: flyerPrompt({ ...content, hasPhoto: premium.hasPhoto, hasLogo: premium.hasLogo }, index),
+              size: "1024x1536",
+              quality: "high",
+              references: premium.references,
+              path: `generated/${user.id}/flyer-${jobId}-${spec.n}`,
+            });
+          } catch (error) {
+            console.error("[create] premium flyer failed; using the template", jobId, spec.n, error);
+            return templated(spec);
+          }
         }),
       ),
     ]);
@@ -267,4 +287,19 @@ export async function runCreateJob(jobId: string, user: Who, context: CreateCont
       .catch(() => null);
     return row ? jobView(row) : { id: jobId, status: "failed", format: idea.format, designs: [], error: "Rex couldn't make the designs just now. Try again in a moment." };
   }
+}
+
+/** OpenAI pictures are switched on (an API key). */
+function aiImagesConfigured() {
+  return Boolean(process.env.OPENAI_API_KEY?.trim());
+}
+
+/** The product photo (first) and the logo, as image-model references (only our own PNG/JPEG/WebP files count). */
+async function flyerReferences(photoUrl: string | null, logoUrl: string | null) {
+  const references = await loadReferences([photoUrl ?? "", logoUrl ?? ""].filter(Boolean)).catch(() => []);
+  return {
+    references,
+    hasPhoto: Boolean(photoUrl && references.some((ref) => ref.url === photoUrl)),
+    hasLogo: Boolean(logoUrl && references.some((ref) => ref.url === logoUrl)),
+  };
 }

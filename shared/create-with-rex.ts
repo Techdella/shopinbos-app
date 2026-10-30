@@ -364,3 +364,36 @@ export function reminderText(caption: string | null | undefined, max = 60) {
 }
 
 export const postLink = (id: string) => `app:/posts/${id}`;
+
+// ─── Premium flyers (OpenAI image model) ─────────────────────────────────────
+
+/** Three looks for the three flyers Rex makes, so the seller has a real choice. */
+export const FLYER_LOOKS = [
+  "a bold, modern retail promo: big confident type, a strong colour block behind the product, clean grid",
+  "an elegant, editorial magazine style: generous white space, refined serif headline, soft natural light",
+  "a vibrant, festive Nigerian street-market energy: rich colour, playful shapes, eye-catching but tidy",
+] as const;
+
+/**
+ * The image-model prompt for one premium flyer (src/lib/create/jobs.server.ts). The words are given exactly and
+ * nothing else may be written, so the flyer never invents prices, phone numbers or offers; the product photo and
+ * logo (sent as references when there are any) must stay true to life.
+ */
+export function flyerPrompt(input: { headline: string; subline: string; brand: string; link: string | null; palette: { hero: string; accent: string; paper: string; ink: string }; hasPhoto: boolean; hasLogo: boolean }, look: number): string {
+  const words = [
+    `Headline (largest text): "${input.headline.trim()}"`,
+    input.subline.trim() ? `Second line: "${input.subline.trim()}"` : null,
+    `Shop name: "${input.brand.trim()}"`,
+    input.link ? `Footer, small: "${input.link}"` : null,
+  ].filter(Boolean);
+  return [
+    `Design a premium, professional portrait (4:5) marketing flyer for a small business in Nigeria, ready to share on WhatsApp and Instagram or print. Style: ${FLYER_LOOKS[look % FLYER_LOOKS.length]}.`,
+    `Use this brand palette: main ${input.palette.hero}, accent ${input.palette.accent}, background ${input.palette.paper}, text ${input.palette.ink}.`,
+    input.hasPhoto ? "Feature the product from the reference photo as the hero. Keep the product exactly as it is: same shape, colour, label and details; you may restage the background and lighting." : "No product photo: build the design from type, colour and simple shapes, no made-up products.",
+    input.hasLogo ? "Place the shop's logo from the reference image small and clean, unchanged." : null,
+    `Write ONLY these words, spelled exactly, nothing else: ${words.join("; ")}.`,
+    "No prices, phone numbers, discounts, dates, QR codes or extra text unless given above. Crisp, legible lettering with good contrast; balanced layout with breathing room; high-end finish.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}

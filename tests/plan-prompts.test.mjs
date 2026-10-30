@@ -57,3 +57,19 @@ test("Peggy's notes to the team: a chat tool, kept with the call notes, listed i
   assert.match(page, /allPeggyNotes\(/);
   assert.match(read("src/app/admin/support/page.tsx"), /href="\/admin\/support\/peggy-notes"/);
 });
+
+test("premium flyers: OpenAI's image model with the exact words, the template as the fallback", async () => {
+  const rex = await import("../shared/create-with-rex.ts");
+  const content = { headline: "Fresh Ankara is in", subline: "Order before Friday", brand: "Ada Fabrics", link: "ada.mybos.store", palette: { hero: "#0E2A38", accent: "#73D8C8", paper: "#F4F1EA", ink: "#0E2A38" } };
+  const prompt = rex.flyerPrompt({ ...content, hasPhoto: true, hasLogo: false }, 1);
+  assert.match(prompt, /"Fresh Ankara is in"/);
+  assert.match(prompt, /"ada\.mybos\.store"/);
+  assert.match(prompt, /Keep the product exactly as it is/);
+  assert.doesNotMatch(prompt, /logo from the reference/);
+  assert.match(prompt, /No prices, phone numbers/);
+  assert.notEqual(rex.flyerPrompt({ ...content, hasPhoto: false, hasLogo: true }, 0), rex.flyerPrompt({ ...content, hasPhoto: false, hasLogo: true }, 2), "three different looks");
+  const jobs = read("src/lib/create/jobs.server.ts");
+  assert.match(jobs, /idea\.format === "flyer" && aiImagesConfigured\(\)/);
+  assert.match(jobs, /quality: "high"/);
+  assert.match(jobs, /return templated\(spec\);\s*\}\s*\}\),/);
+});

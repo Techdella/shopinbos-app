@@ -10,7 +10,7 @@ import { CREATE_FORMAT_KEYS, CREATE_USAGE_KIND } from "@shared/create-with-rex";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 180; // premium flyers come from the image model (high quality), which can take a minute or more
 
 // Create with Rex in the phone app, for every role. POST { format, ideaId?, prompt?, productId? } → { job }: 3
 // templated designs (src/lib/create/render.server.tsx) with captions, made now (a few seconds), so the job usually
