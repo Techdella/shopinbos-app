@@ -399,6 +399,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "cr.kind.coverage_listing": "Ndepụta mpaghara na pickup point",
   "cr.kind.performance_report": "Akụkọ nchịkọta arụmọrụ",
   "cr.kind.store_design": "Imewe Rex e tinyere n'ụlọ ahịa",
+  "cr.kind.peggy_call_minute": "Otu nkeji oku ya na Peggy (mgbe oku n'efu 3 kwa ọnwa gasịrị)",
   "err.codNeedsPlan": "Pay on delivery na-abịa na plan Growth na nke karịrị ya. Bulie plan na Settings › Billing iji gbanye ya.",
   "an.basic": "Plan gị na-egosi ọnụọgụ ndị bụ isi. Chart zuru ezu (kwa ụbọchị, izu, ọkwa na ndị kacha ere) na-abịa na Plus, ibudata spreadsheet na-abịa na Pro.",
   "an.full": "Budata ọnụọgụ ndị a dị ka spreadsheet na plan Pro.",

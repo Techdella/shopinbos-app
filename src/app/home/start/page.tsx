@@ -7,6 +7,8 @@ import { db } from "@/lib/db/client";
 import { getSetupOverview, syncStartNav } from "@/lib/setup/server";
 import { StartHere } from "./StartHere";
 import { PromoBanner } from "@/components/pricing/PromoBanner";
+import { RexStudioWelcomeCard } from "@/components/credits/RexStudioWelcomeCard";
+import { rexStudioWelcomeFor } from "@/lib/ai/rex-studio-welcome.server";
 import { getT } from "@/lib/i18n/server";
 import { findPartners } from "@/lib/delivery-market/manage.server";
 import { areasSummary } from "@/components/delivery-market/bits";
@@ -60,6 +62,8 @@ export default async function StartHerePage({ searchParams }: { searchParams: Pr
   const launch = typeof params.launch === "string" ? params.launch : null;
   const firstName = user.name.split(/\s+/)[0] || user.name;
   const host = overview.store.url.replace(/^https?:\/\//, "").replace(/\/$/, "");
+  // Free plan, after Rex built the shop: 20 credits to try Rex Studio (shared/rex-studio-welcome.ts).
+  const studio = await rexStudioWelcomeFor(user.id);
 
   return (
     <AppFrame
@@ -76,6 +80,7 @@ export default async function StartHerePage({ searchParams }: { searchParams: Pr
       <div className="px-4 pt-6 sm:px-6 xl:px-8 2xl:px-10">
         {/* Peggy helps with setup: chat and a free voice call (the checklist itself is Start here, below). */}
         <SetupWithPeggySlot userId={user.id} checklist={false} />
+        {studio ? <RexStudioWelcomeCard view={studio} className="mt-5" /> : null}
       </div>
       <StartHere
         firstName={firstName}

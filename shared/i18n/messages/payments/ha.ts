@@ -399,6 +399,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "cr.kind.coverage_listing": "Jerin yankuna da wuraren karɓar kaya",
   "cr.kind.performance_report": "Rahoton taƙaitaccen aiki",
   "cr.kind.store_design": "Zanen Rex da aka yi amfani da shi a cikin mai gina shago",
+  "cr.kind.peggy_call_minute": "Minti ɗaya na kira da Peggy (bayan kiran kyauta 3 a wata)",
   "err.codNeedsPlan": "Biya bayan isarwa yana zuwa da tsarin Growth zuwa sama. Haɓaka a Settings › Billing don kunna shi.",
   "an.basic": "Tsarinka yana nuna manyan lambobi. Cikakkun jadawali (ta rana, mako, mataki da mafi sayarwa) suna zuwa da Plus, saukar da spreadsheet kuma da Pro.",
   "an.full": "Sauke waɗannan lambobi a matsayin spreadsheet da tsarin Pro.",

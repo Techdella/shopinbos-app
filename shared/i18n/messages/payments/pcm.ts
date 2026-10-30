@@ -399,6 +399,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "cr.kind.coverage_listing": "Coverage and pickup point listings",
   "cr.kind.performance_report": "Performance summary report",
   "cr.kind.store_design": "Rex design wey you apply for store builder",
+  "cr.kind.peggy_call_minute": "One minute of call with Peggy (after the 3 free calls every month)",
   "err.codNeedsPlan": "Pay on delivery dey come with Growth plan and the plans wey pass am. Upgrade for Settings › Billing so you fit on am.",
   "an.basic": "Your plan dey show the main numbers. The full charts (by day, week, stage and best sellers) dey come with Plus, and spreadsheet download with Pro.",
   "an.full": "Download these numbers as spreadsheet with Pro plan.",

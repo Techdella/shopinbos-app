@@ -23,6 +23,8 @@ import { sortForWidget } from "@/lib/store-campaigns/status";
 import { PromoBanner } from "@/components/pricing/PromoBanner";
 import { PeggyCall } from "@/components/peggy/PeggyCall";
 import { peggyVoiceReady } from "@/lib/ai/peggy-voice.server";
+import { rexStudioWelcomeFor } from "@/lib/ai/rex-studio-welcome.server";
+import { RexStudioWelcomeCard } from "@/components/credits/RexStudioWelcomeCard";
 
 // Seller home, following the 2026 "Seller app · web" mockup.
 
@@ -139,7 +141,7 @@ export default async function HomePage() {
     if (state === "BUILDING_TEMPLATE") redirect("/builder/templates?onboarding=true");
   }
 
-  const [dashboard, setup] = await Promise.all([getSellerDashboard(user.id), getSetupOverview(user.id)]);
+  const [dashboard, setup, studio] = await Promise.all([getSellerDashboard(user.id), getSetupOverview(user.id), rexStudioWelcomeFor(user.id)]);
   if (!dashboard) redirect("/onboarding/rex");
   // New sellers land on Start here (once per visit) until their checklist is done or dismissed.
   if (setup?.checklist.showStart && !(await cookies()).get(START_SEEN_COOKIE)) redirect("/home/start");
@@ -170,6 +172,8 @@ export default async function HomePage() {
     >
       <div className="grid w-full gap-5 px-4 py-6 font-app text-app-ink sm:px-6 xl:grid-cols-[minmax(0,1fr)_420px] xl:px-8 2xl:grid-cols-[minmax(0,1fr)_480px] 2xl:px-10">
         <PromoBanner role="seller" className="xl:col-span-2" />
+        {/* Free plan, after Rex built the shop: "You have 20 credits to try Rex Studio" (shared/rex-studio-welcome.ts). */}
+        {studio ? <RexStudioWelcomeCard view={studio} className="xl:col-span-2" /> : null}
         {/* Hero */}
         <Card className="app-wash relative overflow-hidden p-6 sm:p-7">
           <div className="text-[14px] text-app-ink-soft">{lagosDate(now, locale)}</div>

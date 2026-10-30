@@ -374,6 +374,13 @@ export const MESSAGE_LOADERS: Record<string, Record<string, Loader>> = {
     ha: () => import("@shared/i18n/messages/rex/ha.ts") as Promise<{ default: Record<string, string> }>,
     ig: () => import("@shared/i18n/messages/rex/ig.ts") as Promise<{ default: Record<string, string> }>,
   },
+  rexBuild: {
+    en: () => import("@shared/i18n/messages/rexBuild/en.ts") as Promise<{ default: Record<string, string> }>,
+    pcm: () => import("@shared/i18n/messages/rexBuild/pcm.ts") as Promise<{ default: Record<string, string> }>,
+    yo: () => import("@shared/i18n/messages/rexBuild/yo.ts") as Promise<{ default: Record<string, string> }>,
+    ha: () => import("@shared/i18n/messages/rexBuild/ha.ts") as Promise<{ default: Record<string, string> }>,
+    ig: () => import("@shared/i18n/messages/rexBuild/ig.ts") as Promise<{ default: Record<string, string> }>,
+  },
   rexJobs: {
     en: () => import("@shared/i18n/messages/rexJobs/en.ts") as Promise<{ default: Record<string, string> }>,
     pcm: () => import("@shared/i18n/messages/rexJobs/pcm.ts") as Promise<{ default: Record<string, string> }>,

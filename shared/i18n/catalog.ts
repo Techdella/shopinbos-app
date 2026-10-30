@@ -118,6 +118,8 @@ import followers from "./messages/followers/index.ts";
 import productVideos from "./messages/productVideos/index.ts";
 import rexJobs from "./messages/rexJobs/index.ts";
 import pilotNumbers from "./messages/pilotNumbers/index.ts";
+import credits from "./messages/credits/index.ts";
+import m_credits from "./messages/m_credits/index.ts";
 
 export const CATALOGS = {
   common,
@@ -235,6 +237,8 @@ export const CATALOGS = {
   rexJobs,
   followers,
   pilotNumbers,
+  credits,
+  m_credits,
 } satisfies Record<string, Catalog>;
 
 export type Namespace = keyof typeof CATALOGS;

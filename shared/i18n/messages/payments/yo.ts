@@ -399,6 +399,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "cr.kind.coverage_listing": "Àkójọ agbègbè àti pickup point",
   "cr.kind.performance_report": "Ìjábọ̀ àkópọ̀ iṣẹ́",
   "cr.kind.store_design": "Àwòṣe Rex tí a lò nínú store builder",
+  "cr.kind.peggy_call_minute": "Ìṣẹ́jú kan ìpè pẹ̀lú Peggy (lẹ́yìn ìpè ọ̀fẹ́ 3 lóṣù)",
   "err.codNeedsPlan": "Sanwó nígbà delivery wà pẹ̀lú plan Growth sókè. Gbé plan rẹ ga ní Settings › Billing láti tàn án.",
   "an.basic": "Plan rẹ ń fi àwọn nọ́ńbà pàtàkì hàn. Àwọn chart kíkún (lójoojúmọ́, lọ́sọ̀ọ̀sẹ̀, ìpele àti àwọn tó tà jù) wà pẹ̀lú Plus, ìgbàsílẹ̀ spreadsheet sì wà pẹ̀lú Pro.",
   "an.full": "Gba àwọn nọ́ńbà wọ̀nyí sílẹ̀ bíi spreadsheet pẹ̀lú plan Pro.",
