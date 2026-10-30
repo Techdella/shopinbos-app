@@ -16,6 +16,10 @@ test("stale-build errors are recognised from every browser's wording and from se
   const stale = Object.assign(new Error('Server Action "40f5378593cc0e761e085ecfc727811bba15a739c8" was not found on the server. \nRead more: https://nextjs.org/docs/messages/failed-to-find-server-action'), { name: "UnrecognizedActionError" });
   assert.equal(reload.isStaleBuildError(stale), true);
   assert.equal(reload.isStaleBuildError(new Error('Server Action "abc123" was not found on the server.')), true);
+  // webpack's missing module after a deploy, in Chrome and Safari.
+  assert.equal(reload.isStaleBuildError(new TypeError("Cannot read properties of undefined (reading 'call')")), true);
+  assert.equal(reload.isStaleBuildError(new TypeError("undefined is not an object (evaluating 'e[r].call')")), true);
+  assert.equal(reload.isStaleBuildError(new TypeError("Cannot read properties of undefined (reading 'id')")), false);
   for (const message of [
     "Loading CSS chunk app-layout failed",
     "Failed to fetch dynamically imported module: https://app.shopinbos.com/_next/static/chunks/a.js",

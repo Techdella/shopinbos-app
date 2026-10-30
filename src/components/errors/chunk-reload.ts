@@ -17,6 +17,9 @@ const STALE_BUILD_PATTERNS = [
   /Failed to find Server Action/i,
   // Next.js 16 in the browser: the old page called a server action the new deployment renamed.
   /Server Action "?[\w-]*"? was not found on the server/i,
+  // webpack asked for a module the old page's chunk list doesn't have (Chrome, then Safari wording).
+  /Cannot read properties of undefined \(reading 'call'\)/i,
+  /undefined is not an object \(evaluating '[\w$.]+\[[\w$]+\]\.call'\)/i,
 ];
 
 /** True when an error looks like the page is running an older build than the server (missing chunk or action). */
