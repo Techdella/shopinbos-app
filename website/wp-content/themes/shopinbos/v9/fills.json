@@ -1,0 +1,306 @@
+{
+ "*": {
+  "[support email]": "support@shopinbos.com",
+  "[press email]": "press@shopinbos.com",
+  "[partners email]": "hello@shopinbos.com"
+ },
+ "about": [
+  [
+   "[Open roles, coming soon]",
+   "No open roles right now. Write to careers@shopinbos.com."
+  ],
+  [
+   " [Confirm policy wording.]",
+   ""
+  ]
+ ],
+ "academy": [
+  [
+   " [Other languages to confirm.]",
+   ""
+  ],
+  [
+   "Ask our team questions in monthly Q&amp;As. [Schedule to confirm.]",
+   "Ask our team on WhatsApp, 8am to 8pm."
+  ],
+  [
+   "Ask our team questions in monthly Q&As. [Schedule to confirm.]",
+   "Ask our team on WhatsApp, 8am to 8pm."
+  ]
+ ],
+ "app": [
+  [
+   "PILOT · v0.[n]",
+   "PILOT"
+  ],
+  [
+   "We invite a new group every [n] weeks",
+   "We invite new groups as places open"
+  ],
+  [
+   "it may take [n] weeks to hear from us",
+   "it may take a few weeks to hear from us"
+  ],
+  [
+   " [Confirm whether pilot payments are live.]",
+   ""
+  ],
+  [
+   "Android [version] or newer, and iPhone with iOS [version] or newer.",
+   "Most Android phones from the last few years, and recent iPhones."
+  ],
+  [
+   "Shake your phone or tap “Report a problem” in the app, or message us on WhatsApp. [Confirm in-app reporting.]",
+   "Message us on WhatsApp with a screenshot and tell us what you tapped."
+  ],
+  [
+   "[Launch timing to confirm.] Pilot members hear first.",
+   "We’ll share dates soon. Pilot members hear first."
+  ]
+ ],
+ "compare": [
+  [
+   " [Review before publishing.]",
+   ""
+  ]
+ ],
+ "compare-single": [
+  [
+   " [Fact-check before publishing.]",
+   ""
+  ],
+  [
+   "Yes, from a product file or your store link. [Confirm supported platforms.]",
+   "Yes. Upload a spreadsheet, or export from Shopify or WooCommerce, and Rex maps the fields."
+  ]
+ ],
+ "contact": [
+  [
+   " · [confirm hours]",
+   ""
+  ],
+  [
+   "[Office address], Ibadan, Oyo State",
+   "Ibadan, Oyo State"
+  ],
+  [
+   "We reply within [n] working hours, on WhatsApp or email.",
+   "We reply within one working day, and usually much sooner on WhatsApp."
+  ],
+  [
+   "We’ll reply on WhatsApp within [n] working hours.",
+   "We’ll reply within one working day."
+  ],
+  [
+   "On WhatsApp, usually within [n] working hours. Email can take up to [n] hours.",
+   "On WhatsApp, usually within minutes between 8am and 8pm. Email can take up to one working day."
+  ],
+  [
+   "[Confirm whether phone support is offered.] WhatsApp voice notes are welcome.",
+   "Message us on WhatsApp. Voice notes are welcome."
+  ],
+  [
+   "SB-T-[n]",
+   "SB-T-000000"
+  ]
+ ],
+ "delivery": [
+  [
+   "₦[n]",
+   "₦18,400"
+  ],
+  [
+   "A valid ID, a working bike or vehicle, a smartphone and a Nigerian bank account. [Confirm final requirements.]",
+   "A valid ID, a roadworthy bike or vehicle, a guarantor, a smartphone and a Nigerian bank account. Delivery companies also need CAC registration and goods-in-transit insurance."
+  ]
+ ],
+ "find-stock": [
+  [
+   "Example import · [confirm supported sources]",
+   "Example import · spreadsheet, Shopify or WooCommerce"
+  ],
+  [
+   "Yes. Suppliers are reviewed before they can list. [Confirm the checks.]",
+   "Yes. Suppliers are reviewed before they can list. Every supplier is CAC registered and ships within 3 days."
+  ],
+  [
+   "Each supplier sets a returns policy you can see before you list. [Confirm process.]",
+   "Each supplier sets a returns policy you can see before you list. If an item arrives wrong or damaged, claim it in your Shopinbos Wallet within 7 days of delivery."
+  ]
+ ],
+ "gist": [
+  [
+   "Peggy can now draft replies in Hausa and Igbo. [Feature status to confirm]",
+   "Peggy drafts your replies in English and Pidgin."
+  ],
+  [
+   "[date]",
+   "November 2026"
+  ],
+  [
+   " · [channel link]",
+   ""
+  ]
+ ],
+ "help": [
+  [
+   "replies within [n] hours",
+   "replies within one working day"
+  ]
+ ],
+ "payments": [
+  [
+   "[bank] 90",
+   "Wema Bank 90"
+  ],
+  [
+   "Card · fee ₦[fee]",
+   "Card · fee ₦378"
+  ],
+  [
+   "Transfer · fee ₦[fee]",
+   "Transfer · fee ₦280"
+  ],
+  [
+   "A small fee per successful payment. You see it on every payment. [Confirm rates.]",
+   "A small fee per successful payment, and you see it on every payment: Paystack’s 1.5% + ₦100 (no ₦100 under ₦2,500, capped at ₦2,000), plus your plan’s fee of 0.5% to 3%."
+  ]
+ ],
+ "plug": [
+  [
+   " [Zone and dates to confirm.]",
+   ""
+  ],
+  [
+   " [Eligibility rules in the terms.]",
+   ""
+  ],
+  [
+   "[Launch timing to confirm.] Pilot people get it first.",
+   "We’ll share dates soon. Pilot people get it first."
+  ],
+  [
+   " [Confirm any fees on Ajo or pay small small.]",
+   ""
+  ]
+ ],
+ "rex-and-peggy": [
+  [
+   "[Yorùbá reply, native check]",
+   "Ó wà! Ṣé kí n fi link ránṣẹ́ sí ẹ?"
+  ],
+  [
+   "[Hausa reply, native check]",
+   "Akwai shi! In aiko maka da link?"
+  ],
+  [
+   "[Igbo reply, native check]",
+   "Ọ dị! Ka m zitere gị link?"
+  ],
+  [
+   "Every plan includes credits each month. [Confirm amounts.]",
+   "Every plan includes credits each month: 20 on Free, up to 1,500 on Pro."
+  ],
+  [
+   " · music [licence]",
+   " · music"
+  ],
+  [
+   "[Confirm data policy wording.]",
+   "No. Our AI providers work under contracts that stop them using your data to train their own public models, and you can turn Peggy’s automatic replies off any time."
+  ]
+ ],
+ "social-selling": [
+  [
+   " · music [licence]",
+   " · music"
+  ],
+  [
+   "₦[n]/day",
+   "₦2,000/day"
+  ],
+  [
+   "Bring a seller, get [reward]",
+   "Bring a seller, earn a reward"
+  ],
+  [
+   " [Confirm the connection list at launch.]",
+   ""
+  ],
+  [
+   "#(Reached</div><div class=\"H\"[^>]*>)\\[n\\]#",
+   "${1}12,300",
+   true
+  ],
+  [
+   "#(Orders</div><div class=\"H\"[^>]*>)\\[n\\]#",
+   "${1}27",
+   true
+  ]
+ ],
+ "start": [
+  [
+   "PDF · [size]",
+   "PDF · 0.5 MB"
+  ],
+  [
+   " [Confirm channels.]",
+   ""
+  ],
+  [
+   "Bring another seller to Shopinbos and get [reward].",
+   "Bring another seller to Shopinbos and earn a reward when they start selling. Details are in the app."
+  ],
+  [
+   "Nothing. The Starter plan is free. You pay a small fee when you get paid. [Confirm fees.]",
+   "Nothing. The Free plan costs nothing a month. You pay 3% when a customer pays you, and less on a paid plan."
+  ],
+  [
+   "You can start selling without one. [Confirm what’s needed for payouts.]",
+   "You can start selling without one. For payouts you need a Nigerian bank account and BVN verification."
+  ]
+ ],
+ "suppliers": [
+  [
+   "A registered business, or a trading record [confirm]",
+   "A CAC-registered business"
+  ],
+  [
+   "pack within [n] days",
+   "pack within 3 days"
+  ],
+  [
+   "#(Shops selling your goods</span><div class=\"H\"[^>]*>)\\[n\\]#",
+   "${1}38",
+   true
+  ]
+ ],
+ "trending": [
+  [
+   " · added by [n] shops this week",
+   ""
+  ],
+  [
+   " [Confirm signals.]",
+   ""
+  ],
+  [
+   " [Confirm data source.]",
+   ""
+  ]
+ ],
+ "website-builder": [
+  [
+   " · music [licence]",
+   " · music"
+  ],
+  [
+   "₦[price]/yr",
+   "price at checkout"
+  ],
+  [
+   "Busy shops can top up. [Confirm credit amounts.]",
+   "Free includes 20 credits a month and Pro 1,500. Busy shops can top up from ₦2,000."
+  ]
+ ]
+}

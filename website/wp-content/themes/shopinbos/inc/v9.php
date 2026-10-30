@@ -124,6 +124,8 @@ function sib_v9_redirects(): array {
 		'#^/solutions(/.*)?$#'                                      => '/start/',
 		'#^/integrations(/.*)?$#'                                   => '/social-selling/',
 		'#^/legal/?$#'                                              => '/legal/terms/',
+		// V9 never names other companies: comparison pages that do go to the general comparison.
+		'#^/compare/(?!global-store-builder/?$)[^/]+/?$#'           => '/compare/',
 	];
 }
 

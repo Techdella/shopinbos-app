@@ -221,18 +221,30 @@ function sib_v9_placeholder_values(): array {
 	return $v;
 }
 
-/** Fill the placeholders; [date] becomes today's date (blog/help/legal headers use their own dates). */
-function sib_v9_fill_placeholders( string $html ): string {
-	$v = sib_v9_placeholder_values() + [ '[date]' => wp_date( 'j F Y' ) ];
-	// A value left empty removes the placeholder (e.g. "[Confirm amounts.] =>").
-	return strtr( $html, array_map( 'esc_html', $v ) );
+/**
+ * Fill the placeholders: the business's own list first (Settings), then v9/fills.json (facts from the existing site,
+ * per page and for every page), then [date] as today's date.
+ */
+function sib_v9_fill_placeholders( string $html, string $slug = '' ): string {
+	$html = strtr( $html, array_map( 'esc_html', sib_v9_placeholder_values() ) );
+	static $fills = null;
+	if ( null === $fills ) {
+		$fills = (array) json_decode( (string) @file_get_contents( get_theme_file_path( 'v9/fills.json' ) ), true ); // phpcs:ignore
+	}
+	foreach ( (array) ( $fills[ $slug ] ?? [] ) as $f ) {
+		$html = ! empty( $f[2] ) ? (string) preg_replace( $f[0], $f[1], $html ) : str_replace( $f[0], $f[1], $html );
+	}
+	$html = strtr( $html, (array) ( $fills['*'] ?? [] ) );
+	// No support number in Settings yet: leave it out rather than show the placeholder.
+	$html = (string) preg_replace( '/\s*\[support number\]\s*(·\s*)?/u', ' ', $html );
+	return str_replace( '[date]', wp_date( 'j F Y' ), $html );
 }
-add_filter( 'sib_v9_fill', fn( $html ) => sib_v9_fill_placeholders( (string) $html ), 99 );
+add_filter( 'sib_v9_fill', fn( $html, $slug ) => sib_v9_fill_placeholders( (string) $html, (string) $slug ), 99, 2 );
 
 /** Placeholders still showing on a built page. */
 function sib_v9_open_placeholders(): array {
 	$open = [];
-	$vals = sib_v9_placeholder_values() + [ '[date]' => '' ];
+	$vals = [];
 	foreach ( array_unique( sib_v9_routes() ) as $slug ) {
 		$text = wp_strip_all_tags( (string) apply_filters( 'sib_v9_fill', sib_v9_page( $slug ), $slug ) );
 		if ( preg_match_all( '/\[[A-Za-z][^\]\[]{0,60}\]/u', $text, $m ) ) {

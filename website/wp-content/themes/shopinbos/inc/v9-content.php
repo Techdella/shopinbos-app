@@ -305,3 +305,295 @@ function sib_v9_is_blog_post(): bool {
 function sib_v9_is_help(): bool {
 	return is_singular( 'sib_help' );
 }
+
+/* ---------- Trending: the real daily TikTok trend reports (plugin: includes/trends.php) ---------- */
+
+/** One trending product as a V9 card. */
+function sib_v9_trend_card( array $p, int $rank, string $niche, bool $big = false ): string {
+	$n      = function_exists( 'sib_trend_niches' ) ? ( sib_trend_niches()[ $niche ] ?? sib_trend_niches()['mixed'] ) : [ '', '#F6F3EE', '#16141F' ];
+	$search = 'https://www.tiktok.com/search/video?q=' . rawurlencode( (string) ( ( $p['tiktok_search'] ?? '' ) ?: $p['name'] ) );
+	$find   = add_query_arg( 'q', rawurlencode( (string) ( ( $p['q'] ?? '' ) ?: $p['name'] ) ), home_url( '/find-stock/' ) );
+	$out    = '<div class="bc c-wh lift" id="p' . $rank . '" style="padding:0;overflow:hidden;' . ( $big ? 'grid-row:span 2' : '' ) . '">'
+		. '<div style="background:' . esc_attr( $n[1] ) . ';color:' . esc_attr( $n[2] ) . ';padding:22px 26px;min-height:' . ( $big ? '200' : '120' ) . 'px;display:flex;flex-direction:column;justify-content:space-between;gap:12px">'
+		. '<span class="H" style="font-size:' . ( $big ? '64' : '44' ) . 'px;line-height:1">#' . $rank . '</span><div class="H h3" style="color:inherit">' . esc_html( $p['name'] ) . '</div></div>'
+		. '<div style="padding:22px 26px;display:flex;flex-direction:column;gap:10px;font-size:15px;line-height:1.55">';
+	if ( ! empty( $p['why'] ) ) {
+		$out .= '<p class="p" style="margin:0">' . esc_html( $p['why'] ) . '</p>';
+	}
+	if ( ! empty( $p['price_ngn'] ) ) {
+		$out .= '<div><span class="tg ok">' . esc_html( sprintf( 'Sells for %s', $p['price_ngn'] ) ) . '</span></div>';
+	}
+	if ( ! empty( $p['source_hint'] ) ) {
+		$out .= '<div class="mutd" style="font-size:14px"><b>' . esc_html__( 'Get stock:', 'shopinbos' ) . '</b> ' . esc_html( $p['source_hint'] ) . '</div>';
+	}
+	if ( ! empty( $p['video_idea'] ) ) {
+		$out .= '<div style="padding:12px 14px;border-radius:14px;background:#F6F3EE;font-size:14px"><b>' . esc_html__( 'Film this:', 'shopinbos' ) . '</b> ' . esc_html( $p['video_idea'] ) . '</div>';
+	}
+	$out .= '<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:6px"><a class="btn b-ink" href="' . esc_url( $find ) . '" style="height:42px;font-size:14px;padding:0 18px">' . esc_html__( 'Find suppliers', 'shopinbos' ) . '</a><a class="more" href="' . esc_url( $search ) . '" target="_blank" rel="noopener nofollow" style="font-size:14px">' . esc_html__( 'See the videos', 'shopinbos' ) . ' →</a></div>';
+	return $out . '</div></div>';
+}
+
+/** A report as a small card. */
+function sib_v9_trend_tile( WP_Post $r ): string {
+	$d = sib_trend_data( $r );
+	$n = sib_trend_niches()[ $d['niche'] ] ?? sib_trend_niches()['mixed'];
+	return '<a href="' . esc_url( get_permalink( $r ) ) . '" class="bc c-wh lift" style="gap:10px;min-height:200px"><span class="tg" style="align-self:flex-start;background:' . esc_attr( $n[1] ) . ';color:' . esc_attr( $n[2] ) . '">' . esc_html( $n[0] ) . '</span>'
+		. '<div class="H h3" style="margin-top:auto">' . esc_html( get_the_title( $r ) ) . '</div><span class="mutd" style="font-size:13.5px">' . esc_html( get_the_date( 'l j F', $r ) ) . '</span></a>';
+}
+
+/* /trending/: the newest report's products in place of the design's samples, then earlier reports. */
+add_filter( 'sib_v9_fill', function ( string $html, string $slug ): string {
+	if ( 'trending' !== $slug || ! function_exists( 'sib_trend_data' ) ) {
+		return $html;
+	}
+	$reports = get_posts( [ 'post_type' => 'sib_trend', 'post_status' => 'publish', 'numberposts' => 10 ] );
+	if ( ! $reports ) {
+		return $html;
+	}
+	$latest = array_shift( $reports );
+	$d      = sib_trend_data( $latest );
+	$items  = array_slice( array_values( array_filter( (array) $d['products'], fn( $p ) => ! empty( $p['name'] ) ) ), 0, 6 );
+	$cards  = '';
+	foreach ( $items as $i => $p ) {
+		$cards .= sib_v9_trend_card( $p, $i + 1, $d['niche'], 0 === $i );
+	}
+	$sec = '<section class="sec" style="background:#fff;padding-top:48px"><div class="wrap"><div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-end;flex-wrap:wrap"><div><span class="k orgd">' . esc_html( sprintf( 'Today · %s', get_the_date( 'l j F', $latest ) ) ) . '</span><h2 class="H h2" style="margin-top:10px">' . esc_html( get_the_title( $latest ) ) . '</h2></div><a class="more" href="' . esc_url( get_permalink( $latest ) ) . '">' . esc_html__( 'Read the full report', 'shopinbos' ) . ' →</a></div>'
+		. '<div class="bn g3" style="grid-template-columns:1.3fr 1fr 1fr;margin-top:32px">' . $cards . '</div>';
+	if ( $reports ) {
+		$sec .= '<h2 class="H h3" style="margin-top:72px">' . esc_html__( 'Earlier reports', 'shopinbos' ) . '</h2><div class="bn g3" style="grid-template-columns:repeat(3,1fr);margin-top:24px">' . implode( '', array_map( 'sib_v9_trend_tile', array_slice( $reports, 0, 9 ) ) ) . '</div>';
+	}
+	$sec .= '</div></section>';
+	$html = str_replace( 'Updated every Monday · [date]', esc_html( 'Updated every day · ' . get_the_date( 'j F Y', $latest ) ), $html );
+	$html = str_replace( 'A weekly feed of products', 'A daily feed of products', $html );
+	return (string) preg_replace_callback( '#<section class="sec" style="background:\#fff;padding-top:48px">.*?</section>(?=<section class="sec" style="background:\#F6F3EE;")#s', fn() => $sec, $html, 1 );
+}, 10, 2 );
+
+/* A trend report (/trending/{slug}/). */
+function sib_v9_trend_report(): ?array {
+	$post = get_queried_object();
+	if ( ! $post instanceof WP_Post || ! function_exists( 'sib_trend_data' ) ) {
+		return null;
+	}
+	$d     = sib_trend_data( $post );
+	$n     = sib_trend_niches()[ $d['niche'] ] ?? sib_trend_niches()['mixed'];
+	$items = array_values( array_filter( (array) $d['products'], fn( $p ) => ! empty( $p['name'] ) ) );
+	$cards = '';
+	foreach ( $items as $i => $p ) {
+		$cards .= sib_v9_trend_card( $p, $i + 1, $d['niche'] );
+	}
+	$more = get_posts( [ 'post_type' => 'sib_trend', 'post_status' => 'publish', 'numberposts' => 3, 'exclude' => [ $post->ID ] ] );
+
+	$h  = '<section style="background:#F6F3EE;padding:72px 0 56px"><div class="wrap" style="max-width:980px"><a href="/trending/" class="more mutd" style="font-size:14px">← ' . esc_html__( 'Trending products', 'shopinbos' ) . '</a>';
+	$h .= '<div style="display:flex;gap:10px;align-items:center;margin-top:24px;flex-wrap:wrap"><span class="tg" style="background:' . esc_attr( $n[1] ) . ';color:' . esc_attr( $n[2] ) . '">' . esc_html( $n[0] ) . '</span><span class="mutd" style="font-size:14px">' . esc_html( sprintf( 'Trending on TikTok · %s', get_the_date( 'l j F Y', $post ) ) ) . '</span></div>';
+	$h .= '<h1 class="H up" style="font-size:clamp(38px,4.6vw,64px);line-height:1.02;margin-top:16px">' . esc_html( get_the_title( $post ) ) . '</h1>' . ( $d['intro'] ? '<p class="lead" style="margin-top:18px;max-width:720px">' . esc_html( $d['intro'] ) . '</p>' : '' ) . '</div></section>';
+	$h .= '<section class="sec" style="background:#fff;padding-top:56px"><div class="wrap"><div class="bn g3" style="grid-template-columns:repeat(3,1fr)">' . $cards . '</div>';
+	$h .= '<p class="mutd" style="font-size:14px;margin-top:40px;max-width:820px">' . esc_html( $d['note'] ?: __( 'How we pick: products with a clear trend on TikTok (views, hashtags and TikTok Shop sales) that Nigerian sellers can stock locally or import. Prices are typical Nigerian retail prices and change often; check with your supplier.', 'shopinbos' ) ) . '</p>';
+	$h .= $more ? '<h2 class="H h3" style="margin-top:64px">' . esc_html__( 'More trend reports', 'shopinbos' ) . '</h2><div class="bn g3" style="grid-template-columns:repeat(3,1fr);margin-top:24px">' . implode( '', array_map( 'sib_v9_trend_tile', $more ) ) . '</div>' : '';
+	$h .= '</div></section>' . sib_v9_section( 'trending', 'night' );
+	$h .= '<script type="application/ld+json">' . wp_json_encode( [ '@context' => 'https://schema.org', '@type' => 'ItemList', 'name' => get_the_title( $post ), 'itemListElement' => array_map( fn( $p, $i ) => [ '@type' => 'ListItem', 'position' => $i + 1, 'name' => $p['name'], 'description' => $p['why'] ?? '' ], $items, array_keys( $items ) ) ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) . '</script>';
+
+	return [
+		'slug'   => 'trending-report',
+		'html'   => sib_v9_wrap( $h, 'trending' ),
+		'title'  => get_the_title( $post ) . ' · Shopinbos',
+		'crumbs' => [ [ __( 'Trending', 'shopinbos' ), home_url( '/trending/' ) ] ],
+	];
+}
+
+add_filter( 'sib_v9_content_templates', function ( array $t ): array {
+	$t['sib_v9_is_trend'] = 'sib_v9_trend_report';
+	return $t;
+} );
+
+function sib_v9_is_trend(): bool {
+	return is_singular( 'sib_trend' );
+}
+
+/* ---------- Academy: real courses (sib_track) and lessons (sib_lesson) ---------- */
+
+/** Photos from the design, used in turn on course cards. */
+function sib_v9_course_img( int $i ): string {
+	$ids = [ '78a6733a9877bdd41e6583da623da8c5', '49aaca8689ef488a9b24ea9dce101f56', '093071d746fcb16b3ae1ee918b0919c9', '5ac187f7c7212965a47d0b3268ab2138', 'e1a6648c9c53610cdbb8ec20c5dde5bf', '94de8ef94cc6898c1e4ea9b9f534347a', '99c0c2910ffccc1e5b718ed6bf3fa984', '01af1f138e38f9e0cb7966dd03277437' ];
+	return get_theme_file_uri( 'v9/img/' . $ids[ $i % count( $ids ) ] . '.webp' );
+}
+
+function sib_v9_course_card( array $t, int $i ): string {
+	$n = count( $t['lessons'] );
+	return '<a href="' . esc_url( get_term_link( $t['term'] ) ) . '" class="bc lift" style="background:' . esc_attr( $t['bg'] ) . ';padding:0;min-height:420px">'
+		. '<div class="zm" style="height:200px"><img decoding="async" loading="lazy" src="' . esc_url( sib_v9_course_img( $i ) ) . '" alt="" style="width:100%;height:100%;object-fit:cover;object-position:50% 30%"></div>'
+		. '<div style="padding:28px;display:flex;flex-direction:column;gap:8px;flex:1"><span class="k mutd">' . esc_html( sprintf( 'Course %d', $i + 1 ) ) . '</span><div class="H h3">' . esc_html( $t['term']->name ) . '</div>'
+		. ( $t['term']->description ? '<p class="p mutd" style="font-size:15px">' . esc_html( wp_html_excerpt( $t['term']->description, 120, '…' ) ) . '</p>' : '' )
+		. '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:auto"><span style="font-size:14px;font-weight:700">' . esc_html( sprintf( '%d lessons · %d min · Free', $n, $t['mins'] ) ) . '</span><span aria-hidden="true">→</span></div></div></a>';
+}
+
+/** Lesson rows (number, title, minutes) linking to each lesson. */
+function sib_v9_lesson_rows( array $lessons, int $current = 0 ): string {
+	$out = '';
+	foreach ( $lessons as $i => $l ) {
+		$on   = $l->ID === $current;
+		$out .= '<a href="' . esc_url( get_permalink( $l ) ) . '" class="row" data-lesson-row="' . (int) $l->ID . '" style="padding:14px 8px;font-size:15.5px;border-bottom:1px solid #ECEAF2;gap:14px' . ( $on ? ';font-weight:700' : '' ) . '"><span class="v9-num" style="width:34px;height:34px;border-radius:99px;flex:none;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;background:' . ( $on ? '#16141F;color:#fff' : '#F4F3F7' ) . '">' . ( $i + 1 ) . '</span><span style="flex:1">' . esc_html( get_the_title( $l ) ) . '</span><span class="mutd" style="font-size:13px">' . esc_html( sib_lesson_data( $l )['minutes'] . ' min' ) . '</span></a>';
+	}
+	return $out;
+}
+
+add_filter( 'sib_v9_fill', function ( string $html, string $slug ): string {
+	if ( 'academy' !== $slug || ! function_exists( 'sib_academy_tracks' ) ) {
+		return $html;
+	}
+	$tracks = array_values( array_filter( sib_academy_tracks(), fn( $t ) => $t['lessons'] ) );
+	if ( ! $tracks ) {
+		return $html;
+	}
+	$cards = implode( '', array_map( 'sib_v9_course_card', $tracks, array_keys( $tracks ) ) );
+	$html  = (string) preg_replace_callback( '#(<div class="bn g3 rvs" style="grid-template-columns:repeat\(3,1fr\);margin-top:56px">).*?(</div></div></section>)#s', fn( $m ) => '<div class="bn g3" style="grid-template-columns:repeat(3,1fr);margin-top:56px">' . $cards . $m[2], $html, 1 );
+	// The "one course" preview: the first course and its lessons.
+	$first = $tracks[0];
+	$prev  = '<section class="sec" style="background:#F6F3EE;"><div class="wrap"><div class="g2" style="display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center">'
+		. '<div style="position:relative"><div style="height:400px;border-radius:28px;overflow:hidden"><img decoding="async" loading="lazy" src="' . esc_url( sib_v9_course_img( 0 ) ) . '" alt="" style="width:100%;height:100%;object-fit:cover"></div></div>'
+		. '<div><span class="k orgd">' . esc_html( 'Course · ' . $first['term']->name ) . '</span><div class="H h2" style="margin-top:14px;font-size:clamp(32px,3.4vw,50px)">' . esc_html( sprintf( '%s lessons.', ucfirst( function_exists( 'sib_number_word' ) ? sib_number_word( count( $first['lessons'] ) ) : (string) count( $first['lessons'] ) ) ) ) . ' <span class="it orgd">' . esc_html__( 'One real shop.', 'shopinbos' ) . '</span></div>'
+		. '<div style="margin-top:24px">' . sib_v9_lesson_rows( $first['lessons'] ) . '</div><a class="btn b-ink" href="' . esc_url( get_permalink( $first['lessons'][0] ) ) . '" style="margin-top:24px">' . esc_html__( 'Start the first lesson', 'shopinbos' ) . '</a></div></div></div></section>';
+	$html  = (string) preg_replace_callback( '#<section class="sec" style="background:\#F6F3EE;"><div class="wrap"><div class="g2".*?</section>#s', fn() => $prev, $html, 1 );
+	return str_replace( [ 'href="/academy/" class="btn', 'Start learning</a>' ], [ 'href="#courses" class="btn', 'Start learning</a>' ], $html );
+}, 10, 2 );
+
+/* A course page (/academy/{course}/). */
+function sib_v9_course(): ?array {
+	$term = get_queried_object();
+	if ( ! $term instanceof WP_Term || ! function_exists( 'sib_academy_track' ) ) {
+		return null;
+	}
+	$t = sib_academy_track( $term );
+	if ( ! $t || ! $t['lessons'] ) {
+		return null;
+	}
+	$all = array_values( array_filter( sib_academy_tracks(), fn( $x ) => $x['lessons'] ) );
+	$pos = (int) array_search( $term->term_id, array_map( fn( $x ) => $x['term']->term_id, $all ), true );
+
+	$h  = '<section style="background:' . esc_attr( $t['bg'] ) . ';padding:64px 0 88px"><div class="wrap" style="max-width:980px"><div class="mutd" style="font-size:14px"><a href="/academy/">' . esc_html__( 'Academy', 'shopinbos' ) . '</a> / ' . esc_html( $term->name ) . '</div>';
+	$h .= '<span class="k orgd" style="display:block;margin-top:28px">' . esc_html( sprintf( 'Course %d', $pos + 1 ) ) . '</span><h1 class="H up" style="font-size:clamp(42px,5vw,76px);line-height:1;margin-top:14px">' . esc_html( $term->name ) . '</h1>';
+	$h .= $term->description ? '<p class="lead" style="margin-top:18px;max-width:680px">' . esc_html( $term->description ) . '</p>' : '';
+	$h .= '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:24px"><span class="tg">' . esc_html( count( $t['lessons'] ) . ' lessons' ) . '</span><span class="tg">' . esc_html( sprintf( 'About %d minutes', $t['mins'] ) ) . '</span><span class="tg">English and Pidgin</span><span class="tg">Free</span></div>';
+	$h .= '<a class="btn b-ink" href="' . esc_url( get_permalink( $t['lessons'][0] ) ) . '" style="margin-top:28px">' . esc_html__( 'Start the course', 'shopinbos' ) . '</a></div></section>';
+	$h .= '<section class="sec" style="background:#fff;"><div class="wrap" style="max-width:880px"><h2 class="H h2">' . esc_html__( 'Lessons', 'shopinbos' ) . '</h2><div style="margin-top:24px">';
+	foreach ( $t['lessons'] as $i => $l ) {
+		$d  = sib_lesson_data( $l );
+		$h .= '<a href="' . esc_url( get_permalink( $l ) ) . '" class="row lift" data-lesson-row="' . (int) $l->ID . '" style="gap:18px;padding:22px 8px;border-bottom:1px solid #ECEAF2;align-items:flex-start"><span class="H v9-num" style="width:46px;height:46px;border-radius:99px;flex:none;display:flex;align-items:center;justify-content:center;background:#F4F3F7;font-size:18px">' . ( $i + 1 ) . '</span><span style="flex:1;display:flex;flex-direction:column;gap:4px"><b style="font-size:18px">' . esc_html( get_the_title( $l ) ) . '</b>'
+			. ( $d['introEn'] ? '<span class="p mutd" style="font-size:15px">' . esc_html( wp_html_excerpt( $d['introEn'], 150, '…' ) ) . '</span>' : '' ) . '<span class="mutd" style="font-size:13px">' . esc_html( $d['minutes'] . ' min' . ( $d['tryEn'] ? ' · with a task' : '' ) ) . '</span></span></a>';
+	}
+	$h .= '</div></div></section>';
+	$others = array_slice( array_values( array_filter( $all, fn( $x ) => $x['term']->term_id !== $term->term_id ) ), 0, 3 );
+	if ( $others ) {
+		$h .= '<section class="sec" style="background:#F6F3EE;"><div class="wrap"><h2 class="H h2">' . esc_html__( 'More courses', 'shopinbos' ) . '</h2><div class="bn g3" style="grid-template-columns:repeat(3,1fr);margin-top:40px">';
+		foreach ( $others as $o ) {
+			$h .= sib_v9_course_card( $o, (int) array_search( $o, $all, true ) );
+		}
+		$h .= '</div></div></section>';
+	}
+	$h .= sib_v9_section( 'academy', 'night' );
+	return [
+		'slug'   => 'academy-course',
+		'html'   => sib_v9_wrap( $h, 'academy-course' ),
+		'title'  => $term->name . ' · Shopinbos Academy',
+		'crumbs' => [ [ __( 'Academy', 'shopinbos' ), home_url( '/academy/' ) ] ],
+		'description' => wp_html_excerpt( (string) $term->description, 155, '…' ),
+	];
+}
+
+/** Text with **bold** and line breaks, as the lesson fields are written. */
+function sib_v9_inline( string $s ): string {
+	return function_exists( 'sib_inline' ) ? sib_inline( $s ) : esc_html( $s );
+}
+
+function sib_v9_lines( string $s ): array {
+	return function_exists( 'sib_lines' ) ? sib_lines( $s ) : array_values( array_filter( array_map( 'trim', explode( "\n", $s ) ) ) );
+}
+
+/* A lesson (/academy/{course}/{lesson}/). */
+function sib_v9_lesson(): ?array {
+	$post = get_queried_object();
+	if ( ! $post instanceof WP_Post || ! function_exists( 'sib_lesson_data' ) ) {
+		return null;
+	}
+	$a     = sib_lesson_data( $post );
+	$term  = sib_lesson_track( $post );
+	$t     = $term ? sib_academy_track( $term ) : null;
+	$list  = $t ? $t['lessons'] : [ $post ];
+	$pos   = (int) array_search( $post->ID, wp_list_pluck( $list, 'ID' ), true );
+	$next  = $list[ $pos + 1 ] ?? null;
+	$prev  = $list[ $pos - 1 ] ?? null;
+	$pcm   = '' !== trim( (string) $a['introPcm'] );
+	$video = function_exists( 'sib_youtube_id' ) ? sib_youtube_id( (string) $a['video'] ) : '';
+	$bg    = $t['bg'] ?? '#F6F3EE';
+	$lang  = fn( $en, $pc, $tag = 'p', $attr = '' ) => '<' . $tag . $attr . ' data-lang="en" lang="en">' . $en . '</' . $tag . '>' . ( '' !== $pc ? '<' . $tag . $attr . ' data-lang="pcm" lang="pcm" hidden>' . $pc . '</' . $tag . '>' : '' );
+
+	$h  = '<section style="padding:40px 0 100px"><div class="wrap"><div style="display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap"><div class="mutd" style="font-size:14px"><a href="/academy/">' . esc_html__( 'Academy', 'shopinbos' ) . '</a>' . ( $term ? ' / <a href="' . esc_url( get_term_link( $term ) ) . '">' . esc_html( $term->name ) . '</a>' : '' ) . ' / ' . esc_html( sprintf( 'Lesson %d', $pos + 1 ) ) . '</div>';
+	$h .= $pcm ? '<div style="display:flex;gap:6px" role="group" aria-label="Language"><button type="button" class="chip on" data-lang-pick="en" aria-pressed="true">English</button><button type="button" class="chip" data-lang-pick="pcm" aria-pressed="false">Pidgin</button></div>' : '';
+	$h .= '</div><div class="g2" style="display:grid;grid-template-columns:1fr 360px;gap:48px;margin-top:28px;align-items:start"><div style="min-width:0">';
+	// Video, or a cover in the course colour.
+	$h .= '<div style="position:relative;height:420px;border-radius:28px;overflow:hidden;background:' . esc_attr( $bg ) . '" class="v9-feat">';
+	if ( $video ) {
+		$h .= '<button type="button" data-video="' . esc_attr( $video ) . '" aria-label="' . esc_attr__( 'Play the lesson video', 'shopinbos' ) . '" style="all:unset;cursor:pointer;position:absolute;inset:0;display:block"><img decoding="async" src="https://i.ytimg.com/vi/' . esc_attr( $video ) . '/hqdefault.jpg" alt="" style="width:100%;height:100%;object-fit:cover"><span style="position:absolute;left:50%;top:50%;width:84px;height:84px;margin:-42px;border-radius:99px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:28px">▶</span></button>';
+	} else {
+		$h .= '<img decoding="async" src="' . esc_url( sib_v9_course_img( (int) ( $t ? array_search( $t, sib_academy_tracks(), true ) : 0 ) ) ) . '" alt="" style="width:100%;height:100%;object-fit:cover;opacity:.9"><span class="tg" style="position:absolute;left:20px;bottom:20px;background:#fff">' . esc_html__( 'Read in a few minutes', 'shopinbos' ) . '</span>';
+	}
+	$h .= '</div>';
+	$h .= '<div style="margin-top:32px"><span class="k orgd">' . esc_html( sprintf( 'Lesson %d of %d · %d min', $pos + 1, count( $list ), $a['minutes'] ) ) . '</span><h1 class="H" style="font-size:clamp(34px,4vw,56px);line-height:1.04;margin-top:12px">' . esc_html( get_the_title( $post ) ) . '</h1></div>';
+	$h .= '<div class="v9-prose v9-lesson" style="max-width:720px;margin-top:20px">' . $lang( esc_html( $a['introEn'] ), esc_html( (string) $a['introPcm'] ), 'p', ' class="lead" style="color:#16141F"' );
+	if ( $learn = sib_v9_lines( (string) $a['learn'] ) ) {
+		$h .= '<div class="blk blk-take"><b>' . esc_html__( 'In this lesson you’ll learn', 'shopinbos' ) . '</b><ul class="ticks">' . implode( '', array_map( fn( $l ) => '<li>' . sib_v9_inline( $l ) . '</li>', $learn ) ) . '</ul></div>';
+	}
+	if ( $steps = sib_v9_lines( (string) $a['steps'] ) ) {
+		$h .= '<h2>' . esc_html( sprintf( 'Do it in %d steps', count( $steps ) ) ) . '</h2><ol class="steps-list">';
+		foreach ( $steps as $i => $s ) {
+			$parts = array_map( 'trim', explode( '|', $s, 2 ) );
+			$h    .= '<li class="stepl"><span class="num">' . ( $i + 1 ) . '</span><div class="col" style="gap:3px;padding-top:6px">' . ( isset( $parts[1] ) ? '<b style="font-size:16px">' . sib_v9_inline( $parts[0] ) . '</b><span class="p">' . sib_v9_inline( $parts[1] ) . '</span>' : '<span>' . sib_v9_inline( $parts[0] ) . '</span>' ) . '</div></li>';
+		}
+		$h .= '</ol>';
+	}
+	if ( $a['tryEn'] ) {
+		$h .= '<div class="blk" style="padding:24px 26px;background:#E9F8F4"><span class="k tl">' . esc_html__( 'Your task', 'shopinbos' ) . '</span>' . $lang( sib_v9_inline( (string) $a['tryEn'] ), $a['tryPcm'] ? sib_v9_inline( (string) $a['tryPcm'] ) : '', 'div', ' style="font-size:17px;margin-top:8px;line-height:1.55;color:#16141F"' )
+			. '<div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap"><a class="btn b-ink" href="' . esc_url( sib_v9_tokens( '%%SIGNUP%%' ) ) . '" style="height:46px;font-size:14.5px;color:#fff;text-decoration:none">' . esc_html__( 'Open my shop', 'shopinbos' ) . '</a></div></div>';
+	}
+	if ( $checks = sib_v9_lines( (string) $a['checks'] ) ) {
+		$h .= '<div class="blk blk-check"><div class="row between" style="margin-bottom:6px;gap:10px"><b style="font-size:17px">' . esc_html__( 'Before you finish, tick these', 'shopinbos' ) . '</b><span class="tag tag-ok">' . esc_html__( 'Tap to tick', 'shopinbos' ) . '</span></div>';
+		foreach ( $checks as $c ) {
+			$h .= '<button type="button" class="chkrow" aria-pressed="false"><span class="box">✓</span><span class="chk-t">' . sib_v9_inline( $c ) . '</span></button>';
+		}
+		$h .= '</div>';
+	}
+	$opts = sib_v9_lines( (string) $a['options'] );
+	if ( $a['quiz'] && count( $opts ) > 1 ) {
+		$h .= '<div class="blk v9-quiz" data-correct="' . max( 0, (int) $a['correct'] - 1 ) . '" style="padding:24px;box-shadow:inset 0 0 0 1px #EAE7EF"><span class="tg" style="background:#E7E1FF;color:#5B3FD6">' . esc_html__( 'Quick check', 'shopinbos' ) . '</span><p style="font-size:19px;font-weight:700;color:#16141F;margin:12px 0">' . esc_html( $a['quiz'] ) . '</p><div style="display:grid;gap:8px">';
+		foreach ( $opts as $i => $o ) {
+			$h .= '<button type="button" class="chkrow" data-opt="' . (int) $i . '"><span class="num" style="width:28px;height:28px;font-size:13px">' . chr( 65 + $i ) . '</span>' . esc_html( $o ) . '</button>';
+		}
+		$h .= '</div><p class="v9-verdict" hidden style="margin:14px 0 0;font-size:16px"><b></b> ' . esc_html( (string) $a['why'] ) . '</p></div>';
+	}
+	$h .= '</div><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:40px;padding-top:22px;border-top:1px solid #ECEAF2;max-width:720px">'
+		. ( $prev ? '<a class="btn b-line" href="' . esc_url( get_permalink( $prev ) ) . '">← ' . esc_html__( 'Previous', 'shopinbos' ) . '</a>' : '<span></span>' )
+		. '<a class="btn b-org" data-lesson-done="' . (int) $post->ID . '" href="' . esc_url( $next ? get_permalink( $next ) : ( $term ? get_term_link( $term ) : '/academy/' ) ) . '">' . esc_html( $next ? __( 'Done, next lesson', 'shopinbos' ) : __( 'Done, finish the course', 'shopinbos' ) ) . ' →</a></div>';
+	$h .= '</div><aside style="display:grid;gap:16px;min-width:0;position:sticky;top:24px"><div class="ui" style="padding:14px;border-radius:22px;box-shadow:inset 0 0 0 1px #EAE7EF"><div style="padding:6px 8px 12px"><b>' . esc_html( $term ? $term->name : get_the_title( $post ) ) . '</b><div class="mutd" style="font-size:12.5px;margin-top:6px" data-course-progress="' . esc_attr( implode( ',', wp_list_pluck( $list, 'ID' ) ) ) . '">' . esc_html( sprintf( '%d lessons', count( $list ) ) ) . '</div></div>' . sib_v9_lesson_rows( $list, $post->ID ) . '</div>';
+	$h .= '<a class="bc c-mint" href="' . esc_url( function_exists( 'sib_whatsapp_share_url' ) ? sib_whatsapp_share_url( get_the_title( $post ) . ' – ' . get_permalink( $post ) ) : get_permalink( $post ) ) . '" style="gap:6px;min-height:0;padding:20px"><b>' . esc_html__( 'Send it to my WhatsApp', 'shopinbos' ) . '</b><span class="p" style="font-size:14px;color:#2E4A46">' . esc_html__( 'Read it later, even on slow data.', 'shopinbos' ) . '</span></a></aside></div></div></section>';
+
+	return [
+		'slug'        => 'academy-lesson',
+		'html'        => sib_v9_wrap( $h, 'academy-lesson' ),
+		'title'       => get_the_title( $post ) . ' · Shopinbos Academy',
+		'description' => wp_html_excerpt( (string) $a['introEn'], 155, '…' ),
+		'crumbs'      => [ [ __( 'Academy', 'shopinbos' ), home_url( '/academy/' ) ] ],
+	];
+}
+
+add_filter( 'sib_v9_content_templates', function ( array $t ): array {
+	$t['sib_v9_is_course'] = 'sib_v9_course';
+	$t['sib_v9_is_lesson'] = 'sib_v9_lesson';
+	return $t;
+} );
+
+function sib_v9_is_course(): bool {
+	return is_tax( 'sib_track' );
+}
+
+function sib_v9_is_lesson(): bool {
+	return is_singular( 'sib_lesson' );
+}

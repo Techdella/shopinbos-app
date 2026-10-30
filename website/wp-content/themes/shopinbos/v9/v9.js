@@ -59,7 +59,7 @@
 			var s = t.nodeValue;
 			if (first) s = s.replace(/\b(Ada|Tolu)\b(?=[.,])/g, first);
 			else s = s.replace(/^(Thanks|in), (Ada|Tolu)\b/, '$1');
-			if (ref) s = s.replace('SB-T-[n]', ref);
+			if (ref) s = s.replace(/SB-T-(\[n\]|000000)/, ref);
 			t.nodeValue = s;
 		}
 	}
@@ -192,6 +192,59 @@
 	/* Checklists inside posts: tap to tick. */
 	document.querySelectorAll('.v9-prose .chkrow').forEach(function (b) {
 		b.addEventListener('click', function () { b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') === 'true' ? 'false' : 'true'); });
+	});
+
+	/* Academy lessons: English/Pidgin, quick check, video, progress saved on this phone. */
+	document.querySelectorAll('[data-lang-pick]').forEach(function (b) {
+		b.addEventListener('click', function () {
+			var lang = b.getAttribute('data-lang-pick');
+			document.querySelectorAll('[data-lang-pick]').forEach(function (x) { var on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+			document.querySelectorAll('[data-lang]').forEach(function (el) { el.hidden = el.getAttribute('data-lang') !== lang; });
+		});
+	});
+	document.querySelectorAll('.v9-quiz').forEach(function (q) {
+		var right = +q.getAttribute('data-correct');
+		q.querySelectorAll('[data-opt]').forEach(function (o) {
+			o.addEventListener('click', function () {
+				var ok = +o.getAttribute('data-opt') === right;
+				q.querySelectorAll('[data-opt]').forEach(function (x) { x.setAttribute('aria-pressed', 'false'); });
+				o.setAttribute('aria-pressed', 'true');
+				var v = q.querySelector('.v9-verdict');
+				v.hidden = false;
+				v.querySelector('b').textContent = ok ? 'That’s right.' : 'Not quite.';
+				v.querySelector('b').style.color = ok ? '#16794A' : '#C2410C';
+			});
+		});
+	});
+	document.querySelectorAll('button[data-video]').forEach(function (b) {
+		b.addEventListener('click', function () {
+			var f = document.createElement('iframe');
+			f.src = 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(b.getAttribute('data-video')) + '?autoplay=1&rel=0';
+			f.allow = 'autoplay; encrypted-media; picture-in-picture';
+			f.allowFullscreen = true;
+			f.title = 'Lesson video';
+			f.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0';
+			b.replaceWith(f);
+		});
+	});
+	var done = [];
+	try { done = JSON.parse(localStorage.getItem('sib_lessons_done') || '[]'); } catch (e) {}
+	document.querySelectorAll('[data-lesson-done]').forEach(function (a) {
+		a.addEventListener('click', function () {
+			var id = a.getAttribute('data-lesson-done');
+			if (done.indexOf(id) < 0) done.push(id);
+			try { localStorage.setItem('sib_lessons_done', JSON.stringify(done)); } catch (e) {}
+		});
+	});
+	document.querySelectorAll('[data-lesson-row]').forEach(function (r) {
+		if (done.indexOf(r.getAttribute('data-lesson-row')) < 0) return;
+		var n = r.querySelector('.v9-num');
+		if (n) { n.textContent = '✓'; n.style.background = '#16794A'; n.style.color = '#fff'; }
+	});
+	document.querySelectorAll('[data-course-progress]').forEach(function (p) {
+		var ids = p.getAttribute('data-course-progress').split(',');
+		var n = ids.filter(function (id) { return done.indexOf(id) >= 0; }).length;
+		if (n) p.textContent = n + ' of ' + ids.length + ' done';
 	});
 
 	/* CTA clicks to the app. */

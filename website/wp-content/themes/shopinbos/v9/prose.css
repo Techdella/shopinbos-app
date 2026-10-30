@@ -105,3 +105,10 @@
 	.v9-prose .hide-m{display:none}
 	.v9-feat{height:300px !important}
 }
+
+/* Academy lesson */
+.v9-lesson .steps-list{list-style:none;padding:0;display:grid;gap:14px}
+.v9-lesson .chkrow[data-opt]{gap:12px}
+.v9-lesson .chkrow[data-opt][aria-pressed="true"]{box-shadow:inset 0 0 0 2px #16141F}
+.v9-lesson .blk-check .box{font-size:13px;color:transparent}
+.v9-lesson .blk-check .chkrow[aria-pressed="true"] .box{color:#fff}
