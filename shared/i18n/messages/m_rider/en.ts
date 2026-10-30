@@ -215,6 +215,19 @@ const en = {
   "me.plateTitle": "Your plate number",
   "me.plateSave": "Save",
   "me.plateFailed": "Couldn't save the plate number. Try again.",
+  "chat.shop": "Message {name}",
+  "chat.theShop": "The shop",
+  "chat.yourCompany": "Your company",
+  "chat.aboutJob": "About this delivery",
+  "chat.company": "Your delivery company",
+  "chat.messageCompany": "Message {company}",
+  "me.rating": "Your rating",
+  "me.ratingValue": "{average} stars from {count, plural, one {# customer} other {# customers}}",
+  "me.noRating": "No ratings yet. Send customers your review link after each drop.",
+  "review.send": "Ask the customer for a rating",
+  "review.message": "Hi! I just delivered your parcel. How did I do? Rate me here: {link}",
+  "review.sent": "Review link ready to send.",
+  "review.failed": "We couldn't get the review link. Try again.",
 } satisfies Record<string, string>;
 
 export default en;

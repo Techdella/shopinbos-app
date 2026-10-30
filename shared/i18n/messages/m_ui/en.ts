@@ -276,6 +276,9 @@ const en = {
   "wk.5": "Sat",
   "wk.6": "Sun",
   "chart.lastDays": "Last 7 days: {days}",
+  "riderChat.failed": "That didn't send. Try again.",
+  "riderChat.placeholder": "Message {name}",
+  "riderChat.empty": "No messages yet. Say hello.",
 } satisfies Record<string, string>;
 
 export default en;

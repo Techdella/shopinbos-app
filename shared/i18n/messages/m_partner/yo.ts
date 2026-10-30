@@ -593,6 +593,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "fam.money.bankLabel": "Account payout {bank}. Yí i padà",
   "fam.biz.posts": "Àwọn post àti Status",
   "fam.biz.postsSub": "Ṣe post kí o sì ṣètò wọn pẹ̀lú Rex",
+  "fam.biz.studio": "Rex Studio",
+  "fam.biz.studioSub": "Flyers àti posts tí Rex ń ṣe fún ọ",
   "fam.biz.credits": "Credits Rex àti Peggy",
   "fam.biz.creditsSub": "{count, plural, one {credit #} other {credits #}}",
   "fam.biz.rewards": "Ẹ̀bùn",
@@ -709,6 +711,10 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "today.finishHintShort": "Fọ́tò ID rẹ àti selfie. Kò sí ìwé tàbí àlàyé bánkì.",
   "riders.noneBodyShort": "Fi ọlọ́kadà kún un pẹ̀lú orúkọ àti nọ́ńbà WhatsApp rẹ̀.",
   "home.quotesAll": "Wo gbogbo rẹ̀",
+  "rider.chatSub": "Ẹni tó ń gbé ẹrù rẹ, nínú áàpù Riders",
+  "rider.message": "Kọ ọ̀rọ̀ sí {name}",
+  "rider.rating": "Ìdíyelé oníbàárà",
+  "rider.ratingValue": "Ìràwọ̀ {average} látọ̀dọ̀ oníbàárà {count}",
 };
 
 export default yo;

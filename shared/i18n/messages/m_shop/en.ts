@@ -65,6 +65,8 @@ const en = {
   "link.chatbot.hint": "Answers shoppers on your shop's chat, day and night",
   "link.notifications.label": "Notifications",
   "link.notifications.hint": "Orders, payments and messages, and what buzzes your phone",
+  "link.myDetails.label": "My details",
+  "link.myDetails.hint": "Your name, email, phone and your shop's address",
   "link.settings.label": "Settings and help",
   "link.settings.hint": "Your shop details, logo and your own details",
   "link.legal.label": "Legal pages",

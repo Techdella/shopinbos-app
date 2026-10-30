@@ -14,6 +14,7 @@ import { acceptTerms, checkNin, saveBase, saveIdDocument, sendPhoneCode, sendSel
 import { birthDate, digitsUpTo, itemsWhereOpen, selfieDataUri } from "@/lib/kyc-pure";
 import { shrunkBase64 } from "@/lib/upload-photo";
 import { colors } from "@/theme";
+import { Confetti, DancingRex } from "@/components/Celebrate";
 import { ItemStatus, Question, openOnWeb, useStepAction, type ScreenProps, type StepProps } from "./KycKit";
 import { LIVENESS_ON, useKoraLiveness, type LivenessPass } from "./KoraLiveness";
 import { livenessStartProblem } from "@shared/liveness-name";
@@ -244,18 +245,28 @@ export function ReviewScreen({ state, onState, goTo }: StepProps & { goTo: (scre
   const open = itemsWhereOpen(state.tier1).filter((item) => item.key !== "terms");
   const verified = state.state === "tier1_verified" || state.state === "tier2_verified";
   const showStatus = Boolean(state.submittedAt) && open.length === 0 && state.state !== "rejected" && state.state !== "unverified";
+  // Just sent their sign-up: confetti and Rex dancing over "Your Shopinbos dashboard is ready", once.
+  const [justSent, setJustSent] = useState(false);
 
   async function send() {
     if (!agreed) return action.setError(t("terms.needed"));
-    await action.run("send", async () => {
+    const sent = await action.run("send", async () => {
       if (!state.termsCurrent) await acceptTerms();
       return submitKyc();
     });
+    if (sent) setJustSent(true);
   }
 
   if (showStatus) {
     return (
       <View style={{ gap: 16 }}>
+        {justSent ? (
+          <View testID="kyc-celebrate" style={{ alignItems: "center", gap: 8, backgroundColor: colors.mintTint, borderRadius: 24, padding: 18 }}>
+            <DancingRex size={130} />
+            <T weight="extrabold" style={{ fontSize: 22, textAlign: "center" }} accessibilityRole="header">{t("q.done.ready")}</T>
+            <T style={{ color: colors.inkSoft, fontSize: 15, lineHeight: 21, textAlign: "center" }}>{t("q.done.readySub")}</T>
+          </View>
+        ) : null}
         <Card style={{ gap: 10 }}>
           <TonePill tone={STATE_TONE[state.state]} label={verified ? t(`state.${state.state}`) : t("q.done.title")} />
           <T weight="extrabold" style={{ fontSize: 26 }}>{verified ? t(`state.${state.state}`) : state.state === "suspended" ? t("state.suspended") : t("q.done.title")}</T>
@@ -275,6 +286,7 @@ export function ReviewScreen({ state, onState, goTo }: StepProps & { goTo: (scre
         </Pressable>
         {/* L11-Review: into the app while the check runs (jobs show once verified). */}
         <PillButton testID="kyc-look-around" title={verified ? t("q.done.open") : t("q.done.lookAround")} onPress={() => router.replace("/logistics/jobs")} />
+        {justSent ? <Confetti /> : null}
       </View>
     );
   }

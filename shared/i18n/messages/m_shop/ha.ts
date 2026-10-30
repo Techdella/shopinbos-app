@@ -64,6 +64,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "link.chatbot.hint": "Tana amsa masu saye a chat ɗin shagonka, dare da rana",
   "link.notifications.label": "Sanarwa",
   "link.notifications.hint": "Oda, biyan kuɗi da saƙonni, da abin da ke sa wayarka ƙara",
+  "link.myDetails.label": "Bayanaina",
+  "link.myDetails.hint": "Sunanka, email, waya da adireshin shagonka",
   "link.settings.label": "Saituna da taimako",
   "link.settings.hint": "Bayanan shagonka, tambari da bayananka",
   "link.legal.label": "Shafukan doka",

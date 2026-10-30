@@ -168,6 +168,14 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "studio.logoSub": "Rex go draw logo ideas (e go open for web)",
   "studio.chat": "Chat with Rex",
   "studio.chatSub": "Ask for anything else, or change your shop",
+  "studio.partnerSub": "Flyers, pictures and status posts for your delivery business",
+  "studio.partnerIntro": "Make shops notice you. Pick one, I go do the hard part.",
+  "studio.picturesSubPartner": "Show your riders, bikes and same-day delivery",
+  "studio.flyersSubPartner": "Your prices, areas wey you cover and how to book you",
+  "studio.status": "Status posts",
+  "studio.statusSubPartner": "For your WhatsApp status and groups",
+  "studio.posts": "My posts",
+  "studio.postsSub": "Wetin Rex make for you, and wetin dey planned",
   "tool.studio": "Rex Studio",
 };
 

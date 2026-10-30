@@ -68,7 +68,7 @@ test("every kyc route that changes something refreshes the tier", () => {
     const src = stepSource(path);
     if (["payout", "nin", "phone", "email", "identity", "base", "id-document"].some((name) => path.endsWith(`/${name}/route.ts`))) {
       assert.match(src, /updateIdentityChecks/, path);
-    } else if (path.endsWith("/answers/route.ts")) {
+    } else if (path.endsWith("/answers/route.ts") || path.endsWith("/logo/route.ts")) {
       assert.match(src, /saveFlowAnswers/, path);
     } else if (path.endsWith("/submit/route.ts")) {
       assert.match(src, /submitPartnerKyc/, path);
@@ -112,7 +112,7 @@ test("terms at setup, the CAC banner and link, and the spec's pages", () => {
   for (const point of ["independent operator", "licences, permits and legal compliance", "documents you submit are true", "suspend your account"]) assert.ok(en.includes(point), point);
   assert.match(read("src/app/logistics/terms/page.tsx"), /lawyer/);
   assert.match(read("src/components/logistics/verification/CheckScreens.tsx"), /\/logistics\/cac-help/);
-  assert.match(read("shared/partner-tiers.ts"), /PARTNER_FLOW = \["name", "cac", "state", "areas", "vehicles", "interstate", "charge", "base", "id", "selfie", "review"\]/);
+  assert.match(read("shared/partner-tiers.ts"), /PARTNER_FLOW = \["name", "cac", "logo", "state", "areas", "vehicles", "interstate", "charge", "base", "id", "selfie", "review"\]/);
   assert.match(read("src/app/logistics/dashboard/page.tsx"), /<TierCard partnerId=/);
 });
 

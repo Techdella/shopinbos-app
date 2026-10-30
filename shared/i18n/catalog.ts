@@ -95,6 +95,7 @@ import payments from "./messages/payments/index.ts";
 import paylinks from "./messages/paylinks/index.ts";
 import customers from "./messages/customers/index.ts";
 import products from "./messages/products/index.ts";
+import bundles from "./messages/bundles/index.ts";
 import orders from "./messages/orders/index.ts";
 import home from "./messages/home/index.ts";
 import onboarding from "./messages/onboarding/index.ts";
@@ -106,6 +107,7 @@ import productTypes from "./messages/productTypes/index.ts";
 import tips from "./messages/tips/index.ts";
 import mail from "./messages/mail/index.ts";
 import bulkAdd from "./messages/bulkAdd/index.ts";
+import details from "./messages/details/index.ts";
 
 export const CATALOGS = {
   common,
@@ -200,6 +202,7 @@ export const CATALOGS = {
   paylinks,
   customers,
   products,
+  bundles,
   orders,
   home,
   onboarding,
@@ -211,6 +214,7 @@ export const CATALOGS = {
   tips,
   mail,
   bulkAdd,
+  details,
 } satisfies Record<string, Catalog>;
 
 export type Namespace = keyof typeof CATALOGS;

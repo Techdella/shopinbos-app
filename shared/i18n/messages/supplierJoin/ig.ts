@@ -134,6 +134,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "product.needPrice": "Dee ọnụahịa na naira.",
   "review.title": "Anyị na-enyocha gị",
   "review.sub": "Ọ na-ewe nkeji ole na ole. Anyị ga-ezitere gị ozi mgbe anyị nyochara gị, ndị na-ere ahịa ga-ahụkwa catalogue gị.",
+  "review.celebrate.title": "Dashboard Shopinbos gị adịla njikere",
+  "review.celebrate.sub": "Nnọọ n'ụlọ. Legharịa anya ka anyị na-enyocha nkọwa gị, ma tinye ngwaahịa ndị ọzọ mgbe ọ bụla ị chọrọ.",
   "review.verifiedTitle": "Anyị enyochala gị",
   "review.verifiedSub": "Ndị na-ere ahịa nwere ike ịhụ gị ugbu a. Ziga ngwaahịa gị maka nleba anya ka ndị na-ere ahịa hụ ha.",
   "review.readyTitle": "Ọ dịla njikere iziga",

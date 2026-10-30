@@ -212,6 +212,19 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "me.plateTitle": "Your plate number",
   "me.plateSave": "Save",
   "me.plateFailed": "We no fit save the plate number. Try again.",
+  "chat.shop": "Message {name}",
+  "chat.theShop": "The shop",
+  "chat.yourCompany": "Your company",
+  "chat.aboutJob": "About this delivery",
+  "chat.company": "Your delivery company",
+  "chat.messageCompany": "Message {company}",
+  "me.rating": "Your rating",
+  "me.ratingValue": "{average} stars from {count, plural, one {# customer} other {# customers}}",
+  "me.noRating": "No rating yet. Send customers your review link after every drop.",
+  "review.send": "Ask the customer make e rate you",
+  "review.message": "Hi! I don deliver your parcel. How I take do am? Rate me here: {link}",
+  "review.sent": "Review link don ready to send.",
+  "review.failed": "We no fit get the review link. Try again.",
 };
 
 export default pcm;

@@ -475,6 +475,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "team.deactivate": "Dá a dúró",
   "team.reactivate": "Tún un tàn",
   "team.removeAria": "Yọ {name} kúrò",
+  "settings.link.details.label": "Àlàyé mi",
+  "settings.link.details.hint": "Orúkọ rẹ, email, fóònù àti àdírẹ́sì",
   "settings.link.profile.label": "Profile supplier",
   "settings.link.profile.hint": "Orúkọ, logo, nípa rẹ, ìbánisọ̀rọ̀",
   "settings.link.billing.label": "Billing àti plan",

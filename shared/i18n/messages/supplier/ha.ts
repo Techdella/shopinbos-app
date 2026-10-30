@@ -475,6 +475,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "team.deactivate": "Kashe",
   "team.reactivate": "Sake kunnawa",
   "team.removeAria": "Cire {name}",
+  "settings.link.details.label": "Bayanaina",
+  "settings.link.details.hint": "Sunanka, email, waya da adireshi",
   "settings.link.profile.label": "Bayanin mai kawo kaya",
   "settings.link.profile.hint": "Suna, logo, game da kai, tuntuɓa",
   "settings.link.billing.label": "Biya da tsari",

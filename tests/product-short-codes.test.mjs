@@ -120,6 +120,8 @@ test("every product create path assigns a code", () => {
     // /api/mobile/marketplace go through its linkSupplierProduct.
     "src/lib/marketplace/quick-add.server.ts",
     "src/lib/products/bulk/publish.server.ts",
+    // Bundles ("Buy together", shared/bundles.ts).
+    "src/lib/products/bundles.server.ts",
   ];
   assert.deepEqual(creators.sort(), expected);
   for (const path of creators) {

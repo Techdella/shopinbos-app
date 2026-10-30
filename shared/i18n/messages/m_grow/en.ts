@@ -172,6 +172,14 @@ const en = {
   "studio.logoSub": "Rex draws logo ideas (opens on the web)",
   "studio.chat": "Chat with Rex",
   "studio.chatSub": "Ask for anything else, or change your shop",
+  "studio.partnerSub": "Flyers, pictures and status posts for your delivery business",
+  "studio.partnerIntro": "Let's get shops to notice you. Pick one and I'll do the hard part.",
+  "studio.picturesSubPartner": "Show your riders, bikes and same-day delivery",
+  "studio.flyersSubPartner": "Your prices, areas you cover and how to book you",
+  "studio.status": "Status posts",
+  "studio.statusSubPartner": "For your WhatsApp status and groups",
+  "studio.posts": "My posts",
+  "studio.postsSub": "What Rex made for you, and what's planned",
   "tool.studio": "Rex Studio",
 } satisfies Record<string, string>;
 

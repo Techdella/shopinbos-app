@@ -212,6 +212,19 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "me.plateTitle": "Nọmba plate gị",
   "me.plateSave": "Chekwaa",
   "me.plateFailed": "Enweghị ike ichekwa nọmba plate. Nwaa ọzọ.",
+  "chat.shop": "Zigara {name} ozi",
+  "chat.theShop": "Ụlọ ahịa ahụ",
+  "chat.yourCompany": "Ụlọ ọrụ gị",
+  "chat.aboutJob": "Maka ngwa a",
+  "chat.company": "Ụlọ ọrụ na-ebuga ngwa gị",
+  "chat.messageCompany": "Zigara {company} ozi",
+  "me.rating": "Akara gị",
+  "me.ratingValue": "Kpakpando {average} site n'aka ndị ahịa {count}",
+  "me.noRating": "Enwebeghị akara. Zigara ndị ahịa njikọ akara gị mgbe ọ bụla i bugara ha ngwa.",
+  "review.send": "Rịọ onye ahịa ka o nye gị akara",
+  "review.message": "Ndewo! Ebutere m ngwa gị ugbu a. Kedu ka m si mee? Nye m akara ebe a: {link}",
+  "review.sent": "Njikọ akara adịla njikere iziga.",
+  "review.failed": "Anyị enwetaghị njikọ akara. Nwaa ọzọ.",
 };
 
 export default ig;

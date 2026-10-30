@@ -606,6 +606,8 @@ const en = {
   "fam.money.bankLabel": "Payout account {bank}. Change",
   "fam.biz.posts": "Posts and Status",
   "fam.biz.postsSub": "Make and plan posts with Rex",
+  "fam.biz.studio": "Rex Studio",
+  "fam.biz.studioSub": "Flyers and posts Rex makes for you",
   "fam.biz.credits": "Rex and Peggy credits",
   "fam.biz.creditsSub": "{count, plural, one {# credit} other {# credits}}",
   "fam.biz.rewards": "Rewards",
@@ -722,6 +724,10 @@ const en = {
   "today.finishHintShort": "Your ID photo and a selfie. No papers or bank details.",
   "riders.noneBodyShort": "Add a rider with their name and WhatsApp number.",
   "home.quotesAll": "See all",
+  "rider.chatSub": "Your rider, in the Riders app",
+  "rider.message": "Message {name}",
+  "rider.rating": "Customer rating",
+  "rider.ratingValue": "{average} stars from {count, plural, one {# customer} other {# customers}}",
 } satisfies Record<string, string>;
 
 export default en;

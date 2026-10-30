@@ -134,6 +134,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "product.needPrice": "Type the price for naira.",
   "review.title": "We dey check your details",
   "review.sub": "E no dey pass few minutes. We go message you when we verify you, and sellers go see your catalogue.",
+  "review.celebrate.title": "Your Shopinbos dashboard don ready",
+  "review.celebrate.sub": "Welcome home. Look around while we dey check your details, and add more products anytime you like.",
   "review.verifiedTitle": "We don verify you",
   "review.verifiedSub": "Sellers fit find you now. Send your products for review make sellers see dem.",
   "review.readyTitle": "E don ready to send",

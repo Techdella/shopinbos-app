@@ -13,6 +13,7 @@ import { spreadAgreedAmount } from "@/lib/payment-links/pure";
 import { marketChoiceForStore, supplierParcelsForZones } from "@/lib/delivery-market/market.server";
 import { chooseMarketOption, timeframeWords, type MarketOption, type OptionPart } from "@shared/delivery-market";
 import { dropshipQuantityProblem } from "@shared/dropship-rules";
+import { bundleAvailable, bundleStockQuantities, readBundle, type BundleItem } from "@shared/bundles";
 import { parcelLines, partCharge, type ParcelLine } from "@shared/dropship-checkout";
 import {
   chooseDelivery,
@@ -158,19 +159,46 @@ export async function priceOrder(input: PricingInput): Promise<PricedOrder | { o
   // Unpaid orders past their time give their stock back first, so it counts as available below.
   await maybeExpireUnpaidOrders(input.store.id);
 
-  const products = await db.storeProduct.findMany({
-    where: { storeId: input.store.id, id: { in: [...quantities.keys()] }, status: "published" },
-    select: {
-      id: true, name: true, images: true, retailPrice: true, currentStock: true, variants: true,
-      // The seller's "Track stock" switch: untracked products are never short and give no stock.
-      trackStock: true, continueSellingWhenOut: true, reservedStock: true,
-      // Preorders take no stock, only a place under the cap; their lines are tagged on the order.
-      preorderEnabled: true, preorderLimit: true, preorderTaken: true, preorderShipsAt: true, preorderDepositPct: true,
-      // Dropship products sell from the supplier's stock (the seller holds none).
-      fulfillmentType: true, supplierProductId: true, supplierProduct: { select: { id: true, stockQuantity: true, status: true, preorderEnabled: true, preorderLimit: true, preorderTaken: true, preorderShipsAt: true, dropshipMinQty: true } },
-    },
-  });
-  if (products.length !== quantities.size) return { ok: false, message: "One or more items in your bag are no longer available. Remove them and try again." };
+  const select = {
+    id: true, name: true, images: true, retailPrice: true, currentStock: true, variants: true,
+    // The seller's "Track stock" switch: untracked products are never short and give no stock.
+    trackStock: true, continueSellingWhenOut: true, reservedStock: true,
+    // Preorders take no stock, only a place under the cap; their lines are tagged on the order.
+    preorderEnabled: true, preorderLimit: true, preorderTaken: true, preorderShipsAt: true, preorderDepositPct: true,
+    // Dropship products sell from the supplier's stock (the seller holds none).
+    fulfillmentType: true, supplierProductId: true, supplierProduct: { select: { id: true, stockQuantity: true, status: true, preorderEnabled: true, preorderLimit: true, preorderTaken: true, preorderShipsAt: true, dropshipMinQty: true } },
+    // Bundles (shared/bundles.ts) list their items here.
+    productDetails: true,
+  } as const;
+  const rows = await db.storeProduct.findMany({ where: { storeId: input.store.id, id: { in: [...quantities.keys()] }, status: "published" }, select });
+  if (rows.length !== quantities.size) return { ok: false, message: "One or more items in your bag are no longer available. Remove them and try again." };
+
+  // A bundle holds no stock of its own: its sale is only counted (as an untracked product) and its items give their
+  // units instead (quantity each × bundles), taken by the same stock holds, so nothing oversells and each item's
+  // sold count stays right. Every item must still be for sale: published, the seller's own, no versions or pre-orders.
+  const bundles = new Map<string, BundleItem[]>();
+  for (const row of rows) {
+    const items = readBundle(row.productDetails);
+    if (items) bundles.set(row.id, items);
+  }
+  const products = rows.map((row) => (bundles.has(row.id) ? { ...row, trackStock: false, continueSellingWhenOut: false, preorderEnabled: false } : row));
+  const partIds = new Set([...bundles.values()].flat().map((item) => item.productId));
+  const parts = partIds.size
+    ? await db.storeProduct.findMany({ where: { storeId: input.store.id, id: { in: [...partIds].filter((id) => !quantities.has(id)) }, status: "published" }, select })
+    : [];
+  // Tracked items never keep selling at 0 through a bundle.
+  const stockProducts = [...products, ...parts].map((row) => (partIds.has(row.id) ? { ...row, continueSellingWhenOut: false } : row));
+  const stockById = new Map(stockProducts.map((row) => [row.id, row]));
+  for (const [bundleId, items] of bundles) {
+    const usable = items.every((item) => {
+      const part = stockById.get(item.productId);
+      return part && !bundles.has(part.id) && !readBundle(part.productDetails) && !isDropshipProduct(part) && part.fulfillmentType !== "dropship" && !part.preorderEnabled && !normalizeVariants(part.variants).some((variant) => variant.enabled);
+    });
+    if (!usable) return { ok: false, message: `${rows.find((row) => row.id === bundleId)!.name} isn't available right now. Remove it from your bag and try again.` };
+  }
+  // The units each stock pool gives: bundles' items, plus each bundle itself (its sale counted).
+  const stockQuantities = bundleStockQuantities(quantities, bundles);
+  for (const bundleId of bundles.keys()) stockQuantities.set(bundleId, quantities.get(bundleId) ?? 0);
 
   // Each line's version (size / colour…) and price come from the product, never from the browser.
   const byId = new Map(products.map((product) => [product.id, product]));
@@ -223,7 +251,15 @@ export async function priceOrder(input: PricingInput): Promise<PricedOrder | { o
   }
 
   // Tracked products can't sell more than is left (in stock minus set aside); dropship ones more than the supplier has.
-  const short = stockShortfallDetails(products, quantities);
+  // An item that is short only inside a bundle names the bundle, with how many bundles are left.
+  const partNames = new Map(parts.map((part) => [part.name, part.id]));
+  const short = stockShortfallDetails(stockProducts, stockQuantities).flatMap((entry) => {
+    const partId = partNames.get(entry.name);
+    if (!partId) return [entry];
+    return [...bundles]
+      .filter(([, items]) => items.some((item) => item.productId === partId))
+      .map(([bundleId, items]) => ({ name: byId.get(bundleId)!.name, available: bundleAvailable(items, (id) => stockById.get(id)) ?? 0 }));
+  }).filter((entry, index, all) => all.findIndex((other) => other.name === entry.name) === index);
   // A size or colour counted on its own needs enough of that version too (unless the product keeps selling at 0).
   for (const [productId, holds] of variantHolds) {
     const product = byId.get(productId)!;
@@ -241,7 +277,7 @@ export async function priceOrder(input: PricingInput): Promise<PricedOrder | { o
     const problem = dropshipQuantityProblem(product.supplierProduct?.dropshipMinQty, quantities.get(product.id) ?? 0, product.name);
     if (problem) return { ok: false, message: problem };
   }
-  const stockHolds = buildStockHolds(products, quantities, variantHolds);
+  const stockHolds = buildStockHolds(stockProducts, stockQuantities, variantHolds);
 
   const agreed = typeof input.agreedItemsTotal === "number" && input.agreedItemsTotal > 0 ? input.agreedItemsTotal : null;
   const items = agreed !== null ? spreadAgreedAmount([...merged.values()], agreed) : [...merged.values()];

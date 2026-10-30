@@ -475,6 +475,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "team.deactivate": "Kwụsịtụ ya",
   "team.reactivate": "Mee ka ọ rụọ ọzọ",
   "team.removeAria": "Wepụ {name}",
+  "settings.link.details.label": "Nkọwa m",
+  "settings.link.details.hint": "Aha gị, email, ekwentị na adreesị",
   "settings.link.profile.label": "Profile supplier",
   "settings.link.profile.hint": "Aha, logo, gbasara gị, kọntaktị",
   "settings.link.billing.label": "Ịkwụ ụgwọ na plan",

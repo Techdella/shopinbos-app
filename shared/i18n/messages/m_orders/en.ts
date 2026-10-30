@@ -177,6 +177,9 @@ const en = {
   "sale.codePlaceholder": "Code, e.g. BAG2",
   "sale.codeNone": "No product has the code {code}.",
   "list.emptyBodyShort": "Orders show here. Sold on WhatsApp or in person? Record it.",
+  "order2.yourRider": "Your rider",
+  "order2.riderChatSub": "Carrying this order",
+  "order2.messageRider": "Message {name}, your rider",
 } satisfies Record<string, string>;
 
 export default en;

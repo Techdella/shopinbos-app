@@ -1,19 +1,21 @@
 import { useState } from "react";
-import { Pressable, TextInput, View } from "react-native";
+import { Image, Pressable, TextInput, View } from "react-native";
 import { NG_STATES } from "@shared/delivery-market";
 import { lgasOf } from "@shared/ng-lgas";
 import { Choice } from "@/components/design";
 import { LabeledInput } from "@/components/PartnerKit";
-import { T } from "@/components/ui";
+import { PillButton, T } from "@/components/ui";
 import { useT } from "@/lib/i18n";
-import { lookUpCac, saveAnswer, saveKycBusiness } from "@/lib/kyc";
+import { lookUpCac, saveAnswer, saveKycBusiness, saveKycLogo } from "@/lib/kyc";
+import { pickPhotos, type PickedPhoto } from "@/lib/photos";
 import { areaToken, feeAmount } from "@/lib/kyc-pure";
 import { colors, fonts } from "@/theme";
 import { Question, useStepAction, type ScreenProps } from "./KycKit";
 
-// Screens 1–7 of the partner sign-up on the phone, one question each (the web's src/components/logistics/
-// verification/QuestionScreens.tsx): business name, CAC, state, areas, what they deliver with, other states, how they
-// charge. Each saves through /api/logistics/kyc/answers and moves on with onDone.
+// Screens 1–8 of the partner sign-up on the phone, one question each (the web's src/components/logistics/
+// verification/QuestionScreens.tsx): business name, CAC, company logo, state, areas, what they deliver with, other
+// states, how they charge. Each saves through /api/logistics/kyc/answers (the logo photo through /kyc/logo) and moves
+// on with onDone.
 
 const bigInput = () => ({ minHeight: 56, borderRadius: 16, borderWidth: 1.5, borderColor: colors.line, backgroundColor: colors.surface, paddingHorizontal: 16, fontSize: 18, fontFamily: fonts.regular, color: colors.ink } as const);
 
@@ -197,6 +199,44 @@ export function VehiclesScreen({ state, onState, onDone }: ScreenProps) {
           );
         })}
       </View>
+    </Question>
+  );
+}
+
+/** "Do you have a company logo?": a photo of it from the gallery or the camera, or "I'll add it later". Optional. */
+export function LogoScreen({ state, onState, onDone }: ScreenProps) {
+  const t = useT("m_kyc");
+  const action = useStepAction(onState);
+  const [photo, setPhoto] = useState<PickedPhoto | null>(null);
+  const saved = state.business.logoUrl;
+
+  async function pick(source: "library" | "camera") {
+    action.setError(null);
+    const picked = await pickPhotos(source);
+    if (picked === "denied") return action.setError(source === "camera" ? t("selfie.cameraOff") : t("q.logo.galleryOff"));
+    if (picked[0]) setPhoto(picked[0]);
+  }
+
+  const preview = photo?.uri ?? saved;
+  return (
+    <Question
+      title={t("q.logo.title")}
+      sub={t("q.logo.sub")}
+      error={action.error}
+      busy={action.busy === "logo"}
+      canContinue={Boolean(photo)}
+      onContinue={() => (photo ? void action.run("logo", () => saveKycLogo(photo), onDone) : undefined)}
+    >
+      {preview ? (
+        <View style={{ alignItems: "center", padding: 16, borderRadius: 18, borderWidth: 1.5, borderColor: colors.line, backgroundColor: colors.surface }}>
+          <Image source={{ uri: preview }} resizeMode="contain" style={{ width: 160, height: 160 }} accessibilityLabel={t("q.logo.title")} />
+        </View>
+      ) : null}
+      <PillButton title={preview ? t("q.logo.change") : t("q.logo.pick")} icon="image" tone="white" onPress={() => void pick("library")} />
+      <PillButton title={t("q.logo.camera")} icon="camera" tone="white" onPress={() => void pick("camera")} />
+      <Pressable accessibilityRole="button" disabled={Boolean(action.busy)} onPress={() => void action.run("later", () => saveAnswer("logo", { logo: "later" }), onDone)} style={{ alignSelf: "center", minHeight: 44, justifyContent: "center" }}>
+        <T weight="bold" style={{ fontSize: 16, textDecorationLine: "underline" }}>{t("q.logo.later")}</T>
+      </Pressable>
     </Question>
   );
 }

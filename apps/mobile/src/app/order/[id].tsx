@@ -330,7 +330,18 @@ export default function OrderScreen() {
               title={`${t.dynamic(`service.${parcel.service}`, parcel.service)} · ${parcel.fee ? naira(parcel.fee) : t("order.free")}`}
               sub={[parcel.partner?.name, parcel.job?.rider ? t("order2.rider", { name: parcel.job.rider }) : null].filter(Boolean).join(" · ")}
             />
-          ))
+          )).concat(
+            parcels
+              .filter((parcel) => parcel.job?.rider && parcel.job.status !== "delivered")
+              .map((parcel) => (
+                <Row
+                  key={`chat-${parcel.shipmentKey}`}
+                  lead={<Tile icon="chat" tone="mint" />}
+                  title={t("order2.messageRider", { name: parcel.job!.rider! })}
+                  onPress={() => router.push({ pathname: "/delivery/rider-chat", params: { job: parcel.job!.id, name: parcel.job!.rider! } })}
+                />
+              )),
+          )
         ) : (
           <Row
             lead={<Tile icon="truck" tone="mint" />}

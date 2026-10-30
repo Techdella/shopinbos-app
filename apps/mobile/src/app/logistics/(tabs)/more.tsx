@@ -26,7 +26,7 @@ import { colors } from "@/theme";
 
 // Business ("Delivery partner app" prototype `business`): the company with its Verified pill, rating / on time /
 // failed from in-app deliveries, then Coverage, Services, Pickup points, Rate card, Riders and Payout account, the
-// posts and Status, Rex and Peggy credits (shown only: never sold or pointed to in the app, app store
+// Rex Studio (flyers and posts Rex makes), posts and Status, Rex and Peggy credits (shown only: never sold or pointed to in the app, app store
 // payment rules) and Rewards, the profile as sellers see it and Help. Credits hide when their API isn't there. Below: everything the old menu had (businesses you work with, notifications,
 // verification, price requests, connecting delivery software), language, sign out and
 // delete my account.
@@ -41,6 +41,7 @@ function go(path: string) {
 export default function LogisticsBusiness() {
   const t = useT("m_partner", "common");
   const tu = useT("m_ui");
+  const tDetails = useT("details");
   const callPeggy = useCanCallPeggy();
   const overview = useLoad(fetchLogisticsOverview);
   const market = useLoad(fetchMarket);
@@ -120,6 +121,7 @@ export default function LogisticsBusiness() {
       </List>
 
       <List>
+        <Row lead={<Tile icon="sparkle" tone="mint" />} title={t("fam.biz.studio")} sub={t("fam.biz.studioSub")} onPress={() => router.push("/logistics/studio")} />
         <Row lead={<Tile icon="megaphone" tone="lilac" />} title={t("fam.biz.posts")} sub={t("fam.biz.postsSub")} onPress={() => router.push("/posts" as never)} />
         {credits.data ? (
           <Row
@@ -137,6 +139,7 @@ export default function LogisticsBusiness() {
       </List>
 
       <List>
+        <Row lead={<Tile icon="user" tone="peach" />} title={tDetails("menu")} sub={tDetails("menuHint")} onPress={() => router.push("/my-details")} />
         <Row lead={<Tile icon="store" />} title={t("profile.detailsTitle")} sub={t("biz.profile")} onPress={() => router.push("/logistics/profile")} />
         <Row lead={<Tile icon="link" />} title={t("conn.title")} sub={market.data ? t("conn.banner", { count: market.data.connections.length }) : undefined} onPress={() => router.push("/logistics/connections")} />
         {callPeggy ? <CallPeggyButton variant="row" /> : null}

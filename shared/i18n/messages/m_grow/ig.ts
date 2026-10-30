@@ -168,6 +168,14 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "studio.logoSub": "Rex na-ese echiche akara (ọ ga-emepe na weebụ)",
   "studio.chat": "Kpaa nkata na Rex",
   "studio.chatSub": "Rịọ maka ihe ọ bụla ọzọ, ma ọ bụ gbanwee ụlọ ahịa gị",
+  "studio.partnerSub": "Flyers, foto na status posts maka azụmahịa nnyefe gị",
+  "studio.partnerIntro": "Ka anyị mee ka ụlọ ahịa hụ gị. Họrọ otu, m ga-eme akụkụ siri ike.",
+  "studio.picturesSubPartner": "Gosi ndị rider gị, ọgba tum tum na nnyefe otu ụbọchị",
+  "studio.flyersSubPartner": "Ọnụahịa gị, mpaghara ị na-ekpuchi na otu esi akpọ gị",
+  "studio.status": "Status posts",
+  "studio.statusSubPartner": "Maka WhatsApp status na group gị",
+  "studio.posts": "Post m",
+  "studio.postsSub": "Ihe Rex mere gị, na ihe a haziri",
   "tool.studio": "Rex Studio",
 };
 

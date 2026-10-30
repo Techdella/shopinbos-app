@@ -82,11 +82,15 @@ test("ready to submit: nothing missing or rejected (pending checks are fine)", (
 });
 
 test("the one-question flow: answers saved, where it reopens, and sent partners land on their status", () => {
-  assert.deepEqual([...t.PARTNER_FLOW], ["name", "cac", "state", "areas", "vehicles", "interstate", "charge", "base", "id", "selfie", "review"]);
+  assert.deepEqual([...t.PARTNER_FLOW], ["name", "cac", "logo", "state", "areas", "vehicles", "interstate", "charge", "base", "id", "selfie", "review"]);
   const blank = snapshot({ identity: {}, deliveryAreas: [], deliveryMethods: [], docs: {} });
   assert.equal(t.flowProgress(blank, {}, false).first, "name");
   assert.equal(t.flowProgress(blank, { name: true }, false).first, "cac");
-  assert.equal(t.flowProgress(blank, { name: true, cac: "no", homeState: "Lagos" }, false).first, "areas");
+  assert.equal(t.flowProgress(blank, { name: true, cac: "no", homeState: "Lagos" }, false).first, "areas", "the logo is optional: never sends anyone back to it");
+  assert.equal(t.flowProgress(blank, { name: true, cac: "no", logo: "later" }, false).done.logo, true);
+  assert.equal(t.flowProgress(blank, { name: true, cac: "no" }, false).done.logo, false);
+  assert.deepEqual(t.readFlowAnswers({ partnerFlow: { logo: "added" } }), { logo: "added" });
+  assert.deepEqual(t.readFlowAnswers({ partnerFlow: { logo: "maybe" } }), {});
   const answered = { name: true, cac: "registering", homeState: "Lagos", interstate: false, charge: "quote" };
   assert.equal(t.flowProgress(snapshot({ docs: {} }), answered, false).first, "selfie");
   assert.equal(t.flowProgress(snapshot(), answered, false).first, "review");

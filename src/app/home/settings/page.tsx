@@ -2,7 +2,8 @@ import { requireRole } from "@/lib/server-auth";
 import { billingEmail } from "@/lib/auth/billing-email";
 import { getSellerWorkspace } from "@/lib/workspace";
 import { IdentityImageUploader } from "@/components/profile/IdentityImageUploader";
-import { updateSellerProfile, saveStoreSettings, saveBusinessAddress, closeStore } from "@/app/actions/workspace";
+import { saveStoreSettings, saveBusinessAddress, closeStore } from "@/app/actions/workspace";
+import { DETAILS_HREF } from "@shared/my-details";
 import { TeamPanel } from "./TeamPanel";
 import { MessagePacksCard } from "@/components/plans/MessagePacksCard";
 import { StaffNote } from "./StaffNote";
@@ -62,6 +63,7 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
   const activeTab = params?.tab ? TAB_ALIASES[params.tab] ?? params.tab : "Store";
   const user = await requireRole(["seller"], "/login");
   const t = await getT("account", "common");
+  const tDetails = await getT("details");
   const tm = await getT("marketplace");
   const tPay = await getT("payments");
   const inApp = await isAppSession();
@@ -219,30 +221,28 @@ export default async function SellerSettingsPage({ searchParams }: PageProps) {
                   </Card>
                 </form>
 
-                <form action={updateSellerProfile}>
-                  {/* updateSellerProfile also writes these fields, so send their current values. */}
-                  <input type="hidden" name="name" value={user.name} />
-                  <input type="hidden" name="city" value={store?.city ?? user.city ?? ""} />
-                  <input type="hidden" name="country" value={store?.country ?? user.country ?? ""} />
-                  <input type="hidden" name="description" value={store?.description ?? ""} />
-                  <Card className="p-5">
-                    <CardHead title={t("contact.title")} />
-                    <div className="mt-4 grid gap-4 md:grid-cols-2">
-                      <div className="min-w-0">
-                        <span className={FIELD_LABEL}>{t("email")}</span>
-                        <div className="flex h-[50px] min-w-0 items-center rounded-[16px] border border-app-line bg-app-canvas px-4 text-[15px]">
-                          <span className="truncate">{user.email ?? t("contact.noEmail")}</span>
-                        </div>
-                        <p className={FIELD_HELP}>{t("contact.emailHelp")}</p>
-                      </div>
-                      <div className="min-w-0">
-                        <label htmlFor="phone" className={FIELD_LABEL}>{t("phone")}</label>
-                        <input id="phone" name="phone" type="tel" className={FIELD_INPUT} defaultValue={user.phone ?? ""} placeholder="+234 800 000 0000" />
+                {/* Email and phone are how the seller logs in: they change in My details, with a link or a code. */}
+                <Card className="p-5">
+                  <CardHead
+                    title={t("contact.title")}
+                    sub={tDetails("settingsHint")}
+                    action={<PillLink href={DETAILS_HREF.seller} size="sm" tone="ink">{tDetails("menu")}</PillLink>}
+                  />
+                  <div className="mt-4 grid gap-4 md:grid-cols-2">
+                    <div className="min-w-0">
+                      <span className={FIELD_LABEL}>{t("email")}</span>
+                      <div className="flex h-[50px] min-w-0 items-center rounded-[16px] border border-app-line bg-app-canvas px-4 text-[15px]">
+                        <span className="truncate">{user.email ?? t("contact.noEmail")}</span>
                       </div>
                     </div>
-                    <button type="submit" className={`${SUBMIT_INK} mt-4`}>{t("contact.save")}</button>
-                  </Card>
-                </form>
+                    <div className="min-w-0">
+                      <span className={FIELD_LABEL}>{t("phone")}</span>
+                      <div className="flex h-[50px] min-w-0 items-center rounded-[16px] border border-app-line bg-app-canvas px-4 text-[15px]">
+                        <span className="truncate">{user.phone || tDetails("phoneNone")}</span>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
               </>
             )}
 

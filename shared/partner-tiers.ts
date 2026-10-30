@@ -262,10 +262,11 @@ export const ITEM_LABELS: Record<ChecklistItem, string> = {
 
 /**
  * The sign-up flow, one question per screen (the owner's doc, "Logistics partner: question by question"): business
- * name → CAC (any answer continues) → state → areas → what they deliver with → other states → how they charge →
- * where they're based → photo of an ID → selfie → review and send ("You're in review" once sent).
+ * name → CAC (any answer continues) → company logo (optional: "I'll add it later" continues) → state → areas → what
+ * they deliver with → other states → how they charge → where they're based → photo of an ID → selfie → review and
+ * send ("You're in review" once sent).
  */
-export const PARTNER_FLOW = ["name", "cac", "state", "areas", "vehicles", "interstate", "charge", "base", "id", "selfie", "review"] as const;
+export const PARTNER_FLOW = ["name", "cac", "logo", "state", "areas", "vehicles", "interstate", "charge", "base", "id", "selfie", "review"] as const;
 export type FlowScreen = (typeof PARTNER_FLOW)[number];
 
 export function isFlowScreen(value: unknown): value is FlowScreen {
@@ -292,6 +293,8 @@ export interface FlowAnswers {
   /** The business name screen was answered (the name itself is companyName). */
   name?: boolean;
   cac?: "yes" | "no" | "registering";
+  /** The logo screen: a photo was added (LogisticsPartner.logoUrl), or "I'll add it later". */
+  logo?: "added" | "later";
   /** The state picked on screen 3 (its areas come next). */
   homeState?: string;
   interstate?: boolean;
@@ -303,6 +306,7 @@ export function readFlowAnswers(onboardingState: unknown): FlowAnswers {
   const out: FlowAnswers = {};
   if (flow.name === true) out.name = true;
   if (flow.cac === "yes" || flow.cac === "no" || flow.cac === "registering") out.cac = flow.cac;
+  if (flow.logo === "added" || flow.logo === "later") out.logo = flow.logo;
   if (text(flow.homeState)) out.homeState = text(flow.homeState).slice(0, 40);
   if (typeof flow.interstate === "boolean") out.interstate = flow.interstate;
   if (flow.charge === "flat" || flow.charge === "quote") out.charge = flow.charge;
@@ -321,6 +325,7 @@ export function flowProgress(s: TierSnapshot, answers: FlowAnswers, submitted: b
   const done: Record<FlowScreen, boolean> = {
     name: answers.name === true,
     cac: Boolean(answers.cac) || t2.businessName === "approved",
+    logo: Boolean(answers.logo),
     state: Boolean(answers.homeState) || s.deliveryAreas.length > 0,
     areas: given(t1.coverage),
     vehicles: given(t1.methods),
@@ -331,7 +336,8 @@ export function flowProgress(s: TierSnapshot, answers: FlowAnswers, submitted: b
     selfie: given(t1.selfie),
     review: submitted,
   };
-  const required: FlowScreen[] = submitted ? ["areas", "vehicles", "base", "id", "selfie"] : PARTNER_FLOW.filter((screen) => screen !== "review");
+  // The logo is optional: the flow passes it on the way, but never sends anyone back to it.
+  const required: FlowScreen[] = submitted ? ["areas", "vehicles", "base", "id", "selfie"] : PARTNER_FLOW.filter((screen) => screen !== "review" && screen !== "logo");
   return { done, first: required.find((screen) => !done[screen]) ?? "review" };
 }
 

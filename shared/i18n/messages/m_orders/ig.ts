@@ -176,6 +176,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "sale.codePlaceholder": "Koodu, dịka BAG2",
   "sale.codeNone": "Ọ dịghị ngwaahịa nwere koodu {code}.",
   "list.emptyBodyShort": "Orders ga-egosi ebe a. Ị rere na WhatsApp ma ọ bụ ihu na ihu? Dekọọ ya.",
+  "order2.yourRider": "Onye ozi gị",
+  "order2.riderChatSub": "Ọ na-ebu ngwa a",
+  "order2.messageRider": "Zigara {name}, onye ozi gị, ozi",
 };
 
 export default ig;

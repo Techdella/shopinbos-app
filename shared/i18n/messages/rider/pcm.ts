@@ -106,6 +106,20 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "pay.wait": "Dem no wan pay? Carry the parcel back as you and the shop agree: tap Couldn't deliver.",
   "pay.codeLabel": "The customer delivery code",
   "pay.noJob": "This job no dey with you for road again. Refresh make you check.",
+  "review.metaTitle": "Rate your rider",
+  "review.eyebrow": "Your delivery",
+  "review.title": "How {name} take do am?",
+  "review.sub": "Your rating go help {company} take care of good riders.",
+  "review.stars": "Stars",
+  "review.starLabel": "{count, plural, one {# star} other {# stars}}",
+  "review.comment": "Anything to add? (if you like)",
+  "review.send": "Send rating",
+  "review.sending": "E dey send…",
+  "review.thanks": "Thank you! We don get your rating.",
+  "review.pick": "Pick from 1 to 5 stars.",
+  "review.failed": "E no send. Try again.",
+  "review.badTitle": "This link no dey work",
+  "review.badSub": "Maybe the delivery never finish. Ask your rider for new one.",
 };
 
 export default pcm;

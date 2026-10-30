@@ -85,6 +85,7 @@ export const SHOP_GROUPS: { key: string; title: string; links: ShopLink[] }[] = 
     key: "you",
     title: "You",
     links: [
+      { id: "myDetails", label: "My details", icon: "user", path: "app:/my-details", hint: "Your name, email, phone and your shop's address" },
       { id: "settings", label: "Settings and help", icon: "settings", path: "app:/settings", hint: "Your shop details, logo and your own details" },
       { id: "notifications", label: "Notifications", icon: "bell", path: "app:/notifications", hint: "Orders, payments and messages, and what buzzes your phone" },
       { id: "autoReplies", label: "Auto-replies", icon: "clock", path: "app:/inbox/auto-replies", hint: "Away message and opening hours" },

@@ -475,6 +475,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "team.deactivate": "Off am",
   "team.reactivate": "On am again",
   "team.removeAria": "Remove {name}",
+  "settings.link.details.label": "My details",
+  "settings.link.details.hint": "Your name, email, phone and address",
   "settings.link.profile.label": "Supplier profile",
   "settings.link.profile.hint": "Name, logo, about, contact",
   "settings.link.billing.label": "Billing and plan",

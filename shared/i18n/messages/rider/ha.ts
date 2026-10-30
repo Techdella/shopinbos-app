@@ -106,6 +106,20 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "pay.wait": "Ba za su biya ba? Ka mayar da kayan kamar yadda kuka amince da shagon: danna Couldn't deliver.",
   "pay.codeLabel": "Lambar isarwar abokin ciniki",
   "pay.noJob": "Wannan aikin ba ya tare da kai a hanya yanzu. Sabunta don dubawa.",
+  "review.metaTitle": "Ba mai kawo kaya maki",
+  "review.eyebrow": "Kayanka",
+  "review.title": "Yaya {name} ya yi?",
+  "review.sub": "Makinka zai taimaka wa {company} su kula da masu kawo kaya na gari.",
+  "review.stars": "Taurari",
+  "review.starLabel": "{count, plural, other {Taurari #}}",
+  "review.comment": "Akwai abin da za ka ƙara? (ba dole ba)",
+  "review.send": "Aika maki",
+  "review.sending": "Ana aikawa…",
+  "review.thanks": "Na gode! Mun karɓi makinka.",
+  "review.pick": "Zaɓi daga taurari 1 zuwa 5.",
+  "review.failed": "Bai tafi ba. Sake gwadawa.",
+  "review.badTitle": "Wannan mahaɗin ba ya aiki",
+  "review.badSub": "Wataƙila kayan ba su iso ba tukuna. Nemi sabo daga mai kawo kayan.",
 };
 
 export default ha;

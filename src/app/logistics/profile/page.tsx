@@ -57,6 +57,7 @@ export default async function LogisticsProfilePage({ searchParams }: PageProps) 
   if (!workspace) return null;
   const { partner } = workspace;
   const t = await getT("logistics", "common");
+  const tDetails = await getT("details");
   const dayLabel = (day: string) => t.dynamic(`company.day.${day}`, day);
 
   const hours = serviceHours(partner.onboardingState);
@@ -76,6 +77,7 @@ export default async function LogisticsProfilePage({ searchParams }: PageProps) 
       sub={t("company.sub")}
       actions={
         <>
+          <PillLink href="/logistics/details" icon="user">{tDetails("menu")}</PillLink>
           <PillLink href={`/logistics/partners/${partner.slug}`} icon="eye">{t("company.publicPage")}</PillLink>
         </>
       }

@@ -272,6 +272,9 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "wk.5": "Àbá",
   "wk.6": "Àìkú",
   "chart.lastDays": "Ọjọ́ méje tó kọjá: {days}",
+  "riderChat.failed": "Kò lọ. Tún gbìyànjú.",
+  "riderChat.placeholder": "Kọ ọ̀rọ̀ sí {name}",
+  "riderChat.empty": "Kò tíì sí ọ̀rọ̀. Kí wọn.",
 };
 
 export default yo;

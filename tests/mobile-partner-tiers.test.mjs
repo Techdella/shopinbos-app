@@ -24,7 +24,8 @@ test("where the phone flow opens: the screen asked for, older step names, else t
   assert.equal(kyc.nextScreen("review"), "review");
   assert.equal(kyc.previousScreen("name"), null);
   assert.equal(kyc.previousScreen("selfie"), "id");
-  assert.deepEqual(kyc.screenNumber("selfie"), { step: 10, total: 11 });
+  assert.deepEqual(kyc.screenNumber("selfie"), { step: 11, total: 12 });
+  assert.equal(kyc.nextScreen("cac"), "logo", "the optional logo question comes after CAC");
   assert.equal(kyc.areaToken("Lagos", "Ikeja"), "Lagos: Ikeja");
   assert.equal(kyc.areaToken("Lagos"), "Lagos");
   assert.equal(kyc.feeAmount("₦2,500"), 2500);

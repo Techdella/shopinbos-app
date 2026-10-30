@@ -80,6 +80,7 @@ export default async function ProductsPage({
   const user = await requireRole(["seller"], "/login");
   const t = await getT("products", "common");
   const tBulk = await getT("bulkAdd");
+  const tBundles = await getT("bundles");
   const locale = await getLocale();
   const naira = (amount: number) => formatMoney(Math.round(amount), locale);
   const workspace = await getSellerWorkspace(user.id);
@@ -183,6 +184,8 @@ export default async function ProductsPage({
           <PillLink href="/products/bulk" icon="sparkle">{tBulk("entry.title")}</PillLink>
           {/* Pre-orders: the products taking them, here in the list (orders and buyers: /home/preorders). */}
           <PillLink href={href({ filter: "preorder" })} icon="clock" iconOnlyOnPhone>{t("list.preorders")}</PillLink>
+          {/* Bundles ("Buy together"): products sold together at one price (shared/bundles.ts). */}
+          <PillLink href="/products/bundles" icon="bag" iconOnlyOnPhone>{tBundles("title")}</PillLink>
           <PillLink href="/products/new" tone="accent" icon="plus" className="max-sm:px-3.5">{t("addProduct")}</PillLink>
         </>
       }

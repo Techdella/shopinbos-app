@@ -5608,3 +5608,36 @@ model OrderRefund {
   @@index([storeId, status])
   @@index([status, updatedAt])
 }
+
+/// A rider's chat with their delivery company ("company") or with the shop on one of their jobs ("shop", bookingId
+/// set). Riders have no account, so the rider side is fromRider; the other side names the user who wrote.
+/// docs/migrations/2026-12-12-rider-messages-reviews.sql
+model RiderMessage {
+  id                 String    @id @default(cuid())
+  riderId            String
+  logisticsPartnerId String
+  bookingId          String?
+  audience           String // company | shop
+  fromRider          Boolean
+  senderUserId       String?
+  body               String
+  readAt             DateTime?
+  createdAt          DateTime  @default(now())
+
+  @@index([riderId, audience, createdAt])
+  @@index([bookingId])
+  @@index([logisticsPartnerId, createdAt])
+}
+
+/// A customer's rating of their rider for one delivered job (from the rider's review link).
+model RiderReview {
+  id                 String   @id @default(cuid())
+  riderId            String
+  logisticsPartnerId String
+  bookingId          String   @unique
+  rating             Int
+  comment            String?
+  createdAt          DateTime @default(now())
+
+  @@index([riderId, createdAt])
+}

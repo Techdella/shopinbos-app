@@ -10,6 +10,7 @@ import { NG_STATES } from "@shared/delivery-market";
 import { ID_TYPES, ITEM_SCREEN, TIER1_ITEMS, type FlowScreen, type IdType, type ItemState } from "@shared/partner-tiers";
 import { Choice, CodeConfirm, PhotoTake, QuestionFrame, StatusPill, jsonInit, kycCall, useAction, useKycT, type KycState } from "./kit";
 import { SelfieCapture, type SelfieValue } from "./SelfieCapture";
+import { Confetti, DancingRex } from "@/components/brand/Celebrate";
 import { PhoneOrThisDevice } from "@/components/kyc/PhoneHandoff";
 import { docStamp } from "@/lib/kyc/handoff-shared";
 import type { ScreenProps } from "./QuestionScreens";
@@ -213,14 +214,26 @@ export function ReviewScreen({ state, onState, goTo }: Omit<ScreenProps, "onDone
   const verified = state.state === "tier1_verified" || state.state === "tier2_verified";
   const showStatus = sent && (state.state === "pending_review" || verified || state.state === "suspended") && blocking.length === 0;
 
+  // Just sent their sign-up: confetti and Rex dancing over "Your Shopinbos dashboard is ready", once.
+  const [justSent, setJustSent] = useState(false);
+
   async function submit() {
     if (!state.termsCurrent && !(await run("terms", () => kycCall("/terms", { method: "POST" })))) return;
-    await run("submit", () => kycCall("/submit", { method: "POST" }));
+    if (await run("submit", () => kycCall("/submit", { method: "POST" }))) setJustSent(true);
   }
 
   if (showStatus) {
     return (
       <section className="grid gap-5">
+        {justSent && (
+          <div className="grid justify-items-center gap-2 rounded-[22px] bg-app-mint p-6 text-center">
+            <Confetti />
+            <DancingRex size={130} />
+            <h2 className="m-0 text-[26px] font-extrabold leading-[1.15] tracking-[-0.5px] sm:text-[30px]">{t("q.done.ready")}</h2>
+            <p className="m-0 max-w-[460px] text-[16px] leading-[1.5] text-app-ink-soft">{t("q.done.readySub")}</p>
+            <Link href="/logistics/dashboard" className="mt-2 inline-flex min-h-[52px] items-center justify-center rounded-full bg-app-ink px-6 text-[16px] font-extrabold text-white no-underline">{t("q.done.openDashboard")}</Link>
+          </div>
+        )}
         <div className={cx("grid gap-3 rounded-[22px] p-6", TONE[state.state])}>
           <span className="grid h-14 w-14 place-items-center rounded-full bg-white"><Icon name={verified ? "check" : "clock"} size={26} /></span>
           <h2 className="m-0 text-[26px] font-extrabold leading-[1.15] tracking-[-0.5px] sm:text-[32px]">{verified ? t(`state.${state.state}`) : state.state === "suspended" ? t("state.suspended") : t("q.done.title")}</h2>

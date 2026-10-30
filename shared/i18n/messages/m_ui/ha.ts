@@ -272,6 +272,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "wk.5": "Asa",
   "wk.6": "Lah",
   "chart.lastDays": "Kwanaki 7 da suka wuce: {days}",
+  "riderChat.failed": "Bai tafi ba. Sake gwadawa.",
+  "riderChat.placeholder": "Aika wa {name} saƙo",
+  "riderChat.empty": "Babu saƙo tukuna. Ka gaisa.",
 };
 
 export default ha;

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { BackButton, Notice, PillButton, ProgressBars, TextInput, Wordmark, cx } from "@/components/app-ui";
+import { Confetti, DancingRex } from "@/components/brand/Celebrate";
 import { Icon } from "@/components/ui/Icon";
 import { useT } from "@/components/i18n/I18nProvider";
 import intentRouting from "@/lib/intent-routing";
@@ -65,6 +66,8 @@ export function SupplierOnboarding({ initialView }: { initialView: View }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
+  // Just sent their sign-up: confetti and Rex dancing over "Your Shopinbos dashboard is ready", once.
+  const [justSent, setJustSent] = useState(false);
 
   const [name, setName] = useState(initialView.displayName || initialView.businessName || "");
   const [cacNumber, setCacNumber] = useState(initialView.cac?.number ?? "");
@@ -529,6 +532,14 @@ export function SupplierOnboarding({ initialView }: { initialView: View }) {
     hint = view.completed ? (verified ? t("review.verifiedSub") : t("review.sub")) : idSent ? t("review.readySub") : t("review.missingSub");
     body = (
       <div className="grid gap-4">
+        {justSent && view.completed && (
+          <div className="grid justify-items-center gap-2 rounded-[22px] bg-app-mint p-6 text-center">
+            <Confetti />
+            <DancingRex size={130} />
+            <p className="m-0 text-[22px] font-extrabold leading-[1.2]">{t("review.celebrate.title")}</p>
+            <p className="m-0 max-w-[460px] text-[15px] leading-[1.5] text-app-ink-soft">{t("review.celebrate.sub")}</p>
+          </div>
+        )}
         {badges.length > 0 && (
           <div>
             <p className="m-0 mb-2 text-[14px] font-bold">{t("review.badges")}</p>
@@ -548,7 +559,7 @@ export function SupplierOnboarding({ initialView }: { initialView: View }) {
     action = view.completed
       ? { label: t("review.open"), onClick: () => router.push(finishedPath()) }
       : idSent
-        ? { label: t("review.send"), onClick: () => void run(async () => setView(await call<View>("/api/supplier/onboarding", { method: "PATCH", json: { completed: true, step: "review" } }))) }
+        ? { label: t("review.send"), onClick: () => void run(async () => { setView(await call<View>("/api/supplier/onboarding", { method: "PATCH", json: { completed: true, step: "review" } })); setJustSent(true); }) }
         : {
             label: t("review.later"),
             onClick: () =>
