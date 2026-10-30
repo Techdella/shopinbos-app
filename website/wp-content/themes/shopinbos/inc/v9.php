@@ -289,6 +289,8 @@ add_action( 'wp_enqueue_scripts', function () {
 			'post'   => admin_url( 'admin-post.php' ),
 			'signup' => rtrim( (string) ( function_exists( 'sib_setting' ) ? sib_setting( 'app_url' ) : '' ) ?: 'https://app.shopinbos.com', '/' ) . '/signup',
 			'wa'     => function_exists( 'sib_setting' ) ? preg_replace( '/\D/', '', (string) sib_setting( 'whatsapp_support' ) ) : '',
+			// Live chat: messages open a ticket in the admin portal's Support inbox (the app's signed-out "Stuck?" form).
+			'support' => rtrim( (string) ( function_exists( 'sib_setting' ) ? sib_setting( 'app_url' ) : '' ) ?: 'https://app.shopinbos.com', '/' ) . '/api/support/requests',
 		] );
 	}
 	wp_dequeue_style( 'global-styles' );

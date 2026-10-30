@@ -439,6 +439,50 @@
 		});
 	});
 
+	/* Live chat: a bubble on every page. "Message our team" opens a ticket in the admin portal's Support inbox
+	 * (app /api/support/requests, which takes plain form posts); WhatsApp opens the support number. The app's
+	 * reply comes back by WhatsApp or email, so the browser only needs to send (no-cors). */
+	(function () {
+		if (!C.support || document.querySelector('.v9-chat')) return;
+		var topics = [['store', 'My store'], ['payments', 'Payments'], ['orders', 'Orders'], ['login', 'Can’t log in'], ['setup', 'Set something up for me'], ['other', 'Something else']];
+		var w = document.createElement('div');
+		w.className = 'v9-chat';
+		w.innerHTML = '<button type="button" class="v9-chat-b" aria-expanded="false" aria-controls="v9-chat-p"><span aria-hidden="true">💬</span><span class="v9-chat-l">Chat with us</span></button>'
+			+ '<div class="v9-chat-p" id="v9-chat-p" role="dialog" aria-label="Chat with Shopinbos" hidden><div class="v9-chat-h"><b>Hi! How can we help?</b><span>A person replies, 8am to 8pm.</span><button type="button" class="v9-chat-x" aria-label="Close">×</button></div>'
+			+ (C.wa ? '<a class="btn b-org v9-chat-wa" target="_blank" rel="noopener" href="https://wa.me/' + C.wa + '?text=' + encodeURIComponent('Hi Shopinbos, I have a question.') + '">Chat on WhatsApp</a><div class="v9-chat-or">or send a message</div>' : '')
+			+ '<form class="v9-chat-f" novalidate><input name="name" placeholder="Your name" aria-label="Your name" autocomplete="name"><input name="contact" placeholder="WhatsApp number or email" aria-label="WhatsApp number or email" autocomplete="email">'
+			+ '<select name="topic" aria-label="What’s it about?">' + topics.map(function (t) { return '<option value="' + t[0] + '">' + t[1] + '</option>'; }).join('') + '</select>'
+			+ '<textarea name="message" rows="3" placeholder="Your message" aria-label="Your message"></textarea><input name="website" tabindex="-1" autocomplete="off" class="v9-hp" aria-hidden="true">'
+			+ '<p class="v9-chat-e" role="alert" hidden></p><button class="btn b-ink" type="submit">Send</button></form>'
+			+ '<div class="v9-chat-ok" hidden><b>Sent. Thank you!</b><p>We’ll reply on WhatsApp or email, usually within one working day.</p></div></div>';
+		document.body.appendChild(w);
+		var btn = w.querySelector('.v9-chat-b'), panel = w.querySelector('.v9-chat-p'), form = w.querySelector('form'), err = w.querySelector('.v9-chat-e'), started = 0;
+		function open(on) { panel.hidden = !on; btn.setAttribute('aria-expanded', on ? 'true' : 'false'); if (on) { started = started || Date.now(); track('chat_open', { path: location.pathname }); var f = form.querySelector('input'); if (f && !C.wa) f.focus(); } }
+		btn.addEventListener('click', function () { open(panel.hidden); });
+		w.querySelector('.v9-chat-x').addEventListener('click', function () { open(false); btn.focus(); });
+		document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !panel.hidden) open(false); });
+		var wa = w.querySelector('.v9-chat-wa');
+		if (wa) wa.addEventListener('click', function () { track('chat_whatsapp', { path: location.pathname }); });
+		form.addEventListener('submit', function (e) {
+			e.preventDefault();
+			var d = new FormData(form), name = String(d.get('name') || '').trim(), contact = String(d.get('contact') || '').trim(), msg = String(d.get('message') || '').trim();
+			var ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact) || contact.replace(/\D/g, '').length >= 10;
+			var problem = !name ? 'Add your name.' : !ok ? 'Add a WhatsApp number or email so we can reply.' : msg.length < 5 ? 'Tell us a little more so we can help.' : '';
+			err.hidden = !problem; err.textContent = problem;
+			if (problem) return;
+			d.append('path', location.pathname);
+			d.append('startedAt', String(started || Date.now()));
+			form.querySelector('[type=submit]').disabled = true;
+			fetch(C.support, { method: 'POST', mode: 'no-cors', body: d }).then(function () {
+				form.hidden = true; w.querySelector('.v9-chat-ok').hidden = false;
+				track('chat_message', { topic: d.get('topic'), path: location.pathname });
+			}).catch(function () {
+				form.querySelector('[type=submit]').disabled = false;
+				err.hidden = false; err.textContent = C.wa ? 'That didn’t send. Try WhatsApp instead.' : 'That didn’t send. Check your connection and try again.';
+			});
+		});
+	})();
+
 	/* CTA clicks to the app. */
 	document.addEventListener('click', function (e) {
 		var a = e.target.closest && e.target.closest('a[href*="app.shopinbos.com"], a[href*="/signup"]');
