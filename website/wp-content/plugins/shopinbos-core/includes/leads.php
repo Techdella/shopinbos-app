@@ -204,8 +204,8 @@ function sib_render_lead_form( array $a ): string {
 			. '<input type="hidden" name="tool" value="' . esc_attr( (string) ( $a['tool'] ?? '' ) ) . '"><input type="hidden" name="result" value="">';
 	} elseif ( 'download' === $kind ) {
 		$body .= $field( 'name', __( 'Your name', 'shopinbos' ), 'text', ' required autocomplete="given-name"' )
-			. $field( 'email', __( 'Email', 'shopinbos' ), 'email', ' autocomplete="email"' )
-			. $field( 'phone', __( 'Or WhatsApp number', 'shopinbos' ), 'tel', ' autocomplete="tel" placeholder="0803 412 7790"' )
+			. $field( 'email', __( 'Email', 'shopinbos' ), 'email', ' required autocomplete="email"' )
+			. $field( 'phone', __( 'WhatsApp number', 'shopinbos' ), 'tel', ' required autocomplete="tel" placeholder="0803 412 7790"' )
 			. '<label class="field" for="' . $id . '-sells">' . esc_html__( 'What do you sell?', 'shopinbos' ) . '<select class="input" id="' . $id . '-sells" name="sells"><option value="">' . esc_html__( 'Choose one', 'shopinbos' ) . '</option>'
 			. implode( '', array_map( fn( $o ) => '<option>' . esc_html( $o ) . '</option>', [ __( 'Clothes and fashion', 'shopinbos' ), __( 'Shoes and bags', 'shopinbos' ), __( 'Beauty and skincare', 'shopinbos' ), __( 'Hair and wigs', 'shopinbos' ), __( 'Food and drinks', 'shopinbos' ), __( 'Gadgets', 'shopinbos' ), __( 'Home and furniture', 'shopinbos' ), __( 'Something else', 'shopinbos' ), __( 'Not selling yet', 'shopinbos' ) ] ) ) . '</select></label>'
 			. '<input type="hidden" name="resource" value="' . $resource . '">';
@@ -405,8 +405,10 @@ function sib_process_lead_form( string $kind, array $in ): array {
 			if ( 'sib_resource' !== get_post_type( $rid ) || 'publish' !== get_post_status( $rid ) ) {
 				return $fail( __( 'That guide isn’t available.', 'shopinbos' ) );
 			}
-			if ( ! $email && strlen( $phone ) < 10 ) {
-				return $fail( __( 'Add your WhatsApp number or email.', 'shopinbos' ) );
+			// Free PDFs ask for both, so we can send the guide and follow up where people read.
+			$phone = sib_lead_phone( (string) ( $in['phone'] ?? '' ) );
+			if ( ! $email || ! $phone ) {
+				return $fail( __( 'Add your email and WhatsApp number to get the guide.', 'shopinbos' ) );
 			}
 			$url   = get_post_meta( $rid, 'sib_file_path', true ) ? sib_download_url( $rid ) : '';
 			$title = get_the_title( $rid );

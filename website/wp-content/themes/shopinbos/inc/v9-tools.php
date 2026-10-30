@@ -223,11 +223,7 @@ function sib_v9_resource_card( WP_Post $p ): string {
 function sib_v9_resource_form( WP_Post $post ): string {
 	$file = (string) get_post_meta( $post->ID, 'sib_file_path', true );
 	$head = '<div style="display:flex;flex-direction:column;gap:6px"><b class="H" style="font-size:24px;letter-spacing:-.03em">' . esc_html__( 'Where should we send it?', 'shopinbos' ) . '</b>';
-	if ( ! get_post_meta( $post->ID, 'sib_gated', true ) ) {
-		return $file && function_exists( 'sib_download_url' )
-			? '<div class="bc c-wh v9-dl" id="get" style="gap:16px">' . '<b class="H" style="font-size:24px;letter-spacing:-.03em">' . esc_html__( 'Free to download', 'shopinbos' ) . '</b><a class="btn b-org" href="' . esc_url( sib_download_url( $post->ID ) ) . '" rel="nofollow">' . esc_html__( 'Download the PDF', 'shopinbos' ) . '</a></div>'
-			: '';
-	}
+	// Every guide asks for an email and WhatsApp number first (the owner's rule), whatever its own gated setting.
 	// Without JavaScript the form posts and comes back here with the download link.
 	$back = '';
 	$dl   = isset( $_GET['sib_dl'] ) ? esc_url_raw( rawurldecode( wp_unslash( $_GET['sib_dl'] ) ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
