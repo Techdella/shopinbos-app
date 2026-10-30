@@ -170,6 +170,9 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "dialog.deliveryFee": "Ego delivery (₦)",
   "dialog.deliveryFeeHint": "Hapụ ya efu ma ọ bụ 0 maka delivery n'efu. A na-agbakwunye ya na ihe onye ahịa ga-akwụ.",
   "dialog.deliveryIncomplete": "Tinye okporo ụzọ, mpaghara na steeti maka delivery, na ego dị ka nọmba. Ma ọ bụ gbanyụọ delivery.",
+  "bio.addWebsite": "Weebụsaịtị ụlọ ahịa m",
+  "bio.addNewProduct": "Tinye ngwaahịa ọhụrụ",
+  "bio.websiteLabel": "Gaa ụlọ ahịa anyị",
 };
 
 export default ig;

@@ -171,6 +171,9 @@ const en = {
   "dialog.deliveryFee": "Delivery fee (₦)",
   "dialog.deliveryFeeHint": "Leave empty or 0 for free delivery. It's added to what the customer pays.",
   "dialog.deliveryIncomplete": "Add the street, area and state for delivery, and the fee as a number. Or turn delivery off.",
+  "bio.addWebsite": "My shop website",
+  "bio.addNewProduct": "Add a new product",
+  "bio.websiteLabel": "Visit our shop",
 } satisfies Record<string, string>;
 
 export default en;

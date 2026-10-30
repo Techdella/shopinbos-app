@@ -37,6 +37,9 @@ export interface SellerBioPage {
   views: number;
   clicks: Record<string, number>;
   url: string;
+  /** The shop's own address and logo: "Add my shop website" and "Use my shop logo" in the editors. */
+  storeUrl: string;
+  storeLogoUrl: string;
 }
 
 /** The page for the editor, or a starting point when there isn't one yet. */
@@ -53,6 +56,8 @@ export async function loadSellerBio(store: { id: string; name: string; slug: str
     views: page?.views ?? 0,
     clicks: Object.fromEntries((page?.clicks ?? []).map((click) => [click.blockId, click.count])),
     url: buildStorefrontUrl(store, "/links"),
+    storeUrl: buildStorefrontUrl(store),
+    storeLogoUrl: store.logoUrl ?? "",
   };
 }
 

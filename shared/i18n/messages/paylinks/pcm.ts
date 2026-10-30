@@ -170,6 +170,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "dialog.deliveryFee": "Delivery fee (₦)",
   "dialog.deliveryFeeHint": "Leave am empty or put 0 for free delivery. E go join wetin the customer go pay.",
   "dialog.deliveryIncomplete": "Add the street, area and state for delivery, and the fee as number. Or off the delivery.",
+  "bio.addWebsite": "My shop website",
+  "bio.addNewProduct": "Add new product",
+  "bio.websiteLabel": "Visit our shop",
 };
 
 export default pcm;

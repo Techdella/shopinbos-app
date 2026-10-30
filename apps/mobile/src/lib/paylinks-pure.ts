@@ -201,6 +201,9 @@ export interface BioPage {
   views: number;
   clicks: Record<string, number>;
   url: string;
+  /** The shop's own address and logo (older servers leave them out). */
+  storeUrl?: string;
+  storeLogoUrl?: string;
 }
 
 /** Swaps a block with the one above (-1) or below (+1); unchanged at the ends. */
