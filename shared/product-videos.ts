@@ -175,8 +175,9 @@ export function isProductVideoUrl(url: unknown, options: { supabaseUrl: string |
     return false;
   }
   const name = path.slice(prefix.length);
-  const ext = (options.kind ?? "video") === "video" ? /^[^/]+(?<!-poster)\.(mp4|mov)$/i : /-poster\.(jpe?g|png|webp)$/i;
-  return path.startsWith(prefix) && !name.includes("/") && !path.includes("..") && ext.test(name);
+  const video = (options.kind ?? "video") === "video";
+  const named = video ? /\.(mp4|mov)$/i.test(name) && !/-poster\./i.test(name) : /-poster\.(jpe?g|png|webp)$/i.test(name);
+  return path.startsWith(prefix) && !name.includes("/") && !path.includes("..") && named;
 }
 
 // ─── Rex reels ────────────────────────────────────────────────────────────────
