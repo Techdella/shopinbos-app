@@ -163,6 +163,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "badge.verified_payout": "Verified Payout",
   "q.done.lookAround": "Lelee anya ka ị na-echere",
   "q.done.open": "Gaa n'ọrụ m",
+  "docs.title": "Nkọwa na akwụkwọ gị",
+  "docs.back": "Laghachi na nkọwa m",
 };
 
 export default ig;

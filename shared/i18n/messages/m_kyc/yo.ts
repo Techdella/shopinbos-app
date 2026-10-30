@@ -163,6 +163,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "badge.verified_payout": "Verified Payout",
   "q.done.lookAround": "Wo àyíká nígbà tí o bá ń dúró",
   "q.done.open": "Lọ sí iṣẹ́ mi",
+  "docs.title": "Àlàyé àti ìwé rẹ",
+  "docs.back": "Padà sí àlàyé mi",
 };
 
 export default yo;

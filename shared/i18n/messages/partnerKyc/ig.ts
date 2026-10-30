@@ -215,6 +215,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "terms.accept": "Ekwenyere m na partner terms",
   "terms.accepted": "I kwenyere na terms ndị a na {date}.",
   "terms.mustAccept": "Kwenye na partner terms iji gaa n'ihu.",
+  "docs.title": "Nkọwa na akwụkwọ gị",
+  "docs.back": "Laghachi na nkọwa m",
 };
 
 export default ig;
