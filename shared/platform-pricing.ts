@@ -6,7 +6,7 @@
 // Not here, on purpose: subscription plans (priced in Paystack), print-order price tables, and anything delivery
 // partners or suppliers set themselves.
 
-export type PriceUnit = "naira" | "percent" | "credits" | "usd" | "naira_per_usd";
+export type PriceUnit = "naira" | "percent" | "credits" | "usd" | "naira_per_usd" | "months";
 
 export interface NumberSetting {
   kind: "number";
@@ -39,6 +39,7 @@ export const PRICE_GROUPS = {
   supplier_fee: { title: "Supplier commission", sub: "Shopinbos's commission on each marketplace order (of the wholesale value), by the supplier's plan, taken from the supplier's share in the checkout split." },
   delivery: { title: "Logistics job fee", sub: "Shopinbos's fee on each in-app delivery job (of the delivery fee), by the partner's plan, taken from the partner's share. Off until switched on." },
   credits: { title: "AI credits", sub: "Credit packs anyone can buy (they last 12 months), credits new accounts start with, and what each AI action costs. Plans' monthly credits are in Plans." },
+  join: { title: "Join offer", sub: "Free months of the first paid plan for every new account, on top of the signup credits. 0 is off. Gifts for one person are in Gifts and free plans." },
   boosts: { title: "Featured placement and boosts", sub: "Pay-per-use visibility for suppliers and delivery partners, bought by the week. Pro plans include some featured time." },
   addons: { title: "Add-ons", sub: "SMS and WhatsApp message packs and extra staff seats for sellers." },
   ads: { title: "Ad campaigns", sub: "Setup fee when the Shopinbos team runs a campaign. Ad spend is paid to Meta / TikTok, not to us." },
@@ -69,6 +70,7 @@ const pct = (group: PriceGroup, label: string, value: number, extra: Partial<Num
   max: 30,
   ...extra,
 });
+const months = (label: string, value: number): NumberSetting => ({ kind: "number", group: "join", label, unit: "months", default: value, min: 0, max: 12, integer: true });
 const credits = (label: string, value: number, extra: Partial<NumberSetting> = {}): NumberSetting => ({
   kind: "number",
   group: "credits",
@@ -144,6 +146,11 @@ export const PRICE_SETTINGS = {
   "credits.cost.coverage_listing": credits("Cost (logistics): coverage and pickup point listings", 5, { min: 1 }),
   "credits.cost.performance_report": credits("Cost (logistics): performance summary report", 5, { min: 1 }),
   "credits.cost.store_design": credits("Cost: apply a Rex design in the store builder (menu, section, layout)", 3, { min: 1 }),
+
+  // Every new account (src/lib/admin/gifts.server.ts giveJoinOffer), once, when it's created.
+  "join.seller_months": months("New sellers: free months of Starter", 0),
+  "join.supplier_months": months("New suppliers: free months of Supplier Plus", 0),
+  "join.logistics_months": months("New delivery partners: free months of Logistics Plus", 0),
 
   "boosts.supplier_week": naira("boosts", "Featured supplier on the sellers' marketplace home, per week", 3_000, { min: 100 }),
   "boosts.logistics_state_week": naira("boosts", "Featured delivery partner in a state's results, per week per state", 2_000, { min: 100 }),
@@ -295,5 +302,7 @@ export function formatPriceValue(key: PriceKey, value: number | string) {
       return `$${number.toLocaleString("en-US")}`;
     case "naira_per_usd":
       return `₦${number.toLocaleString("en-NG")} per $1`;
+    case "months":
+      return number ? `${number} month${number === 1 ? "" : "s"}` : "Off";
   }
 }

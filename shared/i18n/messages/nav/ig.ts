@@ -188,6 +188,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "admin.pricing-prices": "Ọnụahịa na ụgwọ",
   "admin.pricing-promotions": "Nkwalite",
   "admin.pricing-plans": "Atụmatụ ndenye aha",
+  "admin.pricing-gifts": "Onyinye na plan n'efu",
   "admin.team": "Otu",
   "admin.developers": "Ndị mmepe",
   "admin.errors": "Njehie app",

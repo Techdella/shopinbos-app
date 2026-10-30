@@ -443,6 +443,7 @@ export const NAV_BY_ROLE: Record<Role, NavGroup[]> = {
             { id: "pricing-prices", label: "Prices and fees", href: "/admin/pricing" },
             { id: "pricing-promotions", label: "Promotions", href: "/admin/pricing/promotions" },
             { id: "pricing-plans", label: "Subscription plans", href: "/admin/pricing/plans" },
+            { id: "pricing-gifts", label: "Gifts and free plans", href: "/admin/pricing/gifts" },
           ],
         },
         {

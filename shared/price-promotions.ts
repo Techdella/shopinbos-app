@@ -138,7 +138,9 @@ export function suggestedAudience(keys: readonly string[]): PromoAudience[] {
       out.add("seller");
       out.add("supplier");
       out.add("logistics_partner");
-    } else if (group === "delivery" || key === "boosts.logistics_state_week") out.add("logistics_partner");
+    } else if (key === "join.supplier_months") out.add("supplier");
+    else if (key === "join.logistics_months") out.add("logistics_partner");
+    else if (group === "delivery" || key === "boosts.logistics_state_week") out.add("logistics_partner");
     else if (group === "supplier_fee" || key === "boosts.supplier_week" || key === "boosts.product_week") out.add("supplier");
     else out.add("seller");
   }

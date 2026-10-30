@@ -30,7 +30,7 @@ export async function runningGrants(userIds: string[], now: Date) {
   return new Map<string, GrantInfo>(rows.map((row) => [row.userId, { source: row.source, endsAt: row.endsAt }]));
 }
 
-const GRANT_LABELS: Record<string, string> = { referral: "referral reward", referral_welcome: "referral welcome", milestone: "milestone reward", admin: "admin gift" };
+const GRANT_LABELS: Record<string, string> = { referral: "referral reward", referral_welcome: "referral welcome", milestone: "milestone reward", admin: "admin gift", join_offer: "join offer" };
 
 /** The plan's name, whether it was paid through Paystack, and for free time where it came from and until when. */
 export function planSource(role: PlanRole, user: { aiCredits: number; planStatus: string | null; _count: { paymentReceipts: number } } | null | undefined, grant: GrantInfo | undefined) {

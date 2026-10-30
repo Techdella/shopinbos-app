@@ -61,6 +61,7 @@ export const ROUTE_NAMESPACES: ReadonlyArray<readonly [string, readonly string[]
   ["/admin/pilot", ["auth","common","details","glossary","help","introTitles","learn","nav","notifications","payments","rex","settings","shell","support","tour","ui","verification"]],
   ["/admin/pilot/[id]", ["auth","common","details","glossary","help","introTitles","learn","nav","notifications","payments","rex","settings","shell","support","tour","ui","verification"]],
   ["/admin/pricing", ["auth","common","details","glossary","help","introTitles","learn","nav","notifications","payments","rex","settings","shell","support","tour","ui","verification"]],
+  ["/admin/pricing/gifts", ["auth","common","details","glossary","help","introTitles","learn","nav","notifications","payments","rex","settings","shell","support","tour","ui","verification"]],
   ["/admin/pricing/plans", ["auth","common","details","glossary","help","introTitles","learn","nav","notifications","payments","rex","settings","shell","support","tour","ui","verification"]],
   ["/admin/pricing/promotions", ["auth","common","details","glossary","help","introTitles","learn","nav","notifications","payments","rex","settings","shell","support","tour","ui","verification"]],
   ["/admin/print-orders", ["auth","common","details","glossary","help","introTitles","learn","nav","notifications","payments","rex","settings","shell","support","tour","ui","verification"]],

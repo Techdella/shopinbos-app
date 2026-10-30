@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "Pricing" };
 // Every price and fee Shopinbos charges (shared/platform-pricing.ts). Saving takes effect within 30 seconds on
 // every server; payments already started keep the price they started with.
 
-const UNIT_SUFFIX = { naira: "₦", percent: "%", credits: "credits", usd: "$", naira_per_usd: "₦ per $1" } as const;
+const UNIT_SUFFIX = { naira: "₦", percent: "%", credits: "credits", usd: "$", naira_per_usd: "₦ per $1", months: "months" } as const;
 
 function PriceInput({ priceKey, value }: { priceKey: PriceKey; value: number | string }) {
   const setting: PriceSetting = PRICE_SETTINGS[priceKey];
@@ -53,7 +53,7 @@ export default async function AdminPricingPage({ searchParams }: { searchParams:
       frame={adminFrame(user)}
       title="Pricing"
       sub="Every fee and price Shopinbos charges. Changes apply within 30 seconds; payments already started keep their price."
-      actions={<><PillLink href="/admin/pricing/plans" size="sm" icon="cards">Plans</PillLink><PillLink href="/admin/pricing/promotions" size="sm" icon="percent">Promotions</PillLink></>}
+      actions={<><PillLink href="/admin/pricing/plans" size="sm" icon="cards">Plans</PillLink><PillLink href="/admin/pricing/promotions" size="sm" icon="percent">Promotions</PillLink><PillLink href="/admin/pricing/gifts" size="sm" icon="sparkle">Gifts</PillLink></>}
     >
       {query.error ? (
         <div role="alert" className="mb-5 rounded-[22px] border border-app-danger bg-white p-4 text-[14px] text-app-danger">{query.error}</div>
