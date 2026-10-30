@@ -708,6 +708,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "conn.subShort": "Ndị na-ere na ndị na-ebubata nwere ike jikọọ gị ozugbo.",
   "today.finishHintShort": "Foto ID gị na selfie. Enweghị akwụkwọ ma ọ bụ nkọwa ụlọ akụ.",
   "riders.noneBodyShort": "Tinye onye na-agba ọgba tum tum na aha ya na nọmba WhatsApp ya.",
+  "home.quotesAll": "Lee ha niile",
 };
 
 export default ig;

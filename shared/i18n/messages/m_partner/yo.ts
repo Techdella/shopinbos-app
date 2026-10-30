@@ -708,6 +708,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "conn.subShort": "Àwọn olùtajà àti olùpèsè lè so pọ̀ mọ́ ọ lẹ́sẹ̀kẹsẹ̀.",
   "today.finishHintShort": "Fọ́tò ID rẹ àti selfie. Kò sí ìwé tàbí àlàyé bánkì.",
   "riders.noneBodyShort": "Fi ọlọ́kadà kún un pẹ̀lú orúkọ àti nọ́ńbà WhatsApp rẹ̀.",
+  "home.quotesAll": "Wo gbogbo rẹ̀",
 };
 
 export default yo;

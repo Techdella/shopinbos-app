@@ -708,6 +708,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "conn.subShort": "Sellers and suppliers fit connect with you sharp sharp.",
   "today.finishHintShort": "Your ID photo and selfie. No papers or bank details.",
   "riders.noneBodyShort": "Add rider with im name and WhatsApp number.",
+  "home.quotesAll": "See all",
 };
 
 export default pcm;

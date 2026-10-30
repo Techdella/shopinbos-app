@@ -19,7 +19,7 @@ import { TabScreen } from "@/components/TabScreen";
 import { Card, T, Toggle } from "@/components/ui";
 import { fetchRewards, fetchStatusFeed, levelProgress, type StatusAuthor, type StatusPost } from "@/lib/familiar";
 import { useT } from "@/lib/i18n";
-import { fetchEarnings, fetchJobs, fetchLogisticsOverview, fetchMarket, setTakingJobs, type Job, type JobView } from "@/lib/logistics";
+import { fetchEarnings, fetchJobs, fetchLogisticsOverview, fetchMarket, fetchPriceRequests, setTakingJobs, type Job, type JobView } from "@/lib/logistics";
 import { STATUS_WORD, TAKING_BLOCK_ACTION, takingBlockOf } from "@/lib/logistics-pure";
 import type { TakingBlock } from "@shared/taking-jobs";
 import { dayWord, shortPlace, timeAgo, verificationStage } from "@/lib/partner-pure";
@@ -93,6 +93,8 @@ export default function LogisticsJobs() {
   const earnings = useLoad(fetchEarnings);
   const status = useLoad(fetchStatusFeed);
   const rewards = useLoad(fetchRewards);
+  // Price requests from shops come first on home: they expire, so they're the thing to see straight away.
+  const requests = useLoad(fetchPriceRequests);
   const data = overview.data;
   const [override, setOverride] = useState<boolean | null>(null);
   const [switching, setSwitching] = useState(false);
@@ -253,6 +255,33 @@ export default function LogisticsJobs() {
         </View>
       ) : null}
 
+      {requests.data?.waiting.length ? (
+        <Card style={{ gap: 10 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <T weight="extrabold" style={{ flex: 1, fontSize: 17 }} accessibilityRole="header">{t("today.quotes", { count: requests.data.waiting.length })}</T>
+            <Pressable accessibilityRole="button" hitSlop={8} onPress={() => router.push("/logistics/quotes")}>
+              <T weight="bold" style={{ color: colors.forest, fontSize: 14.5 }}>{t("home.quotesAll")}</T>
+            </Pressable>
+          </View>
+          {requests.data.waiting.slice(0, 3).map((request) => (
+            <Pressable
+              key={request.id}
+              testID="home-quote"
+              accessibilityRole="button"
+              accessibilityLabel={`${request.shop}: ${shortPlace(request.from)} → ${shortPlace(request.to)}`}
+              onPress={() => router.push("/logistics/quotes")}
+              style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.mintTint, borderRadius: 18, padding: 12, opacity: pressed ? 0.85 : 1 })}
+            >
+              <View style={{ flex: 1 }}>
+                <T weight="bold" style={{ fontSize: 15 }} numberOfLines={1}>{request.shop}</T>
+                <T style={{ color: colors.inkSoft, fontSize: 13.5 }} numberOfLines={1}>{shortPlace(request.from)} → {shortPlace(request.to)}{request.parcel ? ` · ${request.parcel}` : ""}</T>
+              </View>
+              <T weight="bold" style={{ color: colors.forest, fontSize: 14 }}>{t("quotes.bannerSub")}</T>
+            </Pressable>
+          ))}
+        </Card>
+      ) : null}
+
       <PushPromptCard who="logistics" when={Boolean(data)} />
       {data?.overdue ? <PayInOverdueCard overdue={data.overdue} onChecked={() => void overview.reload()} /> : null}
 
@@ -260,9 +289,6 @@ export default function LogisticsJobs() {
         <CardButton icon="link" tint={colors.mintTint} iconBg="#FFFFFF" title={t("conn.banner", { count: connections.length })} sub={t("conn.bannerSub")} onPress={() => router.push("/logistics/connections")} />
       ) : null}
 
-      {data && data.counts.quotes > 0 ? (
-        <CardButton icon="tag" tint={colors.mintTint} iconBg="#FFFFFF" title={t("today.quotes", { count: data.counts.quotes })} sub={t("quotes.bannerSub")} onPress={() => router.push("/logistics/quotes")} />
-      ) : null}
 
       <FilterBar>
         {SEGMENTS.map((segment) => (

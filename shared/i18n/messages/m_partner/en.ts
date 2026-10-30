@@ -721,6 +721,7 @@ const en = {
   "conn.subShort": "Sellers and suppliers can connect with you straight away.",
   "today.finishHintShort": "Your ID photo and a selfie. No papers or bank details.",
   "riders.noneBodyShort": "Add a rider with their name and WhatsApp number.",
+  "home.quotesAll": "See all",
 } satisfies Record<string, string>;
 
 export default en;

@@ -708,6 +708,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "conn.subShort": "Masu sayarwa da masu kawowa za su iya haɗawa da kai nan take.",
   "today.finishHintShort": "Hoton ID ɗinka da selfie. Babu takardu ko bayanan banki.",
   "riders.noneBodyShort": "Ƙara mahayi da sunansa da lambar WhatsApp ɗinsa.",
+  "home.quotesAll": "Duba duka",
 };
 
 export default ha;
