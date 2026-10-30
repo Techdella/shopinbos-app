@@ -18,7 +18,6 @@ import { SELLER_CANCEL_PREFIX } from "@/lib/supplier-orders/pure";
 import { getT } from "@/lib/i18n/server";
 import { PackChecklist } from "@/components/supplier/PackChecklist";
 import { dropshipPackView, wholesalePackView, type PackView } from "@/lib/supplier-dropship.server";
-import { BRANDING_CHOICE_LABELS } from "@shared/dropship-rules";
 
 export const dynamic = "force-dynamic";
 
@@ -65,7 +64,7 @@ export default async function SupplierOrderPage({ params, searchParams }: PagePr
     /** A bulk preorder (shared/preorder.ts): the ship date the supplier gave, or null for "when it arrives". */
     preorder?: { shipsOn: string | null };
   };
-  // Pack it the seller's way (dropship): the seller's name, logo, SKUs, branding and the checklist.
+  // Pack it plain (dropship, always blind): the seller's name, logo and SKUs for the supplier, and the checklist.
   let pack: PackView | null = null;
   if (kind === "dropship") {
     const { orders } = await listDropshipOrders(supplier.id, { id, take: 1 });
@@ -135,7 +134,6 @@ export default async function SupplierOrderPage({ params, searchParams }: PagePr
           <div className="text-right">
             <div className="text-[13px] text-app-ink-soft">{t("orders.youGet")}</div>
             <div className="text-[24px] font-extrabold text-app-success">{money(view.youGet, view.currency)}</div>
-            {pack && pack.branding.fee > 0 && <div className="text-[13px] font-bold text-app-success">+ {money(pack.branding.fee, view.currency)} {pack.branding.choice === "stickers" ? "sticker fee" : "slip fee"}</div>}
           </div>
         </Card>
 
@@ -150,13 +148,13 @@ export default async function SupplierOrderPage({ params, searchParams }: PagePr
               )}
               <div className="min-w-0 flex-1">
                 <div className="truncate text-[15px] font-extrabold">For {pack.branding.sellerName}</div>
-                <div className="mt-0.5 truncate text-[12.5px] text-app-ink-soft">{BRANDING_CHOICE_LABELS[pack.branding.choice]}</div>
+                <div className="mt-0.5 truncate text-[12.5px] text-app-ink-soft">Packed plain: no names, prices or receipts inside</div>
               </div>
               {pack.branding.skus.length > 0 && (
                 <span className="shrink-0 rounded-[8px] bg-app-canvas px-2 py-1.5 text-[11px] font-extrabold tracking-[0.03em]"><span className="sr-only">Their SKU: </span>{pack.branding.skus.join(", ")}</span>
               )}
             </div>
-            <h2 id="pack-title" className="m-0 mt-3 font-app-display text-[19px] font-extrabold tracking-[-0.01em]">Pack it {pack.branding.sellerName}&apos;s way</h2>
+            <h2 id="pack-title" className="m-0 mt-3 font-app-display text-[19px] font-extrabold tracking-[-0.01em]">Pack it plain</h2>
             <PackChecklist
               editable={(view.status === "accepted" || view.status === "confirmed") && !pack.packed}
               initial={{ orderId: pack.orderId, kind: pack.kind, steps: pack.steps, packSteps: pack.packSteps, photoUrl: pack.photoUrl, contentsPhotoUrl: pack.contentsPhotoUrl, packed: pack.packed, problem: pack.problem }}

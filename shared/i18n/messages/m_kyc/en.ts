@@ -177,6 +177,8 @@ const en = {
   "badge.verified_payout": "Verified Payout",
   "q.done.lookAround": "Look around while you wait",
   "q.done.open": "Go to my jobs",
+  "docs.title": "Your details and documents",
+  "docs.back": "Back to my details",
 } satisfies Record<string, string>;
 
 export default en;

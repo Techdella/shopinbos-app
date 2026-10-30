@@ -70,7 +70,6 @@ export interface NewListing {
   dropship: boolean;
   deliveryPayer: string | null;
   deliveryFlatFee: number | null;
-  brandingChoice: string | null;
 }
 
 export interface QuickAddDeps {
@@ -135,7 +134,7 @@ export function planLimitMessage(room: PlanRoom, dropship: boolean) {
 
 /**
  * The listing price for a dropship product: the one-tap price, raised a few nice steps if the supplier's lowest price
- * or a loss on the card fee and branding refuses it; null when it still can't be listed.
+ * or a loss on the card fee refuses it; null when it still can't be listed.
  */
 export function dropshipQuickPrice(terms: DropshipTerms, suggested: number, markup: Markup): { price: number; basis: QuickPriceBasis } | null {
   const first = quickAddPrice({ cost: terms.cost, suggested: Math.max(suggested, 0), minRetail: terms.floor, markup });
@@ -204,11 +203,11 @@ export async function runQuickAdd(deps: QuickAddDeps, input: { ids: readonly unk
         continue;
       }
       const clean = cleanListingChoice(productTerms, { retailPrice: priced.price, payer: "customer" });
-      listing = { product, retailPrice: priced.price, costPrice: productTerms.cost, dropship: true, deliveryPayer: clean.payer, deliveryFlatFee: clean.flatFee, brandingChoice: clean.brandingChoice };
+      listing = { product, retailPrice: priced.price, costPrice: productTerms.cost, dropship: true, deliveryPayer: clean.payer, deliveryFlatFee: clean.flatFee };
       basis = priced.basis;
     } else {
       const priced = quickAddPrice({ cost: product.wholesalePrice, suggested: product.suggested, minRetail: product.minRetail, markup });
-      listing = { product, retailPrice: priced.price, costPrice: product.wholesalePrice, dropship: false, deliveryPayer: null, deliveryFlatFee: null, brandingChoice: null };
+      listing = { product, retailPrice: priced.price, costPrice: product.wholesalePrice, dropship: false, deliveryPayer: null, deliveryFlatFee: null };
       basis = priced.basis;
     }
 

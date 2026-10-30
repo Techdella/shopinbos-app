@@ -215,6 +215,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "terms.accept": "Na amince da partner terms",
   "terms.accepted": "Ka amince da waɗannan terms a ranar {date}.",
   "terms.mustAccept": "Amince da partner terms don ci gaba.",
+  "docs.title": "Bayananka da takardunka",
+  "docs.back": "Koma bayanai na",
 };
 
 export default ha;

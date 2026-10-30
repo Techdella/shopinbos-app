@@ -80,8 +80,8 @@ test("the one-tap price: supplier's suggestion first, else cost + markup, never 
   }
 });
 
-test("dropship one-tap price: raised a step when the supplier's lowest price or branding would make it a loss", () => {
-  const terms = { cost: 9_000, suggestedPrice: 9_000, floor: 13_000, minRetailPrice: 13_000, options: [], minQty: 1, handlingDays: 1, sizeBand: "small", shipsFrom: "Lagos", rateSource: "partners", deliveryToYou: null, dearestDelivery: 4_500, dearestIsEstimate: true, branding: [{ choice: "blind", label: "Blind", fee: 0 }], stock: 10, stockState: "ok" };
+test("dropship one-tap price: raised a step when the supplier's lowest price would refuse it", () => {
+  const terms = { cost: 9_000, suggestedPrice: 9_000, floor: 13_000, minRetailPrice: 13_000, options: [], minQty: 1, handlingDays: 1, sizeBand: "small", shipsFrom: "Lagos", rateSource: "partners", deliveryToYou: null, dearestDelivery: 4_500, dearestIsEstimate: true, stock: 10, stockState: "ok" };
   const priced = core.dropshipQuickPrice(terms, 0, { kind: "percent", value: 20 });
   assert.equal(priced.price, 13_000);
   assert.equal(checkout.listingProblem(terms, { retailPrice: priced.price, payer: "customer" }), null);

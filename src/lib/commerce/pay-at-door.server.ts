@@ -292,7 +292,17 @@ async function afterPaidAtDoor(orderId: string) {
   if (codes.length) {
     const { textPayAtDoorCode } = await import("@/lib/notifications/customer-messages");
     await textPayAtDoorCode(orderId, codes).catch(() => null);
+    await emailPayAtDoorCode(orderId, codes).catch((error) => console.error(`[pay at door] code email for ${orderId} failed`, error));
   }
+}
+
+/** The code by email too, when the customer gave one at checkout (they show it to the rider from any of them). */
+async function emailPayAtDoorCode(orderId: string, codes: string[]) {
+  const order = await db.retailOrder.findUnique({ where: { id: orderId }, select: { id: true, storeId: true, orderNumber: true, buyerName: true, buyerEmail: true, store: { select: { slug: true, customDomain: true } } } });
+  const to = order?.buyerEmail?.trim();
+  if (!order || !to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) return;
+  const { sendPayAtDoorCodeEmail } = await import("@/lib/email/notices.server");
+  await sendPayAtDoorCodeEmail({ store: order.storeId, to, buyerName: order.buyerName, orderNumber: order.orderNumber, codes, orderUrl: buildStorefrontUrl(order.store, `/order/${order.id}`) });
 }
 
 /** The codes for the order's parcels on their way (one per delivery job that isn't closed). */

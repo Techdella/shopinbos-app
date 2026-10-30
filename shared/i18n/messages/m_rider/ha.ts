@@ -185,7 +185,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "startJob": "Fara wannan aikin",
   "offer.assigned": "{company} ne ya ba ka wannan aikin. Tsallake shi idan ba za ka iya ba.",
   "pay.title": "Abokin ciniki zai biya {amount} a ƙofa",
-  "pay.body": "Ka karɓa kamar yadda kai da shagon kuka amince (kuɗin hannu ko tura kuɗi), ko abokin ciniki ya biya da link ɗin da muka tura masa ko wannan QR code. Sannan ka rubuta lambar isarwarsa don kammala isarwa.",
+  "pay.body": "Kwastoma yana biyan shagon, ba kai ba: da mahaɗin da muka aika masa ko wannan QR code. Da zarar ya biya, zai samu lamba. Rubuta ta, idan manhajar ta ce Paid, ka ba shi kayan. Kada ka karɓi kuɗi a hannu.",
   "pay.qrHint": "Abokin ciniki zai scan shi da kyamarar wayarsa.",
   "pay.showQr": "Nuna QR code",
   "pay.hideQr": "Ɓoye QR code",

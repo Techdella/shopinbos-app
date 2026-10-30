@@ -51,12 +51,15 @@ export function PartnerVerificationFlow({ accountName }: { accountName: string }
   const onDone = () => goTo(state.submittedAt ? "review" : PARTNER_FLOW[Math.min(index + 1, PARTNER_FLOW.length - 1)]);
   const props = { state, onState: setState, onDone };
 
+  // Signed up already: adding a document or fixing a detail is a small page of its own (no step rail, no
+  // "step 3 of 11"); Back and Save return to the details list.
+  const afterSignup = Boolean(state.submittedAt);
   const railSteps = PARTNER_FLOW.map((key) => ({ key, label: t(`rail.${key}`), done: key === "review" ? Boolean(state.submittedAt) : state.flow.done[key] }));
   return (
     // Full bleed on wide screens (W-Onboard-Verify): the step rail runs the whole height against the menu, the
     // question sits in the open space beside it.
-    <div className="w-full lg:grid lg:flex-1 lg:grid-cols-[260px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)]">
-      <div className="hidden bg-app-forest lg:block">
+    <div className={afterSignup ? "w-full" : "w-full lg:grid lg:flex-1 lg:grid-cols-[260px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)]"}>
+      <div className={afterSignup ? "hidden" : "hidden bg-app-forest lg:block"}>
       <StepRail
         className="sticky top-0 hidden lg:flex lg:min-h-[calc(100dvh-4rem)] lg:px-6 lg:py-9 xl:px-7 lg:[@media(max-height:820px)]:gap-4 lg:[@media(max-height:820px)]:py-6 lg:[@media(max-height:820px)]:[&_li]:py-[7px]"
         showLogo={false}
@@ -70,17 +73,23 @@ export function PartnerVerificationFlow({ accountName }: { accountName: string }
       <div className="mx-auto grid w-full max-w-[600px] gap-6 lg:mx-0 lg:max-w-[680px]">
       <header className="grid gap-3">
         <div className="flex items-center gap-3">
-          {index > 0 ? (
+          {afterSignup ? (
+            screen !== "review" ? (
+              <button type="button" onClick={() => goTo("review")} className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-app-line bg-white px-4 text-[14px] font-bold">
+                <Icon name="arrowLeft" size={16} /> {t("docs.back")}
+              </button>
+            ) : <span className="h-11" />
+          ) : index > 0 ? (
             <button type="button" onClick={() => goTo(PARTNER_FLOW[index - 1])} aria-label={t("nav.back")} className="grid h-11 w-11 place-items-center rounded-full border border-app-line bg-white">
               <Icon name="arrowLeft" size={18} />
             </button>
           ) : <span className="h-11 w-11" />}
-          <span className="flex-1 text-center text-[14px] font-bold text-app-ink-soft">{t("step.of", { step: index + 1, total: PARTNER_FLOW.length })}</span>
+          <span className="flex-1 text-center text-[14px] font-bold text-app-ink-soft">{afterSignup ? t("docs.title") : t("step.of", { step: index + 1, total: PARTNER_FLOW.length })}</span>
           <a href={whatsappChatUrl(t("flow.helpMessage"))} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-app-line bg-white px-3.5 text-[14px] font-bold no-underline">
             <Icon name="whatsapp" size={16} /> {t("flow.help")}
           </a>
         </div>
-        <div className="h-1.5 overflow-hidden rounded-full bg-app-line lg:hidden" aria-hidden>
+        <div className={afterSignup ? "hidden" : "h-1.5 overflow-hidden rounded-full bg-app-line lg:hidden"} aria-hidden>
           <div className="h-full rounded-full bg-app-ink transition-all" style={{ width: `${((index + 1) / PARTNER_FLOW.length) * 100}%` }} />
         </div>
       </header>

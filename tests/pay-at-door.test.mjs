@@ -23,28 +23,29 @@ test("pay on delivery is paid only once the money is in, or the seller marked it
   assert.equal(door.payAtDoorDue({ paymentMethod: "transfer", status: "pending" }), false);
 });
 
-test("pay on delivery is between the shop, its customer and its rider: Shopinbos never holds a drop for payment", () => {
-  assert.equal(door.payAtDoorBlock(pod(), { codAmount: null }), null, "the rider collects as the shop agreed");
-  assert.equal(door.payAtDoorBlock(pod({ paystackStatus: "success" }), { codAmount: null }), null);
-  assert.equal(door.payAtDoorBlock(pod(), { codAmount: 12000 }), null, "a job from before carries cash: recorded the old way");
+test("pay on delivery: the customer pays the shop, never the rider; no payment, no drop", () => {
+  assert.equal(door.payAtDoorBlock(pod(), { codAmount: null }), door.NOT_PAID_YET, "not paid: the parcel stays with the rider");
+  assert.equal(door.payAtDoorBlock(pod(), { codAmount: 12000 }), door.NOT_PAID_YET, "an old job carrying cash isn't an exception");
+  assert.equal(door.payAtDoorBlock(pod({ paystackStatus: "success" }), { codAmount: null }), null, "paid in the app");
+  assert.equal(door.payAtDoorBlock(pod({ paystackStatus: "offline" }), { codAmount: null }), null, "the shop marked it paid");
   assert.equal(door.payAtDoorBlock({ paymentMethod: "paystack", status: "paid", paystackStatus: "success" }, { codAmount: null }), null);
   assert.equal(door.payAtDoorBlock(null, { codAmount: null }), null, "a booking without a shop order");
+  assert.doesNotMatch(door.NOT_PAID_YET, /cash|rider collects/i);
 
   // Every way of closing a drop goes through transitionJob, which checks it whoever the actor is.
   const jobs = read("src/lib/logistics/jobs.ts");
   assert.match(jobs, /input\.to === "delivered" && job\.orderId[\s\S]{0,300}payAtDoorBlock\(order, job\)/);
 });
 
-test("the delivery code proves who got the parcel, not that it's paid: always shown, on the page and in messages", () => {
-  assert.equal(door.codeVisible(pod()), true);
+test("the delivery code is the proof of payment: hidden until the shop is paid, then sent by SMS, WhatsApp and email", () => {
+  assert.equal(door.codeVisible(pod()), false);
   assert.equal(door.codeVisible(pod({ paystackStatus: "success" })), true);
-  assert.equal(door.codeVisible({ paymentMethod: "paystack", status: "shipped" }), true);
+  assert.equal(door.codeVisible({ paymentMethod: "paystack", status: "shipped" }), true, "card orders: as before");
   assert.match(read("src/app/s/[slug]/order/[orderId]/order-props.ts"), /deliveryCode: codeVisible\(order\)/);
   const messages = read("src/lib/notifications/customer-messages.ts");
-  assert.match(messages, /deliveryCode: job\.deliveryCode,/);
-  assert.doesNotMatch(messages, /if \(unpaid && \(to === "out_for_delivery"/, "no in-app-only payment link instead of the usual messages");
-  // The rider's photo-instead-of-code option is there for every drop.
-  assert.match(read("apps/mobile/src/app/rider/job.tsx"), /\{!ok \? <TextLink title=\{say\("noCode\.link"\)\}/);
+  assert.match(messages, /if \(payAtDoorDue\(order\)\) \{[\s\S]{0,300}sendPayAtDoorLink\(order\.id\)[\s\S]{0,60}return \[\];/, "unpaid: the payment link goes out, not the code");
+  const server = read("src/lib/commerce/pay-at-door.server.ts");
+  assert.match(server, /await textPayAtDoorCode\(orderId, codes\)[\s\S]{0,120}emailPayAtDoorCode\(orderId, codes\)/);
 });
 
 test("door payments: their own reference, verified with Paystack, split like a card order, recorded once", () => {
@@ -62,7 +63,8 @@ test("door payments: their own reference, verified with Paystack, split like a c
 
 test("riders never get cash for pay on delivery", () => {
   const bookings = read("src/app/api/app/logistics/bookings/route.ts");
-  assert.match(bookings, /order\.paymentMethod !== "pay_on_delivery" &&/);
+  assert.match(bookings, /const codAmount: number \| undefined = undefined;/, "no new job carries cash");
+  assert.match(read("src/app/api/mobile/logistics/rider/route.ts"), /collect: 0,/, "the phone's cash step never shows");
   const web = read("src/app/rider/[token]/page.tsx");
   assert.doesNotMatch(web, /payOnDeliveryOf/, "marketplace pay on delivery isn't cash any more");
   assert.match(web, /payInApp: order && isPayOnDelivery\(order\)/);

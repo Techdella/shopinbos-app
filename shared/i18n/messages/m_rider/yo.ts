@@ -185,7 +185,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "startJob": "Bẹ̀rẹ̀ iṣẹ́ yìí",
   "offer.assigned": "{company} ló fún ọ ní iṣẹ́ yìí. Fò ó tí o kò bá lè ṣe é.",
   "pay.title": "Oníbàárà yóò san {amount} ní ẹnu ọ̀nà",
-  "pay.body": "Gbà á bí ìwọ àti ṣọ́ọ̀bù ṣe fohùn ṣọ̀kan (cash tàbí transfer), tàbí kí oníbàárà sanwó pẹ̀lú link tí a fi ránṣẹ́ sí wọn tàbí QR code yìí. Lẹ́yìn náà tẹ delivery code wọn láti parí ìfijíṣẹ́.",
+  "pay.body": "Oníbàárà ń san owó fún ṣọ́ọ̀bù, kì í ṣe ìwọ: pẹ̀lú ìjápọ̀ tí a fi ránṣẹ́ sí wọn tàbí QR code yìí. Tí wọ́n bá ti sanwó, wọn yóò gba kóòdù kan. Tẹ̀ ẹ́ wọlé, nígbà tí áàpù bá sọ pé Paid, fún wọn ní ẹrù náà. Má ṣe gba owó lọ́wọ́.",
   "pay.qrHint": "Oníbàárà máa fi kámẹ́rà fóònù wọn scan rẹ̀.",
   "pay.showQr": "Fi QR code hàn",
   "pay.hideQr": "Fi QR code pamọ́",

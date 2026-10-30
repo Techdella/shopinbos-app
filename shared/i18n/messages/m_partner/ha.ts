@@ -336,8 +336,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "job.sent": "An aiko {ago}",
   "job.youGet": "Za ka samu {fee}",
   "job.paidOnConfirm": "Za a biya ka kai tsaye zuwa bankinka da zarar an tabbatar da isarwa",
-  "job.podTitle": "Biya bayan isarwa · karɓi {cash}",
-  "job.podBody": "Kai da {shop} kuka amince da wannan. Daidaita kuɗin tsakaninku ne.",
+  "job.podTitle": "Biya idan ya iso · kwastoma yana biyan shagon",
+  "job.podBody": "Mahayinka ba ya karɓar kuɗi a hannu. Kwastoma yana biyan {shop} da mahaɗi ko QR code na mahayi, ya samu lamba, mahayinka kuma ya rubuta ta kafin ya ba da kayan.",
   "job.failedTitle": "Ƙoƙari bai yi nasara ba: {reason}",
   "job.failedNoReason": "ba a bayar da dalili ba",
   "job.failedBody": "An gaya wa mai sayarwa. Sake gwadawa {fee} ne, kamar yadda yake a jerin farashinka.",
@@ -708,6 +708,7 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "conn.subShort": "Masu sayarwa da masu kawowa za su iya haɗawa da kai nan take.",
   "today.finishHintShort": "Hoton ID ɗinka da selfie. Babu takardu ko bayanan banki.",
   "riders.noneBodyShort": "Ƙara mahayi da sunansa da lambar WhatsApp ɗinsa.",
+  "home.quotesAll": "Duba duka",
 };
 
 export default ha;

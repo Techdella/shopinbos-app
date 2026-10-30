@@ -95,7 +95,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "pay.pill": "Customer go pay {amount} for door",
   "pay.paid": "Dem don pay for app",
   "pay.title": "Customer go pay {amount} for door",
-  "pay.body": "Collect am as you and the shop agree (cash or transfer), or the customer fit pay with the link wey we text dem or this QR code. Then type their delivery code to finish the drop.",
+  "pay.body": "Customer go pay the shop, no be you: with the link wey we send dem or this QR code. Once dem pay, dem go get code. Type am, and when the app talk say Paid, give dem the parcel. No collect cash at all.",
   "pay.qrAlt": "QR code to pay for this order",
   "pay.qrHint": "Customer go scan am with dem phone camera.",
   "pay.showQr": "Show QR code",

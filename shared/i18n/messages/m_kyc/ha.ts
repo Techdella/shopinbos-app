@@ -163,6 +163,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "badge.verified_payout": "Verified Payout",
   "q.done.lookAround": "Duba ko'ina yayin da kake jira",
   "q.done.open": "Je zuwa ayyukana",
+  "docs.title": "Bayananka da takardunka",
+  "docs.back": "Koma bayanai na",
 };
 
 export default ha;

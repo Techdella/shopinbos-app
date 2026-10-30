@@ -163,6 +163,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "badge.verified_payout": "Verified Payout",
   "q.done.lookAround": "Look around while you dey wait",
   "q.done.open": "Go my jobs",
+  "docs.title": "Your details and documents",
+  "docs.back": "Go back to my details",
 };
 
 export default pcm;

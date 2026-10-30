@@ -16,14 +16,14 @@ import { useLoad } from "@/lib/useLoad";
 import { colors, fonts, radii } from "@/theme";
 import { useT } from "@/lib/i18n";
 
-// Pack it the seller's way (P-Order; the web's PackChecklist on /supplier/orders/[id]), for one dropship order: for
-// which shop (their logo or initials, the items, their SKU), where it goes, who picks it up, delivery and what the
-// supplier gets (with the branding fee), then the checklist from the server (pack plain, the seller's slip or
-// sticker, the order code on the parcel, and "Snap the sealed parcel": the camera, uploaded to the media library,
+// Pack it plain (P-Order; the web's PackChecklist on /supplier/orders/[id]), for one dropship order: for which shop
+// (their logo or initials, the items, their SKU), where it goes, who picks it up, delivery and what the supplier
+// gets, then the checklist from the server (pack plain and blind: suppliers don't add seller branding, the order
+// code on the parcel, and "Snap the sealed parcel": the camera, uploaded to the media library,
 // POST /api/app/media). "Ready for pickup" stays off ("2 steps left") until every step is ticked and the photo is
 // there; then POST /api/supplier/orders/[id]/pack { packed: true } (the server refuses with the step left otherwise).
 // The photos decide most disputes (shared/fault-matrix.ts): first "Snap the item in the open box" (what was sent),
-// last the sealed parcel. Opened from the order screen ("Pack it {shop}'s way"); a bulk order (kind=wholesale) gets
+// last the sealed parcel. Opened from the order screen ("Pack it plain for {shop}"); a bulk order (kind=wholesale) gets
 // only the two photos before "Ready for pickup".
 
 function Info({ label, value }: { label: string; value: string }) {
@@ -117,8 +117,7 @@ export default function PackScreen() {
   const wholesale = kind === "wholesale";
   const goesTo = wholesale ? "" : [order.label.address[order.label.address.length - 1], order.label.to].filter(Boolean)[0] ?? "";
   const pieces = wholesale ? 0 : order.items.reduce((sum, item) => sum + item.quantity, 0);
-  const feeWord = view.branding.choice === "stickers" ? words("pack.stickerFee", "sticker fee") : words("pack.slipFee", "slip fee");
-  const youGet = view.branding.fee > 0 ? `${naira(order.yourTotal)} + ${naira(view.branding.fee)} ${feeWord}` : naira(order.yourTotal);
+  const youGet = naira(order.yourTotal);
   const delivery = order.selfDelivery ? (order.deliveryFee ? words("pack.youDeliver", "You deliver it, +{fee}", { fee: naira(order.deliveryFee) }) : words("pack.youDeliverFree", "You deliver it")) : words("pack.paidByShop", "Paid at checkout, not by you");
 
   return (
@@ -174,7 +173,7 @@ export default function PackScreen() {
       <View style={{ gap: 8 }}>
         {/* Why the two photos matter: in the tip next to the heading. */}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 2, marginTop: 6 }}>
-          <T style={{ flexShrink: 1, fontFamily: fonts.display, fontSize: 17 }}>{wholesale ? f("pack.photosTitle") : words("pack.way", "Pack it {seller}'s way", { seller })}</T>
+          <T style={{ flexShrink: 1, fontFamily: fonts.display, fontSize: 17 }}>{wholesale ? f("pack.photosTitle") : words("pack.way", "Pack it plain for {seller}", { seller })}</T>
           <InfoTip title={f("pack.photosTitle")} text={f("pack.why")} />
         </View>
         {view.steps.map((step) => {

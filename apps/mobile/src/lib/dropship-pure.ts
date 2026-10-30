@@ -288,7 +288,7 @@ export function preorderMeter(goals: readonly Pick<LevelGoal, "key" | "have">[],
   return { share: Math.min(1, delivered / e.delivered), line: parts.join(" · ") };
 }
 
-// ─── Pack it the seller's way (P-Order) ──────────────────────────────────────
+// ─── Pack it plain (P-Order) ─────────────────────────────────────────────────
 
 /** The steps left before "Ready for pickup" (the photo counts as one), and the button's words. */
 export function packButton(steps: readonly { id: string; done: boolean }[], photoUrl: string | null | undefined, words = wordsOf()): { left: number; ready: boolean; label: string } {
@@ -315,7 +315,7 @@ export function sellerInitials(name: string): string {
  * "On each order", line by line, exactly as the web's Find products panel works it out
  * (src/app/marketplace/_components/DropshipTermsPanel.tsx with paymentFee from src/lib/marketplace/find.ts, mirrored in
  * ./find-pure.ts): your price, less what you pay the supplier, the delivery you cover (the dearest zone when you pay
- * it, the rest above a flat fee), the branding fee per parcel and the card payment fee on the sale.
+ * it, the rest above a flat fee) and the card payment fee on the sale. Parcels are packed plain: no branding fee.
  */
 export interface ListingMoney {
   price: number;
@@ -323,7 +323,6 @@ export interface ListingMoney {
   /** The customer pays delivery (the line reads "Customer pays"). */
   customerPays: boolean;
   deliveryShare: number;
-  brandingFee: number;
   cardFee: number;
   earn: number;
 }
@@ -333,11 +332,11 @@ export function listingMoney(terms: DropshipTerms, choice: ListingChoice): Listi
   const price = choice.retailPrice;
   const deliveryShare = clean.payer === "seller" ? terms.dearestDelivery : clean.payer === "flat" ? Math.max(0, terms.dearestDelivery - (clean.flatFee ?? 0)) : 0;
   const cardFee = paymentFee(Math.max(0, Math.round(price)));
-  return { price, cost: terms.cost, customerPays: clean.payer === "customer", deliveryShare, brandingFee: clean.brandingFee, cardFee, earn: price - terms.cost - deliveryShare - clean.brandingFee - cardFee };
+  return { price, cost: terms.cost, customerPays: clean.payer === "customer", deliveryShare, cardFee, earn: price - terms.cost - deliveryShare - cardFee };
 }
 
 export interface ListingView {
-  /** What the web shows as "You earn": after the supplier, delivery you cover, branding and the card payment fee. */
+  /** What the web shows as "You earn": after the supplier, delivery you cover and the card payment fee. */
   earn: number;
   money: ListingMoney;
   problem: string | null;
@@ -370,11 +369,6 @@ export function payerLabel(payer: "customer" | "seller" | "flat", flatFee: numbe
   if (payer === "customer") return words("payer.customer", "Customer pays");
   if (payer === "seller") return words("payer.seller", "I pay (free delivery)");
   return flatFee ? words("payer.flatFee", "Flat {price}", { price: naira(flatFee) }) : words("payer.flat", "Flat fee");
-}
-
-/** "My stickers +₦200" for a branding chip. */
-export function brandingLabel(entry: { label: string; fee: number }): string {
-  return entry.fee > 0 ? `${entry.label} +${naira(entry.fee)}` : entry.label;
 }
 
 /** "Trusted supplier · ★ 4.7 from 18 shops" (null for a new supplier with no reviews). */

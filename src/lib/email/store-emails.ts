@@ -238,3 +238,22 @@ export function preorderPaymentEmail(input: {
     }),
   };
 }
+
+/** Pay on delivery, paid (src/lib/commerce/pay-at-door.server.ts): "Payment received. Give the rider this code". */
+export function payAtDoorCodeEmail(input: { appUrl: string; store: StoreSender; buyerName?: string | null; orderNumber: string; codes: string[]; orderUrl?: string | null }) {
+  const code = input.codes.join(" / ");
+  return {
+    subject: `Payment received. Your delivery code is ${code}`,
+    html: storeEmail({
+      appUrl: input.appUrl,
+      store: input.store,
+      kind: "transactional",
+      preheader: `Give the rider ${code} when they hand over order ${input.orderNumber}.`,
+      eyebrow: `Order ${input.orderNumber}`,
+      heading: `Thank you, ${first(input.buyerName)}!`,
+      bodyHtml: `${html.raw(`<strong>${escapeHtml(input.store.name)}</strong> has your payment. Give the rider this code when they hand over your parcel:`)}${html.raw(`<p style="font-size:30px;font-weight:800;letter-spacing:6px;margin:16px 0">${escapeHtml(code)}</p>`)}${html.small("Only give the code once you have your parcel. You never pay the rider.")}`,
+      cta: input.orderUrl ? { label: "View your order", url: input.orderUrl } : null,
+      reason: `you paid for order ${input.orderNumber} with ${input.store.name}`,
+    }),
+  };
+}

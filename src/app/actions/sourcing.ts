@@ -50,8 +50,8 @@ const AddSchema = ListingChoiceSchema.extend({ supplierProductId: z.string().min
 
 /**
  * "Add to store" / "Add to my store at ₦X": a draft product in the seller's store, linked to the supplier. Dropship:
- * at the supplier's dropship price, never below its lowest allowed price, with who pays delivery, the branding and
- * the seller's SKU, and refused when the price would lose money (src/lib/marketplace/dropship-listing.server.ts).
+ * at the supplier's dropship price, never below its lowest allowed price, with who pays delivery and the seller's
+ * SKU (always packed plain), and refused when the price would lose money (src/lib/marketplace/dropship-listing.server.ts).
  */
 export async function addSupplierProductToStore(input: { supplierProductId: string; retailPrice?: number } & ListingChoiceInput): Promise<Result<{ storeProductId: string; already: boolean }>> {
   const parsed = AddSchema.safeParse(input);
@@ -89,7 +89,7 @@ export async function addSupplierProductToStore(input: { supplierProductId: stri
     retailPrice,
     costPrice,
     dropship,
-    ...(check?.ok ? { deliveryPayer: check.deliveryPayer, deliveryFlatFee: check.deliveryFlatFee, brandingChoice: check.brandingChoice } : {}),
+    ...(check?.ok ? { deliveryPayer: check.deliveryPayer, deliveryFlatFee: check.deliveryFlatFee } : {}),
     ...skuFields(parsed.data),
   });
   if (linked.already) return { ok: true, storeProductId: linked.storeProductId, already: true };

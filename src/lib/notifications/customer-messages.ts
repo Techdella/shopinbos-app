@@ -11,6 +11,7 @@ import { normalizePhone } from "@/lib/marketing/segment-rules";
 import { CUSTOMER_EVENTS, customerEventFor, mayText, type CustomerEvent, type CustomerEventSetting, type OptOutLookup, type TextChannel, type VariableValues } from "@/lib/marketing/text-channels";
 import { refreshTemplateStatus, resolvePresetTemplate, resolveTemplate, sendTemplate } from "@/lib/marketing/whatsapp-templates.server";
 import { deliveryEventFor, deliveryMessage } from "./delivery-messages";
+import { payAtDoorDue } from "@shared/pay-at-door";
 
 // Order and cart messages to a store's customers by WhatsApp and/or SMS, as the seller switched on in
 // Marketing › Order messages (StoreMessagingSettings.transactional). Order code calls one function,
@@ -165,8 +166,15 @@ export async function notifyDeliveryStage(bookingId: string, to: string) {
     const order = await db.retailOrder.findUnique({ where: { id: job.orderId }, select: { id: true, storeId: true, orderNumber: true, buyerName: true, buyerPhone: true, status: true, paymentMethod: true, paystackStatus: true } });
     const phone = normalizePhone(order?.buyerPhone);
     if (!order || !phone || order.status === "cancelled") return [];
-    // Pay on delivery is between the shop, its customer and its rider (shared/pay-at-door.ts): the usual messages, with
-    // the delivery code, whatever how they pay. The customer can still pay in the app from their order page.
+    // Pay on delivery not paid yet (shared/pay-at-door.ts): no delivery code, since it proves payment. When the parcel
+    // goes out (or reaches the pickup point) the customer gets the payment link instead, and the code once they've paid.
+    if (payAtDoorDue(order)) {
+      if (to === "out_for_delivery" || to === "at_pickup_point") {
+        const { sendPayAtDoorLink } = await import("@/lib/commerce/pay-at-door.server");
+        await sendPayAtDoorLink(order.id);
+      }
+      return [];
+    }
     const event = deliveryEventFor(to)!;
     const settings = await getMessagingSettings(order.storeId);
     const setting = settings.transactional[event];

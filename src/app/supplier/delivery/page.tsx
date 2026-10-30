@@ -47,7 +47,6 @@ export default async function SupplierDeliveryPage({ searchParams }: { searchPar
       sub={t("supplier.sub")}
       actions={
         <>
-          <PillLink href="/supplier/branding" icon="palette">Branding you offer</PillLink>
           <PillLink href="/supplier/delivery/analytics" icon="chart">{t("an.title")}</PillLink>
         </>
       }

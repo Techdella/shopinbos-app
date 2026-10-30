@@ -21,11 +21,11 @@ export const dynamic = "force-dynamic";
 //            { cost, suggestedPrice, floor, minRetailPrice, options: string[], minQty, handlingDays,
 //              sizeBand: "small"|"medium"|"bulky", shipsFrom, rateSource: "partners"|"own",
 //              deliveryToYou: { zone, zoneLabel, price, minDays, maxDays } | null, dearestDelivery, dearestIsEstimate,
-//              branding: [{ choice: "blind"|"packing_slip"|"stickers", label, fee }], stock, stockState }
-//          "You earn" per order: shared/dropship-checkout.ts listingEarn(terms, { retailPrice, payer, flatFee,
-//          brandingChoice }); listingProblem(...) is the message the POST refuses with.
+//              stock, stockState }
+//          "You earn" per order: shared/dropship-checkout.ts listingEarn(terms, { retailPrice, payer, flatFee });
+//          listingProblem(...) is the message the POST refuses with. Every parcel is packed plain (no branding).
 //   POST { supplierProductId, retailPrice?, deliveryPayer?: "customer"|"seller"|"flat", deliveryFlatFee?,
-//          brandingChoice?: "blind"|"packing_slip"|"stickers", sku?, barcode? } → { storeProductId, already }:
+//          sku?, barcode? } → { storeProductId, already } (an older app's brandingChoice is ignored):
 //          "Add to store", the same as the web's addSupplierProductToStore action: a draft product linked to the
 //          supplier (dropship when offered), never a duplicate. A dropship price below the supplier's lowest
 //          allowed price, or one that would lose money, is refused: 409 { error: { code: "PRICE_PROBLEM", message } }.
@@ -94,7 +94,7 @@ export const POST = withSeller(async (req: NextRequest, { user }) => {
     retailPrice,
     costPrice,
     dropship,
-    ...(check?.ok ? { deliveryPayer: check.deliveryPayer, deliveryFlatFee: check.deliveryFlatFee, brandingChoice: check.brandingChoice } : {}),
+    ...(check?.ok ? { deliveryPayer: check.deliveryPayer, deliveryFlatFee: check.deliveryFlatFee } : {}),
     ...skuFields(parsed.data),
   });
   if (linked.already) return ok({ storeProductId: linked.storeProductId, already: true });

@@ -12,7 +12,7 @@ import { WHOLESALE_SELECT, canTrade, dropshipOrders, supplierForUser, wholesaleV
 export const dynamic = "force-dynamic";
 
 // One supplier order in the mobile app (?kind=dropship | wholesale).
-// GET → the order with its label / packing slip details. PATCH { kind, action, trackingCode?, reason? } moves it:
+// GET → the order with its parcel label details. PATCH { kind, action, trackingCode?, reason? } moves it:
 //   accept · decline (optional reason) · packed (wholesale only) · handed_over (to the rider; optional tracking
 //   code) · delivered (with `code`, the customer's 4 digits, when the supplier delivers it itself). Dropship and wholesale moves go through the same code as the web portal
 //   (src/lib/supplier-orders), so the shop is told and the shop's own order follows a shipped dropship order.

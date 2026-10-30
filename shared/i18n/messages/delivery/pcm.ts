@@ -39,9 +39,9 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "decline.other": "Another reason",
   "decline.none": "Dem no talk why",
   "pod.disclaimer":
-    "Pay on delivery na between you, your customer and your delivery partner. Your customer go pay you or your rider when e reach, with cash or transfer as una agree, or inside the app from their order page; mark the order paid once the money don enter. If you dey take card payment, customer fit pay delivery fee for checkout. Shopinbos no dey collect, hold or guarantee pay-on-delivery money.",
+    "With pay on delivery, your customer go pay you, the shop, when the parcel land: with the link wey we send to their phone and email, or the rider QR code (or you mark am paid if dem pay you another way). Then dem go get code, the rider go type am, na only then dem go give the parcel. Riders and delivery partners no dey ever collect your money. When you dey take card payment, dem fit pay the delivery fee for checkout.",
   "pod.disclaimerPartner":
-    "Pay on delivery na between you and the shop. Customer go pay your rider or the shop for door, with cash or transfer as you and the shop agree, or inside the app. Pass any cash as you and the shop agree. Shopinbos no dey collect, hold or guarantee pay-on-delivery money.",
+    "With pay on delivery, customer go pay the shop, no be you or your rider: with the link wey we send dem or your rider QR code. Once dem pay, dem go get code; your rider go type am, the app go talk Paid, then e go give the parcel. Your riders no dey collect cash for these orders.",
   "offPlatform.warning":
     "Keep jobs and payments inside Shopinbos. Payment for jobs inside the app dey happen automatically, we dey track dem, and dem dey count for your rating. Shopinbos no dey protect payment wey una arrange outside the app.",
   "time.sameDay": "Same day",
@@ -119,8 +119,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "pod.title": "Pay on delivery",
   "pod.partnerDoesNotOffer": "Partner no dey do pay on delivery",
   "pod.waitingForPartner": "Pay on delivery: we dey wait for partner",
-  "pod.partnerCollects": "Partner dey collect cash",
-  "pod.letCustomersPay": "Make customers fit pay this partner rider cash when the parcel reach",
+  "pod.partnerCollects": "Customer dey pay the shop",
+  "pod.letCustomersPay": "Make customers pay you when the parcel land (with link, no be the rider)",
   "pod.iUnderstand": "I don understand",
   "pod.bothOn": "Customers go only see pay on delivery when you and the partner don both on am.",
   "pod.waitingSwitchOn": "We dey wait make the partner on am.",

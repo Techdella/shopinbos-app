@@ -232,7 +232,7 @@ export const fetchFindContext = () => api<FindContext>("/api/mobile/marketplace"
 
 /**
  * The dropship terms of one supplier product for this seller (shared/dropship-checkout.ts DropshipTerms): You pay,
- * the suggested and lowest price, the options, delivery to the seller's customers and the branding on offer. Null
+ * the suggested and lowest price, the options and delivery to the seller's customers. Null
  * when it isn't offered for dropship (or on an older server).
  */
 export const fetchDropshipTerms = (productId: string) =>
@@ -244,7 +244,6 @@ export interface AddToStoreInput {
   /** Who pays the supplier's delivery: the customer (default), the seller (free delivery) or a flat fee. */
   deliveryPayer?: "customer" | "seller" | "flat";
   deliveryFlatFee?: number;
-  brandingChoice?: "blind" | "packing_slip" | "stickers";
   sku?: string;
   barcode?: string;
 }

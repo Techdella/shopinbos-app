@@ -198,7 +198,7 @@ const OPTION_COPY: Record<CheckoutPaymentMethod, Omit<CheckoutPaymentOption, "ke
   paystack: { label: "Card, bank transfer or USSD", hint: "Pay securely with Paystack" },
   korapay: { label: "Card or bank", hint: "Card, transfer or your bank app" },
   transfer: { label: "Bank transfer", hint: "We show you the account after you place the order" },
-  pay_on_delivery: { label: "Pay when it arrives", hint: "Pay the store or its rider at the door, as the store arranges" },
+  pay_on_delivery: { label: "Pay when it arrives", hint: "Check it when it arrives, then pay the store with the link we send you. Never the rider." },
 };
 
 /**

@@ -96,7 +96,7 @@ const en = {
   "pay.pill": "Customer pays {amount} at the door",
   "pay.paid": "Paid in the app",
   "pay.title": "Customer pays {amount} at the door",
-  "pay.body": "Collect it as you agreed with the shop (cash or transfer), or the customer can pay with the link we texted them or this QR code. Then type their delivery code to finish the drop.",
+  "pay.body": "The customer pays the shop, not you: with the link we sent them or this QR code. Once it's paid they get a code. Type it in, and when the app says Paid, hand over the parcel. Never take cash.",
   "pay.qrAlt": "QR code to pay for this order",
   "pay.qrHint": "The customer scans this with their phone camera.",
   "pay.showQr": "Show QR code",

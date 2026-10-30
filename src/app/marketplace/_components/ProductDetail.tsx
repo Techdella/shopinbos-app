@@ -46,7 +46,7 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
   const lowest = Math.ceil((terms?.floor ?? product.floor ?? 0) / 100) * 100;
   const clampPrice = (value: number) => Math.max(lowest, clampSellingPrice(value, product.cost));
   const [price, setPrice] = useState(() => clampPrice(product.price));
-  const [choice, setChoice] = useState<ListingChoiceState>(() => ({ ...START_CHOICE, branding: terms?.branding[0]?.choice ?? "blind" }));
+  const [choice, setChoice] = useState<ListingChoiceState>(() => ({ ...START_CHOICE }));
   const [quantity, setQuantity] = useState(product.moq);
   const [image, setImage] = useState(0);
   const [added, setAdded] = useState(addedAtStart);
@@ -69,7 +69,7 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
   const wholesaleBase = product.wholesaleCost ?? product.cost;
   const unit = tierPrice(product.tiers, quantity, wholesaleBase);
   const flatFee = choice.flatFee === "" ? null : Number(choice.flatFee);
-  const priceProblem = terms ? listingProblem(terms, { retailPrice: price, payer: choice.payer, flatFee, brandingChoice: choice.branding }) : null;
+  const priceProblem = terms ? listingProblem(terms, { retailPrice: price, payer: choice.payer, flatFee }) : null;
   const supplier = product.supplier;
   const [sample, setSample] = useState(product.sampleOffer ?? null);
   const meta = [
@@ -100,7 +100,6 @@ export function ProductDetail({ product, added: addedAtStart, saved: savedAtStar
             ? {
                 deliveryPayer: choice.payer,
                 deliveryFlatFee: choice.payer === "flat" && flatFee !== null && Number.isFinite(flatFee) ? flatFee : null,
-                brandingChoice: choice.branding as "blind" | "packing_slip" | "stickers",
                 sku: choice.sku.trim() || undefined,
               }
             : {}),

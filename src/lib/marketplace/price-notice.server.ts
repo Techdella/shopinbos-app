@@ -93,12 +93,12 @@ export async function notifyPriceNotice(productId: string, now = new Date()): Pr
 }
 
 const listingSelect = {
-  id: true, storeId: true, userId: true, name: true, status: true, retailPrice: true, deliveryPayer: true, deliveryFlatFee: true, brandingChoice: true, fulfillmentType: true, pausedReason: true,
+  id: true, storeId: true, userId: true, name: true, status: true, retailPrice: true, deliveryPayer: true, deliveryFlatFee: true, fulfillmentType: true, pausedReason: true,
 } as const;
 
 /**
  * After a supplier's price changed: each shop's live dropship listing is checked at the new price with the
- * seller's own delivery and branding choices. Losing ones are paused (off the store, the dropship link paused) with
+ * seller's own delivery choice. Losing ones are paused (off the store, the dropship link paused) with
  * the one-tap fix; the rest get the new cost recorded. Returns how many were paused.
  */
 export async function reviewListingsAfterPriceChange(supplierProductId: string, now = new Date()): Promise<{ checked: number; paused: number }> {
@@ -112,7 +112,7 @@ export async function reviewListingsAfterPriceChange(supplierProductId: string, 
   for (const listing of listings) {
     const terms = (await dropshipTermsFor([product], listing.userId)).get(product.id);
     if (!terms) continue;
-    const verdict = listingVerdict(terms, { retailPrice: listing.retailPrice, payer: listing.deliveryPayer, flatFee: listing.deliveryFlatFee, brandingChoice: listing.brandingChoice });
+    const verdict = listingVerdict(terms, { retailPrice: listing.retailPrice, payer: listing.deliveryPayer, flatFee: listing.deliveryFlatFee });
     if (!verdict.loses) {
       await db.storeProduct.update({ where: { id: listing.id }, data: { costPrice: terms.cost, margin: listing.retailPrice - terms.cost } }).catch(() => null);
       continue;
@@ -188,7 +188,7 @@ export async function fixPausedListing(userId: string, storeProductId: string): 
   if (listing.pausedReason !== PRICE_LOSS) return { ok: false, code: "NOT_PAUSED", message: "This product isn't paused for its price." };
   const terms = (await dropshipTermsFor([listing.supplierProduct], userId)).get(listing.supplierProduct.id);
   if (!terms) return { ok: false, code: "NOT_FOUND", message: "This product isn't available any more." };
-  const verdict = listingVerdict(terms, { retailPrice: listing.retailPrice, payer: listing.deliveryPayer, flatFee: listing.deliveryFlatFee, brandingChoice: listing.brandingChoice });
+  const verdict = listingVerdict(terms, { retailPrice: listing.retailPrice, payer: listing.deliveryPayer, flatFee: listing.deliveryFlatFee });
   const price = verdict.loses ? verdict.fixPrice : listing.retailPrice;
   await db.$transaction([
     db.storeProduct.update({ where: { id: listing.id }, data: { retailPrice: price, costPrice: terms.cost, margin: price - terms.cost, status: "published", pausedReason: null, pausedAt: null } }),
@@ -199,14 +199,14 @@ export async function fixPausedListing(userId: string, storeProductId: string): 
 }
 
 /** For My supplier products: the fix price of each listing paused for a price loss (by StoreProduct id). */
-export async function fixPricesFor(userId: string, rows: ReadonlyArray<{ id: string; pausedReason: string | null; retailPrice: number; deliveryPayer: string; deliveryFlatFee: number | null; brandingChoice: string; supplierProduct: Parameters<typeof dropshipTermsFor>[0][number] | null }>): Promise<Map<string, number>> {
+export async function fixPricesFor(userId: string, rows: ReadonlyArray<{ id: string; pausedReason: string | null; retailPrice: number; deliveryPayer: string; deliveryFlatFee: number | null; supplierProduct: Parameters<typeof dropshipTermsFor>[0][number] | null }>): Promise<Map<string, number>> {
   const paused = rows.filter((row) => row.pausedReason === PRICE_LOSS && row.supplierProduct);
   const out = new Map<string, number>();
   if (!paused.length) return out;
   const terms = await dropshipTermsFor(paused.map((row) => row.supplierProduct!), userId).catch(() => new Map());
   for (const row of paused) {
     const productTerms = terms.get(row.supplierProduct!.id);
-    if (productTerms) out.set(row.id, listingVerdict(productTerms, { retailPrice: row.retailPrice, payer: row.deliveryPayer, flatFee: row.deliveryFlatFee, brandingChoice: row.brandingChoice }).fixPrice);
+    if (productTerms) out.set(row.id, listingVerdict(productTerms, { retailPrice: row.retailPrice, payer: row.deliveryPayer, flatFee: row.deliveryFlatFee }).fixPrice);
   }
   return out;
 }

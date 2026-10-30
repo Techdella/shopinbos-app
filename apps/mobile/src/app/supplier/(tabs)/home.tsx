@@ -253,7 +253,7 @@ export default function SupplierHome() {
               <Row
                 lead={<Tile icon="star" tone="butter" />}
                 title={words("level.youre", "You're {level}", { level: levelName(level.data.level, words) })}
-                sub={level.data.next === "established" ? words("level.homeEstablished", "Pre-orders open at Established. See your goals.") : level.data.next ? words("level.homeTrusted", "Reach Trusted for branding and faster pay. See your goals.") : words("level.homeTop", "Pre-orders are open to you.")}
+                sub={level.data.next === "established" ? words("level.homeEstablished", "Pre-orders open at Established. See your goals.") : level.data.next ? words("level.homeTrusted", "Reach Trusted for no order limit and faster pay. See your goals.") : words("level.homeTop", "Pre-orders are open to you.")}
                 onPress={() => router.push("/supplier/level")}
               />
             </List>

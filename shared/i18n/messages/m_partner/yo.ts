@@ -336,8 +336,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "job.sent": "Wọ́n fi ránṣẹ́ {ago}",
   "job.youGet": "Wàá gba {fee}",
   "job.paidOnConfirm": "Owó á wọ bánkì rẹ ní kété tí wọ́n bá jẹ́rìísí delivery",
-  "job.podTitle": "Sanwó nígbà delivery · gba {cash}",
-  "job.podBody": "Ìwọ àti {shop} ló fohùn ṣọ̀kan lórí èyí. Ọ̀rọ̀ owó náà wà láàárín ẹ̀yin méjèèjì.",
+  "job.podTitle": "Sísanwó nígbà tí ó bá dé · oníbàárà ń san fún ṣọ́ọ̀bù",
+  "job.podBody": "Ọlọ́kadà rẹ kì í gba owó lọ́wọ́. Oníbàárà ń san fún {shop} pẹ̀lú ìjápọ̀ tàbí QR code ọlọ́kadà, ó gba kóòdù, ọlọ́kadà rẹ yóò sì tẹ̀ ẹ́ kí ó tó fi ẹrù lé e lọ́wọ́.",
   "job.failedTitle": "Ìgbìyànjú kò yọrí: {reason}",
   "job.failedNoReason": "kò sí ìdí",
   "job.failedBody": "A ti sọ fún olùtajà. Láti tún gbìyànjú máa ná {fee}, bó ṣe wà lórí rate card rẹ.",
@@ -708,6 +708,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "conn.subShort": "Àwọn olùtajà àti olùpèsè lè so pọ̀ mọ́ ọ lẹ́sẹ̀kẹsẹ̀.",
   "today.finishHintShort": "Fọ́tò ID rẹ àti selfie. Kò sí ìwé tàbí àlàyé bánkì.",
   "riders.noneBodyShort": "Fi ọlọ́kadà kún un pẹ̀lú orúkọ àti nọ́ńbà WhatsApp rẹ̀.",
+  "home.quotesAll": "Wo gbogbo rẹ̀",
 };
 
 export default yo;

@@ -1,4 +1,3 @@
-import { ownPartCollect } from "@shared/cod-split";
 import { deliveryPartnerProblem } from "@/lib/plans/gates.server";
 import { NextRequest } from "next/server";
 import { withSeller } from "@/lib/auth/middleware";
@@ -65,17 +64,15 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
   const planProblem = await deliveryPartnerProblem(user.id, partner.id);
   if (planProblem) return apiError("PLAN_LIMIT", planProblem, 402);
 
-  // Unpaid (pay-on-delivery) orders: the rider collects at the door. When suppliers send some of the lines, this
-  // parcel collects only the seller's own lines' share, so the customer never pays the total twice.
   const order = parsed.data.orderId
     ? await db.retailOrder.findFirst({
         where: { id: parsed.data.orderId, store: { userId: user.id } },
         select: { total: true, status: true, items: true, paymentMethod: true, supplierOrders: { select: { items: true } } },
       })
     : null;
-  const ownShare = order ? ownPartCollect(order.items, order.total, order.supplierOrders.map((part) => part.items)) : 0;
-  // Pay on delivery is paid in the app at the door (shared/pay-at-door.ts): the rider never collects it.
-  const codAmount = order && order.paymentMethod !== "pay_on_delivery" && (order.status === "pending" || order.status === "awaiting_payment") && ownShare > 0 ? ownShare : undefined;
+  // Riders never collect money (shared/pay-at-door.ts): a customer who pays when it arrives pays the shop, from the
+  // link or the rider's QR code, and gets the code for the rider. So no new job carries cash.
+  const codAmount: number | undefined = undefined;
   // A partner who is late paying in customers' cash gets no new pay-when-it-arrives jobs (prepaid ones still go).
   if (!canOfferJob({ ...partner, verificationStatus: String(partner.verificationStatus) }, { cod: Boolean(codAmount) })) {
     return apiError("CONFLICT", "This delivery company can't take jobs where the customer pays when it arrives right now. Pick another delivery company.", 409);

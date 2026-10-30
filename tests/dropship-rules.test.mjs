@@ -1,5 +1,5 @@
 // Supplier & dropship rules (shared/dropship-rules.ts): prices per channel, dropship options, the supplier's zone rate
-// card, who pays delivery, seller branding, supplier levels (pre-orders at Established) and delivery partner levels
+// card, who pays delivery, blind packing, supplier levels (pre-orders at Established) and delivery partner levels
 // (pay on delivery at Cash trusted).
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -78,27 +78,28 @@ test("who pays delivery: never the supplier; free and flat fee come out of the s
   assert.equal(r.sellerDeliveryShare("flat", 4500, 2000), 2500);
   // The doc's example: ₦14,000 retail, ₦9,500 dropship price, customer pays ₦4,500 delivery → ₦4,500 margin.
   assert.equal(r.dropshipMargin({ retailPrice: 14000, unitCost: 9500, payer: "customer", deliveryFee: 4500 }), 4500);
-  assert.equal(r.dropshipMargin({ retailPrice: 14000, unitCost: 9500, payer: "seller", deliveryFee: 4500, brandingFee: 200 }), -200);
-  assert.match(r.sellerPriceProblem({ retailPrice: 14000, unitCost: 9500, payer: "seller", deliveryFee: 4500, brandingFee: 200, floor: 12000 }), /you'd lose ₦200/);
+  assert.equal(r.dropshipMargin({ retailPrice: 14000, unitCost: 9500, payer: "seller", deliveryFee: 4500 }), 0, "no branding fee per parcel");
+  assert.equal(r.dropshipMargin({ retailPrice: 14000, unitCost: 9500, payer: "seller", deliveryFee: 4500, brandingFee: 200 }), 0, "an old brandingFee is ignored");
+  assert.match(r.sellerPriceProblem({ retailPrice: 13800, unitCost: 9500, payer: "seller", deliveryFee: 4500, floor: 12000 }), /you'd lose ₦200/);
   assert.match(r.sellerPriceProblem({ retailPrice: 11000, unitCost: 9500, payer: "customer", deliveryFee: 4500, floor: 12000 }), /lowest price for this is ₦12,000/);
   assert.equal(r.sellerPriceProblem({ retailPrice: 14000, unitCost: 9500, payer: "flat", flatFee: 2000, deliveryFee: 4500, floor: 12000 }), null);
 });
 
-test("branding: blind always, extras only when offered, and the pack checklist ends with the photo", () => {
-  const offer = r.readBrandingOffer({ stickers: true, stickerFee: "200", packingSlip: false, packingSlipFee: 300 });
-  assert.deepEqual(offer, { packingSlip: false, packingSlipFee: 0, stickers: true, stickerFee: 200, custom: false });
-  assert.deepEqual(r.brandingChoicesFor(offer).map((o) => o.choice), ["blind", "stickers"]);
-  assert.deepEqual(r.effectiveBranding("packing_slip", offer), { choice: "blind", fee: 0 }, "not offered: blind");
-  assert.deepEqual(r.effectiveBranding("stickers", offer), { choice: "stickers", fee: 200 });
-  const steps = r.packChecklist({ sellerName: "Ada's Kloset", choice: "stickers", orderCode: "SB-4821", stickersLeft: 14 });
-  assert.deepEqual(steps.map((s) => s.id), ["contents", "plain", "sticker", "code", "photo"], "the item in the open box first, the sealed parcel last");
-  assert.match(steps[2].detail, /14 left/);
-  assert.match(r.packReadyProblem(steps, ["plain", "sticker", "code"], "photo.jpg", null), /open box/);
-  assert.match(r.packReadyProblem(steps, ["plain", "sticker", "code"], null, "contents.jpg"), /Snap a photo/);
-  assert.match(r.packReadyProblem(steps, ["plain"], "photo.jpg", "contents.jpg"), /2 steps left/);
-  assert.equal(r.packReadyProblem(steps, ["plain", "sticker", "code"], "photo.jpg", "contents.jpg"), null);
-  assert.deepEqual(r.stickersAfterUse(11), { left: 10, low: true });
-  assert.deepEqual(r.brandingOfferFor("new", offer).stickers, false, "New suppliers offer blind packing only");
+test("blind packing: the pack checklist is plain, no slips or stickers, and ends with the photo", () => {
+  assert.equal(r.BLIND_PACKING, "blind");
+  for (const gone of ["readBrandingOffer", "brandingChoicesFor", "effectiveBranding", "brandingOfferFor", "stickersAfterUse", "STICKERS_LOW", "BRANDING_CHOICES"]) {
+    assert.equal(r[gone], undefined, `${gone} is gone: suppliers don't offer seller branding`);
+  }
+  const steps = r.packChecklist({ orderCode: "SB-4821" });
+  assert.deepEqual(steps.map((s) => s.id), ["contents", "plain", "code", "photo"], "the item in the open box first, the sealed parcel last");
+  assert.match(steps[1].text, /plain/i);
+  assert.match(steps[2].text, /SB-4821/);
+  assert.match(r.packReadyProblem(steps, ["plain", "code"], "photo.jpg", null), /open box/);
+  assert.match(r.packReadyProblem(steps, ["plain", "code"], null, "contents.jpg"), /Snap a photo/);
+  assert.match(r.packReadyProblem(steps, [], "photo.jpg", "contents.jpg"), /2 steps left/);
+  assert.match(r.packReadyProblem(steps, ["plain"], "photo.jpg", "contents.jpg"), /1 step left/);
+  assert.equal(r.packReadyProblem(steps, ["plain", "code"], "photo.jpg", "contents.jpg"), null);
+  for (const level of ["new", "trusted", "established"]) assert.equal("branding" in r.supplierPerks(level), false, "no level unlocks branding");
 });
 
 const now = new Date("2026-10-28T12:00:00Z");

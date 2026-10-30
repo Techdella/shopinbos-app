@@ -7,7 +7,7 @@
 // in tests/dropship-marketplace.test.mjs.
 
 import { dropshipUnitPrice, readPriceBreaks, type ChannelPrices } from "./dropship-rules.ts";
-import { cleanListingChoice, listingEarn, listingProblem, type DropshipTerms, type ListingChoice } from "./dropship-checkout.ts";
+import { listingEarn, listingProblem, type DropshipTerms, type ListingChoice } from "./dropship-checkout.ts";
 
 /** Days of notice sellers get before a supplier's price rise applies. */
 export const PRICE_NOTICE_DAYS = 7;
@@ -109,19 +109,18 @@ function roundUp(price: number): number {
 
 /**
  * The lowest nice price at which this listing stops losing money (and respects the supplier's floor) with the
- * seller's own delivery and branding choices: the "Raise to ₦X" one-tap fix.
+ * seller's own delivery choice: the "Raise to ₦X" one-tap fix.
  */
 export function breakEvenPrice(terms: DropshipTerms, choice: Omit<ListingChoice, "retailPrice">): number {
-  const clean = cleanListingChoice(terms, { ...choice, retailPrice: 1 });
-  // At price p the seller earns p - cost - their part of the dearest delivery - branding: solve for 0.
+  // At price p the seller earns p - cost - their part of the dearest delivery: solve for 0.
   const delivery = listingEarn(terms, { ...choice, retailPrice: terms.cost }) * -1;
-  let price = roundUp(Math.max(terms.floor, terms.cost + Math.max(0, delivery), terms.cost + clean.brandingFee));
+  let price = roundUp(Math.max(terms.floor, terms.cost + Math.max(0, delivery)));
   for (let tries = 0; tries < 200 && listingProblem(terms, { ...choice, retailPrice: price }); tries++) price = roundUp(price + 1);
   return price;
 }
 
 export interface ListingVerdict {
-  /** The seller's price no longer covers the supplier's price, their delivery share and branding. */
+  /** The seller's price no longer covers the supplier's price and their delivery share. */
   loses: boolean;
   /** "You earn" per order at the seller's price (negative: a loss). */
   earn: number;

@@ -229,6 +229,8 @@ const en = {
   "terms.accept": "I agree to the partner terms",
   "terms.accepted": "You agreed to these terms on {date}.",
   "terms.mustAccept": "Agree to the partner terms to continue.",
+  "docs.title": "Your details and documents",
+  "docs.back": "Back to my details",
 } satisfies Record<string, string>;
 
 export default en;

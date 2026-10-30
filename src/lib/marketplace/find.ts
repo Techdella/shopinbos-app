@@ -67,7 +67,7 @@ export interface FindProduct {
   /** "Ships 1 piece" · "Minimum 3 pieces" · "Packs in 1 day" (shared/dropship-rules.ts dropshipOptionWords). */
   dropshipOptions?: string[];
   /**
-   * The full dropship terms for the product page (delivery to the seller's state, who pays, branding), worked out on
+   * The full dropship terms for the product page (delivery to the seller's state, who pays), worked out on
    * the server (src/lib/marketplace/dropship-listing.server.ts). Missing on cards and samples.
    */
   terms?: DropshipTerms | null;

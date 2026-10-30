@@ -168,7 +168,7 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "order.step3": "Rider máa wá gbé e ní àkókò tí o yàn. O kò ní san owó delivery.",
   "order.whiteLabel": "Ó ń lọ sọ́dọ̀ oníbàárà {shop} gẹ́gẹ́ bí order {shop}. Má ṣe tà fún wọn tààrà. Ìyẹn ni yóò jẹ́ kí ṣọ́ọ̀bù náà máa rà lọ́wọ́ rẹ.",
   "order.howLabel": "Báwo lo ṣe fẹ́ label náà?",
-  "order.slip": "Packing slip",
+  "order.slip": "In the parcel",
   "order.mixed": "Order ṣọ́ọ̀bù ní àwọn nǹkan mìíràn pẹ̀lú. Fi àwọn wọ̀nyí nìkan ránṣẹ́.",
   "order.note": "Àkíyèsí: {note}",
   "order.sendTo": "Fi ránṣẹ́ sí",

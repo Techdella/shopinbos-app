@@ -215,6 +215,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "terms.accept": "Mo gbà sí partner terms",
   "terms.accepted": "O gbà sí àwọn terms yìí ní {date}.",
   "terms.mustAccept": "Gbà sí partner terms kí o tó tẹ̀síwájú.",
+  "docs.title": "Àlàyé àti ìwé rẹ",
+  "docs.back": "Padà sí àlàyé mi",
 };
 
 export default yo;

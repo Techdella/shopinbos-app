@@ -185,7 +185,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "startJob": "Malite ọrụ a",
   "offer.assigned": "{company} nyere gị ọrụ a. Wụfee ya ma ọ bụrụ na ị nweghị ike ime ya.",
   "pay.title": "Onye ahịa ga-akwụ {amount} n'ọnụ ụzọ",
-  "pay.body": "Nara ya dịka gị na ụlọ ahịa kwekọrịtara (cash ma ọ bụ transfer), ma ọ bụ onye ahịa nwere ike ịkwụ site na link anyị zigara ha ma ọ bụ QR code a. Wee pịnye koodu nnyefe ha iji mechaa nnyefe.",
+  "pay.body": "Onye ahịa na-akwụ ụlọ ahịa ụgwọ, ọ bụghị gị: site na njikọ anyị zitere ha ma ọ bụ QR code a. Ozugbo ha kwụrụ, ha ga-enweta koodu. Tinye ya, mgbe ngwa ahụ kwuru Paid, nye ha ngwugwu ahụ. Ejidela ego aka.",
   "pay.qrHint": "Onye ahịa ga-eji igwefoto ekwentị ya scan ya.",
   "pay.showQr": "Gosi QR code",
   "pay.hideQr": "Zoo QR code",

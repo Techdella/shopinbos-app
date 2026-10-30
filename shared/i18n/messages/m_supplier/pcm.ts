@@ -168,7 +168,7 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "order.step3": "Rider go come carry am the time wey you pick. You no go pay for delivery.",
   "order.whiteLabel": "E dey go to {shop} customer as {shop} order. No sell to dem direct. Na so the shop go dey buy from you again.",
   "order.howLabel": "How you want the label?",
-  "order.slip": "Packing slip",
+  "order.slip": "Wetin dey inside the parcel",
   "order.mixed": "The shop order get other things too. Send only these ones.",
   "order.note": "Note: {note}",
   "order.sendTo": "Send am go",

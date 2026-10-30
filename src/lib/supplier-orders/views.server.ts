@@ -71,7 +71,7 @@ export function dropshipView(row: SupplierOrderRow, shopName: string, pickup?: P
     acceptBy: row.acceptBy?.toISOString() ?? null,
     expiredAt: row.expiredAt?.toISOString() ?? null,
     packedAt: row.packedAt?.toISOString() ?? null,
-    // Pack it the seller's way: { sellerName, logoUrl, choice, fee, skus }, the steps ticked and the parcel photo
+    // Pack it plain (always blind): { sellerName, logoUrl, skus }, the steps ticked and the parcel photo
     // (the checklist itself: GET /api/supplier/orders/[id]/pack).
     branding: readOrderBranding(row.branding, shopName),
     packSteps: row.packSteps,

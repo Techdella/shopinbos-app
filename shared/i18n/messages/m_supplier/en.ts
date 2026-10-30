@@ -176,7 +176,7 @@ const en = {
   "order.step3": "A rider comes to collect it at a time you pick. You don't pay for delivery.",
   "order.whiteLabel": "It goes to {shop}'s customer as {shop}'s order. Don't sell to them directly. That's how the shop keeps buying from you.",
   "order.howLabel": "How do you want the label?",
-  "order.slip": "Packing slip",
+  "order.slip": "In the parcel",
   "order.mixed": "The shop's order has other things too. Send only these.",
   "order.note": "Note: {note}",
   "order.sendTo": "Send to",

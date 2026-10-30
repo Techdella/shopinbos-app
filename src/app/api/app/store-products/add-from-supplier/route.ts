@@ -10,9 +10,10 @@ import { markCatalogDirty } from "@/lib/whatsapp-catalog/dirty";
 import { listingCheck } from "@/lib/marketplace/agreements.server";
 import { ListingChoiceSchema, checkDropshipListing, skuFields } from "@/lib/marketplace/dropship-listing.server";
 
-// POST { supplierProductId, retailPrice, fulfillmentType, deliveryPayer?, deliveryFlatFee?, brandingChoice?, sku?,
-// barcode? }. Dropship: the cost is the supplier's dropship price, the price can't go below its lowest allowed price
-// or lose money on delivery the seller covers (409 PRICE_PROBLEM), and the choices are saved on the store product.
+// POST { supplierProductId, retailPrice, fulfillmentType, deliveryPayer?, deliveryFlatFee?, sku?, barcode? }
+// (a brandingChoice from an older client is ignored: every dropship parcel is packed plain). Dropship: the cost is
+// the supplier's dropship price, the price can't go below its lowest allowed price or lose money on delivery the
+// seller covers (409 PRICE_PROBLEM), and the choices are saved on the store product.
 
 export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUser }) => {
   const body = await req.json().catch(() => null);
@@ -64,7 +65,7 @@ export const POST = withSeller(async (req: NextRequest, { user }: { user: AuthUs
       currency: supplierProduct.currency,
       margin,
       fulfillmentType,
-      ...(check?.ok ? { deliveryPayer: check.deliveryPayer, deliveryFlatFee: check.deliveryFlatFee, brandingChoice: check.brandingChoice } : {}),
+      ...(check?.ok ? { deliveryPayer: check.deliveryPayer, deliveryFlatFee: check.deliveryFlatFee } : {}),
       ...skuFields(parsed.data),
       status: "published",
     },

@@ -96,7 +96,6 @@ export async function linkSupplierProduct(input: {
   dropship: boolean;
   deliveryPayer?: string | null;
   deliveryFlatFee?: number | null;
-  brandingChoice?: string | null;
   sku?: string;
   barcode?: string;
 }): Promise<{ storeProductId: string; already: boolean }> {
@@ -125,7 +124,7 @@ export async function linkSupplierProduct(input: {
         costPrice: input.costPrice,
         currency: product.currency,
         margin: input.retailPrice - input.costPrice,
-        ...(dropship ? { deliveryPayer: input.deliveryPayer ?? "customer", deliveryFlatFee: input.deliveryFlatFee ?? null, brandingChoice: input.brandingChoice ?? "blind" } : {}),
+        ...(dropship ? { deliveryPayer: input.deliveryPayer ?? "customer", deliveryFlatFee: input.deliveryFlatFee ?? null } : {}),
         ...(input.sku ? { sku: input.sku } : {}),
         ...(input.barcode ? { barcode: input.barcode } : {}),
         categoryId: product.categoryId,
@@ -191,7 +190,7 @@ export async function quickAddForSeller(userId: string, ids: readonly unknown[],
       },
       create: (listing: NewListing) => {
         const row = rows.get(listing.product.id)!;
-        return linkSupplierProduct({ storeId: store.id, userId, product: row, retailPrice: listing.retailPrice, costPrice: listing.costPrice, dropship: listing.dropship, deliveryPayer: listing.deliveryPayer, deliveryFlatFee: listing.deliveryFlatFee, brandingChoice: listing.brandingChoice });
+        return linkSupplierProduct({ storeId: store.id, userId, product: row, retailPrice: listing.retailPrice, costPrice: listing.costPrice, dropship: listing.dropship, deliveryPayer: listing.deliveryPayer, deliveryFlatFee: listing.deliveryFlatFee });
       },
       restore: async (storeProductId, listing) => {
         await db.$transaction([
@@ -262,7 +261,7 @@ export async function mySupplierProducts(userId: string): Promise<{ products: My
     where: { storeId: store.id, supplierProductId: { not: null }, status: { not: "archived" } },
     select: {
       id: true, name: true, images: true, status: true, retailPrice: true, costPrice: true, fulfillmentType: true, supplierProductId: true,
-      pausedReason: true, deliveryPayer: true, deliveryFlatFee: true, brandingChoice: true,
+      pausedReason: true, deliveryPayer: true, deliveryFlatFee: true,
       supplierProduct: { select: { ...productSelect, status: true, pendingPrice: true, pendingPriceAt: true, supplier: { select: { displayName: true } } } },
     },
     orderBy: { createdAt: "desc" },
@@ -307,14 +306,14 @@ export type Reprice = { mode: "markup"; markup: Markup } | { mode: "suggested" }
 /**
  * Sets the price of many supplier products at once: cost + a markup (rounded to nice prices), or the supplier's
  * suggested price. Each still respects the supplier's lowest price and, for dropship, a loss on the seller's own
- * delivery and branding choices; those that can't are skipped with why.
+ * delivery choice; those that can't are skipped with why.
  */
 export async function repriceSupplierProducts(userId: string, ids: readonly string[], change: Reprice) {
   const store = await storeOf(userId);
   if (!store) return null;
   const rows = await db.storeProduct.findMany({
     where: { id: { in: [...new Set(ids)].slice(0, MINE_MAX) }, storeId: store.id, supplierProductId: { not: null }, status: { not: "archived" } },
-    select: { id: true, name: true, fulfillmentType: true, deliveryPayer: true, deliveryFlatFee: true, brandingChoice: true, supplierProduct: { select: productSelect } },
+    select: { id: true, name: true, fulfillmentType: true, deliveryPayer: true, deliveryFlatFee: true, supplierProduct: { select: productSelect } },
   });
   const sources = rows.flatMap((row) => (row.supplierProduct && row.fulfillmentType === "dropship" ? [row.supplierProduct] : []));
   const terms = await dropshipTermsFor(sources, userId);
@@ -332,7 +331,7 @@ export async function repriceSupplierProducts(userId: string, ids: readonly stri
     const cost = productTerms?.cost ?? (dropship ? dropshipUnitPrice(source) : source.wholesalePrice);
     const { price } = quickAddPrice({ cost, suggested: source.suggestedRetailPrice, minRetail: productTerms?.floor ?? source.minRetailPrice, markup, preferSuggested: change.mode === "suggested" });
     if (productTerms) {
-      const problem = listingProblem(productTerms, { retailPrice: price, payer: row.deliveryPayer, flatFee: row.deliveryFlatFee, brandingChoice: row.brandingChoice });
+      const problem = listingProblem(productTerms, { retailPrice: price, payer: row.deliveryPayer, flatFee: row.deliveryFlatFee });
       if (problem) {
         skipped.push({ id: row.id, name: row.name, message: problem });
         continue;

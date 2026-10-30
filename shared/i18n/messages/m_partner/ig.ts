@@ -336,8 +336,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "job.sent": "E zitere ya {ago}",
   "job.youGet": "Ị ga-enweta {fee}",
   "job.paidOnConfirm": "A ga-akwụ ya ozugbo n'akaụntụ ụlọ akụ gị mgbe e kwadoro delivery",
-  "job.podTitle": "Pay on delivery · nara {cash}",
-  "job.podBody": "Gị na {shop} kwekọrịtara nke a. Settlement ego cash ahụ bụ n'etiti gị na ha.",
+  "job.podTitle": "Ịkwụ ụgwọ mgbe ọ rutere · onye ahịa na-akwụ ụlọ ahịa",
+  "job.podBody": "Onye na-ebugara gị anaghị ana ego aka. Onye ahịa na-akwụ {shop} site na njikọ ma ọ bụ QR code nke onye na-ebuga, nweta koodu, onye na-ebugara gị ga-etinye ya tupu o nye ngwugwu ahụ.",
   "job.failedTitle": "Mbọ agaghị nke ọma: {reason}",
   "job.failedNoReason": "e nyeghị ihe kpatara ya",
   "job.failedBody": "A gwala onye na-ere ahịa. Ịnwa ọzọ ga-efu {fee}, dị ka ọ dị na rate card gị.",
@@ -708,6 +708,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "conn.subShort": "Ndị na-ere na ndị na-ebubata nwere ike jikọọ gị ozugbo.",
   "today.finishHintShort": "Foto ID gị na selfie. Enweghị akwụkwọ ma ọ bụ nkọwa ụlọ akụ.",
   "riders.noneBodyShort": "Tinye onye na-agba ọgba tum tum na aha ya na nọmba WhatsApp ya.",
+  "home.quotesAll": "Lee ha niile",
 };
 
 export default ig;

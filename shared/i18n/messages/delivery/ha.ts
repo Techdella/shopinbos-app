@@ -39,9 +39,9 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "decline.other": "Wani dalili",
   "decline.none": "Ba a ba da dalili ba",
   "pod.disclaimer":
-    "Biya bayan isarwa tsakaninka ne da abokin cinikinka da abokin isarwarka. Abokin cinikinka zai biya ka ko rider ɗinka idan ya iso, da kuɗin hannu ko tura kuɗi kamar yadda kuka amince, ko a cikin app daga shafin odarsa; ka sanya odar a matsayin wadda aka biya idan kuɗin sun iso maka. Idan kana karɓar biyan kati, abokin ciniki zai iya biyan kuɗin isarwa a checkout. Shopinbos ba ya karɓa, ba ya riƙewa, kuma ba ya ba da tabbacin kuɗin biya bayan isarwa.",
+    "Da biya idan ya iso, kwastomanka zai biya ka, shagon, idan kayan sun iso: da mahaɗin da muke aikawa wayarsa da imel, ko QR code na mahayi (ko ka nuna an biya idan ya biya ka ta wata hanya). Sai ya samu lamba, mahayi ya rubuta ta, sannan a ba shi kayan. Mahaya da kamfanonin isarwa ba sa karɓar kuɗinka.",
   "pod.disclaimerPartner":
-    "Biya bayan isarwa tsakaninka ne da shagon. Abokin ciniki zai biya rider ɗinka ko shagon a ƙofa, da kuɗin hannu ko tura kuɗi kamar yadda kai da shagon kuka amince, ko a cikin app. Ka mika duk wani kuɗin hannu kamar yadda kuka amince da shagon. Shopinbos ba ya karɓa, ba ya riƙewa, kuma ba ya ba da tabbacin kuɗin biya bayan isarwa.",
+    "Da biya idan ya iso, kwastoma yana biyan shagon, ba kai ko mahayinka ba: da mahaɗin da muka aika masa ko QR code na mahayinka. Da zarar ya biya zai samu lamba; mahayinka zai rubuta ta, manhajar ta ce Paid, sannan ya ba da kayan. Mahayanka ba sa karɓar kuɗi a hannu.",
   "offPlatform.warning": "Ku riƙe ayyuka da biyan kuɗi a cikin Shopinbos. Ana biyan ayyukan cikin app kai tsaye, ana bin diddiginsu, kuma suna ƙirguwa a rating ɗinka. Shopinbos ba ya kare biyan kuɗin da aka shirya a wajen app.",
   "time.sameDay": "Rana ɗaya",
   "time.days": "{count, plural, one {kwana #} other {kwanaki #}}",
@@ -118,8 +118,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "pod.title": "Biya bayan isarwa",
   "pod.partnerDoesNotOffer": "Abokin isar da kaya ba ya bayar da biya bayan isarwa",
   "pod.waitingForPartner": "Biya bayan isarwa: ana jiran abokin isar da kaya",
-  "pod.partnerCollects": "Abokin isar da kaya ne ke karɓar kuɗin hannu",
-  "pod.letCustomersPay": "Bari abokan ciniki su biya rider na wannan abokin isar da kaya kuɗi a hannu idan kaya ya iso",
+  "pod.partnerCollects": "Kwastoma yana biyan shagon",
+  "pod.letCustomersPay": "Bari kwastomomi su biya ka idan kayan sun iso (da mahaɗi, ba mahayi ba)",
   "pod.iUnderstand": "Na fahimta",
   "pod.bothOn": "Abokan ciniki za su ga biya bayan isarwa ne kawai idan kai da abokin isar da kaya duk kun kunna shi.",
   "pod.waitingSwitchOn": "Ana jiran abokin isar da kaya ya kunna shi.",

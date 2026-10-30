@@ -197,7 +197,7 @@ export async function markPacked(supplierId: string, kind: SupplierOrderKind, or
     const facts = await db.wholesaleOrder.findUnique({ where: { id: order.id }, select: { status: true, totalPrice: true, preorder: true, depositKobo: true, paidAt: true, paidOutAt: true } });
     if (facts && preorderBlocksShipping(facts)) return { ok: false, code: "CONFLICT", message: "The shop hasn't paid the rest of this preorder yet. Pack it once it's paid." };
   }
-  // Pack it the seller's way (shared/dropship-rules.ts packReadyProblem): every checklist step ticked and a photo of
+  // Pack it plain (shared/dropship-rules.ts packReadyProblem): every checklist step ticked and a photo of
   // the sealed parcel before a dropship order is ready for the rider (src/lib/supplier-dropship.server.ts).
   const pack = kind === "dropship" ? await import("@/lib/supplier-dropship.server") : null;
   if (pack) {
@@ -212,8 +212,6 @@ export async function markPacked(supplierId: string, kind: SupplierOrderKind, or
     ? await db.supplierOrder.updateMany({ where: { id: order.id, supplierId, status: "accepted", packedAt: null }, data: { packedAt: new Date() } })
     : await db.wholesaleOrder.updateMany({ where: { id: order.id, supplierId, status: "confirmed" }, data: { status: "processing" } });
   if (moved.count !== 1) return { ok: false, code: "CONFLICT", message: "This order has already moved on. Refresh to see where it is." };
-  // Packed with the seller's stickers: one fewer in their pack, and the seller hears when it's running low.
-  if (pack) await pack.useSellerSticker(order.id).catch(() => undefined);
   return { ok: true, data: { id: order.id } };
 }
 

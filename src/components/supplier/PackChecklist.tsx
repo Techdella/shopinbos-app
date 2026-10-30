@@ -5,8 +5,8 @@ import { chooseFile, uploadToMyMedia } from "@/components/media/media-client";
 import { friendlyError } from "@/lib/errors/report-client";
 import { Icon } from "@/components/ui/Icon";
 
-// "Pack it the seller's way" on a dropship order (Supplier & Dropship Rules, shared/dropship-rules.ts packChecklist):
-// a photo of the item in the open box, the steps to tick (pack plain, the seller's slip or sticker, the order code) and
+// "Pack it plain" on a dropship order (Supplier & Dropship Rules, shared/dropship-rules.ts packChecklist): always blind,
+// a photo of the item in the open box, the steps to tick (pack plain with no price tag, the order code) and
 // the photo of the sealed parcel: the two photos protect the supplier in a dispute (shared/fault-matrix.ts). "I've
 // packed it" (PickupBooking) is refused until all of it is done. Talks to /api/supplier/orders/[id]/pack (?kind=wholesale
 // for a bulk order: only the two photos); the photos go up through the media library first.

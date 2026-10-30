@@ -215,6 +215,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "terms.accept": "I agree to the partner terms",
   "terms.accepted": "You agree to these terms on {date}.",
   "terms.mustAccept": "Agree to the partner terms make you continue.",
+  "docs.title": "Your details and documents",
+  "docs.back": "Go back to my details",
 };
 
 export default pcm;

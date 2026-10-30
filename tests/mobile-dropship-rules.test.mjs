@@ -1,6 +1,6 @@
 // Supplier & Dropship Rules on the phone (apps/mobile): the supplier's Prices (P-Pricing) and Dropship settings
-// (P-Dropship), Delivery prices (P-Delivery), Seller branding (P-Branding), Your level (P-Tier) and "Pack it the
-// seller's way" (P-Order); the seller's "Add to your store" (A-Seller-AddSupplier); the delivery partner's locked pay
+// (P-Dropship), Delivery prices (P-Delivery), Your level (P-Tier) and "Pack it plain" (P-Order; suppliers offer no
+// seller branding); the seller's "Add to your store" (A-Seller-AddSupplier); the delivery partner's locked pay
 // on delivery (A-Rider-POD); Pre-order locked at sign-up; and the mobile quick-edit route gated like the web.
 // The pure parts (apps/mobile/src/lib/dropship-pure.ts) must agree with shared/dropship-rules.ts and
 // shared/dropship-checkout.ts, which the server uses.
@@ -96,11 +96,12 @@ test("Dropship settings, delivery rate card, level meter and the pack button", (
 
   // Ready for pickup only with every step ticked and both photos taken: the item in the open box and the sealed
   // parcel (packReadyProblem on the server; shared/fault-matrix.ts: they decide most disputes).
-  const steps = rules.packChecklist({ sellerName: "Ada's Kloset", choice: "stickers", orderCode: "SB-4821", stickersLeft: 14 });
+  const steps = rules.packChecklist({ orderCode: "SB-4821" });
   const asView = (done, photo) => steps.map((step) => ({ id: step.id, done: step.id === "photo" || step.id === "contents" ? Boolean(photo) : done.includes(step.id) }));
-  assert.deepEqual(pure.packButton(asView(["plain"], null), null), { left: 4, ready: false, label: "4 steps left" });
-  assert.equal(pure.packButton(asView(["plain", "sticker", "code"], null), null).label, "2 steps left", "both photos still to take");
-  const done = ["plain", "sticker", "code"];
+  assert.deepEqual(pure.packButton(asView([], null), null), { left: 4, ready: false, label: "4 steps left" });
+  assert.deepEqual(pure.packButton(asView(["plain"], null), null), { left: 3, ready: false, label: "3 steps left" });
+  assert.equal(pure.packButton(asView(["plain", "code"], null), null).label, "2 steps left", "both photos still to take");
+  const done = ["plain", "code"];
   assert.equal(pure.packButton(asView(done, "https://x/p.jpg"), "https://x/p.jpg").ready, true);
   assert.equal(rules.packReadyProblem(steps, done, "https://x/p.jpg", "https://x/c.jpg"), null, "ready on the phone = ready on the server");
   assert.match(rules.packReadyProblem(steps, done, "https://x/p.jpg", null), /open box/, "the contents photo is needed too");
@@ -113,16 +114,16 @@ test("Dropship settings, delivery rate card, level meter and the pack button", (
 test("Add to your store: You earn is the web's, and the refusal is the server's listingProblem", () => {
   const terms = checkout.dropshipTerms({
     product: { priceMode: "per_channel", wholesalePrice: 9000, dropshipPrice: 9500, suggestedRetailPrice: 14000, minRetailPrice: 12000, stockQuantity: 86, sizeBand: "small" },
-    supplier: { city: "Port Harcourt", level: "trusted", brandingOffer: { stickers: true, stickerFee: 200 } },
+    supplier: { city: "Port Harcourt", level: "trusted" },
     delivery: { rateSource: "own", zoneRates: rules.DEFAULT_ZONE_RATES },
     origin: { state: "Rivers", area: "Port Harcourt" },
     sellerPlace: { state: "Lagos", area: "Yaba" },
   });
   for (const choice of [
-    { retailPrice: 14000, payer: "customer", brandingChoice: "blind" },
+    { retailPrice: 14000, payer: "customer" },
     { retailPrice: 14000, payer: "customer", brandingChoice: "stickers" },
-    { retailPrice: 14000, payer: "seller", brandingChoice: "blind" },
-    { retailPrice: 14000, payer: "flat", flatFee: 2000, brandingChoice: "stickers" },
+    { retailPrice: 14000, payer: "seller" },
+    { retailPrice: 14000, payer: "flat", flatFee: 2000 },
     { retailPrice: 11000, payer: "customer" },
   ]) {
     const view = pure.listingView(terms, choice);
@@ -130,13 +131,13 @@ test("Add to your store: You earn is the web's, and the refusal is the server's 
     assert.equal(view.earn, checkout.listingEarn(terms, choice) - webFind.paymentFee(choice.retailPrice));
     assert.equal(view.problem, checkout.listingProblem(terms, choice));
   }
-  assert.equal(pure.listingView(terms, { retailPrice: 14000, payer: "customer", brandingChoice: "stickers" }).earn, 3990);
+  assert.equal(pure.listingView(terms, { retailPrice: 14000, payer: "customer", brandingChoice: "stickers" }).earn, 4190, "an old brandingChoice adds no fee");
   assert.match(pure.listingView(terms, { retailPrice: 11000, payer: "customer" }).problem, /lowest price for this is ₦12,000/);
   assert.equal(pure.listingView(terms, { retailPrice: 14000 }).floorLine, "Lowest price allowed: ₦12,000.");
   assert.equal(pure.deliveryLine(terms, "Lagos"), "Lagos: ₦4,500 · 3–7 days", "3–6 days on the road plus a day to pack");
   assert.equal(pure.payerLabel("flat", 2000), "Flat ₦2,000");
   assert.equal(pure.payerLabel("seller", null), "I pay (free delivery)");
-  assert.equal(pure.brandingLabel({ label: "My stickers or bags", fee: 200 }), "My stickers or bags +₦200");
+  assert.equal(pure.brandingLabel, undefined, "no branding chips");
   assert.equal(pure.supplierBadgeLine({ level: "trusted", rating: 4.7, ratingCount: 18 }), "Trusted supplier · ★ 4.7 from 18 shops");
   assert.equal(pure.supplierBadgeLine({ level: "new", rating: null, ratingCount: 0 }), null);
 });
@@ -144,48 +145,49 @@ test("Add to your store: You earn is the web's, and the refusal is the server's 
 // The web's "On each order" (src/app/marketplace/_components/DropshipTermsPanel.tsx), line for line: ProductDetail
 // passes paymentFee={saleBreakdown(price, cost).fee} (src/lib/marketplace/find.ts).
 function webOnEachOrder(terms, choice) {
-  const clean = checkout.cleanListingChoice(terms, { retailPrice: choice.retailPrice, payer: choice.payer, flatFee: choice.flatFee ?? null, brandingChoice: choice.brandingChoice });
+  const clean = checkout.cleanListingChoice(terms, { retailPrice: choice.retailPrice, payer: choice.payer, flatFee: choice.flatFee ?? null });
   const deliveryShare = clean.payer === "seller" ? terms.dearestDelivery : clean.payer === "flat" ? Math.max(0, terms.dearestDelivery - (clean.flatFee ?? 0)) : 0;
   const paymentFee = webFind.saleBreakdown(choice.retailPrice, terms.cost).fee;
-  return { deliveryShare, brandingFee: clean.brandingFee, paymentFee, earn: choice.retailPrice - terms.cost - deliveryShare - clean.brandingFee - paymentFee };
+  return { deliveryShare, paymentFee, earn: choice.retailPrice - terms.cost - deliveryShare - paymentFee };
 }
 
-test("You earn on the phone is exactly the web's: card payment fee and branding fee taken off", () => {
+test("You earn on the phone is exactly the web's: card payment fee taken off, no branding fee", () => {
   const panel = read("src/app/marketplace/_components/DropshipTermsPanel.tsx");
   assert.match(panel, /const deliveryShare = clean\.payer === "seller" \? terms\.dearestDelivery : clean\.payer === "flat" \? Math\.max\(0, terms\.dearestDelivery - \(clean\.flatFee \?\? 0\)\) : 0;/, "the web's formula is the one mirrored here");
-  assert.match(panel, /const earn = price - terms\.cost - deliveryShare - clean\.brandingFee - paymentFee;/);
+  assert.match(panel, /const earn = price - terms\.cost - deliveryShare - paymentFee;/);
   assert.match(read("src/app/marketplace/_components/ProductDetail.tsx"), /paymentFee=\{sale\.fee\}/);
   for (const amount of [0, 900, 2499, 2500, 14000, 13000, 120000, 500000]) assert.equal(findPure.paymentFee(amount), webFind.paymentFee(amount), `card fee on ${amount}`);
 
   const terms = checkout.dropshipTerms({
     product: { priceMode: "per_channel", wholesalePrice: 9000, dropshipPrice: 9500, suggestedRetailPrice: 14000, stockQuantity: 86, sizeBand: "small" },
-    supplier: { city: "Port Harcourt", level: "trusted", brandingOffer: { stickers: true, stickerFee: 200, packingSlip: true, packingSlipFee: 150 } },
+    supplier: { city: "Port Harcourt", level: "trusted", brandingOffer: { stickers: true, stickerFee: 200, packingSlip: true, packingSlipFee: 150 } }, // an old offer is ignored
     delivery: { rateSource: "own", zoneRates: rules.DEFAULT_ZONE_RATES },
     origin: { state: "Rivers", area: "Port Harcourt" },
     sellerPlace: { state: "Lagos", area: "Yaba" },
   });
   assert.equal(terms.dearestDelivery, 4500);
   const cases = [
-    [{ retailPrice: 14000, payer: "customer", brandingChoice: "blind" }, 4190],
-    [{ retailPrice: 14000, payer: "customer", brandingChoice: "stickers" }, 3990],
-    [{ retailPrice: 14000, payer: "seller", brandingChoice: "blind" }, -310],
-    [{ retailPrice: 18000, payer: "seller", brandingChoice: "stickers" }, 18000 - 9500 - 4500 - 200 - 370],
-    [{ retailPrice: 14000, payer: "flat", flatFee: 2000, brandingChoice: "packing_slip" }, 14000 - 9500 - 2500 - 150 - 310],
-    [{ retailPrice: 2000, payer: "customer", brandingChoice: "blind" }, 2000 - 9500 - 30],
+    [{ retailPrice: 14000, payer: "customer" }, 4190],
+    [{ retailPrice: 14000, payer: "customer", brandingChoice: "stickers" }, 4190],
+    [{ retailPrice: 14000, payer: "seller" }, -310],
+    [{ retailPrice: 18000, payer: "seller" }, 18000 - 9500 - 4500 - 370],
+    [{ retailPrice: 14000, payer: "flat", flatFee: 2000, brandingChoice: "packing_slip" }, 14000 - 9500 - 2500 - 310],
+    [{ retailPrice: 2000, payer: "customer" }, 2000 - 9500 - 30],
   ];
   for (const [choice, earn] of cases) {
     const web = webOnEachOrder(terms, choice);
     const phone = pure.listingView(terms, choice);
     assert.equal(phone.earn, web.earn, JSON.stringify(choice));
     assert.equal(phone.earn, earn, JSON.stringify(choice));
-    assert.deepEqual([phone.money.deliveryShare, phone.money.brandingFee, phone.money.cardFee], [web.deliveryShare, web.brandingFee, web.paymentFee]);
+    assert.deepEqual([phone.money.deliveryShare, phone.money.cardFee], [web.deliveryShare, web.paymentFee]);
   }
-  const blind = pure.listingView(terms, { retailPrice: 14000, payer: "customer", brandingChoice: "blind" }).money;
-  assert.deepEqual(blind, { price: 14000, cost: 9500, customerPays: true, deliveryShare: 0, brandingFee: 0, cardFee: 310, earn: 4190 });
+  const blind = pure.listingView(terms, { retailPrice: 14000, payer: "customer" }).money;
+  assert.deepEqual(blind, { price: 14000, cost: 9500, customerPays: true, deliveryShare: 0, cardFee: 310, earn: 4190 });
 
   // The phone shows the web's lines under the three tiles.
   const add = app("components/seller/AddFromSupplier.tsx");
-  for (const words of ['"Your price"', '"You pay {name}"', '"Delivery"', '"Delivery you cover (up to)"', '"Branding per parcel"', '"Card payment fee"', '"You earn"']) assert.ok(add.includes(words), words);
+  for (const words of ['"Your price"', '"You pay {name}"', '"Delivery"', '"Delivery you cover (up to)"', '"Card payment fee"', '"You earn"']) assert.ok(add.includes(words), words);
+  assert.ok(!add.includes('"Branding per parcel"'), "no branding line");
 });
 
 test("pay on delivery: locked below Cash trusted, never locked off for a partner already offering it", () => {
@@ -207,12 +209,14 @@ test("the mobile quick edit is gated like the portal: prices checked together, p
   assert.match(read("src/app/api/mobile/marketplace/products/_shared.ts"), /returnPolicy: true, level: true \}/, "Find rows carry the supplier's level");
 });
 
-test("supplier screens: Prices, Dropship settings, Delivery prices, Branding, Your level and Pack it", () => {
-  for (const screen of ["app/supplier/level.tsx", "app/supplier/delivery-prices.tsx", "app/supplier/branding.tsx", "app/supplier/order/pack.tsx", "app/logistics/pay-on-delivery.tsx", "components/supplier/DropshipKit.tsx", "components/seller/AddFromSupplier.tsx"]) {
+test("supplier screens: Prices, Dropship settings, Delivery prices, Your level and Pack it (no Branding)", () => {
+  assert.equal(existsSync(join(root, "apps/mobile/src/app/supplier/branding.tsx")), false, "suppliers don't offer seller branding");
+  for (const screen of ["app/supplier/level.tsx", "app/supplier/delivery-prices.tsx", "app/supplier/order/pack.tsx", "app/logistics/pay-on-delivery.tsx", "components/supplier/DropshipKit.tsx", "components/seller/AddFromSupplier.tsx"]) {
     assert.ok(existsSync(join(root, "apps/mobile/src", screen)), screen);
   }
   const client = app("lib/supplier.ts");
-  for (const path of ['"/api/supplier/level"', '"/api/supplier/delivery-rates"', '"/api/supplier/branding"', '"/api/app/media"', "/pack${"]) assert.ok(client.includes(path), path);
+  for (const path of ['"/api/supplier/level"', '"/api/supplier/delivery-rates"', '"/api/app/media"', "/pack${"]) assert.ok(client.includes(path), path);
+  assert.ok(!client.includes("/api/supplier/branding"));
 
   const kit = app("components/supplier/DropshipKit.tsx");
   assert.match(kit, /"Same price for all"/);
@@ -243,10 +247,6 @@ test("supplier screens: Prices, Dropship settings, Delivery prices, Branding, Yo
   assert.match(rates, /"Set my own rates"/);
   assert.match(rates, /readRateDraft\(draft\)/);
   assert.match(rates, /saveDeliveryRates\(body\)/);
-  const brand = app("app/supplier/branding.tsx");
-  assert.match(brand, /"ALWAYS ON"/);
-  assert.match(brand, /const locked = !view\.allowed;/);
-  assert.match(brand, /router\.push\("\/supplier\/level"\)/);
   const level = app("app/supplier/level.tsx");
   assert.match(level, /fetchSupplierLevel/);
   assert.match(level, /<GoalList/);
@@ -258,14 +258,16 @@ test("supplier screens: Prices, Dropship settings, Delivery prices, Branding, Yo
   assert.match(pack, /savePack\(view\.orderId, which === "contents" \? \{ contentsPhotoUrl: url \} : \{ photoUrl: url \}, kind\)/);
   assert.match(pack, /savePack\(view\.orderId, \{ packed: true \}, kind\)/);
   assert.match(pack, /disabled=\{!button\.ready \|\| Boolean\(busy\)\}/);
-  assert.match(pack, /"Pack it \{seller\}'s way"/);
+  assert.match(pack, /"Pack it plain for \{seller\}"/);
+  assert.doesNotMatch(pack, /sticker|slip fee/i);
   assert.match(pack, /"Snap"/);
   const order = app("app/supplier/order/[id].tsx");
   assert.match(order, /dropship && stage === "label"/);
   assert.match(order, /pathname: "\/supplier\/order\/pack", params: \{ id: data\.id \}/);
 
   const account = app("app/supplier/account.tsx");
-  for (const path of ["/supplier/delivery-prices", "/supplier/branding", "/supplier/level"]) assert.ok(account.includes(`router.push("${path}")`), path);
+  for (const path of ["/supplier/delivery-prices", "/supplier/level"]) assert.ok(account.includes(`router.push("${path}")`), path);
+  assert.ok(!account.includes("/supplier/branding"));
   assert.match(app("app/supplier/(tabs)/home.tsx"), /router\.push\("\/supplier\/level"\)/);
 });
 
@@ -282,11 +284,13 @@ test("sign-up shows Pre-order locked; sellers add with the new choices; partners
   assert.match(find, /fetchDropshipTerms\(found\.product\.id\)/);
   assert.match(find, /<AddFromSupplier product=\{product\} terms=\{terms\} draft=\{draft\} onChange=\{setDraft\}/);
   assert.match(find, /deliveryPayer: draft\.payer/);
-  assert.match(find, /brandingChoice: draft\.branding/);
+  assert.doesNotMatch(find, /brandingChoice/);
   assert.match(find, /sku: draft\.sku\.trim\(\)/);
   assert.match(find, /disabled=\{Boolean\(priceProblem\)\}/);
   const add = app("components/seller/AddFromSupplier.tsx");
-  for (const words of ['"YOU PAY"', '"YOUR PRICE"', '"YOU EARN"', '"Delivery to your customers"', '"Your branding"', '"Your SKU or barcode"']) assert.ok(add.includes(words), words);
+  for (const words of ['"YOU PAY"', '"YOUR PRICE"', '"YOU EARN"', '"Delivery to your customers"', '"Your SKU or barcode"']) assert.ok(add.includes(words), words);
+  assert.ok(!add.includes('"Your branding"'));
+  assert.match(add, /Packed plain: your shop's name is on tracking and the invoice\./);
   assert.match(add, /listingView\(terms, choice, words\)/);
   assert.match(add, /supplierBadgeLine\(product\.supplier, words\)/);
 

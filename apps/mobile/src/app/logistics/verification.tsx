@@ -59,20 +59,29 @@ export default function LogisticsVerification() {
   });
 
   const current = screen ?? "name";
+  // Signed up already: adding a document or fixing a detail later is its own small page ("Your details and
+  // documents"), not a step of the sign-up again; Back and Save return to the list.
+  const afterSignup = Boolean(data?.submittedAt);
   const back = previousScreen(current);
   const number = screenNumber(current);
   // Once sent, a fixed item (or CAC added later) goes back to the review screen rather than through every question.
   const props = data ? { state: data, onState: setState, onDone: () => setScreen(data.submittedAt ? "review" : nextScreen(current)) } : null;
 
   return (
-    <Screen title={t("title")} refreshing={load.refreshing} onRefresh={() => void load.refresh()}>
+    <Screen title={afterSignup ? t("docs.title") : t("title")} refreshing={load.refreshing} onRefresh={() => void load.refresh()}>
       {load.loading && !data ? <LoadingBlock /> : null}
       {load.error && !data ? <ErrorState message={load.error} onRetry={() => void load.reload()} /> : null}
       {data && props && screen ? (
         <>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             <View style={{ flex: 1 }}>
-              {back ? <StepHeader step={number.step} total={number.total} label={t("step.of", number)} onBack={() => setScreen(back)} backLabel={t("back")} /> : <T weight="semibold" style={{ fontSize: 13, color: colors.inkSoft }}>{t("step.of", number)}</T>}
+              {afterSignup ? (
+                current !== "review" ? <LinkButton title={t("docs.back")} onPress={() => setScreen("review")} /> : null
+              ) : back ? (
+                <StepHeader step={number.step} total={number.total} label={t("step.of", number)} onBack={() => setScreen(back)} backLabel={t("back")} />
+              ) : (
+                <T weight="semibold" style={{ fontSize: 13, color: colors.inkSoft }}>{t("step.of", number)}</T>
+              )}
             </View>
             <CallPeggyButton variant="compact" />
           </View>

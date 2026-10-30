@@ -349,8 +349,8 @@ const en = {
   "job.sent": "Sent {ago}",
   "job.youGet": "You get {fee}",
   "job.paidOnConfirm": "Paid to your bank once delivery is confirmed",
-  "job.podTitle": "Pay on delivery · collect {cash}",
-  "job.podBody": "You and {shop} agreed this. Settling up the cash is between you and them.",
+  "job.podTitle": "Pay on delivery · the customer pays the shop",
+  "job.podBody": "Your rider never takes cash. The customer pays {shop} with the link or the rider's QR code, gets a code, and your rider types it in before handing over the parcel.",
   "job.failedTitle": "Failed attempt: {reason}",
   "job.failedNoReason": "no reason given",
   "job.failedBody": "The seller has been told. Trying again costs {fee}, as on your rate card.",
@@ -721,6 +721,7 @@ const en = {
   "conn.subShort": "Sellers and suppliers can connect with you straight away.",
   "today.finishHintShort": "Your ID photo and a selfie. No papers or bank details.",
   "riders.noneBodyShort": "Add a rider with their name and WhatsApp number.",
+  "home.quotesAll": "See all",
 } satisfies Record<string, string>;
 
 export default en;

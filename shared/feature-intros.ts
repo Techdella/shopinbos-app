@@ -1047,7 +1047,7 @@ export const FEATURE_INTROS: FeatureIntro[] = [
       { art: "map-zones", caption: "Coverage is where you deliver.", sub: "Say where you collect from and where you deliver to, so you only get jobs you can do.", durationMs: S, chips: ["Mainland", "Lekki", "Ikeja"] },
       { art: "map-zones", caption: "Leave out what you can’t reach.", sub: "No riders in Ikorodu yet? Leave it off and you won’t get jobs there.", durationMs: S, chips: ["Mainland", "Lekki", "Ikorodu ✕"] },
       { art: "dots-sort", caption: "Pick the services you offer.", sub: "Doorstep, pickup points, same-day or interstate. Shops’ checkouts show only what you offer.", durationMs: S, chips: ["Doorstep", "Same-day", "Pickup point"] },
-      { art: "cash-collect", caption: "Pay on delivery is your choice.", sub: "Switch it on only if your riders collect cash. Shops must switch it on too.", durationMs: S, value: "₦12,000" },
+      { art: "cash-collect", caption: "Pay on delivery is your choice.", sub: "Customers pay the shop at the door with a link; your rider types in the code they get. Riders never handle cash.", durationMs: S, value: "₦12,000" },
       { art: "quote-tags", caption: "Your prices live on the Rate card.", sub: "Set a price per route, service and parcel size there. That’s what buyers see.", durationMs: S, chips: ["₦3,500", "₦3,000", "₦2,000"] },
     ],
   },
