@@ -50,6 +50,8 @@ const ha: Partial<Record<keyof typeof en, string>> = {
   "link.paymentLinks.hint": "Link da abokin ciniki ke buɗewa daga chat don biya",
   "link.linkInBio.label": "Link a bio",
   "link.linkInBio.hint": "Shafi ɗaya don bio na Instagram da TikTok",
+  "link.shopLink.label": "Link na shagonka da QR",
+  "link.shopLink.hint": "@handle ɗinka, gajeren link da QR code don bugawa",
   "webOnly.bio.title": "Canza kamannin shafinka a babban allo",
   "webOnly.bio.body": "Launuka, hoto, WhatsApp, kafofin sada zumunta da sassan rajista na shafin link a bio ɗinka sun fi sauƙin canzawa a kwamfuta ko tablet. Kana iya buɗe shi a wannan waya ma.",
   "link.video.label": "Video studio",

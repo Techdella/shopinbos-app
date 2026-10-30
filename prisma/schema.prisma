@@ -242,6 +242,10 @@ model Store {
   userId                     String   @unique
   name                       String
   slug                       String   @unique
+  // The shop's @handle (@kemibags), always lowercase; its short link is app.shopinbos.com/@kemibags (shared/shop-handle.ts).
+  // Set lazily the first time the link is shown (src/lib/shop-handle.server.ts). The migration also adds a unique
+  // index on lower(handle) and a lowercase CHECK (docs/migrations/2026-12-13-store-handle.sql).
+  handle                     String?  @unique
   // Addresses the store had before (newest first). They keep redirecting here and no other store can take them.
   previousSlugs              String[] @default([])
   // When the address last changed; changes are limited to one every 30 days (src/lib/store-address.server.ts).
@@ -5676,4 +5680,87 @@ model ShopperStore {
 
   @@unique([shopperId, storeId])
   @@index([storeId, lastOrderAt])
+}
+
+// ─── Pilot feature switches ───────────────────────────────────────────────────
+/// docs/migrations/2026-12-13-feature-switches.sql. Pilot features stay off until turned on in Admin › Pilot features
+/// for the shops, apps, areas and invite holders taking part (shared/feature-switches.ts decides).
+model FeatureSwitch {
+  key         String          @id
+  name        String
+  description String          @default("")
+  enabled     Boolean         @default(false) // the master switch
+  killed      Boolean         @default(false) // off for everyone at once, wins over everything
+  everyone    Boolean         @default(false) // on for every account on the apps below (else targets and invites only)
+  apps        String[]        @default([]) // business_android | business_ios | business_web | plug_android | plug_ios; empty = none
+  minVersions Json            @default("{}") // { "business_ios": "1.0.3" }
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @default(now()) @updatedAt
+  updatedBy   String?
+  targets     FeatureTarget[]
+}
+
+/// Who a pilot feature is on for: kind store (Store.id) | supplier (Supplier.id) | user (User.id) | area (PilotArea.id).
+model FeatureTarget {
+  id         String        @id @default(cuid())
+  featureKey String
+  kind       String
+  value      String
+  label      String? // what the admin picked, for the list (shop name, email…)
+  createdAt  DateTime      @default(now())
+  createdBy  String?
+  feature    FeatureSwitch @relation(fields: [featureKey], references: [key], onDelete: Cascade)
+
+  @@unique([featureKey, kind, value])
+  @@index([kind, value])
+}
+
+/// A named pilot area: places = [{ state, city?, area? }].
+model PilotArea {
+  id        String   @id @default(cuid())
+  name      String
+  places    Json     @default("[]")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  createdBy String?
+}
+
+/// A pilot invite code: each person who redeems it gets these features (still subject to kill switches, apps, versions).
+model FeatureInvite {
+  id        String             @id @default(cuid())
+  code      String             @unique
+  note      String?
+  features  String[]           @default([])
+  maxUses   Int?
+  uses      Int                @default(0)
+  expiresAt DateTime?
+  disabled  Boolean            @default(false)
+  createdBy String?
+  createdAt DateTime           @default(now())
+  redeemed  FeatureInviteUse[]
+}
+
+model FeatureInviteUse {
+  id        String        @id @default(cuid())
+  inviteId  String
+  userId    String
+  createdAt DateTime      @default(now())
+  invite    FeatureInvite @relation(fields: [inviteId], references: [id], onDelete: Cascade)
+
+  @@unique([inviteId, userId])
+  @@index([userId])
+}
+
+/// Every change in Admin › Pilot features: who, when, what.
+model FeatureSwitchLog {
+  id          String   @id @default(cuid())
+  featureKey  String?
+  action      String
+  before      Json?
+  after       Json?
+  actorUserId String?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([featureKey, createdAt])
 }

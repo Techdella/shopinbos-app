@@ -14,6 +14,7 @@ import { getOnboardingDestination } from "@/lib/onboarding-router";
 import { portalDashboardPath, portalLoginPath, portalOnboardingPath, portalRoleFromPath } from "@/lib/portal-routes";
 import { classifyHost, storePathAction } from "@/lib/storefront/host-routing";
 import { REFERRAL_COOKIE, REFERRAL_COOKIE_DAYS, REFERRAL_SOURCE_COOKIE, profileReferralCode } from "@shared/referrals";
+import { handleFromShortPath } from "@shared/shop-handle";
 
 const GUEST_ROUTES = [
   "/login",
@@ -109,6 +110,14 @@ function trustedOrigins() {
 export async function proxy(request: NextRequest) {
   const route = hostRoute(request);
   if (route.kind !== "app") return routeStoreHost(request, route);
+  // A shop's short link, app.shopinbos.com/@kemibags (shared/shop-handle.ts): served by the public /h/<handle> route
+  // (a folder named "@…" would be a parallel-route slot in Next, so it can't be a page of its own).
+  const shortHandle = handleFromShortPath(request.nextUrl.pathname);
+  if (shortHandle) {
+    const url = request.nextUrl.clone();
+    url.pathname = `/h/${shortHandle}`;
+    return NextResponse.rewrite(url);
+  }
   if (skippedOnAppHost(request.nextUrl.pathname)) {
     if (!request.nextUrl.pathname.startsWith("/s/")) return NextResponse.next();
     const headers = new Headers(request.headers);

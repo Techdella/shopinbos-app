@@ -50,6 +50,8 @@ const yo: Partial<Record<keyof typeof en, string>> = {
   "link.paymentLinks.hint": "Link tí oníbàárà ń ṣí láti inú chat láti sanwó",
   "link.linkInBio.label": "Link in bio",
   "link.linkInBio.hint": "Ojú-ìwé kan fún bio Instagram àti TikTok rẹ",
+  "link.shopLink.label": "Link shop rẹ àti QR",
+  "link.shopLink.hint": "@handle rẹ, link kúkúrú àti QR code láti tẹ̀",
   "webOnly.bio.title": "Yí ìrísí ojú-ìwé rẹ padà lórí ojú ìbòjú tó tóbi",
   "webOnly.bio.body": "Àwọ̀, fọ́tò, WhatsApp, social àti block ìforúkọsílẹ̀ ojú-ìwé link in bio rẹ rọrùn láti yí padà lórí kọ̀ǹpútà tàbí tablet. O ṣì lè ṣí i lórí fóònù yìí.",
   "link.video.label": "Video studio",
