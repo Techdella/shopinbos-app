@@ -1188,6 +1188,13 @@ class Sib_CLI {
 		foreach ( $tools as $i => [ $slug, $title, $tool, $excerpt, $content ] ) {
 			$this->cpt( 'sib_tool', $slug, $title, $content, $excerpt, [ 'sib_tool' => $tool, 'sib_cta_intent' => 'tool_result', 'sib_cta_args' => 'tool=' . $tool ], '', $i );
 		}
+		// More tools (seed/tools-more.json): invoices, receipts, VAT, POS, delivery, markup, wholesale, captions, labels, ajo, naira/dollar, slogans.
+		$more = json_decode( (string) file_get_contents( __DIR__ . '/seed/tools-more.json' ), true ) ?: [];
+		foreach ( $more as $i => $t ) {
+			$steps   = "<!-- wp:list {\"ordered\":true} -->\n<ol class=\"wp-block-list\">" . implode( '', array_map( fn( $x ) => "<!-- wp:list-item -->\n<li>" . esc_html( $x ) . "</li>\n<!-- /wp:list-item -->\n\n", $t['steps'] ) ) . "</ol>\n<!-- /wp:list -->\n\n";
+			$content = $h( 'How to use it' ) . $steps . $this->text_page( $t['more'] ) . $h( 'Questions' ) . $faq( array_map( fn( $qa ) => [ esc_html( $qa[0] ), esc_html( $qa[1] ) ], $t['faq'] ) );
+			$this->cpt( 'sib_tool', $t['slug'], $t['title'], $content, $t['excerpt'], [ 'sib_tool' => $t['tool'], 'sib_cta_intent' => 'tool_result', 'sib_cta_args' => 'tool=' . $t['tool'], 'rank_math_title' => $t['meta_title'], 'rank_math_description' => $t['meta_description'], 'rank_math_focus_keyword' => $t['keyword'] ], '', count( $tools ) + $i );
+		}
 	}
 
 	private function samples(): void {

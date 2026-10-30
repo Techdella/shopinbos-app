@@ -34,6 +34,18 @@ function sib_tools_list(): array {
 		'ad-budget'     => __( 'Ad budget calculator', 'shopinbos' ),
 		'business-name' => __( 'Business name generator', 'shopinbos' ),
 		'product-description' => __( 'Product description writer', 'shopinbos' ),
+		'invoice'         => __( 'Invoice generator', 'shopinbos' ),
+		'receipt'         => __( 'Receipt generator', 'shopinbos' ),
+		'vat'             => __( 'VAT calculator (Nigeria 7.5%)', 'shopinbos' ),
+		'pos-charges'     => __( 'POS charges calculator', 'shopinbos' ),
+		'delivery-fee'    => __( 'Delivery fee calculator', 'shopinbos' ),
+		'markup'          => __( 'Markup calculator', 'shopinbos' ),
+		'wholesale-price' => __( 'Wholesale and bulk price calculator', 'shopinbos' ),
+		'caption'         => __( 'Instagram and TikTok caption generator', 'shopinbos' ),
+		'qr-label'        => __( 'QR code and barcode label maker', 'shopinbos' ),
+		'ajo'             => __( 'Ajo and thrift contribution calculator', 'shopinbos' ),
+		'naira-dollar'    => __( 'Naira and dollar price converter', 'shopinbos' ),
+		'slogan'          => __( 'Slogan and tagline generator', 'shopinbos' ),
 	];
 }
 

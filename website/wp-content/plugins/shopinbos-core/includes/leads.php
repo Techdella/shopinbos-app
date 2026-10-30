@@ -387,12 +387,28 @@ function sib_process_lead_form( string $kind, array $in ): array {
 			return [ 'ok' => true, 'message' => 'trending' === $kind ? __( 'You’re in. The top 5 arrive on WhatsApp every Monday.', 'shopinbos' ) : sib_lead_message( 'sunday' ) ];
 
 		case 'tool':
+			// The free tools gate (V9 tool pages): email and WhatsApp number both required, no result email.
+			if ( ! empty( $in['gate'] ) ) {
+				$phone = sib_lead_phone( (string) ( $in['phone'] ?? '' ) );
+				if ( ! $email || ! $phone ) {
+					return $fail( ! $email ? __( 'Add your email.', 'shopinbos' ) : __( 'Type a WhatsApp number like 0803 412 7790.', 'shopinbos' ) );
+				}
+				if ( $consent ) {
+					$tips = __( 'Send me selling tips on WhatsApp and email', 'shopinbos' );
+					sib_log_consent( $email, 'tool', 'tools_gate', $tips );
+					sib_log_consent( $phone, 'tool', 'tools_gate', $tips );
+				}
+				if ( ! headers_sent() ) { // lets the page come back unlocked, with or without JavaScript
+					setcookie( 'sib_tools', '1', [ 'expires' => time() + YEAR_IN_SECONDS, 'path' => COOKIEPATH ?: '/', 'secure' => is_ssl(), 'samesite' => 'Lax' ] );
+				}
+				return [ 'ok' => true, 'message' => __( 'Unlocked. Every free tool is open for you on this device.', 'shopinbos' ) ];
+			}
 			if ( ! $email ) {
 				return $fail( __( 'Add your email.', 'shopinbos' ) );
 			}
 			$tool    = sanitize_key( (string) ( $in['tool'] ?? '' ) );
 			$summary = sanitize_text_field( mb_substr( (string) ( $in['result'] ?? '' ), 0, 300 ) );
-			$label   = sib_tools_list()[ $tool ] ?? __( 'Your result', 'shopinbos' );
+			$label   = ( function_exists( 'sib_tool_label' ) ? sib_tool_label( $tool ) : ( sib_tools_list()[ $tool ] ?? '' ) ) ?: __( 'Your result', 'shopinbos' );
 			sib_send_email( $email, $label, sib_email_html( $label, '<p>' . esc_html( $summary ?: __( 'Open the tool again to see your numbers.', 'shopinbos' ) ) . '</p><p>' . esc_html__( 'Want Shopinbos to do this maths on every order? Your store works it out for you.', 'shopinbos' ) . '</p>', __( 'Start your shop', 'shopinbos' ), sib_absolute( sib_go_url( 'tool_result', [ 'tool' => $tool ] ) ) ) );
 			if ( $consent ) {
 				sib_log_consent( $email, 'tool', $tool );

@@ -1,0 +1,385 @@
+[
+ {
+  "slug": "invoice-generator",
+  "title": "Invoice generator",
+  "tool": "invoice",
+  "excerpt": "Make a neat invoice with your logo letters, items, delivery, discount and optional 7.5% VAT. Print it, save it as a PDF or send it on WhatsApp.",
+  "meta_title": "Free invoice generator for Nigerian businesses | Shopinbos",
+  "meta_description": "Make a free invoice in naira: items, delivery, discount, 7.5% VAT and your bank details. Print, save as PDF or send on WhatsApp.",
+  "keyword": "invoice generator nigeria",
+  "steps": [
+   "Type your business name, logo letters and phone or address.",
+   "Add your customer, the invoice number and the date they should pay by.",
+   "Add each item with how many and the price for one. Tap “Add an item” for more lines.",
+   "Add delivery, any discount and VAT if you charge it, then your bank details.",
+   "Tap “Print or save as PDF” to print or save it, or “Send on WhatsApp” to send it as a message."
+  ],
+  "more": "What you type stays in your browser. Nothing is saved on our side, so print or save the PDF before you close the page.",
+  "faq": [
+   [
+    "What should an invoice include in Nigeria?",
+    "Your business name and contact, the customer’s name, an invoice number, the date, what they are buying with quantities and prices, the total, and how to pay you. If you charge VAT, show it on its own line."
+   ],
+   [
+    "How do I save the invoice as a PDF?",
+    "Tap “Print or save as PDF”. On a phone or computer, pick “Save as PDF” as the printer. Only the invoice prints, not the rest of the page."
+   ],
+   [
+    "What is the difference between an invoice and a receipt?",
+    "An invoice asks for payment. A receipt shows the customer has paid. Use the free receipt generator once the money is in."
+   ],
+   [
+    "Can Shopinbos make invoices for me?",
+    "Yes. In Shopinbos Business every order gets an invoice, and you can send your own invoices by email or WhatsApp with a pay link. When the money lands, the invoice turns Paid."
+   ]
+  ]
+ },
+ {
+  "slug": "receipt-generator",
+  "title": "Receipt generator",
+  "tool": "receipt",
+  "excerpt": "Give your customer a proper receipt: your logo letters, items, delivery, discount, VAT and a PAID stamp. Print it, save it as a PDF or send it on WhatsApp.",
+  "meta_title": "Free receipt generator for Nigerian sellers | Shopinbos",
+  "meta_description": "Make a free sales receipt in naira with items, delivery, discount, VAT and a PAID stamp. Print, save as PDF or send to your customer on WhatsApp.",
+  "keyword": "receipt generator nigeria",
+  "steps": [
+   "Type your business name, logo letters and phone or address.",
+   "Add the customer, a receipt number, the date they paid and how they paid.",
+   "Add each item with how many and the price for one.",
+   "Add delivery, discount and VAT if you charged it.",
+   "Print it, save it as a PDF or send it on WhatsApp."
+  ],
+  "more": "A receipt is proof for your customer, and it keeps your name in front of them. Number your receipts in order (RCT-001, RCT-002) so you can find them later.",
+  "faq": [
+   [
+    "Do I need to give a receipt for every sale?",
+    "It is good practice. Customers trust shops that give receipts, and it helps you keep track of what you sold."
+   ],
+   [
+    "Can I send a receipt on WhatsApp?",
+    "Yes. Tap “Send on WhatsApp” and pick the chat. If you typed the customer’s Nigerian phone number, WhatsApp opens their chat."
+   ],
+   [
+    "How do I number receipts?",
+    "Use a short prefix and a running number, like RCT-001, RCT-002. Never use the same number twice."
+   ],
+   [
+    "Can Shopinbos send receipts for me?",
+    "Yes. When you record a sale in Shopinbos Business you can send a neat receipt with your logo in one tap."
+   ]
+  ]
+ },
+ {
+  "slug": "vat-calculator",
+  "title": "VAT calculator (Nigeria 7.5%)",
+  "tool": "vat",
+  "excerpt": "Add 7.5% VAT to a price, or take VAT out of a price that already includes it. Shows the amount before VAT, the VAT and the total.",
+  "meta_title": "VAT calculator Nigeria (7.5%): add or remove VAT | Shopinbos",
+  "meta_description": "Free Nigerian VAT calculator: add 7.5% VAT to a price or work out the VAT inside a price. In naira and kobo, with the sum shown.",
+  "keyword": "vat calculator nigeria",
+  "steps": [
+   "Type the amount.",
+   "Choose “Add VAT” if your price does not include VAT yet, or “Take VAT out” if it already does.",
+   "Read the amount before VAT, the VAT and the amount with VAT."
+  ],
+  "more": "Nigeria’s VAT rate is 7.5%. To add VAT, multiply by 0.075. To find the VAT inside a price, divide the price by 1.075 and take that away from the price.",
+  "faq": [
+   [
+    "How do I calculate 7.5% VAT?",
+    "Multiply the price by 0.075. On ₦20,000, the VAT is ₦1,500 and the price with VAT is ₦21,500."
+   ],
+   [
+    "How do I remove VAT from a price?",
+    "Divide the price by 1.075. ₦21,500 ÷ 1.075 is ₦20,000, so the VAT inside it is ₦1,500."
+   ],
+   [
+    "Do I have to charge VAT?",
+    "It depends on your business and what you sell. Check with the tax office or an accountant. VAT is added where it applies."
+   ],
+   [
+    "Can Shopinbos add VAT at checkout?",
+    "Yes. In Shopinbos Business you choose how VAT is added at checkout and whether it shows on receipts and invoices."
+   ]
+  ]
+ },
+ {
+  "slug": "pos-charges-calculator",
+  "title": "POS charges calculator",
+  "tool": "pos-charges",
+  "excerpt": "Work out POS withdrawal and transfer charges from the charge you set, what the customer pays, what they get and what the agent keeps.",
+  "meta_title": "POS charges calculator for withdrawals and transfers | Shopinbos",
+  "meta_description": "Free POS charges calculator. Set what your agent charges per amount or as a percentage, and see what the customer pays, gets and what the agent keeps.",
+  "keyword": "pos charges calculator",
+  "steps": [
+   "Type the amount the customer wants to withdraw or send.",
+   "Set how the charge works: a fixed charge for every amount (like ₦100 per ₦5,000) or a percentage.",
+   "Choose whether the charge is paid on top or taken out of the amount.",
+   "If you are an agent, add what your POS provider takes to see what you keep."
+  ],
+  "more": "There is no single national POS charge. Agents set their own, and it changes by area and amount, so type the charge your agent uses (or the one you use).",
+  "faq": [
+   [
+    "How much do POS agents charge?",
+    "It varies by agent, area and amount. Many charge a fixed amount for every few thousand naira. Ask before you withdraw, and type that charge here."
+   ],
+   [
+    "Is the charge added on top or taken out?",
+    "Both happen. Some agents debit the amount plus the charge, others give you the amount minus the charge. Pick the one your agent uses."
+   ],
+   [
+    "How much does a POS agent keep?",
+    "The charge minus what the POS provider or bank takes. Check your provider’s app for their cut, add it here, and the calculator shows what you keep."
+   ]
+  ]
+ },
+ {
+  "slug": "delivery-fee-calculator",
+  "title": "Delivery fee calculator",
+  "tool": "delivery-fee",
+  "excerpt": "Set your delivery prices by area, weight and distance, check a parcel, and get a price list to share with customers on WhatsApp.",
+  "meta_title": "Delivery fee calculator: make your delivery price list | Shopinbos",
+  "meta_description": "Free delivery fee calculator for Nigerian sellers: price by area, extra per kg, free delivery above an amount, per-km prices. Share the list on WhatsApp.",
+  "keyword": "delivery fee calculator",
+  "steps": [
+   "Type your areas and prices, one per line, like “Mainland = 2500”.",
+   "Set the weight your price covers and the extra for each kg above it.",
+   "Add free delivery above an order amount if you offer it.",
+   "If you price by distance, add a starting fee and a price per km.",
+   "Copy or share the price list on WhatsApp."
+  ],
+  "more": "Use the prices your rider or delivery partner charges you, plus a little for packing and fuel changes. A clear price list stops “how much is delivery?” chats.",
+  "faq": [
+   [
+    "How should I price delivery?",
+    "Start from what delivery costs you for each area, add a small amount for packing, and round to a clean figure. Heavier parcels cost more, so add a charge per extra kg."
+   ],
+   [
+    "Should I offer free delivery?",
+    "Only above an order amount where your profit can cover it. Free delivery above a set amount often makes customers add one more item."
+   ],
+   [
+    "Can my customers see my delivery prices at checkout?",
+    "Yes, in Shopinbos Business. Set your own delivery prices and customers see the price for their place when they pay."
+   ]
+  ]
+ },
+ {
+  "slug": "markup-calculator",
+  "title": "Markup calculator",
+  "tool": "markup",
+  "excerpt": "Turn your cost into a selling price with the markup you want, or see the markup and margin on a price you already charge.",
+  "meta_title": "Markup calculator: price from cost, markup vs margin | Shopinbos",
+  "meta_description": "Free markup calculator in naira: get your selling price from cost and markup %, or find your markup and profit margin. Markup vs margin explained simply.",
+  "keyword": "markup calculator",
+  "steps": [
+   "Type what one item costs you.",
+   "Pick “The markup I want” and type a percentage, or pick “My selling price” and type your price.",
+   "Read the selling price, your profit per item, and the markup and margin."
+  ],
+  "more": "Markup is profit as a share of the cost. Margin is profit as a share of the selling price. A 100% markup is a 50% margin, so always check which one people mean.",
+  "faq": [
+   [
+    "What is the difference between markup and margin?",
+    "Markup is profit ÷ cost. Margin is profit ÷ price. If an item costs ₦5,000 and sells for ₦8,000, the markup is 60% and the margin is 37.5%."
+   ],
+   [
+    "What markup should I use?",
+    "Many small shops use 40% to 100% on the product cost, then check the margin still covers delivery, packaging and payment fees."
+   ],
+   [
+    "How do I turn a margin into a markup?",
+    "Markup = margin ÷ (100 − margin) × 100. A 40% margin is about a 67% markup."
+   ]
+  ]
+ },
+ {
+  "slug": "wholesale-price-calculator",
+  "title": "Wholesale and bulk price calculator",
+  "tool": "wholesale-price",
+  "excerpt": "Set price breaks for bulk buyers (like 5% off from 6 pieces), see the price per piece at each break and make sure you still profit.",
+  "meta_title": "Wholesale price calculator: bulk price breaks | Shopinbos",
+  "meta_description": "Free wholesale and bulk price calculator in naira. Set quantity breaks and discounts, check your profit per piece, and share the price list on WhatsApp.",
+  "keyword": "wholesale price calculator",
+  "steps": [
+   "Type your retail price for one piece and what one piece costs you.",
+   "Set up to three price breaks: the quantity they start at and the discount.",
+   "Check the lowest price per piece and your profit at that price.",
+   "Copy or share the price list."
+  ],
+  "more": "Bulk prices work when the bigger order saves you time or delivery. Keep your deepest discount well inside your margin, and round prices to clean figures.",
+  "faq": [
+   [
+    "How much discount should I give for bulk orders?",
+    "Start small, like 5% for a half-dozen and 10% for a dozen, and never more than your margin allows. The calculator warns you if a break goes below your cost."
+   ],
+   [
+    "Should wholesale buyers pay delivery?",
+    "Usually yes, or set free delivery only above a large order. Bulk parcels are heavy."
+   ],
+   [
+    "How do I share my bulk prices?",
+    "Tap “Share on WhatsApp” under the price list, or copy it into your catalogue, status or website."
+   ]
+  ]
+ },
+ {
+  "slug": "instagram-tiktok-caption-generator",
+  "title": "Instagram and TikTok caption generator",
+  "tool": "caption",
+  "excerpt": "Get ready-to-post captions and hashtags for your product, in clear English, Pidgin, hype or soft premium tone. No AI account needed.",
+  "meta_title": "Free Instagram and TikTok caption generator (with Pidgin) | Shopinbos",
+  "meta_description": "Free caption and hashtag generator for Nigerian sellers: Instagram and TikTok captions in English or Pidgin, with your price, delivery area and how to order.",
+  "keyword": "instagram caption generator",
+  "steps": [
+   "Type your product, its best detail, the price and where you deliver.",
+   "Pick a tone: clear English, Pidgin, hype or soft and premium.",
+   "Pick how people order: DM, WhatsApp, link in bio or comment a code.",
+   "Copy a caption and the hashtags, then edit them so they sound like you."
+  ],
+  "more": "The captions are built from templates in your browser from what you type. Change the words to get new versions.",
+  "faq": [
+   [
+    "How many hashtags should I use?",
+    "Five to ten that fit the product and your city work better than thirty random ones. Mix product tags with local ones like your city plus “vendor”."
+   ],
+   [
+    "Should I put the price in my caption?",
+    "Usually yes. Many buyers scroll past posts with no price, and it cuts “how much?” comments."
+   ],
+   [
+    "What is “comment to order”?",
+    "Customers comment a short product code, like ANK2, and you reply with the order link. Shopinbos Business gives every product a code for this."
+   ],
+   [
+    "Can Peggy write captions for me?",
+    "Yes. In Shopinbos Business, Peggy drafts descriptions and captions from your product details."
+   ]
+  ]
+ },
+ {
+  "slug": "qr-code-barcode-label-maker",
+  "title": "QR code and barcode label maker",
+  "tool": "qr-label",
+  "excerpt": "Make product labels with a QR code to your store or WhatsApp, a barcode for your product code, the name and the price. Print a sheet or download the codes.",
+  "meta_title": "Free QR code and barcode label maker for products | Shopinbos",
+  "meta_description": "Make free product labels with a QR code and a Code 128 barcode, your product name and price. Print up to 24 on an A4 sheet or download the codes as SVG.",
+  "keyword": "qr code generator for products",
+  "steps": [
+   "Type the product name, price and product code.",
+   "Type what the QR code should open: your product page, store link or WhatsApp link.",
+   "Pick QR code, barcode or both, and how many labels to print.",
+   "Print the labels on A4 or download the QR code and barcode."
+  ],
+  "more": "The barcode is Code 128, which most barcode scanners read. Test one printed label with your scanner or phone before you print many.",
+  "faq": [
+   [
+    "Do the QR codes expire?",
+    "No. A QR code is just your link or text, so it works as long as the link does."
+   ],
+   [
+    "What barcode type is this?",
+    "Code 128. It holds letters and numbers, so it suits your own product codes. It is not an EAN retail barcode, which you buy from GS1."
+   ],
+   [
+    "What paper should I use?",
+    "Plain A4 sticker paper works. Choose 24 labels for a full sheet and cut along the lines."
+   ],
+   [
+    "Can Shopinbos print shipping labels?",
+    "Yes. Shopinbos Business prints shipping labels with your logo, the customer’s address and a QR code that opens the order’s tracking page."
+   ]
+  ]
+ },
+ {
+  "slug": "ajo-thrift-calculator",
+  "title": "Ajo and thrift contribution calculator",
+  "tool": "ajo",
+  "excerpt": "Plan an ajo or esusu group (who collects when, and how much) or a daily thrift with a collector. Get a payout schedule to share.",
+  "meta_title": "Ajo, esusu and thrift contribution calculator | Shopinbos",
+  "meta_description": "Free ajo and esusu calculator: members, amount and how often you pay give each payout and a dated payout schedule. Also works for daily thrift (alajo).",
+  "keyword": "ajo contribution calculator",
+  "steps": [
+   "Pick ajo or esusu (members take turns) or daily thrift with a collector.",
+   "Type how much each person pays each time, the number of members and how often.",
+   "Set the first payout date and any organiser fee.",
+   "Add members’ names in order if you like, then copy or share the schedule."
+  ],
+  "more": "In ajo or esusu, everyone pays the same amount each round and one member collects the whole pot. In daily thrift, you save daily with a collector who keeps an agreed share, often one day’s savings, as the fee.",
+  "faq": [
+   [
+    "How does ajo work?",
+    "Each member pays the same amount every week or month. Each round, one member collects everything paid in that round, until everyone has collected once."
+   ],
+   [
+    "How much is each payout?",
+    "Members × the amount each pays, minus any organiser fee. Ten members paying ₦10,000 gives a ₦100,000 payout."
+   ],
+   [
+    "How does daily thrift (alajo) work?",
+    "You pay a collector a fixed amount every day for a cycle, often a month. At the end you get your savings back, minus the share the collector keeps."
+   ],
+   [
+    "Is ajo safe?",
+    "Only with people you trust. Write down who collects when, share the schedule with every member, and keep records of every payment."
+   ]
+  ]
+ },
+ {
+  "slug": "naira-dollar-converter",
+  "title": "Naira and dollar price converter",
+  "tool": "naira-dollar",
+  "excerpt": "Convert dollar prices to naira (or naira to dollars) at the rate you type, with a safety margin for rate changes.",
+  "meta_title": "Naira to dollar price converter (your own rate) | Shopinbos",
+  "meta_description": "Convert dollars to naira or naira to dollars at the rate you choose, with a safety margin for rate changes. Free, and no live rates fetched.",
+  "keyword": "dollar to naira converter",
+  "steps": [
+   "Pick dollars to naira or naira to dollars.",
+   "Type the amount and today’s rate from your bank, app or BDC.",
+   "Add a safety margin so a rate change doesn’t eat your profit."
+  ],
+  "more": "This tool does not fetch live rates. Type the rate you will actually pay, because it differs between banks, apps and BDCs.",
+  "faq": [
+   [
+    "Why should I add a safety margin?",
+    "The rate can move between when you price an item and when you pay your supplier. A margin of 2% to 5% protects your profit."
+   ],
+   [
+    "Which rate should I use?",
+    "The rate you will actually pay when you buy dollars, not the lowest rate you see quoted."
+   ],
+   [
+    "How do I price imported goods?",
+    "Convert the dollar cost with your margin, then add shipping and fees. The landed cost calculator does this for yuan prices from China."
+   ]
+  ]
+ },
+ {
+  "slug": "slogan-generator",
+  "title": "Slogan and tagline generator",
+  "tool": "slogan",
+  "excerpt": "Get slogan ideas for your shop from your business name, what you sell and what you promise, in four styles.",
+  "meta_title": "Free slogan and tagline generator for small businesses | Shopinbos",
+  "meta_description": "Free business slogan generator for Nigerian shops: warm, premium, fun or proudly Nigerian taglines from your name, products and promise.",
+  "keyword": "slogan generator",
+  "steps": [
+   "Type your business name and what you sell.",
+   "Type what you promise in one or two words, like quality or fast delivery.",
+   "Pick a style and copy the slogans you like."
+  ],
+  "more": "A good slogan is short, easy to say and true. Put it on your store banner, flyers, packaging and WhatsApp status.",
+  "faq": [
+   [
+    "What makes a good slogan?",
+    "Short (under eight words), easy to remember and true to what you sell. Read it out loud: if it sounds natural, it works."
+   ],
+   [
+    "Do I need a slogan?",
+    "No, but it helps people remember you and what you stand for, especially on flyers and packaging."
+   ],
+   [
+    "Can I change my slogan later?",
+    "Yes. Update it on your store, social pages and packaging when you are ready."
+   ]
+  ]
+ }
+]

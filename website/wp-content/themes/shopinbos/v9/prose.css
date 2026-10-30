@@ -434,3 +434,49 @@
 .hdr.lt .nv:hover>.nvb,.hdr.lt .nv>.nvb[aria-expanded="true"]{background:#F4F3F7}
 .nv>.nvb svg{transition:transform .3s}
 .nv:hover>.nvb svg,.nv>.nvb[aria-expanded="true"] svg{transform:rotate(180deg)}
+
+/* Tools (more): the free tools gate, invoice item rows, document and label previews, /tools/ sections */
+.v9-gate-wrap{position:relative}
+.v9-gate-wrap:not(.is-open) .v9-gated{filter:blur(6px);opacity:.5;pointer-events:none;user-select:none;max-height:820px;overflow:hidden;-webkit-mask-image:linear-gradient(#000 55%,transparent);mask-image:linear-gradient(#000 55%,transparent)}
+.v9-gate-card{position:absolute;inset:0;display:flex;justify-content:center;align-items:flex-start;padding:48px 0}
+.v9-gate{width:min(540px,100%);gap:14px;box-shadow:inset 0 0 0 1px #EAE7EF,0 40px 90px -36px rgba(22,20,31,.5)}
+.v9-gate-h{font-size:clamp(28px,3vw,36px);letter-spacing:-.03em;line-height:1.05}
+.v9-gate-fields{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.v9-gate-fields .field:first-child{grid-column:1/-1}
+.v9-gate .field{display:flex;flex-direction:column;gap:8px;font-size:14.5px;font-weight:600;color:#16141F;line-height:1.35}
+.v9-gate .input{width:100%;min-width:0;height:52px;padding:0 18px;border:0;border-radius:16px;background:#fff;box-shadow:inset 0 0 0 1.5px #E3E0E8;font:inherit;font-size:16px;font-weight:500;color:#16141F;outline:0}
+.v9-gate .input:focus{box-shadow:inset 0 0 0 2px #16141F}
+.v9-gate .input[aria-invalid="true"]{box-shadow:inset 0 0 0 2px #D2402A}
+.v9-gate .hp{position:absolute !important;left:-9999px;width:1px;height:1px;overflow:hidden}
+.v9-gate-tick{display:flex;gap:10px;align-items:flex-start;font-size:14.5px;line-height:1.45;color:#16141F;cursor:pointer}
+.v9-gate-tick input{flex:none;width:18px;height:18px;margin:2px 0 0;accent-color:#FF6A2B}
+.v9-gate .btn{width:100%}
+.v9-gate-msg{margin:0;font-size:14.5px;font-weight:600}
+.v9-gate-msg:empty{display:none}
+.v9-gate-msg.err{color:#C2361F}
+.v9-gate-msg.ok{color:#1E7A50}
+.v9-fields .sib-items-field{grid-column:1/-1}
+.sib-items{display:flex;flex-direction:column;gap:8px}
+.sib-items-head,.sib-item{display:grid;grid-template-columns:minmax(0,1fr) 76px 128px 40px;gap:8px;align-items:center}
+.sib-items-head span{font-size:12.5px;font-weight:600;color:#6B6779}
+.v9-tool .sib-item .input{padding:0 12px}
+.sib-x{width:40px;height:40px;border:0;border-radius:50%;background:#F1EEF4;color:#16141F;font-size:20px;line-height:1;cursor:pointer}
+.sib-x:hover{background:#E6E2EC}
+.sib-add{align-self:flex-start;height:38px;border:0;font:inherit;font-size:14px;font-weight:700;cursor:pointer}
+.v9-tool-out .tool-btns{display:flex;gap:8px;flex-wrap:wrap}
+.v9-tool-out .sib-doc-btns{display:flex;gap:10px;flex-wrap:wrap}
+.v9-tool-out .sib-doc-btns .btn{width:auto;flex:1 1 auto}
+.v9-tool-out .sib-label-preview:empty{display:none}
+.v9-doc{margin-top:16px}
+.v9-doc .sib-doc-wrap{display:flex;flex-direction:column;gap:14px}
+.v9-tool-group{scroll-margin-top:96px}
+.v9-tool-chips .chip .mutd{margin-left:6px;font-weight:600}
+.v9-tool-out a.btn.b-org{height:auto;min-height:56px;padding:14px 24px;white-space:normal;text-align:center;line-height:1.25}
+@media (max-width:1000px){
+ .v9-gate-card{padding:24px 0}
+ .v9-gate-fields{grid-template-columns:1fr}
+ .v9-gate-wrap:not(.is-open) .v9-gated{max-height:900px}
+ .sib-items-head,.sib-item{grid-template-columns:minmax(0,1fr) 54px 92px 36px;gap:6px}
+ .v9-tool .sib-item .input{padding:0 8px;height:48px;font-size:15px}
+ .sib-x{width:36px;height:36px}
+}

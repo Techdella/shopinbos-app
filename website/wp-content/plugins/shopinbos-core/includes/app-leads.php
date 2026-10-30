@@ -59,8 +59,17 @@ function sib_app_lead_from_form( string $kind, array $in ): void {
 		$source = 'trending' === $kind ? 'Trending products every Monday' : 'WhatsApp tips sign-up';
 	} elseif ( 'tool' === $kind ) {
 		$tool              = sanitize_key( (string) ( $in['tool'] ?? '' ) );
-		$source            = function_exists( 'sib_tools_list' ) ? ( sib_tools_list()[ $tool ] ?? $tool ) : $tool;
+		$label             = function_exists( 'sib_tool_label' ) ? sib_tool_label( $tool ) : ( function_exists( 'sib_tools_list' ) ? ( sib_tools_list()[ $tool ] ?? '' ) : '' );
+		$gate              = ! empty( $in['gate'] );
+		$source            = $gate ? 'Free tools unlock (' . ( $label ?: $tool ) . ')' : ( $label ?: $tool );
+		$payload['tool']   = $tool;
 		$payload['result'] = $str( 'result' );
+		if ( $gate ) {
+			$payload['gate'] = '1';
+			foreach ( [ 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid', 'ttclid' ] as $k ) {
+				$payload[ $k ] = $str( $k, 'fbclid' === $k || 'ttclid' === $k ? 255 : 160 );
+			}
+		}
 	} elseif ( 'download' === $kind ) {
 		$source           = get_the_title( absint( $in['resource'] ?? 0 ) );
 		$payload['sells'] = $str( 'sells', 120 );

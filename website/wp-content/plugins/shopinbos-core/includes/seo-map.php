@@ -131,7 +131,7 @@ function sib_seo_auto( WP_Post $post ): array {
 		case 'sib_template':
 			return [ sib_seo_title_fit( $t . ' online store template', [ ' | Shopinbos' ] ), sib_seo_desc_fit( $summary, 'A free, mobile-first store template with pay on delivery and WhatsApp ordering built in.' ), 'online store template' ];
 		case 'sib_tool':
-			return [ sib_seo_title_fit( $t, [ ': free for Nigerian sellers', ' (free) | Shopinbos', ' | Shopinbos' ] ), sib_seo_desc_fit( $summary, 'Free, in naira, no sign-up. Email yourself the result.' ), strtolower( $t ) ];
+			return [ sib_seo_title_fit( $t, [ ': free for Nigerian sellers', ' (free) | Shopinbos', ' | Shopinbos' ] ), sib_seo_desc_fit( $summary, 'Free, in naira. Unlock once with your email and WhatsApp.' ), strtolower( $t ) ];
 		case 'sib_comparison':
 			return [ sib_seo_title_fit( $t, [ ' (2026): honest comparison', ' (2026) | Shopinbos', ' | Shopinbos' ] ), sib_seo_desc_fit( $summary, 'An honest comparison for Nigerian sellers: prices, payments, delivery and support.' ), strtolower( $t ) ];
 		case 'sib_trend':
