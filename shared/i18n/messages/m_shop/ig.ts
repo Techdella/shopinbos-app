@@ -50,6 +50,8 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "link.paymentLinks.hint": "Link onye ahịa na-emeghe site na chat iji kwụọ ụgwọ",
   "link.linkInBio.label": "Link in bio",
   "link.linkInBio.hint": "Otu peeji maka bio Instagram na TikTok gị",
+  "link.shopLink.label": "Link shop gị na QR",
+  "link.shopLink.hint": "@handle gị, link dị mkpụmkpụ na QR code maka ibipụta",
   "webOnly.bio.title": "Gbanwee otú peeji gị dị na ihuenyo buru ibu",
   "webOnly.bio.body": "Agba, foto, WhatsApp, social na blocks ndebanye aha nke peeji link in bio gị dị mfe ịgbanwe na kọmputa ma ọ bụ tablet. Ị nwekwara ike imepe ya na ekwentị a.",
   "link.video.label": "Video studio",

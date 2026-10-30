@@ -90,8 +90,8 @@ function sib_theme_render_header( array $attrs ): string {
 	?>
 	<header class="site-header">
 		<div class="wrap hdr">
-			<a href="<?php echo esc_url( home_url( '/' ) ); ?>" aria-label="<?php esc_attr_e( 'Shopinbos Business home', 'shopinbos' ); ?>" style="display:flex;align-items:center;gap:7px">
-				<img src="<?php echo sib_theme_img( 'logo-dark.png' ); ?>" alt="Shopinbos" class="hlogo" width="178" height="17"><span aria-hidden="true" style="font-size:15px;font-weight:700;line-height:1;color:#6B6779">Business</span>
+			<a href="<?php echo esc_url( home_url( '/' ) ); ?>" aria-label="<?php esc_attr_e( 'Shopinbos Business home', 'shopinbos' ); ?>" style="display:flex;flex-direction:column;align-items:flex-start;gap:4px">
+				<img src="<?php echo sib_theme_img( 'logo-dark.png' ); ?>" alt="Shopinbos" class="hlogo" width="178" height="17"><span aria-hidden="true" style="font-size:11px;font-weight:700;line-height:1;letter-spacing:0.14em;text-transform:uppercase;color:#6B6779">Business</span>
 			</a>
 			<?php if ( empty( $attrs['minimal'] ) ) : ?>
 				<nav aria-label="<?php esc_attr_e( 'Main', 'shopinbos' ); ?>">

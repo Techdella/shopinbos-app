@@ -194,6 +194,16 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "money.state.unavailable": "Card payment don pause for Shopinbos for now.",
   "money.state.needs_whatsapp": "Add your WhatsApp number make this one start.",
   "money.bankRecheck": "Add this bank again make Paystack check am. Then card payment go dey go straight enter am.",
+  "pilot.section": "Pilot features",
+  "pilot.title": "You get pilot invite code?",
+  "pilot.hint": "If Shopinbos team give you code to try new thing, type am here.",
+  "pilot.redeem": "Use code",
+  "pilot.empty": "Type your code first.",
+  "pilot.done": "E don set. The new features go show for app soon.",
+  "pilot.notFound": "That code no dey work. Check am well, try again.",
+  "pilot.expired": "That code don expire.",
+  "pilot.usedUp": "People don use that code finish.",
+  "pilot.tooMany": "You don try too many times. Wait small, try again.",
 };
 
 export default pcm;

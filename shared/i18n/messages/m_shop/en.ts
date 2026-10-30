@@ -51,6 +51,8 @@ const en = {
   "link.paymentLinks.hint": "A link a customer opens from a chat to pay",
   "link.linkInBio.label": "Link in bio",
   "link.linkInBio.hint": "One page for your Instagram and TikTok bio",
+  "link.shopLink.label": "Your shop link & QR",
+  "link.shopLink.hint": "Your @handle, short link and a QR code to print",
   "webOnly.bio.title": "Change your page's look on a bigger screen",
   "webOnly.bio.body": "Colours, photo, WhatsApp, social and sign-up blocks of your link in bio page are easier to change on a computer or tablet. You can open it on this phone too.",
   "link.video.label": "Video studio",

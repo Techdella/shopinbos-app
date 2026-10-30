@@ -89,6 +89,7 @@ import legal from "./messages/legal/index.ts";
 import account from "./messages/account/index.ts";
 import store from "./messages/store/index.ts";
 import domain from "./messages/domain/index.ts";
+import shopLink from "./messages/shopLink/index.ts";
 import marketplace from "./messages/marketplace/index.ts";
 import shipping from "./messages/shipping/index.ts";
 import payments from "./messages/payments/index.ts";
@@ -196,6 +197,7 @@ export const CATALOGS = {
   account,
   store,
   domain,
+  shopLink,
   marketplace,
   shipping,
   payments,

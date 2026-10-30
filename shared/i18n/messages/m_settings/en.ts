@@ -197,6 +197,16 @@ const en = {
   "money.state.unavailable": "Card payments are paused on Shopinbos right now.",
   "money.state.needs_whatsapp": "Add your WhatsApp number to turn this on.",
   "money.bankRecheck": "Add this bank again so Paystack can check it. Then card payments go straight to it.",
+  "pilot.section": "Pilot features",
+  "pilot.title": "Have a pilot invite code?",
+  "pilot.hint": "If the Shopinbos team gave you a code to try something new, type it here.",
+  "pilot.redeem": "Use code",
+  "pilot.empty": "Type your code first.",
+  "pilot.done": "Done. The new features will show in the app soon.",
+  "pilot.notFound": "That code doesn't work. Check it and try again.",
+  "pilot.expired": "That code has expired.",
+  "pilot.usedUp": "That code has been used up.",
+  "pilot.tooMany": "Too many tries. Wait a few minutes and try again.",
 } satisfies Record<string, string>;
 
 export default en;

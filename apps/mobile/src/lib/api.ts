@@ -1,8 +1,10 @@
 import { DeviceEventEmitter, Platform } from "react-native";
+import * as Application from "expo-application";
 import { supabase } from "./supabase";
 import { tNow } from "./app-locale";
 import { APP_CLIENT_HEADER, APP_CLIENT_VALUE, storeSafeKind } from "@shared/store-payments";
 import { PLAN_PROMPT_EVENT, planPromptFor, type PlanPromptDetail } from "@shared/plan-prompts";
+import { APP_PLATFORM_HEADER, APP_VERSION_HEADER, type FeatureApp } from "@shared/feature-switches";
 
 // Calls the Shopinbos Next.js API (the same backend as the web app) with the Supabase access token.
 export const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? "https://app.shopinbos.com").replace(/\/$/, "");
@@ -53,6 +55,30 @@ export function phoneMessage(message: string | null | undefined, status: number,
 export async function authHeader(): Promise<Record<string, string>> {
   const { data } = await supabase.auth.getSession();
   return { [APP_CLIENT_HEADER]: APP_CLIENT_VALUE, ...(data.session ? { Authorization: `Bearer ${data.session.access_token}` } : {}) };
+}
+
+/**
+ * Which app this is for pilot feature switches (shared/feature-switches.ts): the business app on Android, iPhone or
+ * the web build. A Plug build sets EXPO_PUBLIC_APP_FAMILY=plug (no web Plug app: null there).
+ */
+export function featureApp(): FeatureApp | null {
+  const plug = process.env.EXPO_PUBLIC_APP_FAMILY === "plug";
+  if (Platform.OS === "android") return plug ? "plug_android" : "business_android";
+  if (Platform.OS === "ios") return plug ? "plug_ios" : "business_ios";
+  if (Platform.OS === "web") return plug ? null : "business_web";
+  return null;
+}
+
+/** This install's version as people see it ("1.0.3"; expo-application), or null when unknown. */
+export function appVersion(): string | null {
+  return Platform.OS === "web" ? null : (Application.nativeApplicationVersion ?? null);
+}
+
+/** X-App-Platform and X-App-Version, for the routes that answer per app and version (GET /api/app/features). */
+export function appHeaders(): Record<string, string> {
+  const app = featureApp();
+  const version = appVersion();
+  return { ...(app ? { [APP_PLATFORM_HEADER]: app } : {}), ...(version ? { [APP_VERSION_HEADER]: version } : {}) };
 }
 
 /**

@@ -50,6 +50,8 @@ const pcm: Partial<Record<keyof typeof en, string>> = {
   "link.paymentLinks.hint": "Link wey customer go open from chat to pay",
   "link.linkInBio.label": "Link in bio",
   "link.linkInBio.hint": "One page for your Instagram and TikTok bio",
+  "link.shopLink.label": "Your shop link & QR",
+  "link.shopLink.hint": "Your @handle, short link and QR code wey you fit print",
   "webOnly.bio.title": "Change how your page look for bigger screen",
   "webOnly.bio.body": "E easier to change the colours, photo, WhatsApp, social and sign-up blocks for your link in bio page for computer or tablet. You fit still open am for this phone.",
   "link.video.label": "Video studio",

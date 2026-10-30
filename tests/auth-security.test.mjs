@@ -80,6 +80,23 @@ test("every portal page needs a session and the right role (proxy table or requi
   assert.match(read("src/lib/staff/staff.server.ts"), /if \(member\.email\?\.toLowerCase\(\) !== invite\.email\) throw new StaffError/);
 });
 
+// Public route handlers (not pages, so discoverPages doesn't see them) that must stay open to anyone.
+const PUBLIC_ROUTE_HANDLERS = [
+  // A shop's short link and QR code (app.shopinbos.com/@handle, rewritten by the proxy): looks the handle up and
+  // redirects to the shop (shopLinkTarget). Reads nothing private and changes nothing.
+  { route: "/h/[handle]", file: "src/app/h/[handle]/route.ts" },
+];
+
+test("public route handlers stay open and only redirect", () => {
+  for (const { route, file } of PUBLIC_ROUTE_HANDLERS) {
+    assert.equal(access.rolesForPath(route.replace(/\[[^\]]+\]/g, "x")), null, `${route} is public but the proxy guards it`);
+    const source = read(file);
+    assert.match(source, /export async function GET\(/, file);
+    assert.doesNotMatch(source, /export async function (POST|PUT|PATCH|DELETE)\(/, `${file} must not change anything`);
+  }
+  assert.equal(access.rolesForPath("/@kemibags"), null, "the /@handle short link is public too");
+});
+
 test("route table: most specific prefix wins and public pages stay open", () => {
   assert.deepEqual(access.rolesForPath("/home"), ["seller"]);
   assert.deepEqual(access.rolesForPath("/home/orders/abc"), ["seller"]);
