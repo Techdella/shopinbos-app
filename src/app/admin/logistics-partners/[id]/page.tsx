@@ -103,6 +103,7 @@ export default async function AdminLogisticsDetailPage(props: { params: Promise<
         <>
           <PillLink href="/admin/logistics-partners" icon="arrowLeft" iconOnlyOnPhone>All partners</PillLink>
           <PillLink href={`/admin/support/new?to=user:${partner.userId}`} icon="chat">Message</PillLink>
+          <PillLink href={`/admin/accounts?user=${partner.userId}#account`} icon="settings">Manage account</PillLink>
           <PartnerStatusActions partnerId={partner.id} verificationStatus={String(partner.verificationStatus)} name={partner.displayName} />
         </>
       }

@@ -166,6 +166,7 @@ const en = {
   "admin.print-orders": "Print orders",
   "admin.imports": "China imports",
   "admin.support-macros": "Saved replies",
+  "admin.accounts": "Accounts",
   "admin.sellers": "Sellers",
   "admin.suppliers": "Suppliers",
   "admin.logistics-partners": "Logistics",

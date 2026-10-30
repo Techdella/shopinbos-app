@@ -42,6 +42,7 @@ export default async function AdminSellerPage(props: { params: Promise<{ id: str
           <PillLink href="/admin/sellers" icon="arrowLeft" iconOnlyOnPhone>All sellers</PillLink>
           <PillLink href={storeUrl(seller)} icon="globe">Open shop</PillLink>
           <PillLink href={`/admin/support/new?to=user:${seller.userId}`} icon="chat">Message</PillLink>
+          <PillLink href={`/admin/accounts?user=${seller.userId}#account`} icon="settings">Manage account</PillLink>
         </>
       }
     >

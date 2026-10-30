@@ -164,6 +164,7 @@ const ig: Partial<Record<keyof typeof en, string>> = {
   "admin.print-orders": "Orders mbipụta",
   "admin.imports": "Ngwa si China",
   "admin.support-macros": "Azịza echekwara",
+  "admin.accounts": "Akaụntụ",
   "admin.sellers": "Ndị na-ere ahịa",
   "admin.suppliers": "Suppliers",
   "admin.logistics-partners": "Logistics",
